@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+export enum ControlSize { compact, medium, comfortable }
+export enum ControlWidth { intrinsic, fill }
+export enum TypographyRole { caption, control, body, subtitle, title }
+export global KitMetrics {
+    out property <length> label-gap: 8px;
+    out property <length> help-gap: 4px;
+    out property <length> field-gap: 16px;
+    out property <length> section-gap: 24px;
+    out property <length> footer-gap: 12px;
+    public pure function font-size(role: TypographyRole, scale: float) -> length {
+        return (role == TypographyRole.caption ? 12px : role == TypographyRole.control ? 14px : role == TypographyRole.body ? 16px : role == TypographyRole.subtitle ? 20px : 28px) * scale;
+    }
+    public pure function control-height(size: ControlSize, scale: float) -> length {
+        return max(size == ControlSize.compact ? 32px : size == ControlSize.comfortable ? 48px : 40px, 20px * scale + 12px);
+    }
+}
+export enum ButtonIntent { primary, secondary, quiet, destructive }
+export struct KitTheme {
+    canvas: color, surface: color, surface-raised: color,
+    text-primary: color, text-secondary: color, accent: color, on-accent: color,
+    danger: color, border-subtle: color, focus-ring: color,
+    hover: color, pressed: color, disabled-fill: color, disabled-text: color,
+    scrim: color, reduced-motion: bool, text-scale: float,
+}
+export struct ButtonRecipe {
+    fill: brush, hover-fill: brush, pressed-fill: brush, disabled-fill: brush,
+    foreground: color, disabled-foreground: color, border: color,
+    radius: length, padding-inline: length, padding-block: length, border-width: length, height: length, font-size: length,
+    focus-color: color, focus-width: length, focus-offset: length,
+}
+export global KitThemes {
+    out property <KitTheme> light: {
+        canvas: #f8fafc, surface: #ffffff, surface-raised: #ffffff,
+        text-primary: #0f172a, text-secondary: #475569, accent: #4f46e5, on-accent: #ffffff,
+        danger: #b91c1c, border-subtle: #cbd5e1, focus-ring: #4338ca,
+        hover: #eef2ff, pressed: #e0e7ff, disabled-fill: #e2e8f0, disabled-text: #64748b,
+        scrim: #0b122088, reduced-motion: false, text-scale: 1,
+    };
+    out property <KitTheme> dark: {
+        canvas: #0b1220, surface: #111b2e, surface-raised: #1b2940,
+        text-primary: #e8eef8, text-secondary: #aab8cd, accent: #8b9dff, on-accent: #10152a,
+        danger: #ff9b9b, border-subtle: #475569, focus-ring: #b4c0ff,
+        hover: #25354f, pressed: #304568, disabled-fill: #233047, disabled-text: #91a0b7,
+        scrim: #00000099, reduced-motion: false, text-scale: 1,
+    };
+    public pure function icon-button-recipe(theme: KitTheme, size: ControlSize) -> ButtonRecipe {
+        return {
+            fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed,
+            disabled-fill: transparent, foreground: theme.text-primary,
+            disabled-foreground: theme.disabled-text, border: transparent,
+            radius: 6px, padding-inline: 0px, padding-block: 0px, border-width: 0px,
+            height: KitMetrics.control-height(size, theme.text-scale),
+            font-size: 14px * theme.text-scale,
+            focus-color: theme.focus-ring, focus-width: 2px, focus-offset: 2px,
+        };
+    }
+    public pure function button-recipe(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe {
+        return {
+            fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger : intent == ButtonIntent.quiet ? transparent : theme.surface,
+            hover-fill: intent == ButtonIntent.primary ? theme.accent.darker(12%) : intent == ButtonIntent.destructive ? theme.danger.darker(12%) : theme.hover,
+            pressed-fill: intent == ButtonIntent.primary ? theme.accent.darker(24%) : intent == ButtonIntent.destructive ? theme.danger.darker(24%) : theme.pressed,
+            disabled-fill: theme.disabled-fill,
+            foreground: intent == ButtonIntent.primary || intent == ButtonIntent.destructive ? theme.on-accent : theme.text-primary,
+            disabled-foreground: theme.disabled-text,
+            border: intent == ButtonIntent.quiet ? transparent : intent == ButtonIntent.secondary ? theme.border-subtle : transparent,
+            radius: 8px, padding-inline: size == ControlSize.compact ? 12px : 16px, padding-block: 6px,
+            border-width: intent == ButtonIntent.secondary ? 1px : 0px,
+            height: size == ControlSize.compact ? 32px : size == ControlSize.comfortable ? 48px : 40px,
+            font-size: (size == ControlSize.comfortable ? 16px : 14px) * theme.text-scale,
+            focus-color: theme.focus-ring, focus-width: 2px, focus-offset: 2px,
+        };
+    }
+}

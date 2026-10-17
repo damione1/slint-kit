@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Original paths on a common 16-unit grid; no external icon assets.
+export enum IconKind { chevron-down, chevron-left, chevron-right, close, eye, eye-hidden, search, check, minus, plus, arrow-up-right, warning }
+export component KitIcon inherits Path {
+    in property <IconKind> kind: IconKind.chevron-down;
+    in property <color> ink: #475569;
+    width: 16px; height: 16px;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    viewbox-width: 16; viewbox-height: 16;
+    commands: root.kind == IconKind.chevron-down ? "M 3 6 L 8 11 L 13 6"
+        : root.kind == IconKind.chevron-left ? "M 10 3 L 5 8 L 10 13"
+        : root.kind == IconKind.chevron-right ? "M 6 3 L 11 8 L 6 13"
+        : root.kind == IconKind.close ? "M 4 4 L 12 12 M 12 4 L 4 12"
+        : root.kind == IconKind.check ? "M 3 8 L 6.5 11.5 L 13 4.5"
+        : root.kind == IconKind.minus ? "M 3 8 L 13 8"
+        : root.kind == IconKind.plus ? "M 3 8 L 13 8 M 8 3 L 8 13"
+        : root.kind == IconKind.arrow-up-right ? "M 4 12 L 12 4 M 4 4 L 12 4 L 12 12"
+        : root.kind == IconKind.search ? "M 10.5 10.5 L 14 14 M 12 7 C 12 9.8 9.8 12 7 12 C 4.2 12 2 9.8 2 7 C 2 4.2 4.2 2 7 2 C 9.8 2 12 4.2 12 7 Z"
+        : root.kind == IconKind.warning ? "M 8 2 L 14 13 L 2 13 Z M 8 6 L 8 9 M 8 11 L 8 11.5"
+        : root.kind == IconKind.eye-hidden ? "M 2 2 L 14 14 M 2 8 C 5 2 11 2 14 8 C 12 12 8 13 5 11 M 6 6 C 4 9 8 12 10 9"
+        : "M 2 8 C 5 2 11 2 14 8 C 11 14 5 14 2 8 Z M 10 8 C 10 10.7 6 10.7 6 8 C 6 5.3 10 5.3 10 8 Z";
+    stroke: root.ink; stroke-width: 1.7px; fill: transparent;
+}

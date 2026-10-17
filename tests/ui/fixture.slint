@@ -1,0 +1,211 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitPressable, KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget, KitTheme, KitThemes, ButtonRecipe, ButtonIntent, ControlSize, OptionRow, SelectionRef, SelectState, FocusRequest, DialogState, NavigationStep, CloseReason } from "@kit/kit.slint";
+import { ListView } from "std-widgets.slint";
+component ConsumerAction inherits KitPressable { @children }
+
+export component Fixture inherits Window {
+    width: 640px;
+    height: 600px;
+    in property <bool> dark;
+    in property <bool> disabled;
+    in property <bool> busy;
+    in property <bool> dialog-action-eligible: true;
+    out property <KitTheme> light-theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    out property <bool> editor-focused: editor.has-focus;
+    out property <bool> dialog-action-focused: dialog-action.has-focus;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <DialogState> dialog-state;
+    in property <FocusRequest> focus-request;
+    in-out property <string> edit-text;
+    out property <bool> standard-pressed: standard.pressed;
+    out property <bool> custom-pressed: custom.pressed;
+    out property <bool> standard-focused: standard.has-focus;
+    out property <bool> custom-focused: custom.has-focus;
+    callback standard-activated();
+    callback custom-activated();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int,int);
+    callback select-open();
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    callback focus-next(bool);
+    callback dismiss-dialog(CloseReason);
+    public pure function recipe(theme: KitTheme, intent: ButtonIntent) -> ButtonRecipe {
+        return KitThemes.button-recipe(theme, intent, ControlSize.medium);
+    }
+    public function focus-standard() { standard.take-focus(); }
+    public function focus-custom() { custom.take-focus(); }
+    public function focus-select() { select.take-focus(); }
+    public function focus-editor() { editor.focus(); }
+    public function cancel-standard() { standard.cancel-press(); }
+    public function cancel-custom() { custom.cancel-press(); }
+    private property <KitTheme> theme: root.dark ? KitThemes.dark : KitThemes.light;
+    standard := KitButton {
+        x: 20px; y: 20px; width: 200px; height: 48px;
+        theme: root.theme; text: "Standard action";
+        disabled: root.disabled; busy: root.busy;
+        activated => { root.standard-activated(); }
+    }
+    custom := ConsumerAction {
+        x: 240px; y: 20px; width: 240px; height: 80px;
+        theme: root.theme; accessible-name: "Custom action";
+        disabled: root.disabled; busy: root.busy;
+        activated => { root.custom-activated(); }
+        VerticalLayout {
+            Text { text: "Custom title"; }
+            Text { text: "Consumer composed content"; }
+        }
+    }
+    select := KitSelect {
+        x: 20px; y: 130px; width: 280px; height: 48px;
+        theme: root.theme; rows: root.rows; state: root.select-state;
+        open-requested => { root.select-open(); }
+        navigate(step) => { root.select-navigate(step); }
+        activate(token,generation) => { root.select-activate(token,generation); }
+        dismiss(reason) => { root.select-dismiss(reason); }
+        query-edited(text) => { root.select-query(text); }
+        typeahead(text) => { root.select-typeahead(text); }
+    }
+    dialog := KitDialogSurface {
+        state: root.dialog-state; theme: root.theme;
+        focus-next(reverse) => { root.focus-next(reverse); }
+        dismiss(reason) => { root.dismiss-dialog(reason); }
+        KitDialogPanel {
+            x: 80px; y: 220px; width: 480px; height: 300px;
+            VerticalLayout {
+                KitDialogHeader { Text { text: "Consumer header"; } }
+                KitDialogBody {
+                    KitFocusTarget {
+                        token: 1; generation: 1; request: root.focus-request;
+                        focus-requested => { editor.focus(); }
+                        editor := TextInput { text <=> root.edit-text; accessible-label: "Dialog editor"; }
+                    }
+                }
+                KitDialogFooter {
+                    KitFocusTarget {
+                        token: 2; generation: 2; request: root.focus-request;
+                        eligible: root.dialog-action-eligible;
+                        focus-requested => { dialog-action.take-focus(); }
+                        dialog-action := KitButton { text: "Accept"; disabled: !root.dialog-action-eligible; }
+                    }
+                    KitButton { text: "Unavailable action"; disabled: true; }
+                }
+            }
+        }
+    }
+}
+
+// Consumer wrapper forwards its arbitrary children through the public primitive.
+component ConsumerOption inherits KitOption {
+    HorizontalLayout {
+        Rectangle { width: 16px; height: 16px; background: root.theme.accent; }
+        VerticalLayout {
+            Text { text: root.option-data.label; }
+            Text { text: root.option-data.description; }
+        }
+    }
+}
+
+// The consuming window owns PopupWindow placement and the row delegate.
+export component ComposedPopupFixture inherits Window {
+    width: 400px; height: 400px;
+    in property <[OptionRow]> rows;
+    in property <SelectState> state;
+    callback navigate(NavigationStep);
+    callback activate(int,int);
+    callback dismiss(CloseReason);
+    changed state => { if (root.state.open) { popup.show(); } else { popup.close(); } }
+    KitSelectTrigger {
+        x: 20px; y: 20px; width: 300px; height: 60px;
+        state: root.state; accessible-name: "Composed selector";
+        navigate(step) => { root.navigate(step); }
+        activate(token,generation) => { root.activate(token,generation); }
+        dismiss(reason) => { root.dismiss(reason); }
+        VerticalLayout {
+            Text { text: "Custom trigger"; }
+            Text { text: "Consumer metadata"; }
+        }
+    }
+    popup := PopupWindow {
+        x: 20px; y: 84px; width: 320px; height: 280px;
+        surface := KitSelectSurface {
+            state: root.state;
+            empty: root.rows.length == 0;
+            viewport-height: custom-list.visible-height;
+            scroll-y <=> custom-list.content-y;
+            navigate(step) => { root.navigate(step); }
+            activate(token,generation) => { root.activate(token,generation); }
+            dismiss(reason) => { root.dismiss(reason); }
+            custom-list := ListView {
+                for option in root.rows: ConsumerOption {
+                    option-data: option;
+                    height: 48px;
+                    active: root.state.active.present && root.state.active.token == option.token;
+                    activate(token,generation) => { root.activate(token,generation); }
+                }
+            }
+        }
+    }
+}
+
+// Separate window isolates nested native popup routing from the standard fixture.
+export enum TabDisposition { host-handled, native-navigation }
+export component NestedFixture inherits Window {
+    width: 640px; height: 600px;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <DialogState> dialog-state;
+    out property <bool> background-focused: background.has-focus;
+    out property <bool> editor-focused: editor.has-focus;
+    out property <bool> select-focused: nested-select.has-focus;
+    out property <bool> action-focused: action.has-focus;
+    callback select-navigate(NavigationStep);
+    callback select-activate(int,int);
+    callback select-open();
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    callback select-tab(bool) -> TabDisposition;
+    callback focus-next(bool);
+    callback dismiss-dialog(CloseReason);
+    public function focus-background() { background.take-focus(); }
+    public function focus-editor() { editor.focus(); }
+    public function focus-select() { nested-select.take-focus(); }
+    public function focus-action() { action.take-focus(); }
+    background := KitButton {
+        x: 20px; y: 20px; width: 200px; height: 48px;
+        text: "Open dialog";
+    }
+    KitDialogSurface {
+        state: root.dialog-state;
+        focus-next(reverse) => { root.focus-next(reverse); }
+        dismiss(reason) => { root.dismiss-dialog(reason); }
+        KitDialogPanel {
+            x: 80px; y: 100px; width: 480px; height: 400px;
+            VerticalLayout {
+                padding: 20px;
+                spacing: 12px;
+                editor := TextInput { text: "Editable field"; accessible-label: "Nested editor"; }
+                nested-select := KitSelect {
+                    rows: root.rows;
+                    state: root.select-state;
+                    placeholder: "Nested choice";
+                    open-requested => { root.select-open(); }
+                    navigate(step) => { root.select-navigate(step); }
+                    activate(token,generation) => { root.select-activate(token,generation); }
+                    dismiss(reason) => { root.select-dismiss(reason); }
+                    query-edited(text) => { root.select-query(text); }
+                    typeahead(text) => { root.select-typeahead(text); }
+                    tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                }
+                action := KitButton { text: "Dialog action"; }
+            }
+        }
+    }
+}
+
+export { Part2Fixture, PublicCatalogueFixture } from "part2-fixture.slint";
+export { ChoiceRegressionFixture } from "part2-fixture.slint";

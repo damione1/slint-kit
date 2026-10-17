@@ -1,0 +1,141 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ValidationPresentation } from "shared-contracts.slint";
+import { KitTheme, KitThemes, ControlSize, KitMetrics } from "theme.slint";
+import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
+import { KitTextField } from "input.slint";
+import { KitSlider } from "choice.slint";
+import { FieldAccess, NavigationStep } from "contracts.slint";
+import { ColorAlphaMode } from "shared-contracts.slint";
+export { ColorAlphaMode } from "shared-contracts.slint";
+
+export enum ColorChannel { red, green, blue, alpha }
+export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
+
+// All channels are sRGB byte projections, never implicit HSL/linear RGB.
+// The native hex draft may be incomplete; only Rust's SrgbColor parser commits.
+export component KitColorField inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.opaque;
+    in property <SrgbColorView> accepted-color;
+    in property <color> swatch: #000000;
+    in property <string> label: "Color";
+    in property <string> error;
+    in-out property <string> text;
+    callback edited(string);
+    callback commit-requested(string);
+    callback cancelled();
+    public function take-focus() { editor.take-focus(); }
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 4px;
+        if root.label != "": KitFieldLabel {theme:root.theme;text:root.label;access:root.access;focus-requested=>{editor.take-focus();}}
+        HorizontalLayout {
+            spacing: 12px;
+            editor := KitTextField {
+                theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
+                validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+                text <=> root.text;
+                placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
+                edited(text)=>{root.edited(text);}commit-requested(text)=>{root.commit-requested(text);}cancelled=>{root.cancelled();}
+            }
+            Rectangle {
+                width: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+                height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+                border-radius:8px;background:root.theme.canvas;border-width:1px;border-color:root.theme.border-subtle;
+                accessible-role:image;accessible-label:root.label + " preview";
+                Rectangle {x:4px;y:4px;width:parent.width - 8px;height:parent.height - 8px;border-radius:5px;background:root.swatch;}
+            }
+        }
+        KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
+        if root.error != "": KitFieldError {theme:root.theme;text:root.error;}
+    }
+}
+
+component ColorChannelEditor inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ColorChannel> channel;
+    in property <string> label;
+    in property <string> error;
+    in property <float> position;
+    in-out property <string> text;
+    callback edited(ColorChannel,string);
+    callback commit-requested(ColorChannel,string);
+    callback position-requested(ColorChannel,float);
+    callback navigate(ColorChannel,NavigationStep);
+    callback gesture-started(ColorChannel);
+    callback committed(ColorChannel);
+    callback cancelled(ColorChannel);
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 4px;
+        KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
+            edited(text) => { root.edited(root.channel,text); }
+            commit-requested(text) => { root.commit-requested(root.channel,text); }
+        }
+        KitSlider { theme: root.theme; access: root.access; position: root.position; label: root.label; value-label: root.text;
+            position-requested(position) => { root.position-requested(root.channel,position); }
+            navigate(step) => { root.navigate(root.channel,step); }
+            gesture-started => { root.gesture-started(root.channel); }
+            committed => { root.committed(root.channel); }
+            cancelled => { root.cancelled(root.channel); }
+        }
+    }
+}
+
+export component KitColorPicker inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.opaque;
+    in property <SrgbColorView> accepted-color;
+    in property <color> swatch;
+    in property <string> label: "Color";
+    in property <string> hex-error;
+    in property <string> red-error;
+    in property <string> green-error;
+    in property <string> blue-error;
+    in property <string> alpha-error;
+    in-out property <string> hex-text;
+    in-out property <string> red-text;
+    in-out property <string> green-text;
+    in-out property <string> blue-text;
+    in-out property <string> alpha-text;
+    callback hex-edited(string);
+    callback hex-commit-requested(string);
+    callback channel-edited(ColorChannel,string);
+    callback channel-commit-requested(ColorChannel,string);
+    callback channel-position-requested(ColorChannel,float);
+    callback channel-navigate(ColorChannel,NavigationStep);
+    callback gesture-started(ColorChannel);
+    callback committed(ColorChannel);
+    callback cancelled(ColorChannel);
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 16px;
+        KitColorField { theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } }
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; position: root.accepted-color.red / 255;
+            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
+            position-requested(channel,value) => { root.channel-position-requested(channel,value); } navigate(channel,step) => { root.channel-navigate(channel,step); }
+            gesture-started(channel) => { root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.cancelled(channel); }
+        }
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: "Green"; error: root.green-error; text <=> root.green-text; position: root.accepted-color.green / 255;
+            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
+            position-requested(channel,value) => { root.channel-position-requested(channel,value); } navigate(channel,step) => { root.channel-navigate(channel,step); }
+            gesture-started(channel) => { root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.cancelled(channel); }
+        }
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: "Blue"; error: root.blue-error; text <=> root.blue-text; position: root.accepted-color.blue / 255;
+            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
+            position-requested(channel,value) => { root.channel-position-requested(channel,value); } navigate(channel,step) => { root.channel-navigate(channel,step); }
+            gesture-started(channel) => { root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.cancelled(channel); }
+        }
+        if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: "Alpha"; error: root.alpha-error; text <=> root.alpha-text; position: root.accepted-color.alpha / 255;
+            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
+            position-requested(channel,value) => { root.channel-position-requested(channel,value); } navigate(channel,step) => { root.channel-navigate(channel,step); }
+            gesture-started(channel) => { root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.cancelled(channel); }
+        }
+    }
+}

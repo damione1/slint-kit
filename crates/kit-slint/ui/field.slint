@@ -1,0 +1,154 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize } from "theme.slint";
+import { KitPressable } from "button.slint";
+import { ButtonIntent, ControlWidth } from "theme.slint";
+import { FocusRequest } from "contracts.slint";
+import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
+export { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
+
+export component KitField inherits VerticalLayout {
+    spacing: KitMetrics.help-gap;
+    alignment: start;
+    vertical-stretch: 0;
+    @children
+}
+export component KitFieldLabel inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> text;
+    in property <FieldAccess> access: FieldAccess.editable;
+    callback focus-requested();
+    preferred-height: label.preferred-height + KitMetrics.label-gap - KitMetrics.help-gap;
+    min-height: self.preferred-height;
+    vertical-stretch: 0;
+    label := Text {
+        x: 0px; width: parent.width;
+        horizontal-alignment: left;
+        text: root.text;
+        height: self.preferred-height;
+        font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+        font-weight: 600;
+        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+        wrap: word-wrap;
+    }
+    TouchArea { enabled: root.access != FieldAccess.disabled; clicked => { root.focus-requested(); } }
+}
+export component KitFieldDescription inherits Text {
+    in property <KitTheme> theme: KitThemes.light;
+    horizontal-alignment: left;
+    color: root.theme.text-secondary;
+    font-size: KitMetrics.font-size(TypographyRole.caption, root.theme.text-scale);
+    wrap: word-wrap;
+    vertical-stretch: 0;
+}
+export component KitFieldError inherits KitFieldDescription {
+    color: root.theme.danger;
+    accessible-role: text;
+    accessible-live-region: polite;
+}
+export component KitFieldGroup inherits VerticalLayout {
+    spacing: KitMetrics.field-gap;
+    alignment: start;
+    vertical-stretch: 0;
+    @children
+}
+export component KitFieldSet inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> legend;
+    accessible-role: groupbox;
+    accessible-label: root.legend;
+    preferred-height: content.preferred-height;
+    vertical-stretch: 0;
+    content := VerticalLayout {
+        alignment: start;
+        spacing: KitMetrics.field-gap;
+        if root.legend != "": Text {
+            text: root.legend;
+            color: root.theme.text-primary;
+            font-size: KitMetrics.font-size(TypographyRole.body, root.theme.text-scale);
+            font-weight: 600;
+            wrap: word-wrap;
+        }
+        @children
+    }
+}
+export component KitInputGroup inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <bool> focused;
+    in property <length> padding-inline: root.control-size == ControlSize.compact ? 12px : 16px;
+    in property <length> padding-block: 6px;
+    min-height: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+    preferred-height: self.min-height;
+    vertical-stretch: 0;
+    background: root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.theme.surface;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.theme.border-subtle;
+    Rectangle {
+        x: root.padding-inline; y: root.padding-block;
+        width: max(0px, parent.width - 2 * root.padding-inline);
+        height: max(0px, parent.height - 2 * root.padding-block);
+        @children
+    }
+    if root.focused: Rectangle {
+        x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px;
+        border-radius: 10px; border-width: 2px;
+        border-color: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.theme.focus-ring;
+        background: transparent;
+    }
+}
+export component KitFieldSeparator inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    height: 1px;
+    background: root.theme.border-subtle;
+    vertical-stretch: 0;
+}
+
+// Place these parts alongside a native editor inside an InputGroup's single
+// children surface. They do not add padding, borders or another focus target.
+export component KitInputGroupStart inherits HorizontalLayout {
+    spacing: KitMetrics.label-gap;
+    alignment: start;
+    horizontal-stretch: 0;
+    @children
+}
+export component KitInputGroupEnd inherits HorizontalLayout {
+    spacing: KitMetrics.label-gap;
+    alignment: end;
+    horizontal-stretch: 0;
+    @children
+}
+export component KitInputGroupText inherits Text {
+    in property <KitTheme> theme: KitThemes.light;
+    font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+    color: root.theme.text-secondary;
+    vertical-alignment: center;
+    horizontal-stretch: 0;
+}
+
+export struct FormErrorRow { target: FocusRequest, message: string }
+export component KitFormErrorSummary inherits KitFieldGroup {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> title: "Please check these fields";
+    in property <[FormErrorRow]> errors;
+    callback error-activated(FocusRequest);
+    spacing: KitMetrics.help-gap;
+    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title; font-weight: 600; }
+    for error in root.errors: KitPressable {
+        theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
+        accessible-name: error.message;
+        preferred-height: max(32px, message.preferred-height + 12px);
+        min-height: self.preferred-height;
+        activated => { root.error-activated(error.target); }
+        message := Text {
+            text: error.message;
+            color: root.theme.danger;
+            font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+            wrap: word-wrap;
+            horizontal-alignment: left;
+            vertical-alignment: center;
+        }
+    }
+}

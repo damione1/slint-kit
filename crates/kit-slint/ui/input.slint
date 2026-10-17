@@ -1,0 +1,180 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth } from "theme.slint";
+import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup } from "field.slint";
+import { KitPressable } from "button.slint";
+import { KitIcon, IconKind } from "icons.slint";
+import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
+export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
+export enum ResizePolicy { fixed, auto-grow }
+export enum TextLineMode { single-line, multiline }
+
+// All variants retain this one native TextInput throughout theme, validation,
+// placeholder and reveal changes. Parsing and grapheme counting belong to Rust.
+export component KitTextField inherits KitField {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <TextPurpose> purpose: TextPurpose.plain;
+    in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
+    in property <TextLineMode> line-mode: TextLineMode.single-line;
+    in property <ResizePolicy> resize-policy: ResizePolicy.fixed;
+    in property <int> min-lines: 3;
+    in property <int> max-lines: 8;
+    in property <string> label;
+    in property <string> accessible-name: root.label;
+    in property <InputMethodHints> input-method-hints: { capitalization: root.purpose == TextPurpose.plain ? CapitalizationMode.sentences : CapitalizationMode.none, auto-correct: root.purpose == TextPurpose.plain, auto-complete: root.purpose == TextPurpose.plain };
+    in property <string> description;
+    in property <string> error;
+    in property <string> placeholder;
+    in property <length> text-letter-spacing: 0px;
+    in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.left;
+    in property <string> prefix;
+    in property <string> suffix;
+    in-out property <string> text;
+    in property <bool> show-character-count;
+    // Count is supplied by the controller using Unicode grapheme clusters.
+    in property <int> character-count;
+    in property <string> reveal-label: "Show password";
+    in property <string> hide-label: "Hide password";
+    in property <string> clear-label: "Clear search";
+    in property <string> character-count-label: "characters";
+    in property <string> checking-label: "Checking…";
+    out property <bool> has-focus: editor.has-focus;
+    callback edited(string);
+    callback commit-requested(string);
+    callback cancelled();
+    callback focus-observed(bool);
+    public function take-focus() { if (root.access != FieldAccess.disabled) { editor.focus(); } }
+    public function select-all() { editor.select-all(); }
+    public function cancel-edit() { root.cancelled(); }
+    changed has-focus => { root.focus-observed(root.has-focus); }
+    private property <length> line-height: 20px * root.theme.text-scale;
+    private property <bool> multiline: root.line-mode == TextLineMode.multiline;
+    private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
+    private property <length> editor-height: root.multiline ? max(root.line-height * max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? min(measure.preferred-height, root.line-height * max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.control-size, root.theme.text-scale) - 12px;
+    if root.label != "": KitFieldLabel {
+        theme: root.theme; text: root.label; access: root.access;
+        focus-requested => { root.take-focus(); }
+    }
+    surface := KitInputGroup {
+        theme: root.theme; control-size: root.control-size; access: root.access; validation: root.validation;
+        focused: root.has-focus;
+        preferred-height: root.editor-height + 12px;
+        max-height: self.preferred-height;
+        HorizontalLayout {
+            spacing: 8px;
+            if root.prefix != "": Text {
+                text: root.prefix; color: root.theme.text-secondary;
+                font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+                vertical-alignment: center; horizontal-stretch: 0;
+            }
+            Rectangle {
+                horizontal-stretch: 1; clip: true;
+                viewport := Flickable {
+                    interactive: root.multiline;
+                    content-width: root.multiline ? self.width : max(self.width, editor.preferred-width + 2px);
+                    content-height: max(self.height, root.multiline ? measure.preferred-height : self.height);
+                    measure := Text {
+                        visible: false;
+                        width: viewport.width;
+                        text: root.text == "" ? " " : root.text;
+                        font-size: 14px * root.theme.text-scale;
+                        wrap: word-wrap;
+                    }
+                    if root.text == "": Text {
+                        width: viewport.width; height: root.multiline ? self.preferred-height : viewport.height;
+                        text: root.placeholder;
+                        color: root.theme.disabled-text;
+                        font-size: 14px * root.theme.text-scale;
+                        vertical-alignment: root.multiline ? top : center;
+                        wrap: root.multiline ? word-wrap : no-wrap;
+                        overflow: elide;
+                    }
+                    editor := TextInput {
+                        width: root.multiline ? viewport.width : max(viewport.width, self.preferred-width + 2px);
+                        height: viewport.content-height;
+                        text <=> root.text;
+                        enabled: root.access != FieldAccess.disabled;
+                        read-only: root.access == FieldAccess.read-only;
+                        single-line: !root.multiline;
+                        wrap: root.multiline ? word-wrap : no-wrap;
+                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : InputType.text;
+                        input-method-hints: root.input-method-hints;
+                        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+                        selection-background-color: root.theme.accent;
+                        selection-foreground-color: root.theme.on-accent;
+                        font-size: 14px * root.theme.text-scale;
+                        letter-spacing: root.text-letter-spacing;
+                        horizontal-alignment: root.text-alignment;
+                        vertical-alignment: root.multiline ? top : center;
+                        accessible-enabled: root.access != FieldAccess.disabled;
+                        accessible-label: root.accessible-name;
+                        accessible-description: root.validation == ValidationPresentation.invalid ? root.error : root.description;
+                        edited => { root.edited(self.text); }
+                        accepted => { if (!root.multiline && root.access == FieldAccess.editable) { root.commit-requested(self.text); } }
+                        // Do not intercept Enter/Escape before the native IME engine.
+                        cursor-position-changed(position) => {
+                            if (root.multiline) {
+                                if (position.y + viewport.content-y < 0px) { viewport.content-y = -position.y; }
+                                else if (position.y + root.line-height + viewport.content-y > viewport.height) { viewport.content-y = viewport.height - position.y - root.line-height; }
+                            } else {
+                                if (position.x + viewport.content-x < 0px) { viewport.content-x = -position.x; }
+                                else if (position.x + 2px + viewport.content-x > viewport.width) { viewport.content-x = viewport.width - position.x - 2px; }
+                            }
+                        }
+                    }
+                }
+            }
+            if root.suffix != "": Text {
+                text: root.suffix; color: root.theme.text-secondary;
+                font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+                vertical-alignment: center; horizontal-stretch: 0;
+            }
+            if root.action-visible: action := KitPressable {
+                theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
+                recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
+                min-width: 28px; preferred-width: 28px; max-width: 28px;
+                min-height: min(28px, root.editor-height); preferred-height: self.min-height; max-height: self.min-height;
+                disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
+                accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
+                activated => {
+                    if (root.purpose == TextPurpose.search) { root.text = ""; root.edited(""); }
+                    else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
+                    root.take-focus();
+                }
+                KitIcon {
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    kind: root.purpose == TextPurpose.search ? IconKind.close : root.secret-visibility == SecretVisibility.hidden ? IconKind.eye : IconKind.eye-hidden;
+                    ink: action.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+                }
+            }
+        }
+    }
+    if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
+    if root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.checking-label; }
+    if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
+    if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count + " " + root.character-count-label; }
+}
+export component KitPasswordField inherits KitTextField { purpose: TextPurpose.password; }
+export component KitSearchField inherits KitTextField { purpose: TextPurpose.search; }
+export component KitEmailField inherits KitTextField { purpose: TextPurpose.email; }
+export component KitUrlField inherits KitTextField { purpose: TextPurpose.url; }
+export component KitTelephoneField inherits KitTextField { purpose: TextPurpose.telephone; }
+export component KitTextArea inherits KitTextField {
+    line-mode: TextLineMode.multiline;
+    resize-policy: ResizePolicy.auto-grow;
+}
+
+// One real editor handles the whole code, including paste, selection and undo.
+// The OtpLength/OtpAlphabet core parser owns bounds; spacing is presentation only.
+export component KitOtpField inherits KitTextField {
+    text-letter-spacing: 10px;
+    text-alignment: TextHorizontalAlignment.center;
+    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
+}
+// A compiled core mask validates the complete draft without rewriting the native
+// editor during composition. Separators remain ordinary selectable characters.
+export component KitMaskedField inherits KitTextField {
+    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
+}

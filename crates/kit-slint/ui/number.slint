@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextField } from "input.slint";
+import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics } from "theme.slint";
+import { KitPressable } from "button.slint";
+import { KitIcon, IconKind } from "icons.slint";
+import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
+export { StepDirection } from "shared-contracts.slint";
+
+// Numeric editors deliberately keep InputType.text: locale-aware drafts, signs,
+// incomplete decimals and exact values are parsed by the typed Rust controller.
+// No floating-point amount or implicit coercion crosses the rendering boundary.
+export component KitIntegerField inherits KitTextField { input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
+export component KitDecimalField inherits KitIntegerField { }
+export component KitMoneyField inherits KitDecimalField { }
+export component KitPercentField inherits KitDecimalField { suffix: "%"; }
+export component KitQuantityField inherits KitDecimalField { }
+// The caller names the canonical unit in suffix, e.g. minutes or seconds.
+export component KitDurationField inherits KitDecimalField { }
+
+export component KitNumberStepper inherits KitField {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <string> label;
+    in property <string> description;
+    in property <string> error;
+    in property <string> placeholder;
+    in property <string> prefix;
+    in property <string> suffix;
+    in property <bool> can-increment: true;
+    in property <bool> can-decrement: true;
+    in property <string> increment-label: "Increase value";
+    in property <string> decrement-label: "Decrease value";
+    in-out property <string> text;
+    out property <bool> has-focus: editor.has-focus;
+    callback edited(string);
+    callback commit-requested(string);
+    callback cancelled();
+    callback focus-observed(bool);
+    callback step-requested(StepDirection);
+    public function take-focus() { editor.take-focus(); }
+    if root.label != "": KitFieldLabel {
+        theme: root.theme; text: root.label; access: root.access;
+        focus-requested => { root.take-focus(); }
+    }
+    HorizontalLayout {
+        spacing: 8px;
+        editor := KitDecimalField {
+            theme: root.theme; control-size: root.control-size;
+            access: root.access; validation: root.validation;
+            accessible-name: root.label;
+            placeholder: root.placeholder; prefix: root.prefix; suffix: root.suffix;
+            text <=> root.text;
+            edited(value) => { root.edited(value); }
+            commit-requested(value) => { root.commit-requested(value); }
+            cancelled => { root.cancelled(); }
+            focus-observed(value) => { root.focus-observed(value); }
+        }
+        for direction in [StepDirection.decrement, StepDirection.increment]: KitPressable {
+            theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
+            preferred-width: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+            min-width: self.preferred-width;
+            disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
+            accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
+            activated => { root.step-requested(direction); }
+            Rectangle {
+                KitIcon {
+                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                kind: direction == StepDirection.increment ? IconKind.plus : IconKind.minus;
+                ink: root.theme.text-primary;
+                }
+            }
+        }
+    }
+    if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
+    if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
+}

@@ -1,0 +1,27 @@
+[package]
+name = "kit-showcase"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+kit = { workspace = true, features = ["native"] }
+slint = { workspace = true, features = ["backend-winit", "renderer-software"] }
+png = "=0.18.1"
+url = "=2.5.8"
+
+[dev-dependencies]
+i-slint-backend-testing = "=1.18.1"
+
+[build-dependencies]
+kit-build.workspace = true
+
+[features]
+default = ["skia"]
+skia = ["slint/renderer-skia"]
+software = ["slint/renderer-software"]
+
+[lints]
+workspace = true

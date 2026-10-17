@@ -1,0 +1,71 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes } from "theme.slint";
+import { DialogState, CloseReason } from "contracts.slint";
+export { DialogState, CloseReason } from "contracts.slint";
+
+// Modal host: rendered last in its window. Topmost is projected by OverlayStack;
+// arbitrary content enters the focus registry via KitFocusTarget.
+export component KitDialogSurface inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <DialogState> state;
+    in property <bool> dismiss-on-backdrop: true;
+    callback dismiss(CloseReason);
+    callback focus-next(bool);
+    visible: root.state.open;
+    background: root.theme.scrim;
+    TouchArea {
+        clicked => {
+            if (root.state.topmost && !root.state.busy && root.dismiss-on-backdrop) { root.dismiss(CloseReason.outside-press); }
+        }
+    }
+    FocusScope {
+        focus-on-tab-navigation: false;
+        capture-key-pressed(event) => {
+            if (root.state.topmost && (event.text == Key.Tab || event.text == Key.Backtab)) {
+                root.focus-next(event.modifiers.shift || event.text == Key.Backtab); return accept;
+            }
+            return reject;
+        }
+        key-pressed(event) => {
+            if (!root.state.topmost) { return reject; }
+            if (event.text == Key.Escape) {
+                if (!root.state.busy) { root.dismiss(CloseReason.escape); }
+                return accept;
+            }
+            return reject;
+        }
+        @children
+    }
+}
+// Place composed header/body/footer inside this panel to consume backdrop hits.
+export component KitDialogPanel inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> accessible-name;
+    in property <string> accessible-description-text;
+    accessible-role: groupbox;
+    accessible-label: root.accessible-name;
+    accessible-description: root.accessible-description-text;
+    border-radius: 12px;
+    background: root.theme.surface-raised;
+    border-width: 1px;
+    border-color: root.theme.border-subtle;
+    TouchArea { }
+    @children
+}
+export component KitDialogHeader inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    min-height: 32px;
+    HorizontalLayout { spacing: 12px; @children }
+}
+export component KitDialogBody inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    min-height: 48px;
+    VerticalLayout { spacing: 12px; @children }
+}
+export component KitDialogFooter inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    min-height: 48px;
+    HorizontalLayout { spacing: 8px; alignment: end; @children }
+}
+
+export { KitFocusTarget } from "focus.slint";

@@ -1,0 +1,146 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, ButtonIntent, ControlSize } from "theme.slint";
+import { KitButton } from "button.slint";
+import { FieldAccess } from "contracts.slint";
+import { FileSelectionMode } from "shared-contracts.slint";
+export { FileSelectionMode } from "shared-contracts.slint";
+
+export enum HostRequestPresentation { idle, pending, cancelled, failed, unsupported }
+export enum DropCapability { unsupported, available }
+export struct FileViewEntry { token: int, generation: int, name: string, detail: string, removable: bool }
+
+component FileRemoveButton inherits KitButton {
+    in property <FileViewEntry> entry;
+    callback remove-requested(int,int);
+    private property <int> press-token;
+    private property <int> press-generation;
+    text: "Remove";
+    accessible-name: "Remove " + root.entry.name;
+    intent: ButtonIntent.quiet;
+    activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
+    changed entry => { root.cancel-press(); }
+    activated => { root.remove-requested(root.press-token,root.press-generation); }
+}
+
+export component KitFileList inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <[FileViewEntry]> entries;
+    callback remove-requested(int,int);
+    accessible-role: list;
+    accessible-label: "Selected files";
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 8px;
+        for entry in root.entries: Rectangle {
+            border-radius: 8px; background: root.theme.canvas;
+            HorizontalLayout {
+                padding: 10px; spacing: 12px;
+                VerticalLayout {
+                    spacing: 4px;
+                    Text { text: entry.name; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+                }
+                FileRemoveButton {
+                    theme: root.theme; control-size:root.control-size; entry: entry;
+                    disabled: root.access != FieldAccess.editable || !entry.removable;
+                    remove-requested(token,generation) => { root.remove-requested(token,generation); }
+                }
+            }
+        }
+    }
+}
+
+export component KitFilePicker inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <FileSelectionMode> mode: FileSelectionMode.single;
+    in property <HostRequestPresentation> request-state: HostRequestPresentation.idle;
+    in property <[FileViewEntry]> entries;
+    in property <string> label: "Attachments";
+    in property <string> description;
+    in property <string> error;
+    callback browse-requested(FileSelectionMode);
+    callback remove-requested(int,int);
+    public function take-focus() { browse.take-focus(); }
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 8px;
+        Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        browse := KitButton {
+            theme: root.theme; control-size:root.control-size; text: root.mode == FileSelectionMode.single ? "Choose file…" : "Choose files…";
+            accessible-name: self.text + " " + root.label;
+            disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported;
+            busy: root.request-state == HostRequestPresentation.pending;
+            activated => { root.browse-requested(root.mode); }
+        }
+        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: "File selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        KitFileList { theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
+    }
+}
+
+export component KitDirectoryPicker inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <HostRequestPresentation> request-state: HostRequestPresentation.idle;
+    in property <string> label: "Folder";
+    in property <string> selected-name;
+    in property <string> error;
+    callback browse-requested();
+    callback clear-requested();
+    public function take-focus() { browse.take-focus(); }
+    vertical-stretch: 0;
+    VerticalLayout {
+        spacing: 8px;
+        Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        browse := KitButton { theme: root.theme; control-size:root.control-size; text: "Choose folder…"; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
+        if root.selected-name != "": HorizontalLayout {
+            spacing: 12px;
+            Text { text: root.selected-name; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; }
+            KitButton { theme: root.theme; control-size:root.control-size; text: "Clear folder"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
+        }
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: "Folder selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+    }
+}
+
+// DropEvent.data is the public native data-transfer handle; the application
+// checks MIME/types in can-drop and resolves handles asynchronously in dropped.
+// The available flag is a host capability, never guessed from pointer events.
+export component KitFileDropZone inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <DropCapability> capability: DropCapability.unsupported;
+    in property <string> label: "Drop files here";
+    in property <string> unsupported-label: "Drag and drop is unavailable; use Choose files.";
+    in property <string> error;
+    callback can-drop(DropEvent) -> DragAction;
+    callback dropped(DropEvent) -> DragAction;
+    out property <bool> drag-hovered: drop.has-drag;
+    min-height: max(100px, 64px * root.theme.text-scale);
+    vertical-stretch: 0;
+    border-radius: 12px;
+    border-width: drop.has-drag ? 2px : 1px;
+    border-color: root.error != "" ? root.theme.danger : drop.has-drag ? root.theme.accent : root.theme.border-subtle;
+    background: drop.has-drag ? root.theme.hover : root.theme.canvas;
+    accessible-role: groupbox;
+    accessible-label: root.capability == DropCapability.available ? root.label : root.unsupported-label;
+    VerticalLayout {
+        padding: 16px; spacing: 8px;
+        Text { text: root.capability == DropCapability.available ? root.label : root.unsupported-label; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
+        if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+    }
+    drop := DropArea {
+        enabled: root.capability == DropCapability.available && root.access == FieldAccess.editable;
+        can-drop(event) => { return root.can-drop(event); }
+        dropped(event) => { return root.dropped(event); }
+    }
+}

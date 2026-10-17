@@ -1,0 +1,329 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitIcon, IconKind } from "icons.slint";
+import { ListView } from "std-widgets.slint";
+import { KitPressable } from "button.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics } from "theme.slint";
+import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
+export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
+
+// One key translator is shared by both the standard and composed surfaces.
+// Selection, skip-disabled, search and identity reconciliation stay in kit-core.
+export component KitSelectKeyboard inherits FocusScope {
+    in property <SelectState> state;
+    callback open-requested();
+    callback navigate(NavigationStep);
+    callback activate(int, int);
+    callback dismiss(CloseReason);
+    callback typeahead(string);
+    callback tab-navigation(bool) -> EventResult;
+    private property <bool> activation-held;
+    focus-on-tab-navigation: false;
+    changed state => { if (!root.state.open) { root.activation-held = false; } }
+    public function handle-key(event: KeyEvent) -> EventResult {
+        if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
+            if (!root.state.open) { root.open-requested(); }
+            else { root.navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
+            return accept;
+        }
+        if (!root.state.open) { return reject; }
+        if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
+        if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
+        if (event.text == Key.PageDown) { root.navigate(NavigationStep.page-next); return accept; }
+        if (event.text == Key.PageUp) { root.navigate(NavigationStep.page-previous); return accept; }
+        if (event.text == Key.Escape) { root.dismiss(CloseReason.escape); return accept; }
+        if (event.text == Key.Tab || event.text == Key.Backtab) {
+            root.dismiss(CloseReason.programmatic);
+            return root.tab-navigation(event.modifiers.shift || event.text == Key.Backtab);
+        }
+        if (event.text == Key.Return || event.text == Key.Space) {
+            if (!root.activation-held) {
+                root.activation-held = true;
+                if (root.state.active.present) { root.activate(root.state.active.token, root.state.generation); }
+            }
+            return accept;
+        }
+        if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
+            root.typeahead(event.text); return accept;
+        }
+        return reject;
+    }
+    key-pressed(event) => { return root.handle-key(event); }
+    key-released(event) => {
+        if (event.text == Key.Return || event.text == Key.Space) { root.activation-held = false; return accept; }
+        return reject;
+    }
+    focus-lost(reason) => { root.activation-held = false; }
+}
+
+export component KitSelectTrigger inherits KitPressable {
+    control-width: ControlWidth.fill;
+    in property <SelectState> state;
+    callback open-requested();
+    callback navigate(NavigationStep);
+    callback activate(int, int);
+    callback dismiss(CloseReason);
+    callback typeahead(string);
+    callback tab-navigation(bool) -> EventResult;
+    intent: ButtonIntent.secondary;
+    accessible-role: combobox;
+    accessible-expanded: root.state.open;
+    activated => {
+        if (root.state.open) { root.dismiss(CloseReason.trigger-toggle); }
+        else { root.open-requested(); }
+    }
+    key-event(event) => { return translator.handle-key(event); }
+    translator := KitSelectKeyboard {
+        width: 0px; height: 0px;
+        enabled: false;
+        state: root.state;
+        open-requested => { root.open-requested(); }
+        navigate(step) => { root.navigate(step); }
+        activate(token, generation) => { root.activate(token, generation); }
+        dismiss(reason) => { root.dismiss(reason); }
+        typeahead(text) => { root.typeahead(text); }
+        tab-navigation(reverse) => { return root.tab-navigation(reverse); }
+    }
+    @children
+}
+
+export component KitSelectSurface inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <SelectState> state;
+    in property <length> row-height: 48px;
+    in property <length> viewport-height: content-box.height;
+    in property <bool> searchable: true;
+    in property <bool> focus-search-on-open: false;
+    in property <bool> empty;
+    in property <string> empty-label: "No matching options";
+    in property <string> search-label: "Search options";
+    in-out property <string> query;
+    in-out property <length> scroll-y;
+    out property <length> active-scroll-y: root.scroll-y;
+    callback navigate(NavigationStep);
+    callback activate(int, int);
+    callback dismiss(CloseReason);
+    callback typeahead(string);
+    callback tab-navigation(bool) -> EventResult;
+    callback query-edited(string);
+    public function take-focus() {
+        if (root.searchable && root.focus-search-on-open) { search.focus(); }
+        else { keyboard.focus(); }
+    }
+    public function ensure-active-visible() {
+        if (!root.state.open || root.state.active-index < 0 || root.viewport-height <= 0px) { return; }
+        let top = root.state.active-index * root.row-height;
+        if (top + root.scroll-y < 0px) { root.scroll-y = -top; }
+        else if (top + root.row-height + root.scroll-y > root.viewport-height) {
+            root.scroll-y = min(0px, root.viewport-height - top - root.row-height);
+        }
+    }
+    changed state => { root.ensure-active-visible(); }
+    changed row-height => { root.ensure-active-visible(); }
+    changed viewport-height => { root.ensure-active-visible(); }
+    private property <bool> opened: root.state.open;
+    changed opened => { if (root.opened) { root.take-focus(); root.ensure-active-visible(); } }
+    init => { if (root.state.open) { root.take-focus(); root.ensure-active-visible(); } }
+    background: root.theme.surface-raised;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: root.theme.border-subtle;
+    keyboard := KitSelectKeyboard {
+        state: root.state;
+        navigate(step) => { root.navigate(step); root.ensure-active-visible(); }
+        activate(token, generation) => { root.activate(token, generation); }
+        dismiss(reason) => { root.dismiss(reason); }
+        typeahead(text) => { root.typeahead(text); root.ensure-active-visible(); }
+        tab-navigation(reverse) => { return root.tab-navigation(reverse); }
+        VerticalLayout {
+            padding: 6px;
+            spacing: 6px;
+            Rectangle {
+                visible: root.searchable;
+                height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
+                border-radius: 6px;
+                background: root.theme.canvas;
+                border-width: 1px;
+                border-color: search.has-focus ? root.theme.focus-ring : root.theme.border-subtle;
+                search := TextInput {
+                    x: 10px; y: 6px;
+                    width: parent.width - 20px; height: parent.height - 12px;
+                    text <=> root.query;
+                    color: root.theme.text-primary;
+                    font-size: 14px * root.theme.text-scale;
+                    single-line: true;
+                    accessible-label: root.search-label;
+                    edited => { root.query-edited(self.text); root.ensure-active-visible(); }
+                    key-pressed(event) => {
+                        if (event.text == Key.Escape || event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Return || event.text == Key.PageDown || event.text == Key.PageUp) {
+                            return keyboard.handle-key(event);
+                        }
+                        return reject;
+                    }
+                }
+            }
+            content-box := Rectangle {
+                min-height: 0px;
+                vertical-stretch: 1;
+                clip: true;
+                @children
+                if root.empty: Text {
+                    text: root.empty-label;
+                    color: root.theme.text-secondary;
+                    font-size: 14px * root.theme.text-scale;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
+
+// Non-focusable row: the composite remains the single keyboard focus target.
+export component KitOption inherits KitPressable {
+    control-width: ControlWidth.fill;
+    in property <OptionRow> option-data;
+    in property <bool> active;
+    in property <bool> selected;
+    callback activate(int, int);
+    disabled: root.option-data.disabled;
+    tab-stop: false;
+    accessible-role: list-item;
+    accessible-name: root.option-data.label;
+    accessible-description: root.option-data.description;
+    accessible-item-selectable: true;
+    accessible-item-selected: root.selected;
+    background: root.active ? root.theme.pressed : root.hovered ? root.theme.hover : transparent;
+    border-width: root.active ? 1px : 0px;
+    border-color: root.theme.focus-ring;
+    private property <int> press-token;
+    private property <int> press-generation;
+    activation-started => {
+        root.press-token = root.option-data.token;
+        root.press-generation = root.option-data.generation;
+    }
+    changed option-data => { root.cancel-press(); }
+    activated => { root.activate(root.press-token, root.press-generation); }
+    @children
+}
+
+export component KitSelect inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> state;
+    in property <string> placeholder: "Choose an option";
+    in property <string> unavailable-label: "Selected option is unavailable";
+    in property <bool> disabled;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <length> popup-height: 320px;
+    in property <length> row-height: max(48px, 32px * root.theme.text-scale);
+    callback open-requested();
+    callback navigate(NavigationStep);
+    callback activate(int, int);
+    callback dismiss(CloseReason);
+    callback typeahead(string);
+    callback tab-navigation(bool) -> EventResult;
+    callback query-edited(string);
+    out property <bool> popup-visible: popup.is-open;
+    out property <bool> has-focus: trigger.has-focus;
+    public function take-focus() { trigger.take-focus(); }
+    public function cancel-press() {trigger.cancel-press();}
+    min-height: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+    preferred-height: root.min-height;
+    max-height: root.preferred-height;
+    vertical-stretch: 0;
+    min-width: 160px;
+    private property <bool> tab-restore-complete;
+    function advance-tab(reverse: bool) -> EventResult {
+        // Close native presentation before the host advances focus. The deferred
+        // state change must not restore over the host's next focus request.
+        popup.close();
+        trigger.take-focus();
+        root.tab-restore-complete = true;
+        return root.tab-navigation(reverse);
+    }
+    private property <bool> opened: root.state.open;
+    changed opened => {
+        if (root.state.open) { popup.show(); }
+        else {
+            popup.close();
+            if (!root.tab-restore-complete && !root.disabled) { trigger.take-focus(); }
+            root.tab-restore-complete = false;
+        }
+    }
+    changed popup-visible => {
+        // Native presentation closure does not expose its precise cause.
+        if (!root.popup-visible && root.state.open) { root.dismiss(CloseReason.host-closed); }
+    }
+    trigger := KitSelectTrigger {
+        theme: root.theme;
+        control-size: root.control-size;
+        state: root.state;
+        disabled: root.disabled;
+        accessible-name: root.placeholder;
+        accessible-description: root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
+        border-color: root.state.selection-availability == SelectionAvailability.unavailable ? root.theme.danger : root.theme.border-subtle;
+        open-requested => { root.open-requested(); }
+        navigate(step) => { root.navigate(step); }
+        activate(token, generation) => { root.activate(token, generation); }
+        dismiss(reason) => { root.dismiss(reason); }
+        typeahead(text) => { root.typeahead(text); }
+        tab-navigation(reverse) => { return root.advance-tab(reverse); }
+        HorizontalLayout {
+            spacing: 12px;
+            Text { text: root.placeholder; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; overflow: elide; vertical-alignment: center; }
+            Rectangle {
+                width: 16px;
+                if root.state.selection-availability == SelectionAvailability.unavailable: Text {
+                    text: "!"; color: root.theme.danger; vertical-alignment: center; horizontal-alignment: center;
+                }
+                if root.state.selection-availability != SelectionAvailability.unavailable: KitIcon {
+                    y: (parent.height - self.height) / 2;
+                    ink: root.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+                }
+            }
+        }
+    }
+    popup := PopupWindow {
+        x: 0px;
+        y: root.height + 4px;
+        width: max(root.width, 240px);
+        height: root.popup-height;
+        close-policy: close-on-click-outside;
+        surface := KitSelectSurface {
+            theme: root.theme;
+            state: root.state;
+            row-height: root.row-height;
+            viewport-height: options.visible-height;
+            scroll-y <=> options.content-y;
+            empty: root.rows.length == 0;
+            navigate(step) => { root.navigate(step); }
+            activate(token, generation) => { root.activate(token, generation); }
+            dismiss(reason) => { root.dismiss(reason); }
+            typeahead(text) => { root.typeahead(text); }
+            tab-navigation(reverse) => { return root.advance-tab(reverse); }
+            query-edited(text) => { root.query-edited(text); }
+            options := ListView {
+                for row in root.rows: KitOption {
+                    theme: root.theme;
+                    option-data: row;
+                    height: root.row-height;
+                    active: root.state.active.present && root.state.active.token == row.token;
+                    selected: root.state.selected.present && root.state.selected.token == row.token;
+                    activate(token, generation) => { root.activate(token, generation); }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout {
+                            spacing: 2px;
+                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; overflow: elide; vertical-alignment: center; }
+                            if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
+                        }
+                        Rectangle { width: 16px; horizontal-stretch: 0;
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

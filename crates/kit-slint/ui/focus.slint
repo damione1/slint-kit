@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { FocusRequest } from "contracts.slint";
+export { FocusRequest } from "contracts.slint";
+
+// The host registers logical targets after window creation. A recycled target
+// must have a new generation. No registration callback is emitted from init.
+export component KitFocusTarget inherits FocusScope {
+    in property <int> token;
+    in property <int> generation;
+    in property <bool> eligible: true;
+    in property <FocusRequest> request;
+    callback focus-requested();
+    callback focus-applied(int, int, int);
+    callback focus-observed(int, bool);
+    private property <int> applied-request: -1;
+    enabled: root.eligible;
+    focus-on-tab-navigation: false;
+    function apply-request() {
+        if (root.eligible && root.request.present && root.request.token == root.token && root.request.generation == root.generation && root.request.request != root.applied-request) {
+            root.applied-request = root.request.request;
+            root.focus();
+            root.focus-requested();
+            root.focus-applied(root.token, root.generation, root.request.request);
+        }
+    }
+    changed request => { root.apply-request(); }
+    changed eligible => { root.apply-request(); }
+    init => { root.apply-request(); }
+    focus-gained(reason) => { root.focus-observed(root.token, true); }
+    focus-lost(reason) => { root.focus-observed(root.token, false); }
+    @children
+}

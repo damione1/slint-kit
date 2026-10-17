@@ -1,0 +1,187 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitIcon, IconKind } from "icons.slint";
+import { KitTheme, KitThemes, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+
+// Content must be non-interactive; the primitive owns hit testing and activation.
+export component KitPressable inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ControlWidth> control-width: ControlWidth.intrinsic;
+    in property <ButtonRecipe> recipe: KitThemes.button-recipe(root.theme, root.intent, root.control-size);
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    in property <bool> busy;
+    in property <bool> tab-stop: true;
+    out property <bool> hovered: touch.has-hover && !root.disabled;
+    out property <bool> pressed: (touch.pressed && root.pointer-armed && touch.has-hover) || root.space-held;
+    out property <bool> has-focus: keys.has-focus;
+    out property <bool> focus-visible: keys.has-focus && root.keyboard-focus;
+    callback activated();
+    callback activation-started();
+    callback key-event(event: KeyEvent) -> EventResult;
+    callback focus-observed(bool);
+    private property <bool> space-held;
+    private property <bool> enter-held;
+    private property <bool> pointer-armed;
+    private property <bool> keyboard-focus: true;
+    public function cancel-press() {
+        root.space-held = false;
+        root.enter-held = false;
+        root.pointer-armed = false;
+    }
+    public function take-focus() { keys.focus(); }
+    function activate-once() {
+        if (!root.disabled && !root.busy) { root.activated(); }
+    }
+    changed disabled => { root.cancel-press(); }
+    changed busy => { root.cancel-press(); }
+    min-height: max(root.recipe.height, root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block);
+    preferred-height: root.min-height;
+    max-height: root.preferred-height;
+    vertical-stretch: 0;
+    horizontal-stretch: root.control-width == ControlWidth.fill ? 1 : 0;
+    preferred-width: 120px;
+    max-width: root.control-width == ControlWidth.fill ? 100000px : root.preferred-width;
+    border-radius: root.recipe.radius;
+    border-width: root.recipe.border-width;
+    border-color: root.recipe.border;
+    background: root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    accessible-role: button;
+    accessible-label: root.accessible-name;
+    accessible-enabled: !root.disabled && !root.busy;
+    accessible-action-default => { root.activation-started(); root.activate-once(); }
+    forward-focus: keys;
+    Rectangle {
+        x: root.recipe.padding-inline;
+        y: root.recipe.padding-block;
+        width: max(0px, parent.width - 2 * root.recipe.padding-inline);
+        height: max(0px, parent.height - 2 * root.recipe.padding-block);
+        @children
+    }
+    keys := FocusScope {
+        enabled: !root.disabled;
+        focus-on-tab-navigation: root.tab-stop;
+        focus-on-click: false;
+        focus-gained(reason) => {
+            root.keyboard-focus = reason != FocusReason.pointer-click;
+            root.focus-observed(true);
+        }
+        focus-lost(reason) => {
+            root.cancel-press();
+            root.focus-observed(false);
+        }
+        key-pressed(event) => {
+            root.keyboard-focus = true;
+            if (root.disabled || root.busy) { return reject; }
+            if (root.key-event(event) == accept) { return accept; }
+            if (event.text == Key.Space) {
+                if (!root.space-held) { root.activation-started(); root.space-held = true; }
+                return accept;
+            }
+            if (event.text == Key.Return) {
+                if (!root.enter-held) { root.activation-started(); root.enter-held = true; root.activate-once(); }
+                return accept;
+            }
+            return reject;
+        }
+        key-released(event) => {
+            if (event.text == Key.Space) {
+                if (root.space-held) { root.space-held = false; root.activate-once(); }
+                return accept;
+            }
+            if (event.text == Key.Return) { root.enter-held = false; return accept; }
+            return reject;
+        }
+    }
+    touch := TouchArea {
+        enabled: !root.disabled && !root.busy;
+        mouse-cursor: pointer;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.activation-started();
+                root.pointer-armed = true;
+                keys.focus();
+                root.keyboard-focus = false;
+            }
+            if (event.kind == PointerEventKind.cancel) { root.cancel-press(); }
+        }
+        clicked => {
+            if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
+        }
+    }
+    if root.focus-visible : Rectangle {
+        x: -root.recipe.focus-offset - root.recipe.focus-width;
+        y: -root.recipe.focus-offset - root.recipe.focus-width;
+        width: root.width - 2 * self.x;
+        height: root.height - 2 * self.y;
+        border-radius: root.recipe.radius + root.recipe.focus-offset;
+        border-width: root.recipe.focus-width;
+        border-color: root.recipe.focus-color;
+        background: transparent;
+    }
+}
+
+export component KitButton inherits KitPressable {
+    in property <string> text;
+    accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
+    min-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
+    preferred-width: root.min-width;
+    label := Text {
+        opacity: root.busy ? 0 : 1;
+        text: root.text;
+        color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        font-size: root.recipe.font-size;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        overflow: elide;
+    }
+    // The label stays in layout while a centered progress mark replaces it.
+    // Busy therefore changes neither intrinsic width nor the content center.
+    if root.busy: Rectangle {
+        Path {
+        x: (parent.width - 14px) / 2; y: (parent.height - 14px) / 2;
+        width: 14px; height: 14px;
+        viewbox-width: 16; viewbox-height: 16;
+        commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
+        stroke: root.recipe.foreground; stroke-width: 2px; fill: transparent;
+        }
+    }
+}
+
+// View actions carry intent only; the application provides the typed payload.
+export enum FormAction { submit, reset }
+export component KitFormButton inherits KitButton {
+    in property <FormAction> action: FormAction.submit;
+    callback form-action(FormAction);
+    activated => { root.form-action(root.action); }
+}
+export component KitSubmitButton inherits KitFormButton {
+    action: FormAction.submit;
+    intent: ButtonIntent.primary;
+}
+export component KitResetButton inherits KitFormButton {
+    action: FormAction.reset;
+    intent: ButtonIntent.quiet;
+}
+export component KitIconButton inherits KitPressable {
+    in property <IconKind> icon: IconKind.close;
+    intent: ButtonIntent.quiet;
+    recipe: KitThemes.icon-button-recipe(root.theme, root.control-size);
+    preferred-width: root.preferred-height;
+    min-width: self.preferred-width;
+    Rectangle {
+        KitIcon {
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            kind: root.icon;
+            ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        }
+    }
+}
+export component KitButtonGroup inherits HorizontalLayout {
+    spacing: 8px;
+    alignment: start;
+    vertical-stretch: 0;
+    @children
+}

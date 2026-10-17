@@ -1,0 +1,475 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent } from "@kit/theme.slint";
+import { KitButton } from "@kit/button.slint";
+import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
+import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
+import { KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit/field.slint";
+import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField } from "@kit/input.slint";
+import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
+import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, ChipRow, SearchPresentation } from "@kit/choice.slint";
+import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CivilDateView, DateRangePhase } from "@kit/calendar.slint";
+import { KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedTimePresentation, AmbiguousTimeChoice, TimeSegment, TimeAdjustment, ClockFormat } from "@kit/datetime.slint";
+import { KitFilePicker, KitDirectoryPicker, KitFileDropZone, FileViewEntry, HostRequestPresentation, DropCapability } from "@kit/files.slint";
+import { KitColorPicker, ColorChannel, SrgbColorView } from "@kit/color.slint";
+
+export enum ShowcasePage { gallery, profile, billing, choices, schedule, files }
+export enum TextExample { name, email, website, phone, password, search, biography, otp, reference }
+export enum NumericExample { integer, decimal, money, percent, quantity, duration, stepper }
+export enum LocaleExample { french-canada, french-france, english-canada, english-us }
+export enum DateExample { date, month, year, week, time }
+export enum ChoiceExample { radio, segmented, toggle, rating }
+export enum SliderGesture { started, committed, cancelled }
+export enum SubmissionPresentation { idle, pending, succeeded, invalid }
+
+export global FormExamples {
+    in-out property <[FormErrorRow]> profile-errors;
+    in-out property <[FormErrorRow]> billing-errors;
+    callback profile-error-activated(FocusRequest);
+    callback billing-error-activated(FocusRequest);
+    in-out property <int> consent-focus-sequence;
+    in-out property <TextExample> text-focus-target;
+    in-out property <int> text-focus-sequence;
+    in-out property <NumericExample> numeric-focus-target;
+    in-out property <int> numeric-focus-sequence;
+    in-out property <FieldAccess> access: FieldAccess.editable;
+    in-out property <LocaleExample> locale: LocaleExample.french-canada;
+    in-out property <string> profile-status: "Your changes stay here until you save.";
+    in-out property <SubmissionPresentation> profile-submission: SubmissionPresentation.idle;
+    in-out property <string> billing-status: "Exact decimal values; no binary floating-point amounts.";
+    in-out property <SubmissionPresentation> billing-submission: SubmissionPresentation.idle;
+    callback text-edited(TextExample,string);
+    callback text-commit(TextExample,string);
+    callback text-blur(TextExample);
+    callback text-cancel(TextExample);
+    callback numeric-edited(NumericExample,string);
+    callback numeric-commit(NumericExample,string);
+    callback numeric-blur(NumericExample);
+    callback numeric-cancel(NumericExample);
+    callback step-requested(StepDirection);
+    callback locale-changed(LocaleExample);
+    callback profile-submit(); callback profile-reset();
+    callback billing-submit(); callback billing-reset();
+    in-out property <string> name-text;
+    in-out property <ValidationPresentation> name-validation: ValidationPresentation.pristine;
+    in-out property <string> name-error;
+    in-out property <int> name-count;
+    in-out property <string> email-text;
+    in-out property <ValidationPresentation> email-validation: ValidationPresentation.pristine;
+    in-out property <string> email-error;
+    in-out property <int> email-count;
+    in-out property <string> website-text;
+    in-out property <ValidationPresentation> website-validation: ValidationPresentation.pristine;
+    in-out property <string> website-error;
+    in-out property <int> website-count;
+    in-out property <string> phone-text;
+    in-out property <ValidationPresentation> phone-validation: ValidationPresentation.pristine;
+    in-out property <string> phone-error;
+    in-out property <int> phone-count;
+    in-out property <string> password-text;
+    in-out property <ValidationPresentation> password-validation: ValidationPresentation.pristine;
+    in-out property <string> password-error;
+    in-out property <int> password-count;
+    in-out property <string> search-text;
+    in-out property <ValidationPresentation> search-validation: ValidationPresentation.pristine;
+    in-out property <string> search-error;
+    in-out property <int> search-count;
+    in-out property <string> biography-text;
+    in-out property <ValidationPresentation> biography-validation: ValidationPresentation.pristine;
+    in-out property <string> biography-error;
+    in-out property <int> biography-count;
+    in-out property <string> otp-text;
+    in-out property <ValidationPresentation> otp-validation: ValidationPresentation.pristine;
+    in-out property <string> otp-error;
+    in-out property <int> otp-count;
+    in-out property <string> reference-text;
+    in-out property <ValidationPresentation> reference-validation: ValidationPresentation.pristine;
+    in-out property <string> reference-error;
+    in-out property <int> reference-count;
+    in-out property <string> integer-text;
+    in-out property <ValidationPresentation> integer-validation: ValidationPresentation.pristine;
+    in-out property <string> integer-error;
+    in-out property <int> integer-count;
+    in-out property <string> decimal-text;
+    in-out property <ValidationPresentation> decimal-validation: ValidationPresentation.pristine;
+    in-out property <string> decimal-error;
+    in-out property <int> decimal-count;
+    in-out property <string> money-text;
+    in-out property <ValidationPresentation> money-validation: ValidationPresentation.pristine;
+    in-out property <string> money-error;
+    in-out property <int> money-count;
+    in-out property <string> percent-text;
+    in-out property <ValidationPresentation> percent-validation: ValidationPresentation.pristine;
+    in-out property <string> percent-error;
+    in-out property <int> percent-count;
+    in-out property <string> quantity-text;
+    in-out property <ValidationPresentation> quantity-validation: ValidationPresentation.pristine;
+    in-out property <string> quantity-error;
+    in-out property <int> quantity-count;
+    in-out property <string> duration-text;
+    in-out property <ValidationPresentation> duration-validation: ValidationPresentation.pristine;
+    in-out property <string> duration-error;
+    in-out property <int> duration-count;
+    in-out property <string> stepper-text;
+    in-out property <ValidationPresentation> stepper-validation: ValidationPresentation.pristine;
+    in-out property <string> stepper-error;
+    in-out property <int> stepper-count;
+
+    in-out property <string> money-suffix: "CAD";
+    in-out property <CheckState> consent: CheckState.unchecked;
+    in-out property <bool> notifications: true;
+    callback consent-toggled(CheckState); callback notifications-toggled(bool);
+    in-out property <[ChoiceRow]> radio-options;
+    in-out property <[ChoiceRow]> toggle-options;
+    in-out property <[ChoiceRow]> rating-options;
+    in-out property <int> choice-generation: 1;
+    in-out property <int> radio-active: 1;
+    in-out property <int> segmented-active: 1;
+    in-out property <int> toggle-active: 1;
+    in-out property <int> rating-active: 1;
+    in-out property <[ChoiceRow]> segmented-options;
+    callback choice-navigate(ChoiceExample,NavigationStep);
+    callback choice-activate(ChoiceExample,int,int);
+    callback rating-clear();
+    in-out property <[OptionRow]> suggestion-rows;
+    in-out property <SelectState> suggestion-state;
+    in-out property <string> suggestion-label;
+    in-out property <SearchPresentation> suggestion-search: SearchPresentation.ready;
+    callback suggestion-open(); callback suggestion-navigate(NavigationStep); callback suggestion-activate(int,int); callback suggestion-dismiss(); callback suggestion-query(string); callback suggestion-typeahead(string);
+    in-out property <[OptionRow]> multi-rows;
+    in-out property <SelectState> multi-state;
+    in-out property <[ChipRow]> multi-chips;
+    callback multi-open(); callback multi-navigate(NavigationStep); callback multi-activate(int,int); callback multi-dismiss(); callback multi-query(string); callback multi-typeahead(string); callback multi-remove(int);
+    in-out property <[ChipRow]> tags;
+    in-out property <string> tag-text;
+    in-out property <string> tag-error;
+    callback tag-create(string); callback tag-remove(int);
+    in-out property <float> slider-position: 0.35;
+    in-out property <string> slider-text: "35";
+    in-out property <string> range-lower-text: "20";
+    in-out property <string> range-upper-text: "80";
+    callback slider-text-commit(string);
+    callback range-text-commit(RangeThumb,string);
+    in-out property <string> slider-label: "35 %";
+    in-out property <float> range-lower: 0.2;
+    in-out property <float> range-upper: 0.8;
+    in-out property <string> range-lower-label: "20";
+    in-out property <string> range-upper-label: "80";
+    callback slider-position-requested(float); callback slider-navigate(NavigationStep); callback slider-gesture(SliderGesture);
+    callback range-position-requested(RangeThumb,float); callback range-navigate(RangeThumb,NavigationStep); callback range-gesture(SliderGesture);
+    in-out property <string> choices-status;
+    in-out property <[CalendarDay]> calendar-days;
+    in-out property <int> calendar-active;
+    in-out property <string> calendar-title;
+    in-out property <CivilDateView> accepted-date;
+    in-out property <string> date-text;
+    in-out property <string> date-error;
+    in-out property <string> month-text;
+    in-out property <string> month-error;
+    in-out property <string> year-text;
+    in-out property <string> year-error;
+    in-out property <string> week-text;
+    in-out property <string> week-error;
+    in-out property <string> time-text;
+    in-out property <string> time-error;
+    in-out property <LocalTimeView> accepted-time;
+    callback date-edited(DateExample,string); callback date-commit(DateExample,string);
+    callback calendar-navigate(CalendarNavigation); callback calendar-choose(CalendarDay);
+    callback time-adjust(TimeSegment,TimeAdjustment);
+    in-out property <ClockFormat> time-format: ClockFormat.twenty-four-hour;
+    callback time-format-changed(ClockFormat);
+    in-out property <[CalendarDay]> range-days;
+    in-out property <DateRangePhase> range-phase: DateRangePhase.choosing-start;
+    in-out property <string> date-range-summary;
+    in-out property <string> date-range-error;
+    callback date-range-choose(CalendarDay); callback date-range-apply(); callback date-range-cancel();
+    in-out property <string> local-date-text: "2026-10-16";
+    in-out property <string> local-time-text: "09:30";
+    in-out property <string> local-error;
+    callback local-commit(LocalDateTimeDraft);
+    in-out property <string> zone-date-text: "2026-11-01";
+    in-out property <string> zone-time-text: "01:30";
+    in-out property <string> zone-text: "America/Toronto";
+    in-out property <ZonedTimePresentation> zone-resolution: ZonedTimePresentation.unresolved;
+    in-out property <string> zone-message;
+    callback zone-edited(); callback zone-resolve(ZonedDateTimeDraft); callback ambiguity-chosen(AmbiguousTimeChoice);
+    in-out property <[FileViewEntry]> selected-files;
+    in-out property <HostRequestPresentation> file-state: HostRequestPresentation.idle;
+    in-out property <HostRequestPresentation> folder-state: HostRequestPresentation.idle;
+    in-out property <string> file-error;
+    in-out property <string> folder-name;
+    in-out property <string> folder-error;
+    in-out property <DropCapability> drop-capability: DropCapability.unsupported;
+    callback file-browse(FileSelectionMode); callback file-remove(int,int); callback folder-browse(); callback folder-clear();
+    callback can-drop(DropEvent)->DragAction; callback dropped(DropEvent)->DragAction;
+    in-out property <string> color-hex: "#4F46E5FF";
+    in-out property <string> color-red: "79";
+    in-out property <string> color-green: "70";
+    in-out property <string> color-blue: "229";
+    in-out property <string> color-alpha: "255";
+    in-out property <string> color-error;
+    in-out property <string> color-red-error;
+    in-out property <string> color-green-error;
+    in-out property <string> color-blue-error;
+    in-out property <string> color-alpha-error;
+
+    in-out property <SrgbColorView> accepted-color: {red:79,green:70,blue:229,alpha:255};
+    in-out property <color> color-swatch: #4f46e5;
+    callback color-hex-edited(string); callback color-hex-commit(string); callback color-channel-edited(ColorChannel,string); callback color-channel-commit(ColorChannel,string); callback color-position(ColorChannel,float); callback color-navigate(ColorChannel,NavigationStep); callback color-gesture(ColorChannel,SliderGesture);
+}
+
+component ExamplePanel inherits Rectangle {
+    in property <KitTheme> theme;
+    background: root.theme.surface;
+    border-width: 1px; border-color: root.theme.border-subtle; border-radius: 16px;
+    preferred-height: content.preferred-height;
+    min-height: self.preferred-height;
+    vertical-stretch: 0;
+    content := VerticalLayout { padding: 24px; spacing: 20px; alignment: start; @children }
+}
+component SectionTitle inherits Text {
+    in property <KitTheme> theme;
+    color: root.theme.text-primary;
+    font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap;
+}
+
+export component FormGallery inherits VerticalLayout {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ShowcasePage> page;
+    spacing: 24px; alignment: start; vertical-stretch: 0; max-width: 900px;
+    if root.page == ShowcasePage.profile: ExamplePanel {
+        theme: root.theme;
+        SectionTitle {theme: root.theme; text: "A profile, thoughtfully composed";}
+        KitFieldDescription {theme: root.theme; text: "Native editing, clear labels, and validation that keeps your work intact.";}
+        FlexboxLayout {spacing: 8px; alignment: start;
+            KitButton {theme:root.theme; text: FormExamples.access == FieldAccess.editable ? "Editable" : FormExamples.access == FieldAccess.read-only ? "Read only" : "Disabled"; activated => {FormExamples.access = FormExamples.access == FieldAccess.editable ? FieldAccess.read-only : FormExamples.access == FieldAccess.read-only ? FieldAccess.disabled : FieldAccess.editable;}}
+        }
+        KitTextField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Display name"; placeholder: "Your public name";
+            text <=> FormExamples.name-text; validation: FormExamples.name-validation; error: FormExamples.name-error; character-count: FormExamples.name-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.name) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.name,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.name,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.name);}}
+            cancelled => {FormExamples.text-cancel(TextExample.name);}
+        }
+        KitEmailField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Email"; placeholder: "name@example.com";
+            text <=> FormExamples.email-text; validation: FormExamples.email-validation; error: FormExamples.email-error; character-count: FormExamples.email-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.email) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.email,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.email,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.email);}}
+            cancelled => {FormExamples.text-cancel(TextExample.email);}
+        }
+        KitUrlField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Website"; placeholder: "https://example.com";
+            text <=> FormExamples.website-text; validation: FormExamples.website-validation; error: FormExamples.website-error; character-count: FormExamples.website-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.website) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.website,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.website,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.website);}}
+            cancelled => {FormExamples.text-cancel(TextExample.website);}
+        }
+        KitTelephoneField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Phone"; placeholder: "+1 514 555 0100";
+            text <=> FormExamples.phone-text; validation: FormExamples.phone-validation; error: FormExamples.phone-error; character-count: FormExamples.phone-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.phone) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.phone,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.phone,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.phone);}}
+            cancelled => {FormExamples.text-cancel(TextExample.phone);}
+        }
+        KitPasswordField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Password"; placeholder: "A secret you can reveal";
+            text <=> FormExamples.password-text; validation: FormExamples.password-validation; error: FormExamples.password-error; character-count: FormExamples.password-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.password) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.password,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.password,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.password);}}
+            cancelled => {FormExamples.text-cancel(TextExample.password);}
+        }
+        KitSearchField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Search"; placeholder: "Find a project";
+            text <=> FormExamples.search-text; validation: FormExamples.search-validation; error: FormExamples.search-error; character-count: FormExamples.search-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.search) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.search,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.search,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.search);}}
+            cancelled => {FormExamples.text-cancel(TextExample.search);}
+        }
+        KitTextArea {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "About you"; placeholder: "A few lines about your work";
+            text <=> FormExamples.biography-text; validation: FormExamples.biography-validation; error: FormExamples.biography-error; character-count: FormExamples.biography-count; min-lines: 3; max-lines: 6; show-character-count: true;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.biography) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.biography,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.biography,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.biography);}}
+            cancelled => {FormExamples.text-cancel(TextExample.biography);}
+        }
+        KitOtpField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Verification code"; placeholder: "123456";
+            text <=> FormExamples.otp-text; validation: FormExamples.otp-validation; error: FormExamples.otp-error; character-count: FormExamples.otp-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.otp) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.otp,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.otp,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.otp);}}
+            cancelled => {FormExamples.text-cancel(TextExample.otp);}
+        }
+        KitMaskedField {
+            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            label: "Project reference"; placeholder: "AB-1234";
+            text <=> FormExamples.reference-text; validation: FormExamples.reference-validation; error: FormExamples.reference-error; character-count: FormExamples.reference-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.reference) {self.take-focus();}}
+            edited(text) => {FormExamples.text-edited(TextExample.reference,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.reference,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.reference);}}
+            cancelled => {FormExamples.text-cancel(TextExample.reference);}
+        }
+        KitFormErrorSummary {theme:root.theme;errors:FormExamples.profile-errors;error-activated(target)=>{FormExamples.profile-error-activated(target);}}
+        KitCheckbox {control-size:root.control-size;private property <int> focus-sequence:FormExamples.consent-focus-sequence;changed focus-sequence=>{self.take-focus();}theme: root.theme; label: "I agree to the project terms"; state: FormExamples.consent; access: FormExamples.access; toggled(state)=>{FormExamples.consent-toggled(state);}}
+        KitSwitch {control-size:root.control-size;theme:root.theme; label:"Email notifications"; checked:FormExamples.notifications; access:FormExamples.access; toggled(value)=>{FormExamples.notifications-toggled(value);}}
+        KitFieldDescription {theme:root.theme;text:FormExamples.profile-status;}
+        FlexboxLayout {spacing:12px;alignment:start;
+            KitButton {theme:root.theme;text:"Save profile";intent:ButtonIntent.primary;busy:FormExamples.profile-submission == SubmissionPresentation.pending;disabled:FormExamples.access != FieldAccess.editable;activated=>{FormExamples.profile-submit();}}
+            KitButton {theme:root.theme;text:"Reset";intent:ButtonIntent.quiet;activated=>{FormExamples.profile-reset();}}
+        }
+    }
+    if root.page == ShowcasePage.billing: ExamplePanel {
+        theme:root.theme;
+        SectionTitle {theme:root.theme;text:"Exact values. Clear meaning.";}
+        KitFieldDescription {theme:root.theme;text:"Localized drafts stay editable. Formatting happens when you accept a value.";}
+        FlexboxLayout {spacing:8px;alignment:start;
+            for locale in [LocaleExample.french-canada,LocaleExample.french-france,LocaleExample.english-canada,LocaleExample.english-us]:KitButton {
+                theme:root.theme; text:locale == LocaleExample.french-canada ? "fr-CA" : locale == LocaleExample.french-france ? "fr-FR" : locale == LocaleExample.english-canada ? "en-CA" : "en-US";
+                intent:FormExamples.locale == locale ? ButtonIntent.primary : ButtonIntent.quiet;
+                activated=>{FormExamples.locale-changed(locale);}
+            }
+        }
+        KitIntegerField {
+            theme:root.theme;control-size:root.control-size;label:"Team size"; suffix: "people";
+            text <=> FormExamples.integer-text;validation:FormExamples.integer-validation;error:FormExamples.integer-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.integer,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.integer,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.integer);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.integer);}
+        }
+        KitDecimalField {
+            theme:root.theme;control-size:root.control-size;label:"Exact decimal";
+            text <=> FormExamples.decimal-text;validation:FormExamples.decimal-validation;error:FormExamples.decimal-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.decimal,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.decimal,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.decimal);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.decimal);}
+        }
+        KitMoneyField {
+            theme:root.theme;control-size:root.control-size;label:"Monthly budget"; suffix: FormExamples.money-suffix;
+            text <=> FormExamples.money-text;validation:FormExamples.money-validation;error:FormExamples.money-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.money,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.money,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.money);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.money);}
+        }
+        KitPercentField {
+            theme:root.theme;control-size:root.control-size;label:"Allocation"; suffix: "%";
+            text <=> FormExamples.percent-text;validation:FormExamples.percent-validation;error:FormExamples.percent-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.percent,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.percent,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.percent);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.percent);}
+        }
+        KitQuantityField {
+            theme:root.theme;control-size:root.control-size;label:"Distance"; suffix: "km";
+            text <=> FormExamples.quantity-text;validation:FormExamples.quantity-validation;error:FormExamples.quantity-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.quantity,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.quantity,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.quantity);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.quantity);}
+        }
+        KitDurationField {
+            theme:root.theme;control-size:root.control-size;label:"Focus session"; suffix: "minutes";
+            text <=> FormExamples.duration-text;validation:FormExamples.duration-validation;error:FormExamples.duration-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.duration,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.duration,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.duration);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.duration);}
+        }
+        KitNumberStepper {
+            theme:root.theme;control-size:root.control-size;label:"Seats"; suffix: "people"; step-requested(direction)=>{FormExamples.step-requested(direction);}
+            text <=> FormExamples.stepper-text;validation:FormExamples.stepper-validation;error:FormExamples.stepper-error;
+            edited(text)=>{FormExamples.numeric-edited(NumericExample.stepper,text);}
+            commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.stepper,text);}
+            focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.stepper);}}
+            cancelled=>{FormExamples.numeric-cancel(NumericExample.stepper);}
+        }
+        KitFormErrorSummary {theme:root.theme;errors:FormExamples.billing-errors;error-activated(target)=>{FormExamples.billing-error-activated(target);}}
+        KitFieldDescription {theme:root.theme;text:FormExamples.billing-status;}
+        FlexboxLayout {spacing:12px;alignment:start;
+            KitButton {theme:root.theme;text:"Create invoice";intent:ButtonIntent.primary;busy:FormExamples.billing-submission == SubmissionPresentation.pending;activated=>{FormExamples.billing-submit();}}
+            KitButton {theme:root.theme;text:"Reset values";intent:ButtonIntent.quiet;activated=>{FormExamples.billing-reset();}}
+        }
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel {
+        theme:root.theme;
+        SectionTitle {theme:root.theme;text:"Choose, combine, adjust";}
+        KitCheckbox {control-size:root.control-size;theme:root.theme;label:"Include everyone (mixed state supported)";state:FormExamples.consent;toggled(state)=>{FormExamples.consent-toggled(state);}}
+        KitSwitch {control-size:root.control-size;theme:root.theme;label:"Notify collaborators";checked:FormExamples.notifications;toggled(value)=>{FormExamples.notifications-toggled(value);}}
+        KitFieldLabel {theme:root.theme;text:"Plan";}
+        KitRadioGroup {control-size:root.control-size;theme:root.theme;label:"Plan";rows:FormExamples.radio-options;active-token:FormExamples.radio-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.radio,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.radio,token,generation);}}
+        KitFieldLabel {theme:root.theme;text:"Layout";}
+        KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"Preview layout";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
+        KitFieldLabel {theme:root.theme;text:"Export formats";}
+        KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
+        KitFieldDescription {theme:root.theme;text:"Search a collaborator";}
+        KitCombobox {control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
+        KitFieldDescription {theme:root.theme;text:"Project reviewers";}
+        KitMultiSelect {control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
+        KitTagInput {control-size:root.control-size;theme:root.theme;label:"Tags";chips:FormExamples.tags;text <=> FormExamples.tag-text;error:FormExamples.tag-error;create-requested(text)=>{FormExamples.tag-create(text);}remove-requested(token)=>{FormExamples.tag-remove(token);}}
+        KitSlider {theme:root.theme;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
+        KitRangeSlider {theme:root.theme;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
+        KitIntegerField {theme:root.theme;label:"Intensity, precise value (0–100)";text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
+        KitIntegerField {theme:root.theme;label:"Range start (0–100)";text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
+        KitIntegerField {theme:root.theme;label:"Range end (0–100)";text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
+        KitFieldLabel {theme:root.theme;text:"Rating";}
+        KitRating {control-size:root.control-size;active-token:FormExamples.rating-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.rating,step);}theme:root.theme;label:"Rate this layout";scores:FormExamples.rating-options;generation:FormExamples.choice-generation;choose(token,generation)=>{FormExamples.choice-activate(ChoiceExample.rating,token,generation);}clear-requested=>{FormExamples.rating-clear();}}
+        KitFieldDescription {theme:root.theme;text:FormExamples.choices-status;}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel {
+        theme:root.theme;
+        SectionTitle {theme:root.theme;text:"Dates are not instants";}
+        KitDatePicker {control-size:root.control-size;theme:root.theme;label:"Project date";text <=> FormExamples.date-text;error:FormExamples.date-error;accepted-date:FormExamples.accepted-date;days:FormExamples.calendar-days;active-index:FormExamples.calendar-active;title:FormExamples.calendar-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];edited(text)=>{FormExamples.date-edited(DateExample.date,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.date,text);}navigate(step)=>{FormExamples.calendar-navigate(step);}choose(day)=>{FormExamples.calendar-choose(day);}}
+        KitDateRangePicker {control-size:root.control-size;theme:root.theme;days:FormExamples.range-days;active-index:FormExamples.calendar-active;title:FormExamples.calendar-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];phase:FormExamples.range-phase;summary:FormExamples.date-range-summary;error:FormExamples.date-range-error;navigate(step)=>{FormExamples.calendar-navigate(step);}choose(day)=>{FormExamples.date-range-choose(day);}apply-requested=>{FormExamples.date-range-apply();}cancelled=>{FormExamples.date-range-cancel();}}
+        KitMonthField {theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;edited(text)=>{FormExamples.date-edited(DateExample.month,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.month,text);}}
+        KitYearField {theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;edited(text)=>{FormExamples.date-edited(DateExample.year,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.year,text);}}
+        KitIsoWeekField {theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;edited(text)=>{FormExamples.date-edited(DateExample.week,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.week,text);}}
+        KitButton {theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
+        KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;edited(text)=>{FormExamples.date-edited(DateExample.time,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.time,text);}adjust(segment,direction)=>{FormExamples.time-adjust(segment,direction);}}
+        KitDateTimeField {control-size:root.control-size;theme:root.theme;label:"Local meeting";date-text <=> FormExamples.local-date-text;time-text <=> FormExamples.local-time-text;date-error:FormExamples.local-error;commit-requested(draft)=>{FormExamples.local-commit(draft);}}
+        KitZonedDateTimeField {control-size:root.control-size;theme:root.theme;label:"Meeting in a time zone";date-text <=> FormExamples.zone-date-text;time-text <=> FormExamples.zone-time-text;zone-text <=> FormExamples.zone-text;resolution:FormExamples.zone-resolution;resolution-message:FormExamples.zone-message;edited(draft)=>{FormExamples.zone-edited();}resolve-requested(draft)=>{FormExamples.zone-resolve(draft);}ambiguity-chosen(choice)=>{FormExamples.ambiguity-chosen(choice);}}
+    }
+    if root.page == ShowcasePage.files: ExamplePanel {
+        theme:root.theme;
+        SectionTitle {theme:root.theme;text:"Files and color, with native intent";}
+        KitFilePicker {control-size:root.control-size;theme:root.theme;mode:FileSelectionMode.multiple;request-state:FormExamples.file-state;entries:FormExamples.selected-files;error:FormExamples.file-error;description:"Files stay local. Nothing is uploaded.";browse-requested(mode)=>{FormExamples.file-browse(mode);}remove-requested(token,generation)=>{FormExamples.file-remove(token,generation);}}
+        KitDirectoryPicker {control-size:root.control-size;theme:root.theme;request-state:FormExamples.folder-state;selected-name:FormExamples.folder-name;error:FormExamples.folder-error;browse-requested=>{FormExamples.folder-browse();}clear-requested=>{FormExamples.folder-clear();}}
+        KitFileDropZone {control-size:root.control-size;theme:root.theme;capability:FormExamples.drop-capability;can-drop(event)=>{return FormExamples.can-drop(event);}dropped(event)=>{return FormExamples.dropped(event);}}
+        KitColorPicker {control-size:root.control-size;theme:root.theme;alpha-mode:ColorAlphaMode.editable;accepted-color:FormExamples.accepted-color;swatch:FormExamples.color-swatch;hex-text <=> FormExamples.color-hex;red-text <=> FormExamples.color-red;green-text <=> FormExamples.color-green;blue-text <=> FormExamples.color-blue;alpha-text <=> FormExamples.color-alpha;hex-error:FormExamples.color-error;red-error:FormExamples.color-red-error;green-error:FormExamples.color-green-error;blue-error:FormExamples.color-blue-error;alpha-error:FormExamples.color-alpha-error;hex-edited(text)=>{FormExamples.color-hex-edited(text);}hex-commit-requested(text)=>{FormExamples.color-hex-commit(text);}channel-edited(channel,text)=>{FormExamples.color-channel-edited(channel,text);}channel-commit-requested(channel,text)=>{FormExamples.color-channel-commit(channel,text);}channel-position-requested(channel,value)=>{FormExamples.color-position(channel,value);}channel-navigate(channel,step)=>{FormExamples.color-navigate(channel,step);}gesture-started(channel)=>{FormExamples.color-gesture(channel,SliderGesture.started);}committed(channel)=>{FormExamples.color-gesture(channel,SliderGesture.committed);}cancelled(channel)=>{FormExamples.color-gesture(channel,SliderGesture.cancelled);}}
+    }
+}

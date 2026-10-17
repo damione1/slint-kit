@@ -1,0 +1,169 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitTextField, KitPasswordField, KitSearchField, KitEmailField, KitUrlField, KitTelephoneField, KitTextArea, KitOtpField, KitMaskedField, KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper, KitButton, KitSelect, KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitFieldGroup, KitFieldSet, KitInputGroup, KitFieldSeparator, FieldAccess, ValidationPresentation, SecretVisibility, ControlSize, CheckState, KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, NavigationStep, KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CalendarNavigation, KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, KitFilePicker, KitDirectoryPicker, KitFileDropZone, KitColorField, KitColorPicker } from "@kit/kit.slint";
+
+export component Part2Fixture inherits Window {
+    width: 1100px; height: 1000px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in-out property <string> name-text;
+    in-out property <string> password-text;
+    in-out property <string> search-text;
+    in-out property <string> area-text;
+    in-out property <SecretVisibility> secret-visibility;
+    in property <CheckState> check-state: CheckState.mixed;
+    in property <[ChoiceRow]> choices;
+    in property <int> active-token;
+    in property <float> slider-position: 0.5;
+    in property <[CalendarDay]> calendar-days;
+    in property <int> calendar-active;
+    in-out property <bool> picker-open;
+    out property <bool> name-focused: name.has-focus;
+    out property <bool> password-focused: password.has-focus;
+    out property <bool> search-focused: search.has-focus;
+    out property <bool> area-focused: area.has-focus;
+    out property <bool> radio-focused: radio.has-focus;
+    out property <bool> calendar-focused: calendar.has-focus;
+    out property <length> simple-height: simple.height;
+    out property <length> button-height: intrinsic-button.height;
+    out property <length> select-height: intrinsic-select.height;
+    out property <length> area-height: area.height;
+    callback name-edited(string);
+    callback name-committed(string);
+    callback area-committed(string);
+    callback checkbox-toggled(CheckState);
+    callback radio-navigate(NavigationStep);
+    callback radio-activate(int,int);
+    callback slider-navigate(NavigationStep);
+    callback slider-position-requested(float);
+    callback slider-started();
+    callback slider-committed();
+    callback slider-cancelled();
+    callback calendar-navigate(CalendarNavigation);
+    callback calendar-choose(CalendarDay);
+    callback picker-choose(CalendarDay);
+    public function focus-name() { name.take-focus(); }
+    public function select-name() { name.select-all(); }
+    public function focus-password() { password.take-focus(); }
+    public function focus-search() { search.take-focus(); }
+    public function focus-area() { area.take-focus(); }
+    public function focus-radio() { radio.take-focus(); }
+    public function focus-slider() { slider.take-focus(); }
+    public function focus-calendar() { calendar.take-focus(); }
+    VerticalLayout {
+        x: 20px; y: 20px; width: 360px; height: root.height - 40px;
+        spacing: 16px;
+        simple := KitTextField { theme: root.theme; control-size: root.control-size; accessible-name: "Intrinsic text"; }
+        intrinsic-button := KitButton { theme: root.theme; control-size: root.control-size; text: "Intrinsic action"; }
+        intrinsic-select := KitSelect { theme: root.theme; control-size: root.control-size; placeholder: "Intrinsic select"; }
+        name := KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; validation: root.validation; label: "Full name"; description: "Your name remains visible and editable after changing theme."; error: "Please enter a name."; text <=> root.name-text; edited(text) => { root.name-edited(text); } commit-requested(text) => { root.name-committed(text); } }
+        password := KitPasswordField { theme: root.theme; access: root.access; label: "Password"; text <=> root.password-text; secret-visibility <=> root.secret-visibility; }
+        search := KitSearchField { theme: root.theme; access: root.access; label: "Find a person"; text <=> root.search-text; }
+        area := KitTextArea { theme: root.theme; access: root.access; label: "Notes"; min-lines: 2; max-lines: 4; text <=> root.area-text; commit-requested(text) => { root.area-committed(text); } }
+        Rectangle { vertical-stretch: 1; }
+    }
+    VerticalLayout {
+        x: 420px; y: 20px; width: 340px; height: root.height - 40px;
+        spacing: 16px;
+        KitCheckbox { theme: root.theme; access: root.access; label: "Project notifications"; state: root.check-state; toggled(state) => { root.checkbox-toggled(state); } }
+        KitSwitch { theme: root.theme; access: root.access; label: "Activity updates"; }
+        radio := KitRadioGroup { theme: root.theme; access: root.access; label: "Billing cadence"; rows: root.choices; generation: 7; active-token: root.active-token; navigate(step) => { root.radio-navigate(step); } activate(token,generation) => { root.radio-activate(token,generation); } }
+        slider := KitSlider { theme: root.theme; access: root.access; position: root.slider-position; label: "Volume"; value-label: "50 percent"; navigate(step) => { root.slider-navigate(step); } position-requested(value) => { root.slider-position-requested(value); } gesture-started => { root.slider-started(); } committed => { root.slider-committed(); } cancelled => { root.slider-cancelled(); } }
+        KitDatePicker { theme: root.theme; label: "Reservation date"; days: root.calendar-days; active-index: root.calendar-active; title: "October 2026"; open <=> root.picker-open; choose(day) => { root.picker-choose(day); } }
+        calendar := KitCalendar { theme: root.theme; access: root.access; days: root.calendar-days; active-index: root.calendar-active; title: "October 2026"; label: "Reservation calendar"; navigate(step) => { root.calendar-navigate(step); } choose(day) => { root.calendar-choose(day); } }
+        Rectangle { vertical-stretch: 1; }
+    }
+}
+
+// A third-party consumer composes every public family without private imports.
+// This is a compile contract, not a screenshot baseline or device qualification.
+export component PublicCatalogueFixture inherits Window {
+    width: 1000px; height: 1000px;
+    VerticalLayout {
+        KitFieldSet { legend: "Account";
+            KitFieldGroup {
+                KitTextField { label: "Name"; }
+                KitEmailField { label: "Email"; }
+                KitUrlField { label: "Website"; }
+                KitTelephoneField { label: "Phone"; }
+                KitPasswordField { label: "Password"; }
+                KitSearchField { label: "Search"; }
+                KitTextArea { label: "Biography"; }
+                KitOtpField { label: "Code"; }
+                KitMaskedField { label: "Structured reference"; }
+            }
+        }
+        KitFieldSeparator { }
+        KitField { KitFieldLabel { text: "Composed field"; } KitInputGroup { TextInput { text: "Native editor"; } } KitFieldDescription { text: "Application content"; } KitFieldError { text: "Application error"; } }
+        KitIntegerField { label: "Count"; }
+        KitDecimalField { label: "Decimal"; }
+        KitMoneyField { label: "Budget"; prefix: "CAD"; }
+        KitPercentField { label: "Rate"; }
+        KitQuantityField { label: "Weight"; suffix: "kg"; }
+        KitDurationField { label: "Duration"; suffix: "minutes"; }
+        KitNumberStepper { label: "Seats"; }
+        KitCheckbox { label: "Consent"; }
+        KitSwitch { label: "Updates"; }
+        KitRadioGroup { label: "Plan"; }
+        KitSegmentedControl { label: "View"; }
+        KitToggleGroup { label: "Tools"; }
+        KitSelect { placeholder: "Owner"; }
+        KitMultiSelect { placeholder: "Members"; }
+        KitTagInput { label: "Tags"; }
+        KitCombobox { label: "Search choices"; }
+        KitSlider { label: "Level"; }
+        KitRangeSlider { label: "Range"; }
+        KitRating { label: "Rating"; }
+        KitDateField { label: "Civil date"; }
+        KitDatePicker { label: "Date"; }
+        KitCalendar { title: "Calendar"; }
+        KitDateRangePicker { title: "Date range"; }
+        KitMonthField { label: "Month"; }
+        KitYearField { label: "Year"; }
+        KitIsoWeekField { label: "Week"; }
+        KitTimeField { label: "Time"; }
+        KitTimePicker { label: "Time controls"; }
+        KitDateTimeField { label: "Local date time"; }
+        KitZonedDateTimeField { label: "Zoned date time"; }
+        KitFilePicker { label: "Files"; }
+        KitDirectoryPicker { label: "Folder"; }
+        KitFileDropZone { }
+        KitColorField { label: "Color"; }
+        KitColorPicker { label: "Color channels"; }
+        KitButton { text: "Submit"; }
+    }
+}
+
+export component ChoiceRegressionFixture inherits Window {
+    width: 780px; height: 1300px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <string> long-label: "Project notifications";
+    in property <[ChoiceRow]> choices;
+    in property <[CalendarDay]> days;
+    in-out property <string> pasted;
+    out property <length> checkbox-height: check.height;
+    out property <length> switch-height: toggle.height;
+    out property <length> radio-height: radio.height;
+    out property <length> segmented-height: segmented.height;
+    out property <length> toggle-height: toggles.height;
+    out property <length> multi-height: multi.height;
+    out property <bool> checkbox-focused: check.has-focus;
+    out property <bool> combobox-focused: combo.has-focus;
+    callback checkbox-activated(); callback switch-activated(); callback option-activated(); callback calendar-activated(); callback combo-opened(); callback multi-opened();
+    public function focus-check() { check.take-focus(); }
+    public function focus-switch() { toggle.take-focus(); }
+    public function focus-combo() { combo.take-focus(); }
+    public function focus-multi() { multi.take-focus(); }
+    public function focus-paste() { paste.focus(); }
+    check := KitCheckbox { x:20px; y:20px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; label:root.long-label; toggled(state)=>{root.checkbox-activated();} }
+    toggle := KitSwitch { x:20px; y:check.y+check.height+16px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; label:root.long-label; toggled(state)=>{root.switch-activated();} }
+    radio := KitRadioGroup { x:20px; y:toggle.y+toggle.height+16px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long radio"; activate(token,generation)=>{root.option-activated();} }
+    segmented := KitSegmentedControl { x:300px; y:20px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long segmented"; activate(token,generation)=>{root.option-activated();} }
+    toggles := KitToggleGroup { x:300px; y:segmented.y+segmented.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long toggles"; toggled(token,generation)=>{root.option-activated();} }
+    combo := KitCombobox { x:300px; y:toggles.y+toggles.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; label:"Search collaborator"; selected-label:"Grace Hopper"; open-requested=>{root.combo-opened();} }
+    multi := KitMultiSelect { x:300px; y:combo.y+combo.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; placeholder:"Add reviewers"; chips:[{token:1,label:"Ada Lovelace",removable:true}]; open-requested=>{root.multi-opened();} }
+    paste := TextInput { x:300px; y:multi.y+multi.height+16px; width:440px; height:40px; text<=>root.pasted; accessible-label:"Paste target"; }
+    KitCalendar { x:300px; y:paste.y+paste.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; days:root.days; choose(day)=>{root.calendar-activated();} }
+}
