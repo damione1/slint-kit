@@ -5,6 +5,8 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ProductId(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct ArticleId(i32);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Column {
     Title,
     Category,
@@ -33,7 +35,7 @@ struct Catalogue {
     generation: i32,
     rows: Rc<VecModel<ui::TableRow>>,
     articles: Rc<VecModel<ui::ContentItem>>,
-    article: Option<usize>,
+    article: Option<ArticleId>,
     lines: Rc<VecModel<ui::TextLine>>,
     line: Option<usize>,
     drafts: BTreeMap<usize, String>,
@@ -101,7 +103,34 @@ impl Catalogue {
             global.get_thumbnail_two(),
             global.get_thumbnail_three(),
         ];
-        let articles:Vec<_>=(0..500).map(|i|ui::ContentItem {token:i+1,title:format!("{} · {}",["Objects with a purpose","Inside the studio","Notes from the field"][i as usize%3],i+1).into(),excerpt:"Thoughtful materials, small discoveries, and the people who bring an idea to life.".into(),metadata:format!("{} · {} min read · Collection {}",["Design","Journal","People"][i as usize%3],3+i%8,1+i/12).into(),link_label:"Read story".into(),thumbnail:images[i as usize%3].clone(),selected:false,disabled:false}).collect();
+        let articles: Vec<_> = (0..500)
+            .map(|i| ui::ContentItem {
+                token: i + 1,
+                title: format!(
+                    "{} · {}",
+                    [
+                        "Allsafe incident review",
+                        "Darlene’s audit notes",
+                        "Elliot’s field journal"
+                    ][i as usize % 3],
+                    i + 1
+                )
+                .into(),
+                excerpt: "Security findings, follow up actions and notes from the Allsafe team."
+                    .into(),
+                metadata: format!(
+                    "{} · {} min read · Collection {}",
+                    ["Design", "Journal", "People"][i as usize % 3],
+                    3 + i % 8,
+                    1 + i / 12
+                )
+                .into(),
+                link_label: "Open preview".into(),
+                thumbnail: images[i as usize % 3].clone(),
+                selected: false,
+                disabled: false,
+            })
+            .collect();
         let lines: Vec<_> = (0..50_000)
             .map(|i| ui::TextLine {
                 token: i + 1,
@@ -333,6 +362,14 @@ pub fn install(window: &ui::Showcase) {
             }
         }
     });
+    let weak = window.as_weak();
+    global.on_article_close(move || {
+        if let Some(window) = weak.upgrade() {
+            window
+                .global::<ui::DataExamples>()
+                .set_preview_state(ui::ArticlePreviewState::Closed);
+        }
+    });
     let shared = state.clone();
     let weak = window.as_weak();
     global.on_article_open(move |token, generation| {
@@ -345,6 +382,7 @@ pub fn install(window: &ui::Showcase) {
                 return;
             };
             if let Some(old) = data.article {
+                let old = number(old.0,data.articles.row_count()).expect("retained article identity");
                 let mut row = data.articles.row_data(old).unwrap();
                 row.selected = false;
                 data.articles.set_row_data(old, row);
@@ -352,12 +390,12 @@ pub fn install(window: &ui::Showcase) {
             let mut row = data.articles.row_data(index).unwrap();
             row.selected = true;
             data.articles.set_row_data(index, row.clone());
-            data.article = Some(index);
+            data.article = Some(ArticleId(token));
             let global = window.global::<ui::DataExamples>();
             global.set_article_active(index as i32);
-            global.set_article_status(
-                format!("{}\n{}\n{}", row.title, row.excerpt, row.metadata).into(),
-            );
+            global.set_preview_state(ui::ArticlePreviewState::Open);
+            global.set_preview(ui::ArticlePreview { token, title: row.title.clone(), metadata: row.metadata.clone(), thumbnail: row.thumbnail.clone(), body: format!("{}\n\n{}",row.excerpt,"Elliot and Darlene review the Allsafe findings, record the next action and keep a clear trail for the team. This preview belongs to the selected article.").into() });
+            global.set_preview_saved(false);
         }
     });
     let shared = state.clone();
@@ -384,11 +422,14 @@ pub fn install(window: &ui::Showcase) {
                 return;
             }
             if text.contains(['\n', '\r']) {
-                window.global::<ui::DataExamples>().set_line_status(
+                window.global::<ui::DataExamples>().set_line_error(
                     "Edit one line at a time; embedded newlines are not accepted.".into(),
                 );
                 return;
             }
+            window
+                .global::<ui::DataExamples>()
+                .set_line_error("".into());
             let mut row = data.lines.row_data(index).unwrap();
             row.text = text.clone();
             data.lines.set_row_data(index, row);
@@ -438,7 +479,13 @@ pub fn install(window: &ui::Showcase) {
                 }
             }
             ui::DataCollection::Articles => {
-                if let Some(index) = navigate(data.article, data.articles.row_count(), step, 3) {
+                if let Some(index) = navigate(
+                    data.article
+                        .and_then(|id| number(id.0, data.articles.row_count())),
+                    data.articles.row_count(),
+                    step,
+                    3,
+                ) {
                     drop(data);
                     global.invoke_article_open(index as i32 + 1, 1);
                 }
@@ -505,5 +552,40 @@ mod tests {
             data.get_lines().row_data(49_999).unwrap().text.as_str(),
             "Dernière ligne — été"
         );
+    }
+    #[test]
+    fn article_preview_uses_the_selected_identity_and_keeps_the_model_virtual() {
+        use i_slint_backend_testing::ElementQuery;
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::Showcase::new().unwrap();
+        install(&window);
+        window.set_page(ui::ShowcasePage::Data);
+        window.show().unwrap();
+        let data = window.global::<ui::DataExamples>();
+        data.invoke_article_open(2, 1);
+        assert_eq!(data.get_preview_state(), ui::ArticlePreviewState::Open);
+        assert_eq!(data.get_preview().token, 2);
+        assert_eq!(
+            data.get_preview().title,
+            data.get_articles().row_data(1).unwrap().title
+        );
+        data.invoke_article_open(499, 1);
+        assert_eq!(data.get_preview().token, 499);
+        assert_eq!(
+            data.get_preview().thumbnail,
+            data.get_articles().row_data(498).unwrap().thumbnail
+        );
+        assert_eq!(data.get_articles().row_count(), 500);
+        let delegates = ElementQuery::from_root(&window)
+            .match_inherits("KitContentList")
+            .find_first()
+            .unwrap()
+            .query_descendants()
+            .match_inherits("DataAction")
+            .find_all();
+        assert!(delegates.len() < 20, "finite viewport delegate budget");
+        data.invoke_article_close();
+        assert_eq!(data.get_preview_state(), ui::ArticlePreviewState::Closed);
+        assert_eq!(data.get_article_active(), 498);
     }
 }

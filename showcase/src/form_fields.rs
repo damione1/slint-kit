@@ -44,10 +44,7 @@ enum ProfileField {
     Email,
     Website,
     Phone,
-    Password,
     Biography,
-    Otp,
-    Reference,
     Consent,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -73,17 +70,12 @@ struct ProfilePayload {
     email: EmailAddress,
     website: Option<Website>,
     phone: PhoneNumber,
-    password: SecretText,
     biography: Option<Biography>,
-    otp: Option<OtpValue>,
-    reference: Option<MaskedValue>,
     consent: bool,
     notifications: bool,
 }
 #[derive(Clone)]
 struct BillingPayload {
-    people: i64,
-    decimal: DecimalValue,
     budget: Money,
     allocation: Percent,
     distance: Quantity<DistanceUnit>,
@@ -153,11 +145,7 @@ impl TextFields {
         self.email.reset(Some(saved.email.clone()));
         self.website.reset(saved.website.clone());
         self.phone.reset(Some(saved.phone.clone()));
-        self.password.reset(Some(saved.password.clone()));
-        self.search.reset(None);
         self.biography.reset(saved.biography.clone());
-        self.otp.reset(saved.otp.clone());
-        self.reference.reset(saved.reference.clone());
     }
 }
 struct NumericFields {
@@ -183,8 +171,6 @@ impl NumericFields {
         }
     }
     fn restore(&self, saved: &BillingPayload) {
-        self.integer.reset(Some(saved.people));
-        self.decimal.reset(Some(saved.decimal));
         self.money.reset(Some(saved.budget.clone()));
         self.percent.reset(Some(saved.allocation));
         self.quantity.reset(Some(saved.distance.clone()));
@@ -622,31 +608,21 @@ fn duration_text(value: DurationValue, locale: NumberLocale) -> String {
 }
 fn initial_profile() -> ProfilePayload {
     ProfilePayload {
-        name: DisplayName("Alex Morgan".into()),
-        email: EmailAddress("alex@example.com".into()),
+        name: DisplayName("Elliot Alderson".into()),
+        email: EmailAddress("elliot@allsafe.example".into()),
         website: Some(Website(
-            url::Url::parse("https://example.com").expect("sample URL"),
+            url::Url::parse("https://allsafe.example").expect("sample URL"),
         )),
         phone: PhoneNumber("+1 514 555 0100".into()),
-        password: SecretText("native-editing".into()),
         biography: Some(Biography(
-            "I build thoughtful tools for people.\nNative by design, open by choice.".into(),
+            "Security engineer at Allsafe.\nI keep incident notes for the team.".into(),
         )),
-        otp: None,
-        reference: match reference_mask().parse("SK-0042") {
-            DraftValue::Parsed(value) => Some(value),
-            DraftValue::Empty | DraftValue::Incomplete | DraftValue::Invalid(_) => {
-                unreachable!("the sample reference matches its static mask")
-            }
-        },
         consent: false,
         notifications: true,
     }
 }
 fn initial_billing() -> BillingPayload {
     BillingPayload {
-        people: 12,
-        decimal: decimal("0.30"),
         budget: Money {
             amount: decimal("1234.50"),
             currency: CurrencyMetadata::cad().code,
@@ -697,7 +673,7 @@ pub fn install(window: &Showcase) {
         password: field(
             window,
             FieldView::Text(TextExample::Password),
-            Some(profile.password.clone()),
+            Some(SecretText("native-editing".into())),
             AbsencePolicy::Required,
             (parse_password, |v: &SecretText| v.0.clone()),
         ),
@@ -721,7 +697,7 @@ pub fn install(window: &Showcase) {
         otp: field(
             window,
             FieldView::Text(TextExample::Otp),
-            profile.otp.clone(),
+            None,
             AbsencePolicy::Optional,
             (
                 |s| {
@@ -737,7 +713,12 @@ pub fn install(window: &Showcase) {
         reference: field(
             window,
             FieldView::Text(TextExample::Reference),
-            profile.reference.clone(),
+            match reference_mask().parse("SK-0042") {
+                DraftValue::Parsed(value) => Some(value),
+                DraftValue::Empty | DraftValue::Incomplete | DraftValue::Invalid(_) => {
+                    unreachable!("static reference")
+                }
+            },
             AbsencePolicy::Optional,
             (
                 |s| reference_mask().parse(s),
@@ -749,7 +730,7 @@ pub fn install(window: &Showcase) {
         integer: field(
             window,
             FieldView::Numeric(NumericExample::Integer),
-            Some(billing.people),
+            Some(12),
             AbsencePolicy::Required,
             (
                 move |s| parse_integer(s, initial_locale, Some(people_bounds())),
@@ -759,7 +740,7 @@ pub fn install(window: &Showcase) {
         decimal: field(
             window,
             FieldView::Numeric(NumericExample::Decimal),
-            Some(billing.decimal),
+            Some(decimal("0.30")),
             AbsencePolicy::Required,
             (
                 move |s| decimal_rules(initial_locale, 4, SignPolicy::Signed, None).parse(s),
@@ -849,15 +830,44 @@ fn invalidate_billing(window: &Showcase, state: &Examples) {
     view.set_billing_submission(SubmissionPresentation::Idle);
     view.set_billing_status("Your invoice values have changed.".into());
 }
+fn belongs_to_profile(key: TextExample) -> bool {
+    matches!(
+        key,
+        TextExample::Name
+            | TextExample::Email
+            | TextExample::Website
+            | TextExample::Phone
+            | TextExample::Biography
+    )
+}
+fn belongs_to_invoice(key: NumericExample) -> bool {
+    matches!(
+        key,
+        NumericExample::Money
+            | NumericExample::Percent
+            | NumericExample::Quantity
+            | NumericExample::Duration
+            | NumericExample::Stepper
+    )
+}
+fn editor_access(window: &Showcase, key: TextExample) -> FieldAccess {
+    if belongs_to_profile(key) {
+        view_access(window.global::<FormExamples>().get_access())
+    } else {
+        FieldAccess::Editable
+    }
+}
 fn install_text(window: &Showcase, state: &Rc<Examples>) {
     let view = window.global::<FormExamples>();
     let weak = window.as_weak();
     let state_edit = state.clone();
     view.on_text_edited(move |key, text| {
         if let Some(window) = weak.upgrade() {
-            invalidate_profile(&window, &state_edit);
+            if belongs_to_profile(key) {
+                invalidate_profile(&window, &state_edit);
+            }
             let binding = state_edit.text.get(key);
-            binding.access(view_access(window.global::<FormExamples>().get_access()));
+            binding.access(editor_access(&window, key));
             binding.edit(text.as_str());
         }
     });
@@ -866,9 +876,11 @@ fn install_text(window: &Showcase, state: &Rc<Examples>) {
     view.on_text_commit(move |key, text| {
         if let Some(window) = weak.upgrade() {
             let binding = state_commit.text.get(key);
-            binding.access(view_access(window.global::<FormExamples>().get_access()));
+            binding.access(editor_access(&window, key));
             if binding.snapshot().draft != text.as_str() {
-                invalidate_profile(&window, &state_commit);
+                if belongs_to_profile(key) {
+                    invalidate_profile(&window, &state_commit);
+                }
                 binding.edit(text.as_str());
             }
             let _ = binding.commit(CommitTrigger::Explicit);
@@ -879,14 +891,16 @@ fn install_text(window: &Showcase, state: &Rc<Examples>) {
     view.on_text_blur(move |key| {
         if let Some(window) = weak.upgrade() {
             let binding = state_blur.text.get(key);
-            binding.access(view_access(window.global::<FormExamples>().get_access()));
+            binding.access(editor_access(&window, key));
             let _ = binding.commit(CommitTrigger::Blur);
         }
     });
     let state_cancel = state.clone();
     let weak = window.as_weak();
     view.on_text_cancel(move |key| {
-        if let Some(window) = weak.upgrade() {
+        if let Some(window) = weak.upgrade()
+            && belongs_to_profile(key)
+        {
             invalidate_profile(&window, &state_cancel);
         }
         state_cancel.text.get(key).cancel();
@@ -898,7 +912,9 @@ fn install_numbers(window: &Showcase, state: &Rc<Examples>) {
     let target = state.clone();
     view.on_numeric_edited(move |key, text| {
         if let Some(window) = weak.upgrade() {
-            invalidate_billing(&window, &target);
+            if belongs_to_invoice(key) {
+                invalidate_billing(&window, &target);
+            }
             let binding = target.numbers.get(key);
             binding.access(FieldAccess::Editable);
             binding.edit(text.as_str());
@@ -910,7 +926,9 @@ fn install_numbers(window: &Showcase, state: &Rc<Examples>) {
         if let Some(window) = weak.upgrade() {
             let binding = target.numbers.get(key);
             if binding.snapshot().draft != text.as_str() {
-                invalidate_billing(&window, &target);
+                if belongs_to_invoice(key) {
+                    invalidate_billing(&window, &target);
+                }
                 binding.edit(text.as_str());
             }
             let _ = binding.commit(CommitTrigger::Explicit);
@@ -923,7 +941,9 @@ fn install_numbers(window: &Showcase, state: &Rc<Examples>) {
     let target = state.clone();
     let weak = window.as_weak();
     view.on_numeric_cancel(move |key| {
-        if let Some(window) = weak.upgrade() {
+        if let Some(window) = weak.upgrade()
+            && belongs_to_invoice(key)
+        {
             invalidate_billing(&window, &target);
         }
         target.numbers.get(key).cancel();
@@ -1003,10 +1023,7 @@ fn profile_focus(window: &Showcase, field: ProfileField) {
         ProfileField::Email => TextExample::Email,
         ProfileField::Website => TextExample::Website,
         ProfileField::Phone => TextExample::Phone,
-        ProfileField::Password => TextExample::Password,
         ProfileField::Biography => TextExample::Biography,
-        ProfileField::Otp => TextExample::Otp,
-        ProfileField::Reference => TextExample::Reference,
         ProfileField::Consent => TextExample::Name,
     };
     window.invoke_focus_form_text(target);
@@ -1020,10 +1037,7 @@ fn profile_payload(
     let email = submitted(&fields.email, ProfileField::Email, &mut errors);
     let website = submitted(&fields.website, ProfileField::Website, &mut errors);
     let phone = submitted(&fields.phone, ProfileField::Phone, &mut errors);
-    let password = submitted(&fields.password, ProfileField::Password, &mut errors);
     let biography = submitted(&fields.biography, ProfileField::Biography, &mut errors);
-    let otp = submitted(&fields.otp, ProfileField::Otp, &mut errors);
-    let reference = submitted(&fields.reference, ProfileField::Reference, &mut errors);
     let view = window.global::<FormExamples>();
     let consent = match view.get_consent() {
         ui::CheckState::Checked => true,
@@ -1038,8 +1052,7 @@ fn profile_payload(
     if !errors.is_empty() {
         return Err(errors);
     }
-    let (Some(name), Some(email), Some(phone), Some(password)) = (name, email, phone, password)
-    else {
+    let (Some(name), Some(email), Some(phone)) = (name, email, phone) else {
         return Err(vec![FieldError {
             field: ProfileField::Name,
             error: FormIssue::InvalidValue,
@@ -1050,10 +1063,7 @@ fn profile_payload(
         email,
         website,
         phone,
-        password,
         biography,
-        otp,
-        reference,
         consent,
         notifications: view.get_notifications(),
     })
@@ -1062,8 +1072,6 @@ fn billing_payload(
     fields: &NumericFields,
 ) -> Result<BillingPayload, Vec<FieldError<NumericExample, FormIssue>>> {
     let mut errors = vec![];
-    let people = submitted(&fields.integer, NumericExample::Integer, &mut errors);
-    let decimal = submitted(&fields.decimal, NumericExample::Decimal, &mut errors);
     let budget = submitted(&fields.money, NumericExample::Money, &mut errors);
     let allocation = submitted(&fields.percent, NumericExample::Percent, &mut errors);
     let distance = submitted(&fields.quantity, NumericExample::Quantity, &mut errors);
@@ -1072,26 +1080,15 @@ fn billing_payload(
     if !errors.is_empty() {
         return Err(errors);
     }
-    let (
-        Some(people),
-        Some(decimal),
-        Some(budget),
-        Some(allocation),
-        Some(distance),
-        Some(duration),
-        Some(seats),
-    ) = (
-        people, decimal, budget, allocation, distance, duration, seats,
-    )
+    let (Some(budget), Some(allocation), Some(distance), Some(duration), Some(seats)) =
+        (budget, allocation, distance, duration, seats)
     else {
         return Err(vec![FieldError {
-            field: NumericExample::Integer,
+            field: NumericExample::Money,
             error: FormIssue::InvalidValue,
         }]);
     };
     Ok(BillingPayload {
-        people,
-        decimal,
         budget,
         allocation,
         distance,
@@ -1141,6 +1138,22 @@ fn install_submission(window: &Showcase, state: &Rc<Examples>) {
     });
     let weak = window.as_weak();
     let target = state.clone();
+    view.on_consent_toggled(move |value| {
+        if let Some(window) = weak.upgrade() {
+            window.global::<FormExamples>().set_consent(value);
+            invalidate_profile(&window, &target);
+        }
+    });
+    let weak = window.as_weak();
+    let target = state.clone();
+    view.on_notifications_toggled(move |value| {
+        if let Some(window) = weak.upgrade() {
+            window.global::<FormExamples>().set_notifications(value);
+            invalidate_profile(&window, &target);
+        }
+    });
+    let weak = window.as_weak();
+    let target = state.clone();
     view.on_profile_submit(move || {
         let Some(window) = weak.upgrade() else { return };
         let view = window.global::<FormExamples>();
@@ -1155,11 +1168,7 @@ fn install_submission(window: &Showcase, state: &Rc<Examples>) {
             TextExample::Email,
             TextExample::Website,
             TextExample::Phone,
-            TextExample::Password,
-            TextExample::Search,
             TextExample::Biography,
-            TextExample::Otp,
-            TextExample::Reference,
         ] {
             target.text.get(key).access(FieldAccess::Editable);
         }
@@ -1324,10 +1333,7 @@ fn profile_token(field: ProfileField) -> i32 {
         ProfileField::Email => 2,
         ProfileField::Website => 3,
         ProfileField::Phone => 4,
-        ProfileField::Password => 5,
         ProfileField::Biography => 7,
-        ProfileField::Otp => 8,
-        ProfileField::Reference => 9,
         ProfileField::Consent => 100,
     }
 }
@@ -1337,10 +1343,7 @@ fn profile_from_token(token: i32) -> Option<ProfileField> {
         2 => Some(ProfileField::Email),
         3 => Some(ProfileField::Website),
         4 => Some(ProfileField::Phone),
-        5 => Some(ProfileField::Password),
         7 => Some(ProfileField::Biography),
-        8 => Some(ProfileField::Otp),
-        9 => Some(ProfileField::Reference),
         100 => Some(ProfileField::Consent),
         _ => None,
     }
@@ -1374,10 +1377,7 @@ fn profile_label(field: ProfileField) -> &'static str {
         ProfileField::Email => "Email",
         ProfileField::Website => "Website",
         ProfileField::Phone => "Phone",
-        ProfileField::Password => "Password",
         ProfileField::Biography => "About you",
-        ProfileField::Otp => "Verification code",
-        ProfileField::Reference => "Project reference",
         ProfileField::Consent => "Project terms",
     }
 }
@@ -1415,10 +1415,7 @@ fn profile_errors(
                 ProfileField::Email => Some(state.text.email.snapshot()),
                 ProfileField::Website => Some(state.text.website.snapshot()),
                 ProfileField::Phone => Some(state.text.phone.snapshot()),
-                ProfileField::Password => Some(state.text.password.snapshot()),
                 ProfileField::Biography => Some(state.text.biography.snapshot()),
-                ProfileField::Otp => Some(state.text.otp.snapshot()),
-                ProfileField::Reference => Some(state.text.reference.snapshot()),
                 ProfileField::Consent => None,
             };
             let detail = snapshot
@@ -1562,7 +1559,7 @@ mod tests {
         view.invoke_text_edited(TextExample::Name, "Unsaved name".into());
         view.invoke_text_edited(TextExample::Email, "another@example.com".into());
         view.invoke_profile_reset();
-        assert_eq!(view.get_name_text().as_str(), "Alex Morgan");
+        assert_eq!(view.get_name_text().as_str(), "Elliot Alderson");
         assert_eq!(view.get_email_text().as_str(), "fresh@example.com");
         assert_eq!(view.get_consent(), ui::CheckState::Checked);
         assert_eq!(view.get_profile_submission(), SubmissionPresentation::Idle);
@@ -1604,8 +1601,62 @@ mod tests {
         let view = window.global::<FormExamples>();
         view.set_access(ui::FieldAccess::ReadOnly);
         view.invoke_text_edited(TextExample::Name, "Unexpected replacement".into());
-        assert_eq!(view.get_name_text().as_str(), "Alex Morgan");
+        assert_eq!(view.get_name_text().as_str(), "Elliot Alderson");
         view.invoke_profile_submit();
         assert_eq!(view.get_profile_submission(), SubmissionPresentation::Idle);
+    }
+    #[test]
+    fn standalone_text_drafts_do_not_participate_in_profile_submission_or_reset() {
+        let window = fixture(ui::ShowcasePage::Profile);
+        let view = window.global::<FormExamples>();
+        view.set_consent(ui::CheckState::Checked);
+        view.invoke_text_edited(TextExample::Password, "x".into());
+        view.invoke_text_edited(TextExample::Otp, "12".into());
+        view.invoke_text_edited(TextExample::Reference, "invalid".into());
+        view.invoke_profile_submit();
+        assert_eq!(
+            view.get_profile_submission(),
+            SubmissionPresentation::Pending
+        );
+        settle(400);
+        assert_eq!(
+            view.get_profile_submission(),
+            SubmissionPresentation::Succeeded
+        );
+        view.invoke_text_edited(TextExample::Search, "audit".into());
+        assert_eq!(
+            view.get_profile_submission(),
+            SubmissionPresentation::Succeeded
+        );
+        view.invoke_profile_reset();
+        assert_eq!(view.get_password_text(), "x");
+        assert_eq!(view.get_otp_text(), "12");
+        assert_eq!(view.get_reference_text(), "invalid");
+        assert_eq!(view.get_search_text(), "audit");
+    }
+    #[test]
+    fn numeric_samples_do_not_participate_in_invoice_submission_or_reset() {
+        let window = fixture(ui::ShowcasePage::Billing);
+        let view = window.global::<FormExamples>();
+        view.invoke_numeric_edited(NumericExample::Integer, "-".into());
+        view.invoke_numeric_edited(NumericExample::Decimal, "-".into());
+        view.invoke_billing_submit();
+        assert_eq!(
+            view.get_billing_submission(),
+            SubmissionPresentation::Pending
+        );
+        settle(300);
+        assert_eq!(
+            view.get_billing_submission(),
+            SubmissionPresentation::Succeeded
+        );
+        view.invoke_numeric_edited(NumericExample::Decimal, "0,".into());
+        assert_eq!(
+            view.get_billing_submission(),
+            SubmissionPresentation::Succeeded
+        );
+        view.invoke_billing_reset();
+        assert_eq!(view.get_integer_text(), "-");
+        assert_eq!(view.get_decimal_text(), "0,");
     }
 }

@@ -52,12 +52,24 @@ struct Examples {
     notices: Vec<Notice>,
     notice_generation: i32,
     notices_open: bool,
+    notice_focus: Option<NoticeId>,
+    notice_focus_request: i32,
     page: PageIndex,
     page_count: NonZeroUsize,
     status: String,
+    toolbar_result: String,
+    carousel_detail: String,
+    carousel_body: String,
+    notice_detail: String,
+    notice_body: String,
+    breadcrumb_content: String,
+    saved_settings: (String, bool, bool),
+    drawer_result: String,
+    drawer_error: String,
+    drawer_launcher: ui::DrawerFocus,
     clock: Instant,
     focus: FocusRegistry,
-    handles: [FocusHandle; 4],
+    handles: [FocusHandle; 8],
     current_focus: Option<FocusHandle>,
     overlays: OverlayStack,
     requested_focus: ui::DrawerFocus,
@@ -88,8 +100,12 @@ impl Examples {
         let handles = [
             focus.register(FocusId(71), FocusScopeId(0), 0, true),
             focus.register(FocusId(72), DRAWER_SCOPE, 0, true),
-            focus.register(FocusId(73), DRAWER_SCOPE, 1, true),
-            focus.register(FocusId(74), DRAWER_SCOPE, 2, true),
+            focus.register(FocusId(73), DRAWER_SCOPE, 4, true),
+            focus.register(FocusId(74), DRAWER_SCOPE, 5, true),
+            focus.register(FocusId(75), FocusScopeId(0), 1, true),
+            focus.register(FocusId(76), DRAWER_SCOPE, 1, true),
+            focus.register(FocusId(77), DRAWER_SCOPE, 2, true),
+            focus.register(FocusId(78), DRAWER_SCOPE, 3, true),
         ];
         Self {
             menu: controller(vec![
@@ -97,12 +113,12 @@ impl Examples {
                 option(
                     ItemKey::Collections,
                     "Collections",
-                    "Stories grouped around an idea",
+                    "Incident reviews and access audits",
                 ),
                 option(
                     ItemKey::Favorites,
                     "Favorites",
-                    "A few things worth returning to",
+                    "Pinned incident notes and audit reports",
                 ),
                 archive,
             ]),
@@ -119,34 +135,34 @@ impl Examples {
                 option(
                     ItemKey::Overview,
                     "Overview",
-                    "A quiet place to collect ideas and turn them into something worth sharing.",
+                    "Allsafe has three incident notes ready for review.",
                 ),
                 option(
                     ItemKey::Activity,
                     "Activity",
-                    "Maya reviewed the latest collection. Your next draft is ready whenever you are.",
+                    "Darlene reviewed three findings. Elliot added the response checklist.",
                 ),
                 option(
                     ItemKey::People,
                     "People",
-                    "You and Maya are shaping this workspace together.",
+                    "Elliot Alderson and Darlene share this Allsafe workspace.",
                 ),
             ]),
             carousel: controller(vec![
                 option(
                     ItemKey::QuietPlaces,
-                    "Quiet places",
-                    "A collection of small escapes and spaces that leave room to think.",
+                    "Incident notes",
+                    "Review three incident findings and assign the next response with Elliot.",
                 ),
                 option(
                     ItemKey::SmallDetails,
-                    "Small details",
-                    "Notice the shapes, colors, and everyday moments that make a story yours.",
+                    "Access audit",
+                    "Darlene checks team permissions and records the access changes.",
                 ),
                 option(
                     ItemKey::NewPerspectives,
-                    "New perspectives",
-                    "Ideas from the people who see the same world a little differently.",
+                    "Server inventory",
+                    "Track the Allsafe servers, scan results and maintenance owners.",
                 ),
             ]),
             accordion: controller(vec![
@@ -167,32 +183,44 @@ impl Examples {
                 ),
             ]),
             expanded: HashSet::from([ItemKey::Access]),
-            mode: ui::ExpansionMode::Single,
+            mode: ui::ExpansionMode::Multiple,
             notices: vec![
                 Notice {
                     id: NoticeId(101),
-                    title: "Maya reviewed your collection",
-                    body: "Three thoughtful suggestions are waiting for you.",
+                    title: "Darlene reviewed three findings",
+                    body: "Two access changes and one network finding need your review.",
                     read: false,
                 },
                 Notice {
                     id: NoticeId(102),
-                    title: "Your collection is ready",
-                    body: "The latest version is available to your team.",
+                    title: "Allsafe scan complete",
+                    body: "The server inventory is ready for the Allsafe team.",
                     read: false,
                 },
                 Notice {
                     id: NoticeId(103),
-                    title: "Welcome to your workspace",
-                    body: "A place for ideas, drafts, and the things that matter.",
+                    title: "Allsafe workspace created",
+                    body: "Incident notes, access reviews and the server inventory are ready.",
                     read: true,
                 },
             ],
             notice_generation: 1,
             notices_open: false,
+            notice_focus: None,
+            notice_focus_request: 0,
             page: PageIndex(0),
             page_count: NonZeroUsize::new(8).expect("eight pages"),
             status: "Choose a workspace view.".into(),
+            toolbar_result: "Choose an action to try it on Allsafe notes.".into(),
+            carousel_detail: String::new(),
+            carousel_body: String::new(),
+            notice_detail: String::new(),
+            notice_body: String::new(),
+            breadcrumb_content: "Allsafe / Collections / Incident notes".into(),
+            saved_settings: ("Allsafe notes".into(), false, true),
+            drawer_result: "No settings saved yet.".into(),
+            drawer_error: String::new(),
+            drawer_launcher: ui::DrawerFocus::Trigger,
             clock: Instant::now(),
             focus,
             handles,
@@ -258,6 +286,48 @@ impl Examples {
             .find(|row| row.key == key)
             .map(|row| row.label.clone())
             .unwrap_or_default();
+        match kind {
+            ui::NavigationDemo::Toolbar => {
+                self.toolbar_result = match key {
+                    ItemKey::Share => {
+                        "Demo share link: allsafe.example/collections/notes · Team access enabled"
+                            .into()
+                    }
+                    ItemKey::Duplicate => {
+                        "Allsafe notes — Copy · New draft added to this demo collection".into()
+                    }
+                    ItemKey::Export => {
+                        "Export ready: allsafe-notes.txt · 3 notes · Demo preview".into()
+                    }
+                    ItemKey::Workspace
+                    | ItemKey::Collections
+                    | ItemKey::Favorites
+                    | ItemKey::Archive
+                    | ItemKey::Overview
+                    | ItemKey::Activity
+                    | ItemKey::People
+                    | ItemKey::QuietPlaces
+                    | ItemKey::SmallDetails
+                    | ItemKey::NewPerspectives
+                    | ItemKey::Access
+                    | ItemKey::Updates
+                    | ItemKey::Privacy => unreachable!("toolbar key"),
+                };
+            }
+            ui::NavigationDemo::Carousel => {
+                self.carousel_detail = label.clone();
+                self.carousel_body = self
+                    .carousel
+                    .options()
+                    .iter()
+                    .find(|r| r.key == key)
+                    .unwrap()
+                    .description
+                    .clone();
+            }
+            ui::NavigationDemo::Menu | ui::NavigationDemo::Tabs | ui::NavigationDemo::Accordion => {
+            }
+        }
         self.status = match kind {
             ui::NavigationDemo::Menu => format!("Viewing {label}."),
             ui::NavigationDemo::Toolbar => format!("{label} requested for this collection."),
@@ -273,12 +343,14 @@ impl Examples {
         let id = NoticeId(u64::try_from(token).ok()?);
         self.notices.iter().position(|row| row.id == id)
     }
-    fn open_drawer(&mut self) {
+    fn open_drawer(&mut self, launcher: ui::DrawerFocus) {
         if self.overlays.contains(DRAWER_ID) {
             return;
         }
         let mut spec = OverlaySpec::new(DRAWER_ID, None, true);
-        spec.restore_focus = Some(self.handles[0]);
+        self.drawer_error.clear();
+        self.drawer_launcher = launcher;
+        spec.restore_focus = Some(self.handles[focus_index(launcher)]);
         self.overlays.push(spec).expect("unique demo drawer");
         self.focus
             .push_trap(DRAWER_SCOPE)
@@ -305,22 +377,31 @@ impl Examples {
 fn focus_index(value: ui::DrawerFocus) -> usize {
     match value {
         ui::DrawerFocus::Trigger => 0,
+        ui::DrawerFocus::CollapseTrigger => 4,
+        ui::DrawerFocus::Name => 5,
+        ui::DrawerFocus::Access => 6,
+        ui::DrawerFocus::Updates => 7,
         ui::DrawerFocus::Close => 1,
         ui::DrawerFocus::Save => 2,
         ui::DrawerFocus::Cancel => 3,
     }
 }
-fn focus_view(handles: &[FocusHandle; 4], handle: FocusHandle) -> ui::DrawerFocus {
-    if handle == handles[0] {
-        ui::DrawerFocus::Trigger
-    } else if handle == handles[1] {
-        ui::DrawerFocus::Close
-    } else if handle == handles[2] {
-        ui::DrawerFocus::Save
-    } else {
-        ui::DrawerFocus::Cancel
-    }
+fn focus_view(handles: &[FocusHandle; 8], handle: FocusHandle) -> ui::DrawerFocus {
+    [
+        ui::DrawerFocus::Trigger,
+        ui::DrawerFocus::Close,
+        ui::DrawerFocus::Save,
+        ui::DrawerFocus::Cancel,
+        ui::DrawerFocus::CollapseTrigger,
+        ui::DrawerFocus::Name,
+        ui::DrawerFocus::Access,
+        ui::DrawerFocus::Updates,
+    ][handles
+        .iter()
+        .position(|h| *h == handle)
+        .expect("registered drawer target")]
 }
+
 fn step(value: ui::NavigationStep) -> NavigationStep {
     match value {
         ui::NavigationStep::Next => NavigationStep::Next,
@@ -493,6 +574,67 @@ fn publish(shared: &Rc<RefCell<Examples>>, window: &ui::Showcase) {
     sync(&disclosure_model, disclosures);
     sync(&notice_model, notices);
     let g = window.global::<ui::NavigationExamples>();
+    {
+        let s = shared.borrow();
+        let menu = s
+            .menu
+            .options()
+            .iter()
+            .find(|r| Some(r.key) == s.menu.state().selected)
+            .unwrap();
+        g.set_current_title(format!("{} / {}", menu.label, title).into());
+        g.set_current_description(format!("{} · {}", menu.description, description).into());
+        g.set_toolbar_result(s.toolbar_result.as_str().into());
+        g.set_carousel_detail(s.carousel_detail.as_str().into());
+        g.set_carousel_body(s.carousel_body.as_str().into());
+        g.set_notice_detail(s.notice_detail.as_str().into());
+        g.set_notice_body(s.notice_body.as_str().into());
+        g.set_notice_focus_token(
+            s.notice_focus
+                .map_or(-1, |id| i32::try_from(id.0).expect("bounded notice id")),
+        );
+        g.set_notice_focus_request(s.notice_focus_request);
+        g.set_breadcrumb_content(s.breadcrumb_content.as_str().into());
+        g.set_drawer_result(s.drawer_result.as_str().into());
+        g.set_drawer_error(s.drawer_error.as_str().into());
+        if !drawer_state.open {
+            g.set_drawer_name(s.saved_settings.0.as_str().into());
+            g.set_drawer_team(s.saved_settings.1);
+            g.set_drawer_updates(s.saved_settings.2);
+        }
+        let names = [
+            "Incident notes",
+            "Network audit",
+            "Access review",
+            "Deployment plan",
+            "Team handbook",
+            "Recovery plan",
+            "Security training",
+            "Service inventory",
+            "Release notes",
+            "Threat model",
+            "Device policy",
+            "Archive index",
+            "On call guide",
+            "Audit report",
+            "Patch schedule",
+            "Test results",
+            "Code review",
+            "Build checklist",
+            "Design notes",
+            "Meeting notes",
+            "Runbook",
+            "Status report",
+            "Backup plan",
+            "Contact list",
+        ];
+        g.set_page_items(ModelRc::new(VecModel::from(
+            names[s.page.0 * 3..s.page.0 * 3 + 3]
+                .iter()
+                .map(|n| slint::SharedString::from(*n))
+                .collect::<Vec<_>>(),
+        )));
+    }
     g.set_menu_rows(ModelRc::from(models[0].clone()));
     g.set_toolbar_rows(ModelRc::from(models[1].clone()));
     g.set_tabs_rows(ModelRc::from(models[2].clone()));
@@ -510,8 +652,7 @@ fn publish(shared: &Rc<RefCell<Examples>>, window: &ui::Showcase) {
     g.set_notifications_open(notices_open);
     g.set_page_index(i32::try_from(page).expect("bounded page"));
     g.set_page_count(i32::try_from(page_count).expect("bounded page count"));
-    g.set_current_title(title.into());
-    g.set_current_description(description.into());
+
     g.set_status(status.into());
     g.set_drawer_state(drawer_state);
     g.set_drawer_focus(requested);
@@ -539,7 +680,7 @@ pub fn install(window: &ui::Showcase) {
         ui::OptionRow {
             token: 2,
             generation: 1,
-            label: "Quiet places".into(),
+            label: "Incident notes".into(),
             description: "".into(),
             disabled: false,
         },
@@ -557,6 +698,8 @@ pub fn install(window: &ui::Showcase) {
     });
     bind!(on_expand, |s, token, generation, expanded, mode| {
         if let Some(key) = s.key(ui::NavigationDemo::Accordion, token, generation) {
+            s.accordion.activate(&key);
+            s.accordion.open();
             s.mode = mode;
             if expanded {
                 if mode == ui::ExpansionMode::Single {
@@ -573,15 +716,30 @@ pub fn install(window: &ui::Showcase) {
         if mode == ui::ExpansionMode::Single && s.expanded.len() > 1 {
             let keep = s
                 .accordion
-                .options()
-                .iter()
-                .map(|o| o.key)
-                .find(|k| s.expanded.contains(k));
+                .state()
+                .active
+                .filter(|key| s.expanded.contains(key))
+                .or_else(|| {
+                    s.accordion
+                        .options()
+                        .iter()
+                        .map(|o| o.key)
+                        .find(|key| s.expanded.contains(key))
+                });
             s.expanded.clear();
             if let Some(key) = keep {
                 s.expanded.insert(key);
             }
         }
+    });
+    bind!(on_notice_reset, |s| {
+        let initial = Examples::new();
+        s.notices = initial.notices;
+        s.notice_generation = s
+            .notice_generation
+            .checked_add(1)
+            .expect("bounded generation");
+        s.notice_detail.clear();
     });
     bind!(on_notice_open, |s| {
         s.notices_open = true;
@@ -592,11 +750,24 @@ pub fn install(window: &ui::Showcase) {
     bind!(on_notice_read, |s, token, generation| {
         if let Some(i) = s.notice_index(token, generation) {
             s.notices[i].read = true;
+            s.notice_focus = Some(s.notices[i].id);
+            s.notice_focus_request = s
+                .notice_focus_request
+                .checked_add(1)
+                .expect("bounded focus request");
         }
     });
     bind!(on_notice_dismiss, |s, token, generation| {
         if let Some(i) = s.notice_index(token, generation) {
             s.notices.remove(i);
+            s.notice_focus = s
+                .notices
+                .get(i.min(s.notices.len().saturating_sub(1)))
+                .map(|n| n.id);
+            s.notice_focus_request = s
+                .notice_focus_request
+                .checked_add(1)
+                .expect("bounded focus request");
             s.notice_generation = s
                 .notice_generation
                 .checked_add(1)
@@ -606,15 +777,22 @@ pub fn install(window: &ui::Showcase) {
     bind!(on_notice_activate, |s, token, generation| {
         if let Some(i) = s.notice_index(token, generation) {
             s.notices[i].read = true;
-            s.status = format!("Opened notification: {}.", s.notices[i].title);
-            s.notices_open = false;
+            s.notice_detail = s.notices[i].title.into();
+            s.notice_body = s.notices[i].body.into();
         }
     });
     bind!(on_breadcrumb_activate, |s, token, generation| {
         if generation == 1 {
             match token {
-                0 => s.status = "Returned to your workspace.".into(),
-                1 => s.status = "Showing all collections.".into(),
+                0 => s.breadcrumb_content = "Allsafe · Collections, Favorites, Team".into(),
+                1 => {
+                    s.breadcrumb_content =
+                        "Collections · Incident notes, Network audit, Access review".into()
+                }
+                2 => {
+                    s.breadcrumb_content =
+                        "Incident notes · Three notes shared with the Allsafe team".into()
+                }
                 _ => {}
             }
         }
@@ -630,8 +808,8 @@ pub fn install(window: &ui::Showcase) {
             NavigationStep::PagePrevious => s.page.0.saturating_sub(5),
         });
     });
-    bind!(on_drawer_open, |s| {
-        s.open_drawer();
+    bind!(on_drawer_open, |s, launcher| {
+        s.open_drawer(launcher);
     });
     bind!(on_drawer_dismiss, |s, value| {
         s.close_drawer(reason(value));
@@ -655,9 +833,21 @@ pub fn install(window: &ui::Showcase) {
     bind!(on_drawer_observed, |s, target| {
         s.current_focus = Some(s.handles[focus_index(target)]);
     });
-    bind!(on_drawer_save, |s| {
-        s.status = "Collection settings saved.".into();
-        s.close_drawer(DismissReason::Programmatic);
+    bind!(on_drawer_save, |s, name, team, updates| {
+        if name.trim().is_empty() {
+            s.drawer_error = "Enter a collection name.".into();
+            let name_target = s.handles[focus_index(ui::DrawerFocus::Name)];
+            s.request(name_target);
+        } else {
+            s.saved_settings = (name.trim().to_owned(), team, updates);
+            s.drawer_result = format!(
+                "Saved: {} · {} · Updates {}",
+                name.trim(),
+                if team { "Team access" } else { "Private" },
+                if updates { "on" } else { "off" }
+            );
+            s.close_drawer(DismissReason::Programmatic);
+        }
     });
     publish(&shared, window);
 }
@@ -743,9 +933,12 @@ mod tests {
     fn drawer_popup_traps_both_tab_directions_and_restores_after_escape() {
         let window = fixture();
         let global = window.global::<ui::NavigationExamples>();
-        global.invoke_drawer_open();
+        global.invoke_drawer_open(ui::DrawerFocus::Trigger);
         assert!(global.get_drawer_state().open);
         for target in [
+            ui::DrawerFocus::Name,
+            ui::DrawerFocus::Access,
+            ui::DrawerFocus::Updates,
             ui::DrawerFocus::Save,
             ui::DrawerFocus::Cancel,
             ui::DrawerFocus::Close,
@@ -761,5 +954,152 @@ mod tests {
         // Restoration reached the real trigger: Enter can open the drawer again.
         key(&window, Key::Return);
         assert!(global.get_drawer_state().open);
+    }
+    #[test]
+    fn drawer_covers_window_and_restores_the_exact_secondary_launcher() {
+        use i_slint_backend_testing::ElementQuery;
+        let window = fixture();
+        let global = window.global::<ui::NavigationExamples>();
+        global.set_collapse_open(true);
+        global.invoke_drawer_open(ui::DrawerFocus::CollapseTrigger);
+        let drawer = ElementQuery::from_root(&window)
+            .match_inherits("KitDrawer")
+            .find_first()
+            .unwrap();
+        let panel = drawer
+            .query_descendants()
+            .match_inherits("KitDialogPanel")
+            .find_first()
+            .unwrap();
+        let size = window.window().size();
+        assert_eq!(
+            drawer.absolute_position(),
+            slint::LogicalPosition::new(0., 0.)
+        );
+        assert!((drawer.size().width - size.width as f32).abs() <= 1.);
+        assert!((drawer.size().height - size.height as f32).abs() <= 1.);
+        assert!(
+            (panel.absolute_position().x + panel.size().width - drawer.size().width).abs() <= 1.
+        );
+        global.invoke_drawer_save("Revised notes".into(), true, false);
+        assert_eq!(global.get_drawer_focus(), ui::DrawerFocus::CollapseTrigger);
+        assert!(global.get_drawer_result().contains("Revised notes"));
+        assert!(global.get_drawer_team());
+        global.invoke_drawer_open(ui::DrawerFocus::Trigger);
+        global.set_drawer_name("Discard this draft".into());
+        key(&window, Key::Escape);
+        assert_eq!(global.get_drawer_name(), "Revised notes");
+        assert_eq!(global.get_drawer_focus(), ui::DrawerFocus::Trigger);
+    }
+    #[test]
+    fn drawer_empty_and_whitespace_names_keep_save_reachable_and_focus_the_error() {
+        let window = fixture();
+        let global = window.global::<ui::NavigationExamples>();
+        global.invoke_drawer_open(ui::DrawerFocus::Trigger);
+        let field = i_slint_backend_testing::ElementQuery::from_root(&window)
+            .match_type_name("TextInput")
+            .match_predicate(|e| e.accessible_label().as_deref() == Some("Collection name"))
+            .find_first()
+            .expect("visible native drawer editor");
+        let _ = field.size();
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(1));
+        slint::platform::update_timers_and_animations();
+        key(&window, Key::Tab);
+        assert_eq!(global.get_drawer_focus(), ui::DrawerFocus::Name);
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(1));
+        slint::platform::update_timers_and_animations();
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: "X".into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: "X".into() });
+        assert!(
+            global.get_drawer_name().contains('X'),
+            "native input must really receive keyboard focus"
+        );
+        window.window().dispatch_event(WindowEvent::KeyPressed {
+            text: Key::Control.into(),
+        });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: "a".into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: "a".into() });
+        window.window().dispatch_event(WindowEvent::KeyReleased {
+            text: Key::Control.into(),
+        });
+        key(&window, Key::Backspace);
+        assert!(
+            global.get_drawer_name().is_empty(),
+            "native drawer draft after Backspace: {:?}",
+            global.get_drawer_name()
+        );
+        for spaces in [false, true] {
+            if spaces {
+                window
+                    .window()
+                    .dispatch_event(WindowEvent::KeyPressed { text: "   ".into() });
+                window
+                    .window()
+                    .dispatch_event(WindowEvent::KeyReleased { text: "   ".into() });
+                assert_eq!(global.get_drawer_name(), "   ");
+            }
+            for target in [
+                ui::DrawerFocus::Access,
+                ui::DrawerFocus::Updates,
+                ui::DrawerFocus::Save,
+            ] {
+                key(&window, Key::Tab);
+                assert_eq!(global.get_drawer_focus(), target);
+            }
+            key(&window, Key::Return);
+            assert!(global.get_drawer_state().open);
+            assert_eq!(global.get_drawer_focus(), ui::DrawerFocus::Name);
+            assert!(!global.get_drawer_error().is_empty());
+        }
+    }
+    #[test]
+    fn carousel_controls_fit_inside_its_surface_at_double_text() {
+        use i_slint_backend_testing::ElementQuery;
+        let window = fixture();
+        window.set_enlarged(true);
+        let weak = window.as_weak();
+        let preview = window.global::<ui::PreviewExamples>();
+        preview.on_reveal(move |top, _height| {
+            if let Some(window) = weak.upgrade() {
+                window.invoke_position_content(top);
+            }
+        });
+        let _ = ElementQuery::from_root(&window)
+            .match_inherits("KitPressable")
+            .find_first()
+            .unwrap()
+            .size();
+        preview.set_target(ui::PreviewTarget::Carousel);
+        preview.set_request(1);
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(1));
+        slint::platform::update_timers_and_animations();
+        let carousel = ElementQuery::from_root(&window)
+            .match_inherits("KitCarousel")
+            .find_first()
+            .unwrap();
+        let controls = carousel
+            .query_descendants()
+            .match_inherits("KitButton")
+            .find_all();
+        assert_eq!(
+            controls.len(),
+            2,
+            "both visible carousel navigation buttons"
+        );
+        for control in controls {
+            assert!(
+                control.absolute_position().y + control.size().height
+                    <= carousel.absolute_position().y + carousel.size().height - 15.,
+                "carousel footer must retain its inset"
+            );
+        }
     }
 }

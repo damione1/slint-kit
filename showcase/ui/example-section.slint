@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes } from "@kit/theme.slint";
+import { KitCard, KitCardHeader } from "@kit/display.slint";
+export enum PreviewTarget { none, buttons, select, dialog, notifications, drawer, progress, toast, articles, accordion, table, carousel, pagination }
+export global PreviewExamples {
+    in-out property <PreviewTarget> target;
+    in-out property <int> request;
+    callback reveal(length,length);
+}
+export component PreviewAnchor inherits Rectangle {
+    in property <PreviewTarget> target;
+    private property <int> request: PreviewExamples.request;
+    changed request => { if (PreviewExamples.target == root.target) { PreviewExamples.reveal(root.absolute-position.y,root.height); } }
+}
+export component ExampleSection inherits KitCard {
+    in property <PreviewTarget> preview-target: PreviewTarget.none;
+    private property <int> request: PreviewExamples.request;
+    changed request => { if (PreviewExamples.target == root.preview-target) { PreviewExamples.reveal(root.absolute-position.y,min(root.height,300px)); } }
+    in property <string> title;
+    in property <string> description;
+    KitCardHeader { theme: root.theme; title: root.title; description: root.description; }
+    @children
+}

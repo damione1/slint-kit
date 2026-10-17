@@ -53,7 +53,7 @@ export component KitDataTable inherits Rectangle {
     in property <int> generation;
     in property <int> active-index: -1;
     in property <string> label: "Data table";
-    in property <length> minimum-column-width: 140px;
+    in property <length> minimum-column-width: 140px * root.theme.text-scale;
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
@@ -88,8 +88,8 @@ export component KitDataTable inherits Rectangle {
                 intent: ButtonIntent.quiet; disabled: !column.sortable;
                 accessible-name: column.label + (column.sort == DataSortDirection.ascending ? ", ascending" : column.sort == DataSortDirection.descending ? ", descending" : "");
                 activated => {root.sort-requested(column.token);}
-                HorizontalLayout {spacing: 6px;
-                    Text {text:column.label;color:root.theme.text-primary;font-size:14px * root.theme.text-scale;font-weight:600;overflow:elide;vertical-alignment:center;}
+                HorizontalLayout {spacing: 6px; alignment: column.alignment == DataAlignment.trailing ? end : column.alignment == DataAlignment.center ? center : start;
+                    Text {horizontal-stretch: 0; max-width: self.preferred-width; text:column.label;color:root.theme.text-primary;font-size:14px * root.theme.text-scale;font-weight:600;overflow:elide;vertical-alignment:center;}
                     if column.sort != DataSortDirection.unsorted: Rectangle {
                         width: 16px; height: parent.height;
                         KitIcon {y: (parent.height - self.height) / 2; kind:column.sort == DataSortDirection.ascending ? IconKind.chevron-up : IconKind.chevron-down;ink:root.theme.text-secondary;}
@@ -114,7 +114,7 @@ export component KitDataTable inherits Rectangle {
             HorizontalLayout {spacing:0px;
                 for cell[column-index] in row.cells: Rectangle {
                     width:root.grid-width / max(1,root.columns.length);
-                    Text {x:12px;width:max(0px,parent.width - 24px);text:cell;color:row.disabled ? root.theme.disabled-text : root.theme.text-primary;font-size:14px * root.theme.text-scale;overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
+                    Text {x:16px;width:max(0px,parent.width - 32px);text:cell;color:row.disabled ? root.theme.disabled-text : root.theme.text-primary;font-size:14px * root.theme.text-scale;overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
                 }
             }
         }
@@ -131,7 +131,7 @@ export component KitContentList inherits Rectangle {
     callback activate(int,int);callback navigate(NavigationStep);
     public function take-focus(){keys.focus();}
     out property <length> scroll-y:list.content-y;
-    private property <length> row-height:max(144px,116px * root.theme.text-scale);
+    private property <length> row-height:max(132px,116px * root.theme.text-scale);
     changed active-index => {
         if (root.active-index >= 0) {
             if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
@@ -142,6 +142,8 @@ export component KitContentList inherits Rectangle {
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
     keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}}
     list := ListView {
+        vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
         y: 0px;
         content-width:self.visible-width;
         for item[index] in root.items: DataAction {
@@ -151,7 +153,7 @@ export component KitContentList inherits Rectangle {
             border-width:keys.has-focus && root.active-index==index ? 2px : 0px;border-color:root.theme.focus-ring;
             background:item.selected ? root.theme.hover : root.theme.surface;
             requested(token,generation)=>{keys.focus();root.activate(token,generation);}
-            HorizontalLayout {spacing:16px;
+            HorizontalLayout {spacing:16px; alignment: start;
                 Rectangle {width:72px;height:72px;border-radius:12px;background:root.theme.hover;
                     if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
                     if item.thumbnail == @image-url(""): KitIcon {x:24px;y:24px;width:24px;height:24px;kind:IconKind.article;ink:root.theme.accent;}

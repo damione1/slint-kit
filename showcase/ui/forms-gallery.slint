@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent } from "@kit/theme.slint";
+import { KitCard } from "@kit/display.slint";
 import { KitButton } from "@kit/button.slint";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
@@ -22,6 +23,7 @@ export enum SliderGesture { started, committed, cancelled }
 export enum SubmissionPresentation { idle, pending, succeeded, invalid }
 
 export global FormExamples {
+    callback reveal-field(length,length);
     in-out property <[FormErrorRow]> profile-errors;
     in-out property <[FormErrorRow]> billing-errors;
     callback profile-error-activated(FocusRequest);
@@ -118,6 +120,13 @@ export global FormExamples {
     in-out property <CheckState> consent: CheckState.unchecked;
     in-out property <bool> notifications: true;
     callback consent-toggled(CheckState); callback notifications-toggled(bool);
+    in-out property <CheckState> choices-consent: CheckState.mixed;
+    in-out property <bool> choices-notifications: true;
+    callback choices-consent-toggled(CheckState); callback choices-notifications-toggled(bool);
+    in-out property <string> slider-error;
+    in-out property <string> range-error;
+    in-out property <string> range-lower-error;
+    in-out property <string> range-upper-error;
     in-out property <[ChoiceRow]> radio-options;
     in-out property <[ChoiceRow]> toggle-options;
     in-out property <[ChoiceRow]> rating-options;
@@ -157,6 +166,8 @@ export global FormExamples {
     callback slider-position-requested(float); callback slider-navigate(NavigationStep); callback slider-gesture(SliderGesture);
     callback range-position-requested(RangeThumb,float); callback range-navigate(RangeThumb,NavigationStep); callback range-gesture(SliderGesture);
     in-out property <string> choices-status;
+    in-out property <string> rating-label: "Not rated";
+    in-out property <string> multi-error;
     in-out property <[CalendarDay]> calendar-days;
     in-out property <int> calendar-active;
     in-out property <string> calendar-title;
@@ -178,6 +189,9 @@ export global FormExamples {
     in-out property <ClockFormat> time-format: ClockFormat.twenty-four-hour;
     callback time-format-changed(ClockFormat);
     in-out property <[CalendarDay]> range-days;
+    in-out property <int> range-active;
+    in-out property <string> range-title;
+    callback date-range-navigate(CalendarNavigation);
     in-out property <DateRangePhase> range-phase: DateRangePhase.choosing-start;
     in-out property <string> date-range-summary;
     in-out property <string> date-range-error;
@@ -219,15 +233,7 @@ export global FormExamples {
     callback color-hex-edited(string); callback color-hex-commit(string); callback color-channel-edited(ColorChannel,string); callback color-channel-commit(ColorChannel,string); callback color-position(ColorChannel,float); callback color-navigate(ColorChannel,NavigationStep); callback color-gesture(ColorChannel,SliderGesture);
 }
 
-component ExamplePanel inherits Rectangle {
-    in property <KitTheme> theme;
-    background: root.theme.surface;
-    border-width: 1px; border-color: root.theme.border-subtle; border-radius: 16px;
-    preferred-height: content.preferred-height;
-    min-height: self.preferred-height;
-    vertical-stretch: 0;
-    content := VerticalLayout { padding: 24px; spacing: 20px; alignment: start; @children }
-}
+component ExamplePanel inherits KitCard { }
 component SectionTitle inherits Text {
     in property <KitTheme> theme;
     color: root.theme.text-primary;
@@ -238,20 +244,21 @@ export component FormGallery inherits VerticalLayout {
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <ShowcasePage> page;
-    spacing: 24px; alignment: start; vertical-stretch: 0; max-width: 900px;
+    spacing: 24px; alignment: start; vertical-stretch: 0; max-width: 760px;
     if root.page == ShowcasePage.profile: ExamplePanel {
         theme: root.theme;
-        SectionTitle {theme: root.theme; text: "A profile, thoughtfully composed";}
-        KitFieldDescription {theme: root.theme; text: "Native editing, clear labels, and validation that keeps your work intact.";}
+        SectionTitle {theme: root.theme; text: "Profile form";}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme: root.theme; text: "Native editing, clear labels, and validation that keeps your work intact.";}
         FlexboxLayout {spacing: 8px; alignment: start;
-            KitButton {theme:root.theme; text: FormExamples.access == FieldAccess.editable ? "Editable" : FormExamples.access == FieldAccess.read-only ? "Read only" : "Disabled"; activated => {FormExamples.access = FormExamples.access == FieldAccess.editable ? FieldAccess.read-only : FormExamples.access == FieldAccess.read-only ? FieldAccess.disabled : FieldAccess.editable;}}
+            KitButton {control-size:root.control-size;theme:root.theme; text: FormExamples.access == FieldAccess.editable ? "Editable" : FormExamples.access == FieldAccess.read-only ? "Read only" : "Disabled"; activated => {FormExamples.access = FormExamples.access == FieldAccess.editable ? FieldAccess.read-only : FormExamples.access == FieldAccess.read-only ? FieldAccess.disabled : FieldAccess.editable;}}
         }
         KitTextField {
             theme: root.theme; control-size: root.control-size; access: FormExamples.access;
             label: "Display name"; placeholder: "Your public name";
             text <=> FormExamples.name-text; validation: FormExamples.name-validation; error: FormExamples.name-error; character-count: FormExamples.name-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.name) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.name) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.name,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.name,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.name);}}
@@ -262,7 +269,8 @@ export component FormGallery inherits VerticalLayout {
             label: "Email"; placeholder: "name@example.com";
             text <=> FormExamples.email-text; validation: FormExamples.email-validation; error: FormExamples.email-error; character-count: FormExamples.email-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.email) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.email) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.email,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.email,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.email);}}
@@ -273,7 +281,8 @@ export component FormGallery inherits VerticalLayout {
             label: "Website"; placeholder: "https://example.com";
             text <=> FormExamples.website-text; validation: FormExamples.website-validation; error: FormExamples.website-error; character-count: FormExamples.website-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.website) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.website) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.website,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.website,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.website);}}
@@ -284,90 +293,106 @@ export component FormGallery inherits VerticalLayout {
             label: "Phone"; placeholder: "+1 514 555 0100";
             text <=> FormExamples.phone-text; validation: FormExamples.phone-validation; error: FormExamples.phone-error; character-count: FormExamples.phone-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.phone) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.phone) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.phone,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.phone,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.phone);}}
             cancelled => {FormExamples.text-cancel(TextExample.phone);}
-        }
-        KitPasswordField {
-            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
-            label: "Password"; placeholder: "A secret you can reveal";
-            text <=> FormExamples.password-text; validation: FormExamples.password-validation; error: FormExamples.password-error; character-count: FormExamples.password-count;
-            private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.password) {self.take-focus();}}
-            edited(text) => {FormExamples.text-edited(TextExample.password,text);}
-            commit-requested(text) => {FormExamples.text-commit(TextExample.password,text);}
-            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.password);}}
-            cancelled => {FormExamples.text-cancel(TextExample.password);}
-        }
-        KitSearchField {
-            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
-            label: "Search"; placeholder: "Find a project";
-            text <=> FormExamples.search-text; validation: FormExamples.search-validation; error: FormExamples.search-error; character-count: FormExamples.search-count;
-            private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.search) {self.take-focus();}}
-            edited(text) => {FormExamples.text-edited(TextExample.search,text);}
-            commit-requested(text) => {FormExamples.text-commit(TextExample.search,text);}
-            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.search);}}
-            cancelled => {FormExamples.text-cancel(TextExample.search);}
         }
         KitTextArea {
             theme: root.theme; control-size: root.control-size; access: FormExamples.access;
             label: "About you"; placeholder: "A few lines about your work";
             text <=> FormExamples.biography-text; validation: FormExamples.biography-validation; error: FormExamples.biography-error; character-count: FormExamples.biography-count; min-lines: 3; max-lines: 6; show-character-count: true;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.biography) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.biography) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.biography,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.biography,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.biography);}}
             cancelled => {FormExamples.text-cancel(TextExample.biography);}
         }
+        KitFormErrorSummary {theme:root.theme;errors:FormExamples.profile-errors;error-activated(target)=>{FormExamples.profile-error-activated(target);}}
+        KitCheckbox {control-size:root.control-size;private property <int> focus-sequence:FormExamples.consent-focus-sequence;changed focus-sequence=>{self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}theme: root.theme; label: "I agree to the project terms"; state: FormExamples.consent; access: FormExamples.access; toggled(state)=>{FormExamples.consent = state; FormExamples.consent-toggled(state);}}
+        KitSwitch {control-size:root.control-size;theme:root.theme; label:"Email notifications"; checked:FormExamples.notifications; access:FormExamples.access; toggled(value)=>{FormExamples.notifications = value; FormExamples.notifications-toggled(value);}}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.profile-status;}
+        FlexboxLayout {spacing:12px;alignment:start;
+            KitButton {control-size:root.control-size;theme:root.theme;text:"Save profile";intent:ButtonIntent.primary;busy:FormExamples.profile-submission == SubmissionPresentation.pending;disabled:FormExamples.access != FieldAccess.editable;activated=>{FormExamples.profile-submit();}}
+            KitButton {control-size:root.control-size;theme:root.theme;text:"Reset";intent:ButtonIntent.quiet;activated=>{FormExamples.profile-reset();}}
+        }
+    }
+    if root.page == ShowcasePage.profile: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Password & verification"; }
+        KitPasswordField {
+            theme: root.theme; control-size: root.control-size;
+            label: "Password"; placeholder: "A secret you can reveal";
+            text <=> FormExamples.password-text; validation: FormExamples.password-validation; error: FormExamples.password-error; character-count: FormExamples.password-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.password) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
+            edited(text) => {FormExamples.text-edited(TextExample.password,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.password,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.password);}}
+            cancelled => {FormExamples.text-cancel(TextExample.password);}
+        }
         KitOtpField {
-            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            theme: root.theme; control-size: root.control-size;
             label: "Verification code"; placeholder: "123456";
             text <=> FormExamples.otp-text; validation: FormExamples.otp-validation; error: FormExamples.otp-error; character-count: FormExamples.otp-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.otp) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.otp) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.otp,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.otp,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.otp);}}
             cancelled => {FormExamples.text-cancel(TextExample.otp);}
         }
         KitMaskedField {
-            theme: root.theme; control-size: root.control-size; access: FormExamples.access;
+            theme: root.theme; control-size: root.control-size;
             label: "Project reference"; placeholder: "AB-1234";
             text <=> FormExamples.reference-text; validation: FormExamples.reference-validation; error: FormExamples.reference-error; character-count: FormExamples.reference-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
-            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.reference) {self.take-focus();}}
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.reference) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text) => {FormExamples.text-edited(TextExample.reference,text);}
             commit-requested(text) => {FormExamples.text-commit(TextExample.reference,text);}
             focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.reference);}}
             cancelled => {FormExamples.text-cancel(TextExample.reference);}
         }
-        KitFormErrorSummary {theme:root.theme;errors:FormExamples.profile-errors;error-activated(target)=>{FormExamples.profile-error-activated(target);}}
-        KitCheckbox {control-size:root.control-size;private property <int> focus-sequence:FormExamples.consent-focus-sequence;changed focus-sequence=>{self.take-focus();}theme: root.theme; label: "I agree to the project terms"; state: FormExamples.consent; access: FormExamples.access; toggled(state)=>{FormExamples.consent-toggled(state);}}
-        KitSwitch {control-size:root.control-size;theme:root.theme; label:"Email notifications"; checked:FormExamples.notifications; access:FormExamples.access; toggled(value)=>{FormExamples.notifications-toggled(value);}}
-        KitFieldDescription {theme:root.theme;text:FormExamples.profile-status;}
-        FlexboxLayout {spacing:12px;alignment:start;
-            KitButton {theme:root.theme;text:"Save profile";intent:ButtonIntent.primary;busy:FormExamples.profile-submission == SubmissionPresentation.pending;disabled:FormExamples.access != FieldAccess.editable;activated=>{FormExamples.profile-submit();}}
-            KitButton {theme:root.theme;text:"Reset";intent:ButtonIntent.quiet;activated=>{FormExamples.profile-reset();}}
+    }
+    if root.page == ShowcasePage.profile: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Search input"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Native search editing with a clear action. This sample does not query a dataset."; }
+        KitSearchField {
+            theme: root.theme; control-size: root.control-size;
+            label: "Search"; placeholder: "Type to test search editing";
+            text <=> FormExamples.search-text; validation: FormExamples.search-validation; error: FormExamples.search-error; character-count: FormExamples.search-count;
+            private property <int> focus-sequence: FormExamples.text-focus-sequence;
+            changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.search) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
+            edited(text) => {FormExamples.text-edited(TextExample.search,text);}
+            commit-requested(text) => {FormExamples.text-commit(TextExample.search,text);}
+            focus-observed(focused) => {if (!focused) {FormExamples.text-blur(TextExample.search);}}
+            cancelled => {FormExamples.text-cancel(TextExample.search);}
         }
     }
     if root.page == ShowcasePage.billing: ExamplePanel {
         theme:root.theme;
-        SectionTitle {theme:root.theme;text:"Exact values. Clear meaning.";}
-        KitFieldDescription {theme:root.theme;text:"Localized drafts stay editable. Formatting happens when you accept a value.";}
+        SectionTitle {theme:root.theme;text:"Numeric fields";}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Localized drafts stay editable. Formatting happens when you accept a value.";}
         FlexboxLayout {spacing:8px;alignment:start;
-            for locale in [LocaleExample.french-canada,LocaleExample.french-france,LocaleExample.english-canada,LocaleExample.english-us]:KitButton {
-                theme:root.theme; text:locale == LocaleExample.french-canada ? "fr-CA" : locale == LocaleExample.french-france ? "fr-FR" : locale == LocaleExample.english-canada ? "en-CA" : "en-US";
+            for locale in [LocaleExample.french-canada,LocaleExample.french-france,LocaleExample.english-canada,LocaleExample.english-us]:KitButton {control-size:root.control-size;
+                theme:root.theme; text:locale == LocaleExample.french-canada ? "French · Canada" : locale == LocaleExample.french-france ? "French · France" : locale == LocaleExample.english-canada ? "English · Canada" : "English · US";
                 intent:FormExamples.locale == locale ? ButtonIntent.primary : ButtonIntent.quiet;
                 activated=>{FormExamples.locale-changed(locale);}
             }
         }
         KitIntegerField {
             theme:root.theme;control-size:root.control-size;label:"Team size"; suffix: "people";
-            text <=> FormExamples.integer-text;validation:FormExamples.integer-validation;error:FormExamples.integer-error;
+            text <=> FormExamples.integer-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.integer) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.integer-validation;error:FormExamples.integer-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.integer,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.integer,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.integer);}}
@@ -375,15 +400,25 @@ export component FormGallery inherits VerticalLayout {
         }
         KitDecimalField {
             theme:root.theme;control-size:root.control-size;label:"Exact decimal";
-            text <=> FormExamples.decimal-text;validation:FormExamples.decimal-validation;error:FormExamples.decimal-error;
+            text <=> FormExamples.decimal-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.decimal) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.decimal-validation;error:FormExamples.decimal-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.decimal,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.decimal,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.decimal);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.decimal);}
         }
+    }
+    if root.page == ShowcasePage.billing: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Invoice example"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Enter an exact amount and create a local demo invoice."; }
         KitMoneyField {
             theme:root.theme;control-size:root.control-size;label:"Monthly budget"; suffix: FormExamples.money-suffix;
-            text <=> FormExamples.money-text;validation:FormExamples.money-validation;error:FormExamples.money-error;
+            text <=> FormExamples.money-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.money) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.money-validation;error:FormExamples.money-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.money,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.money,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.money);}}
@@ -391,7 +426,10 @@ export component FormGallery inherits VerticalLayout {
         }
         KitPercentField {
             theme:root.theme;control-size:root.control-size;label:"Allocation"; suffix: "%";
-            text <=> FormExamples.percent-text;validation:FormExamples.percent-validation;error:FormExamples.percent-error;
+            text <=> FormExamples.percent-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.percent) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.percent-validation;error:FormExamples.percent-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.percent,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.percent,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.percent);}}
@@ -399,7 +437,10 @@ export component FormGallery inherits VerticalLayout {
         }
         KitQuantityField {
             theme:root.theme;control-size:root.control-size;label:"Distance"; suffix: "km";
-            text <=> FormExamples.quantity-text;validation:FormExamples.quantity-validation;error:FormExamples.quantity-error;
+            text <=> FormExamples.quantity-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.quantity) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.quantity-validation;error:FormExamples.quantity-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.quantity,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.quantity,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.quantity);}}
@@ -407,7 +448,10 @@ export component FormGallery inherits VerticalLayout {
         }
         KitDurationField {
             theme:root.theme;control-size:root.control-size;label:"Focus session"; suffix: "minutes";
-            text <=> FormExamples.duration-text;validation:FormExamples.duration-validation;error:FormExamples.duration-error;
+            text <=> FormExamples.duration-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.duration) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.duration-validation;error:FormExamples.duration-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.duration,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.duration,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.duration);}}
@@ -415,63 +459,120 @@ export component FormGallery inherits VerticalLayout {
         }
         KitNumberStepper {
             theme:root.theme;control-size:root.control-size;label:"Seats"; suffix: "people"; step-requested(direction)=>{FormExamples.step-requested(direction);}
-            text <=> FormExamples.stepper-text;validation:FormExamples.stepper-validation;error:FormExamples.stepper-error;
+            text <=> FormExamples.stepper-text;
+            private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
+            changed focus-sequence => { if (FormExamples.numeric-focus-target == NumericExample.stepper) { self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height); } }validation:FormExamples.stepper-validation;error:FormExamples.stepper-error;
+            changed height => { if (self.has-focus) { FormExamples.reveal-field(self.absolute-position.y,self.height); } }
             edited(text)=>{FormExamples.numeric-edited(NumericExample.stepper,text);}
             commit-requested(text)=>{FormExamples.numeric-commit(NumericExample.stepper,text);}
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.stepper);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.stepper);}
         }
         KitFormErrorSummary {theme:root.theme;errors:FormExamples.billing-errors;error-activated(target)=>{FormExamples.billing-error-activated(target);}}
-        KitFieldDescription {theme:root.theme;text:FormExamples.billing-status;}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.billing-status;}
         FlexboxLayout {spacing:12px;alignment:start;
-            KitButton {theme:root.theme;text:"Create invoice";intent:ButtonIntent.primary;busy:FormExamples.billing-submission == SubmissionPresentation.pending;activated=>{FormExamples.billing-submit();}}
-            KitButton {theme:root.theme;text:"Reset values";intent:ButtonIntent.quiet;activated=>{FormExamples.billing-reset();}}
+            KitButton {control-size:root.control-size;theme:root.theme;text:"Create invoice";intent:ButtonIntent.primary;busy:FormExamples.billing-submission == SubmissionPresentation.pending;activated=>{FormExamples.billing-submit();}}
+            KitButton {control-size:root.control-size;theme:root.theme;text:"Reset values";intent:ButtonIntent.quiet;activated=>{FormExamples.billing-reset();}}
         }
     }
     if root.page == ShowcasePage.choices: ExamplePanel {
         theme:root.theme;
-        SectionTitle {theme:root.theme;text:"Choose, combine, adjust";}
-        KitCheckbox {control-size:root.control-size;theme:root.theme;label:"Include everyone (mixed state supported)";state:FormExamples.consent;toggled(state)=>{FormExamples.consent-toggled(state);}}
-        KitSwitch {control-size:root.control-size;theme:root.theme;label:"Notify collaborators";checked:FormExamples.notifications;toggled(value)=>{FormExamples.notifications-toggled(value);}}
+        SectionTitle {theme:root.theme;text:"Checkbox & switch";}
+        KitCheckbox {control-size:root.control-size;theme:root.theme;label:"Include everyone (mixed state supported)";state:FormExamples.choices-consent;toggled(state)=>{FormExamples.choices-consent-toggled(state);}}
+        KitSwitch {control-size:root.control-size;theme:root.theme;label:"Notify collaborators";checked:FormExamples.choices-notifications;toggled(value)=>{FormExamples.choices-notifications-toggled(value);}}
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Radio & segmented controls"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose one option or combine independent toggles."; }
         KitFieldLabel {theme:root.theme;text:"Plan";}
         KitRadioGroup {control-size:root.control-size;theme:root.theme;label:"Plan";rows:FormExamples.radio-options;active-token:FormExamples.radio-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.radio,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.radio,token,generation);}}
-        KitFieldLabel {theme:root.theme;text:"Layout";}
-        KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"Preview layout";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
+        KitFieldLabel {theme:root.theme;text:"View mode";}
+        KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"View mode";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
         KitFieldLabel {theme:root.theme;text:"Export formats";}
         KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
-        KitFieldDescription {theme:root.theme;text:"Search a collaborator";}
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Searchable selection"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Search a collaborator or select several reviewers."; }
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Search a collaborator";}
         KitCombobox {control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
-        KitFieldDescription {theme:root.theme;text:"Project reviewers";}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Project reviewers";}
         KitMultiSelect {control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
-        KitTagInput {control-size:root.control-size;theme:root.theme;label:"Tags";chips:FormExamples.tags;text <=> FormExamples.tag-text;error:FormExamples.tag-error;create-requested(text)=>{FormExamples.tag-create(text);}remove-requested(token)=>{FormExamples.tag-remove(token);}}
+        KitFieldError {theme:root.theme;text:FormExamples.multi-error;}
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Tags"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Add a tag with Enter, then remove it with its close button."; }
+        KitTagInput {control-size:root.control-size;theme:root.theme;label:"Project tags";chips:FormExamples.tags;text <=> FormExamples.tag-text;error:FormExamples.tag-error;create-requested(text)=>{FormExamples.tag-create(text);}remove-requested(token)=>{FormExamples.tag-remove(token);}}
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Sliders"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
+        KitFieldLabel { theme: root.theme; text: "Allocation · " + FormExamples.slider-label; }
         KitSlider {theme:root.theme;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
+        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
+        KitFieldLabel { theme: root.theme; text: "Preferred range · " + FormExamples.range-lower-label + " – " + FormExamples.range-upper-label; }
         KitRangeSlider {theme:root.theme;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
-        KitIntegerField {theme:root.theme;label:"Intensity, precise value (0–100)";text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
-        KitIntegerField {theme:root.theme;label:"Range start (0–100)";text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
-        KitIntegerField {theme:root.theme;label:"Range end (0–100)";text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
+        KitFieldError { theme: root.theme; text: FormExamples.range-error; }
+        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Range start (0–100)";error:FormExamples.range-lower-error;validation:FormExamples.range-lower-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
+        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Range end (0–100)";error:FormExamples.range-upper-error;validation:FormExamples.range-upper-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
+    }
+    if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Rating"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a score, or clear it to return to no selection."; }
         KitFieldLabel {theme:root.theme;text:"Rating";}
         KitRating {control-size:root.control-size;active-token:FormExamples.rating-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.rating,step);}theme:root.theme;label:"Rate this layout";scores:FormExamples.rating-options;generation:FormExamples.choice-generation;choose(token,generation)=>{FormExamples.choice-activate(ChoiceExample.rating,token,generation);}clear-requested=>{FormExamples.rating-clear();}}
-        KitFieldDescription {theme:root.theme;text:FormExamples.choices-status;}
+        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.rating-label;}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel {
         theme:root.theme;
-        SectionTitle {theme:root.theme;text:"Dates are not instants";}
+        SectionTitle {theme:root.theme;text:"Date picker";}
         KitDatePicker {control-size:root.control-size;theme:root.theme;label:"Project date";text <=> FormExamples.date-text;error:FormExamples.date-error;accepted-date:FormExamples.accepted-date;days:FormExamples.calendar-days;active-index:FormExamples.calendar-active;title:FormExamples.calendar-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];edited(text)=>{FormExamples.date-edited(DateExample.date,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.date,text);}navigate(step)=>{FormExamples.calendar-navigate(step);}choose(day)=>{FormExamples.calendar-choose(day);}}
-        KitDateRangePicker {control-size:root.control-size;theme:root.theme;days:FormExamples.range-days;active-index:FormExamples.calendar-active;title:FormExamples.calendar-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];phase:FormExamples.range-phase;summary:FormExamples.date-range-summary;error:FormExamples.date-range-error;navigate(step)=>{FormExamples.calendar-navigate(step);}choose(day)=>{FormExamples.date-range-choose(day);}apply-requested=>{FormExamples.date-range-apply();}cancelled=>{FormExamples.date-range-cancel();}}
-        KitMonthField {theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;edited(text)=>{FormExamples.date-edited(DateExample.month,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.month,text);}}
-        KitYearField {theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;edited(text)=>{FormExamples.date-edited(DateExample.year,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.year,text);}}
-        KitIsoWeekField {theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;edited(text)=>{FormExamples.date-edited(DateExample.week,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.week,text);}}
-        KitButton {theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Date range"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a draft range, then apply or cancel."; }
+        KitDateRangePicker {control-size:root.control-size;theme:root.theme;days:FormExamples.range-days;active-index:FormExamples.range-active;title:FormExamples.range-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];phase:FormExamples.range-phase;summary:FormExamples.date-range-summary;error:FormExamples.date-range-error;navigate(step)=>{FormExamples.date-range-navigate(step);}choose(day)=>{FormExamples.date-range-choose(day);}apply-requested=>{FormExamples.date-range-apply();}cancelled=>{FormExamples.date-range-cancel();}}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Month, year & week"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Civil date values remain independent of a time zone."; }
+        KitMonthField {control-size:root.control-size;theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;edited(text)=>{FormExamples.date-edited(DateExample.month,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.month,text);}}
+        KitYearField {control-size:root.control-size;theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;edited(text)=>{FormExamples.date-edited(DateExample.year,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.year,text);}}
+        KitIsoWeekField {control-size:root.control-size;theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;edited(text)=>{FormExamples.date-edited(DateExample.week,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.week,text);}}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Time picker"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Switch between 12-hour and 24-hour presentation."; }
+        KitButton {control-size:root.control-size;theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
         KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;edited(text)=>{FormExamples.date-edited(DateExample.time,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.time,text);}adjust(segment,direction)=>{FormExamples.time-adjust(segment,direction);}}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Local date & time"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "A local meeting time needs a time zone before it is an instant."; }
         KitDateTimeField {control-size:root.control-size;theme:root.theme;label:"Local meeting";date-text <=> FormExamples.local-date-text;time-text <=> FormExamples.local-time-text;date-error:FormExamples.local-error;commit-requested(draft)=>{FormExamples.local-commit(draft);}}
+    }
+    if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Time zone resolution"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Resolve a local time explicitly, including ambiguous and missing times."; }
         KitZonedDateTimeField {control-size:root.control-size;theme:root.theme;label:"Meeting in a time zone";date-text <=> FormExamples.zone-date-text;time-text <=> FormExamples.zone-time-text;zone-text <=> FormExamples.zone-text;resolution:FormExamples.zone-resolution;resolution-message:FormExamples.zone-message;edited(draft)=>{FormExamples.zone-edited();}resolve-requested(draft)=>{FormExamples.zone-resolve(draft);}ambiguity-chosen(choice)=>{FormExamples.ambiguity-chosen(choice);}}
+        KitButton { theme: root.theme; control-size: root.control-size; text: "Resolve time"; intent: ButtonIntent.primary; activated => { FormExamples.zone-resolve({date:FormExamples.zone-date-text,time:FormExamples.zone-time-text,zone:FormExamples.zone-text}); } }
     }
     if root.page == ShowcasePage.files: ExamplePanel {
         theme:root.theme;
-        SectionTitle {theme:root.theme;text:"Files and color, with native intent";}
+        SectionTitle {theme:root.theme;text:"File selection";}
         KitFilePicker {control-size:root.control-size;theme:root.theme;mode:FileSelectionMode.multiple;request-state:FormExamples.file-state;entries:FormExamples.selected-files;error:FormExamples.file-error;description:"Files stay local. Nothing is uploaded.";browse-requested(mode)=>{FormExamples.file-browse(mode);}remove-requested(token,generation)=>{FormExamples.file-remove(token,generation);}}
+        KitFileDropZone {host-drag-hovered:FormExamples.host-drag-hovered;label:"Drop files to add them to the list above";control-size:root.control-size;theme:root.theme;capability:FormExamples.drop-capability;can-drop(event)=>{return FormExamples.can-drop(event);}dropped(event)=>{return FormExamples.dropped(event);}}
+    }
+    if root.page == ShowcasePage.files: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Folder selection"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a local folder or clear the selection."; }
         KitDirectoryPicker {control-size:root.control-size;theme:root.theme;request-state:FormExamples.folder-state;selected-name:FormExamples.folder-name;error:FormExamples.folder-error;browse-requested=>{FormExamples.folder-browse();}clear-requested=>{FormExamples.folder-clear();}}
-        KitFileDropZone {host-drag-hovered:FormExamples.host-drag-hovered;label:"Drop files anywhere on this page";control-size:root.control-size;theme:root.theme;capability:FormExamples.drop-capability;can-drop(event)=>{return FormExamples.can-drop(event);}dropped(event)=>{return FormExamples.dropped(event);}}
+
+    }
+    if root.page == ShowcasePage.files: ExamplePanel { theme: root.theme;
+        SectionTitle { theme: root.theme; text: "Color picker"; }
+        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Edit an sRGB color with exact channels and optional alpha."; }
         KitColorPicker {color-requested(color)=>{FormExamples.color-picked(color);}control-size:root.control-size;theme:root.theme;alpha-mode:ColorAlphaMode.editable;accepted-color:FormExamples.accepted-color;swatch:FormExamples.color-swatch;hex-text <=> FormExamples.color-hex;red-text <=> FormExamples.color-red;green-text <=> FormExamples.color-green;blue-text <=> FormExamples.color-blue;alpha-text <=> FormExamples.color-alpha;hex-error:FormExamples.color-error;red-error:FormExamples.color-red-error;green-error:FormExamples.color-green-error;blue-error:FormExamples.color-blue-error;alpha-error:FormExamples.color-alpha-error;hex-edited(text)=>{FormExamples.color-hex-edited(text);}hex-commit-requested(text)=>{FormExamples.color-hex-commit(text);}channel-edited(channel,text)=>{FormExamples.color-channel-edited(channel,text);}channel-commit-requested(channel,text)=>{FormExamples.color-channel-commit(channel,text);}channel-position-requested(channel,value)=>{FormExamples.color-position(channel,value);}channel-navigate(channel,step)=>{FormExamples.color-navigate(channel,step);}gesture-started(channel)=>{FormExamples.color-gesture(channel,SliderGesture.started);}committed(channel)=>{FormExamples.color-gesture(channel,SliderGesture.committed);}cancelled(channel)=>{FormExamples.color-gesture(channel,SliderGesture.cancelled);}}
     }
 }

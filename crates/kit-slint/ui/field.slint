@@ -135,14 +135,17 @@ export component KitFormErrorSummary inherits KitFieldGroup {
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
     spacing: KitMetrics.help-gap;
-    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title; font-weight: 600; }
-    for error in root.errors: KitPressable {
+    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: 600; }
+    for error in root.errors: error-action := KitPressable {
         theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
         accessible-name: error.message;
         preferred-height: max(32px, message.preferred-height + 12px);
         min-height: self.preferred-height;
         activated => { root.error-activated(error.target); }
         message := Text {
+            x: 0px; y: 0px;
+            width: max(0px, error-action.width - 2 * error-action.recipe.padding-inline);
+            height: max(0px, error-action.height - 2 * error-action.recipe.padding-block);
             text: error.message;
             color: root.theme.danger;
             font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);

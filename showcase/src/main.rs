@@ -27,8 +27,189 @@ enum PreviewPosition {
     End,
 }
 
+#[derive(Clone, Copy, Debug)]
+enum PreviewScene {
+    NotificationsUnread,
+    NotificationsRead,
+    NotificationsEmpty,
+    NotificationsDetail,
+    DrawerEditing,
+    DrawerSaved,
+    DrawerSecondary,
+    ProgressRunning,
+    ProgressCancelled,
+    ProgressCompleted,
+    ToastError,
+    ToastRetry,
+    ArticlePreview,
+    AccordionMultiple,
+    TableEmpty,
+    CarouselPreview,
+    PaginationLast,
+    DialogInvalid,
+}
+impl PreviewScene {
+    fn parse(value: &str) -> Result<Self, String> {
+        Ok(match value {
+            "notifications-unread" => Self::NotificationsUnread,
+            "notifications-read" => Self::NotificationsRead,
+            "notifications-empty" => Self::NotificationsEmpty,
+            "notifications-detail" => Self::NotificationsDetail,
+            "drawer-editing" => Self::DrawerEditing,
+            "drawer-saved" => Self::DrawerSaved,
+            "drawer-secondary" => Self::DrawerSecondary,
+            "progress-running" => Self::ProgressRunning,
+            "progress-cancelled" => Self::ProgressCancelled,
+            "progress-completed" => Self::ProgressCompleted,
+            "toast-error" => Self::ToastError,
+            "toast-retry" => Self::ToastRetry,
+            "article-preview" => Self::ArticlePreview,
+            "accordion-multiple" => Self::AccordionMultiple,
+            "table-empty" => Self::TableEmpty,
+            "carousel-preview" => Self::CarouselPreview,
+            "pagination-last" => Self::PaginationLast,
+            "dialog-invalid" => Self::DialogInvalid,
+            _ => return Err(format!("Unknown preview scene: {value}")),
+        })
+    }
+    fn location(self) -> (ShowcasePage, PreviewTarget) {
+        match self {
+            Self::NotificationsUnread
+            | Self::NotificationsRead
+            | Self::NotificationsEmpty
+            | Self::NotificationsDetail => (ShowcasePage::Navigation, PreviewTarget::Notifications),
+            Self::DrawerEditing | Self::DrawerSaved => {
+                (ShowcasePage::Navigation, PreviewTarget::Drawer)
+            }
+            Self::DrawerSecondary | Self::AccordionMultiple => {
+                (ShowcasePage::Navigation, PreviewTarget::Accordion)
+            }
+            Self::ProgressRunning | Self::ProgressCancelled | Self::ProgressCompleted => {
+                (ShowcasePage::Display, PreviewTarget::Progress)
+            }
+            Self::ToastError | Self::ToastRetry => (ShowcasePage::Display, PreviewTarget::Toast),
+            Self::ArticlePreview => (ShowcasePage::Data, PreviewTarget::Articles),
+            Self::TableEmpty => (ShowcasePage::Data, PreviewTarget::Table),
+            Self::CarouselPreview => (ShowcasePage::Navigation, PreviewTarget::Carousel),
+            Self::PaginationLast => (ShowcasePage::Navigation, PreviewTarget::Pagination),
+            Self::DialogInvalid => (ShowcasePage::Gallery, PreviewTarget::Dialog),
+        }
+    }
+    fn capture_delay(self) -> u64 {
+        match self {
+            Self::ProgressCompleted => 5600,
+            Self::DialogInvalid => 1200,
+            Self::ProgressRunning | Self::ProgressCancelled => 1400,
+            Self::NotificationsUnread
+            | Self::NotificationsRead
+            | Self::NotificationsEmpty
+            | Self::NotificationsDetail
+            | Self::DrawerEditing
+            | Self::DrawerSaved
+            | Self::DrawerSecondary
+            | Self::ToastError
+            | Self::ToastRetry
+            | Self::ArticlePreview
+            | Self::AccordionMultiple
+            | Self::TableEmpty
+            | Self::CarouselPreview
+            | Self::PaginationLast => 700,
+        }
+    }
+    fn play(self, window: &Showcase) {
+        let nav = window.global::<NavigationExamples>();
+        let display = window.global::<DisplayExamples>();
+        match self {
+            Self::NotificationsUnread
+            | Self::NotificationsRead
+            | Self::NotificationsEmpty
+            | Self::NotificationsDetail => {
+                if matches!(self, Self::NotificationsEmpty) {
+                    while let Some(row) = nav.get_notifications().row_data(0) {
+                        nav.invoke_notice_dismiss(row.item.token, row.item.generation);
+                    }
+                } else if let Some(row) = nav.get_notifications().row_data(0) {
+                    if matches!(self, Self::NotificationsRead) {
+                        nav.invoke_notice_read(row.item.token, row.item.generation);
+                    }
+                    if matches!(self, Self::NotificationsDetail) {
+                        nav.invoke_notice_activate(row.item.token, row.item.generation);
+                    }
+                }
+                nav.invoke_notice_open();
+            }
+            Self::DrawerEditing | Self::DrawerSaved | Self::DrawerSecondary => {
+                let launcher = if matches!(self, Self::DrawerSecondary) {
+                    nav.set_collapse_open(true);
+                    DrawerFocus::CollapseTrigger
+                } else {
+                    DrawerFocus::Trigger
+                };
+                nav.invoke_drawer_open(launcher);
+                nav.set_drawer_name("Allsafe audit notes".into());
+                nav.set_drawer_team(true);
+                if matches!(self, Self::DrawerSaved) {
+                    nav.invoke_drawer_save("Allsafe audit notes".into(), true, true);
+                }
+            }
+            Self::ProgressRunning | Self::ProgressCompleted => display.invoke_progress_start(),
+            Self::ProgressCancelled => {
+                display.invoke_progress_start();
+                let weak = window.as_weak();
+                slint::Timer::single_shot(Duration::from_millis(750), move || {
+                    if let Some(window) = weak.upgrade() {
+                        window.global::<DisplayExamples>().invoke_progress_cancel();
+                    }
+                });
+            }
+            Self::ToastError | Self::ToastRetry => {
+                display.invoke_add_toast(ToastExample::Failed);
+                if matches!(self, Self::ToastRetry)
+                    && let Some(row) = display.get_toast_entries().row_data(0)
+                {
+                    display.invoke_toast_action(row.token);
+                }
+            }
+            Self::ArticlePreview => window.global::<DataExamples>().invoke_article_open(2, 1),
+            Self::AccordionMultiple => {
+                nav.invoke_mode_changed(ExpansionMode::Multiple);
+                let rows = nav.get_accordion_rows();
+                for index in 0..2 {
+                    if let Some(row) = rows.row_data(index) {
+                        nav.invoke_expand(
+                            row.item.token,
+                            row.item.generation,
+                            true,
+                            ExpansionMode::Multiple,
+                        );
+                    }
+                }
+            }
+            Self::TableEmpty => {
+                let data = window.global::<DataExamples>();
+                data.set_query("no-results-for-this-query".into());
+                data.invoke_query_edited(data.get_query());
+            }
+            Self::CarouselPreview => {
+                let state = nav.get_carousel_state();
+                nav.invoke_activate(
+                    NavigationDemo::Carousel,
+                    state.selected.token,
+                    state.generation,
+                );
+            }
+            Self::PaginationLast => nav.invoke_page_navigate(NavigationStep::Last),
+            Self::DialogInvalid => {
+                window.invoke_dialog_open();
+                window.set_project_name("".into());
+                window.invoke_dialog_submit(window.get_project_name());
+            }
+        }
+    }
+}
 #[derive(Default)]
 struct Preview {
+    scene: Option<PreviewScene>,
     dark: bool,
     enlarged: bool,
     dialog: Option<ShowcaseSkin>,
@@ -49,6 +230,7 @@ impl Preview {
         let mut args = std::env::args().skip(1);
         while let Some(argument) = args.next() {
             match argument.as_str() {
+                "--scene" => result.scene = Some(PreviewScene::parse(&args.next().ok_or("--scene needs a name")?)?),
                 "--position" => result.position = match args.next().as_deref() {Some("top")=>PreviewPosition::Top,Some("middle")=>PreviewPosition::Middle,Some("end")=>PreviewPosition::End,_=>return Err("--position needs top, middle, or end".into())},
                 "--page" => result.page = Some(match args.next().as_deref() {
                     Some("gallery") => ShowcasePage::Gallery,
@@ -101,7 +283,7 @@ impl Preview {
                         _ => unreachable!("option was matched above"),
                     }
                 }
-                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files|display|navigation|data] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
+                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files|display|navigation|data] [--scene name] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
                 value => return Err(format!("unknown argument {value}")),
             }
         }
@@ -274,6 +456,9 @@ impl Session {
 }
 
 fn person_label(PersonId(id): PersonId) -> String {
+    if id == 42 {
+        return "Elliot Alderson".into();
+    }
     if id % 137 == 0 {
         return "Alex Morgan".into();
     }
@@ -407,6 +592,7 @@ fn main() -> Result<(), slint::PlatformError> {
     });
     let session = Rc::new(RefCell::new(Session::new()));
     session.borrow().publish(&window);
+    let dialog_selection = Rc::new(RefCell::new(None));
     let select = kit::bind_select!(ui, window, dataset(), Some(PersonId(42)), Ownership::Local);
     diagnostics(&window, &session.borrow(), select.selected(), 10_000);
 
@@ -460,9 +646,6 @@ fn main() -> Result<(), slint::PlatformError> {
         if let Some(window) = weak.upgrade() {
             let count = window.get_activation_count() + 1;
             window.set_activation_count(count);
-            window.set_status(
-                format!("Action activated {count} time(s). Both skins use KitPressable.").into(),
-            );
         }
     });
     let weak = window.as_weak();
@@ -527,6 +710,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let weak = window.as_weak();
     let target = session.clone();
+    let selection = select.clone();
+    let saved_selection = dialog_selection.clone();
     window.on_dialog_open(move || {
         let Some(window) = weak.upgrade() else {
             return;
@@ -535,6 +720,7 @@ fn main() -> Result<(), slint::PlatformError> {
         if session.overlays.contains(DIALOG) {
             return;
         }
+        *saved_selection.borrow_mut() = selection.selected();
         let trigger = match window.get_dialog_skin() {
             ShowcaseSkin::Mineral => 1,
             ShowcaseSkin::Expressive => 2,
@@ -559,6 +745,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = window.as_weak();
     let target = session.clone();
     let selection = select.clone();
+    let saved_selection = dialog_selection.clone();
     window.on_dialog_dismiss(move |view_reason| {
         let Some(window) = weak.upgrade() else {
             return;
@@ -570,6 +757,7 @@ fn main() -> Result<(), slint::PlatformError> {
         target
             .borrow_mut()
             .close_dialog(&window, reason(view_reason));
+        selection.set_selected(*saved_selection.borrow());
     });
     let weak = window.as_weak();
     let target = session.clone();
@@ -640,6 +828,8 @@ fn main() -> Result<(), slint::PlatformError> {
     });
     let weak = window.as_weak();
     let target = session.clone();
+    let selection = select.clone();
+    let saved_selection = dialog_selection.clone();
     window.on_dialog_submit(move |name| {
         let Some(window) = weak.upgrade() else {
             return;
@@ -667,6 +857,8 @@ fn main() -> Result<(), slint::PlatformError> {
         window.set_validation_message("Checking the project name…".into());
         let weak = window.as_weak();
         let target = target.clone();
+        let selection = selection.clone();
+        let saved_selection = saved_selection.clone();
         slint::Timer::single_shot(Duration::from_millis(650), move || {
             let Some(window) = weak.upgrade() else {
                 return;
@@ -694,17 +886,48 @@ fn main() -> Result<(), slint::PlatformError> {
                 session.request(&window, first);
             } else {
                 session.validation = ValidationState::Succeeded;
-                window.set_status(
-                    format!(
-                        "Created “{}”. Validation completed without blocking the UI.",
-                        name.trim()
-                    )
-                    .into(),
-                );
+                window.set_status(format!("Created project: {}", name.trim()).into());
                 session.close_dialog(&window, DismissReason::Programmatic);
+                drop(session);
+                selection.set_selected(*saved_selection.borrow());
             }
         });
     });
+    let weak = window.as_weak();
+    window
+        .global::<FormExamples>()
+        .on_reveal_field(move |top, height| {
+            if let Some(window) = weak.upgrade() {
+                window.invoke_reveal_content(top, height);
+            }
+        });
+    let weak = window.as_weak();
+    window
+        .global::<PreviewExamples>()
+        .on_reveal(move |top, _height| {
+            if let Some(window) = weak.upgrade() {
+                window.invoke_position_content(top);
+            }
+        });
+    if let Some(scene) = preview.scene {
+        let (page, target) = scene.location();
+        window.set_page(page);
+        let weak = window.as_weak();
+        slint::Timer::single_shot(Duration::from_millis(150), move || {
+            if let Some(window) = weak.upgrade() {
+                let _ = window.window().take_snapshot();
+                let preview = window.global::<PreviewExamples>();
+                preview.set_target(target);
+                preview.set_request(preview.get_request() + 1);
+                let weak = window.as_weak();
+                slint::Timer::single_shot(Duration::from_millis(100), move || {
+                    if let Some(window) = weak.upgrade() {
+                        scene.play(&window);
+                    }
+                });
+            }
+        });
+    }
     if preview.dark {
         window.set_theme_mode(ThemeMode::Dark);
     }
@@ -748,22 +971,69 @@ fn main() -> Result<(), slint::PlatformError> {
         let weak = window.as_weak();
         slint::Timer::single_shot(Duration::from_millis(150), move || {
             if let Some(window) = weak.upgrade() {
+                let _ = window.window().take_snapshot();
                 window.invoke_scroll_page(scroll_position);
             }
         });
     }
     if let Some(path) = preview.snapshot {
         let weak = window.as_weak();
-        slint::Timer::single_shot(Duration::from_millis(350), move || {
-            if let Some(window) = weak.upgrade() {
-                if let Err(error) = save_snapshot(&window, &path) {
-                    eprintln!("Snapshot failed: {error}");
-                    std::process::exit(1);
+        slint::Timer::single_shot(
+            Duration::from_millis(preview.scene.map_or(350, PreviewScene::capture_delay)),
+            move || {
+                if let Some(window) = weak.upgrade() {
+                    if scroll_position > 0. {
+                        let _ = window.window().take_snapshot();
+                        window.invoke_scroll_page(scroll_position);
+                    }
+                    if let Err(error) = save_snapshot(&window, &path) {
+                        eprintln!("Snapshot failed: {error}");
+                        std::process::exit(1);
+                    }
+                    println!("Saved {}", path.display());
                 }
-                println!("Saved {}", path.display());
-            }
-            let _ = slint::quit_event_loop();
-        });
+                let _ = slint::quit_event_loop();
+            },
+        );
     }
     window.run()
+}
+
+#[cfg(test)]
+mod preview_tests {
+    use super::*;
+    use i_slint_backend_testing::ElementQuery;
+    #[test]
+    fn gallery_end_scroll_keeps_navigation_fixed_and_footer_inside_viewport() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.show().unwrap();
+        for enlarged in [false, true] {
+            window.set_enlarged(enlarged);
+            let navigation = ElementQuery::from_root(&window)
+                .match_inherits("KitPressable")
+                .match_predicate(|element| {
+                    element.accessible_label().as_deref() == Some("Buttons & dialogs")
+                })
+                .find_first()
+                .unwrap();
+            let before = navigation.absolute_position();
+            window.invoke_scroll_page(1.);
+            let footer = ElementQuery::from_root(&window)
+                .match_predicate(|element| {
+                    element.accessible_label().as_deref() == Some("Slint Kit · GPL-3.0-or-later")
+                })
+                .find_first()
+                .unwrap();
+            let _ = footer.absolute_position();
+            window.invoke_scroll_page(1.);
+            assert_eq!(navigation.absolute_position(), before);
+            let bottom = footer.absolute_position().y + footer.size().height;
+            let viewport_height = window.window().size().height as f32;
+            assert!(
+                bottom <= viewport_height - 20. && bottom >= viewport_height - 70.,
+                "footer bottom {bottom}, viewport {viewport_height}"
+            );
+        }
+    }
 }

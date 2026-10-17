@@ -289,12 +289,12 @@ fn single_activate<K: Clone + Eq + Hash>(
 fn publish(window: &ui::Showcase, state: &Choices) {
     let view = window.global::<ui::FormExamples>();
     view.set_choice_generation(CHOICE_GENERATION);
-    view.set_consent(match state.consent {
+    view.set_choices_consent(match state.consent {
         CheckState::Unchecked => ui::CheckState::Unchecked,
         CheckState::Checked => ui::CheckState::Checked,
         CheckState::Mixed => ui::CheckState::Mixed,
     });
-    view.set_notifications(state.notifications);
+    view.set_choices_notifications(state.notifications);
     view.set_radio_options(model(single_rows(&state.radio)));
     view.set_radio_active(active(&state.radio));
     view.set_segmented_options(model(single_rows(&state.segmented)));
@@ -329,6 +329,27 @@ fn publish(window: &ui::Showcase, state: &Choices) {
     );
     view.set_rating_options(model(single_rows(&state.rating_choices)));
     view.set_rating_active(active(&state.rating_choices));
+    view.set_rating_label(
+        state
+            .rating
+            .as_ref()
+            .map_or_else(
+                || "Not rated".to_owned(),
+                |_| {
+                    format!(
+                        "Rating: {} of 5",
+                        state
+                            .rating_choices
+                            .state()
+                            .selected
+                            .as_ref()
+                            .expect("chosen score")
+                            .0
+                    )
+                },
+            )
+            .into(),
+    );
     view.set_tags(model(
         state
             .tags
@@ -373,7 +394,7 @@ pub fn install(window: &ui::Showcase) {
     let target = state.clone();
     window
         .global::<ui::FormExamples>()
-        .on_consent_toggled(move |value| {
+        .on_choices_consent_toggled(move |value| {
             let Some(window) = weak.upgrade() else {
                 return;
             };
@@ -388,7 +409,7 @@ pub fn install(window: &ui::Showcase) {
     let target = state.clone();
     window
         .global::<ui::FormExamples>()
-        .on_notifications_toggled(move |value| {
+        .on_choices_notifications_toggled(move |value| {
             let Some(window) = weak.upgrade() else {
                 return;
             };
@@ -558,12 +579,13 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
                     window
                         .global::<ui::FormExamples>()
                         .set_slider_text(state.slider.value.to_string().into());
-                    status(&window, "Allocation accepted.");
+                    window
+                        .global::<ui::FormExamples>()
+                        .set_slider_error("".into());
                 }
-                Err(issue) => status(
-                    &window,
-                    format!("Allocation: {issue:?}. Use a whole number from 0 to 100."),
-                ),
+                Err(_) => window
+                    .global::<ui::FormExamples>()
+                    .set_slider_error("Use a whole number from 0 to 100.".into()),
             }
             publish(&window, &state);
         });
@@ -593,14 +615,20 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
                             view.set_range_upper_text(range.end().to_string().into())
                         }
                     };
-                    status(&window, "Ordered range accepted.");
+                    view.set_range_error("".into());
+                    match view_thumb {
+                        ui::RangeThumb::Lower => view.set_range_lower_error("".into()),
+                        ui::RangeThumb::Upper => view.set_range_upper_error("".into()),
+                    }
                 }
-                Err(issue) => status(
-                    &window,
-                    format!(
-                        "Range: {issue:?}. Keep both values from 0 to 100, with lower ≤ upper."
-                    ),
-                ),
+                Err(_) => {
+                    let view = window.global::<ui::FormExamples>();
+                    let message = "Use whole numbers from 0 to 100, with start ≤ end.".into();
+                    match view_thumb {
+                        ui::RangeThumb::Lower => view.set_range_lower_error(message),
+                        ui::RangeThumb::Upper => view.set_range_upper_error(message),
+                    }
+                }
             }
             publish(&window, &state);
         });
@@ -614,7 +642,9 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
             };
             let mut state = target.borrow_mut();
             if let Err(issue) = pointer_value(value).and_then(|value| state.slider.set(value)) {
-                status(&window, format!("Allocation: {issue:?}"));
+                window
+                    .global::<ui::FormExamples>()
+                    .set_slider_error(format!("Choose a value from 0 to 100 ({issue:?}).").into());
             }
             window
                 .global::<ui::FormExamples>()
@@ -631,7 +661,9 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
             };
             let mut state = target.borrow_mut();
             if let Err(issue) = state.slider.navigate(navigation(step)) {
-                status(&window, format!("Allocation: {issue:?}"));
+                window
+                    .global::<ui::FormExamples>()
+                    .set_slider_error(format!("Choose a value from 0 to 100 ({issue:?}).").into());
             }
             window
                 .global::<ui::FormExamples>()
@@ -665,7 +697,9 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
             if let Err(issue) =
                 pointer_value(value).and_then(|value| state.range.set(thumb(view_thumb), value))
             {
-                status(&window, format!("Range: {issue:?}"));
+                window.global::<ui::FormExamples>().set_range_error(
+                    format!("Keep start ≤ end within 0 to 100 ({issue:?}).").into(),
+                );
             }
             sync_range_text(&window, &state);
             publish(&window, &state);
@@ -688,7 +722,9 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
             if let Err(issue) = navigation_value(current, navigation(step), minimum, maximum)
                 .and_then(|value| state.range.set(thumb, value))
             {
-                status(&window, format!("Range: {issue:?}"));
+                window.global::<ui::FormExamples>().set_range_error(
+                    format!("Keep start ≤ end within 0 to 100 ({issue:?}).").into(),
+                );
             }
             sync_range_text(&window, &state);
             publish(&window, &state);
@@ -986,7 +1022,9 @@ fn install_multi(window: &ui::Showcase) {
             {
                 let mut choices = state.borrow_mut();
                 if let Err(issue) = choices.toggle(&key) {
-                    status(&window, format!("Reviewers: {issue:?} (maximum five)."));
+                    window.global::<ui::FormExamples>().set_multi_error(
+                        format!("Select up to five reviewers ({issue:?}).").into(),
+                    );
                     return;
                 }
                 publish_multi(&window, &choices);
@@ -1040,5 +1078,21 @@ mod tests {
         assert!(
             navigation_value(decimal(80), NavigationStep::Next, decimal(0), decimal(80)).is_err()
         );
+    }
+    #[test]
+    fn choice_demo_never_changes_profile_consent_or_notifications() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::Showcase::new().unwrap();
+        super::super::form_fields::install(&window);
+        install(&window);
+        let form = window.global::<ui::FormExamples>();
+        form.set_consent(ui::CheckState::Unchecked);
+        form.set_notifications(false);
+        form.invoke_choices_consent_toggled(ui::CheckState::Checked);
+        form.invoke_choices_notifications_toggled(true);
+        assert_eq!(form.get_consent(), ui::CheckState::Unchecked);
+        assert!(!form.get_notifications());
+        assert_eq!(form.get_choices_consent(), ui::CheckState::Checked);
+        assert!(form.get_choices_notifications());
     }
 }

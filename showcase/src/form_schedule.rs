@@ -11,6 +11,7 @@ use std::{cell::RefCell, rc::Rc};
 
 struct Schedule {
     calendar: CalendarController,
+    range_calendar: CalendarController,
     range: DateRangeController,
     date: CivilDate,
     month: YearMonth,
@@ -85,11 +86,21 @@ impl Schedule {
                 })
             })
             .collect();
-        let range_rows: Vec<_> = slots
+        let range_slots = self.range_calendar.grid_slots();
+        let range_rows: Vec<_> = range_slots
             .iter()
-            .zip(&rows)
-            .map(|(slot, row)| {
-                let mut row = row.clone();
+            .map(|slot| {
+                let mut row = slot.map_or_else(CalendarDay::default, |cell| CalendarDay {
+                    year: cell.date.year(),
+                    month: cell.date.month() as i32,
+                    day: cell.date.day() as i32,
+                    label: cell.date.day().to_string().into(),
+                    accessible_label: cell.date.iso_string().into(),
+                    enabled: cell.enabled,
+                    selected: false,
+                    in_range: false,
+                    today: false,
+                });
                 if let Some(cell) = slot {
                     match draft {
                         RangeSelection::ChoosingStart => {
@@ -132,6 +143,21 @@ impl Schedule {
         ];
         global.set_calendar_title(
             format!("{} {}", MONTHS[month.month() as usize - 1], month.year()).into(),
+        );
+        let range_month = self.range_calendar.displayed();
+        global.set_range_title(
+            format!(
+                "{} {}",
+                MONTHS[range_month.month() as usize - 1],
+                range_month.year()
+            )
+            .into(),
+        );
+        global.set_range_active(
+            range_slots
+                .iter()
+                .position(|slot| slot.is_some_and(|cell| cell.focused))
+                .unwrap_or(0) as i32,
         );
         global.set_accepted_date(view(self.date));
         global.set_accepted_time(time_view(self.time));
@@ -184,6 +210,12 @@ pub fn install(window: &Showcase) {
     let time = LocalTime::new(9, 30, 0).expect("valid example time");
     let state = Rc::new(RefCell::new(Schedule {
         calendar: CalendarController::new(Some(date), date.year_month(), None, WeekStart::Monday),
+        range_calendar: CalendarController::new(
+            Some(date),
+            date.year_month(),
+            None,
+            WeekStart::Monday,
+        ),
         range: DateRangeController::new(None),
         date,
         month: date.year_month(),
@@ -305,6 +337,15 @@ pub fn install(window: &Showcase) {
     });
     let weak = window.as_weak();
     let shared = state.clone();
+    global.on_date_range_navigate(move |step| {
+        if let Some(window) = weak.upgrade() {
+            let mut state = shared.borrow_mut();
+            let _ = state.range_calendar.navigate(navigation(step));
+            state.publish(&window);
+        }
+    });
+    let weak = window.as_weak();
+    let shared = state.clone();
     global.on_calendar_navigate(move |step| {
         if let Some(window) = weak.upgrade() {
             let mut state = shared.borrow_mut();
@@ -332,6 +373,7 @@ pub fn install(window: &Showcase) {
     global.on_date_range_choose(move |day| {
         if let (Some(window), Some(date)) = (weak.upgrade(), from_day(&day)) {
             let mut state = shared.borrow_mut();
+            let _ = state.range_calendar.choose(date);
             let error = if state.range.choose(date).is_err() {
                 "The end must be on or after the start."
             } else {
@@ -559,5 +601,19 @@ mod tests {
             form.get_zone_resolution(),
             ZonedTimePresentation::Unresolved
         );
+    }
+    #[test]
+    fn date_and_range_calendars_navigate_independently() {
+        let window = fixture();
+        let form = window.global::<FormExamples>();
+        let date_month = form.get_calendar_title();
+        let range_month = form.get_range_title();
+        form.invoke_calendar_navigate(CalendarNavigation::NextMonth);
+        assert_ne!(form.get_calendar_title(), date_month);
+        assert_eq!(form.get_range_title(), range_month);
+        let date_month = form.get_calendar_title();
+        form.invoke_date_range_navigate(CalendarNavigation::PreviousMonth);
+        assert_ne!(form.get_range_title(), range_month);
+        assert_eq!(form.get_calendar_title(), date_month);
     }
 }

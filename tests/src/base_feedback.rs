@@ -284,3 +284,29 @@ fn key_text(window: &impl ComponentHandle, text: &str) {
         .window()
         .dispatch_event(WindowEvent::KeyReleased { text: text.into() });
 }
+
+#[test]
+fn progress_fill_starts_at_the_track_origin_for_all_bounded_values() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseProgressFixture::new().unwrap();
+    window.show().unwrap();
+    for value in [-1., 0., 0.25, 0.5, 0.75, 1., 2.] {
+        window.set_progress(value);
+        settle(1);
+        let progress = ElementQuery::from_root(&window)
+            .match_inherits("KitProgress")
+            .find_first()
+            .unwrap();
+        let rectangles = progress
+            .query_descendants()
+            .match_type_name("Rectangle")
+            .find_all();
+        assert_eq!(rectangles.len(), 2);
+        let track = &rectangles[0];
+        let fill = &rectangles[1];
+        assert!((fill.absolute_position().x - track.absolute_position().x).abs() <= 1.);
+        assert!((fill.absolute_position().y - track.absolute_position().y).abs() <= 1.);
+        assert!((fill.size().width - track.size().width * value.clamp(0., 1.)).abs() <= 1.);
+        assert!((fill.size().height - 8.).abs() <= 1.);
+    }
+}

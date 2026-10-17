@@ -2,6 +2,7 @@
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
+import { KitFieldLabel } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
 import { KitIcon, IconKind } from "icons.slint";
@@ -346,14 +347,15 @@ export component KitTagInput inherits Rectangle {
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 8px;
+        spacing: 8px; alignment: start;
+        if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: wrap; spacing: 8px; alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
         }
         editor := KitTextField {
-            theme: root.theme; control-size: root.control-size; access: root.access; label: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; text <=> root.text;
+            theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; text <=> root.text;
             placeholder: "Type a tag, then press Enter";
             edited(text) => { root.edited(text); }
             commit-requested(text) => { if (root.access == FieldAccess.editable) { root.create-requested(text); } }
