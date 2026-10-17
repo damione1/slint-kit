@@ -1,7 +1,7 @@
 # Slint Kit logo assets
 
 Vector artwork licensed GPL-3.0-or-later. The repository README displays the
-horizontal logo and selects its light or dark variant to match the reader's theme.
+stacked logo and selects its light or dark variant to match the reader's GitHub theme.
 
 | Asset | Intended use |
 | --- | --- |
