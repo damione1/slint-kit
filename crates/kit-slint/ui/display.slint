@@ -65,7 +65,7 @@ export component KitCardHeader inherits VerticalLayout {
     Text { width: root.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
     if root.description != "": Text { width: root.width; height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
 }
-export component KitCardBody inherits VerticalLayout { spacing: 12px; vertical-stretch: 0; @children }
+export component KitCardBody inherits VerticalLayout { spacing: 12px; alignment: start; vertical-stretch: 0; @children }
 export component KitCardFooter inherits FlexboxLayout { spacing: 8px; flex-wrap: wrap; vertical-stretch: 0; @children }
 
 export component KitHero inherits Rectangle {
@@ -138,10 +138,12 @@ export component KitEmptyState inherits Rectangle {
     in property <KitTheme> theme: KitThemes.light;
     in property <string> title;
     in property <string> description;
+    preferred-height: content.preferred-height;
+    min-height: self.preferred-height;
     vertical-stretch: 0;
-    VerticalLayout { padding: 24px; spacing: 12px;
-        Text { text: root.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: 24px; spacing: 12px; alignment: start;
+        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        if root.description != "": Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
         @children
     }
 }

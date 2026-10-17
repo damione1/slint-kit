@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "@kit/theme.slint";
-import { PreviewAnchor, PreviewTarget } from "example-section.slint";
+import { PreviewAnchor, PreviewTarget, PreviewExamples } from "example-section.slint";
 import { KitButton } from "@kit/button.slint";
 import { KitBadge, KitAvatar, KitCard, KitCardHeader, KitCardBody, KitCardFooter, KitHero, KitFooter, KitDivider, KitStat, KitChatBubble, KitSkeleton, KitEmptyState, KitTimeline, KitSteps, StepState, Tone, ChatSide } from "@kit/display.slint";
 import { KitAlert, KitSpinner, KitProgress, KitRadialProgress, KitTooltip, KitToastHost, AlertSeverity, ToastEntry, ToastInteraction } from "@kit/feedback.slint";
@@ -22,6 +22,51 @@ export global DisplayExamples {
     callback toast-interaction(int,ToastInteraction,bool);
     callback progress-start();
     callback progress-cancel();
+}
+
+// Each replacement is measured at the same finite width. Changing state never
+// changes the surrounding page's scroll extent or moves the state controls.
+component ContentStateCard inherits KitCard {
+    private property <int> request: PreviewExamples.request;
+    changed request => { if (PreviewExamples.target == PreviewTarget.content-states) { PreviewExamples.reveal(root.absolute-position.y,root.height); } }
+}
+component ContentStatePreview inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    preferred-height: max(empty.preferred-height,loading.preferred-height,loaded.preferred-height);
+    min-height: self.preferred-height;
+    vertical-stretch: 0;
+    background: root.theme.canvas;
+    border-radius: 8px;
+    accessible-role: groupbox;
+    accessible-label: "Content state preview";
+    loading := VerticalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        padding: 24px; spacing: 12px; alignment: start;
+        opacity: DisplayExamples.content-state == ContentDemoState.loading ? 1 : 0;
+        visible: self.opacity > 0;
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
+        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: 180px; max-width: 180px; }
+        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; }
+        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: 240px; max-width: 240px; }
+    }
+    empty := KitEmptyState {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        theme: root.theme; title: "No collections yet"; description: "Create a demo collection to replace this empty state.";
+        opacity: DisplayExamples.content-state == ContentDemoState.empty ? 1 : 0;
+        visible: self.opacity > 0;
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
+        KitButton { theme: root.theme; control-size: root.control-size; text: "Create collection"; disabled: DisplayExamples.content-state != ContentDemoState.empty; activated => { DisplayExamples.content-state = ContentDemoState.loaded; } }
+    }
+    loaded := VerticalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        padding: 24px; spacing: 8px; alignment: start;
+        opacity: DisplayExamples.content-state == ContentDemoState.loaded ? 1 : 0;
+        visible: self.opacity > 0;
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
+        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: "Allsafe incident notes"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: "Private collection · Elliot Alderson · Ready for its first note"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
 }
 
 export component DisplayGallery inherits VerticalLayout {
@@ -97,23 +142,12 @@ export component DisplayGallery inherits VerticalLayout {
         KitDivider { theme: root.theme; label: "Recent activity"; }
         KitTimeline { theme: root.theme; entries: [{title:"Collection created",description:"Allsafe incident notes are ready for review.",metadata:"Today · 09:10"},{title:"First review completed",description:"Darlene reviewed the network findings.",metadata:"Today · 10:05"}]; }
     }
-    KitCard { theme: root.theme;
+    ContentStateCard { theme: root.theme;
         KitCardHeader { theme: root.theme; title: "Loading & empty states"; description: "KitSkeleton · KitEmptyState · Replace the placeholder when content is available."; }
         KitCardFooter {
             for state in [ContentDemoState.empty,ContentDemoState.loading,ContentDemoState.loaded]: KitButton { theme: root.theme; control-size: root.control-size; text: state == ContentDemoState.empty ? "Empty" : state == ContentDemoState.loading ? "Loading" : "Loaded"; intent: DisplayExamples.content-state == state ? ButtonIntent.primary : ButtonIntent.secondary; activated => { DisplayExamples.content-state = state; } }
         }
-        if DisplayExamples.content-state == ContentDemoState.loading: VerticalLayout { spacing: 12px; alignment: start;
-            KitSkeleton { theme: root.theme; preferred-width: 180px; max-width: 180px; }
-            KitSkeleton { theme: root.theme; }
-            KitSkeleton { theme: root.theme; preferred-width: 240px; max-width: 240px; }
-        }
-        if DisplayExamples.content-state == ContentDemoState.empty: KitEmptyState { theme: root.theme; title: "No collections yet"; description: "Create a demo collection to replace this empty state.";
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Create collection"; activated => { DisplayExamples.content-state = ContentDemoState.loaded; } }
-        }
-        if DisplayExamples.content-state == ContentDemoState.loaded: VerticalLayout { spacing: 8px; alignment: start;
-            Text { text: "Allsafe incident notes"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; }
-            Text { text: "Private collection · Elliot Alderson · Ready for its first note"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-        }
+        ContentStatePreview { theme: root.theme; control-size: root.control-size; }
     }
     KitHero { theme: root.theme; title: "Hero"; description: "KitHero · A configurable introductory surface for your content."; }
     KitFooter { theme: root.theme;

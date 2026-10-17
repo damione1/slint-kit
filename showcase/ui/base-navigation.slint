@@ -6,11 +6,13 @@ import { KitSwitch } from "@kit/choice.slint";
 import { KitBadge } from "@kit/display.slint";
 import { ExampleSection, PreviewExamples, PreviewTarget } from "example-section.slint";
 import { KitButton } from "@kit/button.slint";
-import { KitContainer, KitStack, KitInline, KitWrap, KitGrid, KitSection, KitSurface, KitScrollArea, KitAppShell, ContentWidth, LayoutSpace } from "@kit/layout.slint";
+import { KitContainer, KitStack, KitInline, KitWrap, KitGrid, KitSection, KitSurface, KitScrollArea, KitAppShell, ContentWidth, LayoutSpace, SurfaceLevel } from "@kit/layout.slint";
 import { KitMenu, KitMenuBar, KitTabs, KitAccordion, KitCollapse, KitCarousel, KitBreadcrumbs, KitPagination, KitNotificationButton, KitNotificationCenter, KitDrawer, OptionRow, SelectState, DisclosureRow, NotificationRow, ExpansionMode, NavigationStep, CloseReason, DialogState } from "@kit/navigation.slint";
 export { DisclosureRow, NotificationRow, ExpansionMode } from "@kit/navigation.slint";
 export enum NavigationDemo { menu, toolbar, tabs, carousel, accordion }
 export enum DrawerFocus { trigger, collapse-trigger, close, name, access, updates, save, cancel }
+enum NoticePlacement { below, above }
+export struct NoticeAnchor { x: length, y: length, width: length, height: length }
 export global NavigationExamples {
     in-out property <[OptionRow]> menu-rows;
     in-out property <SelectState> menu-state;
@@ -27,6 +29,8 @@ export global NavigationExamples {
     in-out property <[NotificationRow]> notifications;
     in-out property <int> unread-count;
     in-out property <bool> notifications-open;
+    // The same bounds drive the native popup and successive geometry probes.
+    in-out property <NoticeAnchor> notice-popup-bounds;
     in-out property <bool> collapse-open;
     in-out property <int> page-index;
     in-out property <int> page-count: 8;
@@ -58,6 +62,8 @@ export global NavigationExamples {
     callback mode-changed(ExpansionMode);
     callback notice-open();
     callback notice-close();
+    callback notice-back();
+    callback carousel-preview-close();
     callback notice-read(int, int);
     callback notice-dismiss(int, int);
     callback notice-activate(int, int);
@@ -111,6 +117,39 @@ export component NavigationGallery inherits VerticalLayout {
     in property <length> viewport-width: 1180px;
     in property <length> viewport-height: 900px;
     private property <bool> notices-opened: NavigationExamples.notifications-open;
+    private property <NoticeAnchor> notice-anchor;
+    private property <NoticePlacement> notice-placement;
+    private property <length> notice-session-height;
+    private property <length> notice-minimum-height;
+    private property <int> notice-session;
+    private property <string> notice-title: NavigationExamples.notice-detail;
+    private property <string> notice-body: NavigationExamples.notice-body;
+    private property <string> displayed-notice-title;
+    private property <string> displayed-notice-body;
+    init => { root.displayed-notice-title = root.notice-title; root.displayed-notice-body = root.notice-body; }
+    changed notice-title => { if (root.notice-title != "") { root.displayed-notice-title = root.notice-title; } }
+    changed notice-body => { if (root.notice-title != "") { root.displayed-notice-body = root.notice-body; } }
+    private property <length> notice-width: min(root.width - 48px,520px * root.theme.text-scale);
+    private property <length> notice-available-height: min(max(0px,root.viewport-height - 32px),root.notice-placement == NoticePlacement.below ? max(0px,root.viewport-height - root.notice-anchor.y - root.notice-anchor.height - 24px) : max(0px,root.notice-anchor.y - 24px));
+    private property <length> notice-height: min(root.notice-available-height,max(root.notice-session-height,root.notice-minimum-height));
+    out property <NoticeAnchor> popup-bounds: {
+        x: clamp(root.notice-anchor.x,16px,max(16px,root.viewport-width - root.notice-width - 16px)),
+        y: clamp(root.notice-placement == NoticePlacement.below ? root.notice-anchor.y + root.notice-anchor.height + 8px : root.notice-anchor.y - root.notice-height - 8px,16px,max(16px,root.viewport-height - root.notice-height - 16px)),
+        width: root.notice-width, height: root.notice-height,
+    };
+    changed popup-bounds => { NavigationExamples.notice-popup-bounds = root.popup-bounds; }
+    function constrain-notice-viewport() {
+        if (root.notices-opened) {
+            root.notice-anchor = {x:notices.absolute-position.x,y:notices.absolute-position.y,width:notices.width,height:notices.height};
+            let below = max(0px,root.viewport-height - root.notice-anchor.y - root.notice-anchor.height - 24px);
+            let above = max(0px,root.notice-anchor.y - 24px);
+            let minimum-height = root.notice-minimum-height;
+            if (root.notice-placement == NoticePlacement.below && below < minimum-height && above > below) { root.notice-placement = NoticePlacement.above; }
+            else if (root.notice-placement == NoticePlacement.above && above < minimum-height && below > above) { root.notice-placement = NoticePlacement.below; }
+        }
+    }
+    changed viewport-width => { root.constrain-notice-viewport(); }
+    changed viewport-height => { root.constrain-notice-viewport(); }
     private property <bool> notice-popup-open: notice-popup.is-open;
     changed notice-popup-open => { if (!root.notice-popup-open && NavigationExamples.notifications-open) { NavigationExamples.notice-close(); } }
     private property <int> focus-request: NavigationExamples.drawer-focus-request;
@@ -119,7 +158,11 @@ export component NavigationGallery inherits VerticalLayout {
         else if (NavigationExamples.drawer-focus == DrawerFocus.collapse-trigger) { collapse-trigger.take-focus(); PreviewExamples.reveal(collapse-trigger.absolute-position.y,collapse-trigger.height); }
     }
     changed notices-opened => {
-        if (root.notices-opened) { notice-popup.show(); }
+        if (root.notices-opened) {
+            root.notice-anchor = {x:notices.absolute-position.x,y:notices.absolute-position.y,width:notices.width,height:notices.height};
+            root.notice-session += 1;
+            notice-popup.show();
+        }
         else { notice-popup.close(); notices.take-focus(); }
     }
     spacing: 24px; alignment: start; vertical-stretch: 0;
@@ -172,7 +215,7 @@ export component NavigationGallery inherits VerticalLayout {
             Text { text: NavigationExamples.carousel-detail; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
             Text { text: "Collection preview · Allsafe"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
             Text { text: NavigationExamples.carousel-body; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Close preview"; activated => { NavigationExamples.carousel-detail = ""; } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Close preview"; activated => { NavigationExamples.carousel-preview-close(); } }
         }
     }
     ExampleSection { theme: root.theme; title: "Pagination"; preview-target: PreviewTarget.pagination; description: "KitPagination · Each page shows three different collections.";
@@ -214,37 +257,63 @@ export component NavigationGallery inherits VerticalLayout {
         }
     }
     notice-popup := PopupWindow {
-        x: clamp(notices.absolute-position.x - root.absolute-position.x,0px,max(0px,root.viewport-width - root.absolute-position.x - self.width - 16px));
-        y: self.below >= self.height ? notices.absolute-position.y - root.absolute-position.y + notices.height + 8px : notices.absolute-position.y - root.absolute-position.y - self.height - 8px;
-        width: min(root.width - 48px,520px * root.theme.text-scale);
-        private property <length> below: max(0px,root.viewport-height - notices.absolute-position.y - notices.height - 24px);
-        private property <length> above: max(0px,notices.absolute-position.y - 16px);
-        height: min(max(self.below,self.above),NavigationExamples.notice-detail != "" ? notice-header.preferred-height + detail-content.preferred-height + 48px : min(600px,notice-header.preferred-height + notice-list.preferred-height + 48px));
+        private property <length> natural-height: notice-header.preferred-height + (NavigationExamples.notice-detail != "" ? max(100px,detail-content.preferred-height) : notice-list.preferred-height) + 48px;
+        private property <length> minimum-session-height: notice-header.preferred-height + 148px;
+        private property <int> session: root.notice-session;
+        function start-session() {
+            let below = max(0px,root.viewport-height - root.notice-anchor.y - root.notice-anchor.height - 24px);
+            let above = max(0px,root.notice-anchor.y - 24px);
+            root.notice-placement = below >= self.natural-height || below >= above ? NoticePlacement.below : NoticePlacement.above;
+            root.notice-session-height = min(600px,self.natural-height,root.notice-placement == NoticePlacement.below ? below : above);
+            root.notice-minimum-height = self.minimum-session-height;
+        }
+        init => { self.start-session(); close-notice.take-focus(); }
+        changed session => { self.start-session(); }
+        changed minimum-session-height => { root.notice-minimum-height = self.minimum-session-height; }
+        x: root.popup-bounds.x - root.absolute-position.x;
+        y: root.popup-bounds.y - root.absolute-position.y;
+        width: root.popup-bounds.width;
+        height: root.popup-bounds.height;
         close-policy: close-on-click-outside;
-        KitSurface { theme: root.theme; inset: LayoutSpace.regular;
-            notice-header := HorizontalLayout { spacing: 12px;
+        FocusScope {
+        key-pressed(event) => { if (event.text == Key.Escape) { NavigationExamples.notice-close(); return accept; } return reject; }
+        KitSurface { theme: root.theme; level: SurfaceLevel.raised; inset: LayoutSpace.regular;
+            notice-header := Rectangle {
+                preferred-height: header-row.preferred-height + 9px; min-height: self.preferred-height; vertical-stretch: 0;
+                header-row := HorizontalLayout { x: 0px; y: 0px; width: parent.width; height: self.preferred-height; spacing: 12px;
                 Text { horizontal-stretch: 1; text: "Notifications"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; vertical-alignment: center; }
-                KitButton { theme: root.theme; control-size: root.control-size; text: "Close"; private property <int> request: NavigationExamples.notice-focus-request; changed request => { if (NavigationExamples.notice-focus-token < 0) { self.take-focus(); } } activated => { NavigationExamples.notice-close(); } }
+                close-notice := KitButton { theme: root.theme; control-size: root.control-size; text: "Close"; private property <int> request: NavigationExamples.notice-focus-request; changed request => { if (NavigationExamples.notice-focus-token < 0) { self.take-focus(); } } activated => { NavigationExamples.notice-close(); } }
+                }
+                Rectangle { x: 0px; y: parent.height - 1px; width: parent.width; height: 1px; background: root.theme.border-subtle; }
             }
-            Rectangle { height: max(100px,notice-popup.height - notice-header.preferred-height - 48px);
+            Rectangle { height: max(0px,notice-popup.height - notice-header.preferred-height - 48px);
+                background: root.theme.surface-raised;
                 notice-list := KitNotificationCenter {
                     x: 0px; y: 0px; width: parent.width; height: parent.height;
-                    visible: NavigationExamples.notice-detail == "";
+                    opacity: NavigationExamples.notice-detail == "" ? 1 : 0;
+                    visible: self.opacity > 0;
+                    disabled: NavigationExamples.notice-detail != "";
+                    animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
                     theme: root.theme; control-size: root.control-size; rows: NavigationExamples.notifications;
                     focus-token: NavigationExamples.notice-focus-token; focus-request: NavigationExamples.notice-focus-request;
                     activate(token,generation) => { NavigationExamples.notice-activate(token,generation); }
                     mark-read(token,generation) => { NavigationExamples.notice-read(token,generation); }
                     dismiss-row(token,generation) => { NavigationExamples.notice-dismiss(token,generation); }
                 }
-                detail-content := KitStack {
-                    x: 0px; y: 0px; width: parent.width; height: self.preferred-height;
-                    visible: NavigationExamples.notice-detail != "";
-                    Text { text: NavigationExamples.notice-detail; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+                KitScrollArea {
+                    x: 0px; y: 0px; width: parent.width; height: parent.height;
+                    opacity: NavigationExamples.notice-detail != "" ? 1 : 0;
+                    visible: self.opacity > 0;
+                    animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
+                    detail-content := KitStack {
+                    Text { text: root.displayed-notice-title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
                     Text { text: "Message preview · Allsafe workspace"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-                    Text { text: NavigationExamples.notice-body; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-                    KitButton { theme: root.theme; control-size: root.control-size; text: "Back to messages"; activated => { NavigationExamples.notice-detail = ""; } }
+                    Text { text: root.displayed-notice-body; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    KitButton { theme: root.theme; control-size: root.control-size; text: "Back to messages"; disabled: NavigationExamples.notice-detail == ""; activated => { NavigationExamples.notice-back(); } }
+                    }
                 }
             }
+        }
         }
     }
 }

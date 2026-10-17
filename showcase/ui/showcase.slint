@@ -162,6 +162,7 @@ export component Showcase inherits Window {
         if (root.dialog-state.open) {root.dialog-preview-scroll-position = clamp(position,0,1);root.dialog-preview-scroll-request += 1;}
         else {page-scroll.content-y = -max(0px,page-scroll.content-height - page-scroll.visible-height) * clamp(position,0,1);}
     }
+    public pure function content-scroll-offset() -> length { return page-scroll.content-y; }
     public function position-content(top: length) {
         page-scroll.content-y = clamp(page-scroll.content-y + root.header-height + 24px - top, -max(0px,page-scroll.content-height - page-scroll.visible-height),0px);
     }
@@ -198,8 +199,8 @@ export component Showcase inherits Window {
     private property <length> header-height: preview-header.preferred-height + 32px;
     private property <string> page-title: root.page == ShowcasePage.gallery ? "Buttons & dialogs" : root.page == ShowcasePage.profile ? "Text fields" : root.page == ShowcasePage.billing ? "Numbers & money" : root.page == ShowcasePage.choices ? "Selection" : root.page == ShowcasePage.schedule ? "Dates & time" : root.page == ShowcasePage.files ? "Files & color" : root.page == ShowcasePage.display ? "Display & feedback" : root.page == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
     Rectangle { x: 0px; y: 0px; width: root.width; height: root.header-height; background: root.theme.surface;
-        preview-header := FlexboxLayout { x: 24px; y: 16px; width: parent.width - 48px; spacing: 8px; alignment: start; cross-axis-alignment: center;
-            Text { text: "Slint Kit"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 700; vertical-alignment: center; }
+        preview-header := FlexboxLayout { x: 24px; y: 16px; width: parent.width - 48px; height: self.preferred-height; spacing: 8px; alignment: start; cross-axis-alignment: center;
+            brand-label := Text { height: self.preferred-height; text: "Slint Kit"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 700; vertical-alignment: center; }
             KitButton { theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }

@@ -428,6 +428,26 @@ export component KitNotificationButton inherits KitPressable {
     }
 }
 
+// Keep the identity snapshot from KitOption while presenting ordinary button
+// recipes rather than a menu row's transparent selection treatment.
+component NotificationAction inherits KitOption {
+    in property <string> alternate-label;
+    control-width: ControlWidth.intrinsic;
+    tab-stop: true;
+    accessible-role: button;
+    min-width: max(label.preferred-width,alternate.preferred-width) + 2 * root.recipe.padding-inline;
+    preferred-width: self.min-width;
+    background: root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+    border-width: root.recipe.border-width;
+    border-color: root.recipe.border;
+    label := Text {
+        x: 0px; y: 0px; width: max(0px,root.width - 2 * root.recipe.padding-inline); height: max(0px,root.height - 2 * root.recipe.padding-block);
+        text: root.option-data.label; color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        font-size: root.recipe.font-size; horizontal-alignment: center; vertical-alignment: center;
+    }
+    alternate := Text { visible: false; text: root.alternate-label; font-size: root.recipe.font-size; }
+}
+enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
     in property <KitTheme> theme;
     in property <ControlSize> control-size;
@@ -436,29 +456,49 @@ component NotificationItem inherits Rectangle {
     in property <int> focus-request;
     in property <string> open-label;
     in property <string> mark-read-label;
+    in property <string> read-label;
     in property <string> dismiss-label;
+    in property <bool> disabled;
     callback activate(int,int);
     callback mark-read(int,int);
     callback dismiss-row(int,int);
     preferred-height: notice-content.preferred-height + 1px;
+    private property <NotificationItemPhase> phase;
+    private property <int> dismiss-token;
+    private property <int> dismiss-generation;
+    private property <bool> inactive: root.disabled || root.phase == NotificationItemPhase.dismissing;
+    private property <int> identity-token: root.notice.item.token;
+    private property <int> identity-generation: root.notice.item.generation;
+    changed identity-token => { root.phase = NotificationItemPhase.visible; }
+    changed identity-generation => { root.phase = NotificationItemPhase.visible; }
+    opacity: root.phase == NotificationItemPhase.dismissing ? 0 : 1;
+    animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
+    Timer {
+        running: root.phase == NotificationItemPhase.dismissing;
+        interval: root.theme.reduced-motion ? 0ms : 150ms;
+        triggered => {
+            root.phase = NotificationItemPhase.visible;
+            root.dismiss-row(root.dismiss-token,root.dismiss-generation);
+        }
+    }
 
             private property <int> request: root.focus-request;
             changed request => { if (root.focus-token == root.notice.item.token) { open-preview.take-focus(); } }
             height: notice-content.preferred-height + 1px;
-            background: root.theme.surface;
+            background: root.theme.surface-raised;
             notice-content := VerticalLayout {
                 x: 0px; y: 0px; width: parent.width; height: self.preferred-height;
                 padding: 16px; spacing: 8px; alignment: start;
                 HorizontalLayout { spacing: 8px; alignment: start;
                     Text { text: root.notice.item.label; horizontal-stretch: 1; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-                    if !root.notice.read: Text { text: "•"; color: root.theme.accent; font-size: 16px; }
+                    Text { text: "•"; color: root.theme.accent; font-size: 16px; opacity: root.notice.read ? 0 : 1; horizontal-stretch: 0; }
                 }
                 Text { text: root.notice.item.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
                 FlexboxLayout {
                     spacing: 8px; alignment: start;
-                    open-preview := KitNavigationAction { theme: root.theme; control-size: root.control-size; control-width: ControlWidth.intrinsic; tab-stop: true; accessible-role: button; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled}; activate(token,generation) => {root.activate(token,generation);} }
-                    if !root.notice.read: KitNavigationAction { theme: root.theme; control-size: root.control-size; control-width: ControlWidth.intrinsic; tab-stop: true; accessible-role: button; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.mark-read-label,description:"",disabled:false}; activate(token,generation) => {root.mark-read(token,generation);} }
-                    KitNavigationAction { theme: root.theme; control-size: root.control-size; control-width: ControlWidth.intrinsic; tab-stop: true; accessible-role: button; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:false}; activate(token,generation) => {root.dismiss-row(token,generation);} }
+                    open-preview := NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
+                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; alternate-label: root.notice.read ? root.mark-read-label : root.read-label; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.notice.read ? root.read-label : root.mark-read-label,description:"",disabled:root.notice.read || root.inactive}; activate(token,generation) => {root.mark-read(token,generation);} }
+                    NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.dismiss-label,description:"",disabled:root.inactive}; activate(token,generation) => {root.dismiss-token = token; root.dismiss-generation = generation; root.phase = NotificationItemPhase.dismissing;} }
                 }
             }
             Rectangle { x: 16px; y: parent.height - 1px; width: max(0px,parent.width - 32px); height: 1px; background: root.theme.border-subtle; }
@@ -475,7 +515,9 @@ export component KitNotificationCenter inherits Rectangle {
     in property <string> empty-description: "You are all caught up.";
     in property <string> open-label: "Open preview";
     in property <string> mark-read-label: "Mark read";
+    in property <string> read-label: "Read";
     in property <string> dismiss-label: "Dismiss";
+    in property <bool> disabled;
     callback activate(int, int);
     callback mark-read(int, int);
     callback dismiss-row(int, int);
@@ -502,7 +544,7 @@ export component KitNotificationCenter inherits Rectangle {
             for row in root.rows.length <= 32 ? root.rows : []: NotificationItem {
                 theme: root.theme; control-size: root.control-size; notice: row;
                 focus-token: root.focus-token; focus-request: root.focus-request;
-                open-label: root.open-label; mark-read-label: root.mark-read-label; dismiss-label: root.dismiss-label;
+                open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }
                 dismiss-row(token,generation) => { root.dismiss-row(token,generation); }
@@ -516,7 +558,7 @@ export component KitNotificationCenter inherits Rectangle {
         for row in root.rows.length > 32 ? root.rows : []: NotificationItem {
             theme: root.theme; control-size: root.control-size; notice: row;
                 focus-token: root.focus-token; focus-request: root.focus-request;
-                open-label: root.open-label; mark-read-label: root.mark-read-label; dismiss-label: root.dismiss-label;
+                open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }
                 dismiss-row(token,generation) => { root.dismiss-row(token,generation); }

@@ -1002,7 +1002,202 @@ fn main() -> Result<(), slint::PlatformError> {
 #[cfg(test)]
 mod preview_tests {
     use super::*;
-    use i_slint_backend_testing::ElementQuery;
+    use i_slint_backend_testing::{ElementHandle, ElementQuery};
+    use slint::platform::PointerEventButton;
+
+    fn settle(milliseconds: u64) {
+        i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(milliseconds));
+        slint::platform::update_timers_and_animations();
+    }
+    fn button(window: &Showcase, label: &str) -> ElementHandle {
+        let expected = label.to_owned();
+        ElementQuery::from_root(window)
+            .match_inherits("KitPressable")
+            .match_predicate(move |element| {
+                element.accessible_label().as_deref() == Some(expected.as_str())
+            })
+            .find_first()
+            .unwrap_or_else(|| panic!("visible button {label}"))
+    }
+    #[test]
+    fn content_state_replacement_preserves_positions_and_scroll_at_middle_and_end() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.set_page(ShowcasePage::Display);
+        window.show().unwrap();
+        let weak = window.as_weak();
+        let preview = window.global::<PreviewExamples>();
+        preview.on_reveal(move |top, _height| {
+            if let Some(window) = weak.upgrade() {
+                window.invoke_position_content(top);
+            }
+        });
+        let g = window.global::<DisplayExamples>();
+        for (width, height, enlarged, density) in [
+            (1180., 900., false, ControlSize::Medium),
+            (960., 740., false, ControlSize::Compact),
+            (960., 740., false, ControlSize::Comfortable),
+            (960., 740., true, ControlSize::Compact),
+            (960., 740., true, ControlSize::Comfortable),
+        ] {
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(width, height));
+            window.set_enlarged(enlarged);
+            window.set_density(density);
+            let _ = button(&window, if enlarged { "Text 200%" } else { "Text 100%" }).size();
+            preview.set_target(PreviewTarget::ContentStates);
+            preview.set_request(preview.get_request() + 1);
+            settle(1);
+            let well = ElementQuery::from_root(&window)
+                .match_predicate(|e| {
+                    e.accessible_label().as_deref() == Some("Content state preview")
+                })
+                .find_first()
+                .unwrap();
+            let card = ElementQuery::from_root(&window)
+                .match_inherits("KitCard")
+                .match_predicate(|e| {
+                    e.query_descendants()
+                        .match_predicate(|e| {
+                            e.accessible_label().as_deref() == Some("Content state preview")
+                        })
+                        .find_first()
+                        .is_some()
+                })
+                .find_first()
+                .unwrap();
+            let title = card
+                .query_descendants()
+                .match_inherits("KitCardHeader")
+                .find_first()
+                .unwrap();
+            let controls = [
+                button(&window, "Empty"),
+                button(&window, "Loading"),
+                button(&window, "Loaded"),
+            ];
+            for position in [0.5, 1.] {
+                window.invoke_scroll_page(position);
+                let _ = card.size();
+                window.invoke_scroll_page(position);
+                let before = [
+                    card.absolute_position(),
+                    title.absolute_position(),
+                    controls[0].absolute_position(),
+                    controls[1].absolute_position(),
+                    controls[2].absolute_position(),
+                ];
+                let offset = window.invoke_content_scroll_offset();
+                let height_before = well.size().height;
+                for state in [
+                    ContentDemoState::Loading,
+                    ContentDemoState::Loaded,
+                    ContentDemoState::Empty,
+                ] {
+                    g.set_content_state(state);
+                    settle(160);
+                    let after = [
+                        card.absolute_position(),
+                        title.absolute_position(),
+                        controls[0].absolute_position(),
+                        controls[1].absolute_position(),
+                        controls[2].absolute_position(),
+                    ];
+                    for (before, after) in before.iter().zip(after) {
+                        assert!(
+                            (before.y - after.y).abs() <= 1.,
+                            "state {state:?}: {before:?} -> {after:?}"
+                        );
+                    }
+                    assert!((window.invoke_content_scroll_offset() - offset).abs() <= 1.);
+                    assert!((well.size().height - height_before).abs() <= 1.);
+                }
+            }
+            preview.set_request(preview.get_request() + 1);
+            settle(1);
+            let before = card.absolute_position();
+            button(&window, "Create collection").mock_single_click(PointerEventButton::Left);
+            settle(160);
+            assert_eq!(g.get_content_state(), ContentDemoState::Loaded);
+            assert!((card.absolute_position().y - before.y).abs() <= 1.);
+            g.set_content_state(ContentDemoState::Empty);
+            settle(160);
+        }
+    }
+    #[test]
+    fn preview_toolbar_has_natural_height_and_balanced_vertical_insets() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.show().unwrap();
+        for width in [960., 1180.] {
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(width, 900.));
+            for enlarged in [false, true] {
+                window.set_enlarged(enlarged);
+                for density in [
+                    ControlSize::Compact,
+                    ControlSize::Medium,
+                    ControlSize::Comfortable,
+                ] {
+                    window.set_density(density);
+                    let header = ElementQuery::from_root(&window)
+                        .match_id("Showcase::preview-header")
+                        .find_first()
+                        .unwrap();
+                    let top = header.absolute_position().y;
+                    assert!((top - 16.).abs() <= 1.);
+                    let controls = header
+                        .query_descendants()
+                        .match_inherits("KitButton")
+                        .find_all();
+                    assert_eq!(controls.len(), 5);
+                    let brand = header
+                        .query_descendants()
+                        .match_id("Showcase::brand-label")
+                        .find_first()
+                        .unwrap();
+                    let mut children = controls;
+                    children.push(brand);
+                    let mut minimum_top = f32::MAX;
+                    let mut maximum_bottom: f32 = 0.;
+                    for child in &children {
+                        let position = child.absolute_position();
+                        let size = child.size();
+                        let center = position.y + size.height / 2.;
+                        minimum_top = minimum_top.min(position.y);
+                        maximum_bottom = maximum_bottom.max(position.y + size.height);
+                        for other in &children {
+                            let other_position = other.absolute_position();
+                            let other_size = other.size();
+                            if position.y < other_position.y + other_size.height
+                                && other_position.y < position.y + size.height
+                            {
+                                assert!(
+                                    (center - (other_position.y + other_size.height / 2.)).abs()
+                                        <= 1.,
+                                    "same-line control centers"
+                                );
+                            }
+                        }
+                    }
+                    assert!((minimum_top - top).abs() <= 1.);
+                    assert!((maximum_bottom - (top + header.size().height)).abs() <= 1.);
+                    let first_nav = button(&window, "Buttons & dialogs");
+                    assert!(
+                        (first_nav.absolute_position().y
+                            - (top + header.size().height + 16. + 12.))
+                            .abs()
+                            <= 1.
+                    );
+                }
+            }
+        }
+        window.set_enlarged(false);
+        button(&window, "Text 100%").mock_single_click(PointerEventButton::Left);
+        assert!(window.get_enlarged());
+    }
     #[test]
     fn gallery_end_scroll_keeps_navigation_fixed_and_footer_inside_viewport() {
         i_slint_backend_testing::init_no_event_loop();

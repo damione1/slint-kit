@@ -660,7 +660,10 @@ fn publish(shared: &Rc<RefCell<Examples>>, window: &ui::Showcase) {
 }
 
 pub fn install(window: &ui::Showcase) {
-    let shared = Rc::new(RefCell::new(Examples::new()));
+    install_examples(window, Examples::new());
+}
+fn install_examples(window: &ui::Showcase, examples: Examples) {
+    let shared = Rc::new(RefCell::new(examples));
     let g = window.global::<ui::NavigationExamples>();
     g.set_breadcrumbs(ModelRc::new(VecModel::from(vec![
         ui::OptionRow {
@@ -746,6 +749,14 @@ pub fn install(window: &ui::Showcase) {
     });
     bind!(on_notice_close, |s| {
         s.notices_open = false;
+    });
+    bind!(on_notice_back, |s| {
+        s.notice_detail.clear();
+        s.notice_body.clear();
+    });
+    bind!(on_carousel_preview_close, |s| {
+        s.carousel_detail.clear();
+        s.carousel_body.clear();
     });
     bind!(on_notice_read, |s, token, generation| {
         if let Some(i) = s.notice_index(token, generation) {
@@ -855,7 +866,236 @@ pub fn install(window: &ui::Showcase) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use slint::platform::{Key, WindowEvent};
+    use i_slint_backend_testing::{ElementHandle, ElementQuery};
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    use std::time::Duration;
+
+    fn settle(milliseconds: u64) {
+        i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(milliseconds));
+        slint::platform::update_timers_and_animations();
+    }
+    fn button(window: &ui::Showcase, label: &str) -> ElementHandle {
+        let expected = label.to_owned();
+        ElementQuery::from_root(window)
+            .match_inherits("KitPressable")
+            .match_predicate(move |element| {
+                element.accessible_label().as_deref() == Some(expected.as_str())
+            })
+            .find_first()
+            .unwrap_or_else(|| panic!("visible button {label}"))
+    }
+    fn reveal(window: &ui::Showcase, target: ui::PreviewTarget) {
+        let weak = window.as_weak();
+        let preview = window.global::<ui::PreviewExamples>();
+        preview.on_reveal(move |top, _height| {
+            if let Some(window) = weak.upgrade() {
+                window.invoke_position_content(top);
+            }
+        });
+        let _ = ElementQuery::from_root(window)
+            .match_inherits("KitPressable")
+            .find_first()
+            .unwrap()
+            .size();
+        preview.set_target(target);
+        preview.set_request(preview.get_request() + 1);
+        settle(1);
+    }
+
+    #[test]
+    fn closed_previews_stay_closed_across_unrelated_controller_publications() {
+        let window = fixture();
+        let g = window.global::<ui::NavigationExamples>();
+        let carousel = g.get_carousel_state();
+        g.invoke_activate(
+            ui::NavigationDemo::Carousel,
+            carousel.active.token,
+            carousel.generation,
+        );
+        assert!(!g.get_carousel_detail().is_empty());
+        g.invoke_carousel_preview_close();
+        assert!(g.get_carousel_detail().is_empty());
+        assert!(g.get_carousel_body().is_empty());
+        g.invoke_notice_open();
+        g.invoke_notice_close();
+        let toolbar = g.get_toolbar_state();
+        g.invoke_activate(
+            ui::NavigationDemo::Toolbar,
+            toolbar.active.token,
+            toolbar.generation,
+        );
+        assert!(g.get_carousel_detail().is_empty());
+        let first = g.get_notifications().row_data(0).unwrap();
+        g.invoke_notice_activate(first.item.token, first.item.generation);
+        assert!(!g.get_notice_detail().is_empty());
+        g.invoke_notice_back();
+        g.invoke_notice_read(first.item.token, first.item.generation);
+        g.invoke_notice_dismiss(first.item.token, first.item.generation);
+        g.invoke_notice_close();
+        g.invoke_notice_open();
+        assert!(g.get_notice_detail().is_empty());
+        assert!(g.get_notice_body().is_empty());
+    }
+
+    #[test]
+    fn notification_session_keeps_frame_actions_and_page_context_stable() {
+        i_slint_backend_testing::init_no_event_loop();
+        for (width, height, enlarged, trigger_y) in [
+            (1180., 900., false, 180.),
+            (1180., 900., false, 618.),
+            (960., 740., true, 450.),
+        ] {
+            let window = ui::Showcase::new().unwrap();
+            window.set_page(ui::ShowcasePage::Navigation);
+            let mut examples = Examples::new();
+            examples.notices[0].title = "Darlene reviewed the Allsafe access changes and network findings before the next incident response";
+            install_examples(&window, examples);
+            window.show().unwrap();
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(width, height));
+            window.set_enlarged(enlarged);
+            reveal(&window, ui::PreviewTarget::Notifications);
+            let trigger = ElementQuery::from_root(&window)
+                .match_inherits("KitNotificationButton")
+                .find_first()
+                .unwrap();
+            let section = ElementQuery::from_root(&window)
+                .match_inherits("ExampleSection")
+                .match_predicate(|element| {
+                    element
+                        .query_descendants()
+                        .match_inherits("KitNotificationButton")
+                        .find_first()
+                        .is_some()
+                })
+                .find_first()
+                .unwrap();
+            window.invoke_position_content(
+                section.absolute_position().y - (trigger_y - trigger.absolute_position().y),
+            );
+            let trigger_before = trigger.absolute_position();
+            let section_before = section.absolute_position();
+            let g = window.global::<ui::NavigationExamples>();
+            trigger.mock_single_click(PointerEventButton::Left);
+            settle(1);
+            assert!(g.get_notifications_open());
+            let frame = g.get_notice_popup_bounds();
+            assert!(frame.height > 100.);
+            assert!(frame.x >= 15. && frame.y >= 15.);
+            assert!(frame.x + frame.width <= width + 1. && frame.y + frame.height <= height + 1.);
+            let close = button(&window, "Close").absolute_position();
+            let inbox = ElementQuery::from_root(&window)
+                .match_inherits("KitNotificationCenter")
+                .find_first()
+                .unwrap();
+            inbox.scroll(0., -10000.);
+            settle(1);
+            let last_action = button(&window, "Dismiss");
+            assert!(
+                last_action.absolute_position().y + last_action.size().height <= frame.height - 15.,
+                "last row action is scrollable into the finite viewport"
+            );
+            inbox.scroll(0., 10000.);
+            settle(1);
+            let dismiss = button(&window, "Dismiss").absolute_position();
+            button(&window, "Mark read").mock_single_click(PointerEventButton::Left);
+            settle(1);
+            let after_read = button(&window, "Dismiss").absolute_position();
+            assert!(
+                (after_read.x - dismiss.x).abs() <= 1. && (after_read.y - dismiss.y).abs() <= 1.
+            );
+            assert_eq!(g.get_notice_popup_bounds(), frame);
+            let dismiss_button = button(&window, "Dismiss");
+            dismiss_button.mock_single_click(PointerEventButton::Left);
+            assert_eq!(
+                g.get_notifications().row_count(),
+                3,
+                "row stays mounted while fading"
+            );
+            assert_eq!(dismiss_button.accessible_enabled(), Some(false));
+            settle(75);
+            assert_eq!(g.get_notifications().row_count(), 3);
+            settle(100);
+            assert_eq!(g.get_notifications().row_count(), 2);
+            while let Some(row) = g.get_notifications().row_data(0) {
+                assert_eq!(g.get_notice_popup_bounds(), frame);
+                g.invoke_notice_dismiss(row.item.token, row.item.generation);
+                settle(1);
+                assert_eq!(button(&window, "Close").absolute_position(), close);
+                assert_eq!(trigger.absolute_position(), trigger_before);
+                assert_eq!(section.absolute_position(), section_before);
+            }
+            assert_eq!(g.get_notice_popup_bounds(), frame);
+            assert_eq!(g.get_notice_focus_token(), -1);
+            key(&window, Key::Escape);
+            assert!(!g.get_notifications_open());
+            g.invoke_notice_reset();
+            trigger.mock_single_click(PointerEventButton::Left);
+            settle(1);
+            let reopened_frame = g.get_notice_popup_bounds();
+            button(&window, "Open preview").mock_single_click(PointerEventButton::Left);
+            settle(160);
+            assert!(!g.get_notice_detail().is_empty());
+            assert_eq!(g.get_notice_popup_bounds(), reopened_frame);
+            button(&window, "Back to messages").mock_single_click(PointerEventButton::Left);
+            settle(160);
+            assert!(g.get_notice_detail().is_empty());
+            assert_eq!(g.get_notice_popup_bounds(), reopened_frame);
+            button(&window, "Close").mock_single_click(PointerEventButton::Left);
+            assert!(!g.get_notifications_open());
+            assert_eq!(trigger.absolute_position(), trigger_before);
+            assert_eq!(section.absolute_position(), section_before);
+            trigger.mock_single_click(PointerEventButton::Left);
+            settle(1);
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(960., 740.));
+            let _ = button(&window, "Close").size();
+            settle(1);
+            let resized = g.get_notice_popup_bounds();
+            assert!(resized.x >= 15. && resized.y >= 15.);
+            assert!(resized.x + resized.width <= 961. && resized.y + resized.height <= 741.);
+            let outside = slint::LogicalPosition::new(5., 735.);
+            window.window().dispatch_event(WindowEvent::PointerPressed {
+                position: outside,
+                button: PointerEventButton::Left,
+            });
+            window
+                .window()
+                .dispatch_event(WindowEvent::PointerReleased {
+                    position: outside,
+                    button: PointerEventButton::Left,
+                });
+            settle(1);
+            assert!(!g.get_notifications_open());
+        }
+    }
+
+    #[test]
+    fn notification_exit_respects_reduced_motion_and_cancels_recycled_identity() {
+        let window = fixture();
+        reveal(&window, ui::PreviewTarget::Notifications);
+        let g = window.global::<ui::NavigationExamples>();
+        window.set_reduced_motion(true);
+        g.invoke_notice_open();
+        settle(1);
+        button(&window, "Dismiss").mock_single_click(PointerEventButton::Left);
+        settle(1);
+        assert_eq!(g.get_notifications().row_count(), 2);
+        g.invoke_notice_reset();
+        window.set_reduced_motion(false);
+        let old_generation = g.get_notifications().row_data(0).unwrap().item.generation;
+        button(&window, "Dismiss").mock_single_click(PointerEventButton::Left);
+        g.invoke_notice_reset();
+        settle(200);
+        assert_eq!(g.get_notifications().row_count(), 3);
+        assert_ne!(
+            g.get_notifications().row_data(0).unwrap().item.generation,
+            old_generation
+        );
+        assert_eq!(button(&window, "Dismiss").accessible_enabled(), Some(true));
+    }
 
     #[test]
     fn navigation_retains_application_keys_and_rejects_stale_or_disabled_rows() {
@@ -888,6 +1128,9 @@ mod tests {
 
     fn fixture() -> ui::Showcase {
         i_slint_backend_testing::init_no_event_loop();
+        navigation_window()
+    }
+    fn navigation_window() -> ui::Showcase {
         let window = ui::Showcase::new().unwrap();
         window.set_page(ui::ShowcasePage::Navigation);
         install(&window);
