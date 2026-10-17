@@ -3,7 +3,7 @@ layout: base.njk
 locale: fr
 title: "Intégration native"
 translationKey: "guides/native/"
-permalink: /fr/guides/native/index.html
+permalink: "{{ 'guides/native/' | localeUrl(locale) }}index.html"
 ---
 
 # Intégration native

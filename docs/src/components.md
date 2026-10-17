@@ -3,8 +3,9 @@ layout: base.njk
 pagination:
   data: reference
   size: 1
+  addAllPagesToCollections: true
   alias: entry
-permalink: "/{{ entry.locale }}/components/{{ entry.component.slug }}/index.html"
+permalink: "{{ ('components/' + entry.component.slug + '/') | localeUrl(entry.locale) }}index.html"
 eleventyComputed:
   title: "{{ entry.component.name }}"
   locale: "{{ entry.locale }}"
@@ -13,7 +14,7 @@ eleventyComputed:
 {% set component = entry.component %}
 {% set text = component[locale] %}
 {% set screenshot = component.screenshots[locale] %}
-<p class="eyebrow"><a href="/{{ locale }}/components/#{{ component.family }}">{{ component.familyLabel[locale] }}</a></p>
+<p class="eyebrow"><a href="{{ 'components/' | localeUrl(locale) }}#{{ component.family }}">{{ component.familyLabel[locale] }}</a></p>
 
 # {{ component.name }}
 
@@ -29,7 +30,7 @@ eleventyComputed:
 
 ## {{ ui[locale].example }}
 
-{% if locale == 'fr' %}Ce fichier Slint complet présente une **composition visuelle** et produit la capture ci-dessus. Les textes internes sans propriété de libellé conservent la langue par défaut du kit ; les dialogues système suivent la plateforme. Les états projetés et les signaux qui demandent une décision doivent être raccordés à l’hôte ; cet exemple isolé ne fournit pas ce contrôleur. [Configurer le projet Rust](/fr/guides/getting-started/), puis consulter l’[application avec contrôleurs typés](/fr/guides/typed-example/) pour relier réellement édition, validation et sélection.{% else %}This complete Slint file is a **visual composition** used to produce the screenshot above. Internal strings without a label property retain the kit’s default language; system dialogs follow the host platform. Projected state and callbacks requesting a decision need host wiring; the standalone fixture does not supply that controller. [Set up the Rust project](/en/guides/getting-started/), then see the [typed controller application](/en/guides/typed-example/) for working editing, validation and selection.{% endif %}
+{% if locale == 'fr' %}Ce fichier Slint complet présente une **composition visuelle** et produit la capture ci-dessus. Les textes internes sans propriété de libellé conservent la langue par défaut du kit ; les dialogues système suivent la plateforme. Les états projetés et les signaux qui demandent une décision doivent être raccordés à l’hôte ; cet exemple isolé ne fournit pas ce contrôleur. [Configurer le projet Rust](/fr/guides/getting-started/), puis consulter l’[application avec contrôleurs typés](/fr/guides/typed-example/) pour relier réellement édition, validation et sélection.{% else %}This complete Slint file is a **visual composition** used to produce the screenshot above. Internal strings without a label property retain the kit’s default language; system dialogs follow the host platform. Projected state and callbacks requesting a decision need host wiring; the standalone fixture does not supply that controller. [Set up the Rust project](/guides/getting-started/), then see the [typed controller application](/guides/typed-example/) for working editing, validation and selection.{% endif %}
 
 ```slint
 {{ component.slug | example(locale) | safe }}
@@ -40,8 +41,8 @@ eleventyComputed:
 ## {{ ui[locale].api }}
 
 {% set parent = component.base | componentByName %}
-{% if parent %}{{ ui[locale].inherited }} [{{ parent.name }}](/{{ locale }}/components/{{ parent.slug }}/).{% else %}{{ ui[locale].inherited }} `{{ component.base }}`.{% endif %}
-{% if locale == 'fr' %}Les déclarations suivantes sont extraites des sources du composant. Les propriétés du parent restent disponibles ; les détails de gestion d’état sont décrits dans le [guide des contrôleurs](/fr/guides/controllers/).{% else %}The declarations below come from the component source. Parent properties remain available; see the [controller guide](/en/guides/controllers/) for state management.{% endif %}
+{% if parent %}{{ ui[locale].inherited }} [{{ parent.name }}]({{ ('components/' + parent.slug + '/') | localeUrl(locale) }}).{% else %}{{ ui[locale].inherited }} `{{ component.base }}`.{% endif %}
+{% if locale == 'fr' %}Les déclarations suivantes sont extraites des sources du composant. Les propriétés du parent restent disponibles ; les détails de gestion d’état sont décrits dans le [guide des contrôleurs](/fr/guides/controllers/).{% else %}The declarations below come from the component source. Parent properties remain available; see the [controller guide](/guides/controllers/) for state management.{% endif %}
 
 {% if component.properties.length %}
 ### {{ ui[locale].properties }}
@@ -77,6 +78,6 @@ eleventyComputed:
 {% if text.related.length %}
 ## {% if locale == 'fr' %}Voir aussi{% else %}See also{% endif %}
 
-{% for name in text.related %}{% set related = name | componentByName %}{% if related %}- [{{ related.name }}](/{{ locale }}/components/{{ related.slug }}/)
+{% for name in text.related %}{% set related = name | componentByName %}{% if related %}- [{{ related.name }}]({{ ('components/' + related.slug + '/') | localeUrl(locale) }})
 {% endif %}{% endfor %}
 {% endif %}

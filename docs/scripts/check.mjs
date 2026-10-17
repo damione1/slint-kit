@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { scanComponents } from './inventory.mjs';
+import { localeUrl, siteOrigin } from './routes.mjs';
 const docs = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(docs, '_site');
 const errors = [];
@@ -90,13 +91,13 @@ for (const component of components) {
     } catch (error) { errors.push(`${name}/${locale}: ${error.message}`); }
     const text = component[locale];
     for (const key of ['summary', 'usage', 'behavior']) check(typeof text?.[key] === 'string' && text[key].trim().length >= (key === 'summary' ? 20 : 35), `${name}/${locale}: missing meaningful ${key}`);
-    const page = path.join(output, locale, 'components', slug, 'index.html');
+    const page = path.join(output, localeUrl(`components/${slug}/`, locale), 'index.html');
     check(fs.existsSync(page), `${name}/${locale}: missing rendered page`);
     if (!fs.existsSync(page)) continue;
     const html = fs.readFileSync(page, 'utf8');
     check(html.includes(`<html lang="${locale}">`), `${name}/${locale}: incorrect HTML language`);
     const alternate = locale === 'fr' ? 'en' : 'fr';
-    check(html.includes(`href="/${alternate}/components/${slug}/"`), `${name}/${locale}: language link must retain the current component`);
+    check(html.includes(`href="${localeUrl(`components/${slug}/`, alternate)}"`), `${name}/${locale}: language link must retain the current component`);
     check(html.includes(`<h1>${name}</h1>`), `${name}/${locale}: missing component heading`);
     const code = html.match(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/)?.[1];
     check(code && decode(code).trim() === example.trim(), `${name}/${locale}: displayed code differs from the native capture source`);
@@ -108,14 +109,58 @@ for (const component of components) {
 // catches navigation breakage outside the component catalogue and both locales.
 function walk(directory) { return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? walk(path.join(directory, entry.name)) : [path.join(directory, entry.name)]); }
 const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsWith('.html')) : [];
+const origin = siteOrigin();
+check(!fs.existsSync(path.join(output, 'en')), 'Legacy /en pages must redirect, not remain duplicate HTML output');
+const redirectFile = path.join(output, '_redirects');
+check(fs.existsSync(redirectFile), 'Cloudflare Pages must receive the legacy English redirect rules');
+const redirects = fs.existsSync(redirectFile) ? fs.readFileSync(redirectFile, 'utf8').split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#')).map(line => line.split(/\s+/)) : [];
+function redirectTarget(route) {
+  for (const [source, destination, status] of redirects) {
+    if (source === route) return { destination, status };
+    if (source?.endsWith('*') && route.startsWith(source.slice(0, -1))) {
+      return { destination: destination.replace(':splat', route.slice(source.length - 1)), status };
+    }
+  }
+}
+check(redirectTarget('/en')?.destination === '/' && redirectTarget('/en')?.status === '301', 'Old /en homepage must permanently redirect to /');
+const expectedRoutes = new Set();
+for (const locale of ['en', 'fr']) {
+  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
+    expectedRoutes.add(localeUrl(key, locale));
+  }
+}
 for (const file of htmlFiles) {
   const html = fs.readFileSync(file, 'utf8');
+  const route = '/' + path.relative(output, file).replaceAll(path.sep, '/').replace(/index\.html$/, '');
+  const locale = route.startsWith('/fr/') ? 'fr' : 'en';
+  const key = locale === 'fr' ? route.slice('/fr/'.length) : route.slice(1);
+  check(expectedRoutes.delete(route), `Unexpected or duplicate HTML route: ${route}`);
+  check(html.includes(`<html lang="${locale}">`), `${route}: incorrect HTML language`);
+  check(html.includes(`<link rel="canonical" href="${origin}${route}">`), `${route}: canonical URL must use the configured public origin`);
+  for (const language of ['fr', 'en']) {
+    check(html.includes(`<link rel="alternate" hreflang="${language}" href="${origin}${localeUrl(key, language)}">`), `${route}: incorrect corresponding-page hreflang for ${language}`);
+  }
+  check(html.includes(`<link rel="alternate" hreflang="x-default" href="${origin}${localeUrl(key, 'en')}">`), `${route}: default-language hreflang must point to English`);
+  const other = locale === 'fr' ? 'en' : 'fr';
+  check(html.includes(`class="language" href="${localeUrl(key, other)}"`), `${route}: visible language switch must preserve the page`);
+  check(!/http-equiv="refresh"/i.test(html), `${route}: content pages must not use a meta redirect`);
+  if (locale === 'en') {
+    const legacy = route === '/' ? '/en/' : '/en' + route;
+    const redirect = redirectTarget(legacy);
+    check(redirect?.destination === route && redirect?.status === '301', `${legacy}: old English URL must permanently redirect to ${route}`);
+  }
   check(!/\{[{%]|undefined|\[object Object\]/.test(html), `${path.relative(output, file)}: unresolved template content`);
   for (const match of html.matchAll(/\b(?:href|src|srcset)="([^"]+)"/g)) {
-    const href = decode(match[1]);
-    if (/^(?:https?:|mailto:|data:)/.test(href)) continue;
-    const [route, fragment] = href.split('#');
-    let target = route ? (route.startsWith('/') ? path.join(output, decodeURIComponent(route)) : path.resolve(path.dirname(file), decodeURIComponent(route))) : file;
+    let href = decode(match[1]);
+    if (/^(?:mailto:|data:)/.test(href)) continue;
+    if (/^https?:/.test(href)) {
+      const url = new URL(href);
+      if (url.origin !== origin) continue;
+      href = url.pathname + url.hash;
+    }
+    check(!/^\/en(?:\/|$)/.test(href), `${route}: public links must use canonical English root routes, not ${href}`);
+    const [destination, fragment] = href.split('#');
+    let target = destination ? (destination.startsWith('/') ? path.join(output, decodeURIComponent(destination)) : path.resolve(path.dirname(file), decodeURIComponent(destination))) : file;
     if (fs.existsSync(target) && fs.statSync(target).isDirectory()) target = path.join(target, 'index.html');
     check(fs.existsSync(target), `${path.relative(output, file)}: broken local URL ${href}`);
     if (fragment && fs.existsSync(target) && target.endsWith('.html')) {
@@ -124,6 +169,64 @@ for (const file of htmlFiles) {
     }
   }
 }
-check(htmlFiles.length >= components.length * 2 + 12, 'Incomplete site output');
+check(expectedRoutes.size === 0, `Missing documentation routes: ${[...expectedRoutes].join(', ')}`);
+for (const locale of ['en', 'fr']) {
+  const page = path.join(output, localeUrl('guides/typed-example/', locale), 'index.html');
+  const html = fs.existsSync(page) ? fs.readFileSync(page, 'utf8') : '';
+  const blocks = [...html.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/app.slint', 'src/main.rs']) {
+    const source = fs.readFileSync(path.join(docs, 'consumer', file), 'utf8');
+    check(blocks.includes(source.trim()), `${locale}: typed guide must display the complete downloadable ${file}`);
+    const downloadable = path.join(output, 'consumer', file);
+    check(fs.existsSync(downloadable) && fs.readFileSync(downloadable, 'utf8') === source, `${locale}: typed guide download differs from displayed ${file}`);
+  }
+}
+const consumerManifest = fs.readFileSync(path.join(docs, 'consumer/Cargo.toml'), 'utf8');
+check(!/\bpath\s*=|\bworkspace\s*=|\b(?:version|edition|license|rust-version)\.workspace\s*=/.test(consumerManifest), 'Public consumer manifest must use registry dependencies without workspace inheritance');
+const consumerMain = fs.readFileSync(path.join(docs, 'consumer/src/main.rs'), 'utf8');
+check(!/mod verify|verify::|--verify/.test(consumerMain), 'Public consumer must run without a private verification module');
+check(fs.readFileSync(path.join(docs, 'consumer/ui/app.slint'), 'utf8') === fs.readFileSync(path.join(docs, 'integration/ui/app.slint'), 'utf8'), 'Public consumer UI must match the screenshot-verified integration UI');
+const sitemapFile = path.join(output, 'sitemap.xml');
+check(fs.existsSync(sitemapFile), 'Missing sitemap.xml');
+const sitemap = fs.existsSync(sitemapFile) ? fs.readFileSync(sitemapFile, 'utf8') : '';
+check(sitemap.startsWith('<?xml version="1.0" encoding="UTF-8"?>'), 'Sitemap must declare UTF-8 XML');
+check(sitemap.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'Sitemap must use the standard sitemap namespace');
+const sitemapEntries = [...sitemap.matchAll(/<url>\s*([\s\S]*?)\s*<\/url>/g)].map(match => match[1]);
+const canonicalUrls = new Set(htmlFiles.map(file => origin + '/' + path.relative(output, file).replaceAll(path.sep, '/').replace(/index\.html$/, '')));
+check(sitemapEntries.length === canonicalUrls.size, 'Sitemap must include every emitted canonical HTML page, including all paginated references');
+const seenUrls = new Set();
+let frenchUrls = 0;
+let englishUrls = 0;
+for (const entry of sitemapEntries) {
+  const locations = [...entry.matchAll(/<loc>([^<]+)<\/loc>/g)];
+  check(locations.length === 1, 'Each sitemap entry must declare exactly one canonical URL');
+  if (locations.length !== 1) continue;
+  const location = decode(locations[0][1]).replaceAll('&apos;', "'");
+  check(!seenUrls.has(location), `Duplicate sitemap URL: ${location}`);
+  seenUrls.add(location);
+  check(canonicalUrls.delete(location), `Sitemap URL does not match an emitted canonical HTML page: ${location}`);
+  let url;
+  try { url = new URL(location); } catch { check(false, `Invalid sitemap URL: ${location}`); continue; }
+  check(url.origin === origin && !url.search && !url.hash, `Sitemap URL must use the configured origin without query or fragment: ${location}`);
+  check(!/^\/(?:en|assets|examples|consumer)(?:\/|$)/.test(url.pathname), `Sitemap must exclude legacy routes and downloadable files: ${location}`);
+  const french = url.pathname.startsWith('/fr/');
+  if (french) frenchUrls++; else englishUrls++;
+  const key = french ? url.pathname.slice('/fr/'.length) : url.pathname.slice(1);
+  for (const language of ['en', 'fr', 'x-default']) {
+    const target = origin + localeUrl(key, language === 'x-default' ? 'en' : language);
+    const alternate = [...entry.matchAll(/<xhtml:link\s+rel="alternate"\s+hreflang="([^"]+)"\s+href="([^"]+)"\s*\/>/g)].find(match => match[1] === language);
+    check(alternate && decode(alternate[2]).replaceAll('&apos;', "'") === target, `Sitemap hreflang must retain the corresponding page for ${language}: ${location}`);
+  }
+}
+check(canonicalUrls.size === 0, `Canonical HTML pages missing from sitemap: ${[...canonicalUrls].join(', ')}`);
+check(englishUrls > 0 && frenchUrls > 0 && englishUrls === frenchUrls, 'Sitemap must include the complete English and French page sets');
+const robotsFile = path.join(output, 'robots.txt');
+check(fs.existsSync(robotsFile), 'Missing robots.txt');
+const robots = fs.existsSync(robotsFile) ? fs.readFileSync(robotsFile, 'utf8') : '';
+check(/^User-agent:\s*\*\s*$/m.test(robots) && /^Allow:\s*\/\s*$/m.test(robots), 'Robots rules must allow the public documentation site');
+check(!/^Disallow:\s*\S/m.test(robots), 'Public documentation must not be blocked in robots.txt');
+check(robots.split('\n').filter(line => line.startsWith('Sitemap:')).join('\n') === `Sitemap: ${origin}/sitemap.xml`, 'Robots must reference the sitemap at the configured public origin');
+
+check(htmlFiles.length === components.length * 2 + 14, 'Incomplete or duplicated site output');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
-else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} HTML pages, local links and image provenance.`);
+else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);

@@ -3,7 +3,7 @@ layout: base.njk
 locale: fr
 title: "Bien démarrer"
 translationKey: "guides/getting-started/"
-permalink: /fr/guides/getting-started/index.html
+permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 ---
 
 # Bien démarrer

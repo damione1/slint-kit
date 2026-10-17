@@ -3,7 +3,7 @@ layout: base.njk
 locale: en
 title: "Themes and accessibility"
 translationKey: "guides/themes/"
-permalink: /en/guides/themes/index.html
+permalink: "{{ 'guides/themes/' | localeUrl(locale) }}index.html"
 ---
 
 # Themes and accessibility
@@ -39,9 +39,9 @@ Custom themes provide canvas, surface and raised surface; primary and secondary 
 
 ## Size and layout
 
-`ControlSize` is `compact`, `medium` or `comfortable`. `ControlWidth.intrinsic` preserves the component's content width; `fill` asks it to use the space allocated by its layout. Most component heights are intrinsic. Set a finite viewport for [virtualized data components](/en/components/#data), and keep their model identity stable while scrolling.
+`ControlSize` is `compact`, `medium` or `comfortable`. `ControlWidth.intrinsic` preserves the component's content width; `fill` asks it to use the space allocated by its layout. Most component heights are intrinsic. Set a finite viewport for [virtualized data components](/components/#data), and keep their model identity stable while scrolling.
 
-`LayoutSpace` provides shared inset and gap values. `KitCard` and `KitHero` accept these values. Prefer [KitStack](/en/components/stack/), [KitInline](/en/components/inline/) and the other layout wrappers when their shared spacing contract suits the application.
+`LayoutSpace` provides shared inset and gap values. `KitCard` and `KitHero` accept these values. Prefer [KitStack](/components/stack/), [KitInline](/components/inline/) and the other layout wrappers when their shared spacing contract suits the application.
 
 ## Text scaling and motion
 

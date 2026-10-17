@@ -3,8 +3,9 @@ layout: base.njk
 pagination:
   data: locales
   size: 1
+  addAllPagesToCollections: true
   alias: locale
-permalink: "/{{ locale }}/components/index.html"
+permalink: "{{ 'components/' | localeUrl(locale) }}index.html"
 translationKey: "components/"
 eleventyComputed:
   title: "{% if locale == 'fr' %}Composants{% else %}Components{% endif %}"
@@ -19,7 +20,7 @@ eleventyComputed:
 <section class="catalogue-family" id="{{ family }}">
 <h2>{{ label[locale] }}</h2>
 <div class="catalogue-grid">
-{% for component in components | whereFamily(family) %}<a class="catalogue-item" href="/{{ locale }}/components/{{ component.slug }}/" data-search="{{ component.name | lower }} {{ component[locale].summary | lower }}"><strong>{{ component.name }}</strong><span>{{ component[locale].summary }}</span></a>{% endfor %}
+{% for component in components | whereFamily(family) %}<a class="catalogue-item" href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}" data-search="{{ component.name | lower }} {{ component[locale].summary | lower }}"><strong>{{ component.name }}</strong><span>{{ component[locale].summary }}</span></a>{% endfor %}
 </div>
 </section>
 {% endfor %}

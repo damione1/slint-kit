@@ -3,7 +3,7 @@ layout: base.njk
 locale: fr
 title: "Contrôleurs typés"
 translationKey: "guides/controllers/"
-permalink: /fr/guides/controllers/index.html
+permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 ---
 
 # Contrôleurs typés

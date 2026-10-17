@@ -9,21 +9,22 @@
   <link rel="icon" href="/assets/branding/slint-kit-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
   {% if site.url %}<link rel="canonical" href="{{ site.url }}{{ page.url }}">{% endif %}
-  <link rel="alternate" hreflang="fr" href="{{ site.url }}/fr/{{ translationKey }}">
-  <link rel="alternate" hreflang="en" href="{{ site.url }}/en/{{ translationKey }}">
+  <link rel="alternate" hreflang="fr" href="{{ site.url }}{{ translationKey | localeUrl('fr') }}">
+  <link rel="alternate" hreflang="en" href="{{ site.url }}{{ translationKey | localeUrl('en') }}">
+  <link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ translationKey | localeUrl('en') }}">
   <script src="/assets/site.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">{{ ui[locale].skip }}</a>
 <header class="topbar">
-  <a class="brand" href="/{{ locale }}/" aria-label="Slint Kit — {{ ui[locale].home }}">
+  <a class="brand" href="{{ '' | localeUrl(locale) }}" aria-label="Slint Kit — {{ ui[locale].home }}">
     <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
   </a>
   <span class="site-label">{{ ui[locale].documentation }}</span>
   <nav class="toplinks" aria-label="{% if locale == 'fr' %}Navigation principale{% else %}Main navigation{% endif %}">
-    <a href="/{{ locale }}/components/"{% if translationKey == 'components/' %} aria-current="page"{% endif %}>{{ ui[locale].components }}</a>
+    <a href="{{ 'components/' | localeUrl(locale) }}"{% if translationKey == 'components/' %} aria-current="page"{% endif %}>{{ ui[locale].components }}</a>
     <a href="{{ site.repository }}">GitHub<span class="sr-only"> ({{ ui[locale].source }})</span></a>
-    {% if locale == 'fr' %}<a class="language" href="/en/{{ translationKey }}" lang="en" hreflang="en" aria-label="This page in English">EN</a>{% else %}<a class="language" href="/fr/{{ translationKey }}" lang="fr" hreflang="fr" aria-label="Cette page en français">FR</a>{% endif %}
+    {% if locale == 'fr' %}<a class="language" href="{{ translationKey | localeUrl('en') }}" lang="en" hreflang="en" aria-label="This page in English">EN</a>{% else %}<a class="language" href="{{ translationKey | localeUrl('fr') }}" lang="fr" hreflang="fr" aria-label="Cette page en français">FR</a>{% endif %}
   </nav>
 </header>
 <div class="page-shell{% if home %} home-shell{% endif %}">
@@ -34,15 +35,15 @@
   <nav aria-label="{{ ui[locale].documentation }}">
     <p class="nav-heading">{{ ui[locale].guides }}</p>
     {% for key, label in { 'getting-started': ui[locale].start, 'controllers': ui[locale].controllers, 'themes': ui[locale].themes, 'native': ui[locale].native } %}
-    <a href="/{{ locale }}/guides/{{ key }}/"{% if translationKey == 'guides/' + key + '/' %} aria-current="page"{% endif %}>{{ label }}</a>
+    <a href="{{ ('guides/' + key + '/') | localeUrl(locale) }}"{% if translationKey == 'guides/' + key + '/' %} aria-current="page"{% endif %}>{{ label }}</a>
     {% endfor %}
     <p class="nav-heading">{{ ui[locale].components }} <span>{{ components.length }}</span></p>
-    <a href="/{{ locale }}/components/">{{ ui[locale].catalogue }}</a>
+    <a href="{{ 'components/' | localeUrl(locale) }}">{{ ui[locale].catalogue }}</a>
     {% for family, label in ui.families %}
     {% set members = components | whereFamily(family) %}
     <details class="family"{% if entry and entry.component.family == family %} open{% endif %}>
       <summary>{{ label[locale] }} <span>{{ members.length }}</span></summary>
-      {% for component in members %}<a href="/{{ locale }}/components/{{ component.slug }}/"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
+      {% for component in members %}<a href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
     </details>
     {% endfor %}
   </nav>

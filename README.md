@@ -20,15 +20,11 @@
 
 Buttons, fields, selections, dialogs, calendars and composable display, navigation and layout primitives. Rust owns validated values and identity; Slint owns their presentation and native interaction.
 
+[Website](https://slint-kit.damiengoehrig.ca/) · [Documentation](https://slint-kit.damiengoehrig.ca/guides/getting-started/) · [Components](https://slint-kit.damiengoehrig.ca/components/)
+
 ## Try it
 
-With Rust 1.92 or later and the native dependencies required by Slint:
-
-```sh
-cargo run -p kit-showcase
-```
-
-The showcase is a working local consumer. Install the toolkit in your application from [crates.io](https://crates.io/crates/slint-kit):
+Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Rust 1.92 or later and the native dependencies required by Slint:
 
 ```toml
 [dependencies]
@@ -39,7 +35,9 @@ slint = "=1.18.1"
 slint-kit-build = "0.1"
 ```
 
-Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](docs/src/en/guides/getting-started.md) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
+Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
+
+The showcase is a working consumer included in the source repository. From a local checkout, run `cargo run -p kit-showcase`.
 
 ## Contribute
 

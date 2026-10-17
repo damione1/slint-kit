@@ -3,7 +3,7 @@ layout: base.njk
 locale: fr
 title: "Thèmes et accessibilité"
 translationKey: "guides/themes/"
-permalink: /fr/guides/themes/index.html
+permalink: "{{ 'guides/themes/' | localeUrl(locale) }}index.html"
 ---
 
 # Thèmes et accessibilité

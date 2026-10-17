@@ -3,7 +3,7 @@ layout: base.njk
 locale: en
 title: "Native integration"
 translationKey: "guides/native/"
-permalink: /en/guides/native/index.html
+permalink: "{{ 'guides/native/' | localeUrl(locale) }}index.html"
 ---
 
 # Native integration
@@ -36,6 +36,6 @@ Handle every `SelectionOutcome` variant: `Selected(value)`, `Cancelled`, or `Fai
 
 ## Capabilities and pending requests
 
-Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/en/components/file-picker/), [KitDirectoryPicker](/en/components/directory-picker/) and [KitFileDropZone](/en/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The provided native adapter reports drop support as unsupported; the window backend must supply that integration separately.
+Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/components/file-picker/), [KitDirectoryPicker](/components/directory-picker/) and [KitFileDropZone](/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The provided native adapter reports drop support as unsupported; the window backend must supply that integration separately.
 
 `HostRequestController<T>` issues tickets to reject obsolete asynchronous results. Keep pending, failure and cancellation presentation explicit. See the complete [showcase file controller](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) for native request handling and the [host adapter](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) for platform behavior.

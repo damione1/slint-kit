@@ -3,8 +3,9 @@ layout: base.njk
 pagination:
   data: locales
   size: 1
+  addAllPagesToCollections: true
   alias: locale
-permalink: "/{{ locale }}/index.html"
+permalink: "{{ '' | localeUrl(locale) }}index.html"
 translationKey: ""
 home: true
 eleventyComputed:
@@ -33,15 +34,15 @@ Chaque référence présente une capture native, un exemple Slint complet et l�
 
 Native components, typed controllers and shared themes for your Rust and Slint applications.
 
-<div class="home-actions"><a class="primary-link" href="/en/guides/getting-started/">Get started <span aria-hidden="true">→</span></a><a href="/en/components/">Browse all {{ components.length }} components</a></div>
+<div class="home-actions"><a class="primary-link" href="/guides/getting-started/">Get started <span aria-hidden="true">→</span></a><a href="/components/">Browse all {{ components.length }} components</a></div>
 
 ## The documentation
 
-<div class="guide-grid"><a href="/en/guides/getting-started/"><strong>Install and compose</strong><span>Connect the kit, import a component and open a window.</span></a><a href="/en/guides/controllers/"><strong>Keep state typed</strong><span>Editing, validation, stable selection and generations.</span></a><a href="/en/guides/themes/"><strong>Themes and accessibility</strong><span>Semantic colors, sizes and native verification.</span></a><a href="/en/guides/native/"><strong>Native integration</strong><span>Files, host capabilities and explicit outcomes.</span></a></div>
+<div class="guide-grid"><a href="/guides/getting-started/"><strong>Install and compose</strong><span>Connect the kit, import a component and open a window.</span></a><a href="/guides/controllers/"><strong>Keep state typed</strong><span>Editing, validation, stable selection and generations.</span></a><a href="/guides/themes/"><strong>Themes and accessibility</strong><span>Semantic colors, sizes and native verification.</span></a><a href="/guides/native/"><strong>Native integration</strong><span>Files, host capabilities and explicit outcomes.</span></a></div>
 
 ## Components
 
 Each reference includes a native screenshot, a complete Slint example and the public API. Start with a family:
 {% endif %}
 
-<div class="family-grid">{% for family, label in ui.families %}<a href="/{{ locale }}/components/#{{ family }}">{{ label[locale] }} <span>{{ (components | whereFamily(family)).length }}</span></a>{% endfor %}</div>
+<div class="family-grid">{% for family, label in ui.families %}<a href="{{ 'components/' | localeUrl(locale) }}#{{ family }}">{{ label[locale] }} <span>{{ (components | whereFamily(family)).length }}</span></a>{% endfor %}</div>

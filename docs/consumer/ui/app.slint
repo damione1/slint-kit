@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitTextField, KitSelect, KitThemes, FieldAccess, ValidationPresentation, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "@kit/kit.slint";
+
+export enum ExampleLanguage { english, french }
+export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, FieldAccess, ValidationPresentation }
+export component App inherits Window {
+    in property <ExampleLanguage> language: ExampleLanguage.english;
+    private property <bool> french: root.language == ExampleLanguage.french;
+    title: root.french ? "Exemple Slint Kit typé" : "Typed Slint Kit example";
+    preferred-width: 560px;
+    preferred-height: 480px;
+    background: KitThemes.light.canvas;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label;
+    in property <string> draft;
+    in property <string> error;
+    in property <string> accepted-label;
+    in property <FieldAccess> field-access;
+    in property <ValidationPresentation> validation;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    callback name-edited(string);
+    callback name-commit();
+    callback name-blur();
+    callback name-cancel();
+    public function focus-name() { name.take-focus(); }
+    VerticalLayout {
+        padding: 32px;
+        spacing: 20px;
+        alignment: start;
+        Text { text: root.french ? "Paramètres du projet" : "Project settings"; color: KitThemes.light.text-primary; font-size: 24px; font-weight: 600; }
+        name := KitTextField {
+            label: root.french ? "Nom du projet" : "Project name";
+            text: root.draft;
+            error: root.error;
+            validation: root.validation;
+            access: root.field-access;
+            edited(text) => { root.name-edited(text); }
+            commit-requested(text) => { root.name-commit(); }
+            cancelled => { root.name-cancel(); }
+            focus-observed(focused) => { if (!focused) { root.name-blur(); } }
+        }
+        Text { text: root.french ? "Espace de travail" : "Workspace"; color: KitThemes.light.text-primary; font-size: 14px; }
+        KitSelect {
+            rows: root.rows;
+            state: root.select-state;
+            placeholder: root.selected-label;
+            open-requested => { root.select-open(); }
+            navigate(step) => { root.select-navigate(step); }
+            activate(token, generation) => { root.select-activate(token, generation); }
+            dismiss(reason) => { root.select-dismiss(reason); }
+            query-edited(query) => { root.select-query(query); }
+            typeahead(text) => { root.select-typeahead(text); }
+            tab-navigation(reverse) => { root.focus-name(); return accept; }
+        }
+        KitButton { text: root.french ? "Accepter le nom" : "Accept name"; activated => { root.name-commit(); } }
+        Text { text: (root.french ? "Nom accepté : " : "Accepted: ") + root.accepted-label; color: KitThemes.light.text-secondary; wrap: word-wrap; }
+    }
+}

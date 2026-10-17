@@ -3,7 +3,7 @@ layout: base.njk
 locale: en
 title: "Getting started"
 translationKey: "guides/getting-started/"
-permalink: /en/guides/getting-started/index.html
+permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 ---
 
 # Getting started
@@ -80,7 +80,7 @@ Run `cargo run` from `my-app`. This configuration uses the **winit backend and S
 
 ## Use a documented example
 
-Each [component page](/en/components/) provides a complete `.slint` file and its native screenshot. Copy that file to `ui/app.slint` and keep the same `build.rs`. The reference file exports `Example`; replace the entire contents of `src/main.rs` with this entry point:
+Each [component page](/components/) provides a complete `.slint` file and its native screenshot. Copy that file to `ui/app.slint` and keep the same `build.rs`. The reference file exports `Example`; replace the entire contents of `src/main.rs` with this entry point:
 
 ```rust
 slint::include_modules!();
@@ -90,12 +90,12 @@ fn main() -> Result<(), slint::PlatformError> {
 }
 ```
 
-The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/en/guides/native/). For validated editing and interactive selection, see the [typed controller application](/en/guides/typed-example/).
+The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/guides/native/). For validated editing and interactive selection, see the [typed controller application](/guides/typed-example/).
 
 Public imports use `@kit/kit.slint`, or a public family module such as `@kit/button.slint`. Do not depend on private helper components. Pass the same theme into composed controls, preserve intrinsic sizing and choose `ControlWidth.fill` only when the parent requests a stretched control.
 
 ## Keep the domain in Rust
 
-A Slint string is an editable draft. For accepted names, money, dates and keyed choices, use domain newtypes, enums and [typed bindings](/en/guides/controllers/). Large collections belong in a model/view, not an eagerly created list of controls.
+A Slint string is an editable draft. For accepted names, money, dates and keyed choices, use domain newtypes, enums and [typed bindings](/guides/controllers/). Large collections belong in a model/view, not an eagerly created list of controls.
 
 The [showcase source](https://github.com/damione1/slint-kit/tree/main/showcase) is a consumer application covering the public components. Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.
