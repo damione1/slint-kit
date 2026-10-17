@@ -6,6 +6,7 @@ use kit::{
 use slint::{ComponentHandle, Model};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, time::Duration};
 
+mod application_icon;
 mod base_data;
 mod base_display;
 mod base_navigation;
@@ -541,6 +542,7 @@ fn main() -> Result<(), slint::PlatformError> {
         std::process::exit(2)
     });
     let window = Showcase::new()?;
+    application_icon::install()?;
     form_fields::install(&window);
     form_choices::install(&window);
     form_schedule::install(&window);

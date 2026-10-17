@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Public facade for the independent Slint Kit.
 //!
-//! Compile Slint sources using `kit_build::compile` in the application's build
+//! Compile Slint sources using `slint_kit_build::compile` in the application's build
 //! script, then import controls from `@kit/button.slint`, `@kit/select.slint`,
 //! and `@kit/dialog.slint`. Custom skins compose the same public primitives.
 pub use kit_core::*;

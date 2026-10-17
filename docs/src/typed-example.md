@@ -76,13 +76,13 @@ Modal surfaces also need an overlay stack and a focus registry. The [complete na
 {% if locale == 'fr' %}
 ## Construire et vérifier
 
-Le paquet [Cargo.toml](/integration/Cargo.toml) utilise les dépendances du workspace. Son [build.rs](/integration/build.rs) compile l’interface via `kit_build::compile`. Pour l’utiliser dans un autre projet, adaptez les chemins comme dans [Bien démarrer](/fr/guides/getting-started/).
+Le paquet [Cargo.toml](/integration/Cargo.toml) utilise les dépendances du workspace. Son [build.rs](/integration/build.rs) compile l’interface via `slint_kit_build::compile`. Pour l’utiliser dans un autre projet, utilisez les dépendances publiées comme dans [Bien démarrer](/fr/guides/getting-started/).
 
 La commande suivante ouvre une vraie fenêtre winit/Skia et transmet des événements pointeur/clavier au champ et à la sélection. Elle vérifie édition, acceptation, conservation d’une valeur lors d’un échec, ouverture de liste et validation d’une clé stable. Le [module de vérification](/integration/src/verify.rs) reste séparé du comportement applicatif. Cette vérification ne qualifie pas IME ou lecteur d’écran.
 {% else %}
 ## Build and verify
 
-The [Cargo.toml](/integration/Cargo.toml) package uses workspace dependencies. Its [build.rs](/integration/build.rs) compiles the interface with `kit_build::compile`. For another project, adjust paths as shown in [Getting started](/en/guides/getting-started/).
+The [Cargo.toml](/integration/Cargo.toml) package uses workspace dependencies. Its [build.rs](/integration/build.rs) compiles the interface with `slint_kit_build::compile`. For another project, use the published dependencies as shown in [Getting started](/en/guides/getting-started/).
 
 The command below opens a real winit/Skia window and dispatches pointer/keyboard events to the field and selection. It checks editing, acceptance, preservation of an accepted value after failure, list opening and a stable keyed commit. The [verification module](/integration/src/verify.rs) remains separate from application behavior. This verification does not qualify IME or a screen reader.
 {% endif %}

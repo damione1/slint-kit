@@ -1,0 +1,57 @@
+name: Publish crates
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crates-io-release
+  cancel-in-progress: false
+
+env:
+  CARGO_INCREMENTAL: '0'
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - name: Check release safeguards
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_release.py'
+      - name: Validate release tag and versions
+        run: python3 .github/scripts/release.py validate
+      - name: Check workspace
+        run: cargo run -p xtask --locked -- check
+      - name: Check bilingual documentation
+        run: |
+          npm ci --prefix docs
+          npm --prefix docs run build
+      - name: Verify all five package archives
+        run: >-
+          cargo package --locked
+          -p slint-kit-core -p slint-kit-slint -p slint-kit-native
+          -p slint-kit-build -p slint-kit
+      - name: Check archives and existing registry versions
+        run: python3 .github/scripts/release.py check
+      - name: Publish libraries in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: python3 .github/scripts/release.py publish

@@ -28,7 +28,18 @@ With Rust 1.92 or later and the native dependencies required by Slint:
 cargo run -p kit-showcase
 ```
 
-The showcase is a working local consumer. To use the toolkit in your app, follow the [consumption skill](.agents/skills/slint-kit/SKILL.md); packages are currently consumed from this checkout.
+The showcase is a working local consumer. Install the toolkit in your application from [crates.io](https://crates.io/crates/slint-kit):
+
+```toml
+[dependencies]
+slint-kit = "0.1"
+slint = "=1.18.1"
+
+[build-dependencies]
+slint-kit-build = "0.1"
+```
+
+Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](docs/src/en/guides/getting-started.md) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
 ## Contribute
 

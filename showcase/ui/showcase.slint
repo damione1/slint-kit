@@ -105,6 +105,7 @@ component ProjectTile inherits KitPressable {
 
 export component Showcase inherits Window {
     title: "Slint Kit · Component catalogue";
+    icon: @image-url("../../assets/branding/slint-kit-icon.svg");
     preferred-width: 1180px;
     preferred-height: 880px;
     min-width: 960px;
@@ -200,7 +201,13 @@ export component Showcase inherits Window {
     private property <string> page-title: root.page == ShowcasePage.gallery ? "Buttons & dialogs" : root.page == ShowcasePage.profile ? "Text fields" : root.page == ShowcasePage.billing ? "Numbers & money" : root.page == ShowcasePage.choices ? "Selection" : root.page == ShowcasePage.schedule ? "Dates & time" : root.page == ShowcasePage.files ? "Files & color" : root.page == ShowcasePage.display ? "Display & feedback" : root.page == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
     Rectangle { x: 0px; y: 0px; width: root.width; height: root.header-height; background: root.theme.surface;
         preview-header := FlexboxLayout { x: 24px; y: 16px; width: parent.width - 48px; height: self.preferred-height; spacing: 8px; alignment: start; cross-axis-alignment: center;
-            brand-label := Text { height: self.preferred-height; text: "Slint Kit"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 700; vertical-alignment: center; }
+            brand-label := Image {
+                width: 144px * root.theme.text-scale;
+                height: 40px * root.theme.text-scale;
+                source: root.theme-mode == ThemeMode.dark ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
+                image-fit: contain;
+                accessible-label: "Slint Kit";
+            }
             KitButton { theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }

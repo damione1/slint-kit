@@ -8,13 +8,13 @@ permalink: /fr/guides/getting-started/index.html
 
 # Bien démarrer
 
-Utilisez le dépôt source avec **Rust 1.92+** et **Slint 1.18.1**.
+Installez Slint Kit depuis crates.io avec **Rust 1.92+** et **Slint 1.18.1**. Aucun clonage du kit n’est nécessaire.
 
 Les applications utilisent l’édition Rust 2024. Le compilateur et le runtime Slint doivent correspondre aux versions du kit.
 
 ## Créer une application de bureau
 
-Placez `my-app` à côté du dépôt `slint-kit`. Créez `my-app/Cargo.toml` avec ces dépendances ; adaptez les chemins si les dossiers sont organisés autrement.
+Lancez `cargo new my-app`, puis ajoutez ces dépendances dans `my-app/Cargo.toml`. Cargo télécharge automatiquement le kit et sa bibliothèque de composants.
 
 ```toml
 [package]
@@ -24,18 +24,18 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-kit = { path = "../slint-kit/crates/kit" }
+slint-kit = "0.1"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-kit-build = { path = "../slint-kit/crates/kit-build" }
+slint-kit-build = "0.1"
 ```
 
-Créez `build.rs` à la racine de l’application. `kit-build` enregistre la bibliothèque `@kit` et vérifie les contrats partagés générés avant de compiler l’interface.
+Créez `build.rs` à la racine de l’application. `slint-kit-build` enregistre la bibliothèque `@kit` et vérifie les contrats partagés générés avant de compiler l’interface.
 
 ```rust
 fn main() {
-    kit_build::compile("ui/app.slint").expect("compile application UI");
+    slint_kit_build::compile("ui/app.slint").expect("compile application UI");
 }
 ```
 

@@ -11,18 +11,18 @@ permalink: /en/guides/native/index.html
 Enable host services explicitly. The core domain and visual file components do not require a native picker dependency. Add the optional `native` feature only in an application that needs it:
 
 ```toml
-kit = { path = "../slint-kit/crates/kit", features = ["native"] }
+slint-kit = { version = "0.1", features = ["native"] }
 ```
 
 ## Requests and outcomes
 
-`kit::native::pick_files(FileRequest)` and `pick_directory(DirectoryRequest)` are asynchronous. Construct and poll the picker on the host UI executor, for example `slint::spawn_local`. Return to a weak window handle when publishing the result. Do not block the UI event loop while awaiting a dialog.
+`slint_kit::native::pick_files(FileRequest)` and `pick_directory(DirectoryRequest)` are asynchronous. Construct and poll the picker on the host UI executor, for example `slint::spawn_local`. Return to a weak window handle when publishing the result. Do not block the UI event loop while awaiting a dialog.
 
 ```rust
-use kit::{FileRequest, FileSelectionMode, SelectionOutcome};
+use slint_kit::{FileRequest, FileSelectionMode, SelectionOutcome};
 
-async fn choose_document() -> SelectionOutcome<Vec<kit::FileHandle>> {
-    kit::native::pick_files(FileRequest {
+async fn choose_document() -> SelectionOutcome<Vec<slint_kit::FileHandle>> {
+    slint_kit::native::pick_files(FileRequest {
         selection: FileSelectionMode::Single,
         filters: Vec::new(),
         suggested_name: None,
@@ -36,6 +36,6 @@ Handle every `SelectionOutcome` variant: `Selected(value)`, `Cancelled`, or `Fai
 
 ## Capabilities and pending requests
 
-Check `kit::native::capabilities()` and project its typed results into [KitFilePicker](/en/components/file-picker/), [KitDirectoryPicker](/en/components/directory-picker/) and [KitFileDropZone](/en/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The provided native adapter reports drop support as unsupported; the window backend must supply that integration separately.
+Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/en/components/file-picker/), [KitDirectoryPicker](/en/components/directory-picker/) and [KitFileDropZone](/en/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The provided native adapter reports drop support as unsupported; the window backend must supply that integration separately.
 
 `HostRequestController<T>` issues tickets to reject obsolete asynchronous results. Keep pending, failure and cancellation presentation explicit. See the complete [showcase file controller](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) for native request handling and the [host adapter](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) for platform behavior.

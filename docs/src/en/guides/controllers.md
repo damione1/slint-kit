@@ -8,7 +8,7 @@ permalink: /en/guides/controllers/index.html
 
 # Typed controllers
 
-Keep the accepted value in Rust and project its presentation into Slint. The `kit` facade reexports core values and weak-window adapters. A view token is only valid within its model generation; it is never the application's stable identity.
+Keep the accepted value in Rust and project its presentation into Slint. The `slint_kit` facade reexports core values and weak-window adapters. A view token is only valid within its model generation; it is never the application's stable identity.
 
 [Run and read the complete typed application](/en/guides/typed-example/): native field, validation, stable selection and every signal connected.
 

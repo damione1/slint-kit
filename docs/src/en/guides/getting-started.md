@@ -8,13 +8,13 @@ permalink: /en/guides/getting-started/index.html
 
 # Getting started
 
-Use the source checkout with **Rust 1.92+** and **Slint 1.18.1**.
+Install Slint Kit from crates.io with **Rust 1.92+** and **Slint 1.18.1**. No toolkit checkout is required.
 
 Applications use Rust edition 2024. The Slint compiler and runtime must match the kit’s versions.
 
 ## Create a desktop application
 
-Place `my-app` beside your `slint-kit` checkout. Create `my-app/Cargo.toml` with these dependencies; adjust the paths for another directory layout.
+Run `cargo new my-app`, then add these dependencies to `my-app/Cargo.toml`. Cargo downloads the kit and its component library automatically.
 
 ```toml
 [package]
@@ -24,18 +24,18 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-kit = { path = "../slint-kit/crates/kit" }
+slint-kit = "0.1"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-kit-build = { path = "../slint-kit/crates/kit-build" }
+slint-kit-build = "0.1"
 ```
 
-Create `build.rs` at the application root. `kit-build` registers the `@kit` library and verifies the generated shared contracts before compiling the UI.
+Create `build.rs` at the application root. `slint-kit-build` registers the `@kit` library and verifies the generated shared contracts before compiling the UI.
 
 ```rust
 fn main() {
-    kit_build::compile("ui/app.slint").expect("compile application UI");
+    slint_kit_build::compile("ui/app.slint").expect("compile application UI");
 }
 ```
 

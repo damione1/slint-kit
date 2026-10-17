@@ -2338,60 +2338,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
-name = "kit"
-version = "0.1.0"
-dependencies = [
- "kit-core",
- "kit-native",
- "kit-slint",
-]
-
-[[package]]
-name = "kit-build"
-version = "0.1.0"
-dependencies = [
- "kit-core",
- "kit-slint",
- "slint-build",
-]
-
-[[package]]
-name = "kit-core"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "chrono-tz",
- "rust_decimal",
- "unicode-segmentation",
-]
-
-[[package]]
 name = "kit-docs-capture"
 version = "0.1.0"
 dependencies = [
- "kit-build",
  "png",
  "pollster",
  "slint",
  "slint-interpreter",
+ "slint-kit-build",
 ]
 
 [[package]]
 name = "kit-docs-integration"
 version = "0.1.0"
 dependencies = [
- "kit",
- "kit-build",
  "png",
  "slint",
-]
-
-[[package]]
-name = "kit-native"
-version = "0.1.0"
-dependencies = [
- "kit-core",
- "rfd",
+ "slint-kit",
+ "slint-kit-build",
 ]
 
 [[package]]
@@ -2399,19 +2363,14 @@ name = "kit-showcase"
 version = "0.1.0"
 dependencies = [
  "i-slint-backend-testing",
- "kit",
- "kit-build",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
  "png",
  "slint",
+ "slint-kit",
+ "slint-kit-build",
  "url",
-]
-
-[[package]]
-name = "kit-slint"
-version = "0.1.0"
-dependencies = [
- "kit-core",
- "slint",
 ]
 
 [[package]]
@@ -2419,10 +2378,10 @@ name = "kit-tests"
 version = "0.1.0"
 dependencies = [
  "i-slint-backend-testing",
- "kit-build",
- "kit-core",
- "kit-slint",
  "slint",
+ "slint-kit-build",
+ "slint-kit-core",
+ "slint-kit-slint",
 ]
 
 [[package]]
@@ -4153,6 +4112,50 @@ dependencies = [
 ]
 
 [[package]]
+name = "slint-kit"
+version = "0.1.0"
+dependencies = [
+ "slint-kit-core",
+ "slint-kit-native",
+ "slint-kit-slint",
+]
+
+[[package]]
+name = "slint-kit-build"
+version = "0.1.0"
+dependencies = [
+ "slint-build",
+ "slint-kit-core",
+ "slint-kit-slint",
+]
+
+[[package]]
+name = "slint-kit-core"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "rust_decimal",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "slint-kit-native"
+version = "0.1.0"
+dependencies = [
+ "rfd",
+ "slint-kit-core",
+]
+
+[[package]]
+name = "slint-kit-slint"
+version = "0.1.0"
+dependencies = [
+ "slint",
+ "slint-kit-core",
+]
+
+[[package]]
 name = "slint-macros"
 version = "1.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5617,7 +5620,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 name = "xtask"
 version = "0.1.0"
 dependencies = [
- "kit-build",
+ "slint-kit-build",
 ]
 
 [[package]]

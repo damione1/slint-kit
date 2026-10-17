@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use kit::{
+use slint::ComponentHandle;
+use slint_kit::{
     AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldAccess, FieldBinding, FieldIntent,
     Ownership, ParseIssue, SelectOption, SelectionIntent, ValidationPresentation,
 };
-use slint::ComponentHandle;
 
 mod verify;
 
@@ -78,7 +78,7 @@ fn main() -> Result<(), slint::PlatformError> {
         },
     );
     field.set_validator(|name| {
-        if kit::grapheme_count(&name.0) > 40 {
+        if slint_kit::grapheme_count(&name.0) > 40 {
             vec![NameIssue::TooLong]
         } else {
             Vec::new()
@@ -118,7 +118,7 @@ fn main() -> Result<(), slint::PlatformError> {
         },
     );
     archived.disabled = true;
-    let selection = kit::bind_select!(
+    let selection = slint_kit::bind_select!(
         ui,
         app,
         vec![

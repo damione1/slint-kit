@@ -1,36 +1,36 @@
 ---
 name: slint-kit
-description: Build native Rust and Slint applications with this Slint Kit checkout, using its public components, typed controllers, themes and build integration. Use when consuming Slint Kit or adapting an existing app to it.
+description: Build native Rust and Slint applications with Slint Kit, using its public components, typed controllers, themes and build integration. Use when consuming Slint Kit or adapting an existing app to it.
 ---
 
 # Consume Slint Kit
 
-Resolve the checkout from this skill's location. Read the target application's existing dependency and build configuration before integrating it. These crates are consumed from source; do not assume a crates.io release exists.
+Read the target application’s dependency and build configuration before integrating it. Prefer the published `slint-kit` and `slint-kit-build` packages. Resolve this checkout from the skill’s location when inspecting source or contributing changes.
 
 ## Wire the consumer
 
-For an application beside a `slint-kit` checkout, merge these dependencies into its `Cargo.toml`; adjust the paths to the actual checkout:
+Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-kit = { path = "../slint-kit/crates/kit" }
+slint-kit = "0.1"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-kit-build = { path = "../slint-kit/crates/kit-build" }
+slint-kit-build = "0.1"
 ```
 
-Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `kit` only when host services are needed.
+Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
 
-In `build.rs`, compile through `kit-build` so the `@kit` library and contract verification remain configured:
+In `build.rs`, compile through `slint-kit-build` so the `@kit` library and contract verification remain configured:
 
 ```rust
 fn main() {
-    kit_build::compile("ui/app.slint").expect("compile application UI");
+    slint_kit_build::compile("ui/app.slint").expect("compile application UI");
 }
 ```
 
-For custom Slint compiler configuration, start with `kit_build::config()` and preserve its library paths. In Rust, use `slint::include_modules!()` as usual. A minimal `ui/app.slint`:
+For custom Slint compiler configuration, start with `slint_kit_build::config()` and preserve its library paths. In Rust, use `slint::include_modules!()` as usual. A minimal `ui/app.slint`:
 
 ```slint
 import { KitButton, KitTextField } from "@kit/kit.slint";
@@ -47,11 +47,13 @@ export component App inherits Window {
 }
 ```
 
+For local toolkit development, use `slint-kit = { path = "../slint-kit/crates/kit" }` and `slint-kit-build = { path = "../slint-kit/crates/kit-build" }` with paths adjusted to the checkout. The library files are bundled in the registry packages; consumers do not need a checkout.
+
 ## Choose and compose
 
 Read [the public exports](../../../crates/kit-slint/ui/kit.slint) to find current component names, then read the relevant source for properties and typed callback signatures. The public files are the maintained API reference; do not guess names from a web kit. [The showcase](../../../showcase/ui/forms-gallery.slint) and its [Rust field bindings](../../../showcase/src/form_fields.rs) demonstrate a complete consumer.
 
-Keep accepted application values in Rust. `kit` reexports the domain types and adapters: use enums for policies and states, `FieldBinding<T, E>` for typed draft/commit handling, and `SelectBinding` or `bind_select!` for stable keyed selection. Read [field.rs](../../../crates/kit-slint/src/field.rs) and [select.rs](../../../crates/kit-slint/src/select.rs) before wiring them; controlled ownership requires acknowledgment. Keep incomplete drafts editable and let the native editor own caret, selection, undo and IME.
+Keep accepted application values in Rust. `slint_kit` reexports the domain types and adapters: use enums for policies and states, `FieldBinding<T, E>` for typed draft/commit handling, and `SelectBinding` or `bind_select!` for stable keyed selection. Read [field.rs](../../../crates/kit-slint/src/field.rs) and [select.rs](../../../crates/kit-slint/src/select.rs) before wiring them; controlled ownership requires acknowledgment. Keep incomplete drafts editable and let the native editor own caret, selection, undo and IME.
 
 Use `DecimalValue`, `Money` and explicit currency/locale/rounding rules for numeric domains. Use civil dates, local times and explicit time-zone resolution; never convert an ambiguous local time silently. Renderer positions and byte-channel projections do not replace validated domain values.
 
