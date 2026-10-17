@@ -5,7 +5,18 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Prefer the published `slint-kit` and `slint-kit-build` packages. Resolve this checkout from the skill’s location when inspecting source or contributing changes.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. The current release is `0.1.0`, with the compatible dependency range `"0.1"` used below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+
+## Find documentation and examples
+
+The public documentation is [English at the site root](https://slint-kit.damiengoehrig.ca/) and [French under `/fr/`](https://slint-kit.damiengoehrig.ca/fr/). Start with the relevant guide:
+
+- [Getting started](https://slint-kit.damiengoehrig.ca/guides/getting-started/): a complete registry-based application and desktop prerequisites.
+- [Component catalogue](https://slint-kit.damiengoehrig.ca/components/): component screenshots and complete Slint examples.
+- [Typed controller application](https://slint-kit.damiengoehrig.ca/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
+- [Controllers](https://slint-kit.damiengoehrig.ca/guides/controllers/), [themes and accessibility](https://slint-kit.damiengoehrig.ca/guides/themes/) and [native integration](https://slint-kit.damiengoehrig.ca/guides/native/): domain ownership, presentation and host services.
+
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [versioned repository](https://github.com/damione1/slint-kit/tree/v0.1.0) for release 0.1.0. Published docs can evolve beyond an application's installed version; check compatibility before adopting an example.
 
 ## Wire the consumer
 
@@ -30,7 +41,7 @@ fn main() {
 }
 ```
 
-For custom Slint compiler configuration, start with `slint_kit_build::config()` and preserve its library paths. In Rust, use `slint::include_modules!()` as usual. A minimal `ui/app.slint`:
+For custom Slint compiler configuration, start with `slint_kit_build::config()` and preserve its library paths. A minimal `ui/app.slint`:
 
 ```slint
 import { KitButton, KitTextField } from "@kit/kit.slint";
@@ -47,11 +58,25 @@ export component App inherits Window {
 }
 ```
 
+In `src/main.rs`, include the generated module and connect the application callback:
+
+```rust
+slint::include_modules!();
+
+fn main() -> Result<(), slint::PlatformError> {
+    let app = App::new()?;
+    app.on_save(|name| println!("Draft submitted: {name}"));
+    app.run()
+}
+```
+
+Run `cargo run`. The example logs the draft; validate it before accepting it into domain state. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
+
 For local toolkit development, use `slint-kit = { path = "../slint-kit/crates/kit" }` and `slint-kit-build = { path = "../slint-kit/crates/kit-build" }` with paths adjusted to the checkout. The library files are bundled in the registry packages; consumers do not need a checkout.
 
 ## Choose and compose
 
-Read [the public exports](../../../crates/kit-slint/ui/kit.slint) to find current component names, then read the relevant source for properties and typed callback signatures. The public files are the maintained API reference; do not guess names from a web kit. [The showcase](../../../showcase/ui/forms-gallery.slint) and its [Rust field bindings](../../../showcase/src/form_fields.rs) demonstrate a complete consumer.
+Choose components from the catalogue, then verify their public properties and typed callbacks against the resolved version. Read [the public exports](../../../crates/kit-slint/ui/kit.slint) to find current component names, then read the relevant source for properties and typed callback signatures. The public files are the maintained API reference; do not guess names from a web kit. [The showcase](../../../showcase/ui/forms-gallery.slint) and its [Rust field bindings](../../../showcase/src/form_fields.rs) demonstrate a complete consumer.
 
 Keep accepted application values in Rust. `slint_kit` reexports the domain types and adapters: use enums for policies and states, `FieldBinding<T, E>` for typed draft/commit handling, and `SelectBinding` or `bind_select!` for stable keyed selection. Read [field.rs](../../../crates/kit-slint/src/field.rs) and [select.rs](../../../crates/kit-slint/src/select.rs) before wiring them; controlled ownership requires acknowledgment. Keep incomplete drafts editable and let the native editor own caret, selection, undo and IME.
 
@@ -69,4 +94,4 @@ The [navigation gallery](../../../showcase/ui/base-navigation.slint) demonstrate
 
 Native file requests are asynchronous and return explicit cancellation, failure or unsupported outcomes. Read [host integration](../../../crates/kit-native/src/lib.rs) and [the showcase integration](../../../showcase/src/form_files.rs) before enabling pickers or drag and drop. Capability depends on the actual backend and target; exposing a DropArea alone does not prove external file-drop support.
 
-Verify the target app builds, exercise its real callbacks and inspect its native rendering. For toolkit changes, use the checks in [AGENTS.md](../../../AGENTS.md). Preserve the toolkit's [GPL-3.0-or-later license](../../../LICENSE) for its code and bundled assets, along with dependency notices. Choose and document application-specific assets separately.
+Verify the target app builds, exercise its real callbacks and inspect its native rendering in light/dark themes, at 200% text and with keyboard navigation. Native screenshots are visual examples, not screen-reader, IME or external-drop qualification. To build the showcase, follow [Build the showcase](https://slint-kit.damiengoehrig.ca/guides/getting-started/); cloning is needed for that source application, not for installing the library. For toolkit changes in a checkout, use the checks in [AGENTS.md](../../../AGENTS.md). Preserve the toolkit's [GPL-3.0-or-later license](../../../LICENSE) for its code and bundled assets, along with dependency notices. Choose and document application-specific assets separately.
