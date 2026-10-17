@@ -98,4 +98,17 @@ Public imports use `@kit/kit.slint`, or a public family module such as `@kit/but
 
 A Slint string is an editable draft. For accepted names, money, dates and keyed choices, use domain newtypes, enums and [typed bindings](/guides/controllers/). Large collections belong in a model/view, not an eagerly created list of controls.
 
-The [showcase source](https://github.com/damione1/slint-kit/tree/main/showcase) is a consumer application covering the public components. Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.
+## Build the showcase
+
+The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.
+
+Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.18.1 build guide](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) for platform setup.
+
+```sh
+git clone https://github.com/damione1/slint-kit.git
+cd slint-kit
+cargo build --release --locked -p kit-showcase
+cargo run --release --locked -p kit-showcase
+```
+
+Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.

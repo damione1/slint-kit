@@ -37,7 +37,18 @@ slint-kit-build = "0.1"
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
-The showcase is a working consumer included in the source repository. From a local checkout, run `cargo run -p kit-showcase`.
+## Build the showcase
+
+The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.
+
+Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.18.1 build guide](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) for platform setup.
+
+```sh
+git clone https://github.com/damione1/slint-kit.git
+cd slint-kit
+cargo build --release --locked -p kit-showcase
+cargo run --release --locked -p kit-showcase
+```
 
 ## Contribute
 

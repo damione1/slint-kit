@@ -98,4 +98,17 @@ Les imports publics passent par `@kit/kit.slint`, ou un module public de famille
 
 Une chaîne Slint est un brouillon éditable. Pour les noms acceptés, montants, dates et choix identifiés par clé, utilisez des newtypes, des enums et les [liaisons typées](/fr/guides/controllers/). Les grandes collections utilisent un modèle et une vue, plutôt qu’une liste de contrôles construite en entier.
 
-Le [code du showcase](https://github.com/damione1/slint-kit/tree/main/showcase) montre une application consommatrice des API publiques. Le code et les ressources incluses sont sous [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE) ; conservez les notices des dépendances.
+## Compiler le showcase
+
+Le showcase est une application fonctionnelle qui présente les composants publics. Compilez-le depuis le dépôt source avec Git et **Rust 1.92+**.
+
+Préparez les dépendances de bureau de votre système : outils de ligne de commande Xcode sur macOS, chaîne Rust MSVC et outils de compilation Visual Studio sur Windows, ou bibliothèques de développement requises sur Linux. Le [guide de compilation de Slint 1.18.1](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) détaille la configuration par plateforme.
+
+```sh
+git clone https://github.com/damione1/slint-kit.git
+cd slint-kit
+cargo build --release --locked -p kit-showcase
+cargo run --release --locked -p kit-showcase
+```
+
+Le code et les ressources incluses sont sous [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE) ; conservez les notices des dépendances.
