@@ -21,5 +21,3 @@ Define domain enums shared by Rust and Slint through `contract_enums!` in `kit-c
 Run `cargo run -p xtask --locked -- check`. For UI changes, exercise the actual interaction and inspect native screenshots in light/dark themes and at 200% text. Report backend, device and accessibility qualification honestly; a passing headless test does not qualify IME or a screen reader.
 
 Keep implementation original and licensed `GPL-3.0-or-later`. Design references inspire behavior and component coverage; they do not authorize copying code or assets. Preserve notices belonging to dependencies.
-
-Planning, internal reviews and specifications belong in the maintainer's Obsidian notes. Keep repository documentation to the public README, contributor instructions and consumption skill unless the user requests additional files.
