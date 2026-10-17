@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitVirtualTextView } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitVirtualTextView example";
+    preferred-width: 620px;
+    preferred-height: 360px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Virtual Text View"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitVirtualTextView { theme: root.theme; height: 230px; generation: 1; lines: [{ token: 101, number: 1, text: "# Field notes", selected: false }, { token: 205, number: 2, text: "A shared space for observations.", selected: true }, { token: 309, number: 3, text: "Keep identities stable as rows move.", selected: false }, { token: 413, number: 4, text: "Use native editing for selected lines.", selected: false }]; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

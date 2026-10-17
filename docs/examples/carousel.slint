@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCarousel, KitTheme, KitThemes, SelectionAvailability } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitCarousel example";
+    preferred-width: 480px;
+    preferred-height: 260px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Carousel"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitCarousel { theme: root.theme; rows: [{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]; state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; activate(token, generation) => { root.status = "Activated stable token " + token; } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

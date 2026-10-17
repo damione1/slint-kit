@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitButtonGroup, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitButtonGroup — exemple";
+    preferred-width: 360px;
+    preferred-height: 160px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Groupe de boutons"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitButtonGroup { KitButton { theme: root.theme; text: "Retour"; activated => { root.status = "Action demandée"; } }KitButton { theme: root.theme; text: "Suivant"; activated => { root.status = "Action demandée"; } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

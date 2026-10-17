@@ -1,0 +1,101 @@
+---
+layout: base.njk
+locale: en
+title: "Getting started"
+translationKey: "guides/getting-started/"
+permalink: /en/guides/getting-started/index.html
+---
+
+# Getting started
+
+Use the source checkout with **Rust 1.92+** and **Slint 1.18.1**.
+
+Applications use Rust edition 2024. The Slint compiler and runtime must match the kit’s versions.
+
+## Create a desktop application
+
+Place `my-app` beside your `slint-kit` checkout. Create `my-app/Cargo.toml` with these dependencies; adjust the paths for another directory layout.
+
+```toml
+[package]
+name = "my-app"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+
+[dependencies]
+kit = { path = "../slint-kit/crates/kit" }
+slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
+
+[build-dependencies]
+kit-build = { path = "../slint-kit/crates/kit-build" }
+```
+
+Create `build.rs` at the application root. `kit-build` registers the `@kit` library and verifies the generated shared contracts before compiling the UI.
+
+```rust
+fn main() {
+    kit_build::compile("ui/app.slint").expect("compile application UI");
+}
+```
+
+Create `ui/app.slint`:
+
+```slint
+import { KitButton, KitTextField } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "Slint Kit";
+    preferred-width: 420px;
+    preferred-height: 240px;
+    in-out property <string> name;
+    callback save(string);
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        KitTextField { label: "Name"; text <=> root.name; }
+        KitButton {
+            text: "Save";
+            activated => { root.save(root.name); }
+        }
+    }
+}
+```
+
+Create `src/main.rs`. The callback receives the current draft when Save is activated; an application should validate that draft before accepting it into its domain state.
+
+```rust
+slint::include_modules!();
+
+fn main() -> Result<(), slint::PlatformError> {
+    let app = App::new()?;
+    app.on_save(|name| println!("Saved: {name}"));
+    app.run()
+}
+```
+
+Run `cargo run` from `my-app`. This configuration uses the **winit backend and Skia renderer**. Preserve an existing compatible backend when integrating into another app.
+
+## Use a documented example
+
+Each [component page](/en/components/) provides a complete `.slint` file and its native screenshot. Copy that file to `ui/app.slint` and keep the same `build.rs`. The reference file exports `Example`; replace the entire contents of `src/main.rs` with this entry point:
+
+```rust
+slint::include_modules!();
+
+fn main() -> Result<(), slint::PlatformError> {
+    Example::new()?.run()
+}
+```
+
+The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/en/guides/native/). For validated editing and interactive selection, see the [typed controller application](/en/guides/typed-example/).
+
+Public imports use `@kit/kit.slint`, or a public family module such as `@kit/button.slint`. Do not depend on private helper components. Pass the same theme into composed controls, preserve intrinsic sizing and choose `ControlWidth.fill` only when the parent requests a stretched control.
+
+## Keep the domain in Rust
+
+A Slint string is an editable draft. For accepted names, money, dates and keyed choices, use domain newtypes, enums and [typed bindings](/en/guides/controllers/). Large collections belong in a model/view, not an eagerly created list of controls.
+
+The [showcase source](https://github.com/damione1/slint-kit/tree/main/showcase) is a consumer application covering the public components. Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.

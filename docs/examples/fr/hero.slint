@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitHero, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitHero — exemple";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Bloc d’introduction"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitHero { theme: root.theme; title: "Faites place aux idées."; description: "Un espace partagé pour votre prochain projet."; KitButton { theme: root.theme; text: "Créer un espace de travail"; activated => { root.status = "Action demandée"; } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

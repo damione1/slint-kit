@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitStack, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitStack — exemple";
+    preferred-width: 480px;
+    preferred-height: 290px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Pile verticale"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitStack { Text { text: "Espace de travail de l’équipe"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; text: "Notes de terrain"; }KitButton { theme: root.theme; text: "Enregistrer le projet"; activated => { root.status = "Action demandée"; } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

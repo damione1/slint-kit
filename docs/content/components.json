@@ -1,0 +1,2060 @@
+{
+  "KitAccordion": {
+    "fr": {
+      "summary": "Ensemble de sections dépliables pilotées par des identités stables.",
+      "usage": "Fournissez des `DisclosureRow` et `state`, puis traitez `expansion-requested(token, generation, expanded, mode)`. Choisissez `ExpansionMode.single`, valeur par défaut, ou `.multiple`.",
+      "behavior": "Le contrôleur applique la politique d’expansion et la navigation entre en-têtes. Les réponses utilisent `row.item.description` et leurs transitions respectent la réduction des animations.",
+      "related": [
+        "KitCollapse"
+      ]
+    },
+    "en": {
+      "summary": "Set of disclosure sections driven by stable identities.",
+      "usage": "Supply `DisclosureRow` values and `state`, then handle `expansion-requested(token, generation, expanded, mode)`. Choose `ExpansionMode.single`, the default, or `.multiple`.",
+      "behavior": "The controller applies expansion policy and header navigation. Answers use `row.item.description`, and transitions respect reduced motion.",
+      "related": [
+        "KitCollapse"
+      ]
+    }
+  },
+  "KitAlert": {
+    "fr": {
+      "summary": "Message contextualisé de résultat, d’information ou d’erreur.",
+      "usage": "Définissez `severity: AlertSeverity.information`, `.success`, `.warning` ou `.error`, avec un titre explicite. Activez `dismissible` et traitez `dismissed` pour retirer le message dans l’état propriétaire.",
+      "behavior": "Le composant ne se ferme pas lui-même. Le rôle accessible utilise une annonce polie, ou assertive pour une erreur, selon la prise en charge réelle du backend.",
+      "related": [
+        "KitToast",
+        "KitFieldError"
+      ]
+    },
+    "en": {
+      "summary": "Contextual message for a result, information or error.",
+      "usage": "Set `severity: AlertSeverity.information`, `.success`, `.warning` or `.error`, with an explicit heading. Enable `dismissible` and handle `dismissed` to remove the message in owning state.",
+      "behavior": "The component does not close itself. Its accessibility role requests a polite announcement, or assertive for errors, subject to actual backend support.",
+      "related": [
+        "KitToast",
+        "KitFieldError"
+      ]
+    }
+  },
+  "KitAppShell": {
+    "fr": {
+      "summary": "Fond de fenêtre organisant les grandes régions d’une application.",
+      "usage": "Placez l’en-tête, le contenu puis le pied de page comme enfants ordinaires. Choisissez quel enfant reçoit la hauteur restante avec son étirement vertical.",
+      "behavior": "Le shell remplit son parent et peint `theme.canvas`. Il ne crée ni navigation ni défilement implicites.",
+      "related": [
+        "KitContainer",
+        "KitScrollArea",
+        "KitFooter"
+      ]
+    },
+    "en": {
+      "summary": "Window background that arranges an application’s main regions.",
+      "usage": "Place header, content and footer as ordinary children. Choose which child consumes remaining height through its vertical stretch.",
+      "behavior": "The shell fills its parent and paints `theme.canvas`. It creates no implicit navigation or scrolling.",
+      "related": [
+        "KitContainer",
+        "KitScrollArea",
+        "KitFooter"
+      ]
+    }
+  },
+  "KitAvatar": {
+    "fr": {
+      "summary": "Représentation d’une personne ou entité par image ou initiales.",
+      "usage": "Fournissez `source`, `initials` de repli et un `accessible-name` décrivant l’entité. Choisissez `AvatarShape.circle`, `.rounded` ou `.square` et la taille souhaitée.",
+      "behavior": "Une image disponible recouvre la surface ; sinon les initiales sont centrées. La taille minimale suit l’échelle typographique et le contenu est découpé selon la forme."
+    },
+    "en": {
+      "summary": "Representation of a person or entity through an image or initials.",
+      "usage": "Supply `source`, fallback `initials` and an `accessible-name` describing the entity. Choose `AvatarShape.circle`, `.rounded` or `.square` and the desired size.",
+      "behavior": "An available image covers the surface; otherwise initials are centered. Minimum size follows text scale and content is clipped to the shape."
+    }
+  },
+  "KitBadge": {
+    "fr": {
+      "summary": "Étiquette non interactive pour une catégorie, un compte ou un état.",
+      "usage": "Définissez `text` et choisissez `Tone.neutral`, `.accent`, `.success`, `.warning` ou `.danger`. Gardez un libellé explicite pour que la signification ne repose pas uniquement sur la couleur.",
+      "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton."
+    },
+    "en": {
+      "summary": "Non-interactive label for a category, count or status.",
+      "usage": "Set `text` and choose `Tone.neutral`, `.accent`, `.success`, `.warning` or `.danger`. Keep an explicit label so meaning does not depend on color alone.",
+      "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior."
+    }
+  },
+  "KitBreadcrumbs": {
+    "fr": {
+      "summary": "Fil d’Ariane reliant les niveaux parents à la position courante.",
+      "usage": "Fournissez les `OptionRow` du niveau racine au niveau courant. Traitez `activate(token, generation)` pour ouvrir une destination parente.",
+      "behavior": "Le dernier élément est un texte courant, sans action ; les éléments précédents restent des boutons nommés. La barre peut défiler horizontalement lorsque le chemin est long."
+    },
+    "en": {
+      "summary": "Breadcrumb trail linking parent levels to the current location.",
+      "usage": "Supply `OptionRow` values from the root level to the current level. Handle `activate(token, generation)` to open a parent destination.",
+      "behavior": "The final item is current-location text without an action; preceding items remain named buttons. The bar can scroll horizontally for long paths."
+    }
+  },
+  "KitButton": {
+    "fr": {
+      "summary": "Bouton avec libellé et indicateur d’activité conservant sa largeur naturelle.",
+      "usage": "Définissez `text` et traitez le callback hérité `activated`. Utilisez `intent` pour la hiérarchie des actions et `control-width: ControlWidth.fill` pour remplir un emplacement.",
+      "behavior": "Le texte fournit le nom accessible lorsque `accessible-name` est vide. `busy` remplace visuellement le libellé sans modifier sa mesure et bloque l’action.",
+      "related": [
+        "KitPressable",
+        "KitFormButton",
+        "KitButtonGroup"
+      ]
+    },
+    "en": {
+      "summary": "Labeled button whose busy indicator preserves its natural width.",
+      "usage": "Set `text` and handle the inherited `activated` callback. Use `intent` for action hierarchy and `control-width: ControlWidth.fill` to fill a slot.",
+      "behavior": "The text supplies the accessible name when `accessible-name` is empty. `busy` visually replaces the label without changing its measurement and blocks activation.",
+      "related": [
+        "KitPressable",
+        "KitFormButton",
+        "KitButtonGroup"
+      ]
+    }
+  },
+  "KitButtonGroup": {
+    "fr": {
+      "summary": "Ligne de boutons apparentés avec un espacement uniforme.",
+      "usage": "Placez les actions dans l’ordre de lecture, par exemple Annuler puis Enregistrer. Chaque enfant choisit sa largeur et son intention.",
+      "behavior": "Le groupe utilise un `HorizontalLayout` aligné au début et conserve une hauteur naturelle. Il ne fusionne ni le focus ni les callbacks des boutons."
+    },
+    "en": {
+      "summary": "Row of related buttons with consistent spacing.",
+      "usage": "Place actions in reading order, such as Cancel followed by Save. Each child chooses its own width and intent.",
+      "behavior": "The group uses a start-aligned `HorizontalLayout` and keeps its natural height. It does not merge button focus or callbacks."
+    }
+  },
+  "KitCalendar": {
+    "fr": {
+      "summary": "Grille de jours navigable alimentée par un modèle de calendrier.",
+      "usage": "Fournissez `days`, `weekdays`, `title` et `active-index` depuis le contrôleur civil. Traitez `navigate(CalendarNavigation)` et `choose(CalendarDay)` pour mettre à jour ce modèle.",
+      "behavior": "Les flèches, Début/Fin et Page précédente/suivante demandent des déplacements typés, avec Maj pour l’année. Les jours désactivés ne sont pas sélectionnables ; le composant ne calcule pas les dates."
+    },
+    "en": {
+      "summary": "Navigable day grid supplied by a calendar model.",
+      "usage": "Provide `days`, `weekdays`, `title` and `active-index` from the civil-date controller. Handle `navigate(CalendarNavigation)` and `choose(CalendarDay)` to update that model.",
+      "behavior": "Arrows, Home/End and Page Up/Down request typed movement, with Shift selecting year movement. Disabled days cannot be chosen; the component does not calculate dates."
+    }
+  },
+  "KitCard": {
+    "fr": {
+      "summary": "Surface de carte pour regrouper une unité de contenu.",
+      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding.",
+      "behavior": "La carte possède une bordure, un fond et une hauteur mesurée à partir du contenu. Elle ne capture pas les clics et ne devient pas une action implicitement.",
+      "related": [
+        "KitCardHeader",
+        "KitCardBody",
+        "KitCardFooter"
+      ]
+    },
+    "en": {
+      "summary": "Card surface for grouping a unit of content.",
+      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer.",
+      "behavior": "The card owns a border, background and content-measured height. It does not capture clicks or implicitly become an action.",
+      "related": [
+        "KitCardHeader",
+        "KitCardBody",
+        "KitCardFooter"
+      ]
+    }
+  },
+  "KitCardBody": {
+    "fr": {
+      "summary": "Colonne de contenu principal à l’intérieur d’une carte.",
+      "usage": "Placez le texte, les champs ou les données comme enfants entre l’en-tête et le pied. Laissez `KitCard` posséder l’inset extérieur.",
+      "behavior": "Le corps applique un espacement de 12 px et une hauteur naturelle. Il n’ajoute ni fond ni bordure supplémentaires."
+    },
+    "en": {
+      "summary": "Main content column within a card.",
+      "usage": "Place text, fields or data as children between header and footer. Let `KitCard` own the outer inset.",
+      "behavior": "The body applies 12 px spacing and natural height. It adds no extra background or border."
+    }
+  },
+  "KitCardFooter": {
+    "fr": {
+      "summary": "Ligne d’actions de carte pouvant se replier sur plusieurs lignes.",
+      "usage": "Placez les boutons, liens ou métadonnées comme enfants après le corps de la carte. Gardez l’ordre de lecture cohérent avec la priorité des actions.",
+      "behavior": "Le pied utilise `FlexboxLayout` avec retour à la ligne et un espacement de 8 px. Il conserve sa hauteur naturelle lorsque la largeur change."
+    },
+    "en": {
+      "summary": "Card action row that can wrap onto multiple lines.",
+      "usage": "Place buttons, links or metadata as children after the card body. Keep reading order consistent with action priority.",
+      "behavior": "The footer uses wrapping `FlexboxLayout` with 8 px spacing. It retains its natural height as width changes."
+    }
+  },
+  "KitCardHeader": {
+    "fr": {
+      "summary": "Titre et description d’une carte avec hiérarchie typographique.",
+      "usage": "Définissez `title` et, si utile, `description`, puis placez l’en-tête en premier dans `KitCard`. Fournissez le thème de la carte.",
+      "behavior": "Le titre et la description reviennent à la ligne à la largeur disponible. Une description vide retire son bloc de texte."
+    },
+    "en": {
+      "summary": "Card heading and description with a typographic hierarchy.",
+      "usage": "Set `title` and, when useful, `description`, then place the header first in `KitCard`. Supply the card’s theme.",
+      "behavior": "Heading and description wrap to available width. An empty description removes its text block."
+    }
+  },
+  "KitCarousel": {
+    "fr": {
+      "summary": "Carrousel manuel présentant l’élément actif et ses actions.",
+      "usage": "Fournissez `rows` et `state` depuis le contrôleur et traitez `navigate` pour changer de diapositive. Définissez `action-label` lorsqu’un élément possède une action principale.",
+      "behavior": "Le titre et la description viennent de l’option active ; les commandes sont désactivées aux extrémités. Une action transmet le token et la génération de l’élément affiché, sans rotation automatique."
+    },
+    "en": {
+      "summary": "Manual carousel presenting the active item and its actions.",
+      "usage": "Supply `rows` and `state` from the controller and handle `navigate` to change slides. Set `action-label` when an item has a primary action.",
+      "behavior": "The heading and description come from the active option; controls disable at the ends. An action carries the displayed item’s token and generation, with no automatic rotation."
+    }
+  },
+  "KitChatBubble": {
+    "fr": {
+      "summary": "Message de conversation avec auteur et métadonnées.",
+      "usage": "Définissez `author`, `text` et `metadata`, puis `ChatSide.start` ou `.end` selon l’origine du message. Composez plusieurs bulles dans une liste adaptée à la taille de l’historique.",
+      "behavior": "Le côté final utilise la couleur d’accent et le côté initial un fond secondaire. Les textes reviennent à la ligne ; aucune gestion de conversation ou de réseau n’est intégrée."
+    },
+    "en": {
+      "summary": "Conversation message with author and metadata.",
+      "usage": "Set `author`, `text` and `metadata`, then choose `ChatSide.start` or `.end` according to message origin. Compose bubbles in a list suited to the history size.",
+      "behavior": "The end side uses the accent color and the start side a secondary background. Text wraps; no conversation or networking logic is included."
+    }
+  },
+  "KitCheckbox": {
+    "fr": {
+      "summary": "Case à cocher contrôlée avec un véritable état mixte.",
+      "usage": "Projetez `CheckState.unchecked`, `.checked` ou `.mixed` et acceptez la demande `toggled(CheckState)` dans le contrôleur. Fournissez `label` et `FieldAccess`.",
+      "behavior": "Une activation demande l’état coché sauf depuis `.checked`, qui demande l’état décoché. L’état mixte reste distinct et la lecture seule permet le focus sans modification.",
+      "related": [
+        "KitSwitch",
+        "KitRadioGroup"
+      ]
+    },
+    "en": {
+      "summary": "Controlled checkbox with a genuine mixed state.",
+      "usage": "Project `CheckState.unchecked`, `.checked` or `.mixed` and accept `toggled(CheckState)` requests in the controller. Supply `label` and `FieldAccess`.",
+      "behavior": "Activation requests checked unless currently `.checked`, which requests unchecked. Mixed remains distinct, and read-only access allows focus without modification.",
+      "related": [
+        "KitSwitch",
+        "KitRadioGroup"
+      ]
+    }
+  },
+  "KitChip": {
+    "fr": {
+      "summary": "Étiquette compacte demandant le retrait d’un élément identifié.",
+      "usage": "Fournissez `chip: ChipRow` et traitez `remove-requested(token)` dans le modèle propriétaire. Réglez `chip.removable` selon les droits de retrait.",
+      "behavior": "Le token est capturé au début de l’appui et un changement de puce annule cet appui. Une puce non supprimable désactive l’action.",
+      "related": [
+        "KitButton"
+      ]
+    },
+    "en": {
+      "summary": "Compact label that requests removal of an identified item.",
+      "usage": "Supply `chip: ChipRow` and handle `remove-requested(token)` in the owning model. Set `chip.removable` to match removal permissions.",
+      "behavior": "The token is captured when pressing begins, and changing the chip cancels that press. A non-removable chip disables the action.",
+      "related": [
+        "KitButton"
+      ]
+    }
+  },
+  "KitCollapse": {
+    "fr": {
+      "summary": "Bloc dépliable pour un contenu arbitraire conservé dans l’arbre visuel.",
+      "usage": "Fournissez `title` et `expanded`, puis acceptez `expansion-requested(bool)` dans votre état. Placez le contenu à déplier dans les enfants.",
+      "behavior": "Le corps reste monté pendant l’animation de hauteur et est masqué lorsqu’il est replié. `theme.reduced-motion` supprime la durée de transition.",
+      "related": [
+        "KitAccordion"
+      ]
+    },
+    "en": {
+      "summary": "Disclosure block for arbitrary content retained in the visual tree.",
+      "usage": "Supply `title` and `expanded`, then acknowledge `expansion-requested(bool)` in your state. Place the disclosure content in its children.",
+      "behavior": "The body stays mounted during the height animation and is hidden when collapsed. `theme.reduced-motion` removes transition duration.",
+      "related": [
+        "KitAccordion"
+      ]
+    }
+  },
+  "KitColorField": {
+    "fr": {
+      "summary": "Champ hexadécimal sRGB avec nuancier et sélecteur contextuel.",
+      "usage": "Liez `text` au brouillon, `accepted-color` à la projection validée et `swatch` à sa couleur de rendu. Choisissez `ColorAlphaMode.opaque` ou `.editable` et traitez les demandes textuelles ou `color-requested`.",
+      "behavior": "Le sélecteur ouvre un brouillon local depuis la couleur acceptée ; l’application n’accepte que la demande finale. Les canaux de `SrgbColorView` sont des octets sRGB, sans conversion implicite HSL ou RGB linéaire.",
+      "related": [
+        "KitColorPicker"
+      ]
+    },
+    "en": {
+      "summary": "sRGB hexadecimal field with a swatch and popup picker.",
+      "usage": "Bind `text` to the draft, `accepted-color` to the validated projection and `swatch` to its rendered color. Choose `ColorAlphaMode.opaque` or `.editable` and handle text requests or `color-requested`.",
+      "behavior": "The picker opens a local draft from the accepted color; the application accepts only the final request. `SrgbColorView` channels are sRGB bytes, without implicit HSL or linear RGB conversion.",
+      "related": [
+        "KitColorPicker"
+      ]
+    }
+  },
+  "KitColorPicker": {
+    "fr": {
+      "summary": "Éditeur sRGB combinant l’hexadécimal, les canaux textuels et leurs curseurs.",
+      "usage": "Fournissez les brouillons `hex-text`, `red-text`, `green-text`, `blue-text` et, si nécessaire, `alpha-text`. Reliez les callbacks de chaque `ColorChannel` au contrôleur de couleur.",
+      "behavior": "Les positions flottantes des curseurs sont des projections des octets acceptés. `gesture-started`, `committed` et `cancelled` permettent au contrôleur de gérer une modification réversible ; l’alpha est visible en mode `.editable`."
+    },
+    "en": {
+      "summary": "sRGB editor combining hexadecimal text, channel text and sliders.",
+      "usage": "Supply `hex-text`, `red-text`, `green-text`, `blue-text` and, when needed, `alpha-text` drafts. Connect each `ColorChannel` callback to the color controller.",
+      "behavior": "Floating-point slider positions are projections of accepted bytes. `gesture-started`, `committed` and `cancelled` let the controller manage reversible edits; alpha is visible in `.editable` mode."
+    }
+  },
+  "KitCombobox": {
+    "fr": {
+      "summary": "Recherche d’options avec choix stable et état de recherche explicite.",
+      "usage": "Liez `query`, fournissez `selected-label`, `rows` et `state`, puis traitez `query-edited` dans le moteur de recherche. Projetez `SearchPresentation.idle`, `.loading`, `.ready` ou `.failed` et `status-text`.",
+      "behavior": "La popup possède un seul éditeur de recherche natif et virtualise ses options. La requête et le choix accepté restent séparés ; en lecture seule le libellé retenu est un texte natif sélectionnable.",
+      "related": [
+        "KitSelect",
+        "KitMultiSelect"
+      ]
+    },
+    "en": {
+      "summary": "Option search with stable selection and explicit search status.",
+      "usage": "Bind `query`, provide `selected-label`, `rows` and `state`, then handle `query-edited` in the search engine. Project `SearchPresentation.idle`, `.loading`, `.ready` or `.failed` and `status-text`.",
+      "behavior": "The popup owns one native search editor and virtualizes options. Query and accepted selection remain separate; in read-only mode the chosen label is selectable native text.",
+      "related": [
+        "KitSelect",
+        "KitMultiSelect"
+      ]
+    }
+  },
+  "KitContainer": {
+    "fr": {
+      "summary": "Colonne centrée qui borne la largeur de lecture dans l’espace disponible.",
+      "usage": "Choisissez `ContentWidth.reading`, `.standard`, `.wide` ou `.fluid`, puis `gutter` et `gap` avec `LayoutSpace`. Donnez une largeur finie au parent.",
+      "behavior": "La limite de contenu ne devient pas une largeur minimale du conteneur. `available-width` expose la largeur réelle de la colonne, qui garde sa hauteur naturelle.",
+      "related": [
+        "KitStack",
+        "KitSection",
+        "KitScrollArea"
+      ]
+    },
+    "en": {
+      "summary": "Centered column that limits reading width within available space.",
+      "usage": "Choose `ContentWidth.reading`, `.standard`, `.wide` or `.fluid`, then `gutter` and `gap` using `LayoutSpace`. Give the parent a finite width.",
+      "behavior": "The content limit does not become the container’s minimum width. `available-width` exposes the column’s actual width, while its height remains natural.",
+      "related": [
+        "KitStack",
+        "KitSection",
+        "KitScrollArea"
+      ]
+    }
+  },
+  "KitContentList": {
+    "fr": {
+      "summary": "Liste virtualisée de contenus avec titre, extrait, métadonnées et vignette.",
+      "usage": "Fournissez un modèle de `ContentItem`, une `generation` et `active-index`. Traitez `activate(token, generation)` pour ouvrir le contenu et `navigate` pour déplacer l’élément actif.",
+      "behavior": "Les lignes utilisent une hauteur bornée et ne matérialisent que le viewport. La sélection et la désactivation viennent du modèle ; l’index actif sert à la géométrie, jamais à l’identité métier."
+    },
+    "en": {
+      "summary": "Virtualized content list with headings, excerpts, metadata and thumbnails.",
+      "usage": "Supply a `ContentItem` model, a `generation` and `active-index`. Handle `activate(token, generation)` to open content and `navigate` to move the active item.",
+      "behavior": "Rows use a bounded height and materialize only the viewport. Selection and disabled state come from the model; the active index serves geometry, never domain identity."
+    }
+  },
+  "KitDataTable": {
+    "fr": {
+      "summary": "Tableau de données avec lignes virtualisées et tri demandé au contrôleur.",
+      "usage": "Fournissez `columns`, `rows`, `generation` et `active-index` depuis un modèle à identités stables. Traitez `sort-requested(column-token)`, `navigate` et `activate(row-token, generation)`.",
+      "behavior": "Les en-têtes présentent `DataSortDirection.unsorted`, `.ascending` ou `.descending`, sans trier localement. Le viewport reste fini, les colonnes peuvent défiler horizontalement et `reveal-active()` rend la ligne active visible.",
+      "related": [
+        "KitContentList",
+        "KitVirtualTextView"
+      ]
+    },
+    "en": {
+      "summary": "Data table with virtualized rows and controller-requested sorting.",
+      "usage": "Supply `columns`, `rows`, `generation` and `active-index` from a stable-identity model. Handle `sort-requested(column-token)`, `navigate` and `activate(row-token, generation)`.",
+      "behavior": "Headers present `DataSortDirection.unsorted`, `.ascending` or `.descending` without sorting locally. The viewport stays finite, columns can scroll horizontally, and `reveal-active()` shows the active row.",
+      "related": [
+        "KitContentList",
+        "KitVirtualTextView"
+      ]
+    }
+  },
+  "KitDateField": {
+    "fr": {
+      "summary": "Champ natif de date civile sans fuseau horaire.",
+      "usage": "Liez `text` au brouillon et projetez la valeur validée dans `accepted-date: CivilDateView`. Analysez et acceptez les dates dans le contrôleur via les callbacks hérités.",
+      "behavior": "Le format indicatif est `YYYY-MM-DD` et une `error` non vide présente l’état invalide. Le champ ne convertit pas une date civile en instant.",
+      "related": [
+        "KitDatePicker",
+        "KitDateTimeField"
+      ]
+    },
+    "en": {
+      "summary": "Native civil-date field without a time zone.",
+      "usage": "Bind `text` to the draft and project the validated value through `accepted-date: CivilDateView`. Parse and accept dates in the controller through inherited callbacks.",
+      "behavior": "The format hint is `YYYY-MM-DD`, and a nonempty `error` presents an invalid state. The field does not convert a civil date into an instant.",
+      "related": [
+        "KitDatePicker",
+        "KitDateTimeField"
+      ]
+    }
+  },
+  "KitDatePicker": {
+    "fr": {
+      "summary": "Champ de date civile avec calendrier contextuel.",
+      "usage": "Partagez le brouillon `text`, la date acceptée et le modèle de jours avec le contrôleur. Traitez les callbacks textuels et `choose` pour accepter une date atomiquement.",
+      "behavior": "Ouvrir `open` garde l’éditeur monté et émet `opened`. Une sélection ferme le calendrier ; sa fermeture rend le focus au champ sans réécrire le brouillon.",
+      "related": [
+        "KitCalendar",
+        "KitDateRangePicker"
+      ]
+    },
+    "en": {
+      "summary": "Civil-date field with a popup calendar.",
+      "usage": "Share draft `text`, the accepted date and the day model with the controller. Handle text callbacks and `choose` to accept a date atomically.",
+      "behavior": "Opening `open` keeps the editor mounted and emits `opened`. Choosing a day closes the calendar; closing returns focus to the field without rewriting the draft.",
+      "related": [
+        "KitCalendar",
+        "KitDateRangePicker"
+      ]
+    }
+  },
+  "KitDateRangePicker": {
+    "fr": {
+      "summary": "Calendrier de période avec sélection provisoire puis application explicite.",
+      "usage": "Projetez `DateRangePhase.choosing-start`, `.choosing-end` ou `.complete` et les jours du contrôleur de période. Traitez `choose`, `apply-requested` et `cancelled` pour distinguer le brouillon de la période acceptée.",
+      "behavior": "Appliquer est disponible uniquement pour une phase complète, modifiable et sans erreur. Le contrôleur doit refuser les dates inversées ou périodes interdites sans les normaliser silencieusement."
+    },
+    "en": {
+      "summary": "Range calendar with provisional selection and explicit application.",
+      "usage": "Project `DateRangePhase.choosing-start`, `.choosing-end` or `.complete` and days from the range controller. Handle `choose`, `apply-requested` and `cancelled` to distinguish the draft from the accepted range.",
+      "behavior": "Apply is available only for a complete, editable phase without an error. The controller must reject reversed dates or forbidden periods without silently normalizing them."
+    }
+  },
+  "KitDateTimeField": {
+    "fr": {
+      "summary": "Deux éditeurs natifs composant un seul brouillon de date et heure locales.",
+      "usage": "Liez `date-text` et `time-text` et fournissez `accepted-value: LocalDateTimeView`. Traitez `edited` et `commit-requested` avec leur charge utile `LocalDateTimeDraft`.",
+      "behavior": "Chaque demande transporte les deux textes afin que le contrôleur les accepte ensemble. `date-error` et `time-error` présentent les erreurs sans accepter une moitié de valeur.",
+      "related": [
+        "KitZonedDateTimeField",
+        "KitDateField",
+        "KitTimeField"
+      ]
+    },
+    "en": {
+      "summary": "Two native editors composing one local date-and-time draft.",
+      "usage": "Bind `date-text` and `time-text` and supply `accepted-value: LocalDateTimeView`. Handle `edited` and `commit-requested` with their `LocalDateTimeDraft` payload.",
+      "behavior": "Each request carries both texts so the controller can accept them together. `date-error` and `time-error` present failures without accepting half a value.",
+      "related": [
+        "KitZonedDateTimeField",
+        "KitDateField",
+        "KitTimeField"
+      ]
+    }
+  },
+  "KitDecimalField": {
+    "fr": {
+      "summary": "Champ de brouillon décimal destiné à une valeur exacte.",
+      "usage": "Associez les callbacks hérités à un contrôleur utilisant `DecimalValue` et une politique de locale explicite. Gardez le brouillon dans `text`, y compris pendant une saisie incomplète.",
+      "behavior": "Il hérite de `KitIntegerField` comme présentation texte sans convertir en flottant. L’échelle, l’arrondi et les bornes sont des décisions du domaine.",
+      "related": [
+        "KitIntegerField",
+        "KitMoneyField",
+        "KitNumberStepper"
+      ]
+    },
+    "en": {
+      "summary": "Decimal draft field intended for an exact value.",
+      "usage": "Connect inherited callbacks to a controller using `DecimalValue` and an explicit locale policy. Keep the draft in `text`, including while input is incomplete.",
+      "behavior": "It inherits `KitIntegerField` as a text presentation without floating-point conversion. Scale, rounding and bounds are domain decisions.",
+      "related": [
+        "KitIntegerField",
+        "KitMoneyField",
+        "KitNumberStepper"
+      ]
+    }
+  },
+  "KitDialogBody": {
+    "fr": {
+      "summary": "Emplacement vertical pour le contenu principal d’un dialogue.",
+      "usage": "Ajoutez des messages, champs ou contenus dans ses enfants et composez-le entre l’en-tête et le pied. Enregistrez les contrôles interactifs dans le registre de focus modal.",
+      "behavior": "Il fournit une hauteur minimale de 48 px et un espacement de 12 px. Il n’ajoute pas de défilement implicite ; prévoyez un viewport si le contenu peut dépasser."
+    },
+    "en": {
+      "summary": "Vertical slot for a dialog’s main content.",
+      "usage": "Add messages, fields or content as children and compose it between header and footer. Register interactive controls with the modal focus registry.",
+      "behavior": "It provides a 48 px minimum height and 12 px spacing. It adds no implicit scrolling; allocate a viewport if content can overflow."
+    }
+  },
+  "KitDialogFooter": {
+    "fr": {
+      "summary": "Emplacement de fin pour les actions d’un dialogue.",
+      "usage": "Placez les boutons dans l’ordre de lecture et reliez leurs actions au contrôleur du dialogue. Utilisez `busy` ou `disabled` sur les actions pendant une opération.",
+      "behavior": "La ligne est alignée à la fin avec un espacement de 8 px et une hauteur minimale de 48 px. Le pied ne ferme pas automatiquement la modale."
+    },
+    "en": {
+      "summary": "Trailing slot for dialog actions.",
+      "usage": "Place buttons in reading order and connect their actions to the dialog controller. Use `busy` or `disabled` on actions during an operation.",
+      "behavior": "The row aligns to the end with 8 px spacing and a 48 px minimum height. The footer does not automatically close the modal."
+    }
+  },
+  "KitDialogHeader": {
+    "fr": {
+      "summary": "Emplacement horizontal pour l’en-tête d’un dialogue.",
+      "usage": "Placez un titre et, si nécessaire, une action de fermeture comme enfants. Composez-le dans la colonne de `KitDialogPanel`.",
+      "behavior": "Il garantit une hauteur minimale de 32 px et un espacement de 12 px. Le nom accessible du dialogue doit être défini sur le panneau."
+    },
+    "en": {
+      "summary": "Horizontal slot for a dialog header.",
+      "usage": "Place a heading and, when needed, a close action in its children. Compose it in the `KitDialogPanel` column.",
+      "behavior": "It provides a 32 px minimum height and 12 px spacing. The dialog’s accessible name should be set on the panel."
+    }
+  },
+  "KitDialogPanel": {
+    "fr": {
+      "summary": "Surface de contenu d’un dialogue nommée pour l’accessibilité.",
+      "usage": "Placez-la dans `KitDialogSurface` et définissez sa géométrie, son `accessible-name` et sa description. Composez en-tête, corps et pied dans une mise en page enfant.",
+      "behavior": "Elle peint une surface surélevée et consomme les clics qui atteindraient le voile. Elle ne décide ni du placement ni de la politique de fermeture du dialogue.",
+      "related": [
+        "KitDialogHeader",
+        "KitDialogBody",
+        "KitDialogFooter"
+      ]
+    },
+    "en": {
+      "summary": "Dialog content surface with an accessible name.",
+      "usage": "Place it inside `KitDialogSurface` and set its geometry, `accessible-name` and description. Compose header, body and footer in a child layout.",
+      "behavior": "It paints a raised surface and consumes clicks that would reach the backdrop. It decides neither dialog placement nor close policy.",
+      "related": [
+        "KitDialogHeader",
+        "KitDialogBody",
+        "KitDialogFooter"
+      ]
+    }
+  },
+  "KitDialogSurface": {
+    "fr": {
+      "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Placez un `KitDialogPanel` dans ses enfants et reliez `focus-next(bool)` au registre des cibles réelles.",
+      "behavior": "Seule la modale `topmost` traite Échap et le parcours Tab ; `busy` bloque la fermeture. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé.",
+      "related": [
+        "KitDialogPanel",
+        "KitFocusTarget",
+        "KitDrawer"
+      ]
+    },
+    "en": {
+      "summary": "Modal host managing the scrim, close requests and focus traversal.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. Place a `KitDialogPanel` in its children and connect `focus-next(bool)` to the registry of actual targets.",
+      "behavior": "Only the `topmost` modal handles Escape and Tab traversal; `busy` prevents closing. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled.",
+      "related": [
+        "KitDialogPanel",
+        "KitFocusTarget",
+        "KitDrawer"
+      ]
+    }
+  },
+  "KitDirectoryPicker": {
+    "fr": {
+      "summary": "Sélecteur de dossier avec état de requête et action d’effacement.",
+      "usage": "Traitez `browse-requested` avec le service hôte et présentez le résultat dans `selected-name`. Traitez séparément `clear-requested` pour retirer le choix accepté.",
+      "behavior": "Le contrôle distingue les présentations `pending`, `cancelled`, `failed` et `unsupported` via `request-state`. Le dossier reste une valeur détenue par l’application ; la vue n’ouvre pas le dialogue elle-même."
+    },
+    "en": {
+      "summary": "Directory picker with request state and a clear action.",
+      "usage": "Handle `browse-requested` through the host service and present its result in `selected-name`. Handle `clear-requested` separately to remove the accepted choice.",
+      "behavior": "The control distinguishes `pending`, `cancelled`, `failed` and `unsupported` presentations through `request-state`. The application owns the directory value; the view does not open a dialog itself."
+    }
+  },
+  "KitDivider": {
+    "fr": {
+      "summary": "Séparation horizontale avec un libellé facultatif au centre.",
+      "usage": "Utilisez `label` pour nommer une séparation, par exemple entre deux méthodes de connexion. Laissez la chaîne vide pour un simple trait.",
+      "behavior": "Les lignes utilisent `border-subtle` et le libellé garde sa largeur naturelle. Le conteneur parent décide de l’espacement avant et après la séparation."
+    },
+    "en": {
+      "summary": "Horizontal separator with an optional central label.",
+      "usage": "Use `label` to name a division, such as between two sign-in methods. Leave it empty for a plain rule.",
+      "behavior": "Lines use `border-subtle` and the label keeps its natural width. The parent decides spacing before and after the separator."
+    }
+  },
+  "KitDrawer": {
+    "fr": {
+      "summary": "Panneau modal latéral borné à la largeur de sa fenêtre hôte.",
+      "usage": "Montez-le à la racine de la fenêtre après le contenu défilant et donnez-lui tout le viewport. Connectez les callbacks hérités `dismiss` et `focus-next`, puis `restore-focus`, à la pile de modales et au registre de focus.",
+      "behavior": "Le panneau est ancré au bord final et borne `panel-width` à la largeur disponible. L’ouverture place le focus sur Fermer ; l’hôte doit enregistrer les champs et restaurer l’ouvreur exact à la fermeture.",
+      "related": [
+        "KitDialogSurface",
+        "KitFocusTarget"
+      ]
+    },
+    "en": {
+      "summary": "Side modal panel bounded by its host window’s width.",
+      "usage": "Mount it at the window root after scrolling content and give it the full viewport. Connect inherited `dismiss` and `focus-next`, then `restore-focus`, to the modal stack and focus registry.",
+      "behavior": "The panel anchors to the trailing edge and bounds `panel-width` by available width. Opening focuses Close; the host must register fields and restore the exact opener on closure.",
+      "related": [
+        "KitDialogSurface",
+        "KitFocusTarget"
+      ]
+    }
+  },
+  "KitDurationField": {
+    "fr": {
+      "summary": "Champ décimal pour une durée exprimée dans une unité explicite.",
+      "usage": "Nommez l’unité canonique dans `suffix`, par exemple secondes ou minutes. Faites valider la durée exacte par le contrôleur à partir des callbacks hérités.",
+      "behavior": "Il n’interprète pas une horloge ni une chaîne heures-minutes. Le brouillon reste un texte décimal et le domaine décide de la précision et des valeurs admises.",
+      "related": [
+        "KitDecimalField"
+      ]
+    },
+    "en": {
+      "summary": "Decimal field for a duration expressed in an explicit unit.",
+      "usage": "Name the canonical unit in `suffix`, such as seconds or minutes. Have the controller validate the exact duration through inherited callbacks.",
+      "behavior": "It does not interpret a clock or an hours-and-minutes string. The draft stays decimal text and the domain decides precision and allowed values.",
+      "related": [
+        "KitDecimalField"
+      ]
+    }
+  },
+  "KitEmailField": {
+    "fr": {
+      "summary": "Champ natif présentant un brouillon d’adresse électronique.",
+      "usage": "Utilisez les callbacks hérités pour transmettre le texte au validateur d’adresse de l’application. Fournissez un libellé et un message d’erreur précis.",
+      "behavior": "Il fixe `purpose: TextPurpose.email` et désactive par défaut les aides réservées au texte courant. Le type de présentation ne valide pas l’adresse et ne réécrit pas le brouillon.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field presenting an email address draft.",
+      "usage": "Use inherited callbacks to pass text to the application’s address validator. Supply a label and a precise error message.",
+      "behavior": "It sets `purpose: TextPurpose.email` and defaults away from prose-oriented input hints. The presentation purpose does not validate the address or rewrite its draft.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitEmptyState": {
+    "fr": {
+      "summary": "Présentation d’une collection vide avec explication et contenu d’action libre.",
+      "usage": "Fournissez `title` et `description` pour expliquer la situation, puis ajoutez une action utile comme enfant. Distinguez une absence de résultats d’un chargement ou d’une erreur dans l’état de l’application.",
+      "behavior": "Les textes reviennent à la ligne et le composant mesure sa hauteur depuis le contenu. Il ne décide pas quand une collection est vide."
+    },
+    "en": {
+      "summary": "Presentation for an empty collection with explanation and free action content.",
+      "usage": "Supply `title` and `description` to explain the situation, then add a useful action as a child. Distinguish no results from loading or failure in application state.",
+      "behavior": "Text wraps and the component measures height from content. It does not decide when a collection is empty."
+    }
+  },
+  "KitField": {
+    "fr": {
+      "summary": "Colonne élémentaire associant le libellé, l’éditeur et ses messages.",
+      "usage": "Composez `KitFieldLabel`, un contrôle et `KitFieldDescription` ou `KitFieldError` dans cet ordre. Utilisez `KitFieldGroup` entre plusieurs champs.",
+      "behavior": "Le composant applique l’espacement d’aide du kit et garde sa hauteur naturelle. Il ne possède ni valeur ni état de validation.",
+      "related": [
+        "KitFieldLabel",
+        "KitFieldDescription",
+        "KitFieldError"
+      ]
+    },
+    "en": {
+      "summary": "Basic column that groups a label, editor and supporting messages.",
+      "usage": "Compose `KitFieldLabel`, a control and `KitFieldDescription` or `KitFieldError` in that order. Use `KitFieldGroup` between multiple fields.",
+      "behavior": "It applies the kit’s help spacing and keeps its natural height. It owns no value or validation state.",
+      "related": [
+        "KitFieldLabel",
+        "KitFieldDescription",
+        "KitFieldError"
+      ]
+    }
+  },
+  "KitFieldDescription": {
+    "fr": {
+      "summary": "Texte d’aide secondaire destiné à un champ.",
+      "usage": "Placez-le sous l’éditeur dans `KitField` et définissez sa propriété héritée `text`. Réservez son contenu aux instructions persistantes ou au format attendu.",
+      "behavior": "Il utilise la typographie de légende et revient à la ligne. Son affichage ne change pas l’état de validation du champ."
+    },
+    "en": {
+      "summary": "Secondary help text for a field.",
+      "usage": "Place it below the editor inside `KitField` and set its inherited `text` property. Use it for persistent instructions or the expected format.",
+      "behavior": "It uses caption typography and wraps. Showing it does not change the field’s validation state."
+    }
+  },
+  "KitFieldError": {
+    "fr": {
+      "summary": "Message d’erreur visuel avec annonce accessible polie.",
+      "usage": "Placez-le près du champ concerné et fournissez un message décrivant comment corriger la valeur. Pilotez sa présence depuis le résultat de validation du contrôleur.",
+      "behavior": "Il hérite de `KitFieldDescription` et utilise la couleur `danger`. Sa région dynamique est `polite` ; l’annonce effective dépend du backend et des technologies d’assistance.",
+      "related": [
+        "KitFieldDescription"
+      ]
+    },
+    "en": {
+      "summary": "Visual error message with a polite accessibility announcement.",
+      "usage": "Place it near the affected field and supply a message explaining how to correct the value. Control its presence from the controller’s validation result.",
+      "behavior": "It inherits `KitFieldDescription` and uses the `danger` color. Its live region is `polite`; actual announcements depend on the backend and assistive technology.",
+      "related": [
+        "KitFieldDescription"
+      ]
+    }
+  },
+  "KitFieldGroup": {
+    "fr": {
+      "summary": "Colonne qui espace plusieurs champs de formulaire.",
+      "usage": "Ajoutez des `KitTextField`, des sélecteurs ou des `KitField` personnalisés comme enfants. Utilisez `KitFieldSet` lorsqu’un groupe a besoin d’une légende sémantique.",
+      "behavior": "L’espacement est celui des champs complets, plus large que l’espacement d’aide interne. Le groupe conserve la hauteur de ses enfants sans gérer leur validation."
+    },
+    "en": {
+      "summary": "Column that spaces complete form fields.",
+      "usage": "Add `KitTextField`, selectors or custom `KitField` children. Use `KitFieldSet` when a group needs a semantic legend.",
+      "behavior": "Its spacing is intended for complete fields and is larger than internal help spacing. It keeps its children’s natural height without managing their validation."
+    }
+  },
+  "KitFieldLabel": {
+    "fr": {
+      "summary": "Libellé cliquable pouvant demander le focus de son éditeur.",
+      "usage": "Définissez `text` et reliez `focus-requested` à la fonction `take-focus()` du contrôle. Partagez le même `FieldAccess` avec l’éditeur.",
+      "behavior": "Le texte revient à la ligne et suit l’échelle typographique. `FieldAccess.disabled` atténue le libellé et empêche la demande de focus."
+    },
+    "en": {
+      "summary": "Clickable field label that can request focus for its editor.",
+      "usage": "Set `text` and connect `focus-requested` to the control’s `take-focus()` function. Share the editor’s `FieldAccess` value.",
+      "behavior": "The text wraps and follows the text scale. `FieldAccess.disabled` dims the label and prevents focus requests."
+    }
+  },
+  "KitFieldSeparator": {
+    "fr": {
+      "summary": "Trait discret séparant des groupes dans un formulaire.",
+      "usage": "Insérez-le entre des sections de `KitFieldGroup` lorsque la structure a besoin d’une séparation visuelle. Fournissez le même `theme` que les champs voisins.",
+      "behavior": "La ligne mesure un pixel et utilise `border-subtle`. Elle n’ajoute ni titre ni espacement vertical de section."
+    },
+    "en": {
+      "summary": "Subtle rule separating groups within a form.",
+      "usage": "Insert it between sections of `KitFieldGroup` when the structure needs a visual separator. Supply the same `theme` as adjacent fields.",
+      "behavior": "The line is one pixel high and uses `border-subtle`. It adds neither a heading nor section spacing."
+    }
+  },
+  "KitFieldSet": {
+    "fr": {
+      "summary": "Groupe de formulaire nommé par une légende visible et accessible.",
+      "usage": "Définissez `legend` et ajoutez les champs apparentés comme enfants. Utilisez-le pour une adresse, un ensemble de préférences ou une section métier cohérente.",
+      "behavior": "La légende alimente le nom du rôle accessible `groupbox`. Les enfants restent dans une colonne avec l’espacement des champs."
+    },
+    "en": {
+      "summary": "Form group named by a visible and accessible legend.",
+      "usage": "Set `legend` and add related fields as children. Use it for an address, a preference group or a coherent domain section.",
+      "behavior": "The legend supplies the accessible `groupbox` name. Children remain in a column with field spacing."
+    }
+  },
+  "KitFileDropZone": {
+    "fr": {
+      "summary": "Zone de dépôt de fichiers activée par une capacité réelle de l’hôte.",
+      "usage": "Définissez `DropCapability.available` uniquement après vérification du backend. Vérifiez les formats dans `can-drop(DropEvent)` et résolvez les données natives de manière asynchrone dans `dropped`.",
+      "behavior": "Les deux callbacks retournent un `DragAction` explicite. En mode `.unsupported`, la zone explique l’alternative ; les événements de pointeur seuls ne prouvent pas la prise en charge du dépôt externe.",
+      "related": [
+        "KitFilePicker",
+        "KitFileList"
+      ]
+    },
+    "en": {
+      "summary": "File drop target enabled by an actual host capability.",
+      "usage": "Set `DropCapability.available` only after checking the backend. Inspect formats in `can-drop(DropEvent)` and resolve native data asynchronously in `dropped`.",
+      "behavior": "Both callbacks return an explicit `DragAction`. In `.unsupported` mode the zone explains the alternative; pointer events alone do not establish external drop support.",
+      "related": [
+        "KitFilePicker",
+        "KitFileList"
+      ]
+    }
+  },
+  "KitFileList": {
+    "fr": {
+      "summary": "Liste de fichiers avec noms, détails et suppression par identité stable.",
+      "usage": "Fournissez des `FileViewEntry` et traitez `remove-requested(token, generation)`. Utilisez `removable` et `FieldAccess` pour refléter les droits de suppression.",
+      "behavior": "L’identité est capturée au début de l’appui et un changement d’entrée annule l’appui. Les actions sont bloquées en lecture seule ou lorsque l’entrée n’est pas supprimable."
+    },
+    "en": {
+      "summary": "File list with names, details and removal by stable identity.",
+      "usage": "Supply `FileViewEntry` values and handle `remove-requested(token, generation)`. Use `removable` and `FieldAccess` to reflect removal permissions.",
+      "behavior": "Identity is captured when pressing begins, and changing an entry cancels the press. Actions are blocked in read-only mode or when an entry is not removable."
+    }
+  },
+  "KitFilePicker": {
+    "fr": {
+      "summary": "Sélecteur de fichiers présentant une demande native et les fichiers retenus.",
+      "usage": "Choisissez `FileSelectionMode.single` ou `.multiple` et traitez `browse-requested` avec le service hôte asynchrone. Projetez `request-state`, `entries` et les erreurs après chaque résultat.",
+      "behavior": "`HostRequestPresentation.pending` rend le bouton occupé ; `.unsupported` le désactive et explique l’indisponibilité. Les suppressions transmettent token et génération, sans utiliser l’index de ligne.",
+      "related": [
+        "KitFileList",
+        "KitFileDropZone",
+        "KitDirectoryPicker"
+      ]
+    },
+    "en": {
+      "summary": "File picker presenting a native request and selected files.",
+      "usage": "Choose `FileSelectionMode.single` or `.multiple` and handle `browse-requested` with the asynchronous host service. Project `request-state`, `entries` and errors after each outcome.",
+      "behavior": "`HostRequestPresentation.pending` makes the button busy; `.unsupported` disables it and explains unavailability. Removals carry token and generation instead of a row index.",
+      "related": [
+        "KitFileList",
+        "KitFileDropZone",
+        "KitDirectoryPicker"
+      ]
+    }
+  },
+  "KitFocusTarget": {
+    "fr": {
+      "summary": "Pont entre une cible visuelle réelle et les requêtes du registre de focus.",
+      "usage": "Attribuez un `token` stable et une `generation`, puis enregistrez la cible côté hôte après création de la fenêtre. Reliez `focus-requested` au `take-focus()` du vrai contrôle et transmettez les observations au registre.",
+      "behavior": "Une `FocusRequest` ne s’applique que si le token, la génération et l’éligibilité correspondent, une seule fois par identifiant de demande. Une cible recyclée doit changer de génération ; `focus-applied` confirme la demande traitée.",
+      "related": [
+        "KitFormErrorSummary",
+        "KitDialogSurface"
+      ]
+    },
+    "en": {
+      "summary": "Bridge between an actual visual target and focus-registry requests.",
+      "usage": "Assign a stable `token` and `generation`, then register the target on the host after window creation. Connect `focus-requested` to the actual control’s `take-focus()` and forward observations to the registry.",
+      "behavior": "A `FocusRequest` applies only when token, generation and eligibility match, once per request identifier. A recycled target must change generation; `focus-applied` acknowledges the processed request.",
+      "related": [
+        "KitFormErrorSummary",
+        "KitDialogSurface"
+      ]
+    }
+  },
+  "KitFooter": {
+    "fr": {
+      "summary": "Région de pied de page pour les informations secondaires d’une application.",
+      "usage": "Placez mentions, liens ou actions secondaires comme enfants. Composez-la en dernier dans `KitAppShell` et fournissez le même thème.",
+      "behavior": "Le composant expose le rôle accessible `content-info` et utilise le fond `canvas`. Sa colonne possède une marge verticale interne et s’adapte à son contenu."
+    },
+    "en": {
+      "summary": "Footer region for secondary application information.",
+      "usage": "Place notices, links or secondary actions in its children. Compose it last in `KitAppShell` and supply the same theme.",
+      "behavior": "It exposes the accessible `content-info` role and uses the `canvas` background. Its column owns vertical inset and adapts to content."
+    }
+  },
+  "KitFormButton": {
+    "fr": {
+      "summary": "Bouton qui transmet une intention de formulaire typée.",
+      "usage": "Définissez `action` avec `FormAction.submit` ou `.reset` et traitez `form-action`. Construisez la charge utile métier dans votre contrôleur.",
+      "behavior": "L’activation émet l’intention courante sans soumettre ni réinitialiser les champs elle-même. Les états `busy` et `disabled` viennent de `KitButton`.",
+      "related": [
+        "KitButton"
+      ]
+    },
+    "en": {
+      "summary": "Button that emits a typed form intent.",
+      "usage": "Set `action` to `FormAction.submit` or `.reset` and handle `form-action`. Build the domain payload in your controller.",
+      "behavior": "Activation emits the current intent without submitting or resetting fields itself. `busy` and `disabled` come from `KitButton`.",
+      "related": [
+        "KitButton"
+      ]
+    }
+  },
+  "KitFormErrorSummary": {
+    "fr": {
+      "summary": "Liste d’erreurs permettant d’atteindre les champs concernés.",
+      "usage": "Fournissez des `FormErrorRow` avec un message et un `FocusRequest` valide. Transmettez `error-activated` au registre de focus de la fenêtre.",
+      "behavior": "Le titre affiche le nombre d’erreurs et chaque message devient une action clavier. La cible conserve son token et sa génération, indépendamment de la position du message.",
+      "related": [
+        "KitFocusTarget",
+        "KitFieldError"
+      ]
+    },
+    "en": {
+      "summary": "Error list that lets users reach affected fields.",
+      "usage": "Supply `FormErrorRow` values containing a message and a valid `FocusRequest`. Forward `error-activated` to the window’s focus registry.",
+      "behavior": "The heading shows the error count and each message becomes a keyboard action. Its target keeps its token and generation regardless of message position.",
+      "related": [
+        "KitFocusTarget",
+        "KitFieldError"
+      ]
+    }
+  },
+  "KitGrid": {
+    "fr": {
+      "summary": "Grille utilisant directement les règles publiques de placement de Slint.",
+      "usage": "Déclarez les `Row`, colonnes et extensions de cellule au point d’utilisation. Réglez `gap` et `inset` pour adopter l’espacement du kit.",
+      "behavior": "Le composant hérite de `GridLayout` et conserve une hauteur naturelle. Il ne redistribue pas automatiquement des enfants opaques dans des colonnes."
+    },
+    "en": {
+      "summary": "Grid using Slint’s public placement rules directly.",
+      "usage": "Declare `Row`, columns and cell spans at the use site. Set `gap` and `inset` to use kit spacing.",
+      "behavior": "It inherits `GridLayout` and keeps a natural height. It does not automatically redistribute opaque children into columns."
+    }
+  },
+  "KitHero": {
+    "fr": {
+      "summary": "Bloc d’introduction visuelle avec titre, description et contenu libre.",
+      "usage": "Définissez `title`, `description`, puis ajoutez une action ou un contenu complémentaire comme enfants. Réglez `inset` et `gap` avec `LayoutSpace`.",
+      "behavior": "Le titre utilise une typographie plus grande et les textes reviennent à la ligne. Le fond et les coins arrondis appartiennent au composant, qui garde une hauteur naturelle."
+    },
+    "en": {
+      "summary": "Prominent introduction block with heading, description and free content.",
+      "usage": "Set `title` and `description`, then add an action or supporting content as children. Adjust `inset` and `gap` with `LayoutSpace`.",
+      "behavior": "The heading uses larger typography and text wraps. The component owns its background and rounded corners while retaining natural height."
+    }
+  },
+  "KitIcon": {
+    "fr": {
+      "summary": "Icône vectorielle originale choisie dans un ensemble typé.",
+      "usage": "Définissez `kind: IconKind.check` et `ink` à partir de la couleur sémantique du thème. Pour une action sans texte, utilisez `KitIconButton` avec un nom accessible.",
+      "behavior": "Les tracés partagent une grille de 16 unités et se redimensionnent comme un `Path` Slint. L’icône seule ne fournit ni interaction ni nom d’action.",
+      "related": [
+        "KitIconButton"
+      ]
+    },
+    "en": {
+      "summary": "Original vector icon selected from a typed set.",
+      "usage": "Set `kind: IconKind.check` and `ink` from the theme’s semantic color. For an action without text, use `KitIconButton` with an accessible name.",
+      "behavior": "Paths share a 16-unit grid and scale as a Slint `Path`. An icon alone provides neither interaction nor an action name.",
+      "related": [
+        "KitIconButton"
+      ]
+    }
+  },
+  "KitIconButton": {
+    "fr": {
+      "summary": "Bouton carré présentant une icône pour une action compacte.",
+      "usage": "Choisissez `icon: IconKind.check` et fournissez toujours un `accessible-name` décrivant l’action. Traitez `activated` comme pour `KitPressable`.",
+      "behavior": "La recette adapte les dimensions à `control-size` et conserve les états de focus, de survol et de désactivation hérités. L’icône n’ajoute pas de cible clavier distincte.",
+      "related": [
+        "KitPressable"
+      ]
+    },
+    "en": {
+      "summary": "Square icon button for a compact action.",
+      "usage": "Choose `icon: IconKind.check` and always supply an `accessible-name` describing the action. Handle `activated` as with `KitPressable`.",
+      "behavior": "Its recipe sizes the button from `control-size` and preserves inherited focus, hover and disabled states. The icon adds no separate keyboard target.",
+      "related": [
+        "KitPressable"
+      ]
+    }
+  },
+  "KitInline": {
+    "fr": {
+      "summary": "Ligne unique pour des contrôles et contenus adjacents.",
+      "usage": "Choisissez `gap`, `inset` et l’alignement hérité du `HorizontalLayout`. Définissez l’étirement horizontal des enfants qui doivent absorber l’espace.",
+      "behavior": "La ligne conserve une hauteur naturelle et ne revient pas à la ligne. Utilisez `KitWrap` lorsque les enfants doivent se redistribuer sur plusieurs lignes.",
+      "related": [
+        "KitWrap",
+        "KitStack"
+      ]
+    },
+    "en": {
+      "summary": "Single row for adjacent controls and content.",
+      "usage": "Choose `gap`, `inset` and the inherited `HorizontalLayout` alignment. Set horizontal stretch on children that should consume extra space.",
+      "behavior": "The row keeps a natural height and does not wrap. Use `KitWrap` when children should reflow onto multiple lines.",
+      "related": [
+        "KitWrap",
+        "KitStack"
+      ]
+    }
+  },
+  "KitInputGroup": {
+    "fr": {
+      "summary": "Surface de saisie commune aux éditeurs et à leurs éléments adjacents.",
+      "usage": "Placez un éditeur natif et ses préfixes ou actions dans une mise en page enfant unique. Projetez `access`, `validation` et `focused` depuis le contrôle composé.",
+      "behavior": "La surface possède le fond, la bordure, l’inset et l’anneau de focus, sans créer d’éditeur ni de cible clavier. `ValidationPresentation.invalid` colore la bordure en erreur.",
+      "related": [
+        "KitInputGroupStart",
+        "KitInputGroupEnd",
+        "KitInputGroupText"
+      ]
+    },
+    "en": {
+      "summary": "Shared input surface for editors and their adjoining content.",
+      "usage": "Place a native editor and its prefixes or actions in one child layout. Project `access`, `validation` and `focused` from the composed control.",
+      "behavior": "The surface owns the background, border, inset and focus ring without creating an editor or keyboard target. `ValidationPresentation.invalid` colors the border as an error.",
+      "related": [
+        "KitInputGroupStart",
+        "KitInputGroupEnd",
+        "KitInputGroupText"
+      ]
+    }
+  },
+  "KitInputGroupEnd": {
+    "fr": {
+      "summary": "Emplacement horizontal pour les éléments placés après un éditeur.",
+      "usage": "Ajoutez un suffixe ou une action explicite à côté de l’éditeur dans `KitInputGroup`. Une action interactive doit garder son propre nom accessible.",
+      "behavior": "Il aligne ses enfants à la fin et garde une largeur naturelle. Il n’ajoute pas une seconde surface de saisie."
+    },
+    "en": {
+      "summary": "Horizontal slot for content after an editor.",
+      "usage": "Add a suffix or explicit action next to the editor inside `KitInputGroup`. Interactive actions should keep their own accessible names.",
+      "behavior": "It aligns children to the end and keeps a natural width. It does not add a second input surface."
+    }
+  },
+  "KitInputGroupStart": {
+    "fr": {
+      "summary": "Emplacement horizontal pour les éléments placés avant un éditeur.",
+      "usage": "Composez-le à côté du vrai éditeur dans `KitInputGroup`, avec une icône ou `KitInputGroupText`. Laissez l’éditeur recevoir l’espace restant.",
+      "behavior": "Il aligne ses enfants au début et ne s’étire pas horizontalement. Il n’ajoute ni bordure ni padding ni cible de focus."
+    },
+    "en": {
+      "summary": "Horizontal slot for content before an editor.",
+      "usage": "Compose it next to the actual editor inside `KitInputGroup`, with an icon or `KitInputGroupText`. Let the editor consume the remaining space.",
+      "behavior": "It aligns children to the start and does not stretch horizontally. It adds no border, padding or focus target."
+    }
+  },
+  "KitInputGroupText": {
+    "fr": {
+      "summary": "Texte secondaire aligné avec le contenu d’une saisie.",
+      "usage": "Définissez `text` pour afficher une unité, un préfixe ou un suffixe dans `KitInputGroupStart` ou `KitInputGroupEnd`. Gardez la valeur éditable dans l’éditeur natif.",
+      "behavior": "Le texte utilise la typographie des contrôles et se centre verticalement. Il conserve une largeur naturelle sans devenir un champ indépendant."
+    },
+    "en": {
+      "summary": "Secondary text aligned with input content.",
+      "usage": "Set `text` to show a unit, prefix or suffix in `KitInputGroupStart` or `KitInputGroupEnd`. Keep the editable value in the native editor.",
+      "behavior": "It uses control typography and centers vertically. It keeps a natural width without becoming an independent field."
+    }
+  },
+  "KitIntegerField": {
+    "fr": {
+      "summary": "Éditeur natif pour un brouillon de nombre entier.",
+      "usage": "Liez `text` au brouillon et confiez l’analyse, les bornes et l’acceptation à un contrôleur typé. Utilisez les callbacks hérités `edited` et `commit-requested`.",
+      "behavior": "L’éditeur reste textuel pour conserver les signes et valeurs incomplètes. Les suggestions de texte courant sont désactivées ; aucun entier n’est déduit silencieusement du texte.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native editor for an integer draft.",
+      "usage": "Bind `text` to the draft and delegate parsing, bounds and acceptance to a typed controller. Use the inherited `edited` and `commit-requested` callbacks.",
+      "behavior": "The editor remains textual to preserve signs and incomplete values. Prose suggestions are disabled; no integer is silently inferred from text.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitIsoWeekField": {
+    "fr": {
+      "summary": "Champ natif pour une semaine selon le calendrier ISO.",
+      "usage": "Liez `text` et fournissez `accepted-week-year` et `accepted-week` depuis le contrôleur ISO. Distinguez l’année de semaine ISO de l’année civile dans les traitements métier.",
+      "behavior": "L’indication de format est `YYYY-Www`. Les combinaisons d’année et de semaine sont validées hors de la vue, qui conserve les brouillons incomplets.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field for an ISO calendar week.",
+      "usage": "Bind `text` and provide `accepted-week-year` and `accepted-week` from the ISO controller. Keep ISO week year distinct from civil year in domain logic.",
+      "behavior": "The format hint is `YYYY-Www`. Year-and-week combinations are validated outside the view, which preserves incomplete drafts.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitMaskedField": {
+    "fr": {
+      "summary": "Champ de texte pour un brouillon contrôlé par un masque métier.",
+      "usage": "Transmettez `edited` au masque compilé du cœur et acceptez la valeur avec le contrôleur. Laissez les séparateurs ordinaires dans le texte éditable.",
+      "behavior": "Le composant désactive les suggestions de texte courant sans réécrire le brouillon pendant la composition. Les règles du masque et les erreurs appartiennent au contrôleur.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Text field for a draft governed by a domain mask.",
+      "usage": "Pass `edited` to the core’s compiled mask and accept the value through the controller. Leave ordinary separators in editable text.",
+      "behavior": "It disables prose suggestions without rewriting the draft during composition. Mask rules and errors belong to the controller.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitMenu": {
+    "fr": {
+      "summary": "Menu vertical à options virtualisées et navigation contrôlée.",
+      "usage": "Fournissez `rows` et `state`, puis relayez `navigate`, `activate`, `dismiss` et `typeahead` au contrôleur. Donnez un `accessible-name` décrivant l’ensemble des actions.",
+      "behavior": "Le menu garde une cible clavier commune et révèle l’option active. La sélection, le saut des options désactivées et la recherche incrémentale restent dans le contrôleur.",
+      "related": [
+        "KitMenuBar",
+        "KitTabs"
+      ]
+    },
+    "en": {
+      "summary": "Vertical menu with virtualized options and controlled navigation.",
+      "usage": "Provide `rows` and `state`, then forward `navigate`, `activate`, `dismiss` and `typeahead` to the controller. Supply an `accessible-name` describing the action set.",
+      "behavior": "The menu keeps a shared keyboard target and reveals the active option. Selection, disabled-option skipping and typeahead remain in the controller.",
+      "related": [
+        "KitMenuBar",
+        "KitTabs"
+      ]
+    }
+  },
+  "KitMenuBar": {
+    "fr": {
+      "summary": "Barre horizontale d’actions de navigation à identité stable.",
+      "usage": "Fournissez `OptionRow` et `SelectState` depuis le contrôleur et acceptez les activations par token et génération. Utilisez-la pour une rangée d’actions ou de destinations.",
+      "behavior": "Les flèches gauche et droite demandent les étapes précédente et suivante. Le défilement horizontal révèle l’élément actif lorsque la barre dépasse sa largeur disponible."
+    },
+    "en": {
+      "summary": "Horizontal bar of stable-identity navigation actions.",
+      "usage": "Supply `OptionRow` and `SelectState` from the controller and acknowledge activations by token and generation. Use it for a row of actions or destinations.",
+      "behavior": "Left and right arrows request previous and next steps. Horizontal scrolling reveals the active item when the bar exceeds available width."
+    }
+  },
+  "KitMoneyField": {
+    "fr": {
+      "summary": "Éditeur de montant monétaire séparant le brouillon de la valeur acceptée.",
+      "usage": "Utilisez un contrôleur fondé sur `Money`, avec devise, locale et arrondi explicites. Affichez la devise via `prefix`, `suffix` ou le libellé selon votre présentation.",
+      "behavior": "Il hérite du champ décimal et ne choisit aucune devise ni conversion. Les montants restent exacts dans Rust ; `text` est uniquement le brouillon natif.",
+      "related": [
+        "KitDecimalField",
+        "KitNumberStepper"
+      ]
+    },
+    "en": {
+      "summary": "Money editor that separates the draft from its accepted value.",
+      "usage": "Use a controller based on `Money`, with explicit currency, locale and rounding. Show the currency through `prefix`, `suffix` or the label as appropriate.",
+      "behavior": "It inherits the decimal field and chooses no currency or conversion. Amounts remain exact in Rust; `text` is only the native draft.",
+      "related": [
+        "KitDecimalField",
+        "KitNumberStepper"
+      ]
+    }
+  },
+  "KitMonthField": {
+    "fr": {
+      "summary": "Champ natif pour un mois d’une année civile.",
+      "usage": "Liez le brouillon `text` et projetez `accepted-year` et `accepted-month` depuis une valeur validée. Utilisez les callbacks de `KitTextField` pour l’analyse et la validation.",
+      "behavior": "L’indication de format est `YYYY-MM`. Une erreur non vide présente le champ comme invalide sans modifier son texte.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field for a month within a civil year.",
+      "usage": "Bind draft `text` and project `accepted-year` and `accepted-month` from a validated value. Use `KitTextField` callbacks for parsing and acceptance.",
+      "behavior": "The format hint is `YYYY-MM`. A nonempty error presents an invalid field without modifying its text.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitMultiSelect": {
+    "fr": {
+      "summary": "Sélecteur multiple combinant une recherche et les choix retenus en puces.",
+      "usage": "Fournissez les options `rows`, les `chips` sélectionnées et le `SelectState` du contrôleur. Traitez séparément `activate(token, generation)` et `remove-requested(token)`.",
+      "behavior": "La requête ne remplace pas l’ensemble des choix acceptés. En lecture seule, les valeurs sont présentées dans des champs natifs sélectionnables et les modifications sont bloquées.",
+      "related": [
+        "KitCombobox",
+        "KitTagInput",
+        "KitChip"
+      ]
+    },
+    "en": {
+      "summary": "Multiple selector combining search with selected-choice chips.",
+      "usage": "Supply option `rows`, selected `chips` and the controller’s `SelectState`. Handle `activate(token, generation)` separately from `remove-requested(token)`.",
+      "behavior": "The query does not replace the accepted choice set. In read-only mode values appear in selectable native fields and changes are blocked.",
+      "related": [
+        "KitCombobox",
+        "KitTagInput",
+        "KitChip"
+      ]
+    }
+  },
+  "KitNavigationAction": {
+    "fr": {
+      "summary": "Action de navigation libellée fondée sur une option à identité stable.",
+      "usage": "Fournissez `option-data`, `active` et `selected`, puis traitez le callback hérité `activate(token, generation)`. Réservez `trailing-space` lorsqu’un indicateur accompagne le libellé.",
+      "behavior": "La ligne hérite de la capture d’identité et de l’annulation des appuis de `KitOption`. Le texte s’aligne selon `control-width` et tronque les libellés trop longs.",
+      "related": [
+        "KitOption"
+      ]
+    },
+    "en": {
+      "summary": "Labeled navigation action built on a stable-identity option.",
+      "usage": "Supply `option-data`, `active` and `selected`, then handle inherited `activate(token, generation)`. Reserve `trailing-space` when an indicator accompanies the label.",
+      "behavior": "The row inherits `KitOption` identity capture and press cancellation. Text alignment follows `control-width`, and overlong labels are elided.",
+      "related": [
+        "KitOption"
+      ]
+    }
+  },
+  "KitNotificationButton": {
+    "fr": {
+      "summary": "Déclencheur de notifications avec nombre de messages non lus.",
+      "usage": "Fournissez `unread-count` et un `label` localisé, puis traitez le callback hérité `activated`. Reliez l’action à l’ouverture du panneau ou de la popup de notifications.",
+      "behavior": "Le texte calculé et le nom accessible incluent le compte lorsqu’il est positif. Le bouton garde les interactions et états de `KitPressable`.",
+      "related": [
+        "KitNotificationCenter"
+      ]
+    },
+    "en": {
+      "summary": "Notification trigger showing an unread-message count.",
+      "usage": "Supply `unread-count` and a localized `label`, then handle inherited `activated`. Connect the action to opening the notification panel or popup.",
+      "behavior": "The computed text and accessible name include the count when positive. The button retains `KitPressable` interactions and states.",
+      "related": [
+        "KitNotificationCenter"
+      ]
+    }
+  },
+  "KitNotificationCenter": {
+    "fr": {
+      "summary": "Liste de notifications avec aperçu, lecture et retrait par identité stable.",
+      "usage": "Fournissez des `NotificationRow` et acceptez `activate`, `mark-read` et `dismiss-row` par token et génération. Gardez le placement de la popup et les libellés `mark-read-label` et `read-label` stables pendant l’ouverture.",
+      "behavior": "Le retrait bloque les actions puis émet la demande après un fondu de 150 ms, supprimé en mouvement réduit ; changer d’identité annule le retrait en attente. Les grandes collections utilisent une liste virtualisée et `focus-token` avec `focus-request` permet de retrouver un aperçu.",
+      "related": [
+        "KitNotificationButton",
+        "KitDrawer"
+      ]
+    },
+    "en": {
+      "summary": "Notification list with preview, read and removal actions by stable identity.",
+      "usage": "Supply `NotificationRow` values and acknowledge `activate`, `mark-read` and `dismiss-row` by token and generation. Keep popup placement and `mark-read-label` and `read-label` stable during an open session.",
+      "behavior": "Removal disables actions and emits the request after a 150 ms fade, omitted with reduced motion; changing identity cancels pending removal. Large collections use a virtualized list, and `focus-token` with `focus-request` can focus a preview.",
+      "related": [
+        "KitNotificationButton",
+        "KitDrawer"
+      ]
+    }
+  },
+  "KitNumberStepper": {
+    "fr": {
+      "summary": "Champ numérique avec actions d’incrémentation et de décrémentation.",
+      "usage": "Liez `text` au brouillon et traitez `step-requested(StepDirection)` dans le même contrôleur exact que la saisie. Projetez les limites avec `can-increment` et `can-decrement`.",
+      "behavior": "Les boutons demandent `StepDirection.increment` ou `.decrement` sans calcul local de montant. `FieldAccess.read-only` conserve le texte consultable et désactive les actions.",
+      "related": [
+        "KitField"
+      ]
+    },
+    "en": {
+      "summary": "Numeric field with increment and decrement actions.",
+      "usage": "Bind `text` to the draft and handle `step-requested(StepDirection)` in the same exact-value controller as text input. Project limits through `can-increment` and `can-decrement`.",
+      "behavior": "Buttons request `StepDirection.increment` or `.decrement` without local amount arithmetic. `FieldAccess.read-only` keeps text available and disables the actions.",
+      "related": [
+        "KitField"
+      ]
+    }
+  },
+  "KitOption": {
+    "fr": {
+      "summary": "Ligne d’option personnalisable avec capture de l’identité au début de l’appui.",
+      "usage": "Fournissez `option-data: OptionRow`, puis `active` et `selected` depuis le contrôleur. Ajoutez un contenu visuel et traitez `activate(token, generation)`.",
+      "behavior": "L’option garde `tab-stop: false` pour laisser le composite gérer le clavier. Changer `option-data` annule l’appui afin qu’une ligne recyclée ne déclenche pas une autre identité.",
+      "related": [
+        "KitSelectSurface",
+        "KitNavigationAction"
+      ]
+    },
+    "en": {
+      "summary": "Customizable option row that captures identity when pressing begins.",
+      "usage": "Supply `option-data: OptionRow`, then `active` and `selected` from the controller. Add visual content and handle `activate(token, generation)`.",
+      "behavior": "The option keeps `tab-stop: false` so the composite can manage keyboard focus. Changing `option-data` cancels the press so a recycled row cannot activate another identity.",
+      "related": [
+        "KitSelectSurface",
+        "KitNavigationAction"
+      ]
+    }
+  },
+  "KitOtpField": {
+    "fr": {
+      "summary": "Champ de code à usage unique conservant un éditeur natif unique.",
+      "usage": "Liez le brouillon et utilisez les parseurs `OtpLength` et `OtpAlphabet` du cœur pour vérifier le code complet. Choisissez un libellé décrivant le code attendu.",
+      "behavior": "L’espacement des caractères et le centrage sont visuels ; ils ne créent pas une case par caractère. Le collage, la sélection et l’annulation restent ceux du champ natif.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "One-time code field that retains one native editor.",
+      "usage": "Bind the draft and use the core `OtpLength` and `OtpAlphabet` parsers to validate the complete code. Choose a label describing the expected code.",
+      "behavior": "Character spacing and centering are visual; they do not create a box per character. Paste, selection and undo remain native editor behavior.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitPagination": {
+    "fr": {
+      "summary": "Commandes précédente et suivante pour une collection paginée.",
+      "usage": "Projetez `page-index` à partir de zéro et `page-count` depuis un contrôleur validé. Traitez `navigate(NavigationStep.previous)` et `.next` pour charger ou afficher la page.",
+      "behavior": "Le compteur visible commence à un et affiche `0 / 0` pour une collection vide. Les boutons sont bloqués aux limites ; la vue ne charge pas elle-même les données distantes."
+    },
+    "en": {
+      "summary": "Previous and next controls for a paged collection.",
+      "usage": "Project zero-based `page-index` and `page-count` from a validated controller. Handle `navigate(NavigationStep.previous)` and `.next` to load or display a page.",
+      "behavior": "The visible counter starts at one and shows `0 / 0` for an empty collection. Buttons disable at the limits; the view does not fetch remote data itself."
+    }
+  },
+  "KitPasswordField": {
+    "fr": {
+      "summary": "Champ de mot de passe avec bascule de visibilité.",
+      "usage": "Liez `text` au brouillon et personnalisez `reveal-label` et `hide-label` selon la langue. Utilisez `secret-visibility` pour piloter `SecretVisibility.hidden` ou `.revealed`.",
+      "behavior": "Il préconfigure `TextPurpose.password` et garde le même éditeur lorsque la visibilité change. Les callbacks de brouillon et de validation sont hérités de `KitTextField`.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Password field with a visibility toggle.",
+      "usage": "Bind `text` to the draft and localize `reveal-label` and `hide-label`. Use `secret-visibility` to control `SecretVisibility.hidden` or `.revealed`.",
+      "behavior": "It presets `TextPurpose.password` and keeps the same editor when visibility changes. Draft and commit callbacks are inherited from `KitTextField`.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitPercentField": {
+    "fr": {
+      "summary": "Champ décimal présentant un pourcentage avec son symbole.",
+      "usage": "Liez `text` à un contrôleur de pourcentage et rendez explicite la convention métier, par exemple 25 pour 25 %. Traitez la validation avec les callbacks hérités.",
+      "behavior": "Le suffixe par défaut est `%`. Le composant ne divise pas la valeur par cent et ne change pas sa précision.",
+      "related": [
+        "KitDecimalField"
+      ]
+    },
+    "en": {
+      "summary": "Decimal field presenting a percentage with its symbol.",
+      "usage": "Bind `text` to a percentage controller and make the domain convention explicit, such as 25 for 25%. Handle validation through inherited callbacks.",
+      "behavior": "The default suffix is `%`. The component does not divide the value by one hundred or alter its precision.",
+      "related": [
+        "KitDecimalField"
+      ]
+    }
+  },
+  "KitPressable": {
+    "fr": {
+      "summary": "Primitive d’action qui centralise le pointeur, le clavier et le focus pour vos boutons personnalisés.",
+      "usage": "Placez du contenu non interactif dans ses enfants et donnez-lui un `accessible-name`. Choisissez `ButtonIntent`, `ControlSize` et `ControlWidth.intrinsic` ou `.fill`, ou fournissez une `recipe`.",
+      "behavior": "`activated` signale une action acceptée ; `disabled` et `busy` empêchent son déclenchement. Entrée agit à l’appui, Espace au relâchement et `cancel-press()` annule un appui en cours.",
+      "related": [
+        "KitButton",
+        "KitIconButton",
+        "KitSelectTrigger"
+      ]
+    },
+    "en": {
+      "summary": "Action primitive that coordinates pointer, keyboard and focus for custom buttons.",
+      "usage": "Place non-interactive content in its children and supply an `accessible-name`. Choose `ButtonIntent`, `ControlSize` and `ControlWidth.intrinsic` or `.fill`, or provide a `recipe`.",
+      "behavior": "`activated` reports an accepted action; `disabled` and `busy` prevent activation. Enter activates on press, Space on release, and `cancel-press()` cancels an armed interaction.",
+      "related": [
+        "KitButton",
+        "KitIconButton",
+        "KitSelectTrigger"
+      ]
+    }
+  },
+  "KitProgress": {
+    "fr": {
+      "summary": "Barre de progression déterminée exprimée par une fraction.",
+      "usage": "Projetez l’avancement dans `value` entre 0 et 1 et fournissez un `label` contextualisé. Conservez les compteurs exacts et le calcul de la fraction dans le contrôleur.",
+      "behavior": "`bounded-value` borne le rendu à l’intervalle et le pourcentage accessible est arrondi. Le composant n’anime pas une progression fictive et ne gère pas la tâche.",
+      "related": [
+        "KitRadialProgress",
+        "KitSpinner"
+      ]
+    },
+    "en": {
+      "summary": "Determinate progress bar expressed as a fraction.",
+      "usage": "Project progress through `value` from 0 to 1 and supply a contextual `label`. Keep exact counters and fraction calculation in the controller.",
+      "behavior": "`bounded-value` clamps rendering to the interval and the accessible percentage is rounded. The component neither animates invented progress nor manages the task.",
+      "related": [
+        "KitRadialProgress",
+        "KitSpinner"
+      ]
+    }
+  },
+  "KitQuantityField": {
+    "fr": {
+      "summary": "Champ décimal pour une quantité accompagnée d’une unité métier.",
+      "usage": "Définissez le libellé et, si nécessaire, `suffix` pour l’unité. Confiez précision, bornes et validation au contrôleur de quantité.",
+      "behavior": "Il conserve le comportement natif de `KitDecimalField`. Il n’applique aucune conversion d’unité et ne transforme pas le brouillon en flottant.",
+      "related": [
+        "KitDecimalField"
+      ]
+    },
+    "en": {
+      "summary": "Decimal field for a quantity with a domain unit.",
+      "usage": "Set a label and, when needed, `suffix` for the unit. Delegate precision, bounds and validation to the quantity controller.",
+      "behavior": "It preserves `KitDecimalField` native behavior. It performs no unit conversion and does not turn the draft into a float.",
+      "related": [
+        "KitDecimalField"
+      ]
+    }
+  },
+  "KitRadialProgress": {
+    "fr": {
+      "summary": "Indicateur circulaire de progression avec pourcentage central.",
+      "usage": "Fournissez `value` entre 0 et 1 et un `label` décrivant la tâche suivie. Utilisez-le lorsque la présentation circulaire convient mieux qu’une barre.",
+      "behavior": "Comme `KitProgress`, il expose `bounded-value` et un rôle de progression de 0 à 100. Le pourcentage affiché est une projection arrondie de l’état fourni."
+    },
+    "en": {
+      "summary": "Circular progress indicator with a central percentage.",
+      "usage": "Supply `value` from 0 to 1 and a `label` describing the tracked task. Use it when a circular presentation suits the layout better than a bar.",
+      "behavior": "Like `KitProgress`, it exposes `bounded-value` and a progress role from 0 to 100. The displayed percentage is a rounded projection of supplied state."
+    }
+  },
+  "KitRadioGroup": {
+    "fr": {
+      "summary": "Groupe de choix exclusifs avec une cible clavier commune.",
+      "usage": "Fournissez des `ChoiceRow`, une `generation` et `active-token`, puis traitez `navigate` et `activate(token, generation)`. Choisissez `ChoiceDirection.horizontal` ou `.vertical` et la politique `ChoiceFlow`.",
+      "behavior": "La sélection vient de `ChoiceRow.selected`, indépendamment du token actif. Le contrôleur applique l’exclusivité et les règles de navigation, tandis que les lignes conservent leurs identités.",
+      "related": [
+        "KitSegmentedControl",
+        "KitToggleGroup"
+      ]
+    },
+    "en": {
+      "summary": "Exclusive choice group with a shared keyboard target.",
+      "usage": "Supply `ChoiceRow` values, a `generation` and `active-token`, then handle `navigate` and `activate(token, generation)`. Choose `ChoiceDirection.horizontal` or `.vertical` and the `ChoiceFlow` policy.",
+      "behavior": "Selection comes from `ChoiceRow.selected`, independently of the active token. The controller applies exclusivity and navigation rules while rows retain their identities.",
+      "related": [
+        "KitSegmentedControl",
+        "KitToggleGroup"
+      ]
+    }
+  },
+  "KitRangeSlider": {
+    "fr": {
+      "summary": "Curseur à deux poignées pour une plage contrôlée.",
+      "usage": "Projetez `lower-position`, `upper-position` et leurs libellés depuis une plage validée. Traitez les callbacks avec `RangeThumb.lower` ou `.upper` pour préserver l’identité de la poignée.",
+      "behavior": "Chaque poignée dispose d’un focus clavier et transmet les mêmes étapes de navigation typées. Le contrôleur impose l’ordre des bornes et restaure la plage lors d’une annulation."
+    },
+    "en": {
+      "summary": "Two-thumb slider for a controlled range.",
+      "usage": "Project `lower-position`, `upper-position` and their labels from a validated range. Handle callbacks with `RangeThumb.lower` or `.upper` to preserve thumb identity.",
+      "behavior": "Each thumb has keyboard focus and emits typed navigation steps. The controller enforces endpoint order and restores the range on cancellation."
+    }
+  },
+  "KitRating": {
+    "fr": {
+      "summary": "Choix d’une note avec action explicite d’effacement.",
+      "usage": "Fournissez `scores: [ChoiceRow]`, `generation` et `active-token` depuis le contrôleur de notation. Traitez `choose(token, generation)` et `clear-requested` séparément.",
+      "behavior": "La présentation compose `KitSegmentedControl` et une action d’effacement. L’absence de note reste une décision explicite du domaine, distincte de la première note."
+    },
+    "en": {
+      "summary": "Score selection with an explicit clear action.",
+      "usage": "Supply `scores: [ChoiceRow]`, `generation` and `active-token` from the rating controller. Handle `choose(token, generation)` separately from `clear-requested`.",
+      "behavior": "The presentation composes `KitSegmentedControl` and a clear action. No rating remains an explicit domain state, distinct from the first score."
+    }
+  },
+  "KitResetButton": {
+    "fr": {
+      "summary": "Bouton discret préconfiguré pour demander la réinitialisation d’un formulaire.",
+      "usage": "Fournissez un libellé explicite et traitez `form-action(FormAction.reset)` dans le contrôleur. Réinitialisez ensemble les valeurs, brouillons et erreurs selon la politique de l’application.",
+      "behavior": "Il conserve les interactions de `KitButton` avec `intent: ButtonIntent.quiet`. Le callback exprime une demande ; il ne modifie pas directement les champs.",
+      "related": [
+        "KitFormButton"
+      ]
+    },
+    "en": {
+      "summary": "Quiet button preset for requesting a form reset.",
+      "usage": "Supply an explicit label and handle `form-action(FormAction.reset)` in the controller. Reset values, drafts and errors together according to application policy.",
+      "behavior": "It keeps `KitButton` interactions with `intent: ButtonIntent.quiet`. The callback expresses a request and does not directly modify fields.",
+      "related": [
+        "KitFormButton"
+      ]
+    }
+  },
+  "KitScrollArea": {
+    "fr": {
+      "summary": "Zone de défilement vertical pour une colonne de contenu.",
+      "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible et `scroll-to-start()` pour revenir au début.",
+      "behavior": "La colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Ce conteneur ne virtualise pas ses enfants."
+    },
+    "en": {
+      "summary": "Vertical scrolling area for a content column.",
+      "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region and `scroll-to-start()` to return to the beginning.",
+      "behavior": "The column follows the visible width and grows vertically; horizontal scrolling is disabled. This container does not virtualize its children."
+    }
+  },
+  "KitSearchField": {
+    "fr": {
+      "summary": "Champ de recherche avec action d’effacement intégrée.",
+      "usage": "Traitez `edited` pour filtrer ou lancer une recherche et `commit-requested` pour une recherche explicite. Personnalisez `clear-label` et conservez la requête dans `text`.",
+      "behavior": "Il préconfigure `TextPurpose.search`. L’action d’effacement émet `edited(\"\")` et rend le focus à l’éditeur ; elle est bloquée en lecture seule.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Search field with a built-in clear action.",
+      "usage": "Handle `edited` to filter or start a search and `commit-requested` for explicit searching. Localize `clear-label` and keep the query in `text`.",
+      "behavior": "It presets `TextPurpose.search`. Clearing emits `edited(\"\")` and returns focus to the editor; the action is blocked in read-only mode.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitSection": {
+    "fr": {
+      "summary": "Section de contenu avec titre et description facultative.",
+      "usage": "Définissez `title` et `description`, puis placez le contenu comme enfants. Réglez `gap` pour espacer l’introduction et le contenu.",
+      "behavior": "Les textes reviennent à la ligne et suivent `theme.text-scale`. Les chaînes vides n’ajoutent pas de bloc de texte."
+    },
+    "en": {
+      "summary": "Content section with a heading and optional description.",
+      "usage": "Set `title` and `description`, then place content in its children. Adjust `gap` to space the introduction and content.",
+      "behavior": "Text wraps and follows `theme.text-scale`. Empty strings do not add text blocks."
+    }
+  },
+  "KitSegmentedControl": {
+    "fr": {
+      "summary": "Choix exclusif compact présenté sous forme de segments.",
+      "usage": "Fournissez les `ChoiceRow`, `generation` et `active-token` du contrôleur. Relayez `navigate` et `activate` et choisissez `ChoiceFlow.left-to-right` ou `.right-to-left` pour la navigation.",
+      "behavior": "Les segments sélectionnés utilisent l’intention principale et exposent un rôle radio. Le focus commun et la sélection contrôlée restent distincts ; les libellés peuvent revenir à la ligne.",
+      "related": [
+        "KitRadioGroup",
+        "KitToggleGroup",
+        "KitRating"
+      ]
+    },
+    "en": {
+      "summary": "Compact exclusive choice presented as segments.",
+      "usage": "Supply the controller’s `ChoiceRow` values, `generation` and `active-token`. Forward `navigate` and `activate`, and choose `ChoiceFlow.left-to-right` or `.right-to-left` for navigation.",
+      "behavior": "Selected segments use primary intent and expose a radio role. Shared focus and controlled selection remain distinct; labels can wrap.",
+      "related": [
+        "KitRadioGroup",
+        "KitToggleGroup",
+        "KitRating"
+      ]
+    }
+  },
+  "KitSelect": {
+    "fr": {
+      "summary": "Sélecteur à popup avec recherche, navigation clavier et options virtualisées.",
+      "usage": "Fournissez `rows` et `state` depuis `SelectBinding` ou un contrôleur de sélection, puis relayez les callbacks de navigation, d’ouverture et d’activation. Placez le libellé sélectionné dans `placeholder`, qui fournit le texte du déclencheur.",
+      "behavior": "L’activation transmet token et génération ; le contrôleur confirme la sélection et gère les options désactivées. `SelectionAvailability.unavailable` signale un choix devenu indisponible, et `tab-navigation` permet à l’hôte d’avancer le focus après fermeture.",
+      "related": [
+        "KitCombobox",
+        "KitMultiSelect",
+        "KitSelectSurface"
+      ]
+    },
+    "en": {
+      "summary": "Popup selector with search, keyboard navigation and virtualized options.",
+      "usage": "Provide `rows` and `state` from `SelectBinding` or a selection controller, then forward navigation, opening and activation callbacks. Put the selected label in `placeholder`, which supplies the trigger text.",
+      "behavior": "Activation carries token and generation; the controller acknowledges selection and handles disabled options. `SelectionAvailability.unavailable` signals an unavailable choice, and `tab-navigation` lets the host advance focus after closing.",
+      "related": [
+        "KitCombobox",
+        "KitMultiSelect",
+        "KitSelectSurface"
+      ]
+    }
+  },
+  "KitSelectKeyboard": {
+    "fr": {
+      "summary": "Traducteur clavier partagé pour les sélecteurs et menus composés.",
+      "usage": "Placez-le dans le contrôle qui détient le focus, ou appelez `handle-key(event)` depuis une primitive de déclenchement. Reliez ses callbacks au contrôleur avec le même `SelectState`.",
+      "behavior": "Il transforme les touches en `NavigationStep`, `CloseReason`, activation par token et recherche incrémentale. Le contrôleur conserve la sélection, l’identité et les règles de saut des éléments désactivés ; `tab-navigation` retourne un `EventResult`.",
+      "related": [
+        "KitSelectTrigger",
+        "KitSelectSurface",
+        "KitMenu"
+      ]
+    },
+    "en": {
+      "summary": "Shared keyboard translator for composed selectors and menus.",
+      "usage": "Place it in the control that owns focus, or call `handle-key(event)` from a trigger primitive. Connect its callbacks to the controller using the same `SelectState`.",
+      "behavior": "It translates keys into `NavigationStep`, `CloseReason`, token activation and typeahead. The controller retains selection, identity and disabled-item navigation rules; `tab-navigation` returns an `EventResult`.",
+      "related": [
+        "KitSelectTrigger",
+        "KitSelectSurface",
+        "KitMenu"
+      ]
+    }
+  },
+  "KitSelectSurface": {
+    "fr": {
+      "summary": "Surface de popup combinant recherche native, clavier et visibilité de l’option active.",
+      "usage": "Placez une liste virtualisée de `KitOption` dans ses enfants et liez `scroll-y` au défilement de cette liste. Fournissez sa hauteur visible dans `viewport-height` et une `row-height` cohérente.",
+      "behavior": "`searchable` et `focus-search-on-open` choisissent la présentation et le focus initial. `ensure-active-visible()` suit `state.active-index`, tandis que `query-edited` transmet le brouillon de recherche sans décider de la sélection.",
+      "related": [
+        "KitOption",
+        "KitSelectKeyboard",
+        "KitCombobox"
+      ]
+    },
+    "en": {
+      "summary": "Popup surface combining native search, keyboard handling and active-option visibility.",
+      "usage": "Place a virtualized list of `KitOption` children and bind `scroll-y` to that list’s scroll position. Supply its visible height in `viewport-height` and a matching `row-height`.",
+      "behavior": "`searchable` and `focus-search-on-open` choose presentation and initial focus. `ensure-active-visible()` follows `state.active-index`, while `query-edited` passes the search draft without deciding selection.",
+      "related": [
+        "KitOption",
+        "KitSelectKeyboard",
+        "KitCombobox"
+      ]
+    }
+  },
+  "KitSelectTrigger": {
+    "fr": {
+      "summary": "Déclencheur personnalisable partageant les interactions du sélecteur.",
+      "usage": "Composez son contenu non interactif et fournissez `state` avec un nom accessible. Relayez `open-requested`, `dismiss`, `navigate` et `activate` au contrôleur.",
+      "behavior": "Il hérite de `KitPressable` et expose un rôle de combobox avec l’état développé. Un clic sur un sélecteur ouvert demande `CloseReason.trigger-toggle` ; les touches passent par `KitSelectKeyboard`.",
+      "related": [
+        "KitSelectKeyboard",
+        "KitSelectSurface"
+      ]
+    },
+    "en": {
+      "summary": "Customizable trigger sharing selector interactions.",
+      "usage": "Compose its non-interactive content and provide `state` with an accessible name. Forward `open-requested`, `dismiss`, `navigate` and `activate` to the controller.",
+      "behavior": "It inherits `KitPressable` and exposes a combobox role with expanded state. Clicking an open selector requests `CloseReason.trigger-toggle`; keys pass through `KitSelectKeyboard`.",
+      "related": [
+        "KitSelectKeyboard",
+        "KitSelectSurface"
+      ]
+    }
+  },
+  "KitSkeleton": {
+    "fr": {
+      "summary": "Forme d’attente pour réserver la place d’un contenu en chargement.",
+      "usage": "Donnez-lui les dimensions du contenu attendu et utilisez plusieurs instances pour suggérer sa structure. Réglez `running` selon l’activité de chargement.",
+      "behavior": "L’opacité pulse lorsque l’animation est active et que `theme.reduced-motion` est faux. Ce placeholder ne fournit pas d’état de progression ni de message de chargement."
+    },
+    "en": {
+      "summary": "Loading shape that reserves space for pending content.",
+      "usage": "Size it to the expected content and use multiple instances to suggest its structure. Set `running` from loading activity.",
+      "behavior": "Opacity pulses when animation is active and `theme.reduced-motion` is false. This placeholder supplies neither progress state nor a loading message."
+    }
+  },
+  "KitSlider": {
+    "fr": {
+      "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
+      "usage": "Fournissez `position` entre 0 et 1 et un `value-label` lisible. Convertissez `position-requested(float)` et `navigate(NavigationStep)` en demandes sur votre type métier.",
+      "behavior": "`gesture-started`, `committed` et `cancelled` bornent une interaction réversible. La vue borne le rendu, mais les pas, arrondis et valeurs acceptées appartiennent au contrôleur.",
+      "related": [
+        "KitRangeSlider",
+        "KitNumberStepper"
+      ]
+    },
+    "en": {
+      "summary": "Continuous slider projecting a domain value onto a normalized position.",
+      "usage": "Supply `position` from 0 to 1 and a readable `value-label`. Convert `position-requested(float)` and `navigate(NavigationStep)` into requests on your domain type.",
+      "behavior": "`gesture-started`, `committed` and `cancelled` delimit a reversible interaction. The view bounds rendering, while steps, rounding and accepted values belong to the controller.",
+      "related": [
+        "KitRangeSlider",
+        "KitNumberStepper"
+      ]
+    }
+  },
+  "KitSpinner": {
+    "fr": {
+      "summary": "Indicateur d’activité indéterminée avec libellé accessible.",
+      "usage": "Utilisez-le lorsqu’une opération est en cours sans fraction connue et fournissez un `label` décrivant cette opération. Pilotez `running` depuis l’activité réelle.",
+      "behavior": "Les points tournent par variation d’opacité et deviennent statiques en mouvement réduit ou à l’arrêt. Utilisez `KitProgress` lorsqu’une progression mesurable est disponible.",
+      "related": [
+        "KitProgress",
+        "KitSkeleton"
+      ]
+    },
+    "en": {
+      "summary": "Indeterminate activity indicator with an accessible label.",
+      "usage": "Use it while an operation runs without a known fraction and supply a `label` describing that operation. Drive `running` from actual activity.",
+      "behavior": "Dots rotate through opacity changes and become static with reduced motion or when stopped. Use `KitProgress` when measurable progress is available.",
+      "related": [
+        "KitProgress",
+        "KitSkeleton"
+      ]
+    }
+  },
+  "KitStack": {
+    "fr": {
+      "summary": "Pile verticale avec espacement et inset nommés.",
+      "usage": "Placez les enfants dans l’ordre de lecture et réglez `gap` et `inset` avec `LayoutSpace`. Utilisez-la pour composer des sections sans répéter les dimensions d’espacement.",
+      "behavior": "Elle aligne les enfants au début et conserve leur hauteur naturelle. Le parent reste responsable de la largeur disponible."
+    },
+    "en": {
+      "summary": "Vertical stack with named spacing and inset values.",
+      "usage": "Place children in reading order and set `gap` and `inset` with `LayoutSpace`. Use it to compose sections without repeating spacing dimensions.",
+      "behavior": "It aligns children to the start and preserves their natural height. The parent remains responsible for available width."
+    }
+  },
+  "KitStat": {
+    "fr": {
+      "summary": "Indicateur synthétique composé d’un libellé, d’une valeur et d’un contexte.",
+      "usage": "Formatez la valeur métier dans le contrôleur et fournissez-la comme `value: string`. Utilisez `description` pour l’unité, la période ou une précision utile.",
+      "behavior": "La valeur reçoit la typographie principale et les textes reviennent à la ligne. Le composant n’effectue ni calcul ni conversion numérique."
+    },
+    "en": {
+      "summary": "Compact metric comprising a label, value and context.",
+      "usage": "Format the domain value in the controller and provide it as `value: string`. Use `description` for a unit, period or useful clarification.",
+      "behavior": "The value gets prominent typography and text wraps. The component performs no arithmetic or numeric conversion."
+    }
+  },
+  "KitSteps": {
+    "fr": {
+      "summary": "Indicateur d’étapes avec états explicites de progression.",
+      "usage": "Fournissez des `StepEntry` avec un token stable, un libellé et `StepState.pending`, `.current`, `.complete` ou `.error`. Projetez l’état depuis votre flux métier.",
+      "behavior": "Le numéro visuel suit l’ordre des entrées, tandis que le token reste l’identité de l’étape. Les étapes terminées affichent une coche et les libellés accessibles incluent l’état."
+    },
+    "en": {
+      "summary": "Step indicator with explicit progress states.",
+      "usage": "Supply `StepEntry` values with a stable token, label and `StepState.pending`, `.current`, `.complete` or `.error`. Project state from your domain workflow.",
+      "behavior": "The visual number follows entry order while the token remains step identity. Completed steps show a check, and accessible labels include state."
+    }
+  },
+  "KitSubmitButton": {
+    "fr": {
+      "summary": "Bouton principal préconfiguré pour demander l’envoi d’un formulaire.",
+      "usage": "Fournissez `text` et traitez `form-action(FormAction.submit)` avec les valeurs acceptées du formulaire. Projetez les traitements asynchrones dans `busy`.",
+      "behavior": "Il hérite de `KitFormButton`, avec `action: FormAction.submit` et `intent: ButtonIntent.primary`. Il n’effectue aucune validation implicite.",
+      "related": [
+        "KitFormButton"
+      ]
+    },
+    "en": {
+      "summary": "Primary button preset for requesting form submission.",
+      "usage": "Supply `text` and handle `form-action(FormAction.submit)` using the form’s accepted values. Project asynchronous work through `busy`.",
+      "behavior": "It inherits `KitFormButton`, with `action: FormAction.submit` and `intent: ButtonIntent.primary`. It performs no implicit validation.",
+      "related": [
+        "KitFormButton"
+      ]
+    }
+  },
+  "KitSurface": {
+    "fr": {
+      "summary": "Surface visuelle unique pour un contenu composé.",
+      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants.",
+      "behavior": "Elle possède le fond et le padding, sans intercepter le pointeur ni le focus. Composez une action avec `KitPressable` lorsqu’une surface doit être interactive.",
+      "related": [
+        "KitCard",
+        "KitPressable"
+      ]
+    },
+    "en": {
+      "summary": "Single painted surface for composed content.",
+      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children.",
+      "behavior": "It owns the background and padding without intercepting pointer or focus events. Compose an action with `KitPressable` when a surface should be interactive.",
+      "related": [
+        "KitCard",
+        "KitPressable"
+      ]
+    }
+  },
+  "KitSwitch": {
+    "fr": {
+      "summary": "Interrupteur contrôlé pour une préférence booléenne.",
+      "usage": "Projetez `checked` et traitez `toggled(bool)` pour accepter le nouvel état. Utilisez un `label` décrivant la préférence activée.",
+      "behavior": "L’activation propose l’inverse de la valeur actuelle sans la modifier localement. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions.",
+      "related": [
+        "KitPressable"
+      ]
+    },
+    "en": {
+      "summary": "Controlled switch for a boolean preference.",
+      "usage": "Project `checked` and handle `toggled(bool)` to accept the new state. Use a `label` describing the enabled preference.",
+      "behavior": "Activation proposes the inverse of the current value without changing it locally. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction.",
+      "related": [
+        "KitPressable"
+      ]
+    }
+  },
+  "KitTabs": {
+    "fr": {
+      "summary": "Barre d’onglets contrôlée séparant le focus de la destination sélectionnée.",
+      "usage": "Fournissez les onglets dans `rows` et la projection de sélection dans `state`. Traitez `activate(token, generation)` pour changer le contenu détenu par l’application.",
+      "behavior": "Les onglets exposent le rôle accessible `tab` et se révèlent horizontalement au changement d’élément actif. Les flèches naviguent ; la vue ne crée ni ne remplace les panneaux de contenu.",
+      "related": [
+        "KitMenuBar",
+        "KitNavigationAction"
+      ]
+    },
+    "en": {
+      "summary": "Controlled tab bar separating focus from the selected destination.",
+      "usage": "Provide tabs in `rows` and the selection projection in `state`. Handle `activate(token, generation)` to change application-owned content.",
+      "behavior": "Tabs expose the accessible `tab` role and reveal themselves horizontally when the active item changes. Arrows navigate; the view does not create or replace content panels.",
+      "related": [
+        "KitMenuBar",
+        "KitNavigationAction"
+      ]
+    }
+  },
+  "KitTagInput": {
+    "fr": {
+      "summary": "Saisie de nouvelles étiquettes avec liste de puces contrôlée.",
+      "usage": "Liez `text`, fournissez `chips` et traitez `create-requested(string)` pour valider puis créer une étiquette. Traitez `remove-requested(token)` pour retirer un élément existant.",
+      "behavior": "Entrée transmet le brouillon au contrôleur sans ajouter de puce localement. Les erreurs restent visibles près de l’éditeur et les actions respectent `FieldAccess`."
+    },
+    "en": {
+      "summary": "Input for creating tags with a controlled chip list.",
+      "usage": "Bind `text`, supply `chips` and handle `create-requested(string)` to validate and create a tag. Handle `remove-requested(token)` to remove an existing item.",
+      "behavior": "Enter passes the draft to the controller without adding a chip locally. Errors remain visible near the editor and actions respect `FieldAccess`."
+    }
+  },
+  "KitTelephoneField": {
+    "fr": {
+      "summary": "Champ natif pour un numéro de téléphone éditable.",
+      "usage": "Conservez les espaces, signes et brouillons incomplets dans `text`. Confiez l’interprétation régionale et la valeur acceptée à un contrôleur typé.",
+      "behavior": "Il fixe `purpose: TextPurpose.telephone` et hérite des callbacks de `KitTextField`. Il n’impose pas de masque ni de format international.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field for an editable telephone number.",
+      "usage": "Keep spaces, signs and incomplete drafts in `text`. Delegate regional interpretation and the accepted value to a typed controller.",
+      "behavior": "It sets `purpose: TextPurpose.telephone` and inherits `KitTextField` callbacks. It imposes no mask or international format.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitTextArea": {
+    "fr": {
+      "summary": "Éditeur natif multiligne pour un texte complet.",
+      "usage": "Liez `text` à un tampon et choisissez `min-lines`, `max-lines` et `resize-policy`. Utilisez `KitVirtualTextView` pour de grands documents consultés ligne par ligne.",
+      "behavior": "Il préconfigure `TextLineMode.multiline` et `ResizePolicy.auto-grow`, puis défile au-delà de la hauteur maximale. Entrée reste une saisie de texte ; le contrôle n’émet pas la demande de validation des champs monolignes sur Entrée.",
+      "related": [
+        "KitTextField",
+        "KitVirtualTextView"
+      ]
+    },
+    "en": {
+      "summary": "Native multiline editor for a complete text buffer.",
+      "usage": "Bind `text` to a buffer and choose `min-lines`, `max-lines` and `resize-policy`. Use `KitVirtualTextView` for large documents browsed line by line.",
+      "behavior": "It presets `TextLineMode.multiline` and `ResizePolicy.auto-grow`, then scrolls beyond the maximum height. Enter remains text input; it does not emit the single-line field’s Enter commit request.",
+      "related": [
+        "KitTextField",
+        "KitVirtualTextView"
+      ]
+    }
+  },
+  "KitTextField": {
+    "fr": {
+      "summary": "Champ de texte natif avec libellé, validation et messages d’aide.",
+      "usage": "Liez `text` au brouillon et traitez `edited`, `commit-requested` et `cancelled` dans un contrôleur typé. Définissez `FieldAccess.editable`, `.read-only` ou `.disabled` selon les droits réels.",
+      "behavior": "Le même `TextInput` conserve sélection, curseur, annulation et composition IME lors des changements visuels. `ValidationPresentation` présente la validation ; le contrôleur garde les valeurs acceptées et fournit le compte de graphèmes.",
+      "related": [
+        "KitTextArea",
+        "KitField",
+        "KitFormErrorSummary"
+      ]
+    },
+    "en": {
+      "summary": "Native text field with a label, validation and supporting messages.",
+      "usage": "Bind `text` to the draft and handle `edited`, `commit-requested` and `cancelled` in a typed controller. Set `FieldAccess.editable`, `.read-only` or `.disabled` to match actual access.",
+      "behavior": "The same `TextInput` preserves selection, caret, undo and IME composition across visual changes. `ValidationPresentation` presents validation; the controller owns accepted values and supplies grapheme counts.",
+      "related": [
+        "KitTextArea",
+        "KitField",
+        "KitFormErrorSummary"
+      ]
+    }
+  },
+  "KitTimeField": {
+    "fr": {
+      "summary": "Champ natif pour une heure locale sans création d’instant.",
+      "usage": "Liez `text` et projetez `accepted-time: LocalTimeView`. Choisissez `ClockFormat.twenty-four-hour` ou `.twelve-hour` et `TimePrecision.minute` ou `.second`.",
+      "behavior": "Le format indicatif et l’aide suivent ces politiques, mais l’analyse reste dans le contrôleur. Les propriétés de présentation ne résolvent aucun fuseau horaire.",
+      "related": [
+        "KitTimePicker",
+        "KitDateTimeField"
+      ]
+    },
+    "en": {
+      "summary": "Native field for a local time without creating an instant.",
+      "usage": "Bind `text` and project `accepted-time: LocalTimeView`. Choose `ClockFormat.twenty-four-hour` or `.twelve-hour` and `TimePrecision.minute` or `.second`.",
+      "behavior": "The format hint and help follow those policies, while parsing stays in the controller. Presentation properties resolve no time zone.",
+      "related": [
+        "KitTimePicker",
+        "KitDateTimeField"
+      ]
+    }
+  },
+  "KitTimeline": {
+    "fr": {
+      "summary": "Chronologie verticale de titres, descriptions et métadonnées.",
+      "usage": "Fournissez des `TimelineEntry` dans l’ordre souhaité. Formatez les dates ou autres métadonnées dans le contrôleur avant de les projeter.",
+      "behavior": "Chaque entrée est reliée par un marqueur et un trait visuels. La vue ne trie pas les événements et ne virtualise pas la collection."
+    },
+    "en": {
+      "summary": "Vertical timeline of headings, descriptions and metadata.",
+      "usage": "Supply `TimelineEntry` values in the desired order. Format dates or other metadata in the controller before projecting them.",
+      "behavior": "Each entry is connected by a visual marker and rule. The view neither sorts events nor virtualizes the collection."
+    }
+  },
+  "KitTimePicker": {
+    "fr": {
+      "summary": "Saisie d’heure locale avec réglage explicite de chaque segment.",
+      "usage": "Partagez le brouillon et les politiques de `KitTimeField`, puis traitez `adjust(TimeSegment, TimeAdjustment)`. Le contrôleur applique les ajustements aux heures, minutes ou secondes autorisées.",
+      "behavior": "Les boutons émettent `.increment` ou `.decrement` sans fabriquer de date ni d’instant. Le segment des secondes apparaît avec `TimePrecision.second`."
+    },
+    "en": {
+      "summary": "Local-time input with explicit adjustment of each segment.",
+      "usage": "Share the draft and `KitTimeField` policies, then handle `adjust(TimeSegment, TimeAdjustment)`. The controller applies adjustments to the allowed hours, minutes or seconds.",
+      "behavior": "Buttons emit `.increment` or `.decrement` without creating a date or instant. The seconds segment appears with `TimePrecision.second`."
+    }
+  },
+  "KitToast": {
+    "fr": {
+      "summary": "Notification transitoire identifiable avec action et fermeture facultatives.",
+      "usage": "Fournissez `entry: ToastEntry` et traitez `action(token)` et `dismiss(token)` dans la file propriétaire. Reliez `interaction(token, ToastInteraction, bool)` aux pauses de durée côté Rust.",
+      "behavior": "`ToastInteraction.pointer` et `.focus` sont deux sources de pause distinctes. La vue n’ajoute pas de minuterie ; le contrôleur conserve le temps restant et les identités stables.",
+      "related": [
+        "KitToastHost",
+        "KitAlert"
+      ]
+    },
+    "en": {
+      "summary": "Identified transient notification with optional action and dismissal.",
+      "usage": "Supply `entry: ToastEntry` and handle `action(token)` and `dismiss(token)` in the owning queue. Connect `interaction(token, ToastInteraction, bool)` to Rust lifetime pauses.",
+      "behavior": "`ToastInteraction.pointer` and `.focus` are separate pause sources. The view adds no timer; the controller preserves remaining lifetime and stable identities.",
+      "related": [
+        "KitToastHost",
+        "KitAlert"
+      ]
+    }
+  },
+  "KitToastHost": {
+    "fr": {
+      "summary": "Pile de notifications transitoires alimentée par une file détenue en Rust.",
+      "usage": "Projetez les entrées de `ToastQueue` dans `entries` et relayez les callbacks d’action, fermeture et interaction. Placez la pile dans une région de fenêtre adaptée à votre application.",
+      "behavior": "Chaque entrée est rendue par `KitToast` sans minuterie par délégué. Le propriétaire décide des durées, de l’ordre et des suppressions en conservant le temps restant après une pause.",
+      "related": [
+        "KitToast"
+      ]
+    },
+    "en": {
+      "summary": "Transient notification stack supplied by a Rust-owned queue.",
+      "usage": "Project `ToastQueue` entries through `entries` and forward action, dismissal and interaction callbacks. Place the stack in a window region appropriate for your application.",
+      "behavior": "Each entry is rendered by `KitToast` without a per-delegate timer. The owner decides lifetime, ordering and removal while preserving remaining time after a pause.",
+      "related": [
+        "KitToast"
+      ]
+    }
+  },
+  "KitToggleGroup": {
+    "fr": {
+      "summary": "Groupe d’actions à sélection multiple contrôlée.",
+      "usage": "Marquez chaque `ChoiceRow.selected` depuis votre ensemble métier et traitez `toggled(token, generation)`. Conservez un `active-token` séparé pour la navigation clavier.",
+      "behavior": "Chaque ligne peut être sélectionnée indépendamment des autres. L’API reste distincte du groupe radio et n’impose aucune exclusivité."
+    },
+    "en": {
+      "summary": "Group of actions with controlled multiple selection.",
+      "usage": "Set each `ChoiceRow.selected` from your domain set and handle `toggled(token, generation)`. Keep a separate `active-token` for keyboard navigation.",
+      "behavior": "Each row can be selected independently. The API stays distinct from the radio group and imposes no exclusivity."
+    }
+  },
+  "KitTooltip": {
+    "fr": {
+      "summary": "Aide courte associée au survol et au focus d’un contrôle.",
+      "usage": "Enveloppez le contrôle comme enfant, définissez `text` et liez `target-focused` à son `has-focus`. Montez un `KitTooltipLayer` à la racine de la fenêtre pour l’aide au clavier.",
+      "behavior": "Le survol utilise une infobulle native transparente aux interactions ; le focus publie une projection dans la couche de fenêtre. Échap ou `dismiss()` masque l’aide jusqu’au prochain cycle de focus.",
+      "related": [
+        "KitTooltipLayer"
+      ]
+    },
+    "en": {
+      "summary": "Short help associated with a control’s hover and focus.",
+      "usage": "Wrap the control as a child, set `text` and bind `target-focused` to its `has-focus`. Mount a `KitTooltipLayer` at the window root for keyboard help.",
+      "behavior": "Hover uses a native tooltip that does not intercept input; focus publishes a projection in the window layer. Escape or `dismiss()` hides help until the next focus cycle.",
+      "related": [
+        "KitTooltipLayer"
+      ]
+    }
+  },
+  "KitTooltipLayer": {
+    "fr": {
+      "summary": "Couche de fenêtre affichant l’infobulle de la cible ayant le focus.",
+      "usage": "Montez une seule instance en dernier à la racine de chaque fenêtre et fournissez `viewport-width` et `viewport-height`. Désactivez `enabled` lorsqu’une modale ou un écran cache les déclencheurs.",
+      "behavior": "Le placement utilise les coordonnées de fenêtre pour éviter le découpage des ancêtres défilants. La couche ne contient aucune cible de focus et `dismiss()` masque le propriétaire courant.",
+      "related": [
+        "KitTooltip"
+      ]
+    },
+    "en": {
+      "summary": "Window layer displaying the focused target’s tooltip.",
+      "usage": "Mount one instance last at each window root and supply `viewport-width` and `viewport-height`. Disable `enabled` when a modal or another screen hides triggers.",
+      "behavior": "Placement uses window coordinates to avoid clipping by scrolling ancestors. The layer contains no focus targets, and `dismiss()` hides the current owner.",
+      "related": [
+        "KitTooltip"
+      ]
+    }
+  },
+  "KitUrlField": {
+    "fr": {
+      "summary": "Champ natif destiné à une adresse URL.",
+      "usage": "Liez `text` au brouillon et faites analyser l’URL par votre contrôleur lors de la validation. Affichez les erreurs via `validation` et `error`.",
+      "behavior": "Il préconfigure `TextPurpose.url` tout en conservant l’éditeur texte natif. Il n’ajoute pas de protocole et ne déclenche aucune navigation.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field intended for a URL.",
+      "usage": "Bind `text` to the draft and have your controller parse the URL when validating. Show errors through `validation` and `error`.",
+      "behavior": "It presets `TextPurpose.url` while retaining the native text editor. It adds no protocol and does not initiate navigation.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitVirtualTextView": {
+    "fr": {
+      "summary": "Vue de document virtualisée avec édition native de la ligne sélectionnée.",
+      "usage": "Fournissez `lines`, `generation` et `active-index`, puis choisissez `TextViewAccess.read-only` ou `.edit-line`. En mode édition, liez `line-draft` et traitez `select-line`, `commit-line` et `copy-requested`.",
+      "behavior": "Les callbacks conservent le token de ligne et la génération, même après un changement d’ordre. La vue édite une ligne sélectionnée ; utilisez `KitTextArea` pour modifier un tampon multiligne complet.",
+      "related": [
+        "KitTextArea",
+        "KitContentList"
+      ]
+    },
+    "en": {
+      "summary": "Virtualized document view with native editing of the selected line.",
+      "usage": "Supply `lines`, `generation` and `active-index`, then choose `TextViewAccess.read-only` or `.edit-line`. In edit mode, bind `line-draft` and handle `select-line`, `commit-line` and `copy-requested`.",
+      "behavior": "Callbacks retain the line token and generation even after reordering. The view edits a selected line; use `KitTextArea` to edit a complete multiline buffer.",
+      "related": [
+        "KitTextArea",
+        "KitContentList"
+      ]
+    }
+  },
+  "KitWrap": {
+    "fr": {
+      "summary": "Disposition qui redistribue ses enfants sur plusieurs lignes.",
+      "usage": "Ajoutez des badges, boutons ou autres enfants ordinaires et réglez `gap` et `inset`. Laissez le parent fournir la largeur de repli.",
+      "behavior": "Le composant utilise `FlexboxLayout` avec `flex-wrap: wrap`. Les instances des enfants restent en place lors du redimensionnement, préservant le focus et l’état des éditeurs.",
+      "related": [
+        "KitInline",
+        "KitGrid"
+      ]
+    },
+    "en": {
+      "summary": "Layout that reflows children onto multiple lines.",
+      "usage": "Add badges, buttons or other ordinary children and set `gap` and `inset`. Let the parent provide the wrapping width.",
+      "behavior": "It uses `FlexboxLayout` with `flex-wrap: wrap`. Child instances remain in place during resizing, preserving focus and editor state.",
+      "related": [
+        "KitInline",
+        "KitGrid"
+      ]
+    }
+  },
+  "KitYearField": {
+    "fr": {
+      "summary": "Champ natif pour une année civile.",
+      "usage": "Conservez le brouillon dans `text` et la projection validée dans `accepted-year`. Appliquez les limites d’année dans votre contrôleur.",
+      "behavior": "L’indication de format est `YYYY`, avec les interactions natives de `KitTextField`. L’entier projeté ne remplace pas la validation du domaine.",
+      "related": [
+        "KitTextField"
+      ]
+    },
+    "en": {
+      "summary": "Native field for a civil year.",
+      "usage": "Keep the draft in `text` and the validated projection in `accepted-year`. Apply year bounds in your controller.",
+      "behavior": "The format hint is `YYYY`, with `KitTextField` native interactions. The projected integer does not replace domain validation.",
+      "related": [
+        "KitTextField"
+      ]
+    }
+  },
+  "KitZonedDateTimeField": {
+    "fr": {
+      "summary": "Saisie de date, heure locale et fuseau avec résolution explicite des ambiguïtés.",
+      "usage": "Liez les trois textes et traitez `resolve-requested(ZonedDateTimeDraft)` avec un résolveur de fuseau IANA. Projetez `resolution` et `resolution-message`, puis traitez `ambiguity-chosen` si nécessaire.",
+      "behavior": "`ZonedTimePresentation` distingue `unresolved`, `unique`, `ambiguous`, `nonexistent` et `invalid-zone`. Une ambiguïté propose `AmbiguousTimeChoice.earlier` ou `.later` ; aucune occurrence n’est choisie silencieusement."
+    },
+    "en": {
+      "summary": "Date, local-time and zone input with explicit ambiguity resolution.",
+      "usage": "Bind all three texts and handle `resolve-requested(ZonedDateTimeDraft)` with an IANA zone resolver. Project `resolution` and `resolution-message`, then handle `ambiguity-chosen` when required.",
+      "behavior": "`ZonedTimePresentation` distinguishes `unresolved`, `unique`, `ambiguous`, `nonexistent` and `invalid-zone`. Ambiguity offers `AmbiguousTimeChoice.earlier` or `.later`; no occurrence is silently chosen."
+    }
+  }
+}

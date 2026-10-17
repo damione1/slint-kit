@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputGroup, KitInputGroupStart, KitInputGroupText, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitInputGroupStart example";
+    preferred-width: 420px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Input Group Start"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitInputGroup { theme: root.theme; HorizontalLayout { spacing: 12px; KitInputGroupStart { KitInputGroupText { theme: root.theme; text: "USD"; } } TextInput { font-size: 14px * root.theme.text-scale; vertical-alignment: center; text: "129.95"; color: root.theme.text-primary; }  } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

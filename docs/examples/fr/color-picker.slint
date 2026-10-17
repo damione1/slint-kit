@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitColorPicker, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitColorPicker — exemple";
+    preferred-width: 480px;
+    preferred-height: 550px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Sélecteur de couleur"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitColorPicker { theme: root.theme; label: "Couleur d’accent"; swatch: #6366f1; accepted-color: { red: 99, green: 102, blue: 241, alpha: 255 }; hex-text: "#6366F1"; red-text: "99"; green-text: "102"; blue-text: "241"; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

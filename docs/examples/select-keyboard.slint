@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOption, KitSelectKeyboard, KitSelectTrigger, KitTheme, KitThemes, SelectionAvailability } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitSelectKeyboard example";
+    preferred-width: 420px;
+    preferred-height: 340px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Select Keyboard"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitSelectKeyboard { init => { self.focus(); } state: { open: true, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; navigate(step) => { root.status = "Keyboard navigation requested"; } activate(token, generation) => { root.status = "Activation requested for token " + token; } VerticalLayout { spacing: 8px; KitSelectTrigger { theme: root.theme; state: { open: true, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; accessible-name: "Project navigation"; Text { text: "Overview"; color: root.theme.text-primary; vertical-alignment: center; font-size: 14px * root.theme.text-scale; } } Rectangle { background: root.theme.surface-raised; border-color: root.theme.border-subtle; border-width: 1px; border-radius: 8px; VerticalLayout { padding: 6px; spacing: 4px; for row in [{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]: KitOption { theme: root.theme; option-data: row; active: row.token == 11; selected: row.token == 11; height: 42px; Text { text: row.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; horizontal-alignment: left; } } } } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

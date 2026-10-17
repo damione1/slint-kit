@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitNotificationCenter, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitNotificationCenter example";
+    preferred-width: 620px;
+    preferred-height: 440px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Notification Center"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitNotificationCenter { theme: root.theme; height: 300px; rows: [{ item: { token: 11, generation: 1, label: "Jamie shared a document", description: "Research notes are ready for review.", disabled: false }, read: false }, { item: { token: 23, generation: 1, label: "Your export is ready", description: "Download the latest project archive.", disabled: false }, read: true }]; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

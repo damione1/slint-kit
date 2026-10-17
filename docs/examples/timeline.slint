@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Display projections are fixtures. Validate accepted domain values in Rust.
+import { KitTheme, KitThemes, KitTimeline } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitTimeline example";
+    preferred-width: 480px;
+    preferred-height: 350px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Timeline"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitTimeline { theme: root.theme; entries: [{ title: "Project created", description: "Alex opened the workspace.", metadata: "09:00" }, { title: "Research shared", description: "Jamie added the interview notes.", metadata: "09:30" }, { title: "Ready for review", description: "The team can leave feedback.", metadata: "10:15" }]; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

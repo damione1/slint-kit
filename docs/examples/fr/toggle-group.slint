@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitToggleGroup } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitToggleGroup — exemple";
+    preferred-width: 420px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Groupe de boutons bascule"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitToggleGroup { theme: root.theme; rows: [{ token: 11, label: "Courriel", selected: true, disabled: false }, { token: 23, label: "Notification push", selected: false, disabled: false }, { token: 38, label: "SMS", selected: false, disabled: true }]; generation: 1; active-token: 11; toggled(token, generation) => { root.status = "Identifiant du choix " + token; } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSteps, KitTheme, KitThemes, StepState } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitSteps — exemple";
+    preferred-width: 420px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Étapes"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitSteps { theme: root.theme; entries: [{ token: 11, label: "Compte", state: StepState.complete }, { token: 23, label: "Espace de travail", state: StepState.current }, { token: 38, label: "Inviter l’équipe", state: StepState.pending }]; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

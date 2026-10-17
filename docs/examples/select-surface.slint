@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOption, KitSelectSurface, KitTheme, KitThemes, SelectionAvailability } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitSelectSurface example";
+    preferred-width: 420px;
+    preferred-height: 320px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Select Surface"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitSelectSurface { theme: root.theme; height: 220px; state: { open: true, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; VerticalLayout { for row in [{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]: KitOption { theme: root.theme; option-data: row; height: 48px; Text { text: row.label; color: root.theme.text-primary; vertical-alignment: center; font-size: 14px * root.theme.text-scale; } } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

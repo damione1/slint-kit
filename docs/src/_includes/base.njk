@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="{{ locale }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{{ title }} · Slint Kit</title>
+  <meta name="description" content="{% if entry %}{{ entry.component[locale].summary }}{% elif locale == 'fr' %}Composants natifs Rust et Slint : exemples, API et captures.{% else %}Native Rust and Slint components: examples, API and screenshots.{% endif %}">
+  <link rel="icon" href="/assets/branding/slint-kit-symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/site.css">
+  {% if site.url %}<link rel="canonical" href="{{ site.url }}{{ page.url }}">{% endif %}
+  <link rel="alternate" hreflang="fr" href="{{ site.url }}/fr/{{ translationKey }}">
+  <link rel="alternate" hreflang="en" href="{{ site.url }}/en/{{ translationKey }}">
+  <script src="/assets/site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">{{ ui[locale].skip }}</a>
+<header class="topbar">
+  <a class="brand" href="/{{ locale }}/" aria-label="Slint Kit — {{ ui[locale].home }}">
+    <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
+  </a>
+  <span class="site-label">{{ ui[locale].documentation }}</span>
+  <nav class="toplinks" aria-label="{% if locale == 'fr' %}Navigation principale{% else %}Main navigation{% endif %}">
+    <a href="/{{ locale }}/components/"{% if translationKey == 'components/' %} aria-current="page"{% endif %}>{{ ui[locale].components }}</a>
+    <a href="{{ site.repository }}">GitHub<span class="sr-only"> ({{ ui[locale].source }})</span></a>
+    {% if locale == 'fr' %}<a class="language" href="/en/{{ translationKey }}" lang="en" hreflang="en" aria-label="This page in English">EN</a>{% else %}<a class="language" href="/fr/{{ translationKey }}" lang="fr" hreflang="fr" aria-label="Cette page en français">FR</a>{% endif %}
+  </nav>
+</header>
+<div class="page-shell{% if home %} home-shell{% endif %}">
+{% if not home %}
+<aside class="sidebar">
+  <details class="mobile-nav" open>
+  <summary>{{ ui[locale].documentation }}</summary>
+  <nav aria-label="{{ ui[locale].documentation }}">
+    <p class="nav-heading">{{ ui[locale].guides }}</p>
+    {% for key, label in { 'getting-started': ui[locale].start, 'controllers': ui[locale].controllers, 'themes': ui[locale].themes, 'native': ui[locale].native } %}
+    <a href="/{{ locale }}/guides/{{ key }}/"{% if translationKey == 'guides/' + key + '/' %} aria-current="page"{% endif %}>{{ label }}</a>
+    {% endfor %}
+    <p class="nav-heading">{{ ui[locale].components }} <span>{{ components.length }}</span></p>
+    <a href="/{{ locale }}/components/">{{ ui[locale].catalogue }}</a>
+    {% for family, label in ui.families %}
+    {% set members = components | whereFamily(family) %}
+    <details class="family"{% if entry and entry.component.family == family %} open{% endif %}>
+      <summary>{{ label[locale] }} <span>{{ members.length }}</span></summary>
+      {% for component in members %}<a href="/{{ locale }}/components/{{ component.slug }}/"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
+    </details>
+    {% endfor %}
+  </nav>
+  </details>
+</aside>
+{% endif %}
+<main id="main" tabindex="-1" class="{% if home %}homepage{% else %}article{% endif %}">{{ content | safe }}</main>
+</div>
+<footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a></footer>
+</body>
+</html>

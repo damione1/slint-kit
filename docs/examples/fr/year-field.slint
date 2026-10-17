@@ -1,0 +1,21 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Display projections are fixtures. Validate accepted domain values in Rust.
+import { KitTheme, KitThemes, KitYearField } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitYearField — exemple";
+    preferred-width: 420px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Champ d’année"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitYearField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Exercice financier"; text: "2026"; edited(value) => { root.status = "Brouillon : " + value; } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

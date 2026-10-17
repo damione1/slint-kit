@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { DropCapability, KitButton, KitFileDropZone, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitFileDropZone — exemple";
+    preferred-width: 520px;
+    preferred-height: 270px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Zone de dépôt de fichiers"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitFileDropZone { label: "Déposez les fichiers ici"; unsupported-label: "Le glisser-déposer est indisponible ; utilisez Choisir des fichiers."; theme: root.theme; capability: DropCapability.unsupported; } KitButton { theme: root.theme; text: "Choisir des fichiers…"; activated => { root.status = "Action demandée"; } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

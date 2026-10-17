@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOption, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitOption — exemple";
+    preferred-width: 420px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Option"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitOption { theme: root.theme; option-data: { token: 11, generation: 1, label: "Vue d’ensemble du projet", description: "Ouvrir les détails du projet", disabled: false }; selected: true; active: true; activate(token, generation) => { root.status = "Activation demandée pour l’identifiant stable " + token; } Text { text: "Vue d’ensemble du projet"; color: root.theme.text-primary; vertical-alignment: center; font-size: 14px * root.theme.text-scale; } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

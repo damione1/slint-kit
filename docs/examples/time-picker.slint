@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Display projections are fixtures. Validate accepted domain values in Rust.
+import { KitTheme, KitThemes, KitTimePicker } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitTimePicker example";
+    preferred-width: 620px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Time Picker"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitTimePicker { theme: root.theme; label: "Start time"; text: "09:30"; accepted-time: { hour: 9, minute: 30, second: 0 }; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

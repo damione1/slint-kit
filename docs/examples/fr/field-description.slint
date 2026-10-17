@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitFieldDescription, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitFieldDescription — exemple";
+    preferred-width: 420px;
+    preferred-height: 220px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Description de champ"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom d’utilisateur"; text: "alex"; } KitFieldDescription { theme: root.theme; text: "Utilisez de 3 à 24 lettres, chiffres ou traits de soulignement."; }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}
