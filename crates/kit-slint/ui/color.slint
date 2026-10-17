@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, ControlSize, KitMetrics } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "theme.slint";
+import { KitPressable, KitButton } from "button.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSlider } from "choice.slint";
@@ -10,6 +11,26 @@ export { ColorAlphaMode } from "shared-contracts.slint";
 
 export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
+
+component ColorDraftChannel inherits HorizontalLayout {
+    in property <KitTheme> theme;
+    in property <string> label;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <int> value;
+    callback requested(int);
+    callback cancelled();
+    spacing: 12px;
+    Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
+    KitSlider {
+        theme: root.theme; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
+        cancelled => { root.cancelled(); }
+        position-requested(position) => { root.requested(round(max(0,min(1,position)) * 255)); }
+        navigate(step) => {
+            root.requested(step == NavigationStep.first ? 0 : step == NavigationStep.last ? 255 : max(0,min(255,root.value + (step == NavigationStep.next ? 1 : step == NavigationStep.previous ? -1 : step == NavigationStep.page-next ? 16 : -16))));
+        }
+    }
+    Text { text: root.value; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
+}
 
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.
 // The native hex draft may be incomplete; only Rust's SrgbColor parser commits.
@@ -26,6 +47,19 @@ export component KitColorField inherits Rectangle {
     callback edited(string);
     callback commit-requested(string);
     callback cancelled();
+    callback color-requested(SrgbColorView);
+    out property <bool> picker-open: popup.is-open && root.access == FieldAccess.editable;
+    private property <SrgbColorView> draft;
+    public function open-picker() {
+        if (root.access == FieldAccess.editable) {
+            root.draft = root.accepted-color;
+            if (root.alpha-mode == ColorAlphaMode.opaque) { root.draft.alpha = 255; }
+            popup.show();
+        }
+    }
+    public function cancel-picker() { popup.close(); swatch-button.take-focus(); }
+    changed access => { if (root.access != FieldAccess.editable && root.picker-open) { root.cancel-picker(); } }
+    changed picker-open => { if (!root.picker-open) { popup.close(); swatch-button.take-focus(); } }
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
@@ -40,16 +74,70 @@ export component KitColorField inherits Rectangle {
                 placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
                 edited(text)=>{root.edited(text);}commit-requested(text)=>{root.commit-requested(text);}cancelled=>{root.cancelled();}
             }
-            Rectangle {
-                width: KitMetrics.control-height(root.control-size,root.theme.text-scale);
-                height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
-                border-radius:8px;background:root.theme.canvas;border-width:1px;border-color:root.theme.border-subtle;
-                accessible-role:image;accessible-label:root.label + " preview";
+            swatch-button := KitPressable {
+                theme: root.theme; control-size: root.control-size;
+                preferred-width: self.preferred-height;
+                accessible-name: "Open color picker for " + root.label;
+                disabled: root.access != FieldAccess.editable;
+                recipe: KitThemes.icon-button-recipe(root.theme,root.control-size);
+                border-width: 1px; border-color: root.theme.border-subtle;
+                activated => { root.open-picker(); }
+                key-event(event) => { if (event.text == Key.Escape && root.picker-open) { root.cancel-picker(); return accept; } return reject; }
                 Rectangle {x:4px;y:4px;width:parent.width - 8px;height:parent.height - 8px;border-radius:5px;background:root.swatch;}
             }
         }
         KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
         if root.error != "": KitFieldError {theme:root.theme;text:root.error;}
+    }
+    popup := PopupWindow {
+        x: 0px; y: root.height + 4px;
+        width: max(340px,260px * root.theme.text-scale);
+        height: popup-content.preferred-height + 32px;
+        close-policy: close-on-click-outside;
+        Rectangle {
+            background: root.theme.surface-raised; border-radius: 12px;
+            border-width: 1px; border-color: root.theme.border-subtle;
+            popup-keys := FocusScope {
+                forward-focus: cancel-button;
+                private property <bool> shown: root.picker-open;
+                init => { self.focus(); }
+                changed shown => { if (self.shown) { self.focus(); } }
+                key-pressed(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
+                popup-content := VerticalLayout {
+                    x: 16px; y: 16px; width: parent.width - 32px;
+                    spacing: 16px;
+                    Text { text: root.label + " · sRGB"; font-size: 16px * root.theme.text-scale; color: root.theme.text-primary; font-weight: 600; wrap: word-wrap; }
+                    Rectangle {
+                        height: 48px; border-radius: 8px; border-width: 1px; border-color: root.theme.border-subtle;
+                        background: rgba(root.draft.red,root.draft.green,root.draft.blue,root.draft.alpha / 255);
+                        accessible-role: image; accessible-label: "Draft color preview";
+                    }
+                    FlexboxLayout {
+                        spacing: 8px; alignment: start; flex-wrap: wrap;
+                        for choice in [#ef4444,#f59e0b,#22c55e,#06b6d4,#4f46e5,#a855f7,#111827,#ffffff]: KitPressable {
+                            theme: root.theme; control-size: ControlSize.compact;
+                            disabled: root.access != FieldAccess.editable;
+                            preferred-width: 32px; min-height: 32px; preferred-height: 32px; max-height: 32px;
+                            recipe: KitThemes.icon-button-recipe(root.theme,ControlSize.compact);
+                            border-width: 1px; border-color: root.theme.border-subtle;
+                            key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
+                            accessible-name: "Choose RGB " + choice.red + ", " + choice.green + ", " + choice.blue;
+                            activated => { root.draft = {red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}; }
+                            Rectangle { x:4px;y:4px;width:parent.width - 8px;height:parent.height - 8px; background: choice; border-radius: 4px; }
+                        }
+                    }
+                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Red"; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.red = value; } }
+                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Green"; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.green = value; } }
+                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Blue"; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.blue = value; } }
+                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; access: root.access; label: "Alpha"; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
+                    HorizontalLayout {
+                        alignment: end; spacing: 8px;
+                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } theme: root.theme; text: "Cancel"; activated => { root.cancel-picker(); } }
+                        KitButton { theme: root.theme; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -106,6 +194,7 @@ export component KitColorPicker inherits Rectangle {
     in-out property <string> alpha-text;
     callback hex-edited(string);
     callback hex-commit-requested(string);
+    callback color-requested(SrgbColorView);
     callback channel-edited(ColorChannel,string);
     callback channel-commit-requested(ColorChannel,string);
     callback channel-position-requested(ColorChannel,float);
@@ -116,7 +205,7 @@ export component KitColorPicker inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: 16px;
-        KitColorField { theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } }
+        KitColorField { theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; position: root.accepted-color.red / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.channel-position-requested(channel,value); } navigate(channel,step) => { root.channel-navigate(channel,step); }

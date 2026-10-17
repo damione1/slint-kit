@@ -300,15 +300,19 @@ export component KitMultiSelect inherits Rectangle {
     changed access => { selector.cancel-press(); if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); } }
     VerticalLayout {
         spacing: 8px;
-        if root.access == FieldAccess.read-only && root.chips.length > 0: VerticalLayout {
-            spacing: 8px;
+        if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
+            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
+            flex-wrap: wrap; spacing: 8px; alignment: start;
             for chip in root.chips: KitTextField {
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
+                preferred-width: min(root.width, 220px * root.theme.text-scale);
+                min-width: 0px; horizontal-stretch: 0;
                 text: chip.label; accessible-name: chip.label;
             }
         }
-        if root.access != FieldAccess.read-only && root.chips.length > 0: VerticalLayout {
-            spacing: 8px;
+        if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
+            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
+            flex-wrap: wrap; spacing: 8px; alignment: start;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip; disabled: !chip.removable || root.access != FieldAccess.editable;
                 remove-requested(token) => { root.remove-requested(token); }
@@ -343,7 +347,11 @@ export component KitTagInput inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: 8px;
-        for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
+        if root.chips.length > 0: FlexboxLayout {
+            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
+            flex-wrap: wrap; spacing: 8px; alignment: start;
+            for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
+        }
         editor := KitTextField {
             theme: root.theme; control-size: root.control-size; access: root.access; label: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; text <=> root.text;
             placeholder: "Type a tag, then press Enter";

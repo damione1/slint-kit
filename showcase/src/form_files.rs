@@ -6,11 +6,12 @@ use kit::{
     FileRequest, HostCapability, HostError, HostRequestController, HostRequestTicket, NumberLocale,
     NumericBounds, SelectionOutcome, SrgbColor, parse_integer,
 };
+use slint::winit_030::{WinitWindowAccessor, winit::event::WindowEvent};
 use slint::{
     ComponentHandle, ModelRc, VecModel,
     language::{DragAction, DropEvent},
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, path::Path, rc::Rc};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct FileId(i32);
@@ -62,6 +63,30 @@ impl Resources {
                 SelectedFile { id, handle }
             })
             .collect();
+    }
+    fn append_files(&mut self, files: Vec<FileHandle>) {
+        self.file_requests.cancel();
+        for handle in files {
+            if self
+                .files
+                .iter()
+                .any(|file| file.handle.location == handle.location)
+            {
+                continue;
+            }
+            let id = FileId(self.next_file_id);
+            self.next_file_id = self
+                .next_file_id
+                .checked_add(1)
+                .expect("file identity exhausted");
+            self.files.push(SelectedFile { id, handle });
+        }
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("file view generation exhausted");
+        self.file_state = ui::HostRequestPresentation::Idle;
+        self.file_error.clear();
     }
     fn finish_files(
         &mut self,
@@ -413,16 +438,63 @@ impl ColorEditor {
     }
 }
 
+fn path_handle(path: &Path) -> FileHandle {
+    FileHandle {
+        location: FileLocation::Path(path.to_owned()),
+        display_name: path.file_name().map_or_else(
+            || path.to_string_lossy().into_owned(),
+            |name| name.to_string_lossy().into_owned(),
+        ),
+        byte_length: None,
+    }
+}
+// Winit supplies window-level paths, rather than local drop coordinates. The
+// showcase accepts them anywhere on the Files page; no content is read here.
+fn native_drop(window: &ui::Showcase, resources: &Rc<RefCell<Resources>>, event: &WindowEvent) {
+    let forms = window.global::<ui::FormExamples>();
+    let available = window.get_page() == ui::ShowcasePage::Files && !window.get_dialog_state().open;
+    if let WindowEvent::HoveredFile(_) = event {
+        forms.set_drop_capability(ui::DropCapability::Available);
+        forms.set_host_drag_hovered(available);
+    } else if let WindowEvent::HoveredFileCancelled = event {
+        forms.set_host_drag_hovered(false);
+    } else if let WindowEvent::DroppedFile(path) = event {
+        forms.set_host_drag_hovered(false);
+        if available {
+            let mut state = resources.borrow_mut();
+            state.append_files(vec![path_handle(path)]);
+            state.project(window);
+        }
+    }
+}
+
 pub fn install(window: &ui::Showcase) {
     let resources = Rc::new(RefCell::new(Resources::new()));
     resources.borrow().project(window);
     let forms = window.global::<ui::FormExamples>();
-    // The pinned Winit backend has no qualified native drop bridge. A host can
-    // enable this public contract once it supplies native DropEvent file paths.
+    // The host adapter below supplies Winit native paths. Other backends retain
+    // the explicit capability outcome and their native file picker fallback.
     forms.set_drop_capability(match kit::native::capabilities().drop {
         HostCapability::Available => ui::DropCapability::Available,
         HostCapability::Unsupported => ui::DropCapability::Unsupported,
     });
+    {
+        let resources = resources.clone();
+        let weak = window.as_weak();
+        window.window().on_winit_window_event(move |native, event| {
+            if let Some(window) = weak.upgrade() {
+                if cfg!(any(target_os = "macos", target_os = "windows"))
+                    && native.has_winit_window()
+                {
+                    window
+                        .global::<ui::FormExamples>()
+                        .set_drop_capability(ui::DropCapability::Available);
+                }
+                native_drop(&window, &resources, event);
+            }
+            slint::winit_030::EventResult::Propagate
+        });
+    }
     {
         let resources = resources.clone();
         let weak = window.as_weak();
@@ -595,7 +667,7 @@ pub fn install(window: &ui::Showcase) {
             }
             let mut state = resources.borrow_mut();
             state.file_requests.cancel();
-            state.replace_files(files);
+            state.append_files(files);
             state.file_state = ui::HostRequestPresentation::Idle;
             state.file_error.clear();
             state.project(&window);
@@ -605,6 +677,24 @@ pub fn install(window: &ui::Showcase) {
     let color = Rc::new(RefCell::new(ColorEditor::new()));
     color.borrow().project(window);
     macro_rules! color_callback {($callback:ident,|$state:ident,$($argument:ident),*|$body:block)=>{{let color=color.clone();let weak=window.as_weak();forms.$callback(move|$($argument),*|{let Some(window)=weak.upgrade()else{return;};let mut $state=color.borrow_mut();$body $state.project(&window);});}};}
+    color_callback!(on_color_picked, |state, view| {
+        if let (Ok(red), Ok(green), Ok(blue), Ok(alpha)) = (
+            u8::try_from(view.red),
+            u8::try_from(view.green),
+            u8::try_from(view.blue),
+            u8::try_from(view.alpha),
+        ) {
+            state.commit_hex(
+                SrgbColor {
+                    red,
+                    green,
+                    blue,
+                    alpha,
+                }
+                .hex(AlphaPolicy::Editable),
+            );
+        }
+    });
     color_callback!(on_color_hex_edited, |state, text| {
         state.edit_hex(text.to_string());
     });
@@ -670,6 +760,55 @@ mod tests {
         assert_eq!(state.files.len(), 1);
         assert_ne!(state.files[0].id, token);
         assert!(state.generation > generation);
+    }
+    #[test]
+    fn native_drop_appends_deduplicates_and_invalidates_pending_picker_on_files_page() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::Showcase::new().unwrap();
+        let resources = Rc::new(RefCell::new(Resources::new()));
+        let stale = resources.borrow_mut().file_requests.begin();
+        let first = WindowEvent::DroppedFile("/tmp/first.txt".into());
+        native_drop(&window, &resources, &first);
+        assert!(
+            resources.borrow().files.is_empty(),
+            "other pages ignore native file drops"
+        );
+        window.set_page(ui::ShowcasePage::Files);
+        native_drop(
+            &window,
+            &resources,
+            &WindowEvent::HoveredFile("/tmp/first.txt".into()),
+        );
+        assert!(window.global::<ui::FormExamples>().get_host_drag_hovered());
+        native_drop(&window, &resources, &first);
+        assert!(!window.global::<ui::FormExamples>().get_host_drag_hovered());
+        let id = resources.borrow().files[0].id;
+        native_drop(
+            &window,
+            &resources,
+            &WindowEvent::DroppedFile("/tmp/second.txt".into()),
+        );
+        native_drop(&window, &resources, &first);
+        assert_eq!(resources.borrow().files.len(), 2);
+        assert_eq!(resources.borrow().files[0].id, id);
+        resources
+            .borrow_mut()
+            .finish_files(stale, SelectionOutcome::Selected(vec![]));
+        assert_eq!(resources.borrow().files.len(), 2);
+        window.set_dialog_state(ui::DialogState {
+            open: true,
+            ..Default::default()
+        });
+        native_drop(
+            &window,
+            &resources,
+            &WindowEvent::DroppedFile("/tmp/blocked.txt".into()),
+        );
+        assert_eq!(
+            resources.borrow().files.len(),
+            2,
+            "modal blocks background drops"
+        );
     }
     #[test]
     fn stale_picker_result_cannot_replace_current_resource_selection() {

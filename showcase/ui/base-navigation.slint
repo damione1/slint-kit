@@ -1,0 +1,188 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "@kit/theme.slint";
+import { KitButton } from "@kit/button.slint";
+import { KitContainer, KitStack, KitInline, KitWrap, KitGrid, KitSection, KitSurface, KitScrollArea, KitAppShell, ContentWidth, LayoutSpace } from "@kit/layout.slint";
+import { KitMenu, KitMenuBar, KitTabs, KitAccordion, KitCollapse, KitCarousel, KitBreadcrumbs, KitPagination, KitNotificationButton, KitNotificationCenter, KitDrawer, OptionRow, SelectState, DisclosureRow, NotificationRow, ExpansionMode, NavigationStep, CloseReason, DialogState } from "@kit/navigation.slint";
+export { DisclosureRow, NotificationRow, ExpansionMode } from "@kit/navigation.slint";
+export enum NavigationDemo { menu, toolbar, tabs, carousel, accordion }
+export enum DrawerFocus { trigger, close, save, cancel }
+export global NavigationExamples {
+    in-out property <[OptionRow]> menu-rows;
+    in-out property <SelectState> menu-state;
+    in-out property <[OptionRow]> toolbar-rows;
+    in-out property <SelectState> toolbar-state;
+    in-out property <[OptionRow]> tabs-rows;
+    in-out property <SelectState> tabs-state;
+    in-out property <[OptionRow]> carousel-rows;
+    in-out property <SelectState> carousel-state;
+    in-out property <[DisclosureRow]> accordion-rows;
+    in-out property <SelectState> accordion-state;
+    in-out property <ExpansionMode> expansion-mode: ExpansionMode.single;
+    in-out property <[OptionRow]> breadcrumbs;
+    in-out property <[NotificationRow]> notifications;
+    in-out property <int> unread-count;
+    in-out property <bool> notifications-open;
+    in-out property <bool> collapse-open;
+    in-out property <int> page-index;
+    in-out property <int> page-count: 8;
+    in-out property <string> current-title;
+    in-out property <string> current-description;
+    in-out property <string> status: "Choose a workspace view.";
+    in-out property <DialogState> drawer-state;
+    in-out property <DrawerFocus> drawer-focus: DrawerFocus.close;
+    in-out property <int> drawer-focus-request;
+    callback navigate(NavigationDemo, NavigationStep);
+    callback activate(NavigationDemo, int, int);
+    callback typeahead(NavigationDemo, string);
+    callback expand(int, int, bool, ExpansionMode);
+    callback mode-changed(ExpansionMode);
+    callback notice-open();
+    callback notice-close();
+    callback notice-read(int, int);
+    callback notice-dismiss(int, int);
+    callback notice-activate(int, int);
+    callback breadcrumb-activate(int, int);
+    callback page-navigate(NavigationStep);
+    callback drawer-open();
+    callback drawer-dismiss(CloseReason);
+    callback drawer-next(bool);
+    callback drawer-observed(DrawerFocus);
+    callback drawer-save();
+}
+
+export component NavigationGallery inherits VerticalLayout {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <length> viewport-width: 1180px;
+    in property <length> viewport-height: 900px;
+    private property <bool> notices-opened: NavigationExamples.notifications-open;
+    private property <bool> drawer-opened: NavigationExamples.drawer-state.open;
+    private property <bool> notice-popup-open: notice-popup.is-open;
+    private property <bool> drawer-popup-open: drawer-popup.is-open;
+    changed notice-popup-open => { if (!root.notice-popup-open && NavigationExamples.notifications-open) { NavigationExamples.notice-close(); } }
+    changed drawer-popup-open => { if (!root.drawer-popup-open && NavigationExamples.drawer-state.open) { NavigationExamples.drawer-dismiss(CloseReason.host-closed); } }
+    private property <int> focus-request: NavigationExamples.drawer-focus-request;
+    changed notices-opened => {
+        if (root.notices-opened) { notice-popup.show(); }
+        else { notice-popup.close(); notices.take-focus(); }
+    }
+    changed drawer-opened => {
+        if (root.drawer-opened) { drawer-popup.show(); }
+        else { drawer-popup.close(); drawer-trigger.take-focus(); }
+    }
+    changed focus-request => { if (NavigationExamples.drawer-focus == DrawerFocus.trigger) { drawer-trigger.take-focus(); } }
+    spacing: 24px;
+    vertical-stretch: 0;
+    KitSection { theme: root.theme; title: "A familiar way around"; description: "Move between views, explore a collection, and keep the next action close.";
+        KitBreadcrumbs { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.breadcrumbs; activate(token,generation) => { NavigationExamples.breadcrumb-activate(token,generation); } }
+        KitWrap {
+            notices := KitNotificationButton { theme: root.theme; control-size: root.control-size; unread-count: NavigationExamples.unread-count; activated => { NavigationExamples.notice-open(); } }
+            drawer-trigger := KitButton { theme: root.theme; control-size: root.control-size; text: "Collection settings"; activated => { NavigationExamples.drawer-open(); } }
+        }
+    }
+    KitSurface { theme: root.theme;
+        KitSection { theme: root.theme; title: "Your workspace";
+            KitWrap { gap: LayoutSpace.roomy;
+                KitMenu { theme: root.theme; control-size: root.control-size; preferred-width: 210px; height: max(160px, 160px * root.theme.text-scale); rows: NavigationExamples.menu-rows; state: NavigationExamples.menu-state;
+                    navigate(step) => { NavigationExamples.navigate(NavigationDemo.menu,step); }
+                    activate(token,generation) => { NavigationExamples.activate(NavigationDemo.menu,token,generation); }
+                    typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.menu,text); }
+                }
+                KitStack { min-width: 220px; preferred-width: max(260px, root.width - 290px); horizontal-stretch: 1;
+                    KitTabs { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.tabs-rows; state: NavigationExamples.tabs-state;
+                        navigate(step) => { NavigationExamples.navigate(NavigationDemo.tabs,step); }
+                        activate(token,generation) => { NavigationExamples.activate(NavigationDemo.tabs,token,generation); }
+                        typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.tabs,text); }
+                    }
+                    Text { text: NavigationExamples.current-title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+                    Text { text: NavigationExamples.current-description; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+                    KitMenuBar { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.toolbar-rows; state: NavigationExamples.toolbar-state; accessible-name: "Collection actions";
+                        navigate(step) => { NavigationExamples.navigate(NavigationDemo.toolbar,step); }
+                        activate(token,generation) => { NavigationExamples.activate(NavigationDemo.toolbar,token,generation); }
+                        typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.toolbar,text); }
+                    }
+                }
+            }
+        }
+        Text { text: NavigationExamples.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+    }
+    KitSection { theme: root.theme; title: "Discover something new";
+        KitCarousel { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.carousel-rows; state: NavigationExamples.carousel-state; action-label: "Open collection";
+            navigate(step) => { NavigationExamples.navigate(NavigationDemo.carousel,step); }
+            activate(token,generation) => { NavigationExamples.activate(NavigationDemo.carousel,token,generation); }
+        }
+        KitPagination { theme: root.theme; control-size: root.control-size; page-index: NavigationExamples.page-index; page-count: NavigationExamples.page-count; navigate(step) => { NavigationExamples.page-navigate(step); } }
+        Text { text: "Showing collection page " + (NavigationExamples.page-index + 1) + " of " + NavigationExamples.page-count; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
+    KitSurface { theme: root.theme;
+        KitSection { theme: root.theme; title: "A little more detail";
+            KitWrap {
+                KitButton { theme: root.theme; control-size: root.control-size; text: "One section at a time"; intent: NavigationExamples.expansion-mode == ExpansionMode.single ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.single); } }
+                KitButton { theme: root.theme; control-size: root.control-size; text: "Keep sections open"; intent: NavigationExamples.expansion-mode == ExpansionMode.multiple ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.multiple); } }
+            }
+            KitAccordion { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.accordion-rows; state: NavigationExamples.accordion-state; mode: NavigationExamples.expansion-mode;
+                navigate(step) => { NavigationExamples.navigate(NavigationDemo.accordion,step); }
+                expansion-requested(token,generation,expanded,mode) => { NavigationExamples.expand(token,generation,expanded,mode); }
+            }
+            KitCollapse { theme: root.theme; control-size: root.control-size; title: "About this collection"; expanded: NavigationExamples.collapse-open; expansion-requested(expanded) => { NavigationExamples.collapse-open = expanded; }
+                Text { text: "A shared space for ideas, drafts, and the stories you want to return to."; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+                KitButton { theme: root.theme; control-size: root.control-size; text: "Open settings"; activated => { NavigationExamples.drawer-open(); } }
+            }
+        }
+    }
+    KitSection { theme: root.theme; title: "Room to grow"; description: "A compact workspace keeps its header, scrolls the content, and lets each row find its natural size.";
+        Rectangle { height: max(230px, 230px * root.theme.text-scale); border-radius: 12px; border-width: 1px; border-color: root.theme.border-subtle;
+            KitAppShell { theme: root.theme;
+                x: 1px; y: 1px; width: parent.width - 2px; height: parent.height - 2px;
+                KitSurface { theme: root.theme; border-radius: 0px; inset: LayoutSpace.compact; Text { text: "Reading room"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; } }
+                KitScrollArea { inset: LayoutSpace.compact;
+                    KitContainer { content-width: ContentWidth.reading; gutter: LayoutSpace.compact;
+                        KitGrid { Row {
+                                Text { text: "12"; color: root.theme.accent; font-size: 28px * root.theme.text-scale; horizontal-stretch: 0; max-width: self.preferred-width; vertical-alignment: center; }
+                                Text { text: "stories waiting to be explored"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; horizontal-stretch: 1; }
+                            } }
+                        for description in ["Make space for a new idea.", "Return to the details that matter.", "Share a story with your team.", "Keep your favorite collections nearby."]: Text { text: description; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+                    }
+                }
+            }
+        }
+    }
+    notice-popup := PopupWindow {
+        x: 0px; y: 90px;
+        width: min(root.width, 430px);
+        height: min(root.viewport-height - 100px, 430px * root.theme.text-scale);
+        close-policy: close-on-click-outside;
+        KitSurface { theme: root.theme;
+            KitInline { Text { text: "Notifications"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; } KitButton { theme: root.theme; text: "Close"; activated => { NavigationExamples.notice-close(); } } }
+            KitNotificationCenter { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.notifications; vertical-stretch: 1;
+                activate(token,generation) => { NavigationExamples.notice-activate(token,generation); }
+                mark-read(token,generation) => { NavigationExamples.notice-read(token,generation); }
+                dismiss-row(token,generation) => { NavigationExamples.notice-dismiss(token,generation); }
+            }
+        }
+    }
+    drawer-popup := PopupWindow {
+        x: 0px; y: 20px;
+        width: min(root.width, 620px);
+        height: min(root.viewport-height - 80px, 550px * root.theme.text-scale);
+        close-policy: no-auto-close;
+        drawer := KitDrawer {
+            private property <int> request-serial: NavigationExamples.drawer-focus-request;
+            changed request-serial => {
+                if (NavigationExamples.drawer-focus == DrawerFocus.close) { self.take-focus(); }
+                else if (NavigationExamples.drawer-focus == DrawerFocus.save) { save.take-focus(); }
+                else if (NavigationExamples.drawer-focus == DrawerFocus.cancel) { cancel.take-focus(); }
+            }
+            theme: root.theme; control-size: root.control-size; state: NavigationExamples.drawer-state; title: "Collection settings"; panel-width: min(parent.width, 440px);
+            dismiss(reason) => { NavigationExamples.drawer-dismiss(reason); }
+            focus-next(reverse) => { NavigationExamples.drawer-next(reverse); }
+            close-focus-observed(focused) => { if (focused) { NavigationExamples.drawer-observed(DrawerFocus.close); } }
+            Text { text: "Keep your collection personal. Changes here are saved to this demo workspace."; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+            Rectangle { vertical-stretch: 1; }
+            KitWrap {
+                save := KitButton { theme: root.theme; control-size: root.control-size; text: "Save settings"; intent: ButtonIntent.primary; activated => { NavigationExamples.drawer-save(); } focus-observed(focused) => { if (focused) { NavigationExamples.drawer-observed(DrawerFocus.save); } } }
+                cancel := KitButton { theme: root.theme; control-size: root.control-size; text: "Cancel"; activated => { NavigationExamples.drawer-dismiss(CloseReason.programmatic); } focus-observed(focused) => { if (focused) { NavigationExamples.drawer-observed(DrawerFocus.cancel); } } }
+            }
+        }
+    }
+}

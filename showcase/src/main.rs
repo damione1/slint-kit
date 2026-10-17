@@ -6,6 +6,9 @@ use kit::{
 use slint::{ComponentHandle, Model};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, time::Duration};
 
+mod base_data;
+mod base_display;
+mod base_navigation;
 mod form_choices;
 mod form_fields;
 mod form_files;
@@ -54,7 +57,10 @@ impl Preview {
                     Some("choices") => ShowcasePage::Choices,
                     Some("schedule") => ShowcasePage::Schedule,
                     Some("files") => ShowcasePage::Files,
-                    _ => return Err("--page needs gallery, profile, billing, choices, schedule, or files".into()),
+                    Some("display") => ShowcasePage::Display,
+                    Some("navigation") => ShowcasePage::Navigation,
+                    Some("data") => ShowcasePage::Data,
+                    _ => return Err("--page needs gallery, profile, billing, choices, schedule, files, display, navigation, or data".into()),
                 }),
                 "--width" | "--height" => {
                     let value: u32 = args.next().ok_or("size needs pixels")?.parse().map_err(|_| "size needs positive pixels")?;
@@ -95,7 +101,7 @@ impl Preview {
                         _ => unreachable!("option was matched above"),
                     }
                 }
-                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
+                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files|display|navigation|data] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
                 value => return Err(format!("unknown argument {value}")),
             }
         }
@@ -106,7 +112,10 @@ impl Preview {
 fn preview_invalid(window: &Showcase) {
     let form = window.global::<FormExamples>();
     match window.get_page() {
-        ShowcasePage::Gallery => {}
+        ShowcasePage::Gallery
+        | ShowcasePage::Display
+        | ShowcasePage::Navigation
+        | ShowcasePage::Data => {}
         ShowcasePage::Profile => {
             form.invoke_text_edited(TextExample::Name, "".into());
             form.invoke_text_edited(TextExample::Email, "unfinished@".into());
@@ -351,6 +360,9 @@ fn main() -> Result<(), slint::PlatformError> {
     form_choices::install(&window);
     form_schedule::install(&window);
     form_files::install(&window);
+    base_data::install(&window);
+    base_display::install(&window);
+    base_navigation::install(&window);
     if let Some(page) = preview.page {
         window.set_page(page);
     }

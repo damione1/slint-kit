@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "@kit/theme.slint";
+import { KitButton } from "@kit/button.slint";
+import { KitBadge, KitAvatar, KitCard, KitCardHeader, KitCardBody, KitCardFooter, KitHero, KitFooter, KitDivider, KitStat, KitChatBubble, KitSkeleton, KitEmptyState, KitTimeline, KitSteps, StepState, Tone, ChatSide } from "@kit/display.slint";
+import { KitAlert, KitSpinner, KitProgress, KitRadialProgress, KitTooltip, KitToastHost, AlertSeverity, ToastEntry, ToastInteraction } from "@kit/feedback.slint";
+export { ToastEntry, AlertSeverity, ToastInteraction } from "@kit/feedback.slint";
+export enum ToastExample { published, failed }
+export enum ProgressDemoState { idle, running, completed, cancelled }
+export global DisplayExamples {
+    in-out property <bool> alert-visible: true;
+    in-out property <[ToastEntry]> toast-entries;
+    in-out property <string> toast-status: "Notifications appear here.";
+    in-out property <float> progress;
+    in-out property <ProgressDemoState> progress-state: ProgressDemoState.idle;
+    callback add-toast(ToastExample);
+    callback toast-action(int);
+    callback toast-dismiss(int);
+    callback toast-interaction(int,ToastInteraction,bool);
+    callback progress-start();
+    callback progress-cancel();
+}
+
+export component DisplayGallery inherits VerticalLayout {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <length> viewport-width: 1180px;
+    in property <length> viewport-height: 900px;
+    spacing: 24px; vertical-stretch: 0;
+    KitHero { theme: root.theme; title: "Make room for your content."; description: "Clear hierarchy, useful feedback, and a little personality. Compose each part around what matters.";
+        KitButton { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.primary; text: "Publish an update"; activated => { DisplayExamples.add-toast(ToastExample.published); } }
+    }
+    KitCard { theme: root.theme;
+        KitCardHeader { theme: root.theme; title: "A place for every detail"; description: "Avatars, badges, statistics and content slots share the same proportions."; }
+        KitCardBody {
+            HorizontalLayout { spacing: 12px; alignment: start;
+                KitAvatar { theme: root.theme; initials: "DG"; accessible-name: "Damien Goehrig"; }
+                VerticalLayout { spacing: 4px;
+                    Text { text: "Damien Goehrig"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; }
+                    Text { text: "Designing native experiences"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                }
+            }
+            FlexboxLayout { spacing: 8px; flex-wrap: wrap;
+                KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; }
+                KitBadge { theme: root.theme; text: "Team workspace"; tone: Tone.accent; }
+                KitBadge { theme: root.theme; text: "Draft"; }
+            }
+            KitDivider { theme: root.theme; label: "This month"; }
+            FlexboxLayout { spacing: 24px; flex-wrap: wrap;
+                KitStat { theme: root.theme; preferred-width: 230px; label: "Readers"; value: "12,480"; description: "Across 18 published stories"; }
+                KitStat { theme: root.theme; preferred-width: 230px; label: "Contributors"; value: "24"; description: "People making things together"; }
+            }
+        }
+        KitCardFooter {
+            KitTooltip { theme: root.theme; text: "A notification confirms publication. You can undo it from the message."; target-focused: publish.has-focus; viewport-width: root.viewport-width; viewport-height: root.viewport-height;
+                publish := KitButton { theme: root.theme; control-size: root.control-size; text: "Publish"; activated => { DisplayExamples.add-toast(ToastExample.published); } }
+            }
+            KitButton { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: "Show an error"; activated => { DisplayExamples.add-toast(ToastExample.failed); } }
+        }
+    }
+    KitCard { theme: root.theme;
+        KitCardHeader { theme: root.theme; title: "Feedback that stays useful"; description: "Dismiss a notice, act on a notification, or follow an operation as it progresses."; }
+        if DisplayExamples.alert-visible: KitAlert { theme: root.theme; severity: AlertSeverity.information; title: "Your workspace is ready"; message: "Invite a teammate when you are ready to share the next step."; dismissible: true; dismissed => { DisplayExamples.alert-visible = false; } }
+        if !DisplayExamples.alert-visible: KitButton { theme: root.theme; control-size: root.control-size; text: "Show notice again"; activated => { DisplayExamples.alert-visible = true; } }
+        KitProgress { theme: root.theme; value: DisplayExamples.progress; label: DisplayExamples.progress-state == ProgressDemoState.running ? "In progress" : DisplayExamples.progress-state == ProgressDemoState.completed ? "Complete" : DisplayExamples.progress-state == ProgressDemoState.cancelled ? "Cancelled" : "Ready to begin"; }
+        HorizontalLayout { spacing: 16px; alignment: start;
+            KitRadialProgress { theme: root.theme; value: DisplayExamples.progress; label: "Completion"; }
+            if DisplayExamples.progress-state == ProgressDemoState.running: KitSpinner { theme: root.theme; label: "In progress"; }
+        }
+        KitCardFooter {
+            KitButton { theme: root.theme; control-size: root.control-size; text: DisplayExamples.progress-state == ProgressDemoState.idle ? "Run progress demo" : "Restart"; activated => { DisplayExamples.progress-start(); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Cancel"; disabled: DisplayExamples.progress-state != ProgressDemoState.running; activated => { DisplayExamples.progress-cancel(); } }
+        }
+        Text { text: DisplayExamples.toast-status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        KitToastHost { theme: root.theme; entries: DisplayExamples.toast-entries; action(token) => { DisplayExamples.toast-action(token); } dismiss(token) => { DisplayExamples.toast-dismiss(token); } interaction(token,source,engaged) => { DisplayExamples.toast-interaction(token,source,engaged); } }
+    }
+    KitCard { theme: root.theme;
+        KitCardHeader { theme: root.theme; title: "Conversation"; description: "Keep author, message and delivery context together."; }
+        KitChatBubble { theme: root.theme; author: "Maya"; text: "The latest collection looks lovely. Shall we publish it together?"; metadata: "10:24 · Delivered"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.end; author: "You"; text: "Absolutely. The small details make the difference."; metadata: "10:25 · Read"; }
+    }
+    KitCard { theme: root.theme;
+        KitCardHeader { theme: root.theme; title: "From an idea to something real"; description: "A timeline tells the story. Steps show what comes next."; }
+        KitSteps { theme: root.theme; entries: [{token:1,label:"Shape the idea",state:StepState.complete},{token:2,label:"Refine the details",state:StepState.current},{token:3,label:"Share it with the team",state:StepState.pending}]; }
+        KitDivider { theme: root.theme; label: "Recent activity"; }
+        KitTimeline { theme: root.theme; entries: [{title:"Collection created",description:"A home for the stories that matter.",metadata:"Today · 09:10"},{title:"First review completed",description:"Maya left three helpful suggestions.",metadata:"Today · 10:05"}]; }
+    }
+    KitCard { theme: root.theme;
+        KitCardHeader { theme: root.theme; title: "Before the content arrives"; }
+        KitSkeleton { theme: root.theme; preferred-width: 180px; }
+        KitSkeleton { theme: root.theme; }
+        KitSkeleton { theme: root.theme; preferred-width: 240px; }
+        KitEmptyState { theme: root.theme; title: "A fresh start"; description: "Your next collection begins with one small idea.";
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Create a collection"; activated => { DisplayExamples.add-toast(ToastExample.published); } }
+        }
+    }
+    KitFooter { theme: root.theme;
+        Text { text: "Slint Kit"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Native components. Your visual language."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

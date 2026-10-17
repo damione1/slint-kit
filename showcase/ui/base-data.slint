@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, ControlSize } from "@kit/theme.slint";
+import { KitSearchField } from "@kit/input.slint";
+import { KitButton } from "@kit/button.slint";
+import { KitCard, KitCardHeader, KitCardBody } from "@kit/display.slint";
+import { NavigationStep } from "@kit/contracts.slint";
+import { KitDataTable, KitContentList, KitVirtualTextView, TableColumn, TableRow, ContentItem, TextLine, TextViewAccess } from "@kit/data.slint";
+export enum DataCollection { table, articles, document }
+export global DataExamples {
+    in-out property <[TableColumn]> columns;
+    in-out property <[TableRow]> table-rows;
+    in-out property <int> table-generation:1;
+    in-out property <int> table-active:-1;
+    in-out property <string> query;
+    in-out property <string> table-status;
+    callback query-edited(string);callback sort(int);callback table-select(int,int);
+    callback navigate(DataCollection,NavigationStep);
+    in-out property <[ContentItem]> articles;
+    in-out property <int> article-active:-1;
+    in-out property <string> article-status:"Choose a story to open its preview.";
+    callback article-open(int,int);
+    out property <image> thumbnail-one:@image-url("../assets/collection.svg");
+    out property <image> thumbnail-two:@image-url("../assets/studio.svg");
+    out property <image> thumbnail-three:@image-url("../assets/journal.svg");
+    in-out property <[TextLine]> lines;
+    in-out property <int> line-active:-1;
+    in-out property <int> line-generation:1;
+    in-out property <string> line-draft;
+    in-out property <string> line-status:"Select a line to edit or copy it.";
+    callback line-select(int,int);callback line-commit(int,int,string);callback line-copy(int,int);
+}
+export component DataGallery inherits VerticalLayout {
+    in property <KitTheme> theme:KitThemes.light;
+    in property <ControlSize> control-size:ControlSize.medium;
+    spacing:24px;vertical-stretch:0;
+    KitCard {theme:root.theme;
+        KitCardHeader {theme:root.theme;title:"A clear view of your catalogue";description:"Search and sort ten thousand records. Selection stays with the record when its position changes.";}
+        KitSearchField {theme:root.theme;control-size:root.control-size;label:"Find a product";placeholder:"Search title or category";text<=>DataExamples.query;edited(query)=>{DataExamples.query-edited(query);}}
+        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step);}sort-requested(column)=>{DataExamples.sort(column);}}
+        Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+    }
+    KitCard {theme:root.theme;
+        KitCardHeader {theme:root.theme;title:"Stories worth opening";description:"A thumbnail, title, excerpt and context — one reusable, virtualized list for articles or products.";}
+        KitContentList {theme:root.theme;items:DataExamples.articles;generation:1;active-index:DataExamples.article-active;preferred-height:440px;activate(token,generation)=>{DataExamples.article-open(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.articles,step);}}
+        Text {text:DataExamples.article-status;color:root.theme.text-primary;font-size:14px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+    }
+    KitCard {theme:root.theme;
+        KitCardHeader {theme:root.theme;title:"Large documents, manageable edits";description:"Browse fifty thousand lines in a virtualized view. Edit the selected line with the native editor; the rest of the document stays in the model.";}
+        KitVirtualTextView {theme:root.theme;access:TextViewAccess.edit-line;lines:DataExamples.lines;generation:DataExamples.line-generation;active-index:DataExamples.line-active;line-draft<=>DataExamples.line-draft;preferred-height:420px;navigate(step)=>{DataExamples.navigate(DataCollection.document,step);}select-line(token,generation)=>{DataExamples.line-select(token,generation);}commit-line(token,generation,text)=>{DataExamples.line-commit(token,generation,text);}copy-requested(token,generation)=>{DataExamples.line-copy(token,generation);}}
+        Text {text:DataExamples.line-status;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+    }
+}

@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DataFixtureCollection { table, content, document }
+
+export component BaseDataFixture inherits Window {
+    width: 960px; height: 1000px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <[TableColumn]> columns;
+    in property <[TableRow]> rows;
+    in property <[ContentItem]> items;
+    in property <[TextLine]> lines;
+    in property <int> table-generation: 1;
+    in property <int> line-generation: 1;
+    in property <int> table-active: -1;
+    in property <int> content-active: -1;
+    in property <int> line-active: -1;
+    in-out property <string> line-draft;
+    in-out property <string> pasted;
+    out property <length> table-scroll: table.scroll-y;
+    out property <length> content-scroll: content.scroll-y;
+    out property <length> line-scroll: document.scroll-y;
+    callback navigate(DataFixtureCollection, NavigationStep);
+    callback table-activated(int,int);
+    callback content-activated(int,int);
+    callback line-selected(int,int);
+    callback line-committed(int,int,string);
+    callback line-copied(int,int);
+    callback sort-requested(int);
+    public function focus-table() { table.take-focus(); }
+    public function focus-content() { content.take-focus(); }
+    public function focus-document() { document.take-focus(); }
+    public function focus-paste() { paste.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 12px; alignment: start;
+        table := KitDataTable {
+            theme: root.theme; height: 240px; columns: root.columns; rows: root.rows;
+            generation: root.table-generation; active-index: root.table-active;
+            label: "Products fixture";
+            navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
+            activate(token,generation) => { root.table-activated(token,generation); }
+            sort-requested(token) => { root.sort-requested(token); }
+        }
+        content := KitContentList {
+            theme: root.theme; height: 250px; items: root.items; generation: 1; active-index: root.content-active;
+            label: "Articles fixture";
+            navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
+            activate(token,generation) => { root.content-activated(token,generation); }
+        }
+        document := KitVirtualTextView {
+            theme: root.theme; height: 320px; lines: root.lines; generation: root.line-generation; active-index: root.line-active;
+            access: TextViewAccess.edit-line; line-draft <=> root.line-draft;
+            label: "Document fixture";
+            navigate(step) => { root.navigate(DataFixtureCollection.document,step); }
+            select-line(token,generation) => { root.line-selected(token,generation); }
+            commit-line(token,generation,text) => { root.line-committed(token,generation,text); }
+            copy-requested(token,generation) => { root.line-copied(token,generation); }
+        }
+        paste := KitTextField { text <=> root.pasted; label: "Clipboard proof"; }
+    }
+}

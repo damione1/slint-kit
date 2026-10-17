@@ -1,13 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Original paths on a common 16-unit grid; no external icon assets.
-export enum IconKind { chevron-down, chevron-left, chevron-right, close, eye, eye-hidden, search, check, minus, plus, arrow-up-right, warning }
+export enum IconKind { chevron-down, chevron-left, chevron-right, close, eye, eye-hidden, search, check, minus, plus, arrow-up-right, warning, chevron-up, bell, menu, information, article, home, grid, copy, upload, download, heart, cart, clock, settings, file, trash }
 export component KitIcon inherits Path {
     in property <IconKind> kind: IconKind.chevron-down;
     in property <color> ink: #475569;
     width: 16px; height: 16px;
     horizontal-stretch: 0; vertical-stretch: 0;
     viewbox-width: 16; viewbox-height: 16;
-    commands: root.kind == IconKind.chevron-down ? "M 3 6 L 8 11 L 13 6"
+    commands: root.kind == IconKind.chevron-up ? "M 3 10 L 8 5 L 13 10"
+        : root.kind == IconKind.bell ? "M 4 6 C 4 1 12 1 12 6 L 12 10 L 14 12 L 2 12 L 4 10 Z M 6 14 L 10 14"
+        : root.kind == IconKind.menu ? "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12"
+        : root.kind == IconKind.information ? "M 14 8 C 14 16 2 16 2 8 C 2 0 14 0 14 8 Z M 8 7 L 8 11 M 8 4.5 L 8 5"
+        : root.kind == IconKind.article ? "M 4 2 L 12 2 L 12 14 L 4 14 Z M 6 5 L 10 5 M 6 8 L 10 8 M 6 11 L 9 11"
+        : root.kind == IconKind.home ? "M 2 7 L 8 2 L 14 7 M 4 6 L 4 14 L 7 14 L 7 10 L 10 10 L 10 14 L 12 14 L 12 6"
+        : root.kind == IconKind.grid ? "M 2 2 L 6 2 L 6 6 L 2 6 Z M 10 2 L 14 2 L 14 6 L 10 6 Z M 2 10 L 6 10 L 6 14 L 2 14 Z M 10 10 L 14 10 L 14 14 L 10 14 Z"
+        : root.kind == IconKind.copy ? "M 6 6 L 14 6 L 14 14 L 6 14 Z M 10 3 L 10 2 L 2 2 L 2 10 L 3 10"
+        : root.kind == IconKind.upload ? "M 3 10 L 3 14 L 13 14 L 13 10 M 8 11 L 8 2 M 4 6 L 8 2 L 12 6"
+        : root.kind == IconKind.download ? "M 3 10 L 3 14 L 13 14 L 13 10 M 8 2 L 8 10 M 4 6 L 8 10 L 12 6"
+        : root.kind == IconKind.heart ? "M 8 14 L 2 8 C -1 2 5 0 8 4 C 11 0 17 2 14 8 Z"
+        : root.kind == IconKind.cart ? "M 1 2 L 3 2 L 5 11 L 13 11 M 4 5 L 14 5 L 13 9 L 5 9 M 6 13 L 6 14 M 12 13 L 12 14"
+        : root.kind == IconKind.clock ? "M 14 8 C 14 16 2 16 2 8 C 2 0 14 0 14 8 Z M 8 4 L 8 8 L 11 10"
+        : root.kind == IconKind.settings ? "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12 M 5 2 L 5 6 M 11 6 L 11 10 M 7 10 L 7 14"
+        : root.kind == IconKind.file ? "M 4 2 L 9 2 L 13 6 L 13 14 L 4 14 Z M 9 2 L 9 6 L 13 6"
+        : root.kind == IconKind.trash ? "M 3 4 L 13 4 M 6 2 L 10 2 M 4 4 L 5 14 L 11 14 L 12 4 M 7 6 L 7 11 M 9 6 L 9 11"
+        : root.kind == IconKind.chevron-down ? "M 3 6 L 8 11 L 13 6"
         : root.kind == IconKind.chevron-left ? "M 10 3 L 5 8 L 10 13"
         : root.kind == IconKind.chevron-right ? "M 6 3 L 11 8 L 6 13"
         : root.kind == IconKind.close ? "M 4 4 L 12 12 M 12 4 L 4 12"

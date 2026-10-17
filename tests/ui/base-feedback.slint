@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth } from "@kit/kit.slint";
+
+export component BaseFeedbackFixture inherits Window {
+    width: 640px; height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <length> viewport-width: root.width;
+    in property <length> viewport-height: root.height;
+    in property <bool> layer-enabled: true;
+    in-out property <bool> alert-visible: true;
+    out property <bool> target-focused: target.has-focus;
+    out property <bool> tooltip-visible: tooltip.keyboard-visible;
+    callback toast-action(int);
+    callback toast-dismiss(int);
+    callback toast-interaction(int,ToastInteraction,bool);
+    callback alert-dismissed();
+    public function focus-trigger() { target.take-focus(); }
+    public function blur-trigger() { other.take-focus(); }
+    Rectangle {
+        x: 600px; y: 440px; width: 30px; height: 24px; clip: true;
+        tooltip := KitTooltip {
+            theme: root.theme; target-focused: target.has-focus; text: "Keyboard help";
+            target := KitButton { theme: root.theme; text: "Tooltip target"; }
+        }
+    }
+    other := KitButton { x: 460px; y: 20px; theme: root.theme; text: "Other target"; }
+    KitToast {
+        x: 20px; y: 100px; width: 400px; height: 180px; theme: root.theme;
+        entry: {token:42,title:"Saved",message:"Changes are ready",action-label:"Undo",severity:AlertSeverity.success,dismissible:true};
+        action(token) => { root.toast-action(token); }
+        dismiss(token) => { root.toast-dismiss(token); }
+        interaction(token,source,engaged) => { root.toast-interaction(token,source,engaged); }
+    }
+    if root.alert-visible: KitAlert {
+        x: 20px; y: 300px; width: 400px; theme: root.theme;
+        title: "Review needed"; message: "Your draft is safe.";
+        severity: AlertSeverity.error; dismissible: true;
+        dismissed => { root.alert-visible = false; root.alert-dismissed(); }
+    }
+    KitTooltipLayer { enabled: root.layer-enabled; viewport-width: root.viewport-width; viewport-height: root.viewport-height; }
+}
+
+export component BaseProgressFixture inherits Window {
+    width: 640px; height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <float> progress;
+    VerticalLayout { padding: 20px; spacing: 24px; alignment: start;
+        KitProgress { theme: root.theme; value: root.progress; label: "Upload progress"; }
+        KitRadialProgress { theme: root.theme; value: root.progress; label: "Review progress"; }
+        spinner := KitSpinner { theme: root.theme; label: "Loading preview"; }
+        skeleton := KitSkeleton { theme: root.theme; }
+    }
+}
+
+export component BaseLayoutFixture inherits Window {
+    width: 800px; height: 700px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <length> viewport-width: 800px;
+    in property <length> viewport-height: 260px;
+    in-out property <string> draft: "Keep this draft";
+    out property <bool> editor-focused: editor.has-focus;
+    out property <length> content-width: container.available-width;
+    out property <length> scroll-content-height: scroll.content-height;
+    out property <length> scroll-viewport-height: scroll.visible-height;
+    public function focus-editor() { editor.take-focus(); }
+    public function reveal-editor() {
+        let top = editor.absolute-position.y - scroll.absolute-position.y - scroll.content-y;
+        scroll.reveal(top, top + editor.height);
+    }
+    scroll := KitScrollArea {
+        width: root.viewport-width; height: root.viewport-height;
+        container := KitContainer {
+            content-width: ContentWidth.reading;
+            card := KitCard { theme: root.theme;
+                KitCardHeader { theme: root.theme; title: "A collection shaped together"; description: "Every small detail has room to breathe as the content grows."; }
+                KitCardBody {
+                    editor := KitTextField { theme: root.theme; label: "Collection title"; text <=> root.draft; }
+                    KitWrap {
+                        KitButton { theme: root.theme; text: "Review"; }
+                        KitButton { theme: root.theme; text: "Publish"; }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize } from "theme.slint";
-import { KitButton, KitPressable } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitButton, KitIconButton } from "button.slint";
+import { IconKind } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { KitDateField, CivilDateView } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
@@ -28,9 +28,10 @@ component TimeSegmentControl inherits Rectangle {
     vertical-stretch: 0;
     HorizontalLayout {
         spacing: 8px;
-        Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; }
-        KitPressable { theme: root.theme; control-size: root.control-size; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: 40px; preferred-width: 40px; accessible-name: "Decrease " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.decrement); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.minus; ink: root.theme.text-primary; } } }
-        KitPressable { theme: root.theme; control-size: root.control-size; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: 40px; preferred-width: 40px; accessible-name: "Increase " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.increment); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.plus; ink: root.theme.text-primary; } } }
+        alignment: start;
+        Text { min-width: 72px * root.theme.text-scale; horizontal-stretch: 0; text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; wrap: word-wrap; }
+        KitIconButton { theme: root.theme; control-size: root.control-size; icon: IconKind.minus; accessible-name: "Decrease " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
+        KitIconButton { theme: root.theme; control-size: root.control-size; icon: IconKind.plus; accessible-name: "Increase " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
     }
 }
 

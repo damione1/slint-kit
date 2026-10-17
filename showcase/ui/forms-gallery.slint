@@ -12,7 +12,7 @@ import { KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, L
 import { KitFilePicker, KitDirectoryPicker, KitFileDropZone, FileViewEntry, HostRequestPresentation, DropCapability } from "@kit/files.slint";
 import { KitColorPicker, ColorChannel, SrgbColorView } from "@kit/color.slint";
 
-export enum ShowcasePage { gallery, profile, billing, choices, schedule, files }
+export enum ShowcasePage { gallery, profile, billing, choices, schedule, files, display, navigation, data }
 export enum TextExample { name, email, website, phone, password, search, biography, otp, reference }
 export enum NumericExample { integer, decimal, money, percent, quantity, duration, stepper }
 export enum LocaleExample { french-canada, french-france, english-canada, english-us }
@@ -201,6 +201,8 @@ export global FormExamples {
     in-out property <DropCapability> drop-capability: DropCapability.unsupported;
     callback file-browse(FileSelectionMode); callback file-remove(int,int); callback folder-browse(); callback folder-clear();
     callback can-drop(DropEvent)->DragAction; callback dropped(DropEvent)->DragAction;
+    callback color-picked(SrgbColorView);
+    in-out property <bool> host-drag-hovered;
     in-out property <string> color-hex: "#4F46E5FF";
     in-out property <string> color-red: "79";
     in-out property <string> color-green: "70";
@@ -469,7 +471,7 @@ export component FormGallery inherits VerticalLayout {
         SectionTitle {theme:root.theme;text:"Files and color, with native intent";}
         KitFilePicker {control-size:root.control-size;theme:root.theme;mode:FileSelectionMode.multiple;request-state:FormExamples.file-state;entries:FormExamples.selected-files;error:FormExamples.file-error;description:"Files stay local. Nothing is uploaded.";browse-requested(mode)=>{FormExamples.file-browse(mode);}remove-requested(token,generation)=>{FormExamples.file-remove(token,generation);}}
         KitDirectoryPicker {control-size:root.control-size;theme:root.theme;request-state:FormExamples.folder-state;selected-name:FormExamples.folder-name;error:FormExamples.folder-error;browse-requested=>{FormExamples.folder-browse();}clear-requested=>{FormExamples.folder-clear();}}
-        KitFileDropZone {control-size:root.control-size;theme:root.theme;capability:FormExamples.drop-capability;can-drop(event)=>{return FormExamples.can-drop(event);}dropped(event)=>{return FormExamples.dropped(event);}}
-        KitColorPicker {control-size:root.control-size;theme:root.theme;alpha-mode:ColorAlphaMode.editable;accepted-color:FormExamples.accepted-color;swatch:FormExamples.color-swatch;hex-text <=> FormExamples.color-hex;red-text <=> FormExamples.color-red;green-text <=> FormExamples.color-green;blue-text <=> FormExamples.color-blue;alpha-text <=> FormExamples.color-alpha;hex-error:FormExamples.color-error;red-error:FormExamples.color-red-error;green-error:FormExamples.color-green-error;blue-error:FormExamples.color-blue-error;alpha-error:FormExamples.color-alpha-error;hex-edited(text)=>{FormExamples.color-hex-edited(text);}hex-commit-requested(text)=>{FormExamples.color-hex-commit(text);}channel-edited(channel,text)=>{FormExamples.color-channel-edited(channel,text);}channel-commit-requested(channel,text)=>{FormExamples.color-channel-commit(channel,text);}channel-position-requested(channel,value)=>{FormExamples.color-position(channel,value);}channel-navigate(channel,step)=>{FormExamples.color-navigate(channel,step);}gesture-started(channel)=>{FormExamples.color-gesture(channel,SliderGesture.started);}committed(channel)=>{FormExamples.color-gesture(channel,SliderGesture.committed);}cancelled(channel)=>{FormExamples.color-gesture(channel,SliderGesture.cancelled);}}
+        KitFileDropZone {host-drag-hovered:FormExamples.host-drag-hovered;label:"Drop files anywhere on this page";control-size:root.control-size;theme:root.theme;capability:FormExamples.drop-capability;can-drop(event)=>{return FormExamples.can-drop(event);}dropped(event)=>{return FormExamples.dropped(event);}}
+        KitColorPicker {color-requested(color)=>{FormExamples.color-picked(color);}control-size:root.control-size;theme:root.theme;alpha-mode:ColorAlphaMode.editable;accepted-color:FormExamples.accepted-color;swatch:FormExamples.color-swatch;hex-text <=> FormExamples.color-hex;red-text <=> FormExamples.color-red;green-text <=> FormExamples.color-green;blue-text <=> FormExamples.color-blue;alpha-text <=> FormExamples.color-alpha;hex-error:FormExamples.color-error;red-error:FormExamples.color-red-error;green-error:FormExamples.color-green-error;blue-error:FormExamples.color-blue-error;alpha-error:FormExamples.color-alpha-error;hex-edited(text)=>{FormExamples.color-hex-edited(text);}hex-commit-requested(text)=>{FormExamples.color-hex-commit(text);}channel-edited(channel,text)=>{FormExamples.color-channel-edited(channel,text);}channel-commit-requested(channel,text)=>{FormExamples.color-channel-commit(channel,text);}channel-position-requested(channel,value)=>{FormExamples.color-position(channel,value);}channel-navigate(channel,step)=>{FormExamples.color-navigate(channel,step);}gesture-started(channel)=>{FormExamples.color-gesture(channel,SliderGesture.started);}committed(channel)=>{FormExamples.color-gesture(channel,SliderGesture.committed);}cancelled(channel)=>{FormExamples.color-gesture(channel,SliderGesture.cancelled);}}
     }
 }

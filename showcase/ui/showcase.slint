@@ -5,6 +5,14 @@ import { OptionRow, SelectState, DialogState, NavigationStep, CloseReason, Focus
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
 import { KitIcon, IconKind } from "@kit/icons.slint";
+import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
+export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
+import { NavigationGallery, NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
+export { NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
+import { DataGallery, DataExamples, DataCollection } from "base-data.slint";
+export { DataExamples, DataCollection } from "base-data.slint";
+export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit/data.slint";
+import { KitTooltipLayer } from "@kit/feedback.slint";
 import { FormGallery, FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 export { FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit/dialog.slint";
@@ -188,7 +196,7 @@ export component Showcase inherits Window {
                 HorizontalLayout {
                     spacing: 12px;
                     Rectangle { width: 42px; height: 42px; border-radius: 12px; background: root.theme.accent;
-                        Text { text: "sk"; color: root.theme.on-accent; font-size: 20px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                        Image { width: parent.width; height: parent.height; source:@image-url("../../assets/branding/slint-kit.svg");image-fit:contain;}
                     }
                     VerticalLayout { spacing: 3px;
                         Text { text: "Slint Kit"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 700; }
@@ -206,9 +214,9 @@ export component Showcase inherits Window {
                 Text { text: "Considered controls, precise values, and room for your own visual language."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
             }
             FlexboxLayout { spacing: 8px; alignment: start;
-                for section in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files]: KitButton {
+                for section in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: KitButton {
                     theme: root.theme; control-size: root.density;
-                    text: section == ShowcasePage.gallery ? "Gallery" : section == ShowcasePage.profile ? "Text & profile" : section == ShowcasePage.billing ? "Numbers & money" : section == ShowcasePage.choices ? "Choices" : section == ShowcasePage.schedule ? "Dates & time" : "Files & color";
+                    text: section == ShowcasePage.gallery ? "Gallery" : section == ShowcasePage.profile ? "Text & profile" : section == ShowcasePage.billing ? "Numbers & money" : section == ShowcasePage.choices ? "Choices" : section == ShowcasePage.schedule ? "Dates & time" : section == ShowcasePage.files ? "Files & color" : section == ShowcasePage.display ? "Display & feedback" : section == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
                     intent: root.page == section ? ButtonIntent.primary : ButtonIntent.quiet;
                     activated => { root.page = section; }
                 }
@@ -313,7 +321,10 @@ export component Showcase inherits Window {
                     }
                 }
             }
-            if root.page != ShowcasePage.gallery: FormGallery { theme: root.theme; control-size: root.density; page: root.page; }
+            if root.page == ShowcasePage.profile || root.page == ShowcasePage.billing || root.page == ShowcasePage.choices || root.page == ShowcasePage.schedule || root.page == ShowcasePage.files: FormGallery { theme: root.theme; control-size: root.density; page: root.page; }
+            if root.page == ShowcasePage.display: DisplayGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
+            if root.page == ShowcasePage.navigation: NavigationGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
+            if root.page == ShowcasePage.data: DataGallery {theme:root.theme;control-size:root.density;}
             if root.show-lab: Rectangle {
                 background: root.theme.surface; border-width: 1px; border-color: root.theme.border-subtle; border-radius: 12px;
                 preferred-height: lab.preferred-height + 32px; vertical-stretch: 0;
@@ -514,4 +525,6 @@ export component Showcase inherits Window {
             }
         }
     }
+    KitTooltipLayer {viewport-width:root.width;viewport-height:root.height;enabled:!root.dialog-state.open && root.page==ShowcasePage.display;}
+
 }

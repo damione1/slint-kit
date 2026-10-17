@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitColorField, SrgbColorView, ColorAlphaMode, KitMultiSelect, KitTagInput, ChipRow, KitTimePicker, TimeSegment, TimeAdjustment, KitThemes, KitTheme, FieldAccess } from "@kit/kit.slint";
+
+export component FormCorrectionsFixture inherits Window {
+    width: 640px; height: 760px;
+    in property <float> text-scale: 1;
+    in property <length> viewport-width: 640px;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <[ChipRow]> chips;
+    out property <length> chips-width: multi.width;
+    out property <length> window-width: root.width;
+    out property <bool> picker-open: color.picker-open;
+    private property <KitTheme> theme: {canvas:#f8fafc,surface:#fff,surface-raised:#fff,text-primary:#0f172a,text-secondary:#475569,accent:#4f46e5,on-accent:#fff,danger:#b91c1c,border-subtle:#cbd5e1,focus-ring:#4338ca,hover:#eef2ff,pressed:#e0e7ff,disabled-fill:#e2e8f0,disabled-text:#64748b,scrim:#0b122088,reduced-motion:true,text-scale:root.text-scale};
+    callback color-requested(SrgbColorView);
+    callback adjust(TimeSegment,TimeAdjustment);
+    public function open-picker() { color.open-picker(); }
+    VerticalLayout {
+        width: root.viewport-width;
+        padding: 20px; spacing: 16px; alignment: start;
+        color := KitColorField {
+            theme: root.theme; access: root.access;
+            label: "Accent"; text: "#4F46E5FF";
+            alpha-mode: ColorAlphaMode.editable;
+            accepted-color: {red:79,green:70,blue:229,alpha:255}; swatch:#4f46e5;
+            color-requested(value) => { root.color-requested(value); }
+        }
+        multi := KitMultiSelect { theme: root.theme; access: root.access; chips: root.chips; }
+        tags := KitTagInput { theme: root.theme; access: root.access; chips: root.chips; label: "Tags"; }
+        time := KitTimePicker { theme: root.theme; access: root.access; label: "Start time"; text: "11:30"; adjust(segment,direction) => { root.adjust(segment,direction); } }
+    }
+}

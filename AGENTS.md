@@ -1,0 +1,25 @@
+# Slint Kit
+
+Use strict domain types: enums for finite policies and states, newtypes for IDs and validated values. Keep money and decimal arithmetic exact; renderer floats are projections. Application identity is a stable key, never a visual row index.
+
+## Structure
+
+- `crates/kit-core`: domain values, state machines and generation guards; no UI backend.
+- `crates/kit-slint`: public `.slint` components and weak-window Rust adapters.
+- `crates/kit-build`: register `@kit` imports and verify generated contracts.
+- `crates/kit`: consumer facade; optional `native` feature exposes host services.
+- `crates/kit-native`: native host integration and explicit capability outcomes.
+- `showcase`: consume public APIs as an application would.
+- `tests`: public component, keyboard, pointer, identity and geometry checks.
+
+For app integration, read [.agents/skills/slint-kit/SKILL.md](.agents/skills/slint-kit/SKILL.md). Use public Slint APIs and `@kit` imports; the testing backend is the intentional test-only exception. Preserve native text selection, caret, undo and IME. Keep component geometry intrinsic unless its caller requests filling available space. Use a virtualized model/view for large collections.
+
+## Change and verify
+
+Define domain enums shared by Rust and Slint through `contract_enums!` in `kit-core`; regenerate with `cargo run -p xtask -- generate-contracts`. Do not hand-edit `shared-contracts.slint`. Define presentation-only enums once in Slint and reuse their generated Rust types, as with `ControlSize`.
+
+Run `cargo run -p xtask --locked -- check`. For UI changes, exercise the actual interaction and inspect native screenshots in light/dark themes and at 200% text. Report backend, device and accessibility qualification honestly; a passing headless test does not qualify IME or a screen reader.
+
+Keep implementation original and licensed `GPL-3.0-or-later`. Design references inspire behavior and component coverage; they do not authorize copying code or assets. Preserve notices belonging to dependencies.
+
+Planning, internal reviews and specifications belong in the maintainer's Obsidian notes. Keep repository documentation to the public README, contributor instructions and consumption skill unless the user requests additional files.

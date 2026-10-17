@@ -1,0 +1,212 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { ListView } from "std-widgets.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ControlWidth } from "theme.slint";
+import { KitPressable, KitButton } from "button.slint";
+import { KitIcon, IconKind } from "icons.slint";
+import { KitTextField } from "input.slint";
+import { NavigationStep, FieldAccess } from "contracts.slint";
+export enum DataSortDirection { unsorted, ascending, descending }
+export enum DataAlignment { leading, center, trailing }
+export enum TextViewAccess { read-only, edit-line }
+export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment }
+export struct TableRow { token: int, cells: [string], selected: bool, disabled: bool }
+export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
+export struct TextLine { token: int, number: int, text: string, selected: bool }
+
+component DataKeyboard inherits FocusScope {
+    in property <bool> disabled;
+    callback navigate(NavigationStep);
+    callback activate();
+    enabled: !root.disabled;
+    key-pressed(event) => {
+        if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
+        if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
+        if (event.text == Key.Home) {root.navigate(NavigationStep.first);return accept;}
+        if (event.text == Key.End) {root.navigate(NavigationStep.last);return accept;}
+        if (event.text == Key.PageDown) {root.navigate(NavigationStep.page-next);return accept;}
+        if (event.text == Key.PageUp) {root.navigate(NavigationStep.page-previous);return accept;}
+        if (event.text == Key.Return || event.text == Key.Space) {root.activate();return accept;}
+        return reject;
+    }
+    @children
+}
+component DataAction inherits KitPressable {
+    in property <int> token;
+    in property <int> generation;
+    callback requested(int,int);
+    private property <int> armed-token;
+    private property <int> armed-generation;
+    activation-started => {root.armed-token = root.token;root.armed-generation = root.generation;}
+    changed token => {root.cancel-press();}
+    changed generation => {root.cancel-press();}
+    activated => {root.requested(root.armed-token,root.armed-generation);}
+    control-width: ControlWidth.fill;
+    tab-stop: false;
+    @children
+}
+
+export component KitDataTable inherits Rectangle {
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <[TableColumn]> columns;
+    in property <[TableRow]> rows;
+    in property <int> generation;
+    in property <int> active-index: -1;
+    in property <string> label: "Data table";
+    in property <length> minimum-column-width: 140px;
+    callback activate(int,int);
+    callback navigate(NavigationStep);
+    callback sort-requested(int);
+    public function take-focus() {keys.focus();}
+    out property <length> scroll-y: list.content-y;
+    private property <length> row-height: KitMetrics.control-height(root.control-size,root.theme.text-scale) + 8px;
+    private property <length> grid-width: max(list.visible-width,root.columns.length * root.minimum-column-width);
+    changed active-index => {root.reveal-active();}
+    public function reveal-active() {
+        if (root.active-index >= 0) {
+            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
+            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
+        }
+    }
+    min-width: 0px; preferred-width: 700px;
+    min-height: 160px; preferred-height: 320px;
+    background: root.theme.surface; border-width: 1px; border-color: root.theme.border-subtle; border-radius: 10px;
+    clip: true; accessible-role: table; accessible-label: root.label; forward-focus: keys;
+    keys := DataKeyboard {
+        navigate(step) => {root.navigate(step);}
+        activate => {if (root.active-index >= 0 && root.active-index < root.rows.length && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
+    }
+    header := Rectangle {
+        y: 0px;
+        width: root.width; height: root.row-height; background: root.theme.canvas; clip: true;
+        HorizontalLayout {
+            x: list.content-x; width: root.grid-width; height: root.row-height; spacing: 0px;
+            for column in root.columns: KitPressable {
+                theme: root.theme; control-width: ControlWidth.fill;
+                width: root.grid-width / max(1,root.columns.length);
+                min-height: root.row-height; preferred-height: root.row-height;
+                intent: ButtonIntent.quiet; disabled: !column.sortable;
+                accessible-name: column.label + (column.sort == DataSortDirection.ascending ? ", ascending" : column.sort == DataSortDirection.descending ? ", descending" : "");
+                activated => {root.sort-requested(column.token);}
+                HorizontalLayout {spacing: 6px;
+                    Text {text:column.label;color:root.theme.text-primary;font-size:14px * root.theme.text-scale;font-weight:600;overflow:elide;vertical-alignment:center;}
+                    if column.sort != DataSortDirection.unsorted: Rectangle {
+                        width: 16px; height: parent.height;
+                        KitIcon {y: (parent.height - self.height) / 2; kind:column.sort == DataSortDirection.ascending ? IconKind.chevron-up : IconKind.chevron-down;ink:root.theme.text-secondary;}
+                    }
+                }
+            }
+        }
+    }
+    list := ListView {
+        y:root.row-height; height:max(0px,root.height - root.row-height);
+        content-width: root.grid-width;
+        for row[index] in root.rows: DataAction {
+            token:row.token;generation:root.generation;theme:root.theme;
+            width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
+            intent:ButtonIntent.quiet;disabled:row.disabled;
+            accessible-name:row.cells.length > 0 ? row.cells[0] : "Row";
+            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selected:row.selected;
+            background:row.selected ? root.theme.hover : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
+            border-width:keys.has-focus && index == root.active-index ? 2px : 0px;border-color:root.theme.focus-ring;
+            recipe:{fill:transparent,hover-fill:root.theme.hover,pressed-fill:root.theme.pressed,disabled-fill:root.theme.disabled-fill,foreground:root.theme.text-primary,disabled-foreground:root.theme.disabled-text,border:transparent,radius:0px,padding-inline:0px,padding-block:6px,border-width:0px,height:root.row-height,font-size:14px * root.theme.text-scale,focus-color:root.theme.focus-ring,focus-width:2px,focus-offset:0px};
+            requested(token,generation) => {keys.focus();root.activate(token,generation);}
+            HorizontalLayout {spacing:0px;
+                for cell[column-index] in row.cells: Rectangle {
+                    width:root.grid-width / max(1,root.columns.length);
+                    Text {x:12px;width:max(0px,parent.width - 24px);text:cell;color:row.disabled ? root.theme.disabled-text : root.theme.text-primary;font-size:14px * root.theme.text-scale;overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
+                }
+            }
+        }
+    }
+    if root.rows.length == 0: Text {y:root.row-height;text:"No matching records";color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
+}
+
+export component KitContentList inherits Rectangle {
+    in property <KitTheme> theme:KitThemes.light;
+    in property <[ContentItem]> items;
+    in property <int> generation;
+    in property <int> active-index:-1;
+    in property <string> label:"Articles";
+    callback activate(int,int);callback navigate(NavigationStep);
+    public function take-focus(){keys.focus();}
+    out property <length> scroll-y:list.content-y;
+    private property <length> row-height:max(144px,116px * root.theme.text-scale);
+    changed active-index => {
+        if (root.active-index >= 0) {
+            if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
+            if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
+        }
+    }
+    min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
+    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
+    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}}
+    list := ListView {
+        y: 0px;
+        content-width:self.visible-width;
+        for item[index] in root.items: DataAction {
+            width:list.visible-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
+            theme:root.theme;token:item.token;generation:root.generation;disabled:item.disabled;intent:ButtonIntent.quiet;
+            accessible-name:item.title + ", " + item.metadata;accessible-role:AccessibleRole.list-item;
+            border-width:keys.has-focus && root.active-index==index ? 2px : 0px;border-color:root.theme.focus-ring;
+            background:item.selected ? root.theme.hover : root.theme.surface;
+            requested(token,generation)=>{keys.focus();root.activate(token,generation);}
+            HorizontalLayout {spacing:16px;
+                Rectangle {width:72px;height:72px;border-radius:12px;background:root.theme.hover;
+                    if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
+                    if item.thumbnail == @image-url(""): KitIcon {x:24px;y:24px;width:24px;height:24px;kind:IconKind.article;ink:root.theme.accent;}
+                }
+                VerticalLayout {spacing:4px;alignment:center;
+                    Text {text:item.title;color:root.theme.text-primary;font-size:16px * root.theme.text-scale;font-weight:600;overflow:elide;}
+                    Text {text:item.excerpt;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;wrap:word-wrap;max-height:40px * root.theme.text-scale;overflow:elide;}
+                    Text {text:item.metadata;color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;overflow:elide;}
+                    Text {text:item.link-label;color:root.theme.accent;font-size:12px * root.theme.text-scale;overflow:elide;}
+                }
+            }
+        }
+    }
+    if root.items.length==0: Text {text:"No articles found";color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
+}
+
+export component KitVirtualTextView inherits Rectangle {
+    in property <KitTheme> theme:KitThemes.light;
+    in property <[TextLine]> lines;
+    in property <int> generation;
+    in property <int> active-index:-1;
+    in property <TextViewAccess> access:TextViewAccess.read-only;
+    in-out property <string> line-draft;
+    in property <string> error;
+    in property <string> label:"Text document";
+    callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
+    public function take-focus(){keys.focus();}
+    out property <length> scroll-y:list.content-y;
+    private property <length> line-height:max(32px,24px * root.theme.text-scale + 8px);
+    private property <length> edit-height:root.access==TextViewAccess.edit-line ? max(84px,64px * root.theme.text-scale) : 0px;
+    changed active-index=>{if(root.active-index>=0){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
+    min-width:0px;preferred-width:700px;min-height:180px;preferred-height:360px;background:root.theme.canvas;
+    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
+    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}}
+    list := ListView {
+        y: 0px;
+        height:max(0px,root.height - root.edit-height);content-width:self.visible-width;
+        for line[index] in root.lines: DataAction {
+            width:list.visible-width;height:root.line-height;min-height:root.line-height;preferred-height:root.line-height;token:line.token;generation:root.generation;theme:root.theme;intent:ButtonIntent.quiet;
+            background:line.selected?root.theme.hover:transparent;
+            accessible-name:line.number + ": " + line.text;
+            requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
+            HorizontalLayout {spacing:12px;
+                Text {width:64px;text:line.number;color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;horizontal-alignment:right;vertical-alignment:center;}
+                Text {text:line.text;color:root.theme.text-primary;font-size:14px * root.theme.text-scale;overflow:elide;vertical-alignment:center;}
+            }
+        }
+    }
+    if root.access==TextViewAccess.edit-line: VerticalLayout {
+        y:root.height - root.edit-height;height:root.edit-height;spacing:4px;
+        HorizontalLayout {spacing:8px;
+            line-editor:=KitTextField {theme:root.theme;text<=>root.line-draft;accessible-name:"Edit selected line";placeholder:"Select a line to edit";access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
+            KitButton {theme:root.theme;text:"Save line";disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
+            KitButton {theme:root.theme;text:"Copy";disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
+        }
+        if root.error!="": Text {text:root.error;color:root.theme.danger;font-size:12px * root.theme.text-scale;wrap:word-wrap;}
+    }
+}

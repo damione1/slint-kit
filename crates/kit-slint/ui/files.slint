@@ -124,13 +124,14 @@ export component KitFileDropZone inherits Rectangle {
     in property <string> error;
     callback can-drop(DropEvent) -> DragAction;
     callback dropped(DropEvent) -> DragAction;
-    out property <bool> drag-hovered: drop.has-drag;
+    in property <bool> host-drag-hovered;
+    out property <bool> drag-hovered: drop.has-drag || root.host-drag-hovered;
     min-height: max(100px, 64px * root.theme.text-scale);
     vertical-stretch: 0;
     border-radius: 12px;
-    border-width: drop.has-drag ? 2px : 1px;
-    border-color: root.error != "" ? root.theme.danger : drop.has-drag ? root.theme.accent : root.theme.border-subtle;
-    background: drop.has-drag ? root.theme.hover : root.theme.canvas;
+    border-width: root.drag-hovered ? 2px : 1px;
+    border-color: root.error != "" ? root.theme.danger : root.drag-hovered ? root.theme.accent : root.theme.border-subtle;
+    background: root.drag-hovered ? root.theme.hover : root.theme.canvas;
     accessible-role: groupbox;
     accessible-label: root.capability == DropCapability.available ? root.label : root.unsupported-label;
     VerticalLayout {

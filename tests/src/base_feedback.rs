@@ -1,0 +1,286 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+use super::*;
+use i_slint_backend_testing::{ElementHandle, ElementQuery};
+use slint::{
+    ComponentHandle, LogicalPosition,
+    platform::{Key, PointerEventButton, WindowEvent},
+};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+    time::Duration,
+};
+
+fn fixture() -> BaseFeedbackFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseFeedbackFixture::new().unwrap();
+    window.show().unwrap();
+    window
+}
+fn element(window: &impl ComponentHandle, label: &str) -> ElementHandle {
+    let label = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(label.as_str())
+        })
+        .find_first()
+        .expect("accessible element")
+}
+fn settle(milliseconds: u64) {
+    i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(milliseconds));
+    slint::platform::update_timers_and_animations();
+}
+fn key(window: &impl ComponentHandle, key: Key) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+}
+fn in_bounds(element: &ElementHandle, width: f32, height: f32) {
+    let p = element.absolute_position();
+    let s = element.size();
+    assert!(
+        p.x >= 0. && p.y >= 0. && p.x + s.width <= width && p.y + s.height <= height,
+        "out of bounds: {p:?} {s:?}"
+    );
+}
+
+#[test]
+fn keyboard_tooltip_escapes_clipping_and_escape_preserves_the_trigger_focus() {
+    let window = fixture();
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(window.get_tooltip_visible());
+    let tip = element(&window, "Keyboard help");
+    in_bounds(&tip, 640., 480.);
+    assert!(
+        tip.absolute_position().x < 600.,
+        "the root layer escapes the 30px-wide clipped ancestor"
+    );
+    let mut theme = window.get_theme();
+    theme.text_scale = 2.;
+    window.set_theme(theme);
+    window.set_viewport_width(360.);
+    window.set_viewport_height(280.);
+    settle(1);
+    in_bounds(&element(&window, "Keyboard help"), 360., 280.);
+    key(&window, Key::Escape);
+    settle(1);
+    assert!(!window.get_tooltip_visible());
+    assert!(window.get_target_focused());
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(
+        !window.get_tooltip_visible(),
+        "the same focus cannot immediately reopen a dismissed tip"
+    );
+    window.invoke_blur_trigger();
+    settle(1);
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(window.get_tooltip_visible());
+}
+
+#[test]
+fn tooltip_projection_is_window_local_and_overlay_invalidation_blocks_reopening() {
+    let first = fixture();
+    let second = BaseFeedbackFixture::new().unwrap();
+    second.show().unwrap();
+    first.invoke_focus_trigger();
+    settle(1);
+    assert!(first.get_tooltip_visible());
+    assert!(!second.get_tooltip_visible());
+    second.invoke_focus_trigger();
+    settle(1);
+    assert!(first.get_tooltip_visible());
+    assert!(second.get_tooltip_visible());
+    first.set_layer_enabled(false);
+    settle(1);
+    assert!(!first.get_tooltip_visible());
+    assert!(second.get_tooltip_visible());
+    first.set_viewport_width(480.);
+    first.set_layer_enabled(true);
+    settle(1);
+    assert!(!first.get_tooltip_visible());
+    first.invoke_blur_trigger();
+    settle(1);
+    first.invoke_focus_trigger();
+    settle(1);
+    assert!(first.get_tooltip_visible());
+}
+
+#[test]
+fn toast_hover_and_keyboard_focus_pause_independently_and_forward_stable_tokens() {
+    let window = fixture();
+    let sources = Rc::new(RefCell::new((false, false)));
+    let observed = Rc::clone(&sources);
+    window.on_toast_interaction(move |token, source, engaged| {
+        assert_eq!(token, 42);
+        let mut observed = observed.borrow_mut();
+        match source {
+            ToastInteraction::Pointer => observed.0 = engaged,
+            ToastInteraction::Focus => observed.1 = engaged,
+        }
+    });
+    let actions = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&actions);
+    window.on_toast_action(move |token| observed.borrow_mut().push(token));
+    window.window().dispatch_event(WindowEvent::PointerMoved {
+        position: LogicalPosition::new(30., 110.),
+    });
+    settle(1);
+    assert_eq!(*sources.borrow(), (true, false));
+    element(&window, "Undo").mock_single_click(PointerEventButton::Left);
+    settle(1);
+    assert_eq!(*sources.borrow(), (true, true));
+    assert_eq!(&*actions.borrow(), &[42]);
+    window.window().dispatch_event(WindowEvent::PointerMoved {
+        position: LogicalPosition::new(620., 20.),
+    });
+    settle(1);
+    assert_eq!(
+        *sources.borrow(),
+        (false, true),
+        "leaving the pointer must not resume a focused toast"
+    );
+    window.invoke_blur_trigger();
+    settle(1);
+    assert_eq!(*sources.borrow(), (false, false));
+    let dismissed = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&dismissed);
+    window.on_toast_dismiss(move |token| {
+        assert_eq!(token, 42);
+        observed.set(observed.get() + 1);
+    });
+    element(&window, "Dismiss Saved").invoke_accessible_default_action();
+    assert_eq!(dismissed.get(), 1);
+}
+
+#[test]
+fn assertive_alert_dismisses_once_and_removes_its_action_from_navigation() {
+    let window = fixture();
+    let alert = element(&window, "Review needed");
+    assert_eq!(
+        alert.accessible_live_region(),
+        Some(i_slint_backend_testing::AccessibleLiveness::Assertive)
+    );
+    let dismissed = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&dismissed);
+    window.on_alert_dismissed(move || observed.set(observed.get() + 1));
+    element(&window, "Dismiss Review needed").mock_single_click(PointerEventButton::Left);
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    settle(1);
+    assert_eq!(dismissed.get(), 1);
+    assert!(!window.get_alert_visible());
+    assert!(
+        ElementQuery::from_root(&window)
+            .match_predicate(
+                |element| element.accessible_label().as_deref() == Some("Dismiss Review needed")
+            )
+            .find_first()
+            .is_none()
+    );
+}
+
+#[test]
+fn progress_accessibility_is_bounded_and_reduced_motion_freezes_loading_marks() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseProgressFixture::new().unwrap();
+    let mut theme = window.get_theme();
+    theme.reduced_motion = true;
+    window.set_theme(theme.clone());
+    window.show().unwrap();
+    for (value, expected) in [(-0.5, "0%"), (0.37, "37%"), (1.5, "100%")] {
+        window.set_progress(value);
+        for label in ["Upload progress", "Review progress"] {
+            let progress = element(&window, label);
+            assert_eq!(
+                progress.accessible_role(),
+                Some(i_slint_backend_testing::AccessibleRole::ProgressIndicator)
+            );
+            assert_eq!(progress.accessible_value().as_deref(), Some(expected));
+            assert_eq!(progress.accessible_value_minimum(), Some(0.));
+            assert_eq!(progress.accessible_value_maximum(), Some(100.));
+        }
+    }
+    let spinner = ElementQuery::from_root(&window)
+        .match_inherits("KitSpinner")
+        .find_first()
+        .unwrap();
+    let dots = spinner
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .find_all();
+    assert_eq!(dots.len(), 8);
+    let skeleton = ElementQuery::from_root(&window)
+        .match_inherits("KitSkeleton")
+        .find_first()
+        .unwrap();
+    for elapsed in [1, 650, 1700] {
+        settle(elapsed);
+        assert!(dots.iter().all(|dot| dot.computed_opacity() == 1.));
+        assert_eq!(skeleton.computed_opacity(), 1.);
+    }
+    theme.reduced_motion = false;
+    window.set_theme(theme.clone());
+    settle(1);
+    let before: Vec<_> = dots.iter().map(ElementHandle::computed_opacity).collect();
+    settle(101);
+    let after: Vec<_> = dots.iter().map(ElementHandle::computed_opacity).collect();
+    assert_ne!(before, after);
+    theme.reduced_motion = true;
+    window.set_theme(theme);
+    settle(1500);
+    assert!(dots.iter().all(|dot| dot.computed_opacity() == 1.));
+    assert_eq!(skeleton.computed_opacity(), 1.);
+}
+
+#[test]
+fn card_and_layout_reflow_at_double_text_without_recreating_the_native_editor() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseLayoutFixture::new().unwrap();
+    window.show().unwrap();
+    let card = ElementQuery::from_root(&window)
+        .match_inherits("KitCard")
+        .find_first()
+        .unwrap();
+    let review = element(&window, "Review");
+    let publish = element(&window, "Publish");
+    let original_height = card.size().height;
+    assert!(window.get_content_width() <= 720.);
+    assert!((review.absolute_position().y - publish.absolute_position().y).abs() < 1.);
+    window.invoke_focus_editor();
+    key_text(&window, "x");
+    let before_resize = window.get_draft().to_string();
+    assert!(before_resize.contains('x'));
+    let mut theme = window.get_theme();
+    theme.text_scale = 2.;
+    window.set_theme(theme);
+    window.set_viewport_width(280.);
+    settle(1);
+    assert!(window.get_editor_focused());
+    window.invoke_reveal_editor();
+    settle(1);
+    key_text(&window, "y");
+    let draft = window.get_draft();
+    assert_eq!(draft.replace('y', ""), before_resize);
+    assert_eq!(
+        draft.chars().filter(|character| *character == 'y').count(),
+        1
+    );
+    assert!(card.size().width <= 280.);
+    assert!(card.size().height > original_height);
+    assert!(publish.absolute_position().y > review.absolute_position().y);
+    assert!(window.get_scroll_content_height() > window.get_scroll_viewport_height());
+}
+fn key_text(window: &impl ComponentHandle, text: &str) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: text.into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: text.into() });
+}
