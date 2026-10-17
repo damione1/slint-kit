@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="assets/branding/slint-kit.svg" alt="Slint Kit icon" width="112">
-
-<h1>Slint Kit</h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/branding/slint-kit-horizontal-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/branding/slint-kit-horizontal.svg">
+  <img src="assets/branding/slint-kit-horizontal.svg" alt="Slint Kit" width="420">
+</picture>
 
 <p><strong>Native components. Your visual language.</strong></p>
 
