@@ -136,6 +136,61 @@ fn password_reveal_and_search_clear_retain_the_native_editor() {
 }
 
 #[test]
+fn comfortable_editor_actions_use_the_full_touch_height_and_preserve_editor_focus() {
+    let window = fixture();
+    window.set_control_size(ControlSize::Comfortable);
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        window.set_search_text("Ada".into());
+        window.set_secret_visibility(SecretVisibility::Hidden);
+        window.invoke_focus_password();
+        let search_bounds = editor(&window, "Find a person");
+        click(
+            &window,
+            LogicalPosition::new(
+                search_bounds.absolute_position().x + search_bounds.size().width / 2.,
+                search_bounds.absolute_position().y - 5.,
+            ),
+        );
+        assert!(
+            window.get_search_focused(),
+            "the visible surface padding belongs to the focus target"
+        );
+        window.invoke_focus_search();
+        let native_editor = editor(&window, "Find a person");
+        let clear = element(&window, "Clear search");
+        let reveal = element(&window, "Show password");
+        for action in [&clear, &reveal] {
+            assert!(
+                action.size().width >= 48. && action.size().height >= 48.,
+                "scale {scale}, action {:?}: {:?}",
+                action.accessible_label(),
+                action.size()
+            );
+        }
+        assert!(clear.absolute_position().y >= native_editor.absolute_position().y - 6.);
+        assert!(
+            clear.absolute_position().y + clear.size().height
+                <= native_editor.absolute_position().y + native_editor.size().height + 6.
+        );
+        click(
+            &window,
+            LogicalPosition::new(
+                clear.absolute_position().x + clear.size().width / 2.,
+                clear.absolute_position().y + 1.,
+            ),
+        );
+        assert!(window.get_search_text().is_empty());
+        assert!(native_editor.is_valid());
+        assert!(window.get_search_focused());
+        text(&window, "Grace");
+        assert_eq!(window.get_search_text(), "Grace");
+    }
+}
+
+#[test]
 fn textarea_newline_theme_and_undo_preserve_one_native_editor() {
     let window = fixture();
     let commits = Rc::new(Cell::new(0));

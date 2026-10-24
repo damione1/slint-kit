@@ -707,6 +707,8 @@ mod form_corrections;
 
 #[cfg(test)]
 mod base_data;
+mod button_sizing;
+mod menu_focus;
 
 #[cfg(test)]
 mod base_feedback;

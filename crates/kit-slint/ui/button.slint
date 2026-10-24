@@ -126,9 +126,13 @@ export component KitPressable inherits Rectangle {
 export component KitButton inherits KitPressable {
     in property <string> text;
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    min-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
-    preferred-width: root.min-width;
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
+    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    preferred-width: root.natural-width;
     label := Text {
+        x: 0px; y: 0px;
+        width: max(0px, root.width - 2 * root.recipe.padding-inline);
+        height: max(0px, root.height - 2 * root.recipe.padding-block);
         opacity: root.busy ? 0 : 1;
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;

@@ -45,6 +45,13 @@ export component KitMenu inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
+    // Includes a row focused on pointer-down, before its activation is committed.
+    // Keep that focus in place: transferring it here would cancel the press.
+    out property <bool> has-focus: keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation);
+    callback focus-observed(bool);
+    private property <int> focused-row-token: -1;
+    private property <int> focused-row-generation: -1;
+    changed has-focus => { root.focus-observed(root.has-focus); }
     public function take-focus() { keyboard.focus(); }
     public function ensure-active-visible() {
         if (root.state.active-index < 0) { return; }
@@ -75,6 +82,23 @@ export component KitMenu inherits Rectangle {
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
                 height: root.row-height;
+                private property <OptionRow> focus-identity: row;
+                changed focus-identity => {
+                    // A reconciled delegate can retain its actual FocusScope.
+                    if (self.has-focus) {
+                        root.focused-row-token = row.token;
+                        root.focused-row-generation = row.generation;
+                    }
+                }
+                focus-observed(focused) => {
+                    if (focused) {
+                        root.focused-row-token = row.token;
+                        root.focused-row-generation = row.generation;
+                    } else if (root.focused-row-token == row.token && root.focused-row-generation == row.generation) {
+                        root.focused-row-token = -1;
+                        root.focused-row-generation = -1;
+                    }
+                }
                 key-event(event) => {
                     if (event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.PageDown || event.text == Key.PageUp || event.text == Key.Escape) { root.take-focus(); return keyboard.handle-key(event); }
                     return reject;

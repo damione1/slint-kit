@@ -63,6 +63,16 @@ export component KitTextField inherits KitField {
         focused: root.has-focus;
         preferred-height: root.editor-height + 12px;
         max-height: self.preferred-height;
+        // Behind the editor and action: the visual padding is part of the
+        // field's focus target without intercepting native caret/selection.
+        TouchArea {
+            x: -surface.padding-inline; y: -surface.padding-block;
+            width: surface.width; height: surface.height;
+            enabled: root.access != FieldAccess.disabled;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { root.take-focus(); }
+            }
+        }
         HorizontalLayout {
             spacing: 8px;
             if root.prefix != "": Text {
@@ -132,22 +142,29 @@ export component KitTextField inherits KitField {
                 font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
-            if root.action-visible: action := KitPressable {
-                theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
-                recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
-                min-width: 28px; preferred-width: 28px; max-width: 28px;
-                min-height: min(28px, root.editor-height); preferred-height: self.min-height; max-height: self.min-height;
-                disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
-                accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
-                activated => {
-                    if (root.purpose == TextPurpose.search) { root.text = ""; root.edited(""); }
-                    else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
-                    root.take-focus();
-                }
-                KitIcon {
-                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                    kind: root.purpose == TextPurpose.search ? IconKind.close : root.secret-visibility == SecretVisibility.hidden ? IconKind.eye : IconKind.eye-hidden;
-                    ink: action.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+            if root.action-visible: Rectangle {
+                // Reserve the action's width in the editor row, but let its
+                // comfortable hit area also use the surface's block padding.
+                width: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : 28px;
+                height: root.editor-height;
+                action := KitPressable {
+                    x: 0px; y: (parent.height - self.height) / 2;
+                    theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
+                    recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
+                    width: parent.width;
+                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : min(28px, root.editor-height);
+                    disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
+                    accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
+                    activated => {
+                        if (root.purpose == TextPurpose.search) { root.text = ""; root.edited(""); }
+                        else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
+                        root.take-focus();
+                    }
+                    KitIcon {
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        kind: root.purpose == TextPurpose.search ? IconKind.close : root.secret-visibility == SecretVisibility.hidden ? IconKind.eye : IconKind.eye-hidden;
+                        ink: action.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+                    }
                 }
             }
         }

@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitTheme, KitThemes, ControlWidth, ControlSize } from "@kit/kit.slint";
+export component ButtonSizingFixture inherits Window {
+    width: 240px; height: 240px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlWidth> mode: ControlWidth.fill;
+    Rectangle {
+        width: 160px; height: 100px;
+        VerticalLayout {
+            alignment: start;
+            KitButton {
+                theme: root.theme; control-width: root.mode;
+                control-size: ControlSize.comfortable;
+                accessible-name: "Bounded action";
+                text: "A long workspace name that must fit the available space";
+            }
+        }
+    }
+}
