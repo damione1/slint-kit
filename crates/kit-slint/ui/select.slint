@@ -10,6 +10,7 @@ export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailabil
 // Selection, skip-disabled, search and identity reconciliation stay in kit-core.
 export component KitSelectKeyboard inherits FocusScope {
     in property <SelectState> state;
+    in property <bool> dismiss-on-system-back: true;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -31,6 +32,7 @@ export component KitSelectKeyboard inherits FocusScope {
         if (event.text == Key.PageDown) { root.navigate(NavigationStep.page-next); return accept; }
         if (event.text == Key.PageUp) { root.navigate(NavigationStep.page-previous); return accept; }
         if (event.text == Key.Escape) { root.dismiss(CloseReason.escape); return accept; }
+        if (event.text == Key.Back && root.dismiss-on-system-back) { root.dismiss(CloseReason.system-back); return accept; }
         if (event.text == Key.Tab || event.text == Key.Backtab) {
             root.dismiss(CloseReason.programmatic);
             return root.tab-navigation(event.modifiers.shift || event.text == Key.Backtab);
