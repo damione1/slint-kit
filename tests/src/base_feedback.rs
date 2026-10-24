@@ -276,6 +276,64 @@ fn card_and_layout_reflow_at_double_text_without_recreating_the_native_editor() 
     assert!(publish.absolute_position().y > review.absolute_position().y);
     assert!(window.get_scroll_content_height() > window.get_scroll_viewport_height());
 }
+
+#[test]
+fn conditional_alert_measures_its_allocated_width_without_empty_card_space() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseConditionalAlertFixture::new().unwrap();
+    window.show().unwrap();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for width in [720., 300., 720.] {
+            window.set_viewport_width(width);
+            for dismissible in [false, true] {
+                window.set_dismissible(dismissible);
+                for message in [
+                    "Your session is ready.",
+                    "",
+                    "A longer message that must wrap at the allocated width and remain entirely inside the alert.",
+                ] {
+                    window.set_message(message.into());
+                    window.set_expanded(false);
+                    // Searching materializes changed conditionals as a native draw does.
+                    assert!(
+                        ElementQuery::from_root(&window)
+                            .match_inherits("KitAlert")
+                            .find_all()
+                            .is_empty()
+                    );
+                    window.set_expanded(true);
+                    let card = ElementQuery::from_root(&window)
+                        .match_inherits("KitCard")
+                        .find_first()
+                        .unwrap();
+                    let next = element(&window, "Continue");
+                    let content_bottom = next.absolute_position().y + next.size().height;
+                    let card_bottom = card.absolute_position().y + card.size().height;
+                    assert!(
+                        (card_bottom - content_bottom - 24.).abs() < 1.,
+                        "scale={scale} width={width}: card bottom={card_bottom}, content bottom={content_bottom}"
+                    );
+                    let alert = element(&window, "Signed in");
+                    assert!(
+                        alert.absolute_position().y + alert.size().height
+                            <= next.absolute_position().y
+                    );
+                    for text in ElementQuery::from_root(&window)
+                        .match_inherits("Text")
+                        .find_all()
+                    {
+                        let position = text.absolute_position();
+                        let size = text.size();
+                        assert!(position.x >= 0. && position.x + size.width <= width + 1.);
+                    }
+                }
+            }
+        }
+    }
+}
 fn key_text(window: &impl ComponentHandle, text: &str) {
     window
         .window()

@@ -26,4 +26,6 @@ Keep implementation original and licensed `GPL-3.0-or-later`. Design references 
 
 Homeward is the first concrete integration POC for this kit, which was built independently from Slint experience in another project. Treat integration findings as evidence for improving the core. Keep the default UI simple and the primitives extensible and customizable. Complex components, including the initial home-automation component set, belong in the private Slint Kit Pro repository; they may extend these primitives or be implemented directly when appropriate. Application transport, real installation identity and server authorization remain in the host application.
 
+Fix confirmed kit defects in this repository, with a suitable regression check; Homeward consumes the correction rather than hiding the defect in application code. Distinguish kit defects from application and upstream Slint defects before choosing the source to change.
+
 For this campaign Damien authorizes local commits here, but no push. Record tested source revisions and keep the existing official gate.
