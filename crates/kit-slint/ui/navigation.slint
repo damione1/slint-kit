@@ -35,6 +35,7 @@ export component KitNavigationAction inherits KitOption {
 // Identity, skip-disabled navigation, and typeahead live in SelectController.
 // The composite retains a single tab stop; the model is the source of truth.
 export component KitMenu inherits Rectangle {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
@@ -47,12 +48,15 @@ export component KitMenu inherits Rectangle {
     callback typeahead(string);
     // Includes a row focused on pointer-down, before its activation is committed.
     // Keep that focus in place: transferring it here would cancel the press.
-    out property <bool> has-focus: keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation);
+    out property <bool> has-focus: root.interactive && (keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation));
     callback focus-observed(bool);
     private property <int> focused-row-token: -1;
     private property <int> focused-row-generation: -1;
     changed has-focus => { root.focus-observed(root.has-focus); }
-    public function take-focus() { keyboard.focus(); }
+    changed interactive => {
+        if (!root.interactive) { root.focused-row-token = -1; root.focused-row-generation = -1; }
+    }
+    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
     public function ensure-active-visible() {
         if (root.state.active-index < 0) { return; }
         let top = root.state.active-index * root.row-height;
@@ -68,6 +72,7 @@ export component KitMenu inherits Rectangle {
     min-width: 100px;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
+        enabled: root.interactive;
         dismiss-on-system-back: false;
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
@@ -78,6 +83,7 @@ export component KitMenu inherits Rectangle {
         list := ListView {
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
             for row in root.rows: KitNavigationAction {
+                disabled: !root.interactive || row.disabled;
                 theme: root.theme; control-size: root.control-size;
                 option-data: row;
                 active: root.state.active.present && root.state.active.token == row.token;

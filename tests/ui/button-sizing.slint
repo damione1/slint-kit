@@ -17,3 +17,26 @@ export component ButtonSizingFixture inherits Window {
         }
     }
 }
+
+// Empty space beyond the target makes either viewport edge reachable.
+export component ButtonScrollFixture inherits Window {
+    width: 320px; height: 220px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <length> outline-top: target.absolute-position.y - target.recipe.focus-offset - target.recipe.focus-width;
+    out property <length> outline-bottom: target.absolute-position.y + target.height + target.recipe.focus-offset + target.recipe.focus-width;
+    out property <length> viewport-top: scroll.absolute-position.y;
+    out property <length> viewport-bottom: scroll.absolute-position.y + scroll.height;
+    out property <bool> target-focused: target.has-focus;
+    public function reset-above() { scroll.content-y = 0px; }
+    public function reset-below() { scroll.content-y = -440px; }
+    public function focus-outside() { outside.take-focus(); }
+    outside := KitButton { x:20px; y:8px; text:"Outside scroll"; }
+    scroll := Flickable {
+        x:20px; y:80px; width:280px; height:120px;
+        content-height:560px; content-width:self.width;
+        target := KitButton {
+            x:20px; y:240px; width:220px; height:self.preferred-height;
+            theme:root.theme; text:"Reveal full outline";
+        }
+    }
+}

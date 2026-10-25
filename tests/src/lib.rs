@@ -758,6 +758,7 @@ mod form_corrections;
 mod base_data;
 mod button_sizing;
 mod menu_focus;
+mod native_dialog;
 
 #[cfg(test)]
 mod base_feedback;

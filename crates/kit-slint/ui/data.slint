@@ -46,6 +46,7 @@ component DataAction inherits KitPressable {
 }
 
 export component KitDataTable inherits Rectangle {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[TableColumn]> columns;
@@ -57,7 +58,7 @@ export component KitDataTable inherits Rectangle {
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
-    public function take-focus() {keys.focus();}
+    public function take-focus() {if(root.interactive){keys.focus();}}
     out property <length> scroll-y: list.content-y;
     private property <length> row-height: KitMetrics.control-height(root.control-size,root.theme.text-scale) + 8px;
     private property <length> grid-width: max(list.visible-width,root.columns.length * root.minimum-column-width);
@@ -73,6 +74,7 @@ export component KitDataTable inherits Rectangle {
     background: root.theme.surface; border-width: 1px; border-color: root.theme.border-subtle; border-radius: 10px;
     clip: true; accessible-role: table; accessible-label: root.label; forward-focus: keys;
     keys := DataKeyboard {
+        disabled: !root.interactive;
         navigate(step) => {root.navigate(step);}
         activate => {if (root.active-index >= 0 && root.active-index < root.rows.length && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
     }
@@ -85,7 +87,7 @@ export component KitDataTable inherits Rectangle {
                 theme: root.theme; control-width: ControlWidth.fill;
                 width: root.grid-width / max(1,root.columns.length);
                 min-height: root.row-height; preferred-height: root.row-height;
-                intent: ButtonIntent.quiet; disabled: !column.sortable;
+                intent: ButtonIntent.quiet; disabled: !root.interactive || !column.sortable;
                 accessible-name: column.label + (column.sort == DataSortDirection.ascending ? ", ascending" : column.sort == DataSortDirection.descending ? ", descending" : "");
                 activated => {root.sort-requested(column.token);}
                 HorizontalLayout {spacing: 6px; alignment: column.alignment == DataAlignment.trailing ? end : column.alignment == DataAlignment.center ? center : start;
@@ -104,7 +106,7 @@ export component KitDataTable inherits Rectangle {
         for row[index] in root.rows: DataAction {
             token:row.token;generation:root.generation;theme:root.theme;
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
-            intent:ButtonIntent.quiet;disabled:row.disabled;
+            intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
             accessible-name:row.cells.length > 0 ? row.cells[0] : "Row";
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selected:row.selected;
             background:row.selected ? root.theme.hover : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;

@@ -167,3 +167,54 @@ fn menu_keeps_observing_a_focused_delegate_reconciled_in_place() {
     window.invoke_focus_outside();
     assert!(!window.get_menu_focused());
 }
+
+#[test]
+fn an_inactive_menu_rejects_keyboard_pointer_and_programmatic_focus_without_losing_its_rows() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = MenuFocusFixture::new().unwrap();
+    window.set_rows(ModelRc::from([OptionRow {
+        token: 17,
+        generation: 1,
+        label: "Destination".into(),
+        ..Default::default()
+    }]));
+    let calls = Rc::new(RefCell::new(Vec::new()));
+    let output = calls.clone();
+    window.on_activated(move |token, generation| output.borrow_mut().push((token, generation)));
+    window.show().unwrap();
+    let item = row(&window);
+    let p = item.absolute_position();
+    let position = LogicalPosition::new(p.x + 10., p.y + 10.);
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    window.set_interactive(false);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+    window.invoke_focus_outside();
+    window.invoke_focus_menu();
+    assert!(!window.get_menu_focused());
+    row(&window).mock_single_click(PointerEventButton::Left);
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Return.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Return.into(),
+    });
+    assert!(calls.borrow().is_empty());
+    assert_eq!(window.get_rows().row_count(), 1);
+    window.set_interactive(true);
+    window.invoke_focus_menu();
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Return.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Return.into(),
+    });
+    assert_eq!(&*calls.borrow(), &[(17, 1)]);
+}
