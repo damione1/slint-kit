@@ -4,6 +4,7 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod wrapped_field;
 
 #[cfg(test)]
 mod tests {

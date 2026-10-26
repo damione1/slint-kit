@@ -17,18 +17,20 @@ export component KitFieldLabel inherits Rectangle {
     in property <string> text;
     in property <FieldAccess> access: FieldAccess.editable;
     callback focus-requested();
-    preferred-height: label.preferred-height + KitMetrics.label-gap - KitMetrics.help-gap;
-    min-height: self.preferred-height;
     vertical-stretch: 0;
-    label := Text {
-        x: 0px; width: parent.width;
-        horizontal-alignment: left;
-        text: root.text;
-        height: self.preferred-height;
-        font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
-        font-weight: 600;
-        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
-        wrap: word-wrap;
+    // Let the layout propagate height-for-width constraints. Reading a child's
+    // preferred-height back into this rectangle recurses when a wrapping parent
+    // measures the field before assigning its final width.
+    VerticalLayout {
+        padding-bottom: KitMetrics.label-gap - KitMetrics.help-gap;
+        label := Text {
+            horizontal-alignment: left;
+            text: root.text;
+            font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+            font-weight: 600;
+            color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+            wrap: word-wrap;
+        }
     }
     TouchArea { enabled: root.access != FieldAccess.disabled; clicked => { root.focus-requested(); } }
 }
