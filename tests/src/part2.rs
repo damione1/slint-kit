@@ -346,8 +346,11 @@ fn calendar_keyboard_and_native_popup_keep_provisional_selection_explicit() {
     let selected = Rc::new(Cell::new(0));
     let observed = selected.clone();
     window.on_picker_choose(move |day| observed.set(day.day));
-    window.set_picker_open(true);
+    element(&window, "Ouvrir le calendrier de réservation")
+        .mock_single_click(PointerEventButton::Left);
     assert!(window.get_picker_open());
+    assert!(element(&window, "Mois précédent").size().width > 0.);
+    assert!(element(&window, "Mois suivant").size().width > 0.);
     key(&window, Key::Escape);
     assert!(!window.get_picker_open());
     window.set_picker_open(true);
