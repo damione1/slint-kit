@@ -2,14 +2,24 @@
 use super::*;
 use i_slint_backend_testing::ElementQuery;
 use slint::{ComponentHandle, platform::PointerEventButton};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 #[test]
 fn localized_ambiguity_labels_keep_choices_explicit_and_typed() {
     i_slint_backend_testing::init_no_event_loop();
     let window = DateTimeLocalizationFixture::new().unwrap();
     let choices = Rc::new(RefCell::new(Vec::new()));
     let output = choices.clone();
-    window.on_chosen(move |value| output.borrow_mut().push(value));
+    let starts = Rc::new(Cell::new(0));
+    let observed = starts.clone();
+    window.on_started(move || observed.set(observed.get() + 1));
+    let observed = starts.clone();
+    window.on_chosen(move |value| {
+        assert!(observed.get() > output.borrow().len());
+        output.borrow_mut().push(value);
+    });
     window.show().unwrap();
     assert!(choices.borrow().is_empty());
     for (label, choice) in [
