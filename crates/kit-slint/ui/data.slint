@@ -130,6 +130,7 @@ export component KitContentList inherits Rectangle {
     in property <int> generation;
     in property <int> active-index:-1;
     in property <string> label:"Articles";
+    in property <string> empty-label:"No articles found";
     callback activate(int,int);callback navigate(NavigationStep);
     public function take-focus(){keys.focus();}
     out property <length> scroll-y:list.content-y;
@@ -169,7 +170,7 @@ export component KitContentList inherits Rectangle {
             }
         }
     }
-    if root.items.length==0: Text {text:"No articles found";color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
+    if root.items.length==0: Text {text:root.empty-label;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
 }
 
 export component KitVirtualTextView inherits Rectangle {
