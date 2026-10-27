@@ -81,6 +81,8 @@ export component KitDateTimeField inherits Rectangle {
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
+    in property <string> date-label: root.label + " — date";
+    in property <string> time-label: root.label + " — time";
     in property <string> date-error;
     in property <string> time-error;
     in-out property <string> date-text;
@@ -93,13 +95,13 @@ export component KitDateTimeField inherits Rectangle {
     VerticalLayout {
         spacing: 16px;
         date := KitDateField {
-            theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.label + " — date"; error: root.date-error;
+            theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.date-label; error: root.date-error;
             edited(text) => { root.edited({date: text, time: root.time-text}); }
             commit-requested(text) => { root.commit-requested({date: text, time: root.time-text}); }
             cancelled => { root.cancelled(); }
         }
         KitTimeField {
-            theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.label + " — time"; error: root.time-error;
+            theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error;
             edited(text) => { root.edited({date: root.date-text, time: text}); }
             commit-requested(text) => { root.commit-requested({date: root.date-text, time: text}); }
             cancelled => { root.cancelled(); }
@@ -115,6 +117,13 @@ export component KitZonedDateTimeField inherits Rectangle {
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
+    in property <string> date-label: root.label + " — date";
+    in property <string> time-label: root.label + " — time";
+    in property <string> zone-label: "Time zone";
+    in property <string> zone-placeholder: "America/Toronto";
+    in property <string> zone-description: "IANA time zone identifier";
+    in property <string> earlier-label: "Use the earlier occurrence";
+    in property <string> later-label: "Use the later occurrence";
     in property <string> date-error;
     in property <string> time-error;
     in property <string> zone-error;
@@ -132,13 +141,13 @@ export component KitZonedDateTimeField inherits Rectangle {
     VerticalLayout {
         spacing: 16px;
         local := KitDateTimeField {
-            theme: root.theme; control-size: root.control-size; access: root.access; accepted-value: root.accepted-local; clock-format: root.clock-format; precision: root.precision; label: root.label; date-error: root.date-error; time-error: root.time-error; date-text <=> root.date-text; time-text <=> root.time-text;
+            theme: root.theme; control-size: root.control-size; access: root.access; accepted-value: root.accepted-local; clock-format: root.clock-format; precision: root.precision; label: root.label; date-label: root.date-label; time-label: root.time-label; date-error: root.date-error; time-error: root.time-error; date-text <=> root.date-text; time-text <=> root.time-text;
             edited(draft) => { root.edited({date: draft.date, time: draft.time, zone: root.zone-text}); }
             commit-requested(draft) => { root.resolve-requested({date: draft.date, time: draft.time, zone: root.zone-text}); }
             cancelled => { root.cancelled(); }
         }
         KitTextField {
-            theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.zone-text; label: "Time zone"; placeholder: "America/Toronto"; description: "IANA time zone identifier"; error: root.zone-error; validation: root.zone-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+            theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.zone-text; label: root.zone-label; placeholder: root.zone-placeholder; description: root.zone-description; error: root.zone-error; validation: root.zone-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             edited(text) => { root.edited({date: root.date-text, time: root.time-text, zone: text}); }
             commit-requested(text) => { root.resolve-requested({date: root.date-text, time: root.time-text, zone: text}); }
         }
@@ -150,8 +159,8 @@ export component KitZonedDateTimeField inherits Rectangle {
         }
         if root.resolution == ZonedTimePresentation.ambiguous: VerticalLayout {
             spacing: 8px;
-            KitButton { theme: root.theme; text: "Use the earlier occurrence"; disabled: root.access != FieldAccess.editable; activated => { root.ambiguity-chosen(AmbiguousTimeChoice.earlier); } }
-            KitButton { theme: root.theme; text: "Use the later occurrence"; disabled: root.access != FieldAccess.editable; activated => { root.ambiguity-chosen(AmbiguousTimeChoice.later); } }
+            KitButton { theme: root.theme; text: root.earlier-label; disabled: root.access != FieldAccess.editable; activated => { root.ambiguity-chosen(AmbiguousTimeChoice.earlier); } }
+            KitButton { theme: root.theme; text: root.later-label; disabled: root.access != FieldAccess.editable; activated => { root.ambiguity-chosen(AmbiguousTimeChoice.later); } }
         }
     }
 }
