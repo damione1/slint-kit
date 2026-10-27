@@ -54,6 +54,7 @@ export component KitDataTable inherits Rectangle {
     in property <int> generation;
     in property <int> active-index: -1;
     in property <string> label: "Data table";
+    in property <string> empty-label: "No matching records";
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
     callback activate(int,int);
     callback navigate(NavigationStep);
@@ -121,7 +122,7 @@ export component KitDataTable inherits Rectangle {
             }
         }
     }
-    if root.rows.length == 0: Text {y:root.row-height;text:"No matching records";color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
+    if root.rows.length == 0: Text {y:root.row-height;text:root.empty-label;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;horizontal-alignment:center;vertical-alignment:center;}
 }
 
 export component KitContentList inherits Rectangle {
