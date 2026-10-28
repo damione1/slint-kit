@@ -21,3 +21,11 @@ Define domain enums shared by Rust and Slint through `contract_enums!` in `kit-c
 Run `cargo run -p xtask --locked -- check`. For UI changes, exercise the actual interaction and inspect native screenshots in light/dark themes and at 200% text. Report backend, device and accessibility qualification honestly; a passing headless test does not qualify IME or a screen reader.
 
 Keep implementation original and licensed `GPL-3.0-or-later`. Design references inspire behavior and component coverage; they do not authorize copying code or assets. Preserve notices belonging to dependencies.
+
+## Integration POC and repository permissions
+
+Homeward is the first concrete integration POC for this kit, which was built independently from Slint experience in another project. Treat integration findings as evidence for improving the core. Keep the default UI simple and the primitives extensible and customizable. Complex components, including the initial home-automation component set, belong in the private Slint Kit Pro repository; they may extend these primitives or be implemented directly when appropriate. Application transport, real installation identity and server authorization remain in the host application.
+
+Fix confirmed kit defects in this repository, with a suitable regression check; Homeward consumes the correction rather than hiding the defect in application code. Distinguish kit defects from application and upstream Slint defects before choosing the source to change.
+
+For this campaign Damien authorizes local commits here, but no push. Record tested source revisions and keep the existing official gate.

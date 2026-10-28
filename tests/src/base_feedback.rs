@@ -239,6 +239,80 @@ fn progress_accessibility_is_bounded_and_reduced_motion_freezes_loading_marks() 
 }
 
 #[test]
+fn revealing_an_oversized_item_settles_at_its_leading_edge_without_oscillating() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseLayoutFixture::new().unwrap();
+    window.show().unwrap();
+    let review = element(&window, "Review");
+    window.set_viewport_height(80.);
+    let scroll = ElementQuery::from_root(&window)
+        .match_inherits("KitScrollArea")
+        .find_first()
+        .unwrap();
+    let card = ElementQuery::from_root(&window)
+        .match_inherits("KitCard")
+        .find_first()
+        .unwrap();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for width in [320., 800.] {
+            window.set_viewport_width(width);
+            settle(1);
+            let top = card.absolute_position().y
+                - scroll.absolute_position().y
+                - window.get_scroll_offset();
+            let bottom = top + card.size().height;
+            assert!(bottom - top > window.get_scroll_viewport_height());
+            window.invoke_reveal_range(top, bottom);
+            settle(1);
+            let offset = window.get_scroll_offset();
+            assert!(
+                (offset + top).abs() < 1.,
+                "oversized target keeps its leading edge visible"
+            );
+            for _ in 0..8 {
+                window.invoke_reveal_range(top, bottom);
+                settle(1);
+                assert!(
+                    (window.get_scroll_offset() - offset).abs() < 0.1,
+                    "repeated focus geometry must not alternate scroll edges"
+                );
+            }
+            let target = review.absolute_position().y
+                - scroll.absolute_position().y
+                - window.get_scroll_offset();
+            let end = target + review.size().height;
+            assert!(end - target <= window.get_scroll_viewport_height());
+            window.invoke_reveal_range(target, end);
+            settle(1);
+            let offset = window.get_scroll_offset();
+            assert!(target + offset >= -0.1);
+            assert!(end + offset <= window.get_scroll_viewport_height() + 0.1);
+            window.invoke_reveal_range(target, end);
+            settle(1);
+            assert!((window.get_scroll_offset() - offset).abs() < 0.1);
+            // Returning to a large card must preserve an existing scroll
+            // position when its leading edge is already on screen.
+            window.invoke_reveal_range(0., 1.);
+            settle(1);
+            let inset_top = top + 16.;
+            assert!(bottom - inset_top > window.get_scroll_viewport_height());
+            let offset = window.get_scroll_offset();
+            assert!(inset_top + offset >= 0.);
+            assert!(inset_top + offset < window.get_scroll_viewport_height());
+            window.invoke_reveal_range(inset_top, bottom);
+            settle(1);
+            assert!(
+                (window.get_scroll_offset() - offset).abs() < 0.1,
+                "an already visible leading edge must preserve the saved scroll position"
+            );
+        }
+    }
+}
+
+#[test]
 fn card_and_layout_reflow_at_double_text_without_recreating_the_native_editor() {
     i_slint_backend_testing::init_no_event_loop();
     let window = BaseLayoutFixture::new().unwrap();
@@ -275,6 +349,64 @@ fn card_and_layout_reflow_at_double_text_without_recreating_the_native_editor() 
     assert!(card.size().height > original_height);
     assert!(publish.absolute_position().y > review.absolute_position().y);
     assert!(window.get_scroll_content_height() > window.get_scroll_viewport_height());
+}
+
+#[test]
+fn conditional_alert_measures_its_allocated_width_without_empty_card_space() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseConditionalAlertFixture::new().unwrap();
+    window.show().unwrap();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for width in [720., 300., 720.] {
+            window.set_viewport_width(width);
+            for dismissible in [false, true] {
+                window.set_dismissible(dismissible);
+                for message in [
+                    "Your session is ready.",
+                    "",
+                    "A longer message that must wrap at the allocated width and remain entirely inside the alert.",
+                ] {
+                    window.set_message(message.into());
+                    window.set_expanded(false);
+                    // Searching materializes changed conditionals as a native draw does.
+                    assert!(
+                        ElementQuery::from_root(&window)
+                            .match_inherits("KitAlert")
+                            .find_all()
+                            .is_empty()
+                    );
+                    window.set_expanded(true);
+                    let card = ElementQuery::from_root(&window)
+                        .match_inherits("KitCard")
+                        .find_first()
+                        .unwrap();
+                    let next = element(&window, "Continue");
+                    let content_bottom = next.absolute_position().y + next.size().height;
+                    let card_bottom = card.absolute_position().y + card.size().height;
+                    assert!(
+                        (card_bottom - content_bottom - 24.).abs() < 1.,
+                        "scale={scale} width={width}: card bottom={card_bottom}, content bottom={content_bottom}"
+                    );
+                    let alert = element(&window, "Signed in");
+                    assert!(
+                        alert.absolute_position().y + alert.size().height
+                            <= next.absolute_position().y
+                    );
+                    for text in ElementQuery::from_root(&window)
+                        .match_inherits("Text")
+                        .find_all()
+                    {
+                        let position = text.absolute_position();
+                        let size = text.size();
+                        assert!(position.x >= 0. && position.x + size.width <= width + 1.);
+                    }
+                }
+            }
+        }
+    }
 }
 fn key_text(window: &impl ComponentHandle, text: &str) {
     window

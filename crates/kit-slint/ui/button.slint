@@ -61,6 +61,13 @@ export component KitPressable inherits Rectangle {
         @children
     }
     keys := FocusScope {
+        // Native keyboard traversal reveals this geometry in ancestor scrolls.
+        // Include the painted outline; focus-on-click remains off, so this does
+        // not enlarge the pointer target or change the button's layout size.
+        x: -root.recipe.focus-offset - root.recipe.focus-width;
+        y: -root.recipe.focus-offset - root.recipe.focus-width;
+        width: root.width - 2 * self.x;
+        height: root.height - 2 * self.y;
         enabled: !root.disabled;
         focus-on-tab-navigation: root.tab-stop;
         focus-on-click: false;
@@ -126,9 +133,13 @@ export component KitPressable inherits Rectangle {
 export component KitButton inherits KitPressable {
     in property <string> text;
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    min-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
-    preferred-width: root.min-width;
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
+    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    preferred-width: root.natural-width;
     label := Text {
+        x: 0px; y: 0px;
+        width: max(0px, root.width - 2 * root.recipe.padding-inline);
+        height: max(0px, root.height - 2 * root.recipe.padding-block);
         opacity: root.busy ? 0 : 1;
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;

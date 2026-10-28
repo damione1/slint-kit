@@ -52,6 +52,26 @@ export component BaseProgressFixture inherits Window {
     }
 }
 
+// Consumer composition: the card must fit its children after a conditional is
+// materialized, at the current width, without adding height for unused wrapping.
+export component BaseConditionalAlertFixture inherits Window {
+    width: root.viewport-width; height: 900px;
+    in property <length> viewport-width: 720px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> message: "Your session is ready.";
+    in property <bool> dismissible;
+    in property <bool> expanded: true;
+    KitScrollArea {
+        KitCard { theme: root.theme;
+            KitCardHeader { theme: root.theme; title: "Welcome"; description: "Connect to your installation."; }
+            if root.expanded: KitCardBody {
+                KitAlert { theme: root.theme; title: "Signed in"; message: root.message; dismissible: root.dismissible; }
+                KitButton { theme: root.theme; text: "Continue"; }
+            }
+        }
+    }
+}
+
 export component BaseLayoutFixture inherits Window {
     width: 800px; height: 700px;
     in property <KitTheme> theme: KitThemes.light;
@@ -62,6 +82,8 @@ export component BaseLayoutFixture inherits Window {
     out property <length> content-width: container.available-width;
     out property <length> scroll-content-height: scroll.content-height;
     out property <length> scroll-viewport-height: scroll.visible-height;
+    out property <length> scroll-offset: scroll.content-y;
+    public function reveal-range(top: length, bottom: length) { scroll.reveal(top,bottom); }
     public function focus-editor() { editor.take-focus(); }
     public function reveal-editor() {
         let top = editor.absolute-position.y - scroll.absolute-position.y - scroll.content-y;

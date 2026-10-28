@@ -2,6 +2,7 @@
 import { KitTheme, KitThemes } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 export { DialogState, CloseReason } from "contracts.slint";
+export enum DialogTabPolicy { host, native }
 
 // Modal host: rendered last in its window. Topmost is projected by OverlayStack;
 // arbitrary content enters the focus registry via KitFocusTarget.
@@ -9,6 +10,9 @@ export component KitDialogSurface inherits Rectangle {
     in property <KitTheme> theme: KitThemes.light;
     in property <DialogState> state;
     in property <bool> dismiss-on-backdrop: true;
+    // Native traversal follows the actual mounted controls. Its window host
+    // must make background controls ineligible while this modal is open.
+    in property <DialogTabPolicy> tab-policy: DialogTabPolicy.host;
     callback dismiss(CloseReason);
     callback focus-next(bool);
     visible: root.state.open;
@@ -21,7 +25,7 @@ export component KitDialogSurface inherits Rectangle {
     FocusScope {
         focus-on-tab-navigation: false;
         capture-key-pressed(event) => {
-            if (root.state.topmost && (event.text == Key.Tab || event.text == Key.Backtab)) {
+            if (root.state.topmost && root.tab-policy == DialogTabPolicy.host && (event.text == Key.Tab || event.text == Key.Backtab)) {
                 root.focus-next(event.modifiers.shift || event.text == Key.Backtab); return accept;
             }
             return reject;
@@ -30,6 +34,10 @@ export component KitDialogSurface inherits Rectangle {
             if (!root.state.topmost) { return reject; }
             if (event.text == Key.Escape) {
                 if (!root.state.busy) { root.dismiss(CloseReason.escape); }
+                return accept;
+            }
+            if (event.text == Key.Back) {
+                if (!root.state.busy) { root.dismiss(CloseReason.system-back); }
                 return accept;
             }
             return reject;

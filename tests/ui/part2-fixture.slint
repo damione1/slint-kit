@@ -58,8 +58,8 @@ export component Part2Fixture inherits Window {
         intrinsic-button := KitButton { theme: root.theme; control-size: root.control-size; text: "Intrinsic action"; }
         intrinsic-select := KitSelect { theme: root.theme; control-size: root.control-size; placeholder: "Intrinsic select"; }
         name := KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; validation: root.validation; label: "Full name"; description: "Your name remains visible and editable after changing theme."; error: "Please enter a name."; text <=> root.name-text; edited(text) => { root.name-edited(text); } commit-requested(text) => { root.name-committed(text); } }
-        password := KitPasswordField { theme: root.theme; access: root.access; label: "Password"; text <=> root.password-text; secret-visibility <=> root.secret-visibility; }
-        search := KitSearchField { theme: root.theme; access: root.access; label: "Find a person"; text <=> root.search-text; }
+        password := KitPasswordField { theme: root.theme; control-size: root.control-size; access: root.access; label: "Password"; text <=> root.password-text; secret-visibility <=> root.secret-visibility; }
+        search := KitSearchField { theme: root.theme; control-size: root.control-size; access: root.access; label: "Find a person"; text <=> root.search-text; }
         area := KitTextArea { theme: root.theme; access: root.access; label: "Notes"; min-lines: 2; max-lines: 4; text <=> root.area-text; commit-requested(text) => { root.area-committed(text); } }
         Rectangle { vertical-stretch: 1; }
     }
@@ -70,7 +70,7 @@ export component Part2Fixture inherits Window {
         KitSwitch { theme: root.theme; access: root.access; label: "Activity updates"; }
         radio := KitRadioGroup { theme: root.theme; access: root.access; label: "Billing cadence"; rows: root.choices; generation: 7; active-token: root.active-token; navigate(step) => { root.radio-navigate(step); } activate(token,generation) => { root.radio-activate(token,generation); } }
         slider := KitSlider { theme: root.theme; access: root.access; position: root.slider-position; label: "Volume"; value-label: "50 percent"; navigate(step) => { root.slider-navigate(step); } position-requested(value) => { root.slider-position-requested(value); } gesture-started => { root.slider-started(); } committed => { root.slider-committed(); } cancelled => { root.slider-cancelled(); } }
-        KitDatePicker { theme: root.theme; label: "Reservation date"; days: root.calendar-days; active-index: root.calendar-active; title: "October 2026"; open <=> root.picker-open; choose(day) => { root.picker-choose(day); } }
+        KitDatePicker { theme: root.theme; label: "Reservation date"; calendar-button-label: "Calendrier"; calendar-accessible-name: "Ouvrir le calendrier de réservation"; previous-month-label: "Mois précédent"; next-month-label: "Mois suivant"; placeholder: "AAAA-MM-JJ"; description: "Date civile explicite"; days: root.calendar-days; active-index: root.calendar-active; title: "October 2026"; open <=> root.picker-open; choose(day) => { root.picker-choose(day); } }
         calendar := KitCalendar { theme: root.theme; access: root.access; days: root.calendar-days; active-index: root.calendar-active; title: "October 2026"; label: "Reservation calendar"; navigate(step) => { root.calendar-navigate(step); } choose(day) => { root.calendar-choose(day); } }
         Rectangle { vertical-stretch: 1; }
     }

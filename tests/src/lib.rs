@@ -4,6 +4,7 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod wrapped_field;
 
 #[cfg(test)]
 mod tests {
@@ -295,6 +296,35 @@ mod tests {
             .dispatch_event(WindowEvent::KeyReleased { text: "!".into() });
         assert_eq!(window.get_edit_text().as_str(), "é漢🦊!");
     }
+    #[test]
+    fn android_back_dismisses_only_the_topmost_idle_dialog_and_is_consumed_while_busy() {
+        let window = fixture();
+        let reasons = Rc::new(std::cell::RefCell::new(Vec::new()));
+        let observed = reasons.clone();
+        window.on_dismiss_dialog(move |reason| observed.borrow_mut().push(reason));
+        for (topmost, busy) in [(true, false), (true, true), (false, false)] {
+            window.set_dialog_state(DialogState {
+                open: true,
+                topmost,
+                busy,
+            });
+            window.invoke_focus_editor();
+            let result = window
+                .window()
+                .dispatch_event_with_result(WindowEvent::KeyPressed {
+                    text: Key::Back.into(),
+                })
+                .unwrap();
+            assert_eq!(
+                matches!(result, slint::platform::WindowEventDispatchResult::Accepted),
+                topmost
+            );
+            key_up(&window, Key::Back);
+        }
+        assert_eq!(*reasons.borrow(), [CloseReason::SystemBack]);
+        assert_eq!(window.get_edit_text().as_str(), "");
+    }
+
     #[test]
     fn dialog_cycles_registered_custom_controls_and_restores_real_focus() {
         use kit_core::{FocusDirection, FocusId, FocusRegistry, FocusScopeId};
@@ -669,6 +699,26 @@ mod tests {
         assert!(harness.stack.borrow().is_empty());
     }
     #[test]
+    fn nested_android_back_closes_select_then_dialog_and_restores_each_real_trigger() {
+        let harness = nested();
+        let window = &harness.window;
+        nested_key(window, Key::DownArrow);
+        nested_key(window, Key::Back);
+        slint::platform::update_timers_and_animations();
+        assert!(!window.get_select_state().open);
+        assert!(window.get_dialog_state().open);
+        assert!(window.get_select_focused());
+        assert_eq!(harness.select_dismisses.get(), 1);
+        assert_eq!(harness.dialog_dismisses.get(), 0);
+        assert_eq!(harness.binding.selected(), None);
+        nested_key(window, Key::Back);
+        slint::platform::update_timers_and_animations();
+        assert!(!window.get_dialog_state().open);
+        assert!(window.get_background_focused());
+        assert_eq!(harness.dialog_dismisses.get(), 1);
+        assert!(harness.stack.borrow().is_empty());
+    }
+    #[test]
     fn nested_select_tab_closes_and_advances_without_delayed_focus_theft() {
         let harness = nested();
         let window = &harness.window;
@@ -707,6 +757,11 @@ mod form_corrections;
 
 #[cfg(test)]
 mod base_data;
+mod button_sizing;
+mod menu_focus;
+mod native_dialog;
 
 #[cfg(test)]
 mod base_feedback;
+
+mod datetime_localization;

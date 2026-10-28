@@ -9,6 +9,7 @@ export component BaseDataFixture inherits Window {
     in property <[TableColumn]> columns;
     in property <[TableRow]> rows;
     in property <[ContentItem]> items;
+    in property <string> content-empty-label;
     in property <[TextLine]> lines;
     in property <int> table-generation: 1;
     in property <int> line-generation: 1;
@@ -44,6 +45,7 @@ export component BaseDataFixture inherits Window {
         content := KitContentList {
             theme: root.theme; height: 250px; items: root.items; generation: 1; active-index: root.content-active;
             label: "Articles fixture";
+            empty-label: root.content-empty-label;
             navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
             activate(token,generation) => { root.content-activated(token,generation); }
         }

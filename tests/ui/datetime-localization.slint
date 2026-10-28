@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitZonedDateTimeField, ZonedTimePresentation, AmbiguousTimeChoice, FieldAccess } from "@kit/kit.slint";
+export component DateTimeLocalizationFixture inherits Window {
+    width: 640px; height: 800px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access: FieldAccess.editable;
+    callback chosen(AmbiguousTimeChoice);
+    callback started();
+    callback focused(bool);
+    KitZonedDateTimeField {
+        theme: root.theme; access: root.access; label: "Début";
+        date-label: "Date civile"; time-label: "Heure locale"; zone-label: "Fuseau horaire";
+        zone-placeholder: "Europe/Paris"; zone-description: "Fuseau explicite";
+        earlier-label: "Première occurrence"; later-label: "Seconde occurrence";
+        date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto";
+        resolution: ZonedTimePresentation.ambiguous; resolution-message: "Deux instants distincts";
+        ambiguity-started => { root.started(); }
+        focus-observed(focused) => { root.focused(focused); }
+        ambiguity-chosen(choice) => { root.chosen(choice); }
+    }
+}

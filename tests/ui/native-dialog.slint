@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDialogSurface, KitDialogPanel, DialogTabPolicy, KitButton, KitTextField, KitMenu, KitDataTable, FieldAccess, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+export component NativeDialogFixture inherits Window {
+    width: 640px; height: 700px;
+    in property <bool> opened: true;
+    in property <DialogTabPolicy> tab-policy: DialogTabPolicy.native;
+    in-out property <string> draft;
+    out property <bool> first-focused: first.has-focus;
+    out property <bool> editor-focused: editor.has-focus;
+    out property <bool> last-focused: last.has-focus;
+    out property <bool> outside-focused: outside.has-focus;
+    callback outside-activated();
+    callback outside-sort();
+    callback host-tab(bool);
+    public function focus-first() { first.take-focus(); }
+    public function focus-background-menu() { menu.take-focus(); }
+    public function focus-background-table() { table.take-focus(); }
+    VerticalLayout {
+        menu := KitMenu {
+            interactive: !root.opened;
+            rows: [{token:17,generation:1,label:"Background destination",disabled:false}];
+            state: {open:true,generation:1,active:{present:true,token:17},active-index:0,selection-availability:SelectionAvailability.absent};
+            activate(token,generation) => { root.outside-activated(); }
+        }
+        table := KitDataTable {
+            interactive: !root.opened;
+            columns: [{token:1,label:"Sortable background",sortable:true}];
+            rows: [{token:2,cells:["Background row"],disabled:false}];
+            generation:1; active-index:0;
+            activate(token,generation) => { root.outside-activated(); }
+            sort-requested(token) => { root.outside-sort(); }
+        }
+        outside := KitButton { text:"Outside"; disabled:root.opened; activated => { root.outside-activated(); } }
+    }
+    KitDialogSurface {
+        width: root.width; height: root.height;
+        state: {open:root.opened,topmost:true,busy:false}; tab-policy:root.tab-policy;
+        focus-next(reverse) => { root.host-tab(reverse); }
+        KitDialogPanel {
+            x:40px;y:40px;width:560px;height:500px;
+            VerticalLayout {
+                padding:20px;spacing:12px;
+                first := KitButton { text:"First"; disabled:!root.opened; }
+                editor := KitTextField { label:"Native draft"; text <=> root.draft; access:root.opened ? FieldAccess.editable : FieldAccess.disabled; }
+                KitButton { text:"Unavailable"; disabled:true; }
+                last := KitButton { text:"Last"; disabled:!root.opened; }
+            }
+        }
+    }
+}

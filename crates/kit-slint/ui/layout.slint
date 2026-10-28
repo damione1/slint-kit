@@ -140,7 +140,14 @@ export component KitScrollArea inherits ScrollView {
     content-height: max(root.visible-height, body.preferred-height);
     public function scroll-to-start() { root.content-y = 0px; }
     public function reveal(top: length, bottom: length) {
-        if (top < -root.content-y) { root.content-y = -max(0px, top); }
+        // An oversized target cannot expose both edges. Reveal its leading edge
+        // only when hidden, preserving a saved position that already shows it.
+        if (bottom - top > root.visible-height) {
+            if (top < -root.content-y || top >= -root.content-y + root.visible-height) {
+                root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, top));
+            }
+        }
+        else if (top < -root.content-y) { root.content-y = -max(0px, top); }
         else if (bottom > -root.content-y + root.visible-height) {
             root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, bottom - root.visible-height));
         }

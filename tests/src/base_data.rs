@@ -11,6 +11,23 @@ fn fixture() -> BaseDataFixture {
     window.show().unwrap();
     window
 }
+#[test]
+fn empty_content_uses_the_current_host_supplied_label() {
+    let window = fixture();
+    for label in ["Aucune collection disponible", "No available collections"] {
+        window.set_content_empty_label(label.into());
+        let message = labelled(&window, label);
+        assert!(message.size().width > 0. && message.size().height > 0.);
+        assert!(
+            ElementQuery::from_root(&window)
+                .match_predicate(
+                    |element| element.accessible_label().as_deref() == Some("No articles found")
+                )
+                .find_all()
+                .is_empty()
+        );
+    }
+}
 fn labelled(window: &BaseDataFixture, label: &str) -> ElementHandle {
     let requested = label.to_owned();
     ElementQuery::from_root(window)

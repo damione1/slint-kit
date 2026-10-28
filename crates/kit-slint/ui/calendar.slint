@@ -41,6 +41,8 @@ export component KitCalendar inherits Rectangle {
     in property <int> active-index;
     in property <string> title;
     in property <string> label: "Choose a date";
+    in property <string> previous-month-label: "Previous month";
+    in property <string> next-month-label: "Next month";
     in property <bool> request-focus;
     callback navigate(CalendarNavigation);
     callback choose(CalendarDay);
@@ -64,9 +66,9 @@ export component KitCalendar inherits Rectangle {
         spacing: 8px;
         HorizontalLayout {
             spacing: 8px;
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: "Previous month"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-left; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-left; ink: root.theme.text-primary; } } }
             Text { text: root.title; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: "Next month"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-right; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-right; ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
             min-height: root.cell-height * 7;
@@ -134,6 +136,12 @@ export component KitDatePicker inherits Rectangle {
     in property <int> active-index;
     in property <string> title;
     in property <string> label;
+    in property <string> placeholder: "YYYY-MM-DD";
+    in property <string> description: "Civil date; no time zone";
+    in property <string> calendar-button-label: "Calendar";
+    in property <string> calendar-accessible-name: "Open calendar for " + root.label;
+    in property <string> previous-month-label: "Previous month";
+    in property <string> next-month-label: "Next month";
     in property <string> error;
     in-out property <string> text;
     in-out property <bool> open;
@@ -155,22 +163,22 @@ export component KitDatePicker inherits Rectangle {
             spacing: 8px;
             editor := KitDateField {
                 theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-date;
-                label: ""; description: ""; accessible-name: root.label; text <=> root.text;
+                label: ""; description: ""; placeholder: root.placeholder; accessible-name: root.label; text <=> root.text;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
                 commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
             }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Calendar"; accessible-name: "Open calendar for " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
         }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
-        KitFieldDescription { theme: root.theme; text: "Civil date; no time zone"; }
+        if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     }
     popup := PopupWindow {
         x: 0px; y: root.height + 4px; width: max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 24px;
         close-policy: close-on-click-outside;
         Rectangle { background: root.theme.surface-raised; border-radius: 12px; border-width: 1px; border-color: root.theme.border-subtle;
-            calendar := KitCalendar { x: 12px; y: 12px; width: parent.width - 24px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; request-focus: root.open;
+            calendar := KitCalendar { x: 12px; y: 12px; width: parent.width - 24px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 choose(day) => { root.choose(day); root.open = false; }
                 cancelled => { root.cancelled(); root.open = false; }

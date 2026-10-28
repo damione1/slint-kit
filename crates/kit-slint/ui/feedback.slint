@@ -14,15 +14,35 @@ export component KitAlert inherits Rectangle {
     in property <string> message;
     in property <bool> dismissible;
     callback dismissed();
+    // Measure wrapped copy at the allocated width, including when this component
+    // lives inside a conditional layout. An unconstrained row's preferred height
+    // measures its copy at minimum width and leaves unused space below the alert.
+    private property <length> trailing-space: root.dismissible ? dismiss.width + 12px : 0px;
+    preferred-height: 32px + max(copy.preferred-height, icon.height, root.dismissible ? dismiss.height : 0px);
+    min-height: self.preferred-height;
+    min-width: 32px + icon.width + 12px + root.trailing-space;
     background: root.theme.hover; border-radius: 10px; vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
-    HorizontalLayout { padding: 16px; spacing: 12px;
-        KitIcon { kind: root.severity == AlertSeverity.success ? IconKind.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? IconKind.warning : IconKind.plus; ink: root.severity == AlertSeverity.error ? root.theme.danger : root.theme.accent; }
-        VerticalLayout { spacing: 4px;
-            Text { text: root.title; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-            if root.message != "": Text { text: root.message; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-        }
-        if root.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; icon: IconKind.close; accessible-name: "Dismiss " + root.title; activated => { root.dismissed(); } }
+    icon := KitIcon {
+        x: 16px; y: 16px;
+        kind: root.severity == AlertSeverity.success ? IconKind.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? IconKind.warning : IconKind.plus;
+        ink: root.severity == AlertSeverity.error ? root.theme.danger : root.theme.accent;
+    }
+    copy := VerticalLayout {
+        x: icon.x + icon.width + 12px; y: 16px;
+        width: max(0px, root.width - self.x - 16px - root.trailing-space);
+        height: self.preferred-height;
+        spacing: 4px; alignment: start;
+        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
+    dismiss := KitIconButton {
+        width: self.preferred-width; height: self.preferred-height;
+        x: root.width - self.width - 16px; y: 16px;
+        visible: root.dismissible; disabled: !root.dismissible;
+        theme: root.theme; control-size: ControlSize.compact;
+        icon: IconKind.close; accessible-name: "Dismiss " + root.title;
+        activated => { root.dismissed(); }
     }
 }
 

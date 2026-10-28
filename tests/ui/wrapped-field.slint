@@ -1,0 +1,19 @@
+import { KitWrap, KitTextField, KitButton, KitContentList, KitTheme, KitThemes } from "@kit/kit.slint";
+export component WrappedFieldFixture inherits Window {
+    in-out property <length> viewport-width: 760px;
+    width: root.viewport-width; height: 760px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <string> draft;
+    out property <bool> field-focused: field.has-focus;
+    Rectangle {
+        width: root.width; height: root.height;
+        VerticalLayout {
+            padding: 16px; spacing: 12px;
+            KitWrap {
+                field := KitTextField { theme: root.theme; label: "Collection name"; preferred-width: 240px; text <=> root.draft; }
+                KitButton { theme: root.theme; text: "Create"; }
+            }
+            KitContentList { theme: root.theme; label: "Collections"; }
+        }
+    }
+}

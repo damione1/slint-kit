@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenu, KitButton, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+
+export component MenuFocusFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <[OptionRow]> rows;
+    in property <int> generation: 1;
+    in property <bool> interactive: true;
+    out property <bool> menu-focused: menu.has-focus;
+    callback observed(bool);
+    callback activated(int, int);
+    public function focus-menu() { menu.take-focus(); }
+    public function focus-outside() { outside.take-focus(); }
+    VerticalLayout {
+        menu := KitMenu {
+            interactive: root.interactive;
+            rows: root.rows;
+            state: { generation: root.generation, open: true, active-index: 0,
+                active: { present: true, token: 17 }, selected: { present: false, token: 0 },
+                selection-availability: SelectionAvailability.absent };
+            activate(token, generation) => { root.activated(token, generation); }
+            focus-observed(focused) => { root.observed(focused); }
+        }
+        outside := KitButton { text: "Outside menu"; }
+    }
+}
