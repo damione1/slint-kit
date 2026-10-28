@@ -106,9 +106,24 @@ for (const component of components) {
     check(html.includes(`<html lang="${locale}">`), `${name}/${locale}: incorrect HTML language`);
     const alternate = locale === 'fr' ? 'en' : 'fr';
     check(html.includes(`href="${localeUrl(`components/${slug}/`, alternate)}"`), `${name}/${locale}: language link must retain the current component`);
-    check(html.includes(`<h1>${name}</h1>`), `${name}/${locale}: missing component heading`);
-    const code = html.match(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/)?.[1];
-    check(code && decode(code).trim() === example.trim(), `${name}/${locale}: displayed code differs from the native capture source`);
+    check(/<h1>[^<]*Slint<\/h1>/.test(html) && html.includes(`<code>${name}</code>`), `${name}/${locale}: heading must describe the Slint component and retain its API name`);
+    const code = [...html.matchAll(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
+    check(code.includes(example.trim()), `${name}/${locale}: displayed code differs from the native capture source`);
+    if (['button', 'combobox'].includes(slug)) {
+      const starter = path.join(docs, 'quickstart', slug);
+      const capture = JSON.parse(fs.readFileSync(path.join(starter, 'capture.json'), 'utf8'));
+      check(capture.environment?.backend === 'winit' && capture.environment?.renderer === 'skia', `${name}: starter must identify its native capture backend`);
+      for (const [file, checksum] of Object.entries(capture.source_sha256)) {
+        check(sha(fs.readFileSync(path.join(starter, file))) === checksum, `${name}: starter source changed; recapture the working app after ${file}`);
+      }
+      check(sha(fs.readFileSync(path.join(starter, capture.image.file))) === capture.image.sha256, `${name}: starter screenshot differs from its native proof`);
+      const blocks = [...html.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
+      for (const file of ['Cargo.toml', 'build.rs', 'ui/app.slint', 'src/main.rs']) {
+        const source = fs.readFileSync(path.join(docs, 'quickstart', slug, file), 'utf8');
+        check(blocks.includes(source.trim()), `${name}/${locale}: working example must display the complete ${file}`);
+        check(fs.readFileSync(path.join(output, 'quickstart', slug, file), 'utf8') === source, `${name}/${locale}: downloaded ${file} must match displayed code`);
+      }
+    }
     check(html.includes(`srcset="/assets/components/${imageFilename.replace('.png', '@2x.png')} 2x"`), `${name}/${locale}: Retina candidate is required`);
     check(html.includes(`/assets/components/${imageFilename}`), `${name}/${locale}: missing matching capture`);
     check(text?.summary && html.includes(decode(text.summary)), `${name}/${locale}: missing localized summary`);

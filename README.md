@@ -62,6 +62,8 @@ Build with `npm --prefix docs ci` and `npm --prefix docs run build`, then deploy
 
 Eleventy writes content-addressed CSS and JavaScript under `/assets/versioned/`, with one year of immutable browser caching. Replaceable screenshots and branding use a one-day cache. HTML keeps the default browser revalidation policy. Cache rules live in `docs/src/_headers` and are copied into the deployed assets.
 
+The Button and Combobox pages include standalone projects from `docs/quickstart/`, built against the published crates. Keep displayed and downloadable files identical; the documentation build checks this. CI compiles both projects, and browser checks cover source copying. These working apps are separate from the native screenshot fixtures; preserve that distinction when adding another starter. Component source links follow `site.sourceRef` in `docs/eleventy.config.js` and must match the documented release.
+
 ## License
 
 Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.

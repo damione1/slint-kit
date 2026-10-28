@@ -1,0 +1,19 @@
+import { KitButton, KitThemes } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "Slint button";
+    preferred-width: 420px;
+    preferred-height: 220px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: KitThemes.light.canvas;
+    in property <int> count;
+    callback increment();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        button := KitButton { text: "Count in Rust"; activated => { root.increment(); } }
+        count-label := Text { text: "Rust callback count: " + root.count; color: KitThemes.light.text-primary; }
+    }
+}

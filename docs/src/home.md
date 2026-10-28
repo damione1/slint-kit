@@ -28,7 +28,7 @@ Des composants natifs, des contrôleurs typés et des thèmes partagés pour vos
 
 ## Les composants
 
-Chaque référence présente une capture native, un exemple Slint complet et l’API publique. Commencez par une famille :
+Essayez un [bouton avec callback Rust](/fr/components/button/) ou une [liste avec recherche](/fr/components/combobox/), puis explorez les composants par usage :
 {% else %}
 <p class="eyebrow">Rust + Slint</p>
 
@@ -46,7 +46,7 @@ Native components, typed controllers and shared themes for your Rust and Slint a
 
 ## Components
 
-Each reference includes a native screenshot, a complete Slint example and the public API. Start with a family:
+Try a [button with a Rust callback](/components/button/) or a [searchable combobox](/components/combobox/), then explore components by purpose:
 {% endif %}
 
 <div class="family-grid">{% for family, label in ui.families %}<a href="{{ 'components/' | localeUrl(locale) }}#{{ family }}">{{ label[locale] }} <span>{{ (components | whereFamily(family)).length }}</span></a>{% endfor %}</div>

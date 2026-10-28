@@ -1,0 +1,48 @@
+{% if locale == 'fr' %}
+## Essayer le composant
+
+Créez un dossier avec les quatre fichiers ci-dessous, puis lancez `cargo run`. Rust 1.92+ ; Slint Kit 0.2.0 depuis crates.io.
+
+{% if component.slug == 'button' %}Cliquez sur le bouton : le callback Rust incrémente le compteur affiché.{% else %}Ouvrez la liste, tapez `sha` et choisissez **Shared**. Rust conserve la clé sélectionnée ; Échap ferme la liste sans changer le choix.{% endif %}
+{% else %}
+## Try the component
+
+Create a folder with the four files below, then run `cargo run`. Rust 1.92+; Slint Kit 0.2.0 from crates.io.
+
+{% if component.slug == 'button' %}Click the button: its Rust callback increments the displayed counter.{% else %}Open the list, type `sha`, then choose **Shared**. Rust retains the selected key; Escape closes the list without changing the choice.{% endif %}
+{% endif %}
+
+### ui/app.slint
+
+```slint
+{{ 'ui/app.slint' | quickstartSource(component.slug) | safe }}
+```
+
+### src/main.rs
+
+```rust
+{{ 'src/main.rs' | quickstartSource(component.slug) | safe }}
+```
+
+<details class="project-files">
+<summary>{% if locale == 'fr' %}Cargo.toml et build.rs{% else %}Cargo.toml and build.rs{% endif %}</summary>
+
+### Cargo.toml
+
+```toml
+{{ 'Cargo.toml' | quickstartSource(component.slug) | safe }}
+```
+
+### build.rs
+
+```rust
+{{ 'build.rs' | quickstartSource(component.slug) | safe }}
+```
+
+</details>
+
+<p class="quickstart-downloads">{% if locale == 'fr' %}Fichiers :{% else %}Files:{% endif %}
+<a href="/quickstart/{{ component.slug }}/Cargo.toml" download>Cargo.toml</a> ·
+<a href="/quickstart/{{ component.slug }}/build.rs" download>build.rs</a> ·
+<a href="/quickstart/{{ component.slug }}/ui/app.slint" download>ui/app.slint</a> ·
+<a href="/quickstart/{{ component.slug }}/src/main.rs" download>src/main.rs</a></p>

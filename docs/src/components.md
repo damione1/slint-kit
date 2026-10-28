@@ -16,13 +16,22 @@ eleventyComputed:
 {% set screenshot = component.screenshots[locale] %}
 <p class="eyebrow"><a href="{{ 'components/' | localeUrl(locale) }}#{{ component.family }}">{{ component.familyLabel[locale] }}</a></p>
 
-# {{ component.name }}
+# {{ component | componentLabel(locale) }} {% if locale == 'fr' %}pour Slint{% else %}for Slint{% endif %}
+
+<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.2.0</p>
 
 {{ text.summary }}
 
-{% if locale == 'fr' %}Référence et exemples pour **Slint Kit 0.2.0**, disponible sur crates.io. Consultez les [nouveautés et la migration depuis 0.1](/fr/guides/source-updates/).{% else %}Reference and examples for **Slint Kit 0.2.0**, available on crates.io. See [updates and migration from 0.1](/guides/source-updates/).{% endif %}
-
+{% set quickstart = quickstarts[component.slug] %}
+{% if quickstart %}
+<figure class="component-preview"><img src="/quickstart/{{ component.slug }}/preview@2x.png" alt="{{ text.summary }}" width="{{ quickstart.width }}" height="{{ quickstart.height }}" style="width:{{ quickstart.displayWidth }}px" loading="eager"><figcaption>{% if component.slug == 'button' %}{% if locale == 'fr' %}Application native après trois clics sur le bouton.{% else %}Native app after three button clicks.{% endif %}{% else %}{% if locale == 'fr' %}La recherche « sha » ne conserve que Shared dans la liste.{% else %}Searching for “sha” leaves only Shared in the list.{% endif %}{% endif %}</figcaption></figure>
+{% else %}
 <figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+{% endif %}
+
+{% if quickstarts[component.slug] %}
+{% include "component-quickstart.njk" %}
+{% endif %}
 
 {{ text.usage | prose | safe }}
 
@@ -30,11 +39,18 @@ eleventyComputed:
 
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
-<p class="source-link"><a href="{{ site.repository }}/blob/main/{{ component.source }}#L{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
+<p class="source-link"><a href="{{ site.repository }}/blob/{{ site.sourceRef }}/{{ component.source }}#L{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
 
-## {{ ui[locale].example }}
+## {% if locale == 'fr' %}Composition visuelle{% else %}Visual composition{% endif %}
 
-{% if locale == 'fr' %}Ce fichier Slint complet présente une **composition visuelle** et produit la capture ci-dessus. Les textes internes sans propriété de libellé conservent la langue par défaut du kit ; les dialogues système suivent la plateforme. Les états projetés et les signaux qui demandent une décision doivent être raccordés à l’hôte ; cet exemple isolé ne fournit pas ce contrôleur. [Configurer le projet Rust](/fr/guides/getting-started/), puis consulter l’[application avec contrôleurs typés](/fr/guides/typed-example/) pour relier réellement édition, validation et sélection.{% else %}This complete Slint file is a **visual composition** used to produce the screenshot above. Internal strings without a label property retain the kit’s default language; system dialogs follow the host platform. Projected state and callbacks requesting a decision need host wiring; the standalone fixture does not supply that controller. [Set up the Rust project](/guides/getting-started/), then see the [typed controller application](/guides/typed-example/) for working editing, validation and selection.{% endif %}
+{% if locale == 'fr' %}Le fichier ci-dessous produit la capture. Pour les composants pilotés par un contrôleur, il montre l’état affiché sans fournir le branchement Rust. [Créer un projet](/fr/guides/getting-started/).{% else %}The file below produces the screenshot. For controller-driven components, it shows the displayed state without supplying the Rust wiring. [Create a project](/guides/getting-started/).{% endif %}
+
+<details class="visual-example">
+<summary>{% if locale == 'fr' %}Afficher le fichier de la capture{% else %}Show the screenshot source{% endif %}</summary>
+
+{% if quickstart %}
+<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="lazy"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+{% endif %}
 
 ```slint
 {{ component.slug | example(locale) | safe }}
@@ -42,12 +58,12 @@ eleventyComputed:
 
 <a class="download" href="/examples/{% if locale == "fr" %}fr/{% endif %}{{ component.slug }}.slint" download>{{ ui[locale].download }}</a>
 
+</details>
+
 ## {{ ui[locale].api }}
 
 {% set parent = component.base | componentByName %}
 {% if parent %}{{ ui[locale].inherited }} [{{ parent.name }}]({{ ('components/' + parent.slug + '/') | localeUrl(locale) }}).{% else %}{{ ui[locale].inherited }} `{{ component.base }}`.{% endif %}
-{% if locale == 'fr' %}Les déclarations suivantes sont extraites des sources du composant. Les propriétés du parent restent disponibles ; les détails de gestion d’état sont décrits dans le [guide des contrôleurs](/fr/guides/controllers/).{% else %}The declarations below come from the component source. Parent properties remain available; see the [controller guide](/guides/controllers/) for state management.{% endif %}
-
 {% if component.properties.length %}
 ### {{ ui[locale].properties }}
 
@@ -58,8 +74,6 @@ eleventyComputed:
 {% endif %}
 {% if component.types.length %}
 ### {% if locale == 'fr' %}Types et variantes{% else %}Types and variants{% endif %}
-
-{% if locale == 'fr' %}Les noms ci-dessous utilisent la syntaxe Slint. Les types Rust partagés se trouvent dans `slint_kit` ; les enums de présentation proviennent des types Rust générés par Slint.{% else %}Names below use Slint syntax. Shared Rust domain types live in `slint_kit`; presentation enums come from the Rust types generated by Slint.{% endif %}
 
 | {{ ui[locale].type }} | {% if locale == 'fr' %}Déclaration{% else %}Declaration{% endif %} |
 | --- | --- |

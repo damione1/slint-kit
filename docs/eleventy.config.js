@@ -3,13 +3,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import MarkdownIt from 'markdown-it';
-import { scanComponents } from './scripts/inventory.mjs';
+import { scanComponents, componentLabel } from './scripts/inventory.mjs';
 import { localePrefix, localeUrl, siteOrigin } from './scripts/routes.mjs';
 import { structuredData, scriptJson } from './scripts/metadata.mjs';
 export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('src/assets');
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
+  eleventyConfig.addPassthroughCopy({ quickstart: 'quickstart' });
+  eleventyConfig.addFilter('componentLabel', componentLabel);
+  eleventyConfig.addFilter('quickstartSource', (file, slug) => fs.readFileSync(path.join('quickstart', slug, file), 'utf8'));
+  eleventyConfig.addGlobalData('quickstarts', {
+    button: { component: 'KitButton', width: 840, height: 440, displayWidth: 420 },
+    combobox: { component: 'KitCombobox', width: 960, height: 960, displayWidth: 480 },
+  });
   const versionedAssets = new Map();
   eleventyConfig.on('eleventy.before', () => versionedAssets.clear());
   eleventyConfig.addFilter('versionedAsset', sourceUrl => {
@@ -50,6 +57,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData('components', () => inventory);
   eleventyConfig.addGlobalData('site', {
     name: 'Slint Kit', repository: 'https://github.com/damione1/slint-kit',
+    sourceRef: 'v0.2.0',
     url: siteOrigin(),
   });
   const manifest = fs.readFileSync('../Cargo.toml', 'utf8');

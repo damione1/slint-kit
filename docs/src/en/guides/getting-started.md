@@ -44,12 +44,15 @@ fn main() {
 Create `ui/app.slint`:
 
 ```slint
-import { KitButton, KitTextField } from "@kit/kit.slint";
+import { KitButton, KitTextField, KitThemes } from "@kit/kit.slint";
 
 export component App inherits Window {
     title: "Slint Kit";
     preferred-width: 420px;
     preferred-height: 240px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: KitThemes.light.canvas;
     in-out property <string> name;
     callback save(string);
 
@@ -82,7 +85,9 @@ Run `cargo run` from `my-app`. This configuration uses the **winit backend and S
 
 ## Use a documented example
 
-Each [component page](/components/) provides a complete `.slint` file and its native screenshot. Copy that file to `ui/app.slint` and keep the same `build.rs`. The reference file exports `Example`; replace the entire contents of `src/main.rs` with this entry point:
+For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page provides all four files with its Rust callbacks connected.
+
+Other [component pages](/components/) include the visual composition used for the screenshot. To render one, copy its `.slint` file to `ui/app.slint` and keep the same `build.rs`. These files export `Example`; use this entry point:
 
 ```rust
 slint::include_modules!();

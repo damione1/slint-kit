@@ -97,23 +97,25 @@
   },
   "KitButton": {
     "fr": {
-      "summary": "Bouton avec libellé et indicateur d’activité conservant sa largeur naturelle.",
-      "usage": "Définissez `text` et traitez le callback hérité `activated`. Utilisez `intent` pour la hiérarchie des actions et `control-width: ControlWidth.fill` pour remplir un emplacement.",
-      "behavior": "Le texte fournit le nom accessible lorsque `accessible-name` est vide. `busy` remplace visuellement le libellé sans modifier sa mesure et bloque l’action.\n\nEn mode `ControlWidth.fill`, le bouton accepte la largeur allouée même si son texte est plus long. Le focus clavier révèle aussi le contour dans les défilements ancêtres.",
+      "label": "Bouton",
+      "seoTitle": "Bouton Slint avec callback Rust",
+      "summary": "Bouton Slint avec libellé, état occupé et callback d’activation.",
+      "usage": "Définissez `text`, puis traitez `activated` pour lancer votre action. Activez `busy` pendant son exécution ; utilisez `control-width: ControlWidth.fill` pour remplir une cellule du layout.",
+      "behavior": "Entrée active le bouton à l’appui ; Espace l’active au relâchement. `busy` et `disabled` bloquent l’activation. Le libellé conserve sa largeur mesurée sous l’indicateur d’activité et fournit le nom accessible si `accessible-name` est vide.",
       "related": [
-        "KitPressable",
-        "KitFormButton",
-        "KitButtonGroup"
+        "KitIconButton",
+        "KitFormButton"
       ]
     },
     "en": {
-      "summary": "Labeled button whose busy indicator preserves its natural width.",
-      "usage": "Set `text` and handle the inherited `activated` callback. Use `intent` for action hierarchy and `control-width: ControlWidth.fill` to fill a slot.",
-      "behavior": "The text supplies the accessible name when `accessible-name` is empty. `busy` visually replaces the label without changing its measurement and blocks activation.\n\nWith `ControlWidth.fill`, the button accepts its allocated width even when its label is longer. Keyboard focus also reveals the outline in ancestor scroll areas.",
+      "label": "Button",
+      "seoTitle": "Slint button with a Rust callback",
+      "summary": "Slint button with a text label, busy state and activation callback.",
+      "usage": "Set `text`, then handle `activated` to run your action. Set `busy` while the action is pending; use `control-width: ControlWidth.fill` to fill a layout cell.",
+      "behavior": "Enter activates on press; Space activates on release. `busy` and `disabled` block activation. The label keeps its measured width while the busy indicator is shown, and supplies the accessible name unless `accessible-name` is set.",
       "related": [
-        "KitPressable",
-        "KitFormButton",
-        "KitButtonGroup"
+        "KitIconButton",
+        "KitFormButton"
       ]
     }
   },
@@ -311,18 +313,22 @@
   },
   "KitCombobox": {
     "fr": {
-      "summary": "Recherche d’options avec choix stable et état de recherche explicite.",
-      "usage": "Liez `query`, fournissez `selected-label`, `rows` et `state`, puis traitez `query-edited` dans le moteur de recherche. Projetez `SearchPresentation.idle`, `.loading`, `.ready` ou `.failed` et `status-text`.",
-      "behavior": "La popup possède un seul éditeur de recherche natif et virtualise ses options. La requête et le choix accepté restent séparés ; en lecture seule le libellé retenu est un texte natif sélectionnable.",
+      "label": "Liste avec recherche",
+      "seoTitle": "Combobox Slint avec recherche",
+      "summary": "Combobox Slint pour rechercher une option et choisir une valeur.",
+      "usage": "Fournissez `rows` et `state` depuis une projection de `SelectBinding`. Relayez `query-edited` à sa méthode `query` et raccordez l’ouverture, la navigation, l’activation et la fermeture au binding. Mettez à jour `selected-label` quand un choix est accepté.",
+      "behavior": "La popup virtualise les options projetées ; le binding Rust filtre la liste et conserve la clé sélectionnée quand la recherche change. Pour une recherche asynchrone, projetez `search-state` et `status-text` pour signaler l’attente ou l’échec.",
       "related": [
         "KitSelect",
         "KitMultiSelect"
       ]
     },
     "en": {
-      "summary": "Option search with stable selection and explicit search status.",
-      "usage": "Bind `query`, provide `selected-label`, `rows` and `state`, then handle `query-edited` in the search engine. Project `SearchPresentation.idle`, `.loading`, `.ready` or `.failed` and `status-text`.",
-      "behavior": "The popup owns one native search editor and virtualizes options. Query and accepted selection remain separate; in read-only mode the chosen label is selectable native text.",
+      "label": "Searchable combobox",
+      "seoTitle": "Searchable combobox for Slint",
+      "summary": "Slint combobox for searching options and selecting one value.",
+      "usage": "Supply `rows` and `state` from a `SelectBinding` projection. Forward `query-edited` to its `query` method and connect opening, navigation, activation and dismissal to the binding. Update `selected-label` when a selection is accepted.",
+      "behavior": "The popup virtualizes the projected options; the Rust binding performs filtering and retains the selected key when the query changes. For asynchronous search, project `search-state` and `status-text` to show loading or failure.",
       "related": [
         "KitSelect",
         "KitMultiSelect"
@@ -365,21 +371,23 @@
   },
   "KitDataTable": {
     "fr": {
-      "summary": "Tableau de données avec lignes virtualisées et tri demandé au contrôleur.",
-      "usage": "Fournissez `columns`, `rows`, `generation` et `active-index` depuis un modèle à identités stables. Traitez `sort-requested(column-token)`, `navigate` et `activate(row-token, generation)`.",
-      "behavior": "Les en-têtes présentent `DataSortDirection.unsorted`, `.ascending` ou `.descending`, sans trier localement. Le viewport reste fini, les colonnes peuvent défiler horizontalement et `reveal-active()` rend la ligne active visible.\n\n`empty-label` fournit le message quand `rows` est vide. `interactive: false` désactive le clavier, les en-têtes et les lignes pour rendre le tableau inéligible pendant une modale.",
+      "label": "Tableau de données",
+      "seoTitle": "Tableau de données Slint avec tri",
+      "summary": "Tableau de données Slint avec lignes virtualisées, en-têtes de tri et sélection de ligne.",
+      "usage": "Donnez une `height` bornée au tableau, puis fournissez `columns`, `rows`, `generation` et `active-index`. Traitez `sort-requested(column-token)` dans Rust en triant votre modèle et en mettant à jour le sens de tri. Traitez `navigate` pour modifier l’index actif et `activate(row-token, generation)` pour agir sur une ligne.",
+      "behavior": "Le tableau affiche l’ordre fourni par le modèle ; cliquer sur un en-tête ne le trie pas automatiquement. Modifier `active-index` rend cette ligne visible. Définissez `empty-label` pour un modèle vide et `interactive: false` pendant qu’une modale bloque le tableau.",
       "related": [
-        "KitContentList",
-        "KitVirtualTextView"
+        "KitContentList"
       ]
     },
     "en": {
-      "summary": "Data table with virtualized rows and controller-requested sorting.",
-      "usage": "Supply `columns`, `rows`, `generation` and `active-index` from a stable-identity model. Handle `sort-requested(column-token)`, `navigate` and `activate(row-token, generation)`.",
-      "behavior": "Headers present `DataSortDirection.unsorted`, `.ascending` or `.descending` without sorting locally. The viewport stays finite, columns can scroll horizontally, and `reveal-active()` shows the active row.\n\n`empty-label` supplies the message when `rows` is empty. `interactive: false` disables keyboard input, headers and rows to make the table ineligible while a modal is active.",
+      "label": "Data table",
+      "seoTitle": "Slint data table with sorting",
+      "summary": "Slint data table with virtualized rows, sortable headers and row selection.",
+      "usage": "Give the table a bounded `height`, then supply `columns`, `rows`, `generation` and `active-index`. Handle `sort-requested(column-token)` in Rust by sorting your model and updating the column direction. Handle `navigate` to update the active index and `activate(row-token, generation)` to act on a row.",
+      "behavior": "The table renders the supplied row order; clicking a header does not sort it automatically. Changing `active-index` reveals that row. Set `empty-label` for an empty model and `interactive: false` while a modal blocks the table.",
       "related": [
-        "KitContentList",
-        "KitVirtualTextView"
+        "KitContentList"
       ]
     }
   },
@@ -405,19 +413,25 @@
   },
   "KitDatePicker": {
     "fr": {
-      "summary": "Champ de date civile avec calendrier contextuel.",
-      "usage": "Partagez le brouillon `text`, la date acceptée et le modèle de jours avec le contrôleur. Traitez les callbacks textuels et `choose` pour accepter une date atomiquement.",
-      "behavior": "Ouvrir `open` garde l’éditeur monté et émet `opened`. Une sélection ferme le calendrier ; sa fermeture rend le focus au champ sans réécrire le brouillon.\n\nTraduisez `placeholder`, `description`, `calendar-button-label`, `calendar-accessible-name`, `previous-month-label` et `next-month-label`. Une description vide masque l’aide. Le placeholder traduit ne change pas le format accepté par le parseur Rust.",
+      "label": "Sélecteur de date",
+      "seoTitle": "Sélecteur de date Slint",
+      "summary": "Sélecteur de date Slint avec saisie de texte et calendrier contextuel.",
+      "usage": "Liez `text` au brouillon ; fournissez `accepted-date`, `days`, `weekdays`, `title` et `active-index`. Traitez `edited`, `commit-requested`, `navigate` et `choose` dans votre contrôleur de date Rust.",
+      "behavior": "Le contrôleur doit générer les jours du calendrier et valider les dates saisies ou choisies ; l’exemple de capture fournit une grille fixe d’octobre. Choisir un jour ferme la popup et rend le focus au champ. Traduisez les libellés du calendrier séparément du parseur : changer `placeholder` ne modifie pas le format accepté.",
       "related": [
+        "KitDateField",
         "KitCalendar",
         "KitDateRangePicker"
       ]
     },
     "en": {
-      "summary": "Civil-date field with a popup calendar.",
-      "usage": "Share draft `text`, the accepted date and the day model with the controller. Handle text callbacks and `choose` to accept a date atomically.",
-      "behavior": "Opening `open` keeps the editor mounted and emits `opened`. Choosing a day closes the calendar; closing returns focus to the field without rewriting the draft.\n\nTranslate `placeholder`, `description`, `calendar-button-label`, `calendar-accessible-name`, `previous-month-label` and `next-month-label`. An empty description hides the help. Translating the placeholder does not change the format accepted by the Rust parser.",
+      "label": "Date picker",
+      "seoTitle": "Slint date picker with calendar",
+      "summary": "Slint date picker combining text entry and a popup calendar.",
+      "usage": "Bind `text` to the draft; supply `accepted-date`, `days`, `weekdays`, `title` and `active-index`. Handle `edited`, `commit-requested`, `navigate` and `choose` in your Rust date controller.",
+      "behavior": "The controller must generate the calendar days and validate typed or chosen dates; the screenshot example supplies a fixed October grid. Choosing a day closes the popup and returns focus to the field. Translate the calendar labels separately from the date parser: changing `placeholder` does not change its accepted format.",
       "related": [
+        "KitDateField",
         "KitCalendar",
         "KitDateRangePicker"
       ]
@@ -785,23 +799,27 @@
   },
   "KitFilePicker": {
     "fr": {
-      "summary": "Sélecteur de fichiers présentant une demande native et les fichiers retenus.",
-      "usage": "Choisissez `FileSelectionMode.single` ou `.multiple` et traitez `browse-requested` avec le service hôte asynchrone. Projetez `request-state`, `entries` et les erreurs après chaque résultat.",
-      "behavior": "`HostRequestPresentation.pending` rend le bouton occupé ; `.unsupported` le désactive et explique l’indisponibilité. Les suppressions transmettent token et génération, sans utiliser l’index de ligne.",
+      "label": "Sélecteur de fichiers",
+      "seoTitle": "Sélecteur de fichiers Slint",
+      "summary": "Sélecteur de fichiers Slint avec bouton de sélection et liste des fichiers retenus.",
+      "usage": "Pour le dialogue natif fourni, activez la feature `native` du crate et appelez `slint_kit::native::pick_files` depuis `browse-requested(mode)` avec `slint::spawn_local`. Projetez le résultat dans `entries`, `request-state` et `error`.",
+      "behavior": "`mode` permet de choisir un ou plusieurs fichiers. `HostRequestPresentation.pending` rend le bouton occupé ; `.unsupported` le désactive. Traitez `remove-requested(token, generation)` dans votre modèle de fichiers. L’exemple de capture fournit des entrées mais n’ouvre pas le dialogue natif.",
       "related": [
-        "KitFileList",
+        "KitDirectoryPicker",
         "KitFileDropZone",
-        "KitDirectoryPicker"
+        "KitFileList"
       ]
     },
     "en": {
-      "summary": "File picker presenting a native request and selected files.",
-      "usage": "Choose `FileSelectionMode.single` or `.multiple` and handle `browse-requested` with the asynchronous host service. Project `request-state`, `entries` and errors after each outcome.",
-      "behavior": "`HostRequestPresentation.pending` makes the button busy; `.unsupported` disables it and explains unavailability. Removals carry token and generation instead of a row index.",
+      "label": "File picker",
+      "seoTitle": "Native file picker for Slint",
+      "summary": "Slint file picker with a browse button and a list of selected files.",
+      "usage": "For the provided native dialog, enable the crate’s `native` feature and call `slint_kit::native::pick_files` from `browse-requested(mode)` using `slint::spawn_local`. Publish the result through `entries`, `request-state` and `error`.",
+      "behavior": "`mode` selects one or multiple files. `HostRequestPresentation.pending` makes the button busy; `.unsupported` disables it. Handle `remove-requested(token, generation)` in your file model. The screenshot example supplies file entries but does not open the native dialog.",
       "related": [
-        "KitFileList",
+        "KitDirectoryPicker",
         "KitFileDropZone",
-        "KitDirectoryPicker"
+        "KitFileList"
       ]
     }
   },
@@ -1089,14 +1107,26 @@
   },
   "KitMenuBar": {
     "fr": {
-      "summary": "Barre horizontale d’actions de navigation à identité stable.",
-      "usage": "Fournissez `OptionRow` et `SelectState` depuis le contrôleur et acceptez les activations par token et génération. Utilisez-la pour une rangée d’actions ou de destinations.",
-      "behavior": "Les flèches gauche et droite demandent les étapes précédente et suivante. Le défilement horizontal révèle l’élément actif lorsque la barre dépasse sa largeur disponible."
+      "label": "Barre de menus",
+      "seoTitle": "Barre de menus Slint",
+      "summary": "Barre de menus Slint pour les actions ou destinations d’une fenêtre.",
+      "usage": "Fournissez `rows` et `state` depuis un contrôleur de sélection, puis traitez `navigate`, `activate`, `dismiss` et `typeahead`. Associez chaque token d’activation à une action ou une destination de votre application.",
+      "behavior": "Gauche et Droite demandent l’élément actif précédent ou suivant. Projetez le nouvel état pour surligner l’action active et la rendre visible dans le défilement. La barre est dessinée dans la fenêtre Slint ; l’exemple de capture signale seulement les tokens activés.",
+      "related": [
+        "KitMenu",
+        "KitTabs"
+      ]
     },
     "en": {
-      "summary": "Horizontal bar of stable-identity navigation actions.",
-      "usage": "Supply `OptionRow` and `SelectState` from the controller and acknowledge activations by token and generation. Use it for a row of actions or destinations.",
-      "behavior": "Left and right arrows request previous and next steps. Horizontal scrolling reveals the active item when the bar exceeds available width."
+      "label": "Menu bar",
+      "seoTitle": "Menu bar for Slint",
+      "summary": "Horizontal Slint menu bar for actions or destinations inside a window.",
+      "usage": "Supply `rows` and `state` from a selection controller, then handle `navigate`, `activate`, `dismiss` and `typeahead`. Map each activation token to the action or destination in your application.",
+      "behavior": "Left and Right request the previous and next active items. Publish the resulting state so the active action is highlighted and scrolled into view. The bar renders inside the Slint window; the screenshot example only reports activation tokens.",
+      "related": [
+        "KitMenu",
+        "KitTabs"
+      ]
     }
   },
   "KitMoneyField": {

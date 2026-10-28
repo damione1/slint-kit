@@ -8,6 +8,6 @@
 {% set members = components | whereFamily(family) %}
 <details class="family"{% if entry and entry.component.family == family %} open{% endif %}>
   <summary>{{ label[locale] }} <span>{{ members.length }}</span></summary>
-  {% for component in members %}<a href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
+  {% for component in members %}<a href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}" title="{{ component.name }}"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component | componentLabel(locale) }}</a>{% endfor %}
 </details>
 {% endfor %}

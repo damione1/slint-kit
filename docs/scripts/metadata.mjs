@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { localeUrl } from './routes.mjs';
+import { componentLabel } from './inventory.mjs';
 
 export function pageMetadata(data, pages) {
   const component = data.entry?.component;
@@ -7,8 +8,14 @@ export function pageMetadata(data, pages) {
   const key = component ? `components/${component.slug}/` : data.translationKey;
   const copy = component ? null : pages[key]?.[locale];
   if (!component && !copy) throw new Error(`Missing page metadata: ${locale}/${key}`);
-  const title = component ? `${component.name} · Slint Kit` : copy.title;
-  const description = component ? component[locale].summary : copy.description.replaceAll('{count}', data.components.length);
+  const label = component ? componentLabel(component, locale) : null;
+  const title = component
+    ? `${component[locale].seoTitle || (locale === 'fr' ? `${label} pour Slint` : `${label} for Slint`)} · Slint Kit`
+    : copy.title;
+  const description = component
+    ? (/\bSlint\b/.test(component[locale].summary) ? component[locale].summary
+      : `${locale === 'fr' ? `${label} pour Slint` : `${label} for Slint`}. ${component[locale].summary}`)
+    : copy.description.replaceAll('{count}', data.components.length);
   const url = data.site.url + localeUrl(key, locale);
   const breadcrumbs = key ? [{ name: locale === 'fr' ? 'Accueil' : 'Home', url: data.site.url + localeUrl('', locale) }] : [];
   if (component) breadcrumbs.push({ name: locale === 'fr' ? 'Composants' : 'Components', url: data.site.url + localeUrl('components/', locale) });

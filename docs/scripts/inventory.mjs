@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 export const slugify = name => name.replace(/^Kit/, '').replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+export const componentLabel = (component, locale) => component[locale].label
+  || component.name.replace(/^Kit/, '').replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 export const families = {
   button: { fr: 'Boutons et actions', en: 'Buttons and actions' },
   field: { fr: 'Structure des formulaires', en: 'Form structure' },

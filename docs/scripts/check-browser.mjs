@@ -104,6 +104,8 @@ try {
       ['button-dark', `${prefix}/components/button/`, 375, true, false],
       ['button-text200', `${prefix}/components/button/`, 375, false, true],
       ['button-desktop', `${prefix}/components/button/`, 1350, false, false],
+      ['combobox-mobile', `${prefix}/components/combobox/`, 375, false, false],
+      ['combobox-desktop', `${prefix}/components/combobox/`, 1350, false, false],
       ['table-guide', `${prefix}/guides/table-example/`, 375, false, false],
       ['source-guide', `${prefix}/guides/source-updates/`, 375, false, false],
       ['source-guide-text200', `${prefix}/guides/source-updates/`, 375, true, true],
@@ -130,6 +132,20 @@ try {
     }
     await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false });
     await navigate(`${prefix}/components/button/`);
+    const copyResult = await evaluate(`(async () => {
+      let copied;
+      const writeText = navigator.clipboard.writeText;
+      navigator.clipboard.writeText = async text => { copied = text; };
+      try {
+        const pre = document.querySelector('pre');
+        const expected = pre.querySelector('code').textContent;
+        pre.querySelector('.code-actions button').click();
+        await new Promise(resolve => setTimeout(resolve, 0));
+        return { matches: copied === expected, status: pre.querySelector('[role=status]').textContent };
+      } finally { navigator.clipboard.writeText = writeText; }
+    })()`);
+    assert(copyResult.matches, `${locale}: Copy must preserve the complete displayed source`);
+    assert.equal(copyResult.status, locale === 'fr' ? 'Copié' : 'Copied');
     await evaluate('document.querySelector(".mobile-nav>summary").focus()');
     await keyEnter();
     assert.equal(await evaluate('document.querySelector(".mobile-nav").open'), true, 'keyboard opens native disclosure');
@@ -148,7 +164,7 @@ try {
     await evaluate('document.querySelector("#component-filter").focus()');
     await call('Input.insertText', { text: 'KitButton' });
     assert.equal(await evaluate('document.querySelector("#filter-status").innerText'), '2 / 123');
-    assert.deepEqual(await evaluate('[...document.querySelectorAll(".catalogue-item")].filter(item=>!item.hidden).map(item=>item.querySelector("strong").innerText)'), ['KitButton', 'KitButtonGroup']);
+    assert.deepEqual(await evaluate('[...document.querySelectorAll(".catalogue-item")].filter(item=>!item.hidden).map(item=>item.querySelector("code").innerText)'), ['KitButton', 'KitButtonGroup']);
   }
   passed = true;
   console.log(`Browser checks PASS: ${results.length} captures, delayed script/image CLS, EN/FR, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);

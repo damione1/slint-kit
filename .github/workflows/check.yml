@@ -10,6 +10,12 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo run -p xtask --locked -- check
+      - name: Check the published-crate component starters
+        env:
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        run: |
+          cargo check --manifest-path docs/quickstart/button/Cargo.toml --locked
+          cargo check --manifest-path docs/quickstart/combobox/Cargo.toml --locked
   documentation:
     runs-on: ubuntu-latest
     steps:

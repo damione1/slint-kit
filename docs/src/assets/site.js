@@ -12,3 +12,28 @@ if (input) {
     status.textContent = count ? (query ? `${count} / ${items.length}` : '') : status.dataset.empty;
   });
 }
+
+// Copy the displayed code verbatim; code remains selectable without JavaScript.
+for (const code of document.querySelectorAll('pre > code')) {
+  if (!navigator.clipboard?.writeText) continue;
+  const french = document.documentElement.lang === 'fr';
+  const label = french ? 'Copier' : 'Copy';
+  const actions = document.createElement('div');
+  actions.className = 'code-actions';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.setAttribute('aria-label', french ? 'Copier ce code' : 'Copy this code');
+  const status = document.createElement('span');
+  status.setAttribute('role', 'status');
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      status.textContent = french ? 'Copié' : 'Copied';
+    } catch {
+      status.textContent = french ? 'Sélectionnez le code pour le copier.' : 'Select the code to copy it.';
+    }
+  });
+  actions.append(button, status);
+  code.parentElement.prepend(actions);
+}
