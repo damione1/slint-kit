@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTooltip, KitTooltipLayer, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitTooltip example";
+    preferred-width: 520px;
+    preferred-height: 260px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <int> created;
+    callback create();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        tip := KitTooltip {
+            theme: root.theme; text: "Create a project in this workspace.";
+            target-focused: create-button.has-focus;
+            viewport-width: root.width; viewport-height: root.height;
+            create-button := KitButton { theme: root.theme; text: "New project"; activated => { root.create(); } }
+        }
+        result := Text { text: "Projects created: " + root.created; color: root.theme.text-primary; }
+    }
+    layer := KitTooltipLayer { viewport-width: root.width; viewport-height: root.height; }
+}

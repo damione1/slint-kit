@@ -8,7 +8,6 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Bien démarrer
 
-Cette référence documente Slint Kit 0.2.0. Pour les libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Passez les deux dépendances du kit à `"0.2"` pour migrer depuis 0.1.
 
 Installez Slint Kit depuis crates.io avec **Rust 1.92+** et **Slint 1.18.1**. Aucun clonage du kit n’est nécessaire.
 

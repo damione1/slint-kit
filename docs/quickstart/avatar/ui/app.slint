@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { AvatarShape, KitAvatar, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "KitAvatar example";
+    preferred-width: 360px;
+    preferred-height: 160px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Avatar"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        HorizontalLayout { alignment: start; spacing: 16px; KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Alex Morgan"; size: 56px; } KitAvatar { theme: root.theme; initials: "JS"; accessible-name: "Jamie Smith"; shape: AvatarShape.rounded; size: 56px; } }
+    }
+}

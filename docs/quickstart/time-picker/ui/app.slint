@@ -1,0 +1,24 @@
+import { KitTimePicker, KitButton, KitThemes, ValidationPresentation, TimeSegment, TimeAdjustment } from "@kit/kit.slint";
+export { TimeSegment, TimeAdjustment }
+export component App inherits Window {
+    title: "Local time"; preferred-width: 520px; preferred-height: 400px;
+    max-width: 100000px; max-height: 100000px; background: KitThemes.light.canvas;
+    in-out property <string> draft; in property <string> error; in property <string> accepted;
+    callback edited(string); callback commit(); callback blurred(); callback cancel();
+    callback adjust(TimeSegment,TimeAdjustment);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        control := KitTimePicker {
+            label: "Local time"; text <=> root.draft; error: root.error;
+            
+            
+            edited(value) => { root.edited(value); }
+            commit-requested(value) => { root.commit(); }
+            cancelled => { root.cancel(); }
+            
+            adjust(segment,direction)=>{root.adjust(segment,direction);}
+        }
+        KitButton { text: "Accept"; activated => { root.commit(); } }
+        Text { text: "Accepted: " + root.accepted; color: KitThemes.light.text-primary; wrap: word-wrap; }
+    }
+}

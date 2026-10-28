@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitToggleGroup, OptionRow, ChoiceRow, ChipRow, SelectState, NavigationStep, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitToggleGroup example";
+    preferred-width: 520px;
+    preferred-height: 400px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <[ChoiceRow]> choices;
+    in property <[ChipRow]> chips;
+    in property <SelectState> select-state;
+    in property <string> result;
+    callback toggle(int, int);
+    callback navigate(NavigationStep);
+    callback open();
+    callback close();
+    callback remove(int);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitToggleGroup {
+            theme: root.theme; rows: root.choices; generation: 1; active-token: root.select-state.active.token; label: "Delivery channels";
+            navigate(step) => { root.navigate(step); }
+            toggled(token, generation) => { root.toggle(token, generation); }
+        }
+        result := Text { text: root.result; color: root.theme.text-primary; }
+    }
+
+}

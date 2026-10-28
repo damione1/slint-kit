@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitVirtualTextView, KitThemes, TextLine, TextViewAccess, NavigationStep } from "@kit/kit.slint";
+export { TextLine, NavigationStep }
+export component App inherits Window {
+    title: "Slint virtual text view";
+    preferred-width: 640px; preferred-height: 340px;
+    max-width: 100000px; max-height: 100000px;
+    background: KitThemes.light.canvas;
+    in property <[TextLine]> lines;
+    in property <int> active-index: -1;
+    in-out property <string> draft;
+    in property <string> status: "Select a line to edit";
+    in property <string> error;
+    callback choose(int, int);
+    callback move(NavigationStep);
+    callback save(int, int, string);
+    callback copied(int, int);
+    VerticalLayout {
+        padding: 24px; spacing: 16px;
+        document := KitVirtualTextView { height: 240px; lines: root.lines; generation: 1;
+            active-index: root.active-index; access: TextViewAccess.edit-line;
+            line-draft <=> root.draft; error: root.error;
+            select-line(token, generation) => { root.choose(token, generation); }
+            navigate(step) => { root.move(step); }
+            commit-line(token, generation, text) => { root.save(token, generation, text); }
+            copy-requested(token, generation) => { root.copied(token, generation); }
+        }
+        Text { text: root.status; color: KitThemes.light.text-primary; }
+    }
+}

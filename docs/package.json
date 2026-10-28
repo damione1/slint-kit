@@ -8,10 +8,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "node scripts/clean.mjs && eleventy --quiet && node scripts/check.mjs",
-    "dev": "node scripts/clean.mjs && eleventy --serve",
+    "build": "npm run build:web && npm run build:pages",
+    "dev": "npm run build:web && python3 scripts/pack-starters.py && node scripts/clean.mjs && eleventy --serve",
     "check": "node scripts/check.mjs",
-    "check:browser": "node scripts/check-browser.mjs"
+    "check:browser": "node scripts/check-browser.mjs",
+    "build:web": "python3 scripts/build-web-previews.py",
+    "build:pages": "python3 scripts/pack-starters.py && node scripts/clean.mjs && eleventy --quiet && node scripts/check.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "3.1.7",

@@ -1,0 +1,11 @@
+import { KitCalendar,KitThemes,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
+export {CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase}
+export component App inherits Window {
+ title:"calendar";preferred-width:480px;preferred-height:520px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+ in property <[CalendarDay]> days;in property <int> active;in property <string> calendar-title;in property <string> accepted;
+ callback navigate(CalendarNavigation);callback choose(CalendarDay);callback cancel();
+ VerticalLayout {padding:24px;spacing:16px;alignment:start;
+ control:=KitCalendar{days:root.days;weekdays:["M","T","W","T","F","S","S"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}}
+ Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ }
+}

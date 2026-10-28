@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { scanComponents } from './inventory.mjs';
 import { localeUrl, siteOrigin } from './routes.mjs';
 import { scriptJson } from './metadata.mjs';
+import { loadStarters } from './starters.mjs';
 const docs = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(docs, '_site');
 const errors = [];
@@ -25,6 +26,9 @@ for (const file of fs.readdirSync(kitUi).filter(file => file.endsWith('.slint'))
 }
 check(provenance.environment?.kitUiSha256 === kitHash.digest('hex'), 'Kit UI sources changed: regenerate native screenshots and provenance');
 const components = scanComponents();
+const starters = loadStarters();
+const starterCaptures = JSON.parse(fs.readFileSync(path.join(docs, 'content/starter-captures.json'), 'utf8'));
+check(Object.keys(starters).length === components.length, 'Every public component needs a complete runnable starter');
 const slugs = new Set(components.map(c => c.slug));
 check(slugs.size === components.length, 'Component route slugs must be unique');
 const metadata = JSON.parse(fs.readFileSync(path.join(docs, 'content/components.json'), 'utf8'));
@@ -109,9 +113,10 @@ for (const component of components) {
     check(/<h1>[^<]*Slint<\/h1>/.test(html) && html.includes(`<code>${name}</code>`), `${name}/${locale}: heading must describe the Slint component and retain its API name`);
     const code = [...html.matchAll(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
     check(code.includes(example.trim()), `${name}/${locale}: displayed code differs from the native capture source`);
-    if (['button', 'combobox'].includes(slug)) {
+    if (starters[slug]) {
       const starter = path.join(docs, 'quickstart', slug);
-      const capture = JSON.parse(fs.readFileSync(path.join(starter, 'capture.json'), 'utf8'));
+      const capture = starterCaptures[slug];
+      check(starters[slug].component === name, `${name}: starter must match its component`);
       check(capture.environment?.backend === 'winit' && capture.environment?.renderer === 'skia', `${name}: starter must identify its native capture backend`);
       for (const [file, checksum] of Object.entries(capture.source_sha256)) {
         check(sha(fs.readFileSync(path.join(starter, file))) === checksum, `${name}: starter source changed; recapture the working app after ${file}`);
@@ -132,7 +137,19 @@ for (const component of components) {
 // Check every emitted HTML link/image, including fragment destinations. This
 // catches navigation breakage outside the component catalogue and both locales.
 function walk(directory) { return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? walk(path.join(directory, entry.name)) : [path.join(directory, entry.name)]); }
-const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsWith('.html')) : [];
+const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsWith('.html') && file !== path.join(output, 'preview/index.html')) : [];
+const browserPreview = fs.readFileSync(path.join(output, 'preview/index.html'), 'utf8');
+check(browserPreview.includes('<meta name="robots" content="noindex">'), 'Interactive preview shell must stay out of search results');
+const webPreviews = JSON.parse(fs.readFileSync(path.join(docs, '.generated/web/manifest.json'), 'utf8'));
+for (const [file, checksum] of Object.entries(webPreviews.source_sha256 || {})) {
+  check(sha(fs.readFileSync(path.join(docs, '..', file))) === checksum, `Browser preview source changed: rebuild after ${file}`);
+}
+check(Object.keys(webPreviews.source_sha256 || {}).length > components.length * 5, 'Browser preview build must record corresponding source hashes');
+check(/\/assets\/previews\/[a-f0-9]{20}$/.test(webPreviews.base), 'Browser assets must have a content-addressed URL');
+check(webPreviews.components.length === components.length && components.every(c => webPreviews.components.includes(c.slug)), 'Browser preview must cover every public component');
+for (const file of ['slint_kit_previews.js', 'slint_kit_previews_bg.wasm', 'source.tar.gz', 'NOTICE.txt', 'THIRD_PARTY_NOTICES.txt']) {
+  check(fs.existsSync(path.join(output, webPreviews.base, file)), `Browser preview missing ${file}`);
+}
 const origin = siteOrigin();
 check(!fs.existsSync(path.join(output, 'en')), 'Legacy /en pages must redirect, not remain duplicate HTML output');
 const redirectFile = path.join(output, '_redirects');
@@ -149,7 +166,7 @@ function redirectTarget(route) {
 check(redirectTarget('/en')?.destination === '/' && redirectTarget('/en')?.status === '301', 'Old /en homepage must permanently redirect to /');
 const expectedRoutes = new Set();
 for (const locale of ['en', 'fr']) {
-  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example', 'table-example', 'source-updates'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
+  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example', 'table-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
     expectedRoutes.add(localeUrl(key, locale));
   }
 }
@@ -331,6 +348,6 @@ check(/^User-agent:\s*\*\s*$/m.test(robots) && /^Allow:\s*\/\s*$/m.test(robots),
 check(!/^Disallow:\s*\S/m.test(robots), 'Public documentation must not be blocked in robots.txt');
 check(robots.split('\n').filter(line => line.startsWith('Sitemap:')).join('\n') === `Sitemap: ${origin}/sitemap.xml`, 'Robots must reference the sitemap at the configured public origin');
 
-check(htmlFiles.length === components.length * 2 + 18, 'Incomplete or duplicated site output');
+check(htmlFiles.length === components.length * 2 + 16, 'Incomplete or duplicated site output');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
 else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);

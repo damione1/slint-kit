@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitPressable, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { add-to-collection }
+
+export component App inherits Window {
+    title: "KitPressable example";
+    preferred-width: 360px;
+    preferred-height: 160px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Pressable"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitPressable { theme: root.theme; preferred-width: content.preferred-width + 32px; min-width: self.preferred-width; accessible-name: "Add to collection"; activated => { root.action-requested(DemoAction.add-to-collection); } content := Text { text: "Add to collection"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; horizontal-alignment: center; vertical-alignment: center; } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

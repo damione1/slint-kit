@@ -1,0 +1,23 @@
+import { KitNumberStepper, KitButton, KitThemes, ValidationPresentation, StepDirection } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "Quantity"; preferred-width: 520px; preferred-height: 320px;
+    max-width: 100000px; max-height: 100000px; background: KitThemes.light.canvas;
+    in-out property <string> draft; in property <string> error; in property <string> accepted;
+    callback edited(string); callback commit(); callback blurred(); callback cancel();
+    callback step(StepDirection);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        control := KitNumberStepper {
+            label: "Quantity"; text <=> root.draft; error: root.error;
+            validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+            placeholder: "12";
+            edited(value) => { root.edited(value); }
+            commit-requested(value) => { root.commit(); }
+            cancelled => { root.cancel(); }
+            focus-observed(focused) => { if (!focused) { root.blurred(); } }
+            step-requested(direction) => { root.step(direction); }
+        }
+        KitButton { text: "Accept"; activated => { root.commit(); } }
+        Text { text: "Accepted: " + root.accepted; color: KitThemes.light.text-primary; wrap: word-wrap; }
+    }
+}

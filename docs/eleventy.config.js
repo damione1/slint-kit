@@ -6,17 +6,24 @@ import MarkdownIt from 'markdown-it';
 import { scanComponents, componentLabel } from './scripts/inventory.mjs';
 import { localePrefix, localeUrl, siteOrigin } from './scripts/routes.mjs';
 import { structuredData, scriptJson } from './scripts/metadata.mjs';
+import { loadStarters, starterFiles } from './scripts/starters.mjs';
 export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('src/assets');
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
-  eleventyConfig.addPassthroughCopy({ quickstart: 'quickstart' });
+  const quickstarts = loadStarters();
+  eleventyConfig.addPassthroughCopy({ '.generated/starters': 'quickstart/projects' });
+  const webPreviews = JSON.parse(fs.readFileSync('.generated/web/manifest.json', 'utf8'));
+  eleventyConfig.addGlobalData('webPreviews', webPreviews);
+  eleventyConfig.addPassthroughCopy({ [`.generated/web/${path.basename(webPreviews.base)}`]: webPreviews.base.slice(1) });
+  for (const slug of Object.keys(quickstarts)) {
+    for (const file of starterFiles) {
+      eleventyConfig.addPassthroughCopy({ [`quickstart/${slug}/${file}`]: `quickstart/${slug}/${file}` });
+    }
+  }
   eleventyConfig.addFilter('componentLabel', componentLabel);
   eleventyConfig.addFilter('quickstartSource', (file, slug) => fs.readFileSync(path.join('quickstart', slug, file), 'utf8'));
-  eleventyConfig.addGlobalData('quickstarts', {
-    button: { component: 'KitButton', width: 840, height: 440, displayWidth: 420 },
-    combobox: { component: 'KitCombobox', width: 960, height: 960, displayWidth: 480 },
-  });
+  eleventyConfig.addGlobalData('quickstarts', quickstarts);
   const versionedAssets = new Map();
   eleventyConfig.on('eleventy.before', () => versionedAssets.clear());
   eleventyConfig.addFilter('versionedAsset', sourceUrl => {

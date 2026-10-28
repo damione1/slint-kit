@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRangeSlider, RangeThumb, NavigationStep, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitRangeSlider example";
+    preferred-width: 520px;
+    preferred-height: 220px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <int> lower;
+    in property <int> upper;
+    callback position(RangeThumb, float);
+    callback navigate(RangeThumb, NavigationStep);
+    callback begin();
+    callback commit();
+    callback cancel();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitRangeSlider { theme: root.theme; label: "Allowed range"; lower-position: root.lower * 0.01; upper-position: root.upper * 0.01; lower-label: root.lower + "%"; upper-label: root.upper + "%";
+            position-requested(thumb, value) => { root.position(thumb, value); }
+            navigate(thumb, step) => { root.navigate(thumb, step); }
+            gesture-started(thumb) => { root.begin(); } committed(thumb) => { root.commit(); } cancelled(thumb) => { root.cancel(); }
+        }
+        result := Text { text: "Range: " + root.lower + " to " + root.upper; color: root.theme.text-primary; }
+    }
+
+}

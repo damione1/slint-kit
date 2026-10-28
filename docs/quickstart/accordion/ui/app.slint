@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitAccordion, DisclosureRow, ExpansionMode, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitAccordion example";
+    preferred-width: 520px;
+    preferred-height: 400px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    in property <[DisclosureRow]> disclosures;
+    callback expand(int, int, bool, ExpansionMode);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitAccordion {
+            theme: root.theme; rows: root.disclosures; state: root.select-state; mode: ExpansionMode.single;
+            navigate(step) => { root.select-navigate(step); }
+            expansion-requested(token, generation, expanded, mode) => { root.expand(token, generation, expanded, mode); }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+    }
+
+}

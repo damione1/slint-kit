@@ -1,0 +1,11 @@
+import {KitFilePicker,KitFileDropZone,KitThemes,FileViewEntry,FileSelectionMode,HostRequestPresentation,DropCapability} from "@kit/kit.slint";
+export {FileViewEntry,FileSelectionMode,HostRequestPresentation,DropCapability}
+export component App inherits Window{
+ title:"file-picker";preferred-width:580px;preferred-height:480px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+ in property <[FileViewEntry]> entries;in property <HostRequestPresentation> request-state;in property <string> error;in property <string> status;
+ callback browse(FileSelectionMode);callback remove(int,int);
+ VerticalLayout{padding:24px;spacing:16px;alignment:start;
+ control:=KitFilePicker{label:"Selected files";description:"Names only; file content is not read.";mode:FileSelectionMode.multiple;entries:root.entries;request-state:root.request-state;error:root.error;browse-requested(mode)=>{root.browse(mode);}remove-requested(token,generation)=>{root.remove(token,generation);}}
+ Text{text:root.status;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ }
+}

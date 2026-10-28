@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitScrollArea, KitTextArea, KitTextField, KitTheme, KitThemes, LayoutSpace } from "@kit/kit.slint";
+
+export enum DemoAction { save-project }
+
+export component App inherits Window {
+    title: "KitScrollArea example";
+    preferred-width: 480px;
+    preferred-height: 290px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> draft-0: "Field notes";
+    in-out property <string> draft-1: "alex@example.com";
+    in-out property <string> draft-2: "https://example.com";
+    in-out property <string> draft-3: "+1 514 555 0132";
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Scroll Area"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitScrollArea { height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; } KitTextField { theme: root.theme; label: "Email address"; text <=> root.draft-1; } KitTextField { theme: root.theme; label: "Website"; text <=> root.draft-2; } KitTextField { theme: root.theme; label: "Phone"; text <=> root.draft-3; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

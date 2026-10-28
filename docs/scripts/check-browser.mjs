@@ -14,7 +14,7 @@ await fs.mkdir(output, { recursive: true });
 const chrome = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 await fs.access(chrome);
 const pause = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.png': 'image/png', '.xml': 'application/xml', '.txt': 'text/plain' };
+const mime = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.wasm': 'application/wasm', '.svg': 'image/svg+xml', '.png': 'image/png', '.xml': 'application/xml', '.txt': 'text/plain' };
 const server = http.createServer(async (request, response) => {
   try {
     const route = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
@@ -24,7 +24,7 @@ const server = http.createServer(async (request, response) => {
     // Force the old delayed-script bug to surface even on a fast local machine.
     if (/^\/assets\/(?:versioned\/)?site(?:\.[a-f0-9]{16})?\.js$/.test(route)) await pause(1200);
     if (/\/assets\/components\/button(?:-fr)?(?:@2x)?\.png$/.test(route)) await pause(1500);
-    response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': 'no-store' });
+    response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': route.startsWith('/assets/previews/') ? 'public, max-age=31536000, immutable' : 'no-store' });
     response.end(content);
   } catch {
     response.writeHead(404); response.end();
@@ -34,7 +34,7 @@ server.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
 const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'slint-kit-browser-'));
-const processChrome = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+const processChrome = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 let socket;
 let sourceId;
 const pending = new Map();
@@ -42,6 +42,7 @@ const results = [];
 let passed = false;
 let sequence = 0;
 let navigationSequence = 0;
+const requests = [];
 function call(method, params = {}) {
   const id = ++sequence;
   return new Promise((resolve, reject) => {
@@ -56,7 +57,9 @@ async function evaluate(expression) {
   return result.result.value;
 }
 async function navigate(route) {
-  const targetUrl = origin + route + '?verification=' + (++navigationSequence);
+  const url = new URL(route, origin);
+  url.searchParams.set('verification', ++navigationSequence);
+  const targetUrl = url.href;
   await call('Page.navigate', { url: targetUrl });
   for (let count = 0; count < 150; count++) {
     if (await evaluate(`location.href === ${JSON.stringify(targetUrl)} && document.readyState === 'complete'`).catch(() => false)) break;
@@ -85,6 +88,7 @@ try {
   socket = new WebSocket(tabs.find(tab => tab.type === 'page').webSocketDebuggerUrl);
   socket.addEventListener('message', event => {
     const data = JSON.parse(event.data);
+    if (data.method === 'Network.requestWillBeSent') requests.push(data.params.request.url);
     const entry = pending.get(data.id);
     if (!entry) return;
     pending.delete(data.id); clearTimeout(entry.timeout);
@@ -107,8 +111,6 @@ try {
       ['combobox-mobile', `${prefix}/components/combobox/`, 375, false, false],
       ['combobox-desktop', `${prefix}/components/combobox/`, 1350, false, false],
       ['table-guide', `${prefix}/guides/table-example/`, 375, false, false],
-      ['source-guide', `${prefix}/guides/source-updates/`, 375, false, false],
-      ['source-guide-text200', `${prefix}/guides/source-updates/`, 375, true, true],
       ['button-retina', `${prefix}/components/button/`, 375, false, false, 2],
       ['table-retina', `${prefix}/guides/table-example/`, 375, false, false, 2],
       ['typed-retina', `${prefix}/guides/typed-example/`, 375, false, false, 2],
@@ -166,8 +168,48 @@ try {
     assert.equal(await evaluate('document.querySelector("#filter-status").innerText'), '2 / 123');
     assert.deepEqual(await evaluate('[...document.querySelectorAll(".catalogue-item")].filter(item=>!item.hidden).map(item=>item.querySelector("code").innerText)'), ['KitButton', 'KitButtonGroup']);
   }
+  // Prove that the browser backend can construct every documented application.
+  // Native interaction proofs remain separate from browser startup coverage.
+  await call('Network.setCacheDisabled', { cacheDisabled: false });
+  await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: 1, mobile: false });
+  const starters = JSON.parse(await fs.readFile(path.join(docs, 'content/starters.json'), 'utf8'));
+  for (const slug of Object.keys(starters)) {
+    await navigate(`/preview/?component=${slug}`);
+    for (let count = 0; count < 300; count++) {
+      if (await evaluate('Boolean(window.previewReady || window.previewError)')) break;
+      await pause(100);
+    }
+    const state = await evaluate('({ready:window.previewReady,error:window.previewError,width:document.querySelector("canvas").width,height:document.querySelector("canvas").height})');
+    assert(state.ready && !state.error && state.width > 0 && state.height > 0, `${slug}: browser startup ${JSON.stringify(state)}`);
+    results.push({ name: 'browser-preview-startup', component: slug, ...state });
+  }
+  for (const locale of ['en', 'fr']) {
+    await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false });
+    const start = requests.length;
+    await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
+    assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
+    await click('.run-preview');
+    for (let count = 0; count < 300; count++) {
+      if (await evaluate('document.querySelector(".component-preview").hidden')) break;
+      await pause(100);
+    }
+    assert(await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled'), 'Run preview must replace the poster with a ready iframe');
+    assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Live preview must fit mobile width');
+    await evaluate('document.querySelector(".preview-frame").scrollIntoView({block:"center"})');
+    const point = await evaluate('(()=>{const f=document.querySelector("iframe");const r=f.getBoundingClientRect();const c=f.contentDocument.querySelector("canvas");return {x:r.x+80*r.width/c.width,y:r.y+44*r.width/c.width}})()');
+    for (let i = 0; i < 3; i++) {
+      await call('Input.dispatchMouseEvent', { type:'mousePressed', button:'left', clickCount:1, ...point });
+      await call('Input.dispatchMouseEvent', { type:'mouseReleased', button:'left', clickCount:1, ...point });
+    }
+    await pause(200);
+    const capture = await call('Page.captureScreenshot', { format:'png', captureBeyondViewport:false });
+    await fs.writeFile(path.join(output, `${locale}-live-button.png`), Buffer.from(capture.data, 'base64'));
+    await click('.run-preview');
+    assert(await evaluate('!document.querySelector("iframe") && !document.querySelector(".component-preview").hidden'), 'Stop preview must release the browser app and restore its poster');
+    results.push({ name:'on-demand-mobile-preview', locale, loaded:true, stopped:true });
+  }
   passed = true;
-  console.log(`Browser checks PASS: ${results.length} captures, delayed script/image CLS, EN/FR, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);
+  console.log(`Browser checks PASS: ${results.filter(row => row.route).length} page captures, ${results.filter(row => row.name === "browser-preview-startup").length} preview startups, EN/FR on-demand mobile previews, delayed script/image CLS, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);
 } finally {
   await fs.writeFile(path.join(output, 'results.json'), JSON.stringify({ passed, chrome, results }, null, 2) + '\n');
   if (sourceId && socket?.readyState === WebSocket.OPEN) await call('Page.removeScriptToEvaluateOnNewDocument', { identifier: sourceId });

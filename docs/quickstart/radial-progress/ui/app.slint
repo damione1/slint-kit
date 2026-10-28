@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRadialProgress, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitRadialProgress example";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <int> percent;
+    callback advance();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitRadialProgress { theme: root.theme; label: "Upload"; value: root.percent / 100; }
+        KitButton { text: "Advance upload"; activated => { root.advance(); } }
+        result := Text { text: root.percent + "% uploaded"; color: root.theme.text-primary; }
+    }
+
+}

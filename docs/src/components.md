@@ -24,7 +24,13 @@ eleventyComputed:
 
 {% set quickstart = quickstarts[component.slug] %}
 {% if quickstart %}
-<figure class="component-preview"><img src="/quickstart/{{ component.slug }}/preview@2x.png" alt="{{ text.summary }}" width="{{ quickstart.width }}" height="{{ quickstart.height }}" style="width:{{ quickstart.displayWidth }}px" loading="eager"><figcaption>{% if component.slug == 'button' %}{% if locale == 'fr' %}Application native après trois clics sur le bouton.{% else %}Native app after three button clicks.{% endif %}{% else %}{% if locale == 'fr' %}La recherche « sha » ne conserve que Shared dans la liste.{% else %}Searching for “sha” leaves only Shared in the list.{% endif %}{% endif %}</figcaption></figure>
+<section class="live-preview" data-component="{{ component.slug }}" data-width="{{ quickstart.displayWidth }}" data-height="{{ quickstart.height / (quickstart.width / quickstart.displayWidth) }}" aria-label="{% if locale == 'fr' %}Aperçu interactif{% else %}Interactive preview{% endif %}">
+<div class="preview-actions"><button type="button" class="run-preview">{% if locale == 'fr' %}Lancer l’aperçu{% else %}Run preview{% endif %}</button><span class="preview-status" role="status"></span></div>
+<figure class="component-preview"><img src="/quickstart/{{ component.slug }}/preview@2x.png" alt="{{ text.summary }}" width="{{ quickstart.width }}" height="{{ quickstart.height }}" style="width:{{ quickstart.displayWidth }}px" loading="eager"><figcaption>{% if locale == 'fr' %}Application native de l’exemple ci-dessous.{% else %}Native app built from the example below.{% endif %}</figcaption></figure>
+<div class="preview-frame" hidden></div>
+<noscript><p>{% if locale == 'fr' %}Activez JavaScript pour utiliser l’aperçu interactif.{% else %}Enable JavaScript to run the interactive preview.{% endif %}</p></noscript>
+{% if quickstart.native_only %}<p class="preview-note">{% if locale == 'fr' %}Les dialogues de fichiers et le dépôt depuis le système nécessitent l’application native ci-dessous.{% else %}File dialogs and OS drag-and-drop require the native application below.{% endif %}</p>{% endif %}
+</section>
 {% else %}
 <figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
 {% endif %}
@@ -96,6 +102,6 @@ eleventyComputed:
 {% if text.related.length %}
 ## {% if locale == 'fr' %}Voir aussi{% else %}See also{% endif %}
 
-{% for name in text.related %}{% set related = name | componentByName %}{% if related %}- [{{ related.name }}]({{ ('components/' + related.slug + '/') | localeUrl(locale) }})
+{% for name in text.related %}{% set related = name | componentByName %}{% if related %}- [{{ related | componentLabel(locale) }}]({{ ('components/' + related.slug + '/') | localeUrl(locale) }})
 {% endif %}{% endfor %}
 {% endif %}

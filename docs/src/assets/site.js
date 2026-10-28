@@ -37,3 +37,50 @@ for (const code of document.querySelectorAll('pre > code')) {
   actions.append(button, status);
   code.parentElement.prepend(actions);
 }
+
+// Browser code is fetched only after an explicit request to run a component.
+for (const preview of document.querySelectorAll('.live-preview')) {
+  const button = preview.querySelector('.run-preview');
+  const status = preview.querySelector('.preview-status');
+  const host = preview.querySelector('.preview-frame');
+  const french = document.documentElement.lang === 'fr';
+  let frame, timeout;
+  let width = Number(preview.dataset.width), height = Number(preview.dataset.height) + 30;
+  const resize = () => {
+    if (!frame) return;
+    const ratio = Math.min(1, host.clientWidth / width);
+    frame.style.width = `${width}px`; frame.style.height = `${height}px`;
+    frame.style.transform = `scale(${ratio})`; host.style.height = `${height * ratio}px`;
+  };
+  const failed = () => {
+    clearTimeout(timeout); frame?.remove(); frame = null; host.hidden = true;
+    preview.querySelector('figure').hidden = false; button.disabled = false;
+    button.textContent = french ? 'Réessayer' : 'Retry';
+    status.textContent = french ? 'Aperçu indisponible. L’exemple natif reste utilisable ci-dessous.' : 'Preview unavailable. The native example below remains available.';
+  };
+  button.addEventListener('click', () => {
+    if (frame) {
+      frame.remove(); frame = null; host.hidden = true;
+      preview.querySelector('figure').hidden = false;
+      button.textContent = french ? 'Lancer l’aperçu' : 'Run preview'; status.textContent = ''; return;
+    }
+    button.disabled = true; status.textContent = french ? 'Chargement…' : 'Loading…';
+    frame = document.createElement('iframe');
+    frame.title = french ? 'Aperçu interactif du composant' : 'Interactive component preview';
+    frame.src = `/preview/?component=${encodeURIComponent(preview.dataset.component)}&lang=${french ? 'fr' : 'en'}`;
+    frame.setAttribute('allow', 'clipboard-write');
+    // Keep the canvas laid out while its code starts; the poster remains visible.
+    host.hidden = false; host.classList.add('preview-loading'); host.append(frame); resize();
+    timeout = setTimeout(failed, 60000);
+  });
+  window.addEventListener('message', event => {
+    if (event.origin !== location.origin || !frame || event.source !== frame.contentWindow || event.data?.type !== 'slint-kit-preview') return;
+    if (event.data.state === 'error') { failed(); return; }
+    if (event.data.state !== 'ready') return;
+    clearTimeout(timeout); width = Number(event.data.width) || width; height = Number(event.data.height) || height;
+    host.classList.remove('preview-loading'); preview.querySelector('figure').hidden = true; resize();
+    button.disabled = false; button.textContent = french ? 'Arrêter l’aperçu' : 'Stop preview';
+    status.textContent = french ? 'Interactif — même code Rust que l’exemple.' : 'Interactive — same Rust code as the example.';
+  });
+  new ResizeObserver(resize).observe(host);
+}

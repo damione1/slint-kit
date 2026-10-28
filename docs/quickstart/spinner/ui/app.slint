@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSpinner, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitSpinner example";
+    preferred-width: 520px;
+    preferred-height: 220px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> running: true;
+    callback toggle();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitSpinner { theme: root.theme; label: "Loading projects"; running: root.running; }
+        KitButton { text: root.running ? "Stop loading" : "Start loading"; activated => { root.toggle(); } }
+        result := Text { text: root.running ? "Loading projects" : "Loading stopped"; color: root.theme.text-primary; }
+    }
+
+}

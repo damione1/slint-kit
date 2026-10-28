@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitNotificationCenter, NotificationRow, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitNotificationCenter example";
+    preferred-width: 520px;
+    preferred-height: 420px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[NotificationRow]> notices;
+    in property <string> result: "Choose a notification";
+    callback open-notice(int, int);
+    callback mark-read(int, int);
+    callback dismiss-notice(int, int);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitNotificationCenter {
+            theme: root.theme; rows: root.notices; height: 320px;
+            activate(token, generation) => { root.open-notice(token, generation); }
+            mark-read(token, generation) => { root.mark-read(token, generation); }
+            dismiss-row(token, generation) => { root.dismiss-notice(token, generation); }
+        }
+        result := Text { text: root.result; color: root.theme.text-primary; }
+    }
+
+}

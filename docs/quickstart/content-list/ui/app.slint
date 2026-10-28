@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitContentList, KitThemes, ContentItem, NavigationStep } from "@kit/kit.slint";
+export { ContentItem, NavigationStep }
+export component App inherits Window {
+    title: "Slint content list";
+    preferred-width: 580px; preferred-height: 390px;
+    max-width: 100000px; max-height: 100000px;
+    background: KitThemes.light.canvas;
+    in property <[ContentItem]> items;
+    in property <int> active-index: -1;
+    in property <string> selected-label: "Choose an article";
+    callback choose(int, int);
+    callback move(NavigationStep);
+    VerticalLayout {
+        padding: 24px; spacing: 16px;
+        list := KitContentList { height: 280px; items: root.items; generation: 1;
+            active-index: root.active-index;
+            activate(token, generation) => { root.choose(token, generation); }
+            navigate(step) => { root.move(step); }
+        }
+        Text { text: root.selected-label; color: KitThemes.light.text-primary; }
+    }
+}

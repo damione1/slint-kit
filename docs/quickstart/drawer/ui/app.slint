@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDrawer, KitDialogPanel, KitButton, DialogTabPolicy, CloseReason, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitDrawer example";
+    preferred-width: 520px;
+    preferred-height: 400px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> showing;
+    in property <string> result: "Project active";
+    callback open();
+    callback close(CloseReason);
+    callback archive();
+    public function focus-opener() { opener.take-focus(); }
+    public function focus-dialog() { drawer.take-focus(); }
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        opener := KitButton { theme: root.theme; text: "Open project details"; disabled: root.showing; activated => { root.open(); } }
+        Text { text: root.result; color: root.theme.text-primary; }
+
+    }
+    drawer := KitDrawer {
+        theme: root.theme; title: "Project details"; width: root.width; height: root.height;
+        state: { open: root.showing, topmost: root.showing, busy: false };
+        tab-policy: DialogTabPolicy.native;
+        dismiss(reason) => { root.close(reason); }
+        restore-focus => { root.focus-opener(); }
+            Text { text: "Archive this project?"; color: root.theme.text-primary; font-size: 20px; wrap: word-wrap; }
+            archive-button := KitButton { theme: root.theme; text: "Archive project"; activated => { root.archive(); } }
+    }
+}

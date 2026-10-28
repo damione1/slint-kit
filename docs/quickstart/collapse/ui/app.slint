@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCollapse, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitCollapse example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> expanded;
+    callback expand(bool);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitCollapse { theme: root.theme; title: "Publishing details"; expanded: root.expanded; expansion-requested(value) => { root.expand(value); } Text { text: "Publishing sends your team a notification."; color: root.theme.text-primary; wrap: word-wrap; } }
+        result := Text { text: root.expanded ? "Expanded" : "Collapsed"; color: root.theme.text-secondary; }
+    }
+
+}

@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitCard, KitCardBody, KitCardFooter, KitCardHeader, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { open-project }
+
+export component App inherits Window {
+    title: "KitCard example";
+    preferred-width: 480px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Card"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitCard { theme: root.theme; KitCardHeader { theme: root.theme; title: "Field notes"; description: "Your team’s shared research workspace."; } KitCardBody { Text { text: "Keep observations and decisions together."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } } KitCardFooter { KitButton { theme: root.theme; text: "Open project"; activated => { root.action-requested(DemoAction.open-project); } } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

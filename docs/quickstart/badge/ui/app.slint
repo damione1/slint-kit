@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitBadge, KitTheme, KitThemes, Tone } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "KitBadge example";
+    preferred-width: 360px;
+    preferred-height: 160px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Badge"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        HorizontalLayout { alignment: start; spacing: 12px; KitBadge { theme: root.theme; text: "Draft"; } KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; } KitBadge { theme: root.theme; text: "3 updates"; tone: Tone.accent; } }
+    }
+}

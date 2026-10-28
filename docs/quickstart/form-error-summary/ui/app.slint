@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitFocusTarget, KitTextField, KitThemes, FocusRequest, KitFormErrorSummary } from "@kit/kit.slint";
+export { FocusRequest }
+export component App inherits Window {
+    title: "KitFormErrorSummary";
+    preferred-width: 460px;
+    preferred-height: 260px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: KitThemes.light.canvas;
+    in-out property <string> draft;
+    in property <FocusRequest> focus-request;
+    callback request-focus(FocusRequest);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        KitFormErrorSummary { errors: [{ target: { present: true, token: 42, generation: 1, request: 1 }, message: "Enter a project name." }]; error-activated(target) => { root.request-focus(target); } }
+        KitFocusTarget {
+            token: 42; generation: 1; request: root.focus-request;
+            focus-requested => { editor.take-focus(); }
+            editor := KitTextField { label: "Project name"; text <=> root.draft; }
+        }
+        Text { text: "Draft: " + root.draft; color: KitThemes.light.text-primary; }
+    }
+}

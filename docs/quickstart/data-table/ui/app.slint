@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDataTable, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit/kit.slint";
+export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep }
+export component App inherits Window {
+    title: "Slint data table";
+    preferred-width: 520px; preferred-height: 320px;
+    max-width: 100000px; max-height: 100000px;
+    background: KitThemes.light.canvas;
+    in property <[TableRow]> rows;
+    in property <[TableColumn]> columns;
+    in property <int> generation;
+    in property <int> active-index: -1;
+    in property <string> selected-label: "No selection";
+    callback sort(int);
+    callback choose(int, int);
+    callback move(NavigationStep);
+    VerticalLayout {
+        padding: 24px; spacing: 16px;
+        table := KitDataTable {
+            height: 220px; rows: root.rows; columns: root.columns;
+            generation: root.generation; active-index: root.active-index;
+            sort-requested(token) => { root.sort(token); }
+            activate(token, generation) => { root.choose(token, generation); }
+            navigate(step) => { root.move(step); }
+        }
+        Text { text: root.selected-label; color: KitThemes.light.text-primary; }
+    }
+}

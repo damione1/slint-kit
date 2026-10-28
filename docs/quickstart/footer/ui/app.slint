@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitFooter, KitInline, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { documentation, contact }
+
+export component App inherits Window {
+    title: "KitFooter example";
+    preferred-width: 480px;
+    preferred-height: 240px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Footer"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitFooter { theme: root.theme; Text { text: "Slint Kit · Native applications, thoughtfully composed."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitInline { KitButton { theme: root.theme; text: "Documentation"; activated => { root.action-requested(DemoAction.documentation); } }KitButton { theme: root.theme; text: "Contact"; activated => { root.action-requested(DemoAction.contact); } } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

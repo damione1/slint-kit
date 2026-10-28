@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitAlert, KitButton, AlertSeverity, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitAlert example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> showing: true;
+    callback dismiss();
+    callback show();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        if root.showing: control := KitAlert { theme: root.theme; severity: AlertSeverity.success; title: "Changes saved"; message: "Your team can read the updated project."; dismissible: true; dismissed => { root.dismiss(); } }
+        KitButton { text: "Show alert"; activated => { root.show(); } }
+        result := Text { text: root.showing ? "Alert visible" : "Alert dismissed"; color: root.theme.text-primary; }
+    }
+
+}

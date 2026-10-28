@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMultiSelect, OptionRow, ChoiceRow, ChipRow, SelectState, NavigationStep, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitMultiSelect example";
+    preferred-width: 520px;
+    preferred-height: 400px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <[ChoiceRow]> choices;
+    in property <[ChipRow]> chips;
+    in property <SelectState> select-state;
+    in property <string> result;
+    callback toggle(int, int);
+    callback navigate(NavigationStep);
+    callback open();
+    callback close();
+    callback remove(int);
+    callback query(string);
+    callback typeahead(string);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitMultiSelect {
+            theme: root.theme; rows: root.rows; chips: root.chips; state: root.select-state; placeholder: "Add a channel";
+            open-requested => { root.open(); }
+            navigate(step) => { root.navigate(step); }
+            activate(token, generation) => { root.toggle(token, generation); }
+            dismiss(reason) => { root.close(); }
+            tab-navigation(reverse) => { return reject; }
+            query-edited(text) => { root.query(text); }
+            typeahead(text) => { root.typeahead(text); }
+            remove-requested(token) => { root.remove(token); }
+        }
+        result := Text { text: root.result; color: root.theme.text-primary; }
+    }
+
+}

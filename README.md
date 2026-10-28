@@ -37,7 +37,6 @@ slint-kit-build = "0.2"
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
-Slint Kit 0.2.0 includes localized calendar/time-zone labels and empty states, composite editor focus, and explicit native modal traversal. See [updates and compatibility](https://slint-kit.damiengoehrig.ca/guides/source-updates/) to upgrade both kit dependencies from 0.1 to 0.2.
 
 ## Build the showcase
 
@@ -62,7 +61,7 @@ Build with `npm --prefix docs ci` and `npm --prefix docs run build`, then deploy
 
 Eleventy writes content-addressed CSS and JavaScript under `/assets/versioned/`, with one year of immutable browser caching. Replaceable screenshots and branding use a one-day cache. HTML keeps the default browser revalidation policy. Cache rules live in `docs/src/_headers` and are copied into the deployed assets.
 
-The Button and Combobox pages include standalone projects from `docs/quickstart/`, built against the published crates. Keep displayed and downloadable files identical; the documentation build checks this. CI compiles both projects, and browser checks cover source copying. These working apps are separate from the native screenshot fixtures; preserve that distinction when adding another starter. Component source links follow `site.sourceRef` in `docs/eleventy.config.js` and must match the documented release.
+Every component page includes a standalone project from `docs/quickstart/`, built against the published crates, and an on-demand browser preview. Displayed and downloadable sources stay identical; the documentation build checks this. CI compiles all 123 projects. See [browser preview build instructions](docs/preview/README.md). Native captures and browser code use the same documented application sources. Component source links follow `site.sourceRef` in `docs/eleventy.config.js` and must match the documented release.
 
 ## License
 

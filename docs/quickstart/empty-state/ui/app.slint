@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitEmptyState, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { create-project }
+
+export component App inherits Window {
+    title: "KitEmptyState example";
+    preferred-width: 480px;
+    preferred-height: 310px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Empty State"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitEmptyState { theme: root.theme; title: "No projects yet"; description: "Create a project to start collecting your ideas."; KitButton { theme: root.theme; text: "Create project"; activated => { root.action-requested(DemoAction.create-project); } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

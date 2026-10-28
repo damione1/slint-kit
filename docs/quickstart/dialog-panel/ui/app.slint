@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitDialogPanel example";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> archived;
+    callback archive();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        panel := KitDialogPanel {
+            theme: root.theme; accessible-name: "Archive project";
+            height: content.preferred-height;
+            content := VerticalLayout {
+                padding: 20px; spacing: 14px;
+                header := KitDialogHeader { theme: root.theme; height: self.preferred-height; Text { text: "Archive this project?"; color: root.theme.text-primary; font-size: 20px; } }
+                body := KitDialogBody { theme: root.theme; height: self.preferred-height; Text { text: "You can restore it from the archive."; color: root.theme.text-primary; wrap: word-wrap; } }
+                footer := KitDialogFooter { theme: root.theme; height: 48px; KitButton { text: "Archive project"; disabled: root.archived; activated => { root.archive(); } } }
+            }
+        }
+        result := Text { text: root.archived ? "Project archived" : "Project active"; color: root.theme.text-primary; }
+    }
+
+}

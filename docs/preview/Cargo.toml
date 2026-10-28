@@ -1,0 +1,35 @@
+[package]
+name = "slint-kit-doc-previews"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "GPL-3.0-or-later"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+slint-kit = { version = "=0.2.0", features = ["native"] }
+slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-femtovg"] }
+wasm-bindgen = "=0.2.129"
+web-sys = { version = "0.3", features = ["Window", "Location", "UrlSearchParams"] }
+console_error_panic_hook = "0.1"
+web-time = "=1.1.0"
+
+[build-dependencies]
+slint-kit-build = "=0.2.0"
+slint-build = "=1.18.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[workspace]
+
+[patch.crates-io]
+slint-kit-core = { path = "../../crates/kit-core" }
+slint-kit-slint = { path = "../../crates/kit-slint" }

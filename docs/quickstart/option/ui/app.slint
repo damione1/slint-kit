@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOption, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitOption example";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        for row in root.rows: KitOption {
+            theme: root.theme; option-data: row; height: 48px;
+            active: root.select-state.active.present && row.token == root.select-state.active.token;
+            selected: root.select-state.selected.present && row.token == root.select-state.selected.token;
+            activate(token, generation) => { root.select-activate(token, generation); }
+            Text { text: row.label; color: root.theme.text-primary; vertical-alignment: center; }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+    }
+
+}

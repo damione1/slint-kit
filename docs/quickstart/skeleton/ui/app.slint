@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSkeleton, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "KitSkeleton example";
+    preferred-width: 420px;
+    preferred-height: 200px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Skeleton"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitSkeleton { theme: root.theme; running: false; height: 22px; } KitSkeleton { theme: root.theme; running: false; height: 16px; width: 340px; } KitSkeleton { theme: root.theme; running: false; height: 16px; width: 260px; }
+    }
+}

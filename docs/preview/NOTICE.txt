@@ -1,0 +1,31 @@
+Slint Kit browser previews
+SPDX-License-Identifier: GPL-3.0-or-later
+
+These previews compile the documented Rust and Slint applications to WebAssembly.
+Corresponding application and build sources: source.tar.gz in this directory.
+The documentation browser build includes the kit's browser-compatible monotonic
+clock correction. Downloadable native projects use published Slint Kit 0.2.0.
+
+Slint 1.18.1: Copyright © SixtyFPS GmbH and contributors.
+Used here under GPL-3.0-only, one of Slint's available licenses.
+Slint source and license: https://github.com/slint-ui/slint/tree/v1.18.1
+
+web-time 1.1.0: MIT OR Apache-2.0.
+https://github.com/daxpedda/web-time
+wasm-bindgen 0.2.129: MIT OR Apache-2.0.
+https://github.com/wasm-bindgen/wasm-bindgen
+
+Cargo.lock in the source archive identifies other Rust dependencies. Their
+package metadata retains the original licenses and repository/source URLs.
+The source archive includes the kit GPL license and original crate notices.
+
+Rebuilding the binary from source.tar.gz:
+  cd slint-kit
+  rustup target add wasm32-unknown-unknown
+  CARGO_TARGET_DIR=target cargo build --manifest-path docs/preview/Cargo.toml --target wasm32-unknown-unknown --release --locked
+  wasm-bindgen --target web --out-dir web --out-name slint_kit_previews target/wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm
+The standalone preview workspace's default target directory is docs/preview/target;
+set CARGO_TARGET_DIR=target for the final command above. Install the exact
+wasm-bindgen-cli version 0.2.129. Cargo downloads the source registry dependencies
+identified by the lockfile. The archive's root workspace lists library crates;
+its omitted showcase/test workspace members are not required by the preview.

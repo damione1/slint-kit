@@ -14,8 +14,9 @@ jobs:
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/target
         run: |
-          cargo check --manifest-path docs/quickstart/button/Cargo.toml --locked
-          cargo check --manifest-path docs/quickstart/combobox/Cargo.toml --locked
+          for manifest in docs/quickstart/*/Cargo.toml; do
+            cargo check --manifest-path "$manifest" --locked
+          done
   documentation:
     runs-on: ubuntu-latest
     steps:
@@ -25,5 +26,12 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: docs/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: docs/preview -> ../../target/doc-previews
+      - run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
       - run: npm ci --prefix docs
       - run: npm --prefix docs run build

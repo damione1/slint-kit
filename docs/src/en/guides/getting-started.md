@@ -8,7 +8,6 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Getting started
 
-This reference documents Slint Kit 0.2.0. For localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). Upgrade both kit dependencies to `"0.2"` when moving from 0.1.
 
 Install Slint Kit from crates.io with **Rust 1.92+** and **Slint 1.18.1**. No toolkit checkout is required.
 

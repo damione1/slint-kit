@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitNotificationButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitNotificationButton example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <int> unread: 3;
+    callback open();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitNotificationButton { theme: root.theme; label: "Open notifications"; unread-count: root.unread; activated => { root.open(); } }
+        result := Text { text: root.unread == 0 ? "Notifications read" : "Three unread notifications"; color: root.theme.text-primary; }
+    }
+
+}

@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitChip, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitChip example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> showing: true;
+    callback remove(int);
+    callback reset();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        if root.showing: control := KitChip { theme: root.theme; chip: { token: 11, label: "Design", removable: true }; remove-requested(token) => { root.remove(token); } }
+        KitButton { text: "Restore tag"; activated => { root.reset(); } }
+        result := Text { text: root.showing ? "Design selected" : "No tags selected"; color: root.theme.text-primary; }
+    }
+
+}

@@ -1,0 +1,10 @@
+import {KitFileList,KitThemes,FileViewEntry} from "@kit/kit.slint";
+export {FileViewEntry}
+export component App inherits Window {
+ title:"File list";preferred-width:540px;preferred-height:320px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+ in property <[FileViewEntry]> entries;in property <string> status;callback remove(int,int);
+ VerticalLayout{padding:24px;spacing:16px;alignment:start;
+ control:=KitFileList{entries:root.entries;remove-requested(token,generation)=>{root.remove(token,generation);}}
+ Text{text:root.status;color:KitThemes.light.text-primary;}
+ }
+}

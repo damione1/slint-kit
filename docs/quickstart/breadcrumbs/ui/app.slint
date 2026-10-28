@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitBreadcrumbs, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitBreadcrumbs example";
+    preferred-width: 520px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitBreadcrumbs { theme: root.theme; rows: root.rows; activate(token, generation) => { root.select-activate(token, generation); } }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+    }
+
+}

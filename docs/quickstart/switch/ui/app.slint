@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSwitch, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitSwitch example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> enabled;
+    callback change(bool);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitSwitch { theme: root.theme; label: "Desktop notifications"; checked: root.enabled; toggled(value) => { root.change(value); } }
+        result := Text { text: root.enabled ? "Notifications enabled" : "Notifications disabled"; color: root.theme.text-primary; }
+    }
+
+}

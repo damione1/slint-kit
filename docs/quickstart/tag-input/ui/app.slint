@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTagInput, ChipRow, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitTagInput example";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[ChipRow]> chips;
+    in-out property <string> draft;
+    in property <string> error;
+    callback create(string);
+    callback remove(int);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitTagInput {
+            theme: root.theme; label: "Project tags"; chips: root.chips; text <=> root.draft; error: root.error;
+            create-requested(text) => { root.create(text); }
+            remove-requested(token) => { root.remove(token); }
+        }
+        result := Text { text: root.chips.length + " tags"; color: root.theme.text-primary; }
+    }
+
+}

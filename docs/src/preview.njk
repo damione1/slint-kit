@@ -1,0 +1,49 @@
+---
+permalink: /preview/index.html
+eleventyExcludeFromCollections: true
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Slint Kit interactive preview</title>
+<style>html,body{margin:0;padding:0;background:#f7f9fb}canvas{display:block;touch-action:none;outline:none}#error{font:14px system-ui;padding:16px;color:#9b1c1c}footer{font:11px system-ui;padding:8px}a{color:#4736bd}</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="0" aria-label="Interactive Slint component"></canvas>
+<p id="error" hidden></p>
+<footer><a href="{{ webPreviews.base }}/NOTICE.txt" target="_blank" rel="noopener">Licenses</a> · <a href="{{ webPreviews.base }}/THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a> · <a href="{{ webPreviews.base }}/source.tar.gz" download>Source</a></footer>
+<script type="module">
+const allowed = {{ webPreviews.components | scriptJson | safe }};
+const parameters = new URLSearchParams(location.search);
+const french = parameters.get('lang') === 'fr';
+document.documentElement.lang = french ? 'fr' : 'en';
+const canvas = document.querySelector('canvas');
+canvas.setAttribute('aria-label', french ? 'Composant Slint interactif' : 'Interactive Slint component');
+function message(state, error) {
+  const rectangle = canvas.getBoundingClientRect();
+  parent.postMessage({type:'slint-kit-preview', component:parameters.get('component'), state,
+    width:rectangle.width, height:rectangle.height + 30, error}, location.origin);
+}
+try {
+  if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
+  const {default:init} = await import('{{ webPreviews.base }}/slint_kit_previews.js');
+  try { await init(); }
+  catch(error) {
+    // winit hands control to the browser event loop by throwing this sentinel.
+    if (!String(error).includes("Using exceptions for control flow, don't mind me.")) throw error;
+  }
+  window.previewReady = true;
+  requestAnimationFrame(() => message('ready'));
+  new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(canvas);
+} catch(error) {
+  window.previewError = String(error);
+  const status = document.querySelector('#error'); status.hidden = false;
+  status.textContent = french ? 'Aperçu indisponible. Utilisez l’exemple natif de la fiche.' : 'Preview unavailable. Use the native example on the component page.';
+  message('error', String(error));
+}
+</script>
+</body>
+</html>

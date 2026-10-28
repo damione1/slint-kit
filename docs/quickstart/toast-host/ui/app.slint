@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitToastHost, KitButton, ToastEntry, ToastInteraction, AlertSeverity, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitToastHost example";
+    preferred-width: 520px;
+    preferred-height: 420px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[ToastEntry]> entries;
+    in property <string> result: "Project archived";
+    callback undo(int);
+    callback dismiss-toast(int);
+    callback interaction(int, ToastInteraction, bool);
+    callback add();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        KitButton { text: "Show archive notice"; activated => { root.add(); } }
+        control := KitToastHost { theme: root.theme; entries: root.entries; action(token) => { root.undo(token); } dismiss(token) => { root.dismiss-toast(token); } interaction(token, source, engaged) => { root.interaction(token, source, engaged); } }
+        result := Text { text: root.result; color: root.theme.text-primary; }
+    }
+
+}

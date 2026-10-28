@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCheckbox, CheckState, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitCheckbox example";
+    preferred-width: 520px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <CheckState> choice: CheckState.unchecked;
+    callback change(CheckState);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitCheckbox { theme: root.theme; label: "Send product updates"; state: root.choice; toggled(value) => { root.change(value); } }
+        result := Text { text: root.choice == CheckState.checked ? "Subscribed" : "Not subscribed"; color: root.theme.text-primary; }
+    }
+
+}

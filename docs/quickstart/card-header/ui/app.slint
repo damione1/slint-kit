@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCardHeader, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "KitCardHeader example";
+    preferred-width: 420px;
+    preferred-height: 180px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Card Header"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitCardHeader { width: 372px; theme: root.theme; title: "Project settings"; description: "Manage your workspace and collaborators."; }
+    }
+}

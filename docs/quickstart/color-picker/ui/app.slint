@@ -1,0 +1,16 @@
+import {KitColorPicker,KitThemes,SrgbColorView,ColorChannel,NavigationStep} from "@kit/kit.slint";
+export {SrgbColorView,ColorChannel,NavigationStep}
+export component App inherits Window {
+ title:"color-picker";preferred-width:540px;preferred-height:800px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+ in-out property <string> hex;in property <string> error;in property <string> accepted;in property <SrgbColorView> color-value;in property <color> swatch;
+ callback commit(string);callback edit();callback choose(SrgbColorView);callback cancel();in-out property <string> red;in-out property <string> green;in-out property <string> blue;in-out property <string> alpha;
+ callback channel(ColorChannel,string);callback position(ColorChannel,float);callback navigate(ColorChannel,NavigationStep);callback begin-gesture(ColorChannel);callback finish(ColorChannel);callback cancel-channel(ColorChannel);
+ VerticalLayout{padding:24px;spacing:16px;alignment:start;
+ control:=KitColorPicker{label:"Accent color";accepted-color:root.color-value;swatch:root.swatch;color-requested(value)=>{root.choose(value);}hex-text<=>root.hex;red-text<=>root.red;green-text<=>root.green;blue-text<=>root.blue;alpha-text<=>root.alpha;hex-error:root.error;
+ hex-edited(value)=>{root.edit();}hex-commit-requested(value)=>{root.commit(value);}
+ channel-edited(channel,value)=>{root.edit();}channel-commit-requested(channel,value)=>{root.channel(channel,value);}
+ channel-position-requested(channel,position)=>{root.position(channel,position);}channel-navigate(channel,step)=>{root.navigate(channel,step);}
+ gesture-started(channel)=>{root.begin-gesture(channel);}committed(channel)=>{root.finish(channel);}cancelled(channel)=>{root.cancel-channel(channel);}}
+ Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ }
+}

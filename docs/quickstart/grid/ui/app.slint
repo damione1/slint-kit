@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitGrid, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { overview, activity, members, settings }
+
+export component App inherits Window {
+    title: "KitGrid example";
+    preferred-width: 420px;
+    preferred-height: 230px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Grid"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        KitGrid { Row { KitButton { theme: root.theme; text: "Overview"; activated => { root.action-requested(DemoAction.overview); } }KitButton { theme: root.theme; text: "Activity"; activated => { root.action-requested(DemoAction.activity); } } } Row { KitButton { theme: root.theme; text: "Members"; activated => { root.action-requested(DemoAction.members); } }KitButton { theme: root.theme; text: "Settings"; activated => { root.action-requested(DemoAction.settings); } } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

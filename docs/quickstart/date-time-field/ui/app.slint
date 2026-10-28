@@ -1,0 +1,16 @@
+import {KitDateTimeField,KitButton,KitThemes,CivilDateView,LocalTimeView,LocalDateTimeView,LocalDateTimeDraft,ZonedDateTimeDraft,ZonedTimePresentation,AmbiguousTimeChoice} from "@kit/kit.slint";
+export {CivilDateView,LocalTimeView,LocalDateTimeView,LocalDateTimeDraft,ZonedDateTimeDraft,ZonedTimePresentation,AmbiguousTimeChoice}
+export component App inherits Window {
+ title:"date-time-field";preferred-width:560px;preferred-height:440px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+ in-out property <string> date-text:"2026-10-17";in-out property <string> time-text:"09:30";in-out property <string> zone-text:"America/Toronto";
+ in property <LocalDateTimeView> accepted-local;in property <string> error;in property <string> accepted;
+ in property <ZonedTimePresentation> resolution;callback commit(LocalDateTimeDraft);callback edit();callback choose(AmbiguousTimeChoice);callback cancel();
+ VerticalLayout {padding:24px;spacing:16px;alignment:start;
+ control:=KitDateTimeField{label:"Appointment";date-text<=>root.date-text;time-text<=>root.time-text;date-error:root.error;
+ accepted-value:root.accepted-local;commit-requested(draft)=>{root.commit(draft);}
+ edited(draft)=>{root.edit();}cancelled=>{root.cancel();}
+ }
+ KitButton{text:"Accept";activated=>{root.commit({date:root.date-text,time:root.time-text});}}
+ Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ }
+}

@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenu, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitMenu example";
+    preferred-width: 520px;
+    preferred-height: 300px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitMenu {
+            theme: root.theme; rows: root.rows; state: root.select-state;
+            navigate(step) => { root.select-navigate(step); }
+            activate(token, generation) => { root.select-activate(token, generation); }
+            dismiss(reason) => { root.select-dismiss(reason); }
+            typeahead(text) => { root.select-typeahead(text); }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+    }
+
+}

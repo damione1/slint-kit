@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRating, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+export component App inherits Window {
+    title: "KitRating example";
+    preferred-width: 520px;
+    preferred-height: 240px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[OptionRow]> rows;
+    in property <SelectState> select-state;
+    in property <string> selected-label: "1 star";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
+    callback clear();
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitRating {
+            theme: root.theme; label: "Your rating";
+            scores: [{ token: root.rows[0].token, label: root.rows[0].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[0].token }, { token: root.rows[1].token, label: root.rows[1].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[1].token }, { token: root.rows[2].token, label: root.rows[2].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[2].token }];
+            generation: root.select-state.generation; active-token: root.select-state.active.token;
+            navigate(step) => { root.select-navigate(step); }
+            choose(token, generation) => { root.select-activate(token, generation); }
+            clear-requested => { root.clear(); }
+        }
+        result := Text { text: "Rating: " + root.selected-label; color: root.theme.text-primary; }
+    }
+
+}
