@@ -134,7 +134,7 @@ function redirectTarget(route) {
 check(redirectTarget('/en')?.destination === '/' && redirectTarget('/en')?.status === '301', 'Old /en homepage must permanently redirect to /');
 const expectedRoutes = new Set();
 for (const locale of ['en', 'fr']) {
-  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example', 'table-example', 'source-updates'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
+  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example', 'table-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
     expectedRoutes.add(localeUrl(key, locale));
   }
 }
@@ -316,6 +316,6 @@ check(/^User-agent:\s*\*\s*$/m.test(robots) && /^Allow:\s*\/\s*$/m.test(robots),
 check(!/^Disallow:\s*\S/m.test(robots), 'Public documentation must not be blocked in robots.txt');
 check(robots.split('\n').filter(line => line.startsWith('Sitemap:')).join('\n') === `Sitemap: ${origin}/sitemap.xml`, 'Robots must reference the sitemap at the configured public origin');
 
-check(htmlFiles.length === components.length * 2 + 18, 'Incomplete or duplicated site output');
+check(htmlFiles.length === components.length * 2 + 16, 'Incomplete or duplicated site output');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
 else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);

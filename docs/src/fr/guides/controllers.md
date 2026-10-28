@@ -8,7 +8,6 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Contrôleurs typés
 
-Cette référence documente Slint Kit 0.2.0. Pour les libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Passez les deux dépendances du kit à `"0.2"` pour migrer depuis 0.1.
 
 Conservez la valeur acceptée en Rust et projetez sa présentation dans Slint. La façade `slint_kit` réexporte les valeurs du cœur et les adaptateurs de fenêtre faible. Un jeton de vue n’est valide que pour sa génération de modèle ; l’identité métier reste une clé stable.
 

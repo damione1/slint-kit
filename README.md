@@ -37,7 +37,6 @@ slint-kit-build = "0.2"
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
-Slint Kit 0.2.0 includes localized calendar/time-zone labels and empty states, composite editor focus, and explicit native modal traversal. See [updates and compatibility](https://slint-kit.damiengoehrig.ca/guides/source-updates/) to upgrade both kit dependencies from 0.1 to 0.2.
 
 ## Build the showcase
 
