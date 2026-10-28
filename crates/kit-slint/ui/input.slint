@@ -16,6 +16,8 @@ export component KitTextField inherits KitField {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <TextPurpose> purpose: TextPurpose.plain;
+    // Native filtering applies to typing and paste without rewriting the draft.
+    in property <InputType> input-type: InputType.text;
     in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
     in property <TextLineMode> line-mode: TextLineMode.single-line;
     in property <ResizePolicy> resize-policy: ResizePolicy.fixed;
@@ -49,6 +51,10 @@ export component KitTextField inherits KitField {
     public function select-all() { editor.select-all(); }
     public function copy-selection() { editor.copy(); }
     public function cancel-edit() { root.cancelled(); }
+    pure function non-finite-number(text: string) -> bool {
+        let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
+        return normalized == "nan" || normalized == "inf" || normalized == "infinity";
+    }
     changed has-focus => { root.focus-observed(root.has-focus); }
     private property <length> line-height: 20px * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
@@ -63,6 +69,13 @@ export component KitTextField inherits KitField {
         focused: root.has-focus;
         preferred-height: root.editor-height + 12px;
         max-height: self.preferred-height;
+        // Slint 1.18.1 filters numeric key events but not native clipboard
+        // shortcuts. Read the clipboard through its public paste API before
+        // letting the real editor handle it; never rewrite its text/history.
+        clipboard-probe := TextInput {
+            visible: false; enabled: false;
+            x: 0px; y: 0px; width: 0px; height: 0px;
+        }
         // Behind the editor and action: the visual padding is part of the
         // field's focus target without intercepting native caret/selection.
         TouchArea {
@@ -110,7 +123,7 @@ export component KitTextField inherits KitField {
                         read-only: root.access == FieldAccess.read-only;
                         single-line: !root.multiline;
                         wrap: root.multiline ? word-wrap : no-wrap;
-                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : InputType.text;
+                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type;
                         input-method-hints: root.input-method-hints;
                         color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
                         selection-background-color: root.theme.accent;
@@ -122,6 +135,20 @@ export component KitTextField inherits KitField {
                         accessible-enabled: root.access != FieldAccess.disabled;
                         accessible-label: root.accessible-name;
                         accessible-description: root.validation == ValidationPresentation.invalid ? root.error : root.description;
+                        key-pressed(event) => {
+                            if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
+                            if (root.input-type == InputType.decimal && root.access == FieldAccess.editable
+                                && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
+                                    || (event.modifiers.shift && event.text == Key.Insert))) {
+                                clipboard-probe.text = "";
+                                clipboard-probe.paste();
+                                if (root.non-finite-number(clipboard-probe.text)) { return accept; }
+                                if (clipboard-probe.text != "" && clipboard-probe.text != "-"
+                                    && clipboard-probe.text != "." && clipboard-probe.text != ","
+                                    && !clipboard-probe.text.is-float()) { return accept; }
+                            }
+                            return reject;
+                        }
                         edited => { root.edited(self.text); }
                         accepted => { if (!root.multiline && root.access == FieldAccess.editable) { root.commit-requested(self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
