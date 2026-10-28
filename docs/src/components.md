@@ -20,6 +20,8 @@ eleventyComputed:
 
 {{ text.summary }}
 
+{% if locale == 'fr' %}Cette référence et ses captures suivent la branche `main`. Les nouveaux libellés et contrats de focus ne font pas encore partie de la version crates.io 0.1.0. Consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/) avant de reprendre un exemple.{% else %}This reference and its screenshots follow `main`. The new label and focus contracts are not yet included in crates.io 0.1.0. Check [source updates and compatibility](/guides/source-updates/) before using an example.{% endif %}
+
 <figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
 
 {{ text.usage | prose | safe }}

@@ -8,6 +8,8 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Contrôleurs typés
 
+La référence suit `main`. Pour les nouveaux libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Ces ajouts nécessitent les sources après crates.io 0.1.0.
+
 Conservez la valeur acceptée en Rust et projetez sa présentation dans Slint. La façade `slint_kit` réexporte les valeurs du cœur et les adaptateurs de fenêtre faible. Un jeton de vue n’est valide que pour sa génération de modèle ; l’identité métier reste une clé stable.
 
 [Exécuter et lire l’application typée complète](/fr/guides/typed-example/) : champ natif, validation, sélection stable et tous les signaux reliés.

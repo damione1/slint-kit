@@ -8,6 +8,8 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Bien démarrer
 
+La référence suit `main`. Pour les nouveaux libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Ces ajouts nécessitent les sources après crates.io 0.1.0.
+
 Installez Slint Kit depuis crates.io avec **Rust 1.92+** et **Slint 1.18.1**. Aucun clonage du kit n’est nécessaire.
 
 Les applications utilisent l’édition Rust 2024. Le compilateur et le runtime Slint doivent correspondre aux versions du kit.

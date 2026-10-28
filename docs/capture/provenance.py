@@ -62,6 +62,8 @@ def capture_record(example, filename, locale):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--method', choices=['snapshot', 'mcp'], default='snapshot',
+                        help='Actual capture method used for this catalogue run.')
     parser.add_argument('--reviewed-components', type=int, default=0,
                         help='Number of localized component captures visually reviewed (0–246); record only a completed review.')
     args = parser.parse_args()
@@ -85,18 +87,19 @@ def main():
     manifest = {
         'schemaVersion': 1,
         'environment': {
-            'backend': 'winit', 'renderer': 'skia', 'snapshotAPI': 'slint::Window::take_snapshot',
+            'backend': 'winit', 'renderer': 'skia', 'snapshotAPI': 'Slint MCP take_screenshot (native Window::take_snapshot)' if args.method == 'mcp' else 'slint::Window::take_snapshot',
             'slintVersion': '1.18.1', 'platform': platform.system() + ' ' + platform.mac_ver()[0],
             'architecture': platform.machine(), 'device': device,
             'display': 'Native desktop display; captured pixels recorded per image',
             'scaleFactor': components['button']['width'] / components['button']['logicalWidth'],
             'captureSourceSha256': sha(ROOT / 'docs/capture/src/main.rs'),
+            'mcpCaptureSourceSha256': sha(ROOT / 'docs/capture/mcp.py'),
             'kitUiSha256': kit_ui_digest.hexdigest(),
         },
         'qualification': {
             'presentation': 'Native light-theme captures in French and English; representative French and English dark and 200% text variants.',
             'visuallyReviewedLocalizedComponents': args.reviewed_components,
-            'interaction': 'French and English Button pointer press/release and keyboard Space callbacks checked through public native window event dispatch.',
+            'interaction': 'French and English Button pointer click and Tab/Space callbacks checked through the embedded Slint MCP server in separate fresh native windows.' if args.method == 'mcp' else 'French and English Button pointer press/release and keyboard Space callbacks checked through public native window event dispatch.',
             'ime': False, 'screenReader': False, 'otherPlatforms': False,
             'localization': 'Authored fixture strings and exposed labels are localized; hardcoded toolkit defaults retain their shipped language.',
         },

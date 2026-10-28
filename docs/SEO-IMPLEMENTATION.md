@@ -1,9 +1,13 @@
 # SEO implementation and verification
 
 Baseline: `origin/main` at `135e9dd189c824943230a7bfc4ad35c15c07fba4`.
-Implementation is isolated on `codex/seo-improvements`. Unpushed changes from the
-main checkout are not part of this branch. No production deployment, registry
-publication, Search Console submission or Cloudflare policy change is included.
+The initial SEO changes were published at `bcbe17672fb40f6f8b85290416c1fcef2e3e1f05`
+and deployed by Cloudflare Workers Builds. The subsequent documentation update
+integrates the 12 local commits through `ca2a5e3fbe25e29f40a04a93cb622e4e7f7482a5`
+with that published revision in a worktree. The original verification below
+records the SEO release; see [source update verification](SOURCE-UPDATE.md) for
+the integrated sources and refreshed captures. No registry publication, Search
+Console submission or Cloudflare policy change is included.
 
 ## Changes
 

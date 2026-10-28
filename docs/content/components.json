@@ -21,7 +21,7 @@
     "fr": {
       "summary": "Message contextualisé de résultat, d’information ou d’erreur.",
       "usage": "Définissez `severity: AlertSeverity.information`, `.success`, `.warning` ou `.error`, avec un titre explicite. Activez `dismissible` et traitez `dismissed` pour retirer le message dans l’état propriétaire.",
-      "behavior": "Le composant ne se ferme pas lui-même. Le rôle accessible utilise une annonce polie, ou assertive pour une erreur, selon la prise en charge réelle du backend.",
+      "behavior": "Le composant ne se ferme pas lui-même. Le rôle accessible utilise une annonce polie, ou assertive pour une erreur, selon la prise en charge réelle du backend.\n\nSa hauteur intrinsèque suit le texte replié à la largeur disponible, y compris dans un layout conditionnel. Laissez le composant déterminer sa hauteur.",
       "related": [
         "KitToast",
         "KitFieldError"
@@ -30,7 +30,7 @@
     "en": {
       "summary": "Contextual message for a result, information or error.",
       "usage": "Set `severity: AlertSeverity.information`, `.success`, `.warning` or `.error`, with an explicit heading. Enable `dismissible` and handle `dismissed` to remove the message in owning state.",
-      "behavior": "The component does not close itself. Its accessibility role requests a polite announcement, or assertive for errors, subject to actual backend support.",
+      "behavior": "The component does not close itself. Its accessibility role requests a polite announcement, or assertive for errors, subject to actual backend support.\n\nIts intrinsic height follows text wrapped at the available width, including inside a conditional layout. Let the component determine its height.",
       "related": [
         "KitToast",
         "KitFieldError"
@@ -99,7 +99,7 @@
     "fr": {
       "summary": "Bouton avec libellé et indicateur d’activité conservant sa largeur naturelle.",
       "usage": "Définissez `text` et traitez le callback hérité `activated`. Utilisez `intent` pour la hiérarchie des actions et `control-width: ControlWidth.fill` pour remplir un emplacement.",
-      "behavior": "Le texte fournit le nom accessible lorsque `accessible-name` est vide. `busy` remplace visuellement le libellé sans modifier sa mesure et bloque l’action.",
+      "behavior": "Le texte fournit le nom accessible lorsque `accessible-name` est vide. `busy` remplace visuellement le libellé sans modifier sa mesure et bloque l’action.\n\nEn mode `ControlWidth.fill`, le bouton accepte la largeur allouée même si son texte est plus long. Le focus clavier révèle aussi le contour dans les défilements ancêtres.",
       "related": [
         "KitPressable",
         "KitFormButton",
@@ -109,7 +109,7 @@
     "en": {
       "summary": "Labeled button whose busy indicator preserves its natural width.",
       "usage": "Set `text` and handle the inherited `activated` callback. Use `intent` for action hierarchy and `control-width: ControlWidth.fill` to fill a slot.",
-      "behavior": "The text supplies the accessible name when `accessible-name` is empty. `busy` visually replaces the label without changing its measurement and blocks activation.",
+      "behavior": "The text supplies the accessible name when `accessible-name` is empty. `busy` visually replaces the label without changing its measurement and blocks activation.\n\nWith `ControlWidth.fill`, the button accepts its allocated width even when its label is longer. Keyboard focus also reveals the outline in ancestor scroll areas.",
       "related": [
         "KitPressable",
         "KitFormButton",
@@ -133,12 +133,12 @@
     "fr": {
       "summary": "Grille de jours navigable alimentée par un modèle de calendrier.",
       "usage": "Fournissez `days`, `weekdays`, `title` et `active-index` depuis le contrôleur civil. Traitez `navigate(CalendarNavigation)` et `choose(CalendarDay)` pour mettre à jour ce modèle.",
-      "behavior": "Les flèches, Début/Fin et Page précédente/suivante demandent des déplacements typés, avec Maj pour l’année. Les jours désactivés ne sont pas sélectionnables ; le composant ne calcule pas les dates."
+      "behavior": "Les flèches, Début/Fin et Page précédente/suivante demandent des déplacements typés, avec Maj pour l’année. Les jours désactivés ne sont pas sélectionnables ; le composant ne calcule pas les dates.\n\nTraduisez les noms accessibles des flèches avec `previous-month-label` et `next-month-label`. Les titres, jours et libellés de jours restent fournis par l’hôte."
     },
     "en": {
       "summary": "Navigable day grid supplied by a calendar model.",
       "usage": "Provide `days`, `weekdays`, `title` and `active-index` from the civil-date controller. Handle `navigate(CalendarNavigation)` and `choose(CalendarDay)` to update that model.",
-      "behavior": "Arrows, Home/End and Page Up/Down request typed movement, with Shift selecting year movement. Disabled days cannot be chosen; the component does not calculate dates."
+      "behavior": "Arrows, Home/End and Page Up/Down request typed movement, with Shift selecting year movement. Disabled days cannot be chosen; the component does not calculate dates.\n\nTranslate arrow accessible names with `previous-month-label` and `next-month-label`. The host still supplies month titles, weekdays and day labels."
     }
   },
   "KitCard": {
@@ -355,19 +355,19 @@
     "fr": {
       "summary": "Liste virtualisée de contenus avec titre, extrait, métadonnées et vignette.",
       "usage": "Fournissez un modèle de `ContentItem`, une `generation` et `active-index`. Traitez `activate(token, generation)` pour ouvrir le contenu et `navigate` pour déplacer l’élément actif.",
-      "behavior": "Les lignes utilisent une hauteur bornée et ne matérialisent que le viewport. La sélection et la désactivation viennent du modèle ; l’index actif sert à la géométrie, jamais à l’identité métier."
+      "behavior": "Les lignes utilisent une hauteur bornée et ne matérialisent que le viewport. La sélection et la désactivation viennent du modèle ; l’index actif sert à la géométrie, jamais à l’identité métier.\n\nUtilisez `empty-label` pour traduire le message affiché quand `items` est vide."
     },
     "en": {
       "summary": "Virtualized content list with headings, excerpts, metadata and thumbnails.",
       "usage": "Supply a `ContentItem` model, a `generation` and `active-index`. Handle `activate(token, generation)` to open content and `navigate` to move the active item.",
-      "behavior": "Rows use a bounded height and materialize only the viewport. Selection and disabled state come from the model; the active index serves geometry, never domain identity."
+      "behavior": "Rows use a bounded height and materialize only the viewport. Selection and disabled state come from the model; the active index serves geometry, never domain identity.\n\nUse `empty-label` to translate the message shown when `items` is empty."
     }
   },
   "KitDataTable": {
     "fr": {
       "summary": "Tableau de données avec lignes virtualisées et tri demandé au contrôleur.",
       "usage": "Fournissez `columns`, `rows`, `generation` et `active-index` depuis un modèle à identités stables. Traitez `sort-requested(column-token)`, `navigate` et `activate(row-token, generation)`.",
-      "behavior": "Les en-têtes présentent `DataSortDirection.unsorted`, `.ascending` ou `.descending`, sans trier localement. Le viewport reste fini, les colonnes peuvent défiler horizontalement et `reveal-active()` rend la ligne active visible.",
+      "behavior": "Les en-têtes présentent `DataSortDirection.unsorted`, `.ascending` ou `.descending`, sans trier localement. Le viewport reste fini, les colonnes peuvent défiler horizontalement et `reveal-active()` rend la ligne active visible.\n\n`empty-label` fournit le message quand `rows` est vide. `interactive: false` désactive le clavier, les en-têtes et les lignes pour rendre le tableau inéligible pendant une modale.",
       "related": [
         "KitContentList",
         "KitVirtualTextView"
@@ -376,7 +376,7 @@
     "en": {
       "summary": "Data table with virtualized rows and controller-requested sorting.",
       "usage": "Supply `columns`, `rows`, `generation` and `active-index` from a stable-identity model. Handle `sort-requested(column-token)`, `navigate` and `activate(row-token, generation)`.",
-      "behavior": "Headers present `DataSortDirection.unsorted`, `.ascending` or `.descending` without sorting locally. The viewport stays finite, columns can scroll horizontally, and `reveal-active()` shows the active row.",
+      "behavior": "Headers present `DataSortDirection.unsorted`, `.ascending` or `.descending` without sorting locally. The viewport stays finite, columns can scroll horizontally, and `reveal-active()` shows the active row.\n\n`empty-label` supplies the message when `rows` is empty. `interactive: false` disables keyboard input, headers and rows to make the table ineligible while a modal is active.",
       "related": [
         "KitContentList",
         "KitVirtualTextView"
@@ -407,7 +407,7 @@
     "fr": {
       "summary": "Champ de date civile avec calendrier contextuel.",
       "usage": "Partagez le brouillon `text`, la date acceptée et le modèle de jours avec le contrôleur. Traitez les callbacks textuels et `choose` pour accepter une date atomiquement.",
-      "behavior": "Ouvrir `open` garde l’éditeur monté et émet `opened`. Une sélection ferme le calendrier ; sa fermeture rend le focus au champ sans réécrire le brouillon.",
+      "behavior": "Ouvrir `open` garde l’éditeur monté et émet `opened`. Une sélection ferme le calendrier ; sa fermeture rend le focus au champ sans réécrire le brouillon.\n\nTraduisez `placeholder`, `description`, `calendar-button-label`, `calendar-accessible-name`, `previous-month-label` et `next-month-label`. Une description vide masque l’aide. Le placeholder traduit ne change pas le format accepté par le parseur Rust.",
       "related": [
         "KitCalendar",
         "KitDateRangePicker"
@@ -416,7 +416,7 @@
     "en": {
       "summary": "Civil-date field with a popup calendar.",
       "usage": "Share draft `text`, the accepted date and the day model with the controller. Handle text callbacks and `choose` to accept a date atomically.",
-      "behavior": "Opening `open` keeps the editor mounted and emits `opened`. Choosing a day closes the calendar; closing returns focus to the field without rewriting the draft.",
+      "behavior": "Opening `open` keeps the editor mounted and emits `opened`. Choosing a day closes the calendar; closing returns focus to the field without rewriting the draft.\n\nTranslate `placeholder`, `description`, `calendar-button-label`, `calendar-accessible-name`, `previous-month-label` and `next-month-label`. An empty description hides the help. Translating the placeholder does not change the format accepted by the Rust parser.",
       "related": [
         "KitCalendar",
         "KitDateRangePicker"
@@ -439,7 +439,7 @@
     "fr": {
       "summary": "Deux éditeurs natifs composant un seul brouillon de date et heure locales.",
       "usage": "Liez `date-text` et `time-text` et fournissez `accepted-value: LocalDateTimeView`. Traitez `edited` et `commit-requested` avec leur charge utile `LocalDateTimeDraft`.",
-      "behavior": "Chaque demande transporte les deux textes afin que le contrôleur les accepte ensemble. `date-error` et `time-error` présentent les erreurs sans accepter une moitié de valeur.",
+      "behavior": "Chaque demande transporte les deux textes afin que le contrôleur les accepte ensemble. `date-error` et `time-error` présentent les erreurs sans accepter une moitié de valeur.\n\nPersonnalisez `date-label`, `time-label`, `date-placeholder`, `date-description` et `time-description`. `editor-focused` et `focus-observed(bool)` agrègent le focus des deux éditeurs natifs ; ils ne valident pas le brouillon.",
       "related": [
         "KitZonedDateTimeField",
         "KitDateField",
@@ -449,7 +449,7 @@
     "en": {
       "summary": "Two native editors composing one local date-and-time draft.",
       "usage": "Bind `date-text` and `time-text` and supply `accepted-value: LocalDateTimeView`. Handle `edited` and `commit-requested` with their `LocalDateTimeDraft` payload.",
-      "behavior": "Each request carries both texts so the controller can accept them together. `date-error` and `time-error` present failures without accepting half a value.",
+      "behavior": "Each request carries both texts so the controller can accept them together. `date-error` and `time-error` present failures without accepting half a value.\n\nCustomize `date-label`, `time-label`, `date-placeholder`, `date-description` and `time-description`. `editor-focused` and `focus-observed(bool)` aggregate the two native editors’ focus; they do not validate the draft.",
       "related": [
         "KitZonedDateTimeField",
         "KitDateField",
@@ -540,8 +540,8 @@
   "KitDialogSurface": {
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
-      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Placez un `KitDialogPanel` dans ses enfants et reliez `focus-next(bool)` au registre des cibles réelles.",
-      "behavior": "Seule la modale `topmost` traite Échap et le parcours Tab ; `busy` bloque la fermeture. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant.",
+      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -550,8 +550,8 @@
     },
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
-      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. Place a `KitDialogPanel` in its children and connect `focus-next(bool)` to the registry of actual targets.",
-      "behavior": "Only the `topmost` modal handles Escape and Tab traversal; `busy` prevents closing. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate.",
+      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -719,12 +719,12 @@
     "fr": {
       "summary": "Libellé cliquable pouvant demander le focus de son éditeur.",
       "usage": "Définissez `text` et reliez `focus-requested` à la fonction `take-focus()` du contrôle. Partagez le même `FieldAccess` avec l’éditeur.",
-      "behavior": "Le texte revient à la ligne et suit l’échelle typographique. `FieldAccess.disabled` atténue le libellé et empêche la demande de focus."
+      "behavior": "Le texte revient à la ligne et suit l’échelle typographique. `FieldAccess.disabled` atténue le libellé et empêche la demande de focus.\n\nLa hauteur suit la largeur allouée par les layouts, y compris pour les libellés longs à 200 % de texte ; laissez le layout mesurer le composant."
     },
     "en": {
       "summary": "Clickable field label that can request focus for its editor.",
       "usage": "Set `text` and connect `focus-requested` to the control’s `take-focus()` function. Share the editor’s `FieldAccess` value.",
-      "behavior": "The text wraps and follows the text scale. `FieldAccess.disabled` dims the label and prevents focus requests."
+      "behavior": "The text wraps and follows the text scale. `FieldAccess.disabled` dims the label and prevents focus requests.\n\nHeight follows the width allocated by layouts, including long labels at 200% text; let the layout measure the component."
     }
   },
   "KitFieldSeparator": {
@@ -1071,7 +1071,7 @@
     "fr": {
       "summary": "Menu vertical à options virtualisées et navigation contrôlée.",
       "usage": "Fournissez `rows` et `state`, puis relayez `navigate`, `activate`, `dismiss` et `typeahead` au contrôleur. Donnez un `accessible-name` décrivant l’ensemble des actions.",
-      "behavior": "Le menu garde une cible clavier commune et révèle l’option active. La sélection, le saut des options désactivées et la recherche incrémentale restent dans le contrôleur.",
+      "behavior": "Le menu garde une cible clavier commune et révèle l’option active. La sélection, le saut des options désactivées et la recherche incrémentale restent dans le contrôleur.\n\n`interactive: false` retire ses cibles du parcours clavier et désactive les lignes pendant une modale. `has-focus` et `focus-observed(bool)` suivent aussi la ligne pressée avant son activation ; ne transférez pas le focus pendant cet appui.",
       "related": [
         "KitMenuBar",
         "KitTabs"
@@ -1080,7 +1080,7 @@
     "en": {
       "summary": "Vertical menu with virtualized options and controlled navigation.",
       "usage": "Provide `rows` and `state`, then forward `navigate`, `activate`, `dismiss` and `typeahead` to the controller. Supply an `accessible-name` describing the action set.",
-      "behavior": "The menu keeps a shared keyboard target and reveals the active option. Selection, disabled-option skipping and typeahead remain in the controller.",
+      "behavior": "The menu keeps a shared keyboard target and reveals the active option. Selection, disabled-option skipping and typeahead remain in the controller.\n\n`interactive: false` removes its keyboard targets and disables rows while a modal is active. `has-focus` and `focus-observed(bool)` also track a pressed row before activation; do not transfer focus during that press.",
       "related": [
         "KitMenuBar",
         "KitTabs"
@@ -1457,12 +1457,12 @@
     "fr": {
       "summary": "Zone de défilement vertical pour une colonne de contenu.",
       "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible et `scroll-to-start()` pour revenir au début.",
-      "behavior": "La colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Ce conteneur ne virtualise pas ses enfants."
+      "behavior": "La colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Ce conteneur ne virtualise pas ses enfants.\n\nSi une cible dépasse la hauteur visible, `reveal` conserve la position quand son bord supérieur est déjà visible ; sinon il révèle ce bord, sans osciller entre les deux extrémités."
     },
     "en": {
       "summary": "Vertical scrolling area for a content column.",
       "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region and `scroll-to-start()` to return to the beginning.",
-      "behavior": "The column follows the visible width and grows vertically; horizontal scrolling is disabled. This container does not virtualize its children."
+      "behavior": "The column follows the visible width and grows vertically; horizontal scrolling is disabled. This container does not virtualize its children.\n\nWhen a target exceeds the visible height, `reveal` preserves the position while its leading edge is visible; otherwise it reveals that edge without alternating between the two ends."
     }
   },
   "KitSearchField": {
@@ -1543,7 +1543,7 @@
     "fr": {
       "summary": "Traducteur clavier partagé pour les sélecteurs et menus composés.",
       "usage": "Placez-le dans le contrôle qui détient le focus, ou appelez `handle-key(event)` depuis une primitive de déclenchement. Reliez ses callbacks au contrôleur avec le même `SelectState`.",
-      "behavior": "Il transforme les touches en `NavigationStep`, `CloseReason`, activation par token et recherche incrémentale. Le contrôleur conserve la sélection, l’identité et les règles de saut des éléments désactivés ; `tab-navigation` retourne un `EventResult`.",
+      "behavior": "Il transforme les touches en `NavigationStep`, `CloseReason`, activation par token et recherche incrémentale. Le contrôleur conserve la sélection, l’identité et les règles de saut des éléments désactivés ; `tab-navigation` retourne un `EventResult`.\n\nLorsque le sélecteur est ouvert, Retour système (`Key.Back`) demande `CloseReason.system-back` si `dismiss-on-system-back` vaut `true` (valeur par défaut). Mettez-le à `false` pour un composite persistant ; `KitMenu`, `KitMenuBar` et `KitTabs` le font déjà.",
       "related": [
         "KitSelectTrigger",
         "KitSelectSurface",
@@ -1553,7 +1553,7 @@
     "en": {
       "summary": "Shared keyboard translator for composed selectors and menus.",
       "usage": "Place it in the control that owns focus, or call `handle-key(event)` from a trigger primitive. Connect its callbacks to the controller using the same `SelectState`.",
-      "behavior": "It translates keys into `NavigationStep`, `CloseReason`, token activation and typeahead. The controller retains selection, identity and disabled-item navigation rules; `tab-navigation` returns an `EventResult`.",
+      "behavior": "It translates keys into `NavigationStep`, `CloseReason`, token activation and typeahead. The controller retains selection, identity and disabled-item navigation rules; `tab-navigation` returns an `EventResult`.\n\nWhile the selector is open, system Back (`Key.Back`) requests `CloseReason.system-back` when `dismiss-on-system-back` is `true` (the default). Set it to `false` for a persistent composite; `KitMenu`, `KitMenuBar` and `KitTabs` already do so.",
       "related": [
         "KitSelectTrigger",
         "KitSelectSurface",
@@ -1821,7 +1821,7 @@
     "fr": {
       "summary": "Champ de texte natif avec libellé, validation et messages d’aide.",
       "usage": "Liez `text` au brouillon et traitez `edited`, `commit-requested` et `cancelled` dans un contrôleur typé. Définissez `FieldAccess.editable`, `.read-only` ou `.disabled` selon les droits réels.",
-      "behavior": "Le même `TextInput` conserve sélection, curseur, annulation et composition IME lors des changements visuels. `ValidationPresentation` présente la validation ; le contrôleur garde les valeurs acceptées et fournit le compte de graphèmes.",
+      "behavior": "Le même `TextInput` conserve sélection, curseur, annulation et composition IME lors des changements visuels. `ValidationPresentation` présente la validation ; le contrôleur garde les valeurs acceptées et fournit le compte de graphèmes.\n\nUn appui dans le padding place le focus dans l’éditeur. En taille `comfortable`, les actions de recherche et de mot de passe utilisent une cible agrandie qui inclut le padding vertical.",
       "related": [
         "KitTextArea",
         "KitField",
@@ -1831,7 +1831,7 @@
     "en": {
       "summary": "Native text field with a label, validation and supporting messages.",
       "usage": "Bind `text` to the draft and handle `edited`, `commit-requested` and `cancelled` in a typed controller. Set `FieldAccess.editable`, `.read-only` or `.disabled` to match actual access.",
-      "behavior": "The same `TextInput` preserves selection, caret, undo and IME composition across visual changes. `ValidationPresentation` presents validation; the controller owns accepted values and supplies grapheme counts.",
+      "behavior": "The same `TextInput` preserves selection, caret, undo and IME composition across visual changes. `ValidationPresentation` presents validation; the controller owns accepted values and supplies grapheme counts.\n\nPressing the padding focuses the editor. At `comfortable` size, search and password actions use an enlarged target that includes the vertical padding.",
       "related": [
         "KitTextArea",
         "KitField",
@@ -2049,12 +2049,12 @@
     "fr": {
       "summary": "Saisie de date, heure locale et fuseau avec résolution explicite des ambiguïtés.",
       "usage": "Liez les trois textes et traitez `resolve-requested(ZonedDateTimeDraft)` avec un résolveur de fuseau IANA. Projetez `resolution` et `resolution-message`, puis traitez `ambiguity-chosen` si nécessaire.\n\nUtilisez ce champ pour un rendez-vous local dans un fuseau nommé. Un décalage UTC fixe ne remplace pas un fuseau IANA : les changements d’heure peuvent rendre une heure locale ambiguë ou inexistante.",
-      "behavior": "`ZonedTimePresentation` distingue `unresolved`, `unique`, `ambiguous`, `nonexistent` et `invalid-zone`. Une ambiguïté propose `AmbiguousTimeChoice.earlier` ou `.later` ; aucune occurrence n’est choisie silencieusement.\n\nConservez le brouillon jusqu’à sa résolution par l’hôte. En cas d’ambiguïté, présentez les deux occurrences et acceptez le choix explicite ; pour une heure inexistante, expliquez l’échec et demandez une autre heure locale. Ne déplacez pas le rendez-vous silencieusement."
+      "behavior": "`ZonedTimePresentation` distingue `unresolved`, `unique`, `ambiguous`, `nonexistent` et `invalid-zone`. Une ambiguïté propose `AmbiguousTimeChoice.earlier` ou `.later` ; aucune occurrence n’est choisie silencieusement.\n\nConservez le brouillon jusqu’à sa résolution par l’hôte. En cas d’ambiguïté, présentez les deux occurrences et acceptez le choix explicite ; pour une heure inexistante, expliquez l’échec et demandez une autre heure locale. Ne déplacez pas le rendez-vous silencieusement.\n\nLes libellés et aides de date et d’heure, `zone-label`, `zone-placeholder`, `zone-description`, `earlier-label` et `later-label` sont injectables. `editor-focused` et `focus-observed(bool)` agrègent le focus des éditeurs. `ambiguity-started()` précède `ambiguity-chosen` pour permettre à l’hôte de conserver le contexte de résolution pendant un changement de focus ; seul le choix terminé accepte l’occurrence."
     },
     "en": {
       "summary": "Date, local-time and zone input with explicit ambiguity resolution.",
       "usage": "Bind all three texts and handle `resolve-requested(ZonedDateTimeDraft)` with an IANA zone resolver. Project `resolution` and `resolution-message`, then handle `ambiguity-chosen` when required.\n\nUse this field when a user specifies a local appointment in a named time zone. A fixed UTC offset is not a substitute for an IANA zone: transition rules can make a local time ambiguous or nonexistent.",
-      "behavior": "`ZonedTimePresentation` distinguishes `unresolved`, `unique`, `ambiguous`, `nonexistent` and `invalid-zone`. Ambiguity offers `AmbiguousTimeChoice.earlier` or `.later`; no occurrence is silently chosen.\n\nKeep the user’s draft until the host resolves it. When the result is ambiguous, show the two occurrences and accept the explicit choice; for a nonexistent time, explain the failure and ask for a revised local time. Do not silently shift the appointment."
+      "behavior": "`ZonedTimePresentation` distinguishes `unresolved`, `unique`, `ambiguous`, `nonexistent` and `invalid-zone`. Ambiguity offers `AmbiguousTimeChoice.earlier` or `.later`; no occurrence is silently chosen.\n\nKeep the user’s draft until the host resolves it. When the result is ambiguous, show the two occurrences and accept the explicit choice; for a nonexistent time, explain the failure and ask for a revised local time. Do not silently shift the appointment.\n\nDate and time labels/help, `zone-label`, `zone-placeholder`, `zone-description`, `earlier-label` and `later-label` are injectable. `editor-focused` and `focus-observed(bool)` aggregate editor focus. `ambiguity-started()` precedes `ambiguity-chosen` so the host can preserve resolution context across a focus change; only the completed choice accepts an occurrence."
     }
   }
 }

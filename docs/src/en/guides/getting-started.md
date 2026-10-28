@@ -8,6 +8,8 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Getting started
 
+The reference follows `main`. For new localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). These additions require sources after crates.io 0.1.0.
+
 Install Slint Kit from crates.io with **Rust 1.92+** and **Slint 1.18.1**. No toolkit checkout is required.
 
 Applications use Rust edition 2024. The Slint compiler and runtime must match the kit’s versions.

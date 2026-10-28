@@ -37,6 +37,8 @@ slint-kit-build = "0.1"
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
+The component reference follows `main`. Source additions after crates.io 0.1.0 include localized calendar/time-zone labels and empty states, composite editor focus, and explicit native modal traversal. See [updates and compatibility](https://slint-kit.damiengoehrig.ca/guides/source-updates/) for matching source dependencies.
+
 ## Build the showcase
 
 The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.

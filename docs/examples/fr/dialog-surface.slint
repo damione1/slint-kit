@@ -1,6 +1,6 @@
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitDialogPanel, KitDialogSurface, KitTheme, KitThemes } from "@kit/kit.slint";
+import { DialogTabPolicy, KitButton, KitDialogPanel, KitDialogSurface, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
     title: "KitDialogSurface — exemple";
@@ -11,5 +11,5 @@ export component Example inherits Window {
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <string> status;
-    KitDialogSurface { theme: root.theme; width: parent.width; height: parent.height; state: { open: true, topmost: true, busy: false }; KitDialogPanel { theme: root.theme; width: 420px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; height: dialog-content.preferred-height; horizontal-stretch: 0; vertical-stretch: 0; accessible-name: "Archiver le projet"; dialog-content := VerticalLayout { padding: 24px; spacing: 16px; alignment: start; Text { text: "Archiver ce projet ?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; vertical-stretch: 0; }Text { text: "Vous pourrez le restaurer plus tard depuis les archives."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; }KitButton { theme: root.theme; text: "Archiver le projet"; activated => { root.status = "Action demandée"; } }if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; } } } }
+    KitDialogSurface { tab-policy: DialogTabPolicy.native; theme: root.theme; width: parent.width; height: parent.height; state: { open: true, topmost: true, busy: false }; KitDialogPanel { theme: root.theme; width: 420px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; height: dialog-content.preferred-height; horizontal-stretch: 0; vertical-stretch: 0; accessible-name: "Archiver le projet"; dialog-content := VerticalLayout { padding: 24px; spacing: 16px; alignment: start; Text { text: "Archiver ce projet ?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; vertical-stretch: 0; }Text { text: "Vous pourrez le restaurer plus tard depuis les archives."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; }KitButton { theme: root.theme; text: "Archiver le projet"; activated => { root.status = "Action demandée"; } }if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; } } } }
 }

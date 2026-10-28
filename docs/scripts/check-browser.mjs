@@ -105,6 +105,8 @@ try {
       ['button-text200', `${prefix}/components/button/`, 375, false, true],
       ['button-desktop', `${prefix}/components/button/`, 1350, false, false],
       ['table-guide', `${prefix}/guides/table-example/`, 375, false, false],
+      ['source-guide', `${prefix}/guides/source-updates/`, 375, false, false],
+      ['source-guide-text200', `${prefix}/guides/source-updates/`, 375, true, true],
     ]) {
       await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
       await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }] });
