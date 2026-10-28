@@ -989,6 +989,21 @@ mod tests {
                 .match_inherits("KitNotificationCenter")
                 .find_first()
                 .unwrap();
+            let items = inbox
+                .query_descendants()
+                .match_inherits("NotificationItem")
+                .find_all();
+            assert!(!items.is_empty(), "visible notifications expose list items");
+            for item in items {
+                assert_eq!(
+                    item.accessible_role(),
+                    Some(i_slint_backend_testing::AccessibleRole::ListItem)
+                );
+                assert!(
+                    item.accessible_label()
+                        .is_some_and(|label| !label.is_empty())
+                );
+            }
             inbox.scroll(0., -10000.);
             settle(1);
             let last_action = button(&window, "Dismiss");
