@@ -22,7 +22,7 @@ const server = http.createServer(async (request, response) => {
     assert(target.startsWith(path.join(docs, '_site') + path.sep));
     const content = await fs.readFile(target);
     // Force the old delayed-script bug to surface even on a fast local machine.
-    if (route === '/assets/site.js') await pause(1200);
+    if (/^\/assets\/(?:versioned\/)?site(?:\.[a-f0-9]{16})?\.js$/.test(route)) await pause(1200);
     if (/\/assets\/components\/button(?:-fr)?(?:@2x)?\.png$/.test(route)) await pause(1500);
     response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': 'no-store' });
     response.end(content);

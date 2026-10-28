@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import MarkdownIt from 'markdown-it';
 import { scanComponents } from './scripts/inventory.mjs';
 import { localePrefix, localeUrl, siteOrigin } from './scripts/routes.mjs';
@@ -8,6 +9,27 @@ import { structuredData, scriptJson } from './scripts/metadata.mjs';
 export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy('src/assets');
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
+  eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
+  const versionedAssets = new Map();
+  eleventyConfig.on('eleventy.before', () => versionedAssets.clear());
+  eleventyConfig.addFilter('versionedAsset', sourceUrl => {
+    if (!versionedAssets.has(sourceUrl)) {
+      const content = fs.readFileSync(path.join('src', sourceUrl.slice(1)));
+      const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
+      const file = path.parse(sourceUrl);
+      versionedAssets.set(sourceUrl, {
+        url: `/assets/versioned/${file.name}.${hash}${file.ext}`, content,
+      });
+    }
+    return versionedAssets.get(sourceUrl).url;
+  });
+  eleventyConfig.on('eleventy.after', () => {
+    for (const { url, content } of versionedAssets.values()) {
+      const target = path.join('_site', url.slice(1));
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, content);
+    }
+  });
   eleventyConfig.addFilter('localePrefix', localePrefix);
   eleventyConfig.addFilter('localeUrl', localeUrl);
   eleventyConfig.addFilter('structuredData', structuredData);

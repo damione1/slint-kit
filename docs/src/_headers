@@ -1,0 +1,22 @@
+# Only content-addressed URLs are immutable.
+/assets/versioned/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Screenshots, social images and branding may be replaced at the same URL.
+/assets/components/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/assets/social/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+/assets/branding/*
+  Cache-Control: public, max-age=86400, must-revalidate
+
+# Keep the old URLs available for previously loaded pages.
+/assets/site.css
+  Cache-Control: public, max-age=300, must-revalidate
+
+/assets/site.js
+  Cache-Control: public, max-age=300, must-revalidate
+
+# HTML keeps Workers Assets' default browser revalidation policy.
