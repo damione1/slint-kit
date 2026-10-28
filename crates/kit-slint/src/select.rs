@@ -3,7 +3,8 @@ use kit_core::{
     DismissReason, ModelError, NavigationStep, Ownership, RemovalPolicy, SelectController,
     SelectOption, SelectionAvailability, SelectionIntent,
 };
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc, time::Instant};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use web_time::Instant;
 
 #[derive(Clone, Debug)]
 pub struct ProjectedOption {
