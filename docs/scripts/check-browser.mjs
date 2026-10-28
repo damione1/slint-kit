@@ -23,6 +23,7 @@ const server = http.createServer(async (request, response) => {
     const content = await fs.readFile(target);
     // Force the old delayed-script bug to surface even on a fast local machine.
     if (route === '/assets/site.js') await pause(1200);
+    if (/\/assets\/components\/button(?:-fr)?\.png$/.test(route)) await pause(1500);
     response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': 'no-store' });
     response.end(content);
   } catch {
@@ -109,7 +110,7 @@ try {
       await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }] });
       await navigate(route);
       const cls = await evaluate('window.auditShifts.reduce((sum,value)=>sum+value,0)');
-      assert(cls <= 0.1, `${locale}/${name}: unstable initial layout (CLS ${cls})`);
+      assert(cls < 0.001, `${locale}/${name}: unstable initial layout (CLS ${cls})`);
       if (route.includes('/components/button/')) {
         assert.equal(await evaluate('document.querySelector(".mobile-nav").open'), false);
         assert.equal(await evaluate('getComputedStyle(document.querySelector(".desktop-nav")).display !== "none"'), width > 720);
@@ -143,7 +144,7 @@ try {
     assert.deepEqual(await evaluate('[...document.querySelectorAll(".catalogue-item")].filter(item=>!item.hidden).map(item=>item.querySelector("strong").innerText)'), ['KitButton', 'KitButtonGroup']);
   }
   passed = true;
-  console.log(`Browser checks PASS: ${results.length} captures, delayed-script CLS, EN/FR, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);
+  console.log(`Browser checks PASS: ${results.length} captures, delayed script/image CLS, EN/FR, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);
 } finally {
   await fs.writeFile(path.join(output, 'results.json'), JSON.stringify({ passed, chrome, results }, null, 2) + '\n');
   if (sourceId && socket?.readyState === WebSocket.OPEN) await call('Page.removeScriptToEvaluateOnNewDocument', { identifier: sourceId });

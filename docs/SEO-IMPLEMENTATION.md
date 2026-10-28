@@ -21,7 +21,8 @@ publication, Search Console submission or Cloudflare policy change is included.
   JSON-LD graph (`WebSite`, `SoftwareSourceCode`, the actual page, and its visible
   breadcrumb). Two original 1200×630 share cards reuse the licensed project mark.
 - All HTML images reserve their actual dimensions, including the existing typed
-  example. General metadata, structured facts, breadcrumb agreement, image
+  example. Preview CSS preserves the declared width rather than overriding it
+  with `width:auto`; this also reserves height while images load slowly. General metadata, structured facts, breadcrumb agreement, image
   dimensions and download/source agreement are checked during the docs build.
 - A complete bilingual sortable table application is available under
   `/guides/table-example/` and `/fr/guides/table-example/`. It uses registry
@@ -47,8 +48,8 @@ Windows/Linux, a physical mobile device, IME or a screen reader.
 | `npm --prefix docs run build` | Pass: 123 components, 246 component references, 262 canonical pages, EN/FR links, sitemap, image provenance and SEO contracts |
 | Standalone copy of `table-consumer`, `cargo test` against crates.io | Pass: builds independently and checks selection, generation rejection, disabled rows and generation exhaustion |
 | Native table, EN/FR × light/dark × 100%/200% text | Eight passing scenarios; actual pointer header sorting at 100%, keyboard header sorting at 200%, Home/End/Enter navigation and selection checked |
-| `npm --prefix docs run check:browser` | Pass: 12 inspected captures, delayed script, keyboard/pointer, no-JS menu, responsive navigation and catalogue filter |
-| Browser initial-load CLS | 0 in all 12 scenarios, including a 1.2-second script delay; intentional text enlargement is a separate visual check |
+| `npm --prefix docs run check:browser` | Pass: 12 inspected captures, delayed script/image, keyboard/pointer, no-JS menu, responsive navigation and catalogue filter |
+| Browser initial-load CLS | 0 in all 12 scenarios, including a 1.2-second script delay and 1.5-second preview delay; intentional text enlargement is a separate visual check |
 | Lighthouse 13.5.0, local Button page, simulated mobile | Performance 100, accessibility 100, SEO 100; lab LCP 1.05 s, CLS 0, TBT 0 ms |
 
 Screenshots and machine-readable results are saved under `docs/.verification/`
@@ -100,3 +101,13 @@ Cloudflare warnings were conditional observations, with no demonstrated block
 of Googlebot. They do not justify weakening the site's protections. `llms.txt`
 and `lastmod` were optional audit notes, not blockers; no speculative policy or
 fabricated modification dates have been added.
+
+## Production follow-up: reserve preview width
+
+The first deployment exposed an additional small image-loading shift (production
+Button CLS 0.089). A controlled 1.5-second image delay reproduced CLS 0.087 with
+`width:auto`; removing that override produced CLS 0 with the same HTML and
+assets. The preview now honors its width attribute and the browser check requires
+CLS below 0.001 with delayed preview images in both languages. This leaves the
+loaded appearance unchanged and covers the cold-network case missed by fast
+local image loading.
