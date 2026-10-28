@@ -6,6 +6,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { scanComponents } from './inventory.mjs';
 import { localeUrl, siteOrigin } from './routes.mjs';
+import { scriptJson } from './metadata.mjs';
 const docs = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(docs, '_site');
 const errors = [];
@@ -125,10 +126,11 @@ function redirectTarget(route) {
 check(redirectTarget('/en')?.destination === '/' && redirectTarget('/en')?.status === '301', 'Old /en homepage must permanently redirect to /');
 const expectedRoutes = new Set();
 for (const locale of ['en', 'fr']) {
-  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
+  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'themes', 'native', 'typed-example', 'table-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
     expectedRoutes.add(localeUrl(key, locale));
   }
 }
+const generalDescriptions = new Set();
 for (const file of htmlFiles) {
   const html = fs.readFileSync(file, 'utf8');
   const route = '/' + path.relative(output, file).replaceAll(path.sep, '/').replace(/index\.html$/, '');
@@ -144,6 +146,44 @@ for (const file of htmlFiles) {
   const other = locale === 'fr' ? 'en' : 'fr';
   check(html.includes(`class="language" href="${localeUrl(key, other)}"`), `${route}: visible language switch must preserve the page`);
   check(!/http-equiv="refresh"/i.test(html), `${route}: content pages must not use a meta redirect`);
+  const pageTitle = decode(html.match(/<title>([^<]+)<\/title>/)?.[1] || '');
+  const description = decode(html.match(/<meta name="description" content="([^"]+)">/)?.[1] || '');
+  check(pageTitle.length > 0 && description.length > 0, `${route}: title and description are required`);
+  if (!/^components\/[^/]+\/$/.test(key)) {
+    check(!generalDescriptions.has(description), `${route}: general pages need distinct descriptions`);
+    generalDescriptions.add(description);
+  }
+  check(html.includes(`<meta property="og:url" content="${origin}${route}">`), `${route}: sharing URL must match canonical`);
+  const shareImage = `${origin}/assets/social/slint-kit-${locale}.png`;
+  check(html.includes(`<meta property="og:image" content="${shareImage}">`) && html.includes(`<meta name="twitter:image" content="${shareImage}">`), `${route}: localized sharing image is required`);
+  check(html.includes('<meta name="twitter:card" content="summary_large_image">'), `${route}: large sharing card is required`);
+  for (const image of html.matchAll(/<img\b[^>]*>/g)) {
+    check(/\balt="[^"]*"/.test(image[0]) && /\bwidth="\d+"/.test(image[0]) && /\bheight="\d+"/.test(image[0]), `${route}: every image needs alt and intrinsic dimensions`);
+    const src = image[0].match(/\bsrc="(\/[^"?#]+\.png)"/)?.[1];
+    if (src && fs.existsSync(path.join(output, src.slice(1)))) {
+      const pixels = fs.readFileSync(path.join(output, src.slice(1)));
+      check(Number(image[0].match(/\bwidth="(\d+)"/)?.[1]) === pixels.readUInt32BE(16) && Number(image[0].match(/\bheight="(\d+)"/)?.[1]) === pixels.readUInt32BE(20), `${route}: declared PNG dimensions must match the actual capture`);
+    }
+  }
+  if (key) {
+    check(/<details class="mobile-nav">/.test(html), `${route}: mobile menu must start closed without JavaScript`);
+    check(html.includes('<nav class="desktop-nav"'), `${route}: desktop navigation must be available without script initialization`);
+  }
+  const jsonBlocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  check(jsonBlocks.length === 1, `${route}: one structured graph is required`);
+  try {
+    const graph = JSON.parse(jsonBlocks[0]?.[1] || 'null')?.['@graph'];
+    const page = graph?.find(item => item['@id'] === `${origin}${route}#webpage`);
+    const source = graph?.find(item => item['@type'] === 'SoftwareSourceCode');
+    check(page?.url === origin + route && page?.inLanguage === locale && page?.name === pageTitle && page?.description === description, `${route}: structured page facts must match visible metadata`);
+    check(source?.codeRepository === 'https://github.com/damione1/slint-kit' && source?.license.endsWith('/LICENSE'), `${route}: source identity must be factual`);
+    if (key) {
+      const crumbs = graph?.find(item => item['@type'] === 'BreadcrumbList')?.itemListElement;
+      check(crumbs?.at(-1)?.item === origin + route && crumbs?.every((crumb, index) => crumb.position === index + 1), `${route}: breadcrumb must end at the actual page with consecutive positions`);
+      const visible = html.match(/<nav class="breadcrumbs"[\s\S]*?<\/nav>/)?.[0] || '';
+      check(crumbs?.every(crumb => visible.includes(crumb.name)), `${route}: structured breadcrumb names must be visible`);
+    }
+  } catch (error) { check(false, `${route}: invalid structured data: ${error.message}`); }
   if (locale === 'en') {
     const legacy = route === '/' ? '/en/' : '/en' + route;
     const redirect = redirectTarget(legacy);
@@ -169,6 +209,34 @@ for (const file of htmlFiles) {
     }
   }
 }
+// Script raw-text serialization must round-trip arbitrary editorial copy
+// without allowing a closing script tag, an HTML entity or a Unicode separator.
+const hostileCopy = { description: '</script><script>alert("&")</script>\u2028\u2029' };
+const serializedCopy = scriptJson(hostileCopy);
+check(!/[<>&\u2028\u2029]/.test(serializedCopy) && JSON.parse(serializedCopy).description === hostileCopy.description, 'JSON-LD must safely preserve raw-text special characters');
+for (const locale of ['en', 'fr']) {
+  const image = fs.readFileSync(path.join(docs, 'src/assets/social', `slint-kit-${locale}.png`));
+  check(image.subarray(0, 8).toString('hex') === '89504e470d0a1a0a' && image.readUInt32BE(16) === 1200 && image.readUInt32BE(20) === 630, `${locale}: sharing image must be a 1200×630 PNG`);
+  const page = fs.readFileSync(path.join(output, localeUrl('guides/table-example/', locale), 'index.html'), 'utf8');
+  const blocks = [...page.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/table.slint', 'src/main.rs']) {
+    const source = fs.readFileSync(path.join(docs, 'table-consumer', file), 'utf8');
+    check(blocks.includes(source.trim()), `${locale}: table guide must show the complete ${file}`);
+    check(fs.readFileSync(path.join(output, 'table-consumer', file), 'utf8') === source, `${locale}: table download must match displayed source: ${file}`);
+  }
+}
+const tableProvenance = JSON.parse(fs.readFileSync(path.join(docs, 'content/table-captures.json'), 'utf8'));
+check(tableProvenance.backend === 'winit' && tableProvenance.renderer === 'skia', 'Table captures must use the documented native backend');
+for (const file of ['Cargo.toml', 'build.rs', 'ui/table.slint', 'src/main.rs']) {
+  check(tableProvenance.sources[file] === sha(fs.readFileSync(path.join(docs, 'table-consumer', file))), `Table consumer changed: recapture native example after ${file}`);
+}
+for (const locale of ['en', 'fr']) {
+  const capture = tableProvenance.captures[locale];
+  const image = fs.readFileSync(path.join(docs, 'src/assets/components', capture.file));
+  check(capture.sha256 === sha(image) && capture.width === image.readUInt32BE(16) && capture.height === image.readUInt32BE(20), `${locale}: table screenshot must match its provenance`);
+}
+const tableManifest = fs.readFileSync(path.join(docs, 'table-consumer/Cargo.toml'), 'utf8');
+check(!/\bpath\s*=|\bworkspace\s*=|\b(?:version|edition|license|rust-version)\.workspace\s*=/.test(tableManifest), 'Public table consumer must resolve registry dependencies without workspace inheritance');
 check(expectedRoutes.size === 0, `Missing documentation routes: ${[...expectedRoutes].join(', ')}`);
 for (const locale of ['en', 'fr']) {
   const page = path.join(output, localeUrl('guides/typed-example/', locale), 'index.html');
@@ -227,6 +295,6 @@ check(/^User-agent:\s*\*\s*$/m.test(robots) && /^Allow:\s*\/\s*$/m.test(robots),
 check(!/^Disallow:\s*\S/m.test(robots), 'Public documentation must not be blocked in robots.txt');
 check(robots.split('\n').filter(line => line.startsWith('Sitemap:')).join('\n') === `Sitemap: ${origin}/sitemap.xml`, 'Robots must reference the sitemap at the configured public origin');
 
-check(htmlFiles.length === components.length * 2 + 14, 'Incomplete or duplicated site output');
+check(htmlFiles.length === components.length * 2 + 16, 'Incomplete or duplicated site output');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
 else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);

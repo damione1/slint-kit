@@ -47,3 +47,8 @@ Use `DecimalValue`, `Money`, `CurrencyMetadata` and explicit `NumberLocale`, `De
 ## Overlays and feedback
 
 Keep `FocusRegistry` and the exact opener in the host controller. Dialog and drawer primitives present focus requests; register real focus targets and restore the opener on close. A tooltip needs one window-level [KitTooltipLayer](/components/tooltip-layer/), mounted after the content. `ToastQueue` owns toast lifetimes; pointer and focus pauses use distinct `ToastPause` sources so overlapping interactions do not resume a toast prematurely.
+
+
+## Tables and row identity
+
+The [complete sortable table application](/guides/table-example/) demonstrates selection surviving sorting, keyboard navigation and rejection of events from an older generation.

@@ -1,9 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-const navigation = document.querySelector('.mobile-nav');
-const mobile = window.matchMedia('(max-width: 720px)');
-function adaptNavigation() { if (navigation) navigation.open = !mobile.matches; }
-adaptNavigation();
-mobile.addEventListener('change', adaptNavigation);
 const input = document.querySelector('#component-filter');
 if (input) {
   const items = [...document.querySelectorAll('.catalogue-item')];

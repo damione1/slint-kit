@@ -26,6 +26,8 @@ eleventyComputed:
 
 {{ text.behavior | prose | safe }}
 
+{% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
+
 <p class="source-link"><a href="{{ site.repository }}/blob/main/{{ component.source }}#L{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
 
 ## {{ ui[locale].example }}

@@ -4,8 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{{ title }} · Slint Kit</title>
-  <meta name="description" content="{% if entry %}{{ entry.component[locale].summary }}{% elif locale == 'fr' %}Composants natifs Rust et Slint : exemples, API et captures.{% else %}Native Rust and Slint components: examples, API and screenshots.{% endif %}">
+  <title>{{ seo.title }}</title>
+  <meta name="description" content="{{ seo.description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Slint Kit">
+  <meta property="og:title" content="{{ seo.title }}">
+  <meta property="og:description" content="{{ seo.description }}">
+  <meta property="og:url" content="{{ seo.url }}">
+  <meta property="og:locale" content="{{ seo.locale }}">
+  <meta property="og:locale:alternate" content="{{ seo.alternateLocale }}">
+  <meta property="og:image" content="{{ seo.image }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ seo.imageAlt }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ seo.title }}">
+  <meta name="twitter:description" content="{{ seo.description }}">
+  <meta name="twitter:image" content="{{ seo.image }}">
+  <meta name="twitter:image:alt" content="{{ seo.imageAlt }}">
+  <script type="application/ld+json">{{ seo | structuredData(site, locale) | scriptJson | safe }}</script>
   <link rel="icon" href="/assets/branding/slint-kit-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/site.css">
   {% if site.url %}<link rel="canonical" href="{{ site.url }}{{ page.url }}">{% endif %}
@@ -30,27 +47,20 @@
 <div class="page-shell{% if home %} home-shell{% endif %}">
 {% if not home %}
 <aside class="sidebar">
-  <details class="mobile-nav" open>
+  <nav class="desktop-nav" aria-label="{{ ui[locale].documentation }}">
+  {% include "navigation.njk" %}
+  </nav>
+  <details class="mobile-nav">
   <summary>{{ ui[locale].documentation }}</summary>
   <nav aria-label="{{ ui[locale].documentation }}">
-    <p class="nav-heading">{{ ui[locale].guides }}</p>
-    {% for key, label in { 'getting-started': ui[locale].start, 'controllers': ui[locale].controllers, 'themes': ui[locale].themes, 'native': ui[locale].native } %}
-    <a href="{{ ('guides/' + key + '/') | localeUrl(locale) }}"{% if translationKey == 'guides/' + key + '/' %} aria-current="page"{% endif %}>{{ label }}</a>
-    {% endfor %}
-    <p class="nav-heading">{{ ui[locale].components }} <span>{{ components.length }}</span></p>
-    <a href="{{ 'components/' | localeUrl(locale) }}">{{ ui[locale].catalogue }}</a>
-    {% for family, label in ui.families %}
-    {% set members = components | whereFamily(family) %}
-    <details class="family"{% if entry and entry.component.family == family %} open{% endif %}>
-      <summary>{{ label[locale] }} <span>{{ members.length }}</span></summary>
-      {% for component in members %}<a href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
-    </details>
-    {% endfor %}
+  {% include "navigation.njk" %}
   </nav>
   </details>
 </aside>
 {% endif %}
-<main id="main" tabindex="-1" class="{% if home %}homepage{% else %}article{% endif %}">{{ content | safe }}</main>
+<main id="main" tabindex="-1" class="{% if home %}homepage{% else %}article{% endif %}">
+{% if seo.breadcrumbs.length %}<nav class="breadcrumbs" aria-label="{% if locale == 'fr' %}Fil d’Ariane{% else %}Breadcrumb{% endif %}"><ol>{% for crumb in seo.breadcrumbs %}<li>{% if loop.last %}<span aria-current="page">{{ crumb.name }}</span>{% else %}<a href="{{ crumb.url }}">{{ crumb.name }}</a>{% endif %}</li>{% endfor %}</ol></nav>{% endif %}
+{{ content | safe }}</main>
 </div>
 <footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a></footer>
 </body>

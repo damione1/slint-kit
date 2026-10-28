@@ -890,13 +890,13 @@
   "KitHero": {
     "fr": {
       "summary": "Bloc d’introduction visuelle avec titre, description et contenu libre.",
-      "usage": "Définissez `title`, `description`, puis ajoutez une action ou un contenu complémentaire comme enfants. Réglez `inset` et `gap` avec `LayoutSpace`.",
-      "behavior": "Le titre utilise une typographie plus grande et les textes reviennent à la ligne. Le fond et les coins arrondis appartiennent au composant, qui garde une hauteur naturelle."
+      "usage": "Définissez `title`, `description`, puis ajoutez une action ou un contenu complémentaire comme enfants. Réglez `inset` et `gap` avec `LayoutSpace`.\n\nPlacez ce bloc au début d’un écran pour présenter une tâche et son action principale. Pour regrouper des contrôles de façon compacte, préférez `KitCard` ; le hero ne pilote ni navigation ni état d’action.",
+      "behavior": "Le titre utilise une typographie plus grande et les textes reviennent à la ligne. Le fond et les coins arrondis appartiennent au composant, qui garde une hauteur naturelle.\n\nLaissez le titre revenir à la ligne et la hauteur naturelle augmenter avec la taille du texte. Les actions restent de vrais contrôles enfants, avec leur focus et leurs signaux."
     },
     "en": {
       "summary": "Prominent introduction block with heading, description and free content.",
-      "usage": "Set `title` and `description`, then add an action or supporting content as children. Adjust `inset` and `gap` with `LayoutSpace`.",
-      "behavior": "The heading uses larger typography and text wraps. The component owns its background and rounded corners while retaining natural height."
+      "usage": "Set `title` and `description`, then add an action or supporting content as children. Adjust `inset` and `gap` with `LayoutSpace`.\n\nUse this block at the start of a screen to introduce one task and its primary action. For a compact group of related controls, choose `KitCard` instead; the hero does not own navigation or action state.",
+      "behavior": "The heading uses larger typography and text wraps. The component owns its background and rounded corners while retaining natural height.\n\nKeep the enclosing layout wide enough for the heading and allow the natural height to grow at larger text sizes. Actions remain real child controls with their own focus and callbacks."
     }
   },
   "KitIcon": {
@@ -1498,8 +1498,8 @@
   "KitSegmentedControl": {
     "fr": {
       "summary": "Choix exclusif compact présenté sous forme de segments.",
-      "usage": "Fournissez les `ChoiceRow`, `generation` et `active-token` du contrôleur. Relayez `navigate` et `activate` et choisissez `ChoiceFlow.left-to-right` ou `.right-to-left` pour la navigation.",
-      "behavior": "Les segments sélectionnés utilisent l’intention principale et exposent un rôle radio. Le focus commun et la sélection contrôlée restent distincts ; les libellés peuvent revenir à la ligne.",
+      "usage": "Fournissez les `ChoiceRow`, `generation` et `active-token` du contrôleur. Relayez `navigate` et `activate` et choisissez `ChoiceFlow.left-to-right` ou `.right-to-left` pour la navigation.\n\nUtilisez ces segments pour quelques choix exclusifs immédiatement visibles, par exemple la période d’un graphique. Pour une liste longue ou des libellés volumineux, préférez `KitSelect` ou `KitRadioGroup`.",
+      "behavior": "Les segments sélectionnés utilisent l’intention principale et exposent un rôle radio. Le focus commun et la sélection contrôlée restent distincts ; les libellés peuvent revenir à la ligne.\n\nLa touche de direction demande un déplacement de focus ; elle ne remplace pas la décision métier. Lors d’une activation, retrouvez l’option par son jeton et vérifiez la génération avant de publier le nouvel état sélectionné.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -1508,8 +1508,8 @@
     },
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
-      "usage": "Supply the controller’s `ChoiceRow` values, `generation` and `active-token`. Forward `navigate` and `activate`, and choose `ChoiceFlow.left-to-right` or `.right-to-left` for navigation.",
-      "behavior": "Selected segments use primary intent and expose a radio role. Shared focus and controlled selection remain distinct; labels can wrap.",
+      "usage": "Supply the controller’s `ChoiceRow` values, `generation` and `active-token`. Forward `navigate` and `activate`, and choose `ChoiceFlow.left-to-right` or `.right-to-left` for navigation.\n\nUse segments for a few immediately visible exclusive choices, such as a chart period. Prefer `KitSelect` or `KitRadioGroup` for long lists or large labels.",
+      "behavior": "Selected segments use primary intent and expose a radio role. Shared focus and controlled selection remain distinct; labels can wrap.\n\nDirection keys request focus movement rather than a domain decision. On activation, resolve the option by token and check its generation before publishing the accepted selection.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -1972,16 +1972,16 @@
   "KitUrlField": {
     "fr": {
       "summary": "Champ natif destiné à une adresse URL.",
-      "usage": "Liez `text` au brouillon et faites analyser l’URL par votre contrôleur lors de la validation. Affichez les erreurs via `validation` et `error`.",
-      "behavior": "Il préconfigure `TextPurpose.url` tout en conservant l’éditeur texte natif. Il n’ajoute pas de protocole et ne déclenche aucune navigation.",
+      "usage": "Liez `text` au brouillon et faites analyser l’URL par votre contrôleur lors de la validation. Affichez les erreurs via `validation` et `error`.\n\nSéparez l’édition d’une adresse et son utilisation. Une URL incomplète doit rester éditable ; le contrôleur peut exiger un schéma et un hôte au moment de l’acceptation, selon le besoin de l’application.",
+      "behavior": "Il préconfigure `TextPurpose.url` tout en conservant l’éditeur texte natif. Il n’ajoute pas de protocole et ne déclenche aucune navigation.\n\nUne URL syntaxiquement valide n’est pas une autorisation d’accès. L’ouverture dans un navigateur, les schémas permis et les requêtes réseau appartiennent à l’hôte. Ne remplacez pas le texte à chaque frappe : laissez l’éditeur préserver sélection, annulation et IME.",
       "related": [
         "KitTextField"
       ]
     },
     "en": {
       "summary": "Native field intended for a URL.",
-      "usage": "Bind `text` to the draft and have your controller parse the URL when validating. Show errors through `validation` and `error`.",
-      "behavior": "It presets `TextPurpose.url` while retaining the native text editor. It adds no protocol and does not initiate navigation.",
+      "usage": "Bind `text` to the draft and have your controller parse the URL when validating. Show errors through `validation` and `error`.\n\nSeparate editing an address from using it. An incomplete URL must remain editable; the controller can require a scheme and host when accepting it, according to the application’s needs.",
+      "behavior": "It presets `TextPurpose.url` while retaining the native text editor. It adds no protocol and does not initiate navigation.\n\nA syntactically valid URL is not access authorization. Opening a browser, allowed schemes and network requests belong to the host. Do not replace the text on every keystroke: let the native editor preserve selection, undo and IME.",
       "related": [
         "KitTextField"
       ]
@@ -2048,13 +2048,13 @@
   "KitZonedDateTimeField": {
     "fr": {
       "summary": "Saisie de date, heure locale et fuseau avec résolution explicite des ambiguïtés.",
-      "usage": "Liez les trois textes et traitez `resolve-requested(ZonedDateTimeDraft)` avec un résolveur de fuseau IANA. Projetez `resolution` et `resolution-message`, puis traitez `ambiguity-chosen` si nécessaire.",
-      "behavior": "`ZonedTimePresentation` distingue `unresolved`, `unique`, `ambiguous`, `nonexistent` et `invalid-zone`. Une ambiguïté propose `AmbiguousTimeChoice.earlier` ou `.later` ; aucune occurrence n’est choisie silencieusement."
+      "usage": "Liez les trois textes et traitez `resolve-requested(ZonedDateTimeDraft)` avec un résolveur de fuseau IANA. Projetez `resolution` et `resolution-message`, puis traitez `ambiguity-chosen` si nécessaire.\n\nUtilisez ce champ pour un rendez-vous local dans un fuseau nommé. Un décalage UTC fixe ne remplace pas un fuseau IANA : les changements d’heure peuvent rendre une heure locale ambiguë ou inexistante.",
+      "behavior": "`ZonedTimePresentation` distingue `unresolved`, `unique`, `ambiguous`, `nonexistent` et `invalid-zone`. Une ambiguïté propose `AmbiguousTimeChoice.earlier` ou `.later` ; aucune occurrence n’est choisie silencieusement.\n\nConservez le brouillon jusqu’à sa résolution par l’hôte. En cas d’ambiguïté, présentez les deux occurrences et acceptez le choix explicite ; pour une heure inexistante, expliquez l’échec et demandez une autre heure locale. Ne déplacez pas le rendez-vous silencieusement."
     },
     "en": {
       "summary": "Date, local-time and zone input with explicit ambiguity resolution.",
-      "usage": "Bind all three texts and handle `resolve-requested(ZonedDateTimeDraft)` with an IANA zone resolver. Project `resolution` and `resolution-message`, then handle `ambiguity-chosen` when required.",
-      "behavior": "`ZonedTimePresentation` distinguishes `unresolved`, `unique`, `ambiguous`, `nonexistent` and `invalid-zone`. Ambiguity offers `AmbiguousTimeChoice.earlier` or `.later`; no occurrence is silently chosen."
+      "usage": "Bind all three texts and handle `resolve-requested(ZonedDateTimeDraft)` with an IANA zone resolver. Project `resolution` and `resolution-message`, then handle `ambiguity-chosen` when required.\n\nUse this field when a user specifies a local appointment in a named time zone. A fixed UTC offset is not a substitute for an IANA zone: transition rules can make a local time ambiguous or nonexistent.",
+      "behavior": "`ZonedTimePresentation` distinguishes `unresolved`, `unique`, `ambiguous`, `nonexistent` and `invalid-zone`. Ambiguity offers `AmbiguousTimeChoice.earlier` or `.later`; no occurrence is silently chosen.\n\nKeep the user’s draft until the host resolves it. When the result is ambiguous, show the two occurrences and accept the explicit choice; for a nonexistent time, explain the failure and ask for a revised local time. Do not silently shift the appointment."
     }
   }
 }

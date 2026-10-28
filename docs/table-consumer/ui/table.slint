@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDataTable, KitTheme, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit/kit.slint";
+export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep }
+export enum TableLanguage { english, french }
+export enum TableAppearance { light, dark }
+
+export component TableApp inherits Window {
+    in property <TableLanguage> language: TableLanguage.english;
+    in property <TableAppearance> appearance: TableAppearance.light;
+    private property <bool> french: root.language == TableLanguage.french;
+    in-out property <KitTheme> theme: root.appearance == TableAppearance.dark ? KitThemes.dark : KitThemes.light;
+    title: root.french ? "Tableau Slint Kit" : "Slint Kit table";
+    preferred-width: 720px;
+    preferred-height: 460px;
+    background: root.theme.canvas;
+    in property <[TableRow]> rows;
+    in property <[TableColumn]> columns;
+    in property <int> generation;
+    in property <int> active-index: -1;
+    in property <string> selection-label;
+    callback activate(int, int);
+    callback navigate(NavigationStep);
+    callback sort-requested(int);
+    public function focus-table() { table.take-focus(); }
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        Text { text: root.french ? "Projets" : "Projects"; color: root.theme.text-primary; font-size: 24px * root.theme.text-scale; font-weight: 600; }
+        Text { text: root.french ? "Triez les colonnes. Sélectionnez une ligne au clavier ou à la souris." : "Sort the columns. Select a row with the keyboard or pointer."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+        table := KitDataTable {
+            theme: root.theme;
+            rows: root.rows;
+            columns: root.columns;
+            generation: root.generation;
+            active-index: root.active-index;
+            label: root.french ? "Projets" : "Projects";
+            activate(token, generation) => { root.activate(token, generation); }
+            navigate(step) => { root.navigate(step); }
+            sort-requested(token) => { root.sort-requested(token); }
+        }
+        Text { text: root.selection-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

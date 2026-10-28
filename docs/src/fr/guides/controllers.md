@@ -47,3 +47,8 @@ Utilisez `DecimalValue`, `Money`, `CurrencyMetadata` et des règles explicites `
 ## Surfaces modales et retour utilisateur
 
 Gardez `FocusRegistry` et l’ouvreur exact dans le contrôleur hôte. Les primitives de dialogue et de tiroir présentent les demandes de focus ; enregistrez les vraies cibles et restaurez l’ouvreur à la fermeture. Une infobulle utilise une [KitTooltipLayer](/fr/components/tooltip-layer/) par fenêtre, montée après le contenu. `ToastQueue` gère les durées des toasts ; les pauses de pointeur et de focus utilisent des sources `ToastPause` distinctes pour préserver les interactions superposées.
+
+
+## Tableau et identité des lignes
+
+L’[application complète de tableau triable](/fr/guides/table-example/) montre une sélection qui survit au tri, la navigation clavier et le rejet des événements d’une ancienne génération.

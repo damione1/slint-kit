@@ -1,0 +1,13 @@
+<p class="nav-heading">{{ ui[locale].guides }}</p>
+{% for key, label in { 'getting-started': ui[locale].start, 'controllers': ui[locale].controllers, 'themes': ui[locale].themes, 'native': ui[locale].native, 'table-example': ui[locale].tableExample } %}
+<a href="{{ ('guides/' + key + '/') | localeUrl(locale) }}"{% if translationKey == 'guides/' + key + '/' %} aria-current="page"{% endif %}>{{ label }}</a>
+{% endfor %}
+<p class="nav-heading">{{ ui[locale].components }} <span>{{ components.length }}</span></p>
+<a href="{{ 'components/' | localeUrl(locale) }}">{{ ui[locale].catalogue }}</a>
+{% for family, label in ui.families %}
+{% set members = components | whereFamily(family) %}
+<details class="family"{% if entry and entry.component.family == family %} open{% endif %}>
+  <summary>{{ label[locale] }} <span>{{ members.length }}</span></summary>
+  {% for component in members %}<a href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}"{% if entry and entry.component.name == component.name %} aria-current="page"{% endif %}>{{ component.name }}</a>{% endfor %}
+</details>
+{% endfor %}
