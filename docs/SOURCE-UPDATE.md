@@ -1,14 +1,17 @@
 # Documentation update for the integrated source
 
+Historical verification for `78bbf70`, before the 0.2.0 publication. See
+[release and Retina verification](RELEASE-0.2.0.md) for the subsequent release.
+
 Published baseline: `bcbe17672fb40f6f8b85290416c1fcef2e3e1f05`.
 Local source tip: `ca2a5e3fbe25e29f40a04a93cb622e4e7f7482a5`.
 Integrated and tested Rust source: `ec301c9` (merge of those two histories).
 Kit UI SHA-256: `55a8571405d3f3a186a6abb14d9c59d4be80e8245aeeba5a971f4afba17171b4`.
 
 The update preserves the 12 original local commits and the two published SEO
-commits. Work was performed in the worktree based on `origin/main`. The website
-now explains source compatibility explicitly: the new APIs are on `main`,
-while crates.io remains at 0.1.0. No registry release is implied by this update.
+commits. Work was performed in the worktree based on `origin/main`. At that revision, the website
+explained source compatibility explicitly: the new APIs were on `main`,
+while crates.io was at 0.1.0. That documentation update did not publish a registry release.
 
 ## Commit coverage
 

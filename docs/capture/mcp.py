@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import socket
 import subprocess
+import struct
 import time
 import urllib.error
 import urllib.request
@@ -41,7 +42,7 @@ def value(port, name, **arguments):
                            if block['type'] == 'text'))
 
 
-def capture(binary, slug, locale, suffix, interaction=None):
+def capture(binary, slug, locale, suffix, interaction=None, pixel_density=1):
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
@@ -50,7 +51,11 @@ def capture(binary, slug, locale, suffix, interaction=None):
         args.append('--dark')
     if '-text-200' in suffix:
         args.append('--text-200')
-    env = {**os.environ, 'SLINT_MCP_PORT': str(port), 'SLINT_SCALE_FACTOR': '1',
+    if pixel_density == 2:
+        baseline = ASSETS / f'{slug}{"-fr" if locale == "fr" else ""}{suffix}.png'
+        width, height = struct.unpack('>II', baseline.read_bytes()[16:24])
+        args += ['--size', f'{width}x{height}']
+    env = {**os.environ, 'SLINT_MCP_PORT': str(port), 'SLINT_SCALE_FACTOR': str(pixel_density),
            'SLINT_EMIT_DEBUG_INFO': '1'}
     with subprocess.Popen(args, cwd=ROOT, env=env, stdout=subprocess.DEVNULL,
                           stderr=subprocess.PIPE) as process:
@@ -70,6 +75,9 @@ def capture(binary, slug, locale, suffix, interaction=None):
                     raise TimeoutError(f'MCP did not start: {slug}/{locale}')
                 time.sleep(0.1)
             time.sleep(0.3)
+            properties = value(port, 'get_window_properties', windowHandle=window)
+            if properties['scaleFactor'] != pixel_density:
+                raise RuntimeError(f'Expected native scale factor {pixel_density}: {properties}')
             if interaction:
                 properties = value(port, 'get_window_properties', windowHandle=window)
                 root = properties['rootElementHandle']
@@ -86,7 +94,7 @@ def capture(binary, slug, locale, suffix, interaction=None):
                     raise RuntimeError(f'{interaction} did not activate {slug}/{locale}')
             blocks = call(port, 'take_screenshot', windowHandle=window)
             image = next(block for block in blocks if block['type'] == 'image')
-            output = ASSETS / f'{slug}{"-fr" if locale == "fr" else ""}{suffix}.png'
+            output = ASSETS / f'{slug}{"-fr" if locale == "fr" else ""}{suffix}{"@2x" if pixel_density == 2 else ""}.png'
             output.write_bytes(base64.b64decode(image['data'], validate=True))
             print(f'MCP {output.name}' + (f' ({interaction} verified)' if interaction else ''), flush=True)
         finally:
@@ -104,6 +112,7 @@ def main():
     parser.add_argument('--binary', required=True, type=Path)
     parser.add_argument('--locale', choices=['en', 'fr', 'both'], default='both')
     parser.add_argument('--existing-variants', action='store_true')
+    parser.add_argument('--pixel-density', type=int, choices=[1, 2], default=1)
     parser.add_argument('--exercise', action='store_true', help='Fresh Button runs: pointer, then Tab/Space')
     args = parser.parse_args()
     binary = args.binary.resolve(strict=True)
@@ -117,11 +126,11 @@ def main():
                 suffixes += [s for s in ['-dark', '-text-200', '-dark-text-200']
                              if (ASSETS / f'{slug}{"-fr" if locale == "fr" else ""}{s}.png').exists()]
             for suffix in suffixes:
-                capture(binary, slug, locale, suffix)
+                capture(binary, slug, locale, suffix, pixel_density=args.pixel_density)
         if args.exercise:
             # Separate processes ensure a stale status cannot satisfy either check.
-            capture(binary, 'button', locale, '-interaction', 'pointer')
-            capture(binary, 'button', locale, '-interaction', 'keyboard')
+            capture(binary, 'button', locale, '-interaction', 'pointer', args.pixel_density)
+            capture(binary, 'button', locale, '-interaction', 'keyboard', args.pixel_density)
 
 
 if __name__ == '__main__':

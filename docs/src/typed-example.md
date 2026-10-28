@@ -29,7 +29,7 @@ cargo new slint-kit-typed-example
 cd slint-kit-typed-example
 ```
 
-<figure class="component-preview"><img src="/assets/components/typed-integration{% if locale == "fr" %}-fr{% endif %}.png" alt="{% if locale == 'fr' %}Fenêtre native Project settings avec un nom de projet et une sélection Workspace{% else %}Native Project settings window with a project name and Workspace selection{% endif %}" width="{{ typedCaptures[locale].width }}" height="{{ typedCaptures[locale].height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+<figure class="component-preview"><img src="/assets/components/typed-integration{% if locale == "fr" %}-fr{% endif %}.png" srcset="/assets/components/{{ typedCaptures[locale].retinaFilename }} 2x" alt="{% if locale == 'fr' %}Fenêtre native Project settings avec un nom de projet et une sélection Workspace{% else %}Native Project settings window with a project name and Workspace selection{% endif %}" width="{{ typedCaptures[locale].width }}" height="{{ typedCaptures[locale].height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
 
 {% if locale == 'fr' %}
 ## Cargo.toml

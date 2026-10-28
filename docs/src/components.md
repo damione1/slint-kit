@@ -20,9 +20,9 @@ eleventyComputed:
 
 {{ text.summary }}
 
-{% if locale == 'fr' %}Cette référence et ses captures suivent la branche `main`. Les nouveaux libellés et contrats de focus ne font pas encore partie de la version crates.io 0.1.0. Consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/) avant de reprendre un exemple.{% else %}This reference and its screenshots follow `main`. The new label and focus contracts are not yet included in crates.io 0.1.0. Check [source updates and compatibility](/guides/source-updates/) before using an example.{% endif %}
+{% if locale == 'fr' %}Référence et exemples pour **Slint Kit 0.2.0**, disponible sur crates.io. Consultez les [nouveautés et la migration depuis 0.1](/fr/guides/source-updates/).{% else %}Reference and examples for **Slint Kit 0.2.0**, available on crates.io. See [updates and migration from 0.1](/guides/source-updates/).{% endif %}
 
-<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
 
 {{ text.usage | prose | safe }}
 

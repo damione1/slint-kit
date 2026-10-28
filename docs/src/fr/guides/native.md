@@ -11,7 +11,7 @@ permalink: "{{ 'guides/native/' | localeUrl(locale) }}index.html"
 Activez explicitement les services du système. Le domaine du cœur et les composants visuels de fichiers ne nécessitent pas de dépendance de sélecteur natif. Ajoutez la fonctionnalité `native` dans l’application qui en a besoin :
 
 ```toml
-slint-kit = { version = "0.1", features = ["native"] }
+slint-kit = { version = "0.2", features = ["native"] }
 ```
 
 ## Requêtes et résultats

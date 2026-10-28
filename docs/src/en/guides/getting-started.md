@@ -8,7 +8,7 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Getting started
 
-The reference follows `main`. For new localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). These additions require sources after crates.io 0.1.0.
+This reference documents Slint Kit 0.2.0. For localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). Upgrade both kit dependencies to `"0.2"` when moving from 0.1.
 
 Install Slint Kit from crates.io with **Rust 1.92+** and **Slint 1.18.1**. No toolkit checkout is required.
 
@@ -26,11 +26,11 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-slint-kit = "0.1"
+slint-kit = "0.2"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.1"
+slint-kit-build = "0.2"
 ```
 
 Create `build.rs` at the application root. `slint-kit-build` registers the `@kit` library and verifies the generated shared contracts before compiling the UI.

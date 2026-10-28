@@ -31,11 +31,19 @@ loopback port per process and writes the actual MCP screenshot bytes:
 
 ```sh
 python3 docs/capture/mcp.py --binary target/debug/kit-docs-capture --existing-variants --exercise
+# Render Retina pixels natively, using the existing logical 1x viewports:
+python3 docs/capture/mcp.py --binary target/debug/kit-docs-capture --pixel-density 2
 # Or capture selected components:
 python3 docs/capture/mcp.py calendar date-picker --binary target/debug/kit-docs-capture
 python3 docs/capture/provenance.py --method mcp
 npm --prefix docs run build
 ```
+
+`--pixel-density 2` sets the native scale factor to 2 and requests the same
+logical window size as each 1x baseline. It saves `@2x.png` files for the
+website’s `srcset`; width/height attributes continue using the 1x dimensions.
+The docs build rejects a 2x image with a different logical viewport. This is a
+fresh native render, with text rasterized at the target density.
 
 `--existing-variants` renews existing dark, 200% text and dark/200% files as well
 as the baseline. `--exercise` verifies Button pointer and Tab/Space activation

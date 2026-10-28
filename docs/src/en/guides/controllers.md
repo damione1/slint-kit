@@ -8,7 +8,7 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Typed controllers
 
-The reference follows `main`. For new localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). These additions require sources after crates.io 0.1.0.
+This reference documents Slint Kit 0.2.0. For localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). Upgrade both kit dependencies to `"0.2"` when moving from 0.1.
 
 Keep the accepted value in Rust and project its presentation into Slint. The `slint_kit` facade reexports core values and weak-window adapters. A view token is only valid within its model generation; it is never the application's stable identity.
 

@@ -8,7 +8,7 @@ permalink: "{{ 'guides/themes/' | localeUrl(locale) }}index.html"
 
 # Thèmes et accessibilité
 
-La référence suit `main`. Pour les nouveaux libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Ces ajouts nécessitent les sources après crates.io 0.1.0.
+Cette référence documente Slint Kit 0.2.0. Pour les libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Passez les deux dépendances du kit à `"0.2"` pour migrer depuis 0.1.
 
 Un thème est une valeur `KitTheme`. Transmettez-la à chaque composant composé ; les valeurs publiques par défaut sont `KitThemes.light` et `KitThemes.dark`. Utilisez le même thème pour le fond et le texte de la fenêtre.
 

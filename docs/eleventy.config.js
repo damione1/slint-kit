@@ -46,12 +46,12 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData('typedCaptures', () => Object.fromEntries(['en', 'fr'].map(locale => {
     const filename = `typed-integration${locale === 'fr' ? '-fr' : ''}.png`;
     const image = fs.readFileSync(path.join('src/assets/components', filename));
-    return [locale, { filename, width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
+    return [locale, { filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
   })));
   eleventyConfig.addGlobalData('tableCaptures', () => Object.fromEntries(['en', 'fr'].map(locale => {
     const filename = `table-integration${locale === 'fr' ? '-fr' : ''}.png`;
     const image = fs.readFileSync(path.join('src/assets/components', filename));
-    return [locale, { filename, width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
+    return [locale, { filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
   })));
   eleventyConfig.addFilter('prose', text => markdown.render(text || ''));
   eleventyConfig.addFilter('componentByName', name => inventory.find(c => c.name === name));

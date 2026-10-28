@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures all 123 examples; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter capture: python3 docs/capture/provenance.py"
+            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures all 123 examples; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter capture: python3 docs/capture/provenance.py"
         );
         return Ok(());
     }
@@ -76,6 +76,20 @@ fn main() -> Result<()> {
     let enlarged = args.iter().any(|a| a == "--text-200");
     let exercise = args.iter().any(|a| a == "--exercise");
     let show = args.iter().any(|a| a == "--show");
+    let size = if let Some(index) = args.iter().position(|arg| arg == "--size") {
+        let value = args.get(index + 1).ok_or("--size requires WIDTHxHEIGHT")?;
+        let (width, height) = value
+            .split_once('x')
+            .ok_or("--size requires WIDTHxHEIGHT")?;
+        let width: u16 = width.parse()?;
+        let height: u16 = height.parse()?;
+        if width == 0 || height == 0 {
+            return Err("--size requires positive dimensions".into());
+        }
+        Some(slint::LogicalSize::new(f32::from(width), f32::from(height)))
+    } else {
+        None
+    };
     let locale = if let Some(index) = args.iter().position(|arg| arg == "--locale") {
         match args.get(index + 1).map(String::as_str) {
             Some("en") => ExampleLocale::English,
@@ -93,7 +107,8 @@ fn main() -> Result<()> {
         .iter()
         .enumerate()
         .filter(|(index, arg)| {
-            !arg.starts_with("--") && (*index == 0 || args[*index - 1] != "--locale")
+            !arg.starts_with("--")
+                && (*index == 0 || !matches!(args[*index - 1].as_str(), "--locale" | "--size"))
         })
         .map(|(_, arg)| arg)
         .collect();
@@ -134,6 +149,9 @@ fn main() -> Result<()> {
             if exercise {
                 command.arg("--exercise");
             }
+            if let Some(index) = args.iter().position(|arg| arg == "--size") {
+                command.args(["--size", &args[index + 1]]);
+            }
             if !command.status()?.success() {
                 return Err(format!("Capture failed: {}", path.display()).into());
             }
@@ -154,10 +172,8 @@ fn main() -> Result<()> {
         }
         instance.set_property("theme", Value::Struct(theme))?;
     }
-    if enlarged {
-        instance
-            .window()
-            .set_size(slint::LogicalSize::new(1000., 1000.));
+    if let Some(size) = size.or_else(|| enlarged.then(|| slint::LogicalSize::new(1000., 1000.))) {
+        instance.window().set_size(size);
     }
     if show {
         return Ok(instance.run()?);

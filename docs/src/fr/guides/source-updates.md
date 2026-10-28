@@ -8,26 +8,22 @@ permalink: "{{ 'guides/source-updates/' | localeUrl(locale) }}index.html"
 
 # Mises à jour du kit
 
-La référence des composants, les exemples Slint téléchargeables et les captures natives suivent la branche `main` du dépôt. Les ajouts ci-dessous sont des **changements des sources après la version crates.io 0.1.0**. Le numéro du paquet reste 0.1.0 jusqu’à une nouvelle publication. L’[application de démarrage](/fr/guides/getting-started/), l’[application typée](/fr/guides/typed-example/) et le [tableau triable](/fr/guides/table-example/) conservent des dépendances compatibles avec le registre.
+Slint Kit **0.2.0** est disponible sur crates.io. La référence des composants, les exemples Slint téléchargeables et les captures natives documentent cette version. Les libellés traduisibles, le focus composé et le parcours natif des modales sont inclus dans les paquets publiés ; un checkout des sources est facultatif.
 
-## Utiliser les sources actuelles
+## Migrer depuis 0.1
 
-Clonez le dépôt à côté de votre application, puis remplacez les deux dépendances du kit par des chemins correspondants. Gardez Slint en version exacte 1.18.1 et Rust 1.92 ou ultérieur.
-
-```sh
-git clone https://github.com/damione1/slint-kit.git
-```
+Mettez les deux dépendances du kit à jour ensemble. La plage Cargo `"0.1"` ne sélectionne pas 0.2, car les versions mineures avant 1.0 ont des plages de compatibilité distinctes. Gardez Slint en version exacte 1.18.1 et Rust 1.92 ou ultérieur.
 
 ```toml
 [dependencies]
-slint-kit = { path = "../slint-kit/crates/kit" }
+slint-kit = "0.2"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = { path = "../slint-kit/crates/kit-build" }
+slint-kit-build = "0.2"
 ```
 
-Adaptez les chemins à vos dossiers ; conservez le [même build.rs et le point d’entrée](/fr/guides/getting-started/). Notez `git -C ../slint-kit rev-parse HEAD` avec la révision testée de votre application. Les ajouts de cette page nécessitent les sources ; la dépendance `"0.1"` seule ne les sélectionne pas.
+Conservez le [même build.rs et le point d’entrée](/fr/guides/getting-started/), puis lancez `cargo check` pour résoudre et vérifier les nouvelles dépendances. L’[application typée](/fr/guides/typed-example/) et le [tableau triable](/fr/guides/table-example/) utilisent les paquets 0.2 du registre. Pour une intégration depuis les sources, choisissez le [tag v0.2.0](https://github.com/damione1/slint-kit/tree/v0.2.0) et des chemins locaux correspondants pour les deux paquets.
 
 ## Traduire les dates et les états vides
 

@@ -8,7 +8,7 @@ permalink: "{{ 'guides/themes/' | localeUrl(locale) }}index.html"
 
 # Themes and accessibility
 
-The reference follows `main`. For new localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). These additions require sources after crates.io 0.1.0.
+This reference documents Slint Kit 0.2.0. For localized labels, composite focus and native modal traversal, see [updates and compatibility](/guides/source-updates/). Upgrade both kit dependencies to `"0.2"` when moving from 0.1.
 
 A theme is a `KitTheme` value. Pass it to each composed component; the public defaults are `KitThemes.light` and `KitThemes.dark`. Use the same value for the window background and text colors.
 

@@ -35,6 +35,11 @@ fn snapshot(app: &App, name: &str) {
     } else {
         name.into()
     };
+    let name = match app.window().scale_factor() {
+        1.0 => name,
+        2.0 => name.replace(".png", "@2x.png"),
+        scale => panic!("Documentation captures support 1x or 2x, got {scale}"),
+    };
     let image = app.window().take_snapshot().expect("native snapshot");
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../src/assets/components")
@@ -54,6 +59,7 @@ fn snapshot(app: &App, name: &str) {
 }
 
 pub fn schedule(app: &App) {
+    app.window().set_size(slint::LogicalSize::new(560., 480.));
     let weak = app.as_weak();
     slint::Timer::single_shot(Duration::from_millis(400), move || {
         let app = weak.upgrade().expect("live example window");

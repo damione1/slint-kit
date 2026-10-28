@@ -90,6 +90,13 @@ for (const component of components) {
       check(info.width >= 240 && info.height >= 120 && info.colors > 40, `${name}/${locale}: blank or undersized image`);
       if (record) check(info.width === record.width && info.height === record.height, `${name}/${locale}: incorrect capture dimensions`);
     } catch (error) { errors.push(`${name}/${locale}: ${error.message}`); }
+    const retinaPath = imagePath.replace(/\.png$/, '@2x.png');
+    check(fs.existsSync(retinaPath), `${name}/${locale}: missing native Retina capture`);
+    if (fs.existsSync(retinaPath)) {
+      const retina = fs.readFileSync(retinaPath);
+      check(retina.readUInt32BE(16) === image.readUInt32BE(16) * 2 && retina.readUInt32BE(20) === image.readUInt32BE(20) * 2, `${name}/${locale}: 2x capture must retain the logical viewport`);
+      check(record?.variants?.some(variant => variant.file === path.basename(retinaPath) && variant.pixelDensity === 2 && variant.sha256 === sha(retina)), `${name}/${locale}: missing Retina provenance`);
+    }
     const text = component[locale];
     for (const key of ['summary', 'usage', 'behavior']) check(typeof text?.[key] === 'string' && text[key].trim().length >= (key === 'summary' ? 20 : 35), `${name}/${locale}: missing meaningful ${key}`);
     const page = path.join(output, localeUrl(`components/${slug}/`, locale), 'index.html');
@@ -102,6 +109,7 @@ for (const component of components) {
     check(html.includes(`<h1>${name}</h1>`), `${name}/${locale}: missing component heading`);
     const code = html.match(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/)?.[1];
     check(code && decode(code).trim() === example.trim(), `${name}/${locale}: displayed code differs from the native capture source`);
+    check(html.includes(`srcset="/assets/components/${imageFilename.replace('.png', '@2x.png')} 2x"`), `${name}/${locale}: Retina candidate is required`);
     check(html.includes(`/assets/components/${imageFilename}`), `${name}/${locale}: missing matching capture`);
     check(text?.summary && html.includes(decode(text.summary)), `${name}/${locale}: missing localized summary`);
   }
@@ -163,6 +171,16 @@ for (const file of htmlFiles) {
     if (src && fs.existsSync(path.join(output, src.slice(1)))) {
       const pixels = fs.readFileSync(path.join(output, src.slice(1)));
       check(Number(image[0].match(/\bwidth="(\d+)"/)?.[1]) === pixels.readUInt32BE(16) && Number(image[0].match(/\bheight="(\d+)"/)?.[1]) === pixels.readUInt32BE(20), `${route}: declared PNG dimensions must match the actual capture`);
+      if (src.startsWith('/assets/components/')) {
+        const retinaSrc = src.replace(/\.png$/, '@2x.png');
+        check(image[0].includes(`srcset="${retinaSrc} 2x"`), `${route}: native preview needs a 2x source`);
+        const retinaPath = path.join(output, retinaSrc.slice(1));
+        check(fs.existsSync(retinaPath), `${route}: missing native Retina preview`);
+        if (fs.existsSync(retinaPath)) {
+          const retina = fs.readFileSync(retinaPath);
+          check(retina.readUInt32BE(16) === pixels.readUInt32BE(16) * 2 && retina.readUInt32BE(20) === pixels.readUInt32BE(20) * 2, `${route}: Retina image must preserve the logical preview size`);
+        }
+      }
     }
   }
   if (key) {
@@ -190,8 +208,9 @@ for (const file of htmlFiles) {
     check(redirect?.destination === route && redirect?.status === '301', `${legacy}: old English URL must permanently redirect to ${route}`);
   }
   check(!/\{[{%]|undefined|\[object Object\]/.test(html), `${path.relative(output, file)}: unresolved template content`);
-  for (const match of html.matchAll(/\b(?:href|src|srcset)="([^"]+)"/g)) {
-    let href = decode(match[1]);
+  const linkedUrls = [...html.matchAll(/\b(href|src|srcset)="([^"]+)"/g)].flatMap(([, attribute, value]) => attribute === 'srcset' ? value.split(',').map(candidate => candidate.trim().split(/\s+/)[0]) : [value]);
+  for (const linkedUrl of linkedUrls) {
+    let href = decode(linkedUrl);
     if (/^(?:mailto:|data:)/.test(href)) continue;
     if (/^https?:/.test(href)) {
       const url = new URL(href);
@@ -234,6 +253,8 @@ for (const locale of ['en', 'fr']) {
   const capture = tableProvenance.captures[locale];
   const image = fs.readFileSync(path.join(docs, 'src/assets/components', capture.file));
   check(capture.sha256 === sha(image) && capture.width === image.readUInt32BE(16) && capture.height === image.readUInt32BE(20), `${locale}: table screenshot must match its provenance`);
+  const retina = fs.readFileSync(path.join(docs, 'src/assets/components', capture.retina.file));
+  check(capture.retina.pixelDensity === 2 && capture.retina.sha256 === sha(retina) && capture.retina.width === capture.width * 2 && capture.retina.height === capture.height * 2, `${locale}: Retina table capture must match its provenance`);
 }
 const tableManifest = fs.readFileSync(path.join(docs, 'table-consumer/Cargo.toml'), 'utf8');
 check(!/\bpath\s*=|\bworkspace\s*=|\b(?:version|edition|license|rust-version)\.workspace\s*=/.test(tableManifest), 'Public table consumer must resolve registry dependencies without workspace inheritance');

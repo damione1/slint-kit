@@ -47,11 +47,22 @@ def capture_record(example, filename, locale):
             continue
         w, h = dimensions(image)
         variants.append({
-            'file': image.name, 'theme': theme, 'textScale': scale,
+            'file': image.name, 'theme': theme, 'textScale': scale, 'pixelDensity': 1,
             'reducedMotion': True, 'width': w, 'height': h,
             'sha256': sha(image),
             'capturedAt': datetime.fromtimestamp(image.stat().st_mtime, timezone.utc).isoformat(),
             'interactionChecked': interaction,
+        })
+    retina = ASSETS / filename.replace('.png', '@2x.png')
+    if retina.exists():
+        w, h = dimensions(retina)
+        if (w, h) != (width * 2, height * 2):
+            raise SystemExit(f'2x capture must preserve the logical viewport: {retina} ({w}x{h} vs {width}x{height})')
+        variants.append({
+            'file': retina.name, 'theme': 'light', 'textScale': 1, 'pixelDensity': 2,
+            'reducedMotion': True, 'width': w, 'height': h, 'sha256': sha(retina),
+            'capturedAt': datetime.fromtimestamp(retina.stat().st_mtime, timezone.utc).isoformat(),
+            'interactionChecked': False,
         })
     return {
         'exampleSha256': sha(example), 'screenshotSha256': sha(screenshot),
@@ -92,6 +103,7 @@ def main():
             'architecture': platform.machine(), 'device': device,
             'display': 'Native desktop display; captured pixels recorded per image',
             'scaleFactor': components['button']['width'] / components['button']['logicalWidth'],
+            'pixelDensities': [1, 2],
             'captureSourceSha256': sha(ROOT / 'docs/capture/src/main.rs'),
             'mcpCaptureSourceSha256': sha(ROOT / 'docs/capture/mcp.py'),
             'kitUiSha256': kit_ui_digest.hexdigest(),

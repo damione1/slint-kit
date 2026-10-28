@@ -38,7 +38,7 @@ cd slint-kit-table-example
 ```
 
 {% set capture = tableCaptures[locale] %}
-<figure class="component-preview"><img src="/assets/components/{{ capture.filename }}" alt="{% if locale == 'fr' %}Application native avec quatre projets, deux colonnes triables et une ligne archivée{% else %}Native application with four projects, two sortable columns and one archived row{% endif %}" width="{{ capture.width }}" height="{{ capture.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+<figure class="component-preview"><img src="/assets/components/{{ capture.filename }}" srcset="/assets/components/{{ capture.retinaFilename }} 2x" alt="{% if locale == 'fr' %}Application native avec quatre projets, deux colonnes triables et une ligne archivée{% else %}Native application with four projects, two sortable columns and one archived row{% endif %}" width="{{ capture.width }}" height="{{ capture.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
 
 {% if locale == 'fr' %}
 1. Cliquez sur Atlas pour sélectionner le projet `#101`.

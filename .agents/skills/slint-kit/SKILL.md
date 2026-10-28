@@ -5,7 +5,7 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. The current release is `0.1.0`, with the compatible dependency range `"0.1"` used below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. The current release is `0.2.0`, with the compatible dependency range `"0.2"` used below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
 
 ## Find documentation and examples
 
@@ -16,7 +16,7 @@ The public documentation is [English at the site root](https://slint-kit.damieng
 - [Typed controller application](https://slint-kit.damiengoehrig.ca/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.damiengoehrig.ca/guides/controllers/), [themes and accessibility](https://slint-kit.damiengoehrig.ca/guides/themes/) and [native integration](https://slint-kit.damiengoehrig.ca/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [versioned repository](https://github.com/damione1/slint-kit/tree/v0.1.0) for release 0.1.0. The component reference follows `main`. New temporal/empty-state labels, composite focus signals, `DialogTabPolicy`, and menu/table `interactive` are source additions after crates.io 0.1.0; see [updates and compatibility](https://slint-kit.damiengoehrig.ca/guides/source-updates/). Use matching local paths for both kit packages to consume them; do not assume the registry dependency `"0.1"` includes them.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [versioned repository](https://github.com/damione1/slint-kit/tree/v0.2.0) for release 0.2.0. The component reference and examples document 0.2.0, including temporal/empty-state labels, composite focus signals, `DialogTabPolicy`, and menu/table `interactive`. See [updates and compatibility](https://slint-kit.damiengoehrig.ca/guides/source-updates/); upgrade both kit packages to `"0.2"` when moving from 0.1.
 
 ## Wire the consumer
 
@@ -24,11 +24,11 @@ Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-slint-kit = "0.1"
+slint-kit = "0.2"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.1"
+slint-kit-build = "0.2"
 ```
 
 Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.

@@ -8,26 +8,22 @@ permalink: "{{ 'guides/source-updates/' | localeUrl(locale) }}index.html"
 
 # Source updates
 
-The component reference, downloadable Slint fixtures and native screenshots follow the repository’s `main` branch. The additions below are **source changes after crates.io 0.1.0**. The package version remains 0.1.0 until a new release is published. The [getting-started application](/guides/getting-started/), [typed application](/guides/typed-example/) and [sortable table application](/guides/table-example/) retain registry-compatible dependencies.
+Slint Kit **0.2.0** is available on crates.io. The component reference, downloadable Slint fixtures and native screenshots document this release. Localized labels, composite editor focus and native modal traversal are included in the published packages; a source checkout is optional.
 
-## Use the current sources
+## Upgrade from 0.1
 
-Clone the repository alongside your application, then replace both kit dependencies with matching paths. Keep Slint pinned to 1.18.1 and use Rust 1.92 or later.
-
-```sh
-git clone https://github.com/damione1/slint-kit.git
-```
+Update both kit dependencies together. Cargo’s `"0.1"` range does not select 0.2, because minor releases before 1.0 have separate compatibility ranges. Keep Slint pinned to 1.18.1 and use Rust 1.92 or later.
 
 ```toml
 [dependencies]
-slint-kit = { path = "../slint-kit/crates/kit" }
+slint-kit = "0.2"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = { path = "../slint-kit/crates/kit-build" }
+slint-kit-build = "0.2"
 ```
 
-Adjust paths to your directory structure; keep the [same build.rs and entry point](/guides/getting-started/). Record `git -C ../slint-kit rev-parse HEAD` with your application’s tested revision. A source checkout is required for the additions on this page; setting the dependency to `"0.1"` alone does not select them.
+Keep the [same build.rs and entry point](/guides/getting-started/), then run `cargo check` to resolve and verify the new dependencies. The [typed application](/guides/typed-example/) and [sortable table application](/guides/table-example/) use the 0.2 registry packages. For a source integration, select [tag v0.2.0](https://github.com/damione1/slint-kit/tree/v0.2.0) and use matching local paths for both packages.
 
 ## Localize dates and empty states
 

@@ -78,7 +78,7 @@ export function scanComponents() {
         const filename = `${slugify(name)}${locale === 'fr' ? '-fr' : ''}.png`;
         const imagePath = path.join(root, 'docs/src/assets/components', filename);
         const image = fs.existsSync(imagePath) ? fs.readFileSync(imagePath) : undefined;
-        screenshots[locale] = { filename, width: image?.length >= 24 ? image.readUInt32BE(16) : undefined, height: image?.length >= 24 ? image.readUInt32BE(20) : undefined };
+        screenshots[locale] = { filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image?.length >= 24 ? image.readUInt32BE(16) : undefined, height: image?.length >= 24 ? image.readUInt32BE(20) : undefined };
       }
       components.push({ screenshots, name, slug: slugify(name), base, family, familyLabel: families[family], types: publicTypes, source: `crates/kit-slint/ui/${file}`, line: source.slice(0, match.index).split('\n').length, properties, callbacks, functions, ...metadata[name] });
     }

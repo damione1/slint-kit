@@ -9,7 +9,9 @@ const sources = Object.fromEntries(['Cargo.toml', 'build.rs', 'ui/table.slint', 
 const captures = Object.fromEntries(['en', 'fr'].map(locale => {
   const file = `table-integration${locale === 'fr' ? '-fr' : ''}.png`;
   const image = fs.readFileSync(`${docs}/src/assets/components/${file}`);
-  return [locale, { file, sha256: sha(image), width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
+  const retinaFile = file.replace('.png', '@2x.png');
+  const retina = fs.readFileSync(`${docs}/src/assets/components/${retinaFile}`);
+  return [locale, { file, sha256: sha(image), width: image.readUInt32BE(16), height: image.readUInt32BE(20), retina: { file: retinaFile, pixelDensity: 2, sha256: sha(retina), width: retina.readUInt32BE(16), height: retina.readUInt32BE(20) } }];
 }));
-fs.writeFileSync(`${docs}/content/table-captures.json`, JSON.stringify({ backend: 'winit', renderer: 'skia', snapshotAPI: 'slint::Window::take_snapshot', scaleFactor: 1, sources, captures }, null, 2) + '\n');
+fs.writeFileSync(`${docs}/content/table-captures.json`, JSON.stringify({ backend: 'winit', renderer: 'skia', snapshotAPI: 'slint::Window::take_snapshot', scaleFactor: 1, pixelDensities: [1, 2], sources, captures }, null, 2) + '\n');
 console.log('Table consumer source and native capture hashes recorded.');

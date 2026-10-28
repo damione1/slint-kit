@@ -8,7 +8,7 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Bien démarrer
 
-La référence suit `main`. Pour les nouveaux libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Ces ajouts nécessitent les sources après crates.io 0.1.0.
+Cette référence documente Slint Kit 0.2.0. Pour les libellés traduisibles, le focus composé et le parcours natif des modales, consultez les [nouveautés et la compatibilité](/fr/guides/source-updates/). Passez les deux dépendances du kit à `"0.2"` pour migrer depuis 0.1.
 
 Installez Slint Kit depuis crates.io avec **Rust 1.92+** et **Slint 1.18.1**. Aucun clonage du kit n’est nécessaire.
 
@@ -26,11 +26,11 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-slint-kit = "0.1"
+slint-kit = "0.2"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.1"
+slint-kit-build = "0.2"
 ```
 
 Créez `build.rs` à la racine de l’application. `slint-kit-build` enregistre la bibliothèque `@kit` et vérifie les contrats partagés générés avant de compiler l’interface.

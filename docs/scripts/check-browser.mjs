@@ -23,7 +23,7 @@ const server = http.createServer(async (request, response) => {
     const content = await fs.readFile(target);
     // Force the old delayed-script bug to surface even on a fast local machine.
     if (route === '/assets/site.js') await pause(1200);
-    if (/\/assets\/components\/button(?:-fr)?\.png$/.test(route)) await pause(1500);
+    if (/\/assets\/components\/button(?:-fr)?(?:@2x)?\.png$/.test(route)) await pause(1500);
     response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': 'no-store' });
     response.end(content);
   } catch {
@@ -98,7 +98,7 @@ try {
   sourceId = (await call('Page.addScriptToEvaluateOnNewDocument', { source: `window.auditShifts=[];new PerformanceObserver(list=>{for(const item of list.getEntries())if(!item.hadRecentInput)window.auditShifts.push(item.value)}).observe({type:'layout-shift',buffered:true});` })).identifier;
   for (const locale of ['en', 'fr']) {
     const prefix = locale === 'fr' ? '/fr' : '';
-    for (const [name, route, width, dark, text200] of [
+    for (const [name, route, width, dark, text200, pixelDensity = 1] of [
       ['home-mobile', `${prefix}/`, 375, false, false],
       ['button-mobile', `${prefix}/components/button/`, 375, false, false],
       ['button-dark', `${prefix}/components/button/`, 375, true, false],
@@ -107,8 +107,11 @@ try {
       ['table-guide', `${prefix}/guides/table-example/`, 375, false, false],
       ['source-guide', `${prefix}/guides/source-updates/`, 375, false, false],
       ['source-guide-text200', `${prefix}/guides/source-updates/`, 375, true, true],
+      ['button-retina', `${prefix}/components/button/`, 375, false, false, 2],
+      ['table-retina', `${prefix}/guides/table-example/`, 375, false, false, 2],
+      ['typed-retina', `${prefix}/guides/typed-example/`, 375, false, false, 2],
     ]) {
-      await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+      await call('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: pixelDensity, mobile: false });
       await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }] });
       await navigate(route);
       const cls = await evaluate('window.auditShifts.reduce((sum,value)=>sum+value,0)');
@@ -119,9 +122,11 @@ try {
       }
       if (text200) await evaluate('document.documentElement.style.fontSize="32px"');
       assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), `${locale}/${name}: document overflow`);
+      const imageSource = await evaluate('document.querySelector(".component-preview img")?.currentSrc || null');
+      if (pixelDensity === 2) assert(imageSource?.endsWith('@2x.png'), `${locale}/${name}: browser must load the native 2x source`);
       const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(output, `${locale}-${name}.png`), Buffer.from(capture.data, 'base64'));
-      results.push({ locale, name, route, width, dark, text200, cls });
+      results.push({ locale, name, route, width, dark, text200, pixelDensity, imageSource, cls });
     }
     await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false });
     await navigate(`${prefix}/components/button/`);

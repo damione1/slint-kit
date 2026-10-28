@@ -29,6 +29,17 @@ fn click(app: &TableApp, x: f32, y: f32) {
 }
 
 fn snapshot(app: &TableApp, path: PathBuf) {
+    let path = match app.window().scale_factor() {
+        1.0 => path,
+        2.0 => path.with_file_name(
+            path.file_name()
+                .expect("capture filename")
+                .to_str()
+                .expect("UTF-8 capture filename")
+                .replace(".png", "@2x.png"),
+        ),
+        scale => panic!("Documentation captures support 1x or 2x, got {scale}"),
+    };
     std::fs::create_dir_all(path.parent().expect("capture directory")).expect("capture directory");
     let image = app.window().take_snapshot().expect("native Skia snapshot");
     let mut encoder = png::Encoder::new(
