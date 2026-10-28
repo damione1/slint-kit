@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper, KitTextField } from "@kit/kit.slint";
+
+export component NumericInputFixture inherits Window {
+    width: 600px; height: 500px;
+    in-out property <string> value;
+    in-out property <int> kind;
+    public function focus-editor() {
+        if root.kind == 0 { integer.take-focus(); }
+        if root.kind == 1 { decimal.take-focus(); }
+        if root.kind == 2 { money.take-focus(); }
+        if root.kind == 3 { percent.take-focus(); }
+        if root.kind == 4 { quantity.take-focus(); }
+        if root.kind == 5 { duration.take-focus(); }
+        if root.kind == 6 { stepper.take-focus(); }
+        if root.kind == 7 { plain.take-focus(); }
+    }
+    public function select-value() {
+        if root.kind == 0 { integer.select-all(); }
+        if root.kind == 1 { decimal.select-all(); }
+    }
+    VerticalLayout {
+        padding: 20px; spacing: 8px;
+        integer := KitIntegerField { visible: root.kind == 0; label: "Integer"; text <=> root.value; }
+        decimal := KitDecimalField { visible: root.kind == 1; label: "Decimal"; text <=> root.value; }
+        money := KitMoneyField { visible: root.kind == 2; label: "Money"; text <=> root.value; }
+        percent := KitPercentField { visible: root.kind == 3; label: "Percent"; text <=> root.value; }
+        quantity := KitQuantityField { visible: root.kind == 4; label: "Quantity"; text <=> root.value; }
+        duration := KitDurationField { visible: root.kind == 5; label: "Duration"; text <=> root.value; }
+        stepper := KitNumberStepper { visible: root.kind == 6; label: "Stepper"; text <=> root.value; }
+        plain := KitTextField { visible: root.kind == 7; label: "Text"; text <=> root.value; }
+    }
+}

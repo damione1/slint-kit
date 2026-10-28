@@ -2,6 +2,8 @@
 
 Use strict domain types: enums for finite policies and states, newtypes for IDs and validated values. Keep money and decimal arithmetic exact; renderer floats are projections. Application identity is a stable key, never a visual row index.
 
+Use familiar web control behavior as the default interaction reference, including numeric input filtering, keyboard navigation, selection, disabled/read-only states and form actions. Preserve native editing and accessibility; document and verify platform differences instead of silently inventing a different interaction.
+
 ## Structure
 
 - `crates/kit-core`: domain values, state machines and generation guards; no UI backend.

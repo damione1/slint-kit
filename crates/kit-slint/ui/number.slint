@@ -7,10 +7,10 @@ import { KitIcon, IconKind } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
 export { StepDirection } from "shared-contracts.slint";
 
-// Numeric editors deliberately keep InputType.text: locale-aware drafts, signs,
-// incomplete decimals and exact values are parsed by the typed Rust controller.
-// No floating-point amount or implicit coercion crosses the rendering boundary.
-export component KitIntegerField inherits KitTextField { input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
+// Native numeric filtering rejects letters on typing and paste. Decimal mode
+// retains signs and incomplete decimals; Rust still parses exact domain values,
+// integer constraints, scale and bounds without accepting renderer floats.
+export component KitIntegerField inherits KitTextField { input-type: InputType.decimal; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
 export component KitDecimalField inherits KitIntegerField { }
 export component KitMoneyField inherits KitDecimalField { }
 export component KitPercentField inherits KitDecimalField { suffix: "%"; }
