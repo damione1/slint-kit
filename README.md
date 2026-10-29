@@ -28,11 +28,11 @@ Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Ru
 
 ```toml
 [dependencies]
-slint-kit = "0.2"
+slint-kit = "0.3"
 slint = "=1.18.1"
 
 [build-dependencies]
-slint-kit-build = "0.2"
+slint-kit-build = "0.3"
 ```
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.

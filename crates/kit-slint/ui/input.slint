@@ -5,6 +5,9 @@ import { KitPressable } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
+import { NumberInputFormat } from "shared-contracts.slint";
+import { KitFormValidation, FormConstraintState, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
+
 export enum ResizePolicy { fixed, auto-grow }
 export enum TextLineMode { single-line, multiline }
 
@@ -18,6 +21,54 @@ export component KitTextField inherits KitField {
     in property <TextPurpose> purpose: TextPurpose.plain;
     // Native filtering applies to typing and paste without rewriting the draft.
     in property <InputType> input-type: InputType.text;
+    // Semantic constraints are shared by built-in and custom field skins.
+    in property <HtmlInputKind> input-kind: root.multiline ? HtmlInputKind.text-area
+        : root.input-type == InputType.decimal ? HtmlInputKind.number
+        : root.purpose == TextPurpose.email ? HtmlInputKind.email
+        : root.purpose == TextPurpose.url ? HtmlInputKind.url
+        : root.purpose == TextPurpose.telephone ? HtmlInputKind.telephone
+        : root.purpose == TextPurpose.password ? HtmlInputKind.password
+        : root.purpose == TextPurpose.search ? HtmlInputKind.search : HtmlInputKind.text;
+    in property <bool> validation-twelve-hour;
+    in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    in property <bool> required;
+    in property <bool> multiple;
+    in property <int> min-length: -1;
+    in property <int> max-length: -1;
+    in property <string> pattern;
+    in property <bool> pattern-enabled: root.pattern != "";
+    in property <string> min;
+    in property <string> max;
+    in property <string> step;
+    in property <string> default-value;
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
+    in-out property <string> custom-validity;
+    in property <string> required-message: "Please fill out this field.";
+    in property <string> email-message: "Please enter a valid email address.";
+    in property <string> url-message: "Please enter a valid absolute URL.";
+    in property <string> pattern-message: "Please match the requested format.";
+    in property <string> too-short-message: "Please enter at least " + root.min-length + " characters.";
+    in property <string> too-long-message: "Please enter no more than " + root.max-length + " characters.";
+    in property <string> underflow-message: "The minimum value is " + root.min + ".";
+    in property <string> overflow-message: "The maximum value is " + root.max + ".";
+    in property <string> step-message: "Please enter a value matching the requested step.";
+    in property <string> bad-input-message: "Please enter a valid value.";
+    out property <KitValidityState> validity: checks.validity;
+    out property <bool> will-validate: checks.will-validate;
+    out property <bool> validation-ready: checks.validation-ready;
+    out property <string> validation-message: checks.validation-message;
+    out property <string> pattern-error: checks.pattern-error;
+    out property <string> value: checks.value;
+    out property <bool> dirty: checks.dirty;
+    out property <bool> touched: checks.touched;
+    callback invalid();
+    public function check-validity() -> bool { return checks.check-validity(); }
+    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { checks.reset-validation(); }
+    public function reset-field() { root.text = root.default-value; checks.reset-validation(); root.edited(root.text); }
+    private property <ValidationPresentation> effective-validation: root.validation == ValidationPresentation.invalid || checks.show-error ? ValidationPresentation.invalid : root.validation;
+    private property <string> effective-error: root.validation == ValidationPresentation.invalid && root.error != "" ? root.error : checks.validation-message;
     in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
     in property <TextLineMode> line-mode: TextLineMode.single-line;
     in property <ResizePolicy> resize-policy: ResizePolicy.fixed;
@@ -26,6 +77,8 @@ export component KitTextField inherits KitField {
     in property <string> label;
     in property <string> accessible-name: root.label;
     in property <InputMethodHints> input-method-hints: { capitalization: root.purpose == TextPurpose.plain ? CapitalizationMode.sentences : CapitalizationMode.none, auto-correct: root.purpose == TextPurpose.plain, auto-complete: root.purpose == TextPurpose.plain };
+    in property <bool> show-validation-message: true;
+    out property <bool> validation-visible: root.effective-validation == ValidationPresentation.invalid;
     in property <string> description;
     in property <string> error;
     in property <string> placeholder;
@@ -55,20 +108,34 @@ export component KitTextField inherits KitField {
         let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
         return normalized == "nan" || normalized == "inf" || normalized == "infinity";
     }
-    changed has-focus => { root.focus-observed(root.has-focus); }
+    changed has-focus => { if (!root.has-focus) { checks.note-blur(); } root.focus-observed(root.has-focus); }
     private property <length> line-height: 20px * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
-    private property <length> editor-height: root.multiline ? max(root.line-height * max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? min(measure.preferred-height, root.line-height * max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.control-size, root.theme.text-scale) - 12px;
+    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.control-size, root.theme.text-scale) - 12px;
     if root.label != "": KitFieldLabel {
         theme: root.theme; text: root.label; access: root.access;
         focus-requested => { root.take-focus(); }
     }
     surface := KitInputGroup {
-        theme: root.theme; control-size: root.control-size; access: root.access; validation: root.validation;
+        theme: root.theme; control-size: root.control-size; access: root.access; validation: root.effective-validation;
         focused: root.has-focus;
         preferred-height: root.editor-height + 12px;
         max-height: self.preferred-height;
+        checks := FormConstraintState {
+            kind: root.input-kind; twelve-hour: root.validation-twelve-hour; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
+            min-length: root.min-length; max-length: root.max-length;
+            pattern: root.pattern; pattern-enabled: root.pattern-enabled;
+            min: root.min; max: root.max; step: root.step; default-value: root.default-value;
+            text: root.text; validation-timing: root.validation-timing;
+            custom-validity: root.custom-validity != "" ? root.custom-validity : root.validation == ValidationPresentation.invalid ? root.error : "";
+            required-message: root.required-message; email-message: root.email-message;
+            url-message: root.url-message; pattern-message: root.pattern-message;
+            too-short-message: root.too-short-message; too-long-message: root.too-long-message;
+            underflow-message: root.underflow-message; overflow-message: root.overflow-message;
+            step-message: root.step-message; bad-input-message: root.bad-input-message;
+            invalid => { root.invalid(); }
+        }
         // Slint 1.18.1 filters numeric key events but not native clipboard
         // shortcuts. Read the clipboard through its public paste API before
         // letting the real editor handle it; never rewrite its text/history.
@@ -97,8 +164,8 @@ export component KitTextField inherits KitField {
                 horizontal-stretch: 1; clip: true;
                 viewport := Flickable {
                     interactive: root.multiline;
-                    content-width: root.multiline ? self.width : max(self.width, editor.preferred-width + 2px);
-                    content-height: max(self.height, root.multiline ? measure.preferred-height : self.height);
+                    content-width: root.multiline ? self.width : Math.max(self.width, editor.preferred-width + 2px);
+                    content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
                     measure := Text {
                         visible: false;
                         width: viewport.width;
@@ -106,7 +173,7 @@ export component KitTextField inherits KitField {
                         font-size: 14px * root.theme.text-scale;
                         wrap: word-wrap;
                     }
-                    if root.text == "" && editor.preedit-text == "": Text {
+                    if root.text == "": Text {
                         width: viewport.width; height: root.multiline ? self.preferred-height : viewport.height;
                         text: root.placeholder;
                         color: root.theme.disabled-text;
@@ -116,14 +183,14 @@ export component KitTextField inherits KitField {
                         overflow: elide;
                     }
                     editor := TextInput {
-                        width: root.multiline ? viewport.width : max(viewport.width, self.preferred-width + 2px);
+                        width: root.multiline ? viewport.width : Math.max(viewport.width, self.preferred-width + 2px);
                         height: viewport.content-height;
                         text <=> root.text;
                         enabled: root.access != FieldAccess.disabled;
                         read-only: root.access == FieldAccess.read-only;
                         single-line: !root.multiline;
                         wrap: root.multiline ? word-wrap : no-wrap;
-                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type;
+                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
                         input-method-hints: root.input-method-hints;
                         color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
                         selection-background-color: root.theme.accent;
@@ -134,8 +201,10 @@ export component KitTextField inherits KitField {
                         vertical-alignment: root.multiline ? top : center;
                         accessible-enabled: root.access != FieldAccess.disabled;
                         accessible-label: root.accessible-name;
-                        accessible-description: root.validation == ValidationPresentation.invalid ? root.error : root.description;
+                        accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
+                            if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta)
+                                && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
                             if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
                             if (root.input-type == InputType.decimal && root.access == FieldAccess.editable
                                 && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
@@ -143,14 +212,15 @@ export component KitTextField inherits KitField {
                                 clipboard-probe.text = "";
                                 clipboard-probe.paste();
                                 if (root.non-finite-number(clipboard-probe.text)) { return accept; }
-                                if (clipboard-probe.text != "" && clipboard-probe.text != "-"
+                                if (KitFormValidation.ready && !KitFormValidation.numeric-insertion(clipboard-probe.text)) { return accept; }
+                                if (!KitFormValidation.ready && clipboard-probe.text != "" && clipboard-probe.text != "-"
                                     && clipboard-probe.text != "." && clipboard-probe.text != ","
                                     && !clipboard-probe.text.is-float()) { return accept; }
                             }
                             return reject;
                         }
-                        edited => { root.edited(self.text); }
-                        accepted => { if (!root.multiline && root.access == FieldAccess.editable) { root.commit-requested(self.text); } }
+                        edited => { checks.note-edit(); root.edited(self.text); }
+                        accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.commit-requested(self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
                         cursor-position-changed(position) => {
                             if (root.multiline) {
@@ -179,11 +249,11 @@ export component KitTextField inherits KitField {
                     theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
                     recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
                     width: parent.width;
-                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : min(28px, root.editor-height);
+                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : Math.min(28px, root.editor-height);
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {
-                        if (root.purpose == TextPurpose.search) { root.text = ""; root.edited(""); }
+                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); }
                         else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
                         root.take-focus();
                     }
@@ -196,7 +266,7 @@ export component KitTextField inherits KitField {
             }
         }
     }
-    if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
+    if root.show-validation-message && root.effective-validation == ValidationPresentation.invalid && root.effective-error != "": KitFieldError { theme: root.theme; text: root.effective-error; }
     if root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.checking-label; }
     if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count + " " + root.character-count-label; }

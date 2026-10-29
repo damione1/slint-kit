@@ -6,6 +6,7 @@ import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeTh
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
 import { KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit/field.slint";
 import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField } from "@kit/input.slint";
+import { NumberInputFormat } from "@kit/shared-contracts.slint";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
 import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, ChipRow, SearchPresentation } from "@kit/choice.slint";
 import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CivilDateView, DateRangePhase } from "@kit/calendar.slint";
@@ -387,7 +388,7 @@ export component FormGallery inherits VerticalLayout {
                 activated=>{FormExamples.locale-changed(locale);}
             }
         }
-        KitIntegerField {
+        KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Team size"; suffix: "people";
             text <=> FormExamples.integer-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -398,7 +399,7 @@ export component FormGallery inherits VerticalLayout {
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.integer);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.integer);}
         }
-        KitDecimalField {
+        KitDecimalField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Exact decimal";
             text <=> FormExamples.decimal-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -413,7 +414,7 @@ export component FormGallery inherits VerticalLayout {
     if root.page == ShowcasePage.billing: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Invoice example"; }
         KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Enter an exact amount and create a local demo invoice."; }
-        KitMoneyField {
+        KitMoneyField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Monthly budget"; suffix: FormExamples.money-suffix;
             text <=> FormExamples.money-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -424,7 +425,7 @@ export component FormGallery inherits VerticalLayout {
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.money);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.money);}
         }
-        KitPercentField {
+        KitPercentField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Allocation"; suffix: "%";
             text <=> FormExamples.percent-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -435,7 +436,7 @@ export component FormGallery inherits VerticalLayout {
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.percent);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.percent);}
         }
-        KitQuantityField {
+        KitQuantityField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Distance"; suffix: "km";
             text <=> FormExamples.quantity-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -446,7 +447,7 @@ export component FormGallery inherits VerticalLayout {
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.quantity);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.quantity);}
         }
-        KitDurationField {
+        KitDurationField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Focus session"; suffix: "minutes";
             text <=> FormExamples.duration-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -457,7 +458,7 @@ export component FormGallery inherits VerticalLayout {
             focus-observed(focused)=>{if (!focused) {FormExamples.numeric-blur(NumericExample.duration);}}
             cancelled=>{FormExamples.numeric-cancel(NumericExample.duration);}
         }
-        KitNumberStepper {
+        KitNumberStepper { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Seats"; suffix: "people"; step-requested(direction)=>{FormExamples.step-requested(direction);}
             text <=> FormExamples.stepper-text;
             private property <int> focus-sequence: FormExamples.numeric-focus-sequence;
@@ -510,12 +511,12 @@ export component FormGallery inherits VerticalLayout {
         KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
         KitFieldLabel { theme: root.theme; text: "Allocation · " + FormExamples.slider-label; }
         KitSlider {theme:root.theme;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
-        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
+        KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
         KitFieldLabel { theme: root.theme; text: "Preferred range · " + FormExamples.range-lower-label + " – " + FormExamples.range-upper-label; }
         KitRangeSlider {theme:root.theme;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
         KitFieldError { theme: root.theme; text: FormExamples.range-error; }
-        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Range start (0–100)";error:FormExamples.range-lower-error;validation:FormExamples.range-lower-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
-        KitIntegerField {control-size:root.control-size;theme:root.theme;label:"Range end (0–100)";error:FormExamples.range-upper-error;validation:FormExamples.range-upper-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
+        KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Range start (0–100)";error:FormExamples.range-lower-error;validation:FormExamples.range-lower-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
+        KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Range end (0–100)";error:FormExamples.range-upper-error;validation:FormExamples.range-upper-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Rating"; }

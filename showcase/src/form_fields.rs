@@ -424,23 +424,10 @@ fn parse_email(text: &str) -> DraftValue<EmailAddress> {
     if text.is_empty() {
         return DraftValue::Empty;
     }
-    if !text.contains('@') || text.ends_with('@') {
-        return DraftValue::Incomplete;
-    }
-    let mut parts = text.split('@');
-    let local = parts.next().unwrap_or_default();
-    let domain = parts.next().unwrap_or_default();
-    if parts.next().is_some()
-        || local.is_empty()
-        || !domain.contains('.')
-        || domain.starts_with('.')
-        || domain.ends_with('.')
-        || text.chars().any(char::is_whitespace)
-        || text.chars().any(char::is_control)
-    {
-        DraftValue::Invalid(ParseIssue::InvalidSyntax)
-    } else {
+    if kit::html_email_address(text) {
         plain(text, 254, EmailAddress)
+    } else {
+        DraftValue::Invalid(ParseIssue::InvalidSyntax)
     }
 }
 fn parse_website(text: &str) -> DraftValue<Website> {

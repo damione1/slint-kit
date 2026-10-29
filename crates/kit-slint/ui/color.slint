@@ -3,6 +3,7 @@ import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
+import { KitValidityState } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { KitSlider } from "choice.slint";
 import { FieldAccess, NavigationStep } from "contracts.slint";
@@ -35,6 +36,17 @@ component ColorDraftChannel inherits HorizontalLayout {
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.
 // The native hex draft may be incomplete; only Rust's SrgbColor parser commits.
 export component KitColorField inherits Rectangle {
+    in property <bool> required: true;
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: editor.validity;
+    out property <bool> will-validate: editor.will-validate;
+    out property <string> validation-message: editor.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return editor.check-validity(); }
+    public function report-validity() -> bool { return editor.report-validity(); }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { editor.reset-validation(); }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -68,6 +80,11 @@ export component KitColorField inherits Rectangle {
         HorizontalLayout {
             spacing: 12px;
             editor := KitTextField {
+                required: root.required; custom-validity <=> root.custom-validity;
+                pattern: root.alpha-mode == ColorAlphaMode.editable ? "#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?" : "#[0-9a-fA-F]{6}";
+                pattern-message: root.alpha-mode == ColorAlphaMode.editable ? "Use #RRGGBB or #RRGGBBAA." : "Use #RRGGBB.";
+                error: root.error; show-validation-message: false;
+                invalid => { root.invalid(); }
                 theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
                 validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 text <=> root.text;
@@ -87,6 +104,7 @@ export component KitColorField inherits Rectangle {
             }
         }
         KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
+        if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError {theme:root.theme;text:root.error;}
     }
     popup := PopupWindow {

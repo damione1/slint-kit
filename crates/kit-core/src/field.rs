@@ -131,6 +131,9 @@ impl<T: Clone + PartialEq, E> FieldController<T, E> {
     pub fn dirty(&self) -> bool {
         self.dirty
     }
+    pub fn mark_touched(&mut self) {
+        self.touched = true;
+    }
     pub fn touched(&self) -> bool {
         self.touched
     }
@@ -169,6 +172,11 @@ impl<T: Clone + PartialEq, E> FieldController<T, E> {
         self.parsed = parsed;
         self.dirty = true;
         Ok(())
+    }
+    /// Recheck changed rules without treating application configuration as typing.
+    pub fn reparse(&mut self, parsed: DraftValue<T>) {
+        self.invalidate_validation();
+        self.parsed = parsed;
     }
     pub fn begin_validation(&mut self) -> ValidationGeneration {
         self.invalidate_validation();

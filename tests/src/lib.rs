@@ -767,3 +767,5 @@ mod base_feedback;
 mod datetime_localization;
 mod numeric_input;
 mod select_geometry;
+
+mod html_validation;
