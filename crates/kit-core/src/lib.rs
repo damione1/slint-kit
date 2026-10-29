@@ -12,6 +12,7 @@ mod html;
 mod notification;
 mod numeric;
 mod overlay;
+mod phone;
 mod select;
 mod temporal;
 mod text;
@@ -26,6 +27,7 @@ pub use html::*;
 pub use notification::*;
 pub use numeric::*;
 pub use overlay::*;
+pub use phone::*;
 pub use select::*;
 pub use temporal::*;
 pub use text::*;
@@ -43,6 +45,7 @@ macro_rules! contract_enums {
 }
 
 contract_enums! {
+    PhoneNumberMode => "PhoneNumberMode" { National => "national", International => "international", Either => "either" }
     NumberInputFormat => "NumberInputFormat" { Canonical => "canonical", DecimalComma => "decimal-comma" }
     HtmlInputKind => "HtmlInputKind" {
         Text => "text", Search => "search", Telephone => "telephone", Email => "email", Url => "url",

@@ -21,6 +21,7 @@ pub struct FieldProjection {
     pub will_validate: bool,
 }
 
+type DraftNormalizer = Rc<dyn Fn(&str) -> Result<String, ParseIssue>>;
 type Parser<T> = Rc<dyn Fn(&str) -> DraftValue<T>>;
 type Formatter<T> = Rc<dyn Fn(&T) -> String>;
 type Validator<T, E> = Rc<dyn Fn(&T) -> Vec<E>>;
@@ -37,6 +38,7 @@ struct BoundField<T, E> {
     ownership: Ownership,
     awaiting_ack: bool,
     html: Option<HtmlConstraints>,
+    normalizer: Option<DraftNormalizer>,
     html_user_edited: bool,
     html_reported: bool,
 }
@@ -88,6 +90,7 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 ownership,
                 awaiting_ack: false,
                 html: None,
+                normalizer: None,
                 html_user_edited: false,
                 html_reported: false,
             })),
@@ -112,7 +115,28 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         }
         self.refresh();
     }
+    /// Normalize semantic validation/parser input without assigning to the native draft.
+    /// For phone fields, use normalize_phone and map its error to InvalidSyntax.
+    pub fn set_draft_normalizer(
+        &self,
+        normalizer: impl Fn(&str) -> Result<String, ParseIssue> + 'static,
+    ) {
+        {
+            let mut inner = self.inner.borrow_mut();
+            inner.normalizer = Some(Rc::new(normalizer));
+            let draft = inner.controller.draft().to_string();
+            let parsed = Self::parse_draft(&inner, &draft, inner.html_user_edited);
+            inner.controller.reparse(parsed);
+            inner.failure = None;
+        }
+        self.refresh();
+    }
     fn parse_draft(inner: &BoundField<T, E>, text: &str, user_edited: bool) -> DraftValue<T> {
+        let normalized = match inner.normalizer.as_ref().map(|f| f(text)).transpose() {
+            Ok(value) => value,
+            Err(issue) => return DraftValue::Invalid(issue),
+        };
+        let text = normalized.as_deref().unwrap_or(text);
         if let Some(rules) = &inner.html {
             let validity = rules.validate(
                 text,
@@ -164,14 +188,23 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 },
             },
         };
+        let normalized = inner.normalizer.as_ref().map(|f| f(c.draft())).transpose();
         let html_validity = inner.html.as_ref().map(|rules| {
-            rules.validate(
-                c.draft(),
+            let mut validity = rules.validate(
+                normalized
+                    .as_ref()
+                    .ok()
+                    .and_then(|v| v.as_deref())
+                    .unwrap_or(c.draft()),
                 HtmlInputState {
                     user_edited: inner.html_user_edited,
                     ..Default::default()
                 },
-            )
+            );
+            if normalized.is_err() {
+                validity.bad_input = true;
+            }
+            validity
         });
         let will_validate = c.access() == FieldAccess::Editable
             && inner
@@ -267,18 +300,28 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         }
         let html_failure = {
             let inner = self.inner.borrow();
+            let normalized = inner
+                .normalizer
+                .as_ref()
+                .map(|f| f(inner.controller.draft()))
+                .transpose();
             inner.html.as_ref().is_some_and(|rules| {
                 inner.controller.permits_commit(trigger)
                     && rules.will_validate()
-                    && !rules
-                        .validate(
-                            inner.controller.draft(),
-                            HtmlInputState {
-                                user_edited: inner.html_user_edited,
-                                ..Default::default()
-                            },
-                        )
-                        .valid()
+                    && (normalized.is_err()
+                        || !rules
+                            .validate(
+                                normalized
+                                    .as_ref()
+                                    .ok()
+                                    .and_then(|v| v.as_deref())
+                                    .unwrap_or(inner.controller.draft()),
+                                HtmlInputState {
+                                    user_edited: inner.html_user_edited,
+                                    ..Default::default()
+                                },
+                            )
+                            .valid())
             })
         };
         if html_failure {
@@ -696,5 +739,48 @@ mod html_editing_origin_tests {
         );
         assert_eq!(field.snapshot().validation, ValidationPresentation::Invalid);
         assert!(field.accepted().is_none());
+    }
+}
+
+#[cfg(test)]
+mod phone_normalization_tests {
+    use super::*;
+    use kit_core::{
+        HtmlInputKind, HtmlPattern, PhoneNumber, PhoneNumberMode, PhoneRules, normalize_phone,
+    };
+    #[test]
+    fn phone_normalization_precedes_regex_without_rewriting_active_edits() {
+        let rules = PhoneRules::exact(PhoneNumberMode::National, 10).unwrap();
+        let initial = rules.validate("0612345678").unwrap();
+        let field = FieldBinding::<PhoneNumber, ()>::new(
+            initial,
+            Ownership::Local,
+            CommitPolicy::OnBlur,
+            AbsencePolicy::Required,
+            move |text| rules.parse(text),
+            |v| v.as_str().into(),
+            |_| String::new(),
+            |_| {},
+        );
+        field.set_draft_normalizer(|text| {
+            normalize_phone(text).map_err(|_| ParseIssue::InvalidSyntax)
+        });
+        field.set_html_constraints(HtmlConstraints {
+            kind: HtmlInputKind::Telephone,
+            required: true,
+            pattern: Some(HtmlPattern::compile("0[0-9]{9}").unwrap()),
+            ..Default::default()
+        });
+        field.edited("06 98 76 54 32").unwrap();
+        assert_eq!(field.snapshot().draft, "06 98 76 54 32");
+        assert!(field.snapshot().html_validity.unwrap().valid());
+        field.commit(CommitTrigger::Submit).unwrap();
+        assert_eq!(field.accepted().unwrap().as_str(), "0698765432");
+        assert!(field.snapshot().html_validity.unwrap().valid());
+        for draft in ["Ada0612345678", "123", "061234567890", "+33612345678"] {
+            field.edited(draft).unwrap();
+            assert!(field.commit(CommitTrigger::Submit).is_err());
+            assert_eq!(field.accepted().unwrap().as_str(), "0698765432");
+        }
     }
 }

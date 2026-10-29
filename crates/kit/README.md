@@ -25,6 +25,8 @@ Import public components in Slint:
 import { KitButton, KitTextField } from "@kit/kit.slint";
 ```
 
+For validating fields, initialize `KitFormValidation` once per window before showing it; see the [forms guide](https://slint-kit.dev/guides/forms/). Phone fields separate a typed canonical `PhoneNumber` string from their configurable display mask and digit count.
+
 Use `slint_kit` in Rust for strict domain values, typed field bindings and stable keyed selection. Enable the optional `native` feature for asynchronous file and directory pickers. Choose a compatible Slint backend/renderer for your target; the manifest above is a desktop example.
 
 Rust 1.92 or later is required. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).

@@ -20,3 +20,9 @@ pub use field::*;
 mod html;
 #[cfg(feature = "adapter")]
 pub use html::*;
+
+#[cfg(all(feature = "adapter", target_arch = "wasm32"))]
+mod web_phone;
+#[cfg(all(feature = "adapter", target_arch = "wasm32"))]
+#[doc(hidden)]
+pub use web_phone::*;

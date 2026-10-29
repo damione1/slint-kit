@@ -5,7 +5,8 @@ import { KitPressable } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
-import { NumberInputFormat } from "shared-contracts.slint";
+import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
+export { PhoneNumberMode } from "shared-contracts.slint";
 import { KitFormValidation, FormConstraintState, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 
 export enum ResizePolicy { fixed, auto-grow }
@@ -31,6 +32,11 @@ export component KitTextField inherits KitField {
         : root.purpose == TextPurpose.search ? HtmlInputKind.search : HtmlInputKind.text;
     in property <bool> validation-twelve-hour;
     in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    // Custom skins may normalize validation independently of the native draft.
+    in property <string> validation-text: root.text;
+    in property <string> display-text: root.text;
+    in property <string> intrinsic-error;
+    private property <bool> formatted-at-rest: !root.has-focus && root.text != "" && root.display-text != root.text;
     in property <bool> required;
     in property <bool> multiple;
     in property <int> min-length: -1;
@@ -68,7 +74,7 @@ export component KitTextField inherits KitField {
     public function reset-validation() { checks.reset-validation(); }
     public function reset-field() { root.text = root.default-value; checks.reset-validation(); root.edited(root.text); }
     private property <ValidationPresentation> effective-validation: root.validation == ValidationPresentation.invalid || checks.show-error ? ValidationPresentation.invalid : root.validation;
-    private property <string> effective-error: root.validation == ValidationPresentation.invalid && root.error != "" ? root.error : checks.validation-message;
+    private property <string> effective-error: root.intrinsic-error != "" ? checks.validation-message : root.validation == ValidationPresentation.invalid && root.error != "" ? root.error : checks.validation-message;
     in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
     in property <TextLineMode> line-mode: TextLineMode.single-line;
     in property <ResizePolicy> resize-policy: ResizePolicy.fixed;
@@ -97,6 +103,8 @@ export component KitTextField inherits KitField {
     in property <string> checking-label: "Checking…";
     out property <bool> has-focus: editor.has-focus;
     callback edited(string);
+    // Semantic value, separate from the native draft callback above.
+    callback value-edited(string);
     callback commit-requested(string);
     callback cancelled();
     callback focus-observed(bool);
@@ -108,7 +116,20 @@ export component KitTextField inherits KitField {
         let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
         return normalized == "nan" || normalized == "inf" || normalized == "infinity";
     }
-    changed has-focus => { if (!root.has-focus) { checks.note-blur(); } root.focus-observed(root.has-focus); }
+    private property <int> focus-generation;
+    changed has-focus => {
+        if (root.has-focus) {
+            KitFormValidation.focus-generation += 1;
+            root.focus-generation = KitFormValidation.focus-generation;
+            KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone;
+        } else {
+            if (root.focus-generation == KitFormValidation.focus-generation) { KitFormValidation.phone-focused = false; }
+            checks.note-blur();
+            if (root.purpose == TextPurpose.telephone) { viewport.content-x = 0px; }
+        }
+        root.focus-observed(root.has-focus);
+    }
+    changed purpose => { if (root.has-focus) { KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone; } }
     private property <length> line-height: 20px * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
@@ -127,8 +148,8 @@ export component KitTextField inherits KitField {
             min-length: root.min-length; max-length: root.max-length;
             pattern: root.pattern; pattern-enabled: root.pattern-enabled;
             min: root.min; max: root.max; step: root.step; default-value: root.default-value;
-            text: root.text; validation-timing: root.validation-timing;
-            custom-validity: root.custom-validity != "" ? root.custom-validity : root.validation == ValidationPresentation.invalid ? root.error : "";
+            text: root.validation-text; validation-timing: root.validation-timing;
+            custom-validity: root.custom-validity != "" ? root.custom-validity : root.intrinsic-error != "" ? root.intrinsic-error : root.validation == ValidationPresentation.invalid ? root.error : "";
             required-message: root.required-message; email-message: root.email-message;
             url-message: root.url-message; pattern-message: root.pattern-message;
             too-short-message: root.too-short-message; too-long-message: root.too-long-message;
@@ -164,7 +185,7 @@ export component KitTextField inherits KitField {
                 horizontal-stretch: 1; clip: true;
                 viewport := Flickable {
                     interactive: root.multiline;
-                    content-width: root.multiline ? self.width : Math.max(self.width, editor.preferred-width + 2px);
+                    content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width, formatted-measure.preferred-width) + 2px);
                     content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
                     measure := Text {
                         visible: false;
@@ -182,6 +203,13 @@ export component KitTextField inherits KitField {
                         wrap: root.multiline ? word-wrap : no-wrap;
                         overflow: elide;
                     }
+                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-size: 14px * root.theme.text-scale; }
+                    if root.formatted-at-rest: Text {
+                        text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
+                        font-size: 14px * root.theme.text-scale; vertical-alignment: center;
+                        horizontal-alignment: root.text-alignment;
+                        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+                    }
                     editor := TextInput {
                         width: root.multiline ? viewport.width : Math.max(viewport.width, self.preferred-width + 2px);
                         height: viewport.content-height;
@@ -192,17 +220,25 @@ export component KitTextField inherits KitField {
                         wrap: root.multiline ? word-wrap : no-wrap;
                         input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
                         input-method-hints: root.input-method-hints;
-                        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
-                        selection-background-color: root.theme.accent;
-                        selection-foreground-color: root.theme.on-accent;
+                        color: root.formatted-at-rest ? transparent : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+                        selection-background-color: root.formatted-at-rest ? transparent : root.theme.accent;
+                        selection-foreground-color: root.formatted-at-rest ? transparent : root.theme.on-accent;
                         font-size: 14px * root.theme.text-scale;
                         letter-spacing: root.text-letter-spacing;
                         horizontal-alignment: root.text-alignment;
                         vertical-alignment: root.multiline ? top : center;
                         accessible-enabled: root.access != FieldAccess.disabled;
                         accessible-label: root.accessible-name;
+                        accessible-value: root.formatted-at-rest ? root.display-text : root.text;
                         accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
+                            if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
+                                if (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
+                                    || (event.modifiers.shift && event.text == Key.Insert)) {
+                                    clipboard-probe.text = ""; clipboard-probe.paste();
+                                    if (!KitFormValidation.phone-paste(clipboard-probe.text)) { return accept; }
+                                } else if (!(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
+                            }
                             if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta)
                                 && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
                             if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
@@ -219,8 +255,8 @@ export component KitTextField inherits KitField {
                             }
                             return reject;
                         }
-                        edited => { checks.note-edit(); root.edited(self.text); }
-                        accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.commit-requested(self.text); } }
+                        edited => { checks.note-edit(); root.edited(self.text); root.value-edited(root.value); }
+                        accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
                         cursor-position-changed(position) => {
                             if (root.multiline) {
@@ -275,7 +311,26 @@ export component KitPasswordField inherits KitTextField { purpose: TextPurpose.p
 export component KitSearchField inherits KitTextField { purpose: TextPurpose.search; }
 export component KitEmailField inherits KitTextField { purpose: TextPurpose.email; }
 export component KitUrlField inherits KitTextField { purpose: TextPurpose.url; }
-export component KitTelephoneField inherits KitTextField { purpose: TextPurpose.telephone; }
+// A strict phone control; HTML's raw tel input-kind remains available on KitTextField.
+export component KitTelephoneField inherits KitTextField {
+    purpose: TextPurpose.telephone;
+    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
+    in property <PhoneNumberMode> number-mode: PhoneNumberMode.either;
+    in property <int> min-digits: 1;
+    in property <int> max-digits: 15;
+    in property <int> expected-digits;
+    in property <string> display-mask;
+    in property <string> phone-message: root.number-mode == PhoneNumberMode.national ? "Use digits without an international prefix." : root.number-mode == PhoneNumberMode.international ? "Start with + followed by digits." : "Use digits and an optional leading + for an international number.";
+    in property <string> phone-length-message: root.expected-digits > 0 ? "Enter exactly " + root.expected-digits + " digits." : "Enter " + root.min-digits + " to " + root.max-digits + " digits.";
+    out property <string> format-error: KitFormValidation.ready ? KitFormValidation.phone-mask-error(root.display-mask) : "";
+    validation-text: KitFormValidation.ready ? KitFormValidation.phone-value(root.text) : root.text;
+    display-text: KitFormValidation.ready ? KitFormValidation.phone-display(root.text, root.display-mask) : root.text;
+    intrinsic-error: KitFormValidation.ready ? KitFormValidation.phone-error(root.text,
+        root.number-mode != PhoneNumberMode.national, root.number-mode == PhoneNumberMode.international,
+        root.expected-digits != 0 ? root.expected-digits : root.min-digits,
+        root.expected-digits != 0 ? root.expected-digits : root.max-digits,
+        root.phone-message, root.phone-length-message) : "";
+}
 export component KitTextArea inherits KitTextField {
     line-mode: TextLineMode.multiline;
     resize-policy: ResizePolicy.auto-grow;
