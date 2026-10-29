@@ -759,6 +759,7 @@ mod form_corrections;
 #[cfg(test)]
 mod base_data;
 mod button_sizing;
+mod icons;
 mod menu_focus;
 mod native_dialog;
 mod theme_tokens;

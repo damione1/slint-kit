@@ -3,7 +3,7 @@ import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonInt
 import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup } from "field.slint";
 import { KitPressable } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
@@ -131,7 +131,7 @@ export component KitTextField inherits KitField {
     }
     changed purpose => { if (root.has-focus) { KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone; } }
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.effective-validation);
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
     private property <length> line-height: root.theme.typography.line-height-control * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
@@ -303,8 +303,9 @@ export component KitTextField inherits KitField {
                         root.take-focus();
                     }
                     KitIcon {
+                        theme: root.theme;
                         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                        kind: root.purpose == TextPurpose.search ? IconKind.close : root.secret-visibility == SecretVisibility.hidden ? IconKind.eye : IconKind.eye-hidden;
+                        glyph: root.purpose == TextPurpose.search ? KitGlyphs.close() : root.secret-visibility == SecretVisibility.hidden ? KitGlyphs.eye() : KitGlyphs.eye-hidden();
                         ink: action.disabled ? root.icon.disabled-color : root.icon.color;
                     }
                 }

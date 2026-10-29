@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 
 export { AlertSeverity } from "theme.slint";
 export enum ToastInteraction { pointer, focus }
@@ -29,8 +29,9 @@ export component KitAlert inherits Rectangle {
     border-radius: root.recipe.radius; vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {
+        theme: root.theme;
         x: root.inset; y: root.inset;
-        kind: root.severity == AlertSeverity.success ? IconKind.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? IconKind.warning : IconKind.plus;
+        glyph: root.severity == AlertSeverity.success ? KitGlyphs.check() : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? KitGlyphs.warning() : KitGlyphs.plus();
         ink: root.recipe.mark;
     }
     copy := VerticalLayout {
@@ -46,7 +47,7 @@ export component KitAlert inherits Rectangle {
         x: root.width - self.width - root.inset; y: root.inset;
         visible: root.dismissible; disabled: !root.dismissible;
         theme: root.theme; control-size: ControlSize.compact;
-        icon: IconKind.close; accessible-name: "Dismiss " + root.title;
+        glyph: KitGlyphs.close(); accessible-name: "Dismiss " + root.title;
         activated => { root.dismissed(); }
     }
 }

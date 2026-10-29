@@ -7,7 +7,7 @@ import { FocusOutline } from "focus.slint";
 import { KitFieldLabel, KitFieldError } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
 import { ListView } from "scroll.slint";
 
@@ -612,7 +612,7 @@ export component KitCombobox inherits Rectangle {
     callback tab-navigation(bool) -> EventResult;
     private property <bool> opened: root.state.open;
     private property <bool> tab-restore-complete;
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
     private property <length> row-height: max(48px, 32px * root.theme.text-scale);
     preferred-height: KitMetrics.control-height(root.theme, root.control-size);
     vertical-stretch: 0;
@@ -652,7 +652,7 @@ export component KitCombobox inherits Rectangle {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
             // Points up while the list is presented below the trigger.
-            KitIcon { kind: root.state.open ? IconKind.chevron-up : IconKind.chevron-down; ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
+            KitIcon { theme: root.theme; glyph: root.state.open ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
     }
     popup := PopupWindow {
@@ -684,7 +684,7 @@ export component KitCombobox inherits Rectangle {
                         Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
                         // The selected identity, independent of the active row.
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }

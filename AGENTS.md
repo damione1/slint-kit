@@ -44,6 +44,8 @@ Be precise once, in the type, so the compiler checks every consumer.
 
 Run `cargo run -p xtask --locked -- check` before submitting; it formats, verifies generated files, runs the tests and clippy with warnings denied, and checks for hard-coded design values. New behavior comes with a test in `tests` (keyboard, pointer, identity or geometry as relevant). For UI changes, exercise the actual interaction and inspect the rendering in light/dark themes and at 200% text. Report backend, device and accessibility qualification honestly; a passing headless test does not qualify IME or a screen reader.
 
+Lucide icon globals in `crates/kit-slint/ui/icons/lucide/` are generated from the single snapshot in `vendor/lucide/<version>/` by `cargo run -p xtask -- generate-icons`; never hand-edit them, and `check` rejects stale ones. The kit's own glyphs stay original in `KitGlyphs`.
+
 Components in `crates/kit-slint/ui` read geometry, colors, durations and font weights from theme tokens and recipes in `theme.slint`; `check` runs `lint-tokens`, which rejects other literals unless `xtask/token-allowlist.txt` lists them with a reason.
 
 ## Documentation

@@ -69,6 +69,25 @@ export component Example inherits Window {
 
 Les couleurs proviennent de la palette de Tailwind CSS, sous licence MIT, et Inter est sous SIL Open Font License 1.1 ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate. Slint dessine une seule ombre par élément et ne gère pas l’étalement (spread) : les cartes et les toasts peignent la couche dominante de leur ombre Tailwind, tandis que les dialogues et les popovers empilent les deux couches sur des rectangles rétrécis de l’étalement de chaque couche. Les contrôles restent plats. Avec le moteur de rendu logiciel, qui ne dessine pas d’ombre, les surfaces gardent leur bordure.
 
+## Icônes
+
+`KitIcon` et `KitIconButton` peignent un `IconGlyph`. Les glyphes propres au kit sont dans `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Toutes les icônes de [Lucide](https://lucide.dev) 1.64.0 sont aussi disponibles : `@kit/icons/lucide/all.slint` exporte `LucideIcons`, et chaque catégorie Lucide a son propre fichier avec les mêmes glyphes, par exemple `LucideArrows` dans `@kit/icons/lucide/arrows.slint`. Chaque icône est une fonction nommée : un nom mal orthographié échoue à la compilation, et seules les icônes appelées par l’application arrivent dans son binaire.
+
+```slint
+import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+
+export component Toolbar inherits HorizontalLayout {
+    spacing: 8px;
+    KitIconButton { glyph: LucideIcons.trash(); accessible-name: "Supprimer"; }
+    KitIcon { glyph: LucideIcons.cloud-check(); purpose: IconPurpose.informative; label: "Enregistré"; }
+}
+```
+
+La taille d’une icône suit `control-size` (14, 16 ou 20 px) multiplié par le `text-scale` du thème, et le trait garde le rapport du glyphe à sa grille : le trait Lucide de 2 unités sur 24 fait 1,33 px à 16 px et 2,67 px avec un texte à 200 %. Transmettez `ink` depuis la recette du composant qui l’entoure. Une icône est décorative par défaut et reste hors de l’arbre d’accessibilité ; quand elle porte un sens qu’aucun texte voisin ne donne, réglez `purpose: IconPurpose.informative` et un `label` : elle est alors annoncée comme une image.
+
+Les fichiers Lucide sont générés à partir d’une version recopiée dans le dépôt et ne sont jamais modifiés à la main. Lucide est sous licence ISC, et les icônes dérivées de Feather sont aussi sous licence MIT ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate.
+
 ## Taille et mise en page
 
 `ControlSize` vaut `compact`, `medium` ou `comfortable`. `ControlWidth.intrinsic` conserve la largeur du contenu ; `fill` utilise l’espace attribué par la mise en page. La hauteur est généralement intrinsèque. Donnez un viewport fini aux [composants de données virtualisées](/fr/components/#data) et conservez l’identité du modèle pendant le défilement.

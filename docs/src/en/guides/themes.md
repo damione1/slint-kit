@@ -69,6 +69,25 @@ export component Example inherits Window {
 
 The palette values come from the Tailwind CSS palette under the MIT license, and Inter is under the SIL Open Font License 1.1; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate. Slint draws one shadow per element and has no shadow spread: cards and toasts paint the dominant layer of their Tailwind shadow, while dialogs and popovers stack both layers on rectangles inset by each layer's spread. Controls stay flat. Under the software renderer, which draws no shadows, surfaces keep their border.
 
+## Icons
+
+`KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit/icons/lucide/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit/icons/lucide/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
+
+```slint
+import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+
+export component Toolbar inherits HorizontalLayout {
+    spacing: 8px;
+    KitIconButton { glyph: LucideIcons.trash(); accessible-name: "Delete"; }
+    KitIcon { glyph: LucideIcons.cloud-check(); purpose: IconPurpose.informative; label: "Saved"; }
+}
+```
+
+Icon size follows `control-size` (14, 16 or 20 px) multiplied by the theme's `text-scale`, and the stroke keeps the glyph's ratio to its grid, so Lucide's 2-unit stroke on 24 units draws 1.33 px at 16 px and 2.67 px at 200% text. Pass `ink` from the surrounding recipe. An icon is decorative by default and stays out of the accessibility tree; when it carries meaning that no nearby text gives, set `purpose: IconPurpose.informative` and a `label`, and it is announced as an image.
+
+The Lucide files are generated from a vendored release and never edited by hand. Lucide is under the ISC license, and the icons it derives from Feather are also under the MIT license; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate.
+
 ## Size and layout
 
 `ControlSize` is `compact`, `medium` or `comfortable`. `ControlWidth.intrinsic` preserves the component's content width; `fill` asks it to use the space allocated by its layout. Most component heights are intrinsic. Set a finite viewport for [virtualized data components](/components/#data), and keep their model identity stable while scrolling.

@@ -5,7 +5,7 @@ import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext } from "theme.slint";
 import { KitPressable } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
 export { StepDirection } from "shared-contracts.slint";
 
@@ -88,8 +88,9 @@ export component KitNumberStepper inherits KitField {
             activated => { root.step-requested(direction); }
             Rectangle {
                 KitIcon {
+                theme: root.theme;
                 x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                kind: direction == StepDirection.increment ? IconKind.plus : IconKind.minus;
+                glyph: direction == StepDirection.increment ? KitGlyphs.plus() : KitGlyphs.minus();
                 ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
                 }
             }

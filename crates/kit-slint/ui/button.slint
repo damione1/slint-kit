@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, IconGlyph } from "icons.slint";
 import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
@@ -182,7 +182,8 @@ export component KitResetButton inherits KitFormButton {
     intent: ButtonIntent.quiet;
 }
 export component KitIconButton inherits KitPressable {
-    in property <IconKind> icon: IconKind.close;
+    // The action's glyph, e.g. `KitGlyphs.close()` or `LucideIcons.trash()`.
+    in property <IconGlyph> glyph;
     intent: ButtonIntent.quiet;
     recipe: KitThemes.icon-button-recipe(root.theme, root.control-size);
     preferred-width: root.preferred-height;
@@ -190,7 +191,8 @@ export component KitIconButton inherits KitPressable {
     Rectangle {
         KitIcon {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-            kind: root.icon;
+            theme: root.theme;
+            glyph: root.glyph;
             ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         }
     }

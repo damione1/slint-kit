@@ -1,7 +1,7 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
@@ -295,7 +295,7 @@ export component KitSelect inherits Rectangle {
         if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); }
     }
     private property <ValidationPresentation> presented-validation: checks.show-error || root.state.selection-availability == SelectionAvailability.unavailable ? ValidationPresentation.invalid : root.validation;
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
     public function take-focus() { trigger.take-focus(); }
     public function cancel-press() {trigger.cancel-press();}
     min-height: KitMetrics.control-height(root.theme, root.control-size);
@@ -349,8 +349,9 @@ export component KitSelect inherits Rectangle {
                 }
                 // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: KitIcon {
+                    theme: root.theme;
                     y: (parent.height - self.height) / 2;
-                    kind: root.state.open ? IconKind.chevron-up : IconKind.chevron-down;
+                    glyph: root.state.open ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down();
                     ink: trigger.disabled ? root.icon.disabled-color : root.icon.color;
                 }
             }
@@ -392,7 +393,7 @@ export component KitSelect inherits Rectangle {
                             if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }

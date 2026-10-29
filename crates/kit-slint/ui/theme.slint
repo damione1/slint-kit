@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
+import { IconGlyph } from "icons/glyph.slint";
 export enum ControlSize { compact, medium, comfortable }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
@@ -84,7 +85,9 @@ export struct OptionRecipe {
     active-border: color, border-width: length, radius: length, padding-inline: length, height: length, font-size: length,
     focus: KitFocusRing,
 }
-export struct IconRecipe { size: length, stroke-width: length, color: color, disabled-color: color }
+// An icon's box and inks. Its stroke width depends on the glyph's grid as well:
+// see `KitThemes.icon-stroke-width`.
+export struct IconRecipe { size: length, color: color, disabled-color: color }
 // A severity's tint, edge and mark, so alerts stay distinguishable without
 // relying on their titles.
 export struct AlertRecipe { fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length }
@@ -120,6 +123,10 @@ export global KitMetrics {
     // of text with two spacing units above and below it.
     public pure function row-height(theme: KitTheme, size: ControlSize) -> length {
         return max(KitMetrics.control-height(theme, size), theme.typography.line-height-control * theme.text-scale + theme.spacing.unit * 4);
+    }
+    // Tailwind size-3.5/4/5, scaled with text so icons stay legible at 200%.
+    public pure function icon-size(theme: KitTheme, size: ControlSize) -> length {
+        return (size == ControlSize.compact ? 14px : size == ControlSize.comfortable ? 20px : 16px) * theme.text-scale;
     }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
@@ -357,8 +364,14 @@ export global KitThemes {
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
         };
     }
-    public pure function icon-recipe(theme: KitTheme) -> IconRecipe {
-        return { size: 16px, stroke-width: 1.7px, color: theme.text-secondary, disabled-color: theme.disabled-text };
+    public pure function icon-recipe(theme: KitTheme, size: ControlSize) -> IconRecipe {
+        return { size: KitMetrics.icon-size(theme, size), color: theme.text-secondary, disabled-color: theme.disabled-text };
+    }
+    // The glyph's stroke-to-grid ratio at the drawn extent, as an SVG stroke
+    // scales with its view box: Lucide's 2 on 24 is 1.33px at 16px and 2.67px
+    // at 32px. A glyph without a grid draws nothing.
+    public pure function icon-stroke-width(glyph: IconGlyph, extent: length) -> length {
+        return glyph.viewbox > 0 ? extent * glyph.stroke / glyph.viewbox : 0px;
     }
 }
 

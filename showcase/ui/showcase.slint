@@ -6,7 +6,7 @@ import { OptionRow, SelectState, DialogState, NavigationStep, CloseReason, Focus
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
 import { FieldAccess } from "@kit/contracts.slint";
-import { KitIcon, IconKind } from "@kit/icons.slint";
+import { KitIcon, KitGlyphs } from "@kit/icons.slint";
 import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 import { NavigationDrawer, NavigationGallery, NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
@@ -93,7 +93,7 @@ component ProjectTile inherits KitPressable {
         padding: 24px;
         spacing: 12px;
         HorizontalLayout {
-            KitIcon {kind:IconKind.arrow-up-right;ink:root.theme.on-accent;width:28px;height:28px;}
+            KitIcon {glyph:KitGlyphs.arrow-up-right();ink:root.theme.on-accent;width:28px;height:28px;}
             Rectangle { horizontal-stretch: 1; background: transparent; }
             Rectangle {
                 width: 62px; height: 24px; border-radius: 12px;
@@ -325,7 +325,7 @@ export component Showcase inherits Window {
                                             Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; overflow: elide; }
                                             Text { text: root.selected-detail; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
                                         }
-                                        Rectangle { width: 16px; horizontal-stretch: 0; KitIcon { kind: IconKind.chevron-down; ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; } }
+                                        Rectangle { width: 16px; horizontal-stretch: 0; KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; } }
                                     }
                                 }
                             }
@@ -435,7 +435,7 @@ export component Showcase inherits Window {
                             dismiss(reason) => { root.select-dismiss(reason); }
                             typeahead(text) => { root.select-typeahead(text); }
                             tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
-                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; } KitIcon { kind: IconKind.chevron-down; ink: root.theme.text-secondary; } }
+                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; } KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; } }
                             }
                         }
                         Text { text: "Try accents, emoji, selection, undo and paste. Escape closes one layer at a time."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }

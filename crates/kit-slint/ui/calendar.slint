@@ -8,7 +8,7 @@ import { KitValidityState } from "validation.slint";
 import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess } from "contracts.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
@@ -83,9 +83,9 @@ export component KitCalendar inherits Rectangle {
         spacing: root.theme.spacing.unit * 2;
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-left; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: KitGlyphs.chevron-left(); ink: root.theme.text-primary; } } }
             Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-right; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: KitGlyphs.chevron-right(); ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
             min-height: root.cell-height * 7;

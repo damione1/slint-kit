@@ -1,0 +1,160 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Compiles the generated Lucide globals (all.slint and every category file)
+// and exercises KitIcon sizing, stroke and accessibility.
+import { KitIcon, KitIconButton, KitGlyphs, IconGlyph, IconPurpose, IconRecipe, KitTheme, KitThemes, ControlSize } from "@kit/kit.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { LucideAccessibility } from "@kit/icons/lucide/accessibility.slint";
+import { LucideAccount } from "@kit/icons/lucide/account.slint";
+import { LucideAnimals } from "@kit/icons/lucide/animals.slint";
+import { LucideArrows } from "@kit/icons/lucide/arrows.slint";
+import { LucideBuildings } from "@kit/icons/lucide/buildings.slint";
+import { LucideCharts } from "@kit/icons/lucide/charts.slint";
+import { LucideCommunication } from "@kit/icons/lucide/communication.slint";
+import { LucideConnectivity } from "@kit/icons/lucide/connectivity.slint";
+import { LucideCursors } from "@kit/icons/lucide/cursors.slint";
+import { LucideDesign } from "@kit/icons/lucide/design.slint";
+import { LucideDevelopment } from "@kit/icons/lucide/development.slint";
+import { LucideDevices } from "@kit/icons/lucide/devices.slint";
+import { LucideEmoji } from "@kit/icons/lucide/emoji.slint";
+import { LucideFiles } from "@kit/icons/lucide/files.slint";
+import { LucideFinance } from "@kit/icons/lucide/finance.slint";
+import { LucideFoodBeverage } from "@kit/icons/lucide/food-beverage.slint";
+import { LucideGaming } from "@kit/icons/lucide/gaming.slint";
+import { LucideHome } from "@kit/icons/lucide/home.slint";
+import { LucideLayout } from "@kit/icons/lucide/layout.slint";
+import { LucideLettersDigits } from "@kit/icons/lucide/letters-digits.slint";
+import { LucideMail } from "@kit/icons/lucide/mail.slint";
+import { LucideMath } from "@kit/icons/lucide/math.slint";
+import { LucideMedical } from "@kit/icons/lucide/medical.slint";
+import { LucideMultimedia } from "@kit/icons/lucide/multimedia.slint";
+import { LucideNature } from "@kit/icons/lucide/nature.slint";
+import { LucideNavigation } from "@kit/icons/lucide/navigation.slint";
+import { LucideNotifications } from "@kit/icons/lucide/notifications.slint";
+import { LucidePeople } from "@kit/icons/lucide/people.slint";
+import { LucidePhotography } from "@kit/icons/lucide/photography.slint";
+import { LucideScience } from "@kit/icons/lucide/science.slint";
+import { LucideSeasons } from "@kit/icons/lucide/seasons.slint";
+import { LucideSecurity } from "@kit/icons/lucide/security.slint";
+import { LucideShapes } from "@kit/icons/lucide/shapes.slint";
+import { LucideShopping } from "@kit/icons/lucide/shopping.slint";
+import { LucideSocial } from "@kit/icons/lucide/social.slint";
+import { LucideSports } from "@kit/icons/lucide/sports.slint";
+import { LucideSustainability } from "@kit/icons/lucide/sustainability.slint";
+import { LucideText } from "@kit/icons/lucide/text.slint";
+import { LucideTime } from "@kit/icons/lucide/time.slint";
+import { LucideTools } from "@kit/icons/lucide/tools.slint";
+import { LucideTransportation } from "@kit/icons/lucide/transportation.slint";
+import { LucideTravel } from "@kit/icons/lucide/travel.slint";
+import { LucideWeather } from "@kit/icons/lucide/weather.slint";
+
+export component IconFixture inherits Window {
+    width: 480px;
+    height: 160px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <IconPurpose> arrow-purpose: IconPurpose.informative;
+    // The first icon of each category global, then the same icons from LucideIcons.
+    out property <[IconGlyph]> category-glyphs: [
+        LucideAccessibility.accessibility(),
+        LucideAccount.activity(),
+        LucideAnimals.bird(),
+        LucideArrows.arrow-big-down(),
+        LucideBuildings.anvil(),
+        LucideCharts.chart-area(),
+        LucideCommunication.antenna(),
+        LucideConnectivity.airplay(),
+        LucideCursors.circle-plus(),
+        LucideDesign.a-arrow-down(),
+        LucideDevelopment.ampersand(),
+        LucideDevices.alarm-clock(),
+        LucideEmoji.balloon(),
+        LucideFiles.app-window(),
+        LucideFinance.armenian-dram(),
+        LucideFoodBeverage.amphora(),
+        LucideGaming.amphora(),
+        LucideHome.air-vent(),
+        LucideLayout.align-center-horizontal(),
+        LucideLettersDigits.a-arrow-down(),
+        LucideMail.archive(),
+        LucideMath.angle(),
+        LucideMedical.accessibility(),
+        LucideMultimedia.activity(),
+        LucideNature.binoculars(),
+        LucideNavigation.barrel(),
+        LucideNotifications.ad(),
+        LucidePeople.baby(),
+        LucidePhotography.aperture(),
+        LucideScience.activity(),
+        LucideSeasons.flower-2(),
+        LucideSecurity.bomb(),
+        LucideShapes.astroid(),
+        LucideShopping.badge-cent(),
+        LucideSocial.activity(),
+        LucideSports.award(),
+        LucideSustainability.dam(),
+        LucideText.a-arrow-down(),
+        LucideTime.alarm-clock(),
+        LucideTools.anvil(),
+        LucideTransportation.ambulance(),
+        LucideTravel.alarm-smoke(),
+        LucideWeather.bubbles()
+    ];
+    out property <[IconGlyph]> all-glyphs: [
+        LucideIcons.accessibility(),
+        LucideIcons.activity(),
+        LucideIcons.bird(),
+        LucideIcons.arrow-big-down(),
+        LucideIcons.anvil(),
+        LucideIcons.chart-area(),
+        LucideIcons.antenna(),
+        LucideIcons.airplay(),
+        LucideIcons.circle-plus(),
+        LucideIcons.a-arrow-down(),
+        LucideIcons.ampersand(),
+        LucideIcons.alarm-clock(),
+        LucideIcons.balloon(),
+        LucideIcons.app-window(),
+        LucideIcons.armenian-dram(),
+        LucideIcons.amphora(),
+        LucideIcons.amphora(),
+        LucideIcons.air-vent(),
+        LucideIcons.align-center-horizontal(),
+        LucideIcons.a-arrow-down(),
+        LucideIcons.archive(),
+        LucideIcons.angle(),
+        LucideIcons.accessibility(),
+        LucideIcons.activity(),
+        LucideIcons.binoculars(),
+        LucideIcons.barrel(),
+        LucideIcons.ad(),
+        LucideIcons.baby(),
+        LucideIcons.aperture(),
+        LucideIcons.activity(),
+        LucideIcons.flower-2(),
+        LucideIcons.bomb(),
+        LucideIcons.astroid(),
+        LucideIcons.badge-cent(),
+        LucideIcons.activity(),
+        LucideIcons.award(),
+        LucideIcons.dam(),
+        LucideIcons.a-arrow-down(),
+        LucideIcons.alarm-clock(),
+        LucideIcons.anvil(),
+        LucideIcons.ambulance(),
+        LucideIcons.alarm-smoke(),
+        LucideIcons.bubbles()
+    ];
+    out property <IconGlyph> arrow-up: LucideIcons.arrow-up();
+    out property <IconGlyph> kit-check: KitGlyphs.check();
+    public pure function stroke-width(theme: KitTheme, size: ControlSize, glyph: IconGlyph) -> length {
+        return KitThemes.icon-stroke-width(glyph, KitThemes.icon-recipe(theme, size).size);
+    }
+    HorizontalLayout {
+        alignment: start;
+        spacing: 8px;
+        KitIcon { theme: root.theme; glyph: LucideIcons.arrow-up(); control-size: ControlSize.compact; purpose: root.arrow-purpose; label: "Sort ascending"; }
+        KitIcon { theme: root.theme; glyph: LucideIcons.circle-check(); purpose: IconPurpose.informative; label: "Saved"; }
+        KitIcon { theme: root.theme; glyph: LucideIcons.triangle-alert(); control-size: ControlSize.comfortable; purpose: IconPurpose.informative; label: "Warning"; }
+        decorative := KitIcon { theme: root.theme; glyph: KitGlyphs.search(); }
+        KitIconButton { theme: root.theme; glyph: LucideIcons.trash(); accessible-name: "Delete row"; }
+    }
+}

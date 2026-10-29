@@ -2,7 +2,7 @@
 import { ListView } from "scroll.slint";
 import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
@@ -96,8 +96,8 @@ export component KitDataTable inherits Rectangle {
                 HorizontalLayout {spacing: root.theme.spacing.unit * 1.5; alignment: column.alignment == DataAlignment.trailing ? end : column.alignment == DataAlignment.center ? center : start;
                     Text {horizontal-stretch: 0; max-width: self.preferred-width; text:column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-semibold;overflow:elide;vertical-alignment:center;}
                     if column.sort != DataSortDirection.unsorted: Rectangle {
-                        width: KitThemes.icon-recipe(root.theme).size; height: parent.height;
-                        KitIcon {y: (parent.height - self.height) / 2; kind:column.sort == DataSortDirection.ascending ? IconKind.chevron-up : IconKind.chevron-down;ink:root.theme.text-secondary;}
+                        width: KitMetrics.icon-size(root.theme, ControlSize.medium); height: parent.height;
+                        KitIcon {theme: root.theme; y: (parent.height - self.height) / 2; glyph:column.sort == DataSortDirection.ascending ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down();ink:root.theme.text-secondary;}
                     }
                 }
             }
@@ -164,7 +164,7 @@ export component KitContentList inherits Rectangle {
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
                 Rectangle {width:72px;height:72px;border-radius:root.theme.shape.radius-container;background:root.theme.hover;
                     if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
-                    if item.thumbnail == @image-url(""): KitIcon {x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;kind:IconKind.article;ink:root.theme.accent;}
+                    if item.thumbnail == @image-url(""): KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:KitGlyphs.article();ink:root.theme.accent;}
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
                     Text {text:item.title;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}

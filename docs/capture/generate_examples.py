@@ -36,9 +36,9 @@ for name in ['KitButton', 'KitFormButton', 'KitSubmitButton', 'KitResetButton']:
     label = {'KitResetButton':'Reset form', 'KitSubmitButton':'Create account'}.get(name, 'Save changes')
     add(name, f'{name} {{ theme: root.theme; text: "{label}"; activated => {{ root.status = "Action completed"; }} }}')
 add('KitPressable', 'KitPressable { theme: root.theme; accessible-name: "Add to collection"; activated => { root.status = "Added to collection"; } Text { text: "Add to collection"; color: root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; } }')
-add('KitIconButton', 'KitIconButton { theme: root.theme; icon: IconKind.plus; accessible-name: "New project"; activated => { root.status = "New project requested"; } }')
+add('KitIconButton', 'KitIconButton { theme: root.theme; glyph: KitGlyphs.plus(); accessible-name: "New project"; activated => { root.status = "New project requested"; } }')
 add('KitButtonGroup', 'KitButtonGroup { ' + button('Back') + button('Next') + ' }')
-add('KitIcon', 'HorizontalLayout { alignment: start; spacing: 24px; KitIcon { kind: IconKind.check; ink: root.theme.accent; } KitIcon { kind: IconKind.search; ink: root.theme.text-primary; } KitIcon { kind: IconKind.warning; ink: root.theme.warning; } }')
+add('KitIcon', 'HorizontalLayout { alignment: start; spacing: 24px; KitIcon { glyph: KitGlyphs.check(); ink: root.theme.accent; } KitIcon { glyph: KitGlyphs.search(); ink: root.theme.text-primary; } KitIcon { glyph: KitGlyphs.warning(); ink: root.theme.warning; } }')
 add('KitFocusTarget', 'KitFocusTarget { token: 42; generation: 1; request: { present: true, token: 42, generation: 1, request: 1 }; focus-requested => { editor.take-focus(); } editor := KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } }')
 
 values = {

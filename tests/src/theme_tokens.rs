@@ -546,8 +546,11 @@ fn recipes_reproduce_the_default_geometry() {
         assert_eq!(option.active_fill.color(), theme.pressed);
         assert_eq!(option.active_border, theme.focus.color);
         assert_eq!(option.focus.style, FocusRingStyle::Inside);
-        let icon = window.invoke_icon_glyph(theme.clone());
-        assert_eq!((icon.size, icon.stroke_width), (16., 1.7));
+        let icon = window.invoke_icon_glyph(theme.clone(), ControlSize::Medium);
+        assert_eq!(
+            (icon.size, icon.color, icon.disabled_color),
+            (16., theme.text_secondary, theme.disabled_text)
+        );
     }
 }
 
@@ -1195,4 +1198,16 @@ fn third_party_notices_ship_unchanged_with_the_published_crates() {
         license,
         std::fs::read_to_string(root.join("assets/branding/Inter-OFL.txt")).unwrap()
     );
+    // Lucide's ISC notice and Feather's MIT notice are quoted verbatim from
+    // the vendored snapshot the icon globals are generated from.
+    let snapshot = std::fs::read_dir(root.join("vendor/lucide"))
+        .unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.is_dir())
+        .unwrap();
+    let lucide = std::fs::read_to_string(snapshot.join("LICENSE")).unwrap();
+    assert!(notices.contains(lucide.trim_end()));
+    assert!(lucide.contains("ISC License") && lucide.contains("Cole Bemis"));
+    let version = snapshot.file_name().unwrap().to_string_lossy().into_owned();
+    assert!(notices.contains(&format!("vendor/lucide/{version}/")));
 }
