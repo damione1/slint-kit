@@ -1,0 +1,27 @@
+## {% if locale == 'fr' %}Choisir un format{% else %}Choose a format{% endif %}
+
+{% if locale == 'fr' %}L’exemple complet ci-dessus accepte `+1` et dix chiffres, par exemple `+15145550123`. Pour un numéro national français, gardez le zéro initial. Voici la configuration du contrôle :{% else %}The complete example above accepts `+1` and ten digits, such as `+15145550123`. For a French national number, preserve the leading zero. Configure the control as follows:{% endif %}
+
+```slint
+KitTelephoneField {
+    label: "Téléphone";
+    number-mode: PhoneNumberMode.national;
+    expected-digits: 10;
+    display-mask: "## ## ## ## ##";
+    text: "0612345678";
+}
+```
+
+{% if locale == 'fr' %}Affichage : `06 12 34 56 78`. Valeur : `0612345678`. Pour un numéro national nord-américain de dix chiffres, remplacez le masque par `###-###-####`.
+
+Pour adapter le projet complet à cet exemple français, remplacez aussi `rules()` par `PhoneRules::exact(PhoneNumberMode::National, 10)`, initialisez `0612345678` et retirez la regex `+1` dans Slint **et** Rust.
+
+Pour plusieurs longueurs internationales, utilisez `number-mode: PhoneNumberMode.international; min-digits: 8; max-digits: 15;` sans `expected-digits`. Le préfixe `+` est conservé. Configurez le masque et la regex selon le pays ; « européen » ne désigne pas un format unique.
+
+Dans Rust, utilisez les mêmes `PhoneRules::exact` ou `PhoneRules::new`, puis normalisez avec `FieldBinding::set_draft_normalizer` avant les contraintes HTML. Le projet complet montre ce branchement. La validation vérifie la forme et la longueur configurées, pas l’attribution ou l’existence de la ligne.{% else %}Display: `06 12 34 56 78`. Value: `0612345678`. For a ten-digit North American national number, replace the mask with `###-###-####`.
+
+To adapt the complete project to this French example, also change `rules()` to `PhoneRules::exact(PhoneNumberMode::National, 10)`, initialize `0612345678`, and remove the `+1` regex from **both** Slint and Rust.
+
+For variable international lengths, use `number-mode: PhoneNumberMode.international; min-digits: 8; max-digits: 15;` without `expected-digits`. The leading `+` is retained. Choose the mask and regex for the country; there is no single European phone format.
+
+Use matching `PhoneRules::exact` or `PhoneRules::new` in Rust, then normalize with `FieldBinding::set_draft_normalizer` before HTML constraints. The complete project shows this wiring. Validation checks the configured structure and length, not whether a line is assigned or reachable.{% endif %}

@@ -22,7 +22,7 @@ Fields already include `label`, `description` and `error`. [KitFieldLabel](/comp
 
 ## Initialize validation
 
-The complete projects use Slint Kit **0.3.0** and install the engine once per window. Export these types from your root Slint file, then initialize the Rust engine:
+The complete projects use Slint Kit **0.3** and install the engine once per window. Export these types from your root Slint file, then initialize the Rust engine:
 
 ```slint
 export { KitFormValidation, HtmlInputKind, NumberInputFormat,

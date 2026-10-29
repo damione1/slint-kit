@@ -35,8 +35,31 @@ parent `damiengoehrig.ca` property.
 
 Workers Builds runs `npm run build` in `docs`. In that environment only,
 `WORKERS_CI=1` provisions Rust 1.98.1, the wasm32 target and wasm-bindgen
-0.2.129 under ignored `.generated/tools`; release downloads are checksum-checked.
+0.2.129 under ignored `.cache/tools`; release downloads are checksum-checked.
 Local builds continue to use the developer's installed tools.
 Workers Builds uses Thin LTO and 16 codegen units for the generated preview
 bundle, instead of the monolithic full-LTO profile used by local release builds.
 This limits the resources required to optimize all 123 demos together.
+
+## Persistent build cache
+
+Cloudflare caches Eleventy's `docs/.cache` directory when build caching is
+enabled (npm's cache alone does not retain Rust compilation). In Workers Builds,
+Rust tools, the Cargo registry and compilation target live under this directory.
+GitHub Actions separately restores `docs/.cache/previews`, in addition to its
+existing Rust dependency cache.
+
+The final JavaScript/WASM artifacts are cached by source contents, actual Rust
+compiler identity, wasm-bindgen version and compilation flags. A fresh checkout's
+timestamps do not force a recompile. Modifying a starter, kit source, lockfile,
+toolchain or build configuration invalidates the cache. Ordinary website text
+and screenshot changes reuse the compiled previews. Asset checksums reject a
+corrupted cache entry. Source archives and dependency notices are regenerated
+on every build so downloads still match the current source.
+
+Logs explicitly report `WASM cache hit` or `WASM cache miss`. An expired or evicted
+provider cache causes a normal cold build. Run the cache regressions with:
+
+```sh
+python3 -m unittest discover -s docs/scripts -p 'test_web_cache.py'
+```

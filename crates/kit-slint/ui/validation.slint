@@ -20,11 +20,19 @@ export struct KitValidationResult {
 // Pure callbacks run the same native/WASM Rust engine; no browser DOM dependency.
 export global KitFormValidation {
     in-out property <bool> ready;
+    in-out property <bool> phone-focused;
+    in-out property <int> focus-generation;
     public pure function combine(a: KitValidityState, b: KitValidityState) -> KitValidityState { return {valid: a.valid && b.valid, value-missing: a.value-missing || b.value-missing, type-mismatch: a.type-mismatch || b.type-mismatch, pattern-mismatch: a.pattern-mismatch || b.pattern-mismatch, too-long: a.too-long || b.too-long, too-short: a.too-short || b.too-short, range-underflow: a.range-underflow || b.range-underflow, range-overflow: a.range-overflow || b.range-overflow, step-mismatch: a.step-mismatch || b.step-mismatch, bad-input: a.bad-input || b.bad-input, custom-error: a.custom-error || b.custom-error}; }
 
     pure callback valid-time-zone(string) -> bool;
     pure callback count-selected([ChoiceRow]) -> int;
     pure callback numeric-insertion(string) -> bool;
+    pure callback phone-insertion(string) -> bool;
+    pure callback phone-paste(string) -> bool;
+    pure callback phone-value(string) -> string;
+    pure callback phone-display(string, string) -> string;
+    pure callback phone-mask-error(string) -> string;
+    pure callback phone-error(string, bool, bool, int, int, string, string) -> string;
     pure callback evaluate(KitInputConstraints, string, bool, bool, int) -> KitValidationResult;
 }
 // A nonvisual state component, reusable with custom skins and composed fields.

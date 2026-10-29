@@ -1,25 +1,18 @@
 use slint::ComponentHandle;
 use slint_kit::*;
 slint::include_modules!();
-#[derive(Clone, PartialEq)]
-struct Value(String);
-fn parse(text: &str) -> DraftValue<Value> {
-    if text.is_empty() {
-        DraftValue::Empty
-    } else {
-        DraftValue::Parsed(Value(text.into()))
-    }
+fn rules() -> PhoneRules {
+    PhoneRules::exact(slint_kit::PhoneNumberMode::International, 11).expect("11 digit phone rule")
 }
-fn format(value: &Value) -> String {
-    value.0.clone()
-}
+fn parse(text: &str) -> DraftValue<PhoneNumber> { rules().parse(text) }
+fn format(value: &PhoneNumber) -> String { value.as_str().into() }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::init_form_validation!(self, app);
-    let initial = Value("+1 514 555 0123".into());
+    let initial = rules().validate("+15145550123").unwrap().unwrap();
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
-    let field = FieldBinding::<Value, ()>::new(
+    let field = FieldBinding::<PhoneNumber, ()>::new(
         Some(initial),
         Ownership::Local,
         CommitPolicy::OnBlur,
@@ -29,13 +22,17 @@ fn main() -> Result<(), slint::PlatformError> {
         |_| String::new(),
         move |view| {
             if let Some(app) = weak.upgrade() {
+                let intrinsic_invalid = view.html_validity.is_some_and(|flags| !flags.valid());
                 app.set_draft(view.draft.into());
-                app.set_error(view.error.into());
+                // The control presents matching intrinsic rules; Rust keeps business errors.
+                app.set_error(if intrinsic_invalid { String::new() } else { view.error }.into());
             }
         },
     );
+    field.set_draft_normalizer(|text| normalize_phone(text).map_err(|_| ParseIssue::InvalidSyntax));
     field.set_html_constraints(slint_kit::HtmlConstraints {
         kind: slint_kit::HtmlInputKind::Telephone, required: true,
+        pattern: Some(HtmlPattern::compile(r"\+1[0-9]{10}").expect("valid +1 pattern")),
         ..Default::default()
     });
     let weak = app.as_weak();

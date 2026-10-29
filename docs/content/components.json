@@ -2587,9 +2587,9 @@
   },
   "KitTelephoneField": {
     "fr": {
-      "summary": "Champ texte natif pour un numéro de téléphone.",
-      "usage": "Liez le brouillon et gérez la validation en Rust. Remplacez le parseur non vide de l’exemple par les règles de votre application.",
-      "behavior": "La finalité du champ fournit des indications de saisie ; l’exemple ne valide pas la syntaxe des adresses et ne contacte aucun service.",
+      "summary": "Champ téléphone strict avec longueur configurable, masque visuel et valeur sans séparateurs.",
+      "usage": "Choisissez `number-mode` : `national`, `international` (avec `+`) ou `either`. Utilisez `expected-digits` pour une longueur exacte, ou `min-digits` / `max-digits` pour une plage. Le `+` ne compte pas comme chiffre ; l’indicatif international compte. Reliez le brouillon à `FieldBinding<PhoneNumber>` et utilisez les mêmes `PhoneRules` côté Rust.",
+      "behavior": "Les lettres et espaces tapés sont refusés. Un collage déjà formaté est accepté si tous ses caractères sont pris en charge ; la valeur canonique retire les séparateurs. `display-mask` emploie `#` pour chaque chiffre, par exemple `###-###-####` ou `## ## ## ## ##`. Le masque apparaît au repos ; le focus conserve l’éditeur natif et son brouillon. `value`, `value-edited` et `commit-requested` utilisent la valeur canonique. Un numéro reste une chaîne pour conserver ses zéros et son `+`. `pattern` est une regex de validation de cette valeur, distincte du masque.",
       "related": [
         "KitMaskedField",
         "KitTextField"
@@ -2598,9 +2598,9 @@
       "seoTitle": "Champ téléphone pour Slint"
     },
     "en": {
-      "summary": "Native text field for a telephone number.",
-      "usage": "Bind the text draft and handle commit requests in Rust. Replace the example’s nonempty parser with the rules your application needs.",
-      "behavior": "The input purpose supplies editing hints; the sample does not validate address syntax or contact external services.",
+      "summary": "Strict phone field with configurable digit counts, a display mask and a separator-free value.",
+      "usage": "Choose `number-mode`: `national`, `international` (with `+`) or `either`. Use `expected-digits` for an exact count, or `min-digits` / `max-digits` for a range. The leading `+` is excluded from the count; the country calling code is included. Bind the draft to `FieldBinding<PhoneNumber>` and use matching `PhoneRules` in Rust.",
+      "behavior": "Typed letters and spaces are blocked. Formatted paste is accepted when every character is supported; canonical values remove separators. `display-mask` uses a `#` for each digit, for example `###-###-####` or `## ## ## ## ##`. Formatting appears at rest; focus preserves the native editor and its draft. `value`, `value-edited` and phone commit events use the canonical value. Phone numbers stay strings to preserve leading zeros and `+`. `pattern` validates that value with a regex and remains separate from the display mask.",
       "related": [
         "KitMaskedField",
         "KitTextField"

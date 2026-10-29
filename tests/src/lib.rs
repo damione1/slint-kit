@@ -769,3 +769,5 @@ mod numeric_input;
 mod select_geometry;
 
 mod html_validation;
+
+mod phone;

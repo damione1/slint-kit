@@ -5,7 +5,7 @@ import { KitButton } from "@kit/button.slint";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
 import { KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit/field.slint";
-import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField } from "@kit/input.slint";
+import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField, PhoneNumberMode } from "@kit/input.slint";
 import { NumberInputFormat } from "@kit/shared-contracts.slint";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
 import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, ChipRow, SearchPresentation } from "@kit/choice.slint";
@@ -291,7 +291,8 @@ export component FormGallery inherits VerticalLayout {
         }
         KitTelephoneField {
             theme: root.theme; control-size: root.control-size; access: FormExamples.access;
-            label: "Phone"; placeholder: "+1 514 555 0100";
+            label: "Phone"; placeholder: "+15145550100";
+            number-mode: PhoneNumberMode.international; min-digits: 7; max-digits: 15; display-mask: "+# ### ### ####";
             text <=> FormExamples.phone-text; validation: FormExamples.phone-validation; error: FormExamples.phone-error; character-count: FormExamples.phone-count;
             private property <int> focus-sequence: FormExamples.text-focus-sequence;
             changed focus-sequence => {if (FormExamples.text-focus-target == TextExample.phone) {self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}}

@@ -97,3 +97,31 @@ credential/password-manager autofill, browser datalists, browser-specific soft
 keyboards and Display-P3 CSS color parsing require separate host/backend support.
 The platform may ignore input-method hints. No placeholder attributes are exposed
 as promises of unsupported browser services.
+
+
+## Phone numbers
+
+`KitTelephoneField` adds strict phone rules to the native editor. It blocks typed
+letters and separators; formatted paste is accepted without silently dropping
+letters. The canonical `value` and phone commit event contain digits and an
+optional leading `+`. `edited` retains the native draft; `value-edited` supplies
+the canonical value separately. Use the typed `PhoneNumber` string in Rust so a
+national leading zero is preserved.
+
+Choose `number-mode: PhoneNumberMode.national`, `.international` or `.either`.
+Set `expected-digits` for an exact count, or `min-digits` and `max-digits` for a
+range within 1–15 digits. The country calling code counts; `+` does not. Match
+these settings with `PhoneRules::exact` or `PhoneRules::new` in the host parser.
+`pattern` remains a regex on the canonical value. Use
+`FieldBinding::set_draft_normalizer` with `normalize_phone` before HTML rules so
+formatted paste receives the same validation in Rust.
+
+`display-mask` uses `#` digit slots: `###-###-####`, `## ## ## ## ##`, or
+`+# (###) ###-####`. It formats the field at rest; focus preserves the native
+draft, cursor, selection and undo. It never changes the canonical value or hides
+overflowing digits. Invalid masks expose `format-error` and display the canonical
+value. Masks do not verify country allocation or whether a line exists.
+
+HTML's unopinionated telephone state is still available with
+`KitTextField { input-kind: HtmlInputKind.telephone; }`. Its HTML validation rules
+have not been narrowed globally.

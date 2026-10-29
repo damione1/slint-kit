@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tarfile
 import importlib.util
+from web_cache import compilation_key, restore, save
 
 DOCS = Path(__file__).resolve().parents[1]
 ROOT = DOCS.parent
@@ -33,22 +34,31 @@ def build():
     target = Path(os.environ.get('SLINT_WEB_TARGET_DIR', ROOT / 'target/doc-previews')).resolve()
     environment = {**os.environ, 'CARGO_TARGET_DIR': str(target)}
     environment.pop('SLINT_PREVIEW_COMPONENTS', None)
-    run('cargo', 'build', '--manifest-path', 'docs/preview/Cargo.toml', '--locked',
-        '--release', '--target', 'wasm32-unknown-unknown', env=environment)
-    output = DOCS / '.generated/web'
-    shutil.rmtree(output, ignore_errors=True)
-    temporary = output / 'build'
-    temporary.mkdir(parents=True)
-    run(bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name',
-        'slint_kit_previews', str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm'))
     # Archive the corresponding application, build tools and local platform fix.
     # Dependencies remain pinned by Cargo.lock and available from their source registries.
     files = [ROOT / name for name in ['Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md']]
     files += [p for p in (ROOT / 'crates').rglob('*') if p.is_file() and 'target' not in p.parts]
     files += [p for p in (DOCS / 'preview').rglob('*') if p.is_file() and 'target' not in p.parts]
-    files += [DOCS / 'scripts/build-web-previews.py', DOCS / 'scripts/web-tools.py', DOCS / 'content/starters.json']
+    files += [DOCS / 'scripts/build-web-previews.py', DOCS / 'scripts/web-tools.py', DOCS / 'scripts/web_cache.py', DOCS / 'content/starters.json']
     for slug in json.loads((DOCS / 'content/starters.json').read_text()):
         files += [DOCS / 'quickstart' / slug / name for name in ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint']]
+    rustc = subprocess.check_output(['rustc', '-vV'], env=environment, text=True).strip()
+    key = compilation_key(ROOT, files, rustc, version, environment)
+    cache = DOCS / '.cache/previews'
+    output = DOCS / '.generated/web'
+    shutil.rmtree(output, ignore_errors=True)
+    temporary = output / 'build'
+    temporary.mkdir(parents=True)
+    if restore(cache, key, temporary):
+        print(f'WASM cache hit {key[:16]}: skipping Rust compilation and wasm-bindgen', flush=True)
+    else:
+        print(f'WASM cache miss {key[:16]}: compiling preview sources', flush=True)
+        run('cargo', 'build', '--manifest-path', 'docs/preview/Cargo.toml', '--locked',
+            '--release', '--target', 'wasm32-unknown-unknown', env=environment)
+        run(bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name',
+            'slint_kit_previews', str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm'))
+        save(cache, key, temporary)
+    # Source archives and notices are refreshed even when compilation is cached.
     with (temporary / 'source.tar.gz').open('wb') as compressed, gzip.GzipFile(fileobj=compressed, mode='wb', mtime=0, filename='') as gzip_stream, tarfile.open(fileobj=gzip_stream, mode='w') as archive:
         for file in sorted(set(files)):
             content = file.read_bytes()

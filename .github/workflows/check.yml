@@ -34,4 +34,10 @@ jobs:
           workspaces: docs/preview -> ../../target/doc-previews
       - run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
       - run: npm ci --prefix docs
+      - uses: actions/cache@v4
+        with:
+          path: docs/.cache/previews
+          key: ${{ runner.os }}-docs-previews-v1-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-docs-previews-v1-
+      - run: python3 -m unittest discover -s docs/scripts -p 'test_web_cache.py'
       - run: npm --prefix docs run build
