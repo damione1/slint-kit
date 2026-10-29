@@ -116,6 +116,9 @@ def main():
     parser.add_argument('--exercise', action='store_true', help='Fresh Button runs: pointer, then Tab/Space')
     args = parser.parse_args()
     binary = args.binary.resolve(strict=True)
+    library = subprocess.check_output([str(binary), '--print-ui-directory'], text=True).strip()
+    if Path(library).resolve() != (ROOT / 'crates/kit-slint/ui').resolve():
+        parser.error(f'Capture binary uses {library}; rebuild for this checkout in a separate target directory.')
     slugs = args.slugs or sorted(p.stem for p in (ROOT / 'docs/examples').glob('*.slint'))
     for locale in (['en', 'fr'] if args.locale == 'both' else [args.locale]):
         for slug in slugs:

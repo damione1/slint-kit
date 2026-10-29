@@ -23,7 +23,7 @@ const server = http.createServer(async (request, response) => {
     const content = await fs.readFile(target);
     // Force the old delayed-script bug to surface even on a fast local machine.
     if (/^\/assets\/(?:versioned\/)?site(?:\.[a-f0-9]{16})?\.js$/.test(route)) await pause(1200);
-    if (/\/assets\/components\/button(?:-fr)?(?:@2x)?\.png$/.test(route)) await pause(1500);
+    if (/\/assets\/components\/button(?:-fr)?(?:@2x)?\.png$/.test(route) || /^\/assets\/versioned\/button\.[a-f0-9]{16}\.png$/.test(route)) await pause(1500);
     response.writeHead(200, { 'Content-Type': mime[path.extname(target)] || 'text/plain', 'Cache-Control': route.startsWith('/assets/previews/') ? 'public, max-age=31536000, immutable' : 'no-store' });
     response.end(content);
   } catch {
@@ -100,6 +100,29 @@ try {
   await call('Network.setCacheDisabled', { cacheDisabled: true });
   await call('Page.bringToFront');
   sourceId = (await call('Page.addScriptToEvaluateOnNewDocument', { source: `window.auditShifts=[];new PerformanceObserver(list=>{for(const item of list.getEntries())if(!item.hadRecentInput)window.auditShifts.push(item.value)}).observe({type:'layout-shift',buffered:true});` })).identifier;
+  // Inspect meaningful open states as well as constructors: an unopened
+  // dialog's canvas only shows its launcher.
+  for (const [slug, x, y] of [['dialog-surface', 90, 44], ['drawer', 90, 44],
+    ['combobox', 140, 44], ['select', 140, 44], ['select-trigger', 140, 44],
+    ['multi-select', 140, 84], ['tooltip', 90, 44], ['tooltip-layer', 90, 44]]) {
+    await navigate(`/preview/?component=${slug}`);
+    for (let count = 0; count < 300; count++) {
+      if (await evaluate('Boolean(window.previewReady || window.previewError)')) break;
+      await pause(100);
+    }
+    assert(await evaluate('Boolean(window.previewReady && !window.previewError)'), `${slug}: open-state startup`);
+    await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
+    await call('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, x, y });
+    await call('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, x, y });
+    await pause(500);
+    const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
+    const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
+      clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
+    const visualOutput = path.join(docs, '.verification/visual-qa/web');
+    await fs.mkdir(visualOutput, { recursive: true });
+    await fs.writeFile(path.join(visualOutput, `${slug}-open.png`), Buffer.from(capture.data, 'base64'));
+    results.push({ name: 'browser-preview-open-state', component: slug });
+  }
   for (const locale of ['en', 'fr']) {
     const prefix = locale === 'fr' ? '/fr' : '';
     for (const [name, route, width, dark, text200, pixelDensity = 1] of [
@@ -127,7 +150,11 @@ try {
       if (text200) await evaluate('document.documentElement.style.fontSize="32px"');
       assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), `${locale}/${name}: document overflow`);
       const imageSource = await evaluate('document.querySelector(".component-preview img")?.currentSrc || null');
-      if (pixelDensity === 2) assert(imageSource?.endsWith('@2x.png'), `${locale}/${name}: browser must load the native 2x source`);
+      if (pixelDensity === 2) {
+        if (route.includes('/components/')) {
+          assert(await evaluate('(()=>{const image=document.querySelector(".component-preview img");return image.naturalWidth === 2 * parseFloat(image.style.width)})()'), `${locale}/${name}: poster must retain native 2x pixels`);
+        } else assert(imageSource?.endsWith('@2x.png'), `${locale}/${name}: browser must load the native 2x source`);
+      }
       const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       await fs.writeFile(path.join(output, `${locale}-${name}.png`), Buffer.from(capture.data, 'base64'));
       results.push({ locale, name, route, width, dark, text200, pixelDensity, imageSource, cls });
@@ -181,6 +208,12 @@ try {
     }
     const state = await evaluate('({ready:window.previewReady,error:window.previewError,width:document.querySelector("canvas").width,height:document.querySelector("canvas").height})');
     assert(state.ready && !state.error && state.width > 0 && state.height > 0, `${slug}: browser startup ${JSON.stringify(state)}`);
+    const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
+    const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
+      clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
+    const visualOutput = path.join(docs, '.verification/visual-qa/web');
+    await fs.mkdir(visualOutput, { recursive: true });
+    await fs.writeFile(path.join(visualOutput, `${slug}.png`), Buffer.from(capture.data, 'base64'));
     results.push({ name: 'browser-preview-startup', component: slug, ...state });
   }
   for (const locale of ['en', 'fr']) {
@@ -207,6 +240,31 @@ try {
     await click('.run-preview');
     assert(await evaluate('!document.querySelector("iframe") && !document.querySelector(".component-preview").hidden'), 'Stop preview must release the browser app and restore its poster');
     results.push({ name:'on-demand-mobile-preview', locale, loaded:true, stopped:true });
+  }
+  // An iframe can fit the page while its canvas/credits still overflow inside.
+  // Check the desktop gutter, retina, mobile scaling and enlarged credits.
+  for (const [width, density] of [[1500, 1], [1500, 2], [375, 2]]) {
+    await call('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: density, mobile: false });
+    await navigate('/fr/components/input-group/');
+    await click('.run-preview');
+    for (let count = 0; count < 300; count++) {
+      if (await evaluate('document.querySelector(".component-preview").hidden')) break;
+      await pause(100);
+    }
+    await evaluate('document.querySelector("iframe").contentDocument.querySelector("footer").style.fontSize="22px"');
+    await pause(300);
+    const geometry = await evaluate(`(() => {
+      const host = document.querySelector('.preview-frame').getBoundingClientRect();
+      const frame = document.querySelector('iframe'); const bounds = frame.getBoundingClientRect();
+      const innerDocument = frame.contentDocument;
+      return { centered: Math.abs(bounds.x + bounds.width / 2 - host.x - host.width / 2) < 1,
+        fitted: bounds.width <= host.width && bounds.height <= host.height,
+        noHorizontalOverflow: innerDocument.documentElement.scrollWidth <= frame.contentWindow.innerWidth,
+        noVerticalOverflow: innerDocument.documentElement.scrollHeight <= frame.contentWindow.innerHeight,
+        footerVisible: innerDocument.querySelector('footer').getBoundingClientRect().bottom <= frame.contentWindow.innerHeight + 1 };
+    })()`);
+    assert(Object.values(geometry).every(Boolean), `Preview geometry ${width}/${density}: ${JSON.stringify(geometry)}`);
+    results.push({ name: 'preview-canvas-and-credits-fit', width, density, ...geometry });
   }
   passed = true;
   console.log(`Browser checks PASS: ${results.filter(row => row.route).length} page captures, ${results.filter(row => row.name === "browser-preview-startup").length} preview startups, EN/FR on-demand mobile previews, delayed script/image CLS, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);

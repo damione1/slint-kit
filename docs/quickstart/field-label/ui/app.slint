@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldLabel, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitField, KitFieldLabel, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component App inherits Window {
     title: "KitFieldLabel example";
@@ -12,6 +12,8 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Field Label"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitFieldLabel { theme: root.theme; text: "Email address";  focus-requested => { editor.take-focus(); } } editor := KitTextField { theme: root.theme; placeholder: "you@example.com"; }
+        KitField {
+            KitFieldLabel { theme: root.theme; text: "Email address";  focus-requested => { editor.take-focus(); } } editor := KitTextField { theme: root.theme; placeholder: "you@example.com"; }
+        }
     }
 }

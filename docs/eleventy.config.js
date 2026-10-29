@@ -37,6 +37,15 @@ export default function (eleventyConfig) {
     }
     return versionedAssets.get(sourceUrl).url;
   });
+  eleventyConfig.addFilter('starterPoster', slug => {
+    const key = `starter:${slug}`;
+    if (!versionedAssets.has(key)) {
+      const content = fs.readFileSync(path.join('quickstart', slug, 'preview@2x.png'));
+      const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
+      versionedAssets.set(key, { url: `/assets/versioned/${slug}.${hash}.png`, content });
+    }
+    return versionedAssets.get(key).url;
+  });
   eleventyConfig.on('eleventy.after', () => {
     for (const { url, content } of versionedAssets.values()) {
       const target = path.join('_site', url.slice(1));

@@ -19,9 +19,9 @@ export component App inherits Window {
             height: content.preferred-height;
             content := VerticalLayout {
                 padding: 20px; spacing: 14px;
-                header := KitDialogHeader { theme: root.theme; height: self.preferred-height; Text { text: "Archive this project?"; color: root.theme.text-primary; font-size: 20px; } }
+                header := KitDialogHeader { theme: root.theme; height: self.preferred-height; Text { text: "Archive this project?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; wrap: word-wrap; } }
                 body := KitDialogBody { theme: root.theme; height: self.preferred-height; Text { text: "You can restore it from the archive."; color: root.theme.text-primary; wrap: word-wrap; } }
-                footer := KitDialogFooter { theme: root.theme; height: 48px; KitButton { text: "Archive project"; disabled: root.archived; activated => { root.archive(); } } }
+                footer := KitDialogFooter { theme: root.theme; height: 48px; KitButton { theme: root.theme; text: "Archive project"; disabled: root.archived; activated => { root.archive(); } } }
             }
         }
         result := Text { text: root.archived ? "Project archived" : "Project active"; color: root.theme.text-primary; }

@@ -15,7 +15,7 @@ fn format(value: &Value) -> String {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
-    let initial = Value("ada@example.com".into());
+    let initial = Value("alex@example.com".into());
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
     let field = FieldBinding::<Value, ()>::new(

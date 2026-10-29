@@ -20,6 +20,6 @@ HTML using the existing generated previews.
 
 The preview package compiles each exact `docs/quickstart/<component>/ui/app.slint`
 and its Rust `main` as an isolated module. The browser package uses the local
-kit adapter for its browser clock fix; downloadable native starters consume
+kit adapter for the browser clock and numeric input fixes; downloadable native starters consume
 crates.io. `NOTICE.txt` and the corresponding source archive accompany each
 content-addressed preview build. See Slint’s [web backend documentation](https://docs.slint.dev/latest/docs/slint/guide/platforms/web/).

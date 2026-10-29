@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, KitTextField, KitTheme, KitThemes, ValidationPresentation } from "@kit/kit.slint";
+import { KitField, KitFieldError, KitTextField, KitTheme, KitThemes, ValidationPresentation } from "@kit/kit.slint";
 
 export component App inherits Window {
     title: "KitFieldError example";
@@ -13,6 +13,8 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Field Error"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitTextField { theme: root.theme; label: "Email"; text <=> root.draft-0; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }
+        KitField {
+            KitTextField { theme: root.theme; label: "Email"; text <=> root.draft-0; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }
+        }
     }
 }

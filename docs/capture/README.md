@@ -5,6 +5,20 @@ public `@kit` imports. It uses Slint 1.18.1, **winit/Skia** and an active deskto
 Examples are presentation fixtures; the integration applications additionally
 exercise real Rust controllers.
 
+For the working projects in `docs/quickstart`, capture a clean poster separately
+from interaction tests, using one shared build cache:
+
+```sh
+python3 -B docs/scripts/capture-starters.py input-group field \
+  --target-dir /path/to/shared-native-target
+# Show an overlay in a fresh window without leaving arbitrary test input behind:
+python3 -B docs/scripts/capture-starters.py drawer \
+  --activate 'Open project details' --target-dir /path/to/shared-native-target
+```
+
+Inspect every changed poster and its interactive browser preview. Browser checks
+save canvas captures for visual review in `.verification/visual-qa/web`.
+
 Build the embedded MCP server for development without changing the library’s
 default features:
 

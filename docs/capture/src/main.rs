@@ -64,6 +64,10 @@ fn save(window: &slint::Window, path: &Path) -> Result<()> {
 
 fn main() -> Result<()> {
     let args: Vec<_> = std::env::args().skip(1).collect();
+    if args.iter().any(|arg| arg == "--print-ui-directory") {
+        println!("{}", kit_build::ui_directory().display());
+        return Ok(());
+    }
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
             "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures all 123 examples; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter capture: python3 docs/capture/provenance.py"

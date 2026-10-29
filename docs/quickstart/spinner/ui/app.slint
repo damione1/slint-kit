@@ -14,8 +14,8 @@ export component App inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        control := KitSpinner { theme: root.theme; label: "Loading projects"; running: root.running; }
-        KitButton { text: root.running ? "Stop loading" : "Start loading"; activated => { root.toggle(); } }
+        control := KitSpinner { visible: root.running; theme: root.theme; label: "Loading projects"; running: root.running; }
+        KitButton { theme: root.theme; text: root.running ? "Stop loading" : "Start loading"; activated => { root.toggle(); } }
         result := Text { text: root.running ? "Loading projects" : "Loading stopped"; color: root.theme.text-primary; }
     }
 

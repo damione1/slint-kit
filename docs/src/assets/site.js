@@ -50,7 +50,8 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     if (!frame) return;
     const ratio = Math.min(1, host.clientWidth / width);
     frame.style.width = `${width}px`; frame.style.height = `${height}px`;
-    frame.style.transform = `scale(${ratio})`; host.style.height = `${height * ratio}px`;
+    frame.style.transform = `translateX(-50%) scale(${ratio})`;
+    host.style.height = `${Math.ceil(height * ratio) + 2}px`;
   };
   const failed = () => {
     clearTimeout(timeout); frame?.remove(); frame = null; host.hidden = true;

@@ -9,7 +9,7 @@ eleventyExcludeFromCollections: true
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Slint Kit interactive preview</title>
-<style>html,body{margin:0;padding:0;background:#f7f9fb}canvas{display:block;touch-action:none;outline:none}#error{font:14px system-ui;padding:16px;color:#9b1c1c}footer{font:11px system-ui;padding:8px}a{color:#4736bd}</style>
+<style>html,body{margin:0;padding:0;overflow:hidden;background:#f7f9fb}canvas{display:block;touch-action:none;outline:none}#error{font:14px system-ui;padding:16px;color:#9b1c1c}footer{box-sizing:border-box;font:11px/1.5 system-ui;padding:8px;overflow-wrap:anywhere}a{color:#4736bd}</style>
 </head>
 <body>
 <canvas id="canvas" tabindex="0" aria-label="Interactive Slint component"></canvas>
@@ -25,7 +25,7 @@ canvas.setAttribute('aria-label', french ? 'Composant Slint interactif' : 'Inter
 function message(state, error) {
   const rectangle = canvas.getBoundingClientRect();
   parent.postMessage({type:'slint-kit-preview', component:parameters.get('component'), state,
-    width:rectangle.width, height:rectangle.height + 30, error}, location.origin);
+    width:rectangle.width, height:Math.ceil(document.querySelector('footer').getBoundingClientRect().bottom), error}, location.origin);
 }
 try {
   if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
@@ -38,6 +38,7 @@ try {
   window.previewReady = true;
   requestAnimationFrame(() => message('ready'));
   new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(canvas);
+  new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(document.querySelector('footer'));
 } catch(error) {
   window.previewError = String(error);
   const status = document.querySelector('#error'); status.hidden = false;
