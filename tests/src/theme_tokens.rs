@@ -22,6 +22,9 @@ enum Token {
     Elevation(ElevationLevel),
     // Both ring styles are real geometry: no variant stands for "unset".
     RingStyle,
+    // A zero shadow spread is real geometry (Tailwind's sm and xs key layers),
+    // so a forgotten spread cannot be told apart; the literals name every one.
+    Spread,
 }
 impl Token {
     fn is_zero(&self) -> bool {
@@ -33,23 +36,26 @@ impl Token {
             Token::Text(value) => value.is_empty(),
             Token::Flag(value) => !*value,
             Token::Elevation(level) => *level == ElevationLevel::None,
-            Token::RingStyle => false,
+            Token::RingStyle | Token::Spread => false,
         }
     }
 }
 
-fn shadow(tokens: &mut Vec<(String, Token)>, name: &str, layer: ShadowLayer) {
-    let ShadowLayer {
-        offset_y,
-        blur,
-        color,
-    } = layer;
-    tokens.push((
-        format!("elevation.{name}.offset-y"),
-        Token::Length(offset_y),
-    ));
-    tokens.push((format!("elevation.{name}.blur"), Token::Length(blur)));
-    tokens.push((format!("elevation.{name}.color"), Token::Color(color)));
+fn shadow(tokens: &mut Vec<(String, Token)>, name: &str, value: KitShadow) {
+    let KitShadow { key, ambient } = value;
+    for (layer_name, layer) in [("key", key), ("ambient", ambient)] {
+        let ShadowLayer {
+            offset_y,
+            blur,
+            spread: _,
+            color,
+        } = layer;
+        let path = format!("elevation.{name}.{layer_name}");
+        tokens.push((format!("{path}.offset-y"), Token::Length(offset_y)));
+        tokens.push((format!("{path}.blur"), Token::Length(blur)));
+        tokens.push((format!("{path}.spread"), Token::Spread));
+        tokens.push((format!("{path}.color"), Token::Color(color)));
+    }
 }
 fn density(tokens: &mut Vec<(String, Token)>, name: &str, value: KitControlDensity) {
     let KitControlDensity {
@@ -261,8 +267,28 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     tokens
 }
 
-/// Tokens a shipped theme may leave at the zero value, with the reason.
+/// The shipped theme families. Each allows its own zero tokens.
+#[derive(Clone, Copy, Debug)]
+enum ThemeFamily {
+    Kit,
+    Tailwind,
+}
+
+/// Tokens every shipped theme may leave at the zero value, with the reason.
 const ZERO_ALLOWED: &[(&str, &str)] = &[
+    (
+        "elevation.xs.ambient.offset-y",
+        "shadow-xs is a single layer",
+    ),
+    ("elevation.xs.ambient.blur", "shadow-xs is a single layer"),
+    ("elevation.xs.ambient.color", "shadow-xs is a single layer"),
+    (
+        "reduced-motion",
+        "motion is on until the host reports the preference",
+    ),
+];
+/// Tokens only the Kit themes may leave at the zero value.
+const KIT_ZERO_ALLOWED: &[(&str, &str)] = &[
     (
         "typography.family",
         "empty keeps the window's default font family",
@@ -274,16 +300,44 @@ const ZERO_ALLOWED: &[(&str, &str)] = &[
     ),
     ("elevation.overlay", "the default themes draw flat overlays"),
     ("elevation.popover", "the default themes draw flat popovers"),
-    (
-        "reduced-motion",
-        "motion is on until the host reports the preference",
-    ),
 ];
+/// Tokens only the Tailwind themes may leave at the zero value.
+const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[(
+    "elevation.control",
+    "a drop-shadow on a control repeated in a layout inflates its measured height",
+)];
+
+fn zero_allowed(
+    family: ThemeFamily,
+) -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    let own = match family {
+        ThemeFamily::Kit => KIT_ZERO_ALLOWED,
+        ThemeFamily::Tailwind => TAILWIND_ZERO_ALLOWED,
+    };
+    ZERO_ALLOWED.iter().chain(own)
+}
+
+fn shipped_themes(window: &ThemeTokenFixture) -> [(&'static str, ThemeFamily, KitTheme); 4] {
+    [
+        ("light", ThemeFamily::Kit, window.get_light()),
+        ("dark", ThemeFamily::Kit, window.get_dark()),
+        (
+            "tailwind-light",
+            ThemeFamily::Tailwind,
+            window.get_tailwind_light(),
+        ),
+        (
+            "tailwind-dark",
+            ThemeFamily::Tailwind,
+            window.get_tailwind_dark(),
+        ),
+    ]
+}
 
 #[test]
 fn every_shipped_theme_sets_every_token() {
     let window = fixture();
-    for (name, theme) in [("light", window.get_light()), ("dark", window.get_dark())] {
+    for (name, family, theme) in shipped_themes(&window) {
         let tokens = tokens(theme);
         let zero: Vec<&str> = tokens
             .iter()
@@ -292,17 +346,17 @@ fn every_shipped_theme_sets_every_token() {
             .collect();
         let unexpected: Vec<&&str> = zero
             .iter()
-            .filter(|path| !ZERO_ALLOWED.iter().any(|(allowed, _)| allowed == *path))
+            .filter(|path| !zero_allowed(family).any(|(allowed, _)| allowed == *path))
             .collect();
         assert!(
             unexpected.is_empty(),
             "{name} theme leaves tokens at their zero value: {unexpected:?}"
         );
         // An allowlist entry that no longer applies hides nothing; drop it.
-        for (allowed, reason) in ZERO_ALLOWED {
+        for (allowed, reason) in zero_allowed(family) {
             assert!(
-                tokens.iter().any(|(path, _)| path == allowed),
-                "allowlisted token {allowed} ({reason}) is not a theme token"
+                zero.contains(allowed),
+                "allowlisted token {allowed} ({reason}) is set in {name}; drop the entry"
             );
         }
     }
@@ -566,7 +620,12 @@ fn every_public_component_is_in_the_theme_matrix() {
     let ui = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/kit-slint/ui");
     let mut components = std::collections::BTreeSet::new();
     for entry in std::fs::read_dir(&ui).unwrap() {
-        let source = std::fs::read_to_string(entry.unwrap().path()).unwrap();
+        let path = entry.unwrap().path();
+        // Public components live at the top level; `themes/` holds token values.
+        if path.is_dir() {
+            continue;
+        }
+        let source = std::fs::read_to_string(path).unwrap();
         for declaration in source.split("export component ").skip(1) {
             if let Some(name) = declaration.split_whitespace().next() {
                 components.insert(name.to_owned());
@@ -814,7 +873,7 @@ fn every_alert_severity_has_its_own_legible_tint_edge_and_mark() {
         AlertSeverity::Warning,
         AlertSeverity::Error,
     ];
-    for theme in [window.get_light(), window.get_dark()] {
+    for (_, _, theme) in shipped_themes(&window) {
         let recipes: Vec<AlertRecipe> = severities
             .iter()
             .map(|severity| window.invoke_alert(theme.clone(), *severity))
@@ -876,7 +935,7 @@ fn the_selected_tab_carries_an_underline_and_no_outline() {
 #[test]
 fn scroll_bar_recipe_reads_theme_tokens() {
     let window = fixture();
-    for theme in [window.get_light(), window.get_dark()] {
+    for (_, _, theme) in shipped_themes(&window) {
         let recipe = window.invoke_scroll_bar(theme.clone());
         assert_eq!(recipe.thumb, theme.border_strong);
         assert_eq!(recipe.active_thumb, theme.text_secondary);
@@ -892,4 +951,248 @@ fn scroll_bar_recipe_reads_theme_tokens() {
         reduced.reduced_motion = true;
         assert_eq!(window.invoke_scroll_bar(reduced).transition, 0);
     }
+}
+
+#[test]
+fn every_shipped_theme_keeps_text_rings_and_states_legible() {
+    let window = fixture();
+    for (name, _, theme) in shipped_themes(&window) {
+        let pairs = [
+            ("text-primary/canvas", theme.text_primary, theme.canvas, 4.5),
+            (
+                "text-primary/surface",
+                theme.text_primary,
+                theme.surface,
+                4.5,
+            ),
+            (
+                "text-primary/surface-raised",
+                theme.text_primary,
+                theme.surface_raised,
+                4.5,
+            ),
+            ("text-primary/hover", theme.text_primary, theme.hover, 4.5),
+            (
+                "text-primary/pressed",
+                theme.text_primary,
+                theme.pressed,
+                4.5,
+            ),
+            (
+                "text-primary/accent-subtle",
+                theme.text_primary,
+                theme.accent_subtle,
+                4.5,
+            ),
+            (
+                "text-secondary/canvas",
+                theme.text_secondary,
+                theme.canvas,
+                4.5,
+            ),
+            (
+                "text-secondary/surface",
+                theme.text_secondary,
+                theme.surface,
+                4.5,
+            ),
+            (
+                "text-secondary/surface-raised",
+                theme.text_secondary,
+                theme.surface_raised,
+                4.5,
+            ),
+            (
+                "text-secondary/hover",
+                theme.text_secondary,
+                theme.hover,
+                4.5,
+            ),
+            ("placeholder/surface", theme.placeholder, theme.surface, 4.5),
+            ("placeholder/canvas", theme.placeholder, theme.canvas, 4.5),
+            ("on-accent/accent", theme.on_accent, theme.accent, 4.5),
+            (
+                "on-accent/accent-hover",
+                theme.on_accent,
+                theme.accent_hover,
+                4.5,
+            ),
+            (
+                "on-accent/accent-pressed",
+                theme.on_accent,
+                theme.accent_pressed,
+                4.5,
+            ),
+            ("on-accent/danger", theme.on_accent, theme.danger, 4.5),
+            (
+                "on-accent/danger-hover",
+                theme.on_accent,
+                theme.danger_hover,
+                4.5,
+            ),
+            (
+                "on-accent/danger-pressed",
+                theme.on_accent,
+                theme.danger_pressed,
+                4.5,
+            ),
+            (
+                "on-selection/selection",
+                theme.on_selection,
+                theme.selection,
+                4.5,
+            ),
+            ("danger/surface", theme.danger, theme.surface, 4.5),
+            ("danger/canvas", theme.danger, theme.canvas, 4.5),
+            // Rings and status marks are non-text indicators: 3:1.
+            ("focus/canvas", theme.focus.color, theme.canvas, 3.),
+            ("focus/surface", theme.focus.color, theme.surface, 3.),
+            (
+                "focus/surface-raised",
+                theme.focus.color,
+                theme.surface_raised,
+                3.,
+            ),
+            (
+                "invalid-focus/surface",
+                theme.focus.invalid_color,
+                theme.surface,
+                3.,
+            ),
+            ("success/surface", theme.success, theme.surface, 3.),
+            ("warning/surface", theme.warning, theme.surface, 3.),
+            ("information/surface", theme.information, theme.surface, 3.),
+        ];
+        for (pair, foreground, background, minimum) in pairs {
+            let ratio = contrast(foreground, background);
+            assert!(ratio >= minimum, "{name} {pair}: {ratio:.2} < {minimum}");
+        }
+    }
+}
+
+#[test]
+fn tailwind_themes_use_role_radii_density_inter_and_shadows() {
+    let window = fixture();
+    for mut theme in [window.get_tailwind_light(), window.get_tailwind_dark()] {
+        assert_eq!(theme.typography.family, "Inter");
+        let button =
+            window.invoke_button(theme.clone(), ButtonIntent::Outline, ControlSize::Medium);
+        assert_eq!(button.radius, 6.);
+        assert_eq!(button.border, theme.border_strong);
+        let field = window.invoke_field(
+            theme.clone(),
+            ControlSize::Medium,
+            FieldAccess::Editable,
+            ValidationPresentation::Pristine,
+        );
+        assert_eq!(field.radius, 6.);
+        for (level, radius, elevation) in [
+            (SurfaceLevel::Flat, 8., ElevationLevel::Sm),
+            (SurfaceLevel::Raised, 8., ElevationLevel::Sm),
+            (SurfaceLevel::Overlay, 12., ElevationLevel::Lg),
+            (SurfaceLevel::Popover, 12., ElevationLevel::Md),
+        ] {
+            let surface = window.invoke_surface(theme.clone(), level);
+            assert_eq!(surface.radius, radius, "{level:?}");
+            assert_eq!(surface.elevation, elevation, "{level:?}");
+            assert!(surface.shadow.color.alpha() > 0, "{level:?} key layer");
+            assert!(
+                surface.ambient_shadow.color.alpha() > 0,
+                "{level:?} ambient layer"
+            );
+            // The ambient layer sits tighter and closer than the key layer.
+            assert!(surface.ambient_shadow.offset_y <= surface.shadow.offset_y);
+            assert!(surface.ambient_shadow.blur < surface.shadow.blur);
+            assert!(surface.ambient_shadow.spread < 0.);
+        }
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            for (size, height, padding_inline, padding_block) in [
+                (ControlSize::Compact, 32., 12., 6.),
+                (ControlSize::Medium, 36., 16., 8.),
+                (ControlSize::Comfortable, 40., 24., 8.),
+            ] {
+                let button = window.invoke_button(theme.clone(), ButtonIntent::Primary, size);
+                assert_eq!(button.height, height);
+                assert_eq!(
+                    (button.padding_inline, button.padding_block),
+                    (padding_inline, padding_block)
+                );
+                // One scaled 20px line never clips inside the block padding.
+                assert_eq!(
+                    window.invoke_control_height(theme.clone(), size),
+                    f32::max(height, 20. * scale + 2. * padding_block)
+                );
+            }
+            assert_eq!(
+                window.invoke_font_size(theme.clone(), TypographyRole::Title),
+                30. * scale
+            );
+        }
+    }
+}
+
+#[test]
+fn dialogs_stack_both_shadow_layers_under_their_surface() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ElevationFixture::new().unwrap();
+    window.show().unwrap();
+    let panel = ElementQuery::from_root(&window)
+        .match_inherits("KitDialogPanel")
+        .find_first()
+        .expect("panel");
+    let surface = panel
+        .query_descendants()
+        .match_inherits("ElevatedSurface")
+        .find_first()
+        .expect("the panel paints an elevated surface");
+    assert_eq!(surface.size(), panel.size());
+    assert_eq!(surface.absolute_position(), panel.absolute_position());
+    let theme = window.get_tailwind_light();
+    let lg = theme.elevation.lg;
+    let origin = panel.absolute_position();
+    let size = panel.size();
+    let rectangles = surface
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .find_all();
+    // Ambient, key, then the surface itself on top.
+    assert_eq!(rectangles.len(), 3);
+    for (rectangle, spread) in rectangles
+        .iter()
+        .zip([lg.ambient.spread, lg.key.spread, 0.])
+    {
+        let position = rectangle.absolute_position();
+        assert!((position.x - (origin.x - spread)).abs() < 0.01, "{spread}");
+        assert!((position.y - (origin.y - spread)).abs() < 0.01, "{spread}");
+        assert!((rectangle.size().width - (size.width + 2. * spread)).abs() < 0.01);
+        assert!((rectangle.size().height - (size.height + 2. * spread)).abs() < 0.01);
+    }
+    assert!(lg.ambient.spread < lg.key.spread && lg.key.spread < 0.);
+}
+
+#[test]
+fn third_party_notices_ship_unchanged_with_the_published_crates() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let notices = std::fs::read_to_string(root.join("THIRD-PARTY-NOTICES.md")).unwrap();
+    for copy in [
+        "crates/kit-slint/THIRD-PARTY-NOTICES.md",
+        "crates/kit/THIRD-PARTY-NOTICES.md",
+    ] {
+        assert_eq!(
+            std::fs::read_to_string(root.join(copy)).unwrap(),
+            notices,
+            "{copy} must be a copy of THIRD-PARTY-NOTICES.md"
+        );
+    }
+    // The font license travels with the fonts and is quoted verbatim.
+    let license =
+        std::fs::read_to_string(root.join("crates/kit-slint/ui/themes/fonts/Inter-OFL.txt"))
+            .unwrap();
+    assert!(notices.contains(&license));
+    assert!(license.contains("SIL Open Font License, Version 1.1"));
+    assert_eq!(
+        license,
+        std::fs::read_to_string(root.join("assets/branding/Inter-OFL.txt")).unwrap()
+    );
 }

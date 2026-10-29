@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit/themes/tailwind.slint";
 export { KitThemeContext } from "@kit/kit.slint";
 
 export component ThemeTokenFixture inherits Window {
     width: 480px; height: 360px;
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
     in property <KitTheme> local-theme: KitThemes.light;
     in property <bool> field-focused;
     in property <ValidationPresentation> field-validation: ValidationPresentation.pristine;
@@ -69,4 +72,13 @@ export component TabsIndicatorFixture inherits Window {
         ];
         state: root.state;
     }
+}
+
+// A dialog panel paints its surface over both shadow layers, each inset by
+// the layer's spread.
+export component ElevationFixture inherits Window {
+    width: 320px; height: 240px;
+    in property <KitTheme> theme: TailwindThemes.light;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    KitDialogPanel { x: 40px; y: 40px; width: 200px; height: 120px; theme: root.theme; accessible-name: "Elevated panel"; }
 }

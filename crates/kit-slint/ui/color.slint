@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitValidityState } from "validation.slint";
@@ -21,7 +22,7 @@ component ColorDraftChannel inherits HorizontalLayout {
     callback requested(int);
     callback cancelled();
     spacing: root.theme.spacing.unit * 3;
-    Text { text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
+    Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
     KitSlider {
         theme: root.theme; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
         cancelled => { root.cancelled(); }
@@ -30,7 +31,7 @@ component ColorDraftChannel inherits HorizontalLayout {
             root.requested(step == NavigationStep.first ? 0 : step == NavigationStep.last ? 255 : max(0,min(255,root.value + (step == NavigationStep.next ? 1 : step == NavigationStep.previous ? -1 : step == NavigationStep.page-next ? 16 : -16))));
         }
     }
-    Text { text: root.value; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
+    Text { text: root.value; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
 }
 
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.
@@ -117,9 +118,7 @@ export component KitColorField inherits Rectangle {
         height: popup-content.preferred-height + 2 * root.popup-inset;
         close-policy: close-on-click-outside;
         Rectangle {
-            background: root.popup-surface.fill; border-radius: root.popup-surface.radius;
-            border-width: root.popup-surface.border-width; border-color: root.popup-surface.border;
-            drop-shadow-offset-y: root.popup-surface.shadow.offset-y; drop-shadow-blur: root.popup-surface.shadow.blur; drop-shadow-color: root.popup-surface.shadow.color;
+            ElevatedSurface { recipe: root.popup-surface; }
             popup-keys := FocusScope {
                 forward-focus: cancel-button;
                 private property <bool> shown: root.picker-open;
@@ -129,7 +128,7 @@ export component KitColorField inherits Rectangle {
                 popup-content := VerticalLayout {
                     x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset;
                     spacing: root.theme.spacing.unit * 4;
-                    Text { text: root.label + " · sRGB"; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                    Text { text: root.label + " · sRGB"; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                     Rectangle {
                         height: 48px; border-radius: root.theme.shape.radius-control; border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
                         background: rgba(root.draft.red,root.draft.green,root.draft.blue,root.draft.alpha / 255);

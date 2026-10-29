@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
+import { ElevatedSurface } from "elevation.slint";
 export { DialogState, CloseReason } from "contracts.slint";
 export enum DialogTabPolicy { host, native }
 
@@ -54,13 +55,10 @@ export component KitDialogPanel inherits Rectangle {
     accessible-label: root.accessible-name;
     accessible-description: root.accessible-description-text;
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.overlay);
+    // The host stays transparent: the surface and its two-layer shadow paint
+    // under the composed content, with the host's radius (a drawer squares it).
     border-radius: root.recipe.radius;
-    background: root.recipe.fill;
-    border-width: root.recipe.border-width;
-    border-color: root.recipe.border;
-    drop-shadow-offset-y: root.recipe.shadow.offset-y;
-    drop-shadow-blur: root.recipe.shadow.blur;
-    drop-shadow-color: root.recipe.shadow.color;
+    ElevatedSurface { recipe: root.recipe; radius: root.border-radius; }
     TouchArea { }
     @children
 }

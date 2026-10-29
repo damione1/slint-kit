@@ -15,9 +15,13 @@ export enum FocusRingStyle { outside, inside }
 export enum SurfaceLevel { flat, raised, overlay, popover }
 export enum AlertSeverity { information, success, warning, error }
 
-// Slint draws one shadow per element and has no spread: a layer approximates
-// the dominant layer of a stacked web shadow.
-export struct ShadowLayer { offset-y: length, blur: length, color: color }
+// One layer of a web box shadow. Slint draws one shadow per element and has
+// no spread: a surface's own drop-shadow paints `key` and ignores `spread`.
+// Dialogs and popovers stack both layers on rectangles inset by `spread`.
+export struct ShadowLayer { offset-y: length, blur: length, spread: length, color: color }
+// The two layers of a web shadow: `key` is the dominant, directional one,
+// `ambient` the tighter one under it.
+export struct KitShadow { key: ShadowLayer, ambient: ShadowLayer }
 // Radii by role. Pill radii are clamped by recipes to half the shorter side.
 export struct KitShape {
     radius-control: length, radius-container: length, radius-overlay: length, radius-pill: length,
@@ -25,7 +29,7 @@ export struct KitShape {
 }
 export struct KitElevation {
     control: ElevationLevel, container: ElevationLevel, overlay: ElevationLevel, popover: ElevationLevel,
-    xs: ShadowLayer, sm: ShadowLayer, md: ShadowLayer, lg: ShadowLayer, xl: ShadowLayer,
+    xs: KitShadow, sm: KitShadow, md: KitShadow, lg: KitShadow, xl: KitShadow,
 }
 export struct KitFocusRing { style: FocusRingStyle, width: length, offset: length, color: color, invalid-color: color }
 // `family` is an open set (system or embedded font); empty keeps the window's
@@ -66,7 +70,7 @@ export struct FieldRecipe {
     radius: length, border-width: length, padding-inline: length, padding-block: length, height: length, font-size: length,
     focus: KitFocusRing,
 }
-export struct SurfaceRecipe { fill: brush, border: color, radius: length, border-width: length, elevation: ElevationLevel, shadow: ShadowLayer }
+export struct SurfaceRecipe { fill: brush, border: color, radius: length, border-width: length, elevation: ElevationLevel, shadow: ShadowLayer, ambient-shadow: ShadowLayer }
 export struct ChoiceRecipe {
     box-size: length, box-radius: length, mark-stroke: length, radio-dot-size: length, label-gap: length,
     track-width: length, track-height: length, track-radius: length, thumb-size: length, thumb-inset: length,
@@ -136,9 +140,11 @@ export global KitThemes {
         shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
         elevation: {
             control: ElevationLevel.none, container: ElevationLevel.none, overlay: ElevationLevel.none, popover: ElevationLevel.none,
-            xs: { offset-y: 1px, blur: 2px, color: #0f172a0d }, sm: { offset-y: 1px, blur: 3px, color: #0f172a1a },
-            md: { offset-y: 4px, blur: 6px, color: #0f172a1a }, lg: { offset-y: 10px, blur: 15px, color: #0f172a1a },
-            xl: { offset-y: 20px, blur: 25px, color: #0f172a1a },
+            xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #0f172a0d }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
+            sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #0f172a1a }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #0f172a1a } },
+            md: { key: { offset-y: 4px, blur: 6px, spread: -1px, color: #0f172a1a }, ambient: { offset-y: 2px, blur: 4px, spread: -2px, color: #0f172a1a } },
+            lg: { key: { offset-y: 10px, blur: 15px, spread: -3px, color: #0f172a1a }, ambient: { offset-y: 4px, blur: 6px, spread: -4px, color: #0f172a1a } },
+            xl: { key: { offset-y: 20px, blur: 25px, spread: -5px, color: #0f172a1a }, ambient: { offset-y: 8px, blur: 10px, spread: -6px, color: #0f172a1a } },
         },
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #4338ca, invalid-color: #b91c1c },
         typography: {
@@ -167,9 +173,11 @@ export global KitThemes {
         shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
         elevation: {
             control: ElevationLevel.none, container: ElevationLevel.none, overlay: ElevationLevel.none, popover: ElevationLevel.none,
-            xs: { offset-y: 1px, blur: 2px, color: #00000040 }, sm: { offset-y: 1px, blur: 3px, color: #00000066 },
-            md: { offset-y: 4px, blur: 6px, color: #00000066 }, lg: { offset-y: 10px, blur: 15px, color: #00000066 },
-            xl: { offset-y: 20px, blur: 25px, color: #00000066 },
+            xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #00000040 }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
+            sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #00000066 }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #00000066 } },
+            md: { key: { offset-y: 4px, blur: 6px, spread: -1px, color: #00000066 }, ambient: { offset-y: 2px, blur: 4px, spread: -2px, color: #00000066 } },
+            lg: { key: { offset-y: 10px, blur: 15px, spread: -3px, color: #00000066 }, ambient: { offset-y: 4px, blur: 6px, spread: -4px, color: #00000066 } },
+            xl: { key: { offset-y: 20px, blur: 25px, spread: -5px, color: #00000066 }, ambient: { offset-y: 8px, blur: 10px, spread: -6px, color: #00000066 } },
         },
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #b4c0ff, invalid-color: #ff9b9b },
         typography: {
@@ -195,13 +203,19 @@ export global KitThemes {
     public pure function inset-focus(theme: KitTheme) -> KitFocusRing {
         return { style: FocusRingStyle.inside, width: theme.focus.width, offset: 0px, color: theme.focus.color, invalid-color: theme.focus.invalid-color };
     }
-    public pure function shadow(theme: KitTheme, level: ElevationLevel) -> ShadowLayer {
+    public pure function elevation-shadow(theme: KitTheme, level: ElevationLevel) -> KitShadow {
         return level == ElevationLevel.xs ? theme.elevation.xs
             : level == ElevationLevel.sm ? theme.elevation.sm
             : level == ElevationLevel.md ? theme.elevation.md
             : level == ElevationLevel.lg ? theme.elevation.lg
             : level == ElevationLevel.xl ? theme.elevation.xl
-            : { offset-y: 0px, blur: 0px, color: transparent };
+            : { key: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } };
+    }
+    public pure function shadow(theme: KitTheme, level: ElevationLevel) -> ShadowLayer {
+        return KitThemes.elevation-shadow(theme, level).key;
+    }
+    public pure function ambient-shadow(theme: KitTheme, level: ElevationLevel) -> ShadowLayer {
+        return KitThemes.elevation-shadow(theme, level).ambient;
     }
     public pure function icon-button-recipe(theme: KitTheme, size: ControlSize) -> ButtonRecipe {
         return {
@@ -295,6 +309,7 @@ export global KitThemes {
             border-width: theme.shape.border-width,
             elevation: level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container,
             shadow: KitThemes.shadow(theme, level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container),
+            ambient-shadow: KitThemes.ambient-shadow(theme, level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container),
         };
     }
     // Checkbox, radio, switch and slider geometry: intrinsic to the control,

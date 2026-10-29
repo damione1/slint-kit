@@ -28,7 +28,7 @@ export component KitBadge inherits Rectangle {
     accessible-role: AccessibleRole.text; accessible-label: root.text;
     label := Text { x: root.inset-x; y: root.inset-y; text: root.text;
         color: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
-        font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
     }
 }
 
@@ -46,7 +46,7 @@ export component KitAvatar inherits Rectangle {
     background: root.theme.hover; clip: true;
     accessible-role: AccessibleRole.image; accessible-label: root.accessible-name;
     if root.source.width > 0: Image { source: root.source; image-fit: cover; }
-    if root.source.width == 0: Text { text: root.initials; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    if root.source.width == 0: Text { text: root.initials; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 export component KitCard inherits Rectangle {
@@ -66,8 +66,8 @@ export component KitCardHeader inherits VerticalLayout {
     in property <string> title;
     in property <string> description;
     spacing: root.theme.spacing.unit * 1.5; vertical-stretch: 0;
-    Text { width: root.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-    if root.description != "": Text { width: root.width; height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+    Text { width: root.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+    if root.description != "": Text { width: root.width; height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
 }
 export component KitCardBody inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -84,8 +84,8 @@ export component KitHero inherits Rectangle {
     in property <LayoutSpace> gap: LayoutSpace.regular;
     background: root.theme.hover; border-radius: 16px; vertical-stretch: 0;
     VerticalLayout { padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start;
-        Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
-        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
+        Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
         @children
     }
 }
@@ -100,7 +100,7 @@ export component KitDivider inherits HorizontalLayout {
     in property <string> label;
     spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
     Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
-    if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
+    if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
     Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
 }
 export component KitStat inherits VerticalLayout {
@@ -109,9 +109,9 @@ export component KitStat inherits VerticalLayout {
     in property <string> value;
     in property <string> description;
     spacing: root.theme.spacing.unit; vertical-stretch: 0;
-    Text { text: root.label; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-    Text { text: root.value; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
-    if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    Text { text: root.value; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+    if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 export component KitChatBubble inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -122,13 +122,13 @@ export component KitChatBubble inherits HorizontalLayout {
     vertical-stretch: 0;
     if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
     VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
-        Text { text: root.author; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         Rectangle { background: root.side == ChatSide.end ? root.theme.accent : root.theme.hover; border-radius: root.theme.shape.radius-container;
             VerticalLayout { padding: root.theme.spacing.unit * 3.5;
-                Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
         }
-        if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
     if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
 }
@@ -152,8 +152,8 @@ export component KitEmptyState inherits Rectangle {
     min-height: self.preferred-height;
     vertical-stretch: 0;
     content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: root.inset; spacing: root.theme.spacing.unit * 3; alignment: start;
-        Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        if root.description != "": Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        if root.description != "": Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         @children
     }
 }
@@ -167,9 +167,9 @@ export component KitTimeline inherits VerticalLayout {
             Rectangle { x: 4px; y: 19px; width: 2px; height: max(0px,parent.height - 19px); background: root.theme.border-subtle; }
         }
         VerticalLayout { spacing: root.theme.spacing.unit;
-            Text { text: entry.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-            if entry.description != "": Text { text: entry.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-            if entry.metadata != "": Text { text: entry.metadata; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+            Text { text: entry.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            if entry.description != "": Text { text: entry.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            if entry.metadata != "": Text { text: entry.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         }
     }
 }
@@ -182,8 +182,8 @@ export component KitSteps inherits VerticalLayout {
             background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : root.theme.hover;
             border-width: entry.state == StepState.error ? root.theme.shape.border-width : 0px; border-color: root.theme.danger;
             if entry.state == StepState.complete: KitIcon { x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; kind: IconKind.check; ink: root.theme.on-accent; }
-            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
         }
-        Text { text: entry.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
+        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
     }
 }

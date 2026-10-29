@@ -3,6 +3,7 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { ListView } from "scroll.slint";
+import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
@@ -139,13 +140,8 @@ export component KitSelectSurface inherits Rectangle {
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
     private property <length> inset: root.theme.spacing.unit * 1.5;
-    background: root.recipe.fill;
-    border-radius: root.recipe.radius;
-    border-width: root.recipe.border-width;
-    border-color: root.recipe.border;
-    drop-shadow-offset-y: root.recipe.shadow.offset-y;
-    drop-shadow-blur: root.recipe.shadow.blur;
-    drop-shadow-color: root.recipe.shadow.color;
+    // The surface and its two-layer shadow paint under the list.
+    ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
         state: root.state;
         navigate(step) => { root.navigate(step); root.ensure-active-visible(); }
@@ -170,7 +166,7 @@ export component KitSelectSurface inherits Rectangle {
                     if root.query == "": Text {
                         x: 0px; y: 0px; width: parent.width; height: parent.height;
                         text: root.search-label; color: root.theme.placeholder;
-                        font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                         vertical-alignment: center; overflow: elide;
                     }
                     search-scroll := Flickable {
@@ -183,7 +179,7 @@ export component KitSelectSurface inherits Rectangle {
                             color: root.theme.text-primary;
                             selection-background-color: root.theme.selection;
                             selection-foreground-color: root.theme.on-selection;
-                            font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                             single-line: true;
                             accessible-label: root.search-label;
                             edited => { root.query-edited(self.text); root.ensure-active-visible(); }
@@ -211,7 +207,7 @@ export component KitSelectSurface inherits Rectangle {
                 if root.empty: Text {
                     text: root.empty-label;
                     color: root.theme.text-secondary;
-                    font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                     horizontal-alignment: center;
                     vertical-alignment: center;
                     wrap: word-wrap;
@@ -345,11 +341,11 @@ export component KitSelect inherits Rectangle {
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            Text { text: root.placeholder; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
+            Text { text: root.placeholder; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
             Rectangle {
                 width: root.icon.size;
                 if root.state.selection-availability == SelectionAvailability.unavailable: Text {
-                    text: "!"; color: root.theme.danger; vertical-alignment: center; horizontal-alignment: center;
+                    text: "!"; color: root.theme.danger; font-family: root.theme.typography.family; vertical-alignment: center; horizontal-alignment: center;
                 }
                 // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: KitIcon {
@@ -392,8 +388,8 @@ export component KitSelect inherits Rectangle {
                         spacing: KitMetrics.inline-gap(root.theme);
                         VerticalLayout {
                             spacing: root.theme.spacing.unit * 0.5;
-                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
-                            if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
+                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
+                            if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
                             if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }

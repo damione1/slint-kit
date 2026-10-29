@@ -41,8 +41,8 @@ export component KitFileList inherits Rectangle {
                 padding: root.theme.spacing.unit * 2.5; spacing: root.theme.spacing.unit * 3;
                 VerticalLayout {
                     spacing: root.theme.spacing.unit;
-                    Text { text: entry.name; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-                    if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+                    Text { text: entry.name; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                    if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
                 FileRemoveButton {
                     theme: root.theme; control-size:root.control-size; entry: entry;
@@ -90,7 +90,7 @@ export component KitFilePicker inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
-        Text { text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         browse := KitButton {
             theme: root.theme; control-size:root.control-size; text: root.mode == FileSelectionMode.single ? "Choose file…" : "Choose files…";
             accessible-name: self.text + " " + root.label;
@@ -98,9 +98,9 @@ export component KitFilePicker inherits Rectangle {
             busy: root.request-state == HostRequestPresentation.pending;
             activated => { root.browse-requested(root.mode); }
         }
-        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.unsupported: Text { text: "File selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
+        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: "File selection is unavailable on this platform."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
         if root.request-state == HostRequestPresentation.failed && root.error == "": KitFieldError { theme: root.theme; text: root.failed-label; }
         if root.error == "" && checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
@@ -142,15 +142,15 @@ export component KitDirectoryPicker inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
-        Text { text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         browse := KitButton { theme: root.theme; control-size:root.control-size; text: "Choose folder…"; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
         if root.selected-name != "": HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            Text { text: root.selected-name; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; vertical-alignment: center; }
+            Text { text: root.selected-name; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; vertical-alignment: center; }
             KitButton { theme: root.theme; control-size:root.control-size; text: "Clear folder"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
         }
-        if root.request-state == HostRequestPresentation.unsupported: Text { text: "Folder selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: "Folder selection is unavailable on this platform."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
         if root.request-state == HostRequestPresentation.failed && root.error == "": KitFieldError { theme: root.theme; text: root.failed-label; }
         if root.error == "" && checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
@@ -182,7 +182,7 @@ export component KitFileDropZone inherits Rectangle {
     accessible-label: root.capability == DropCapability.available ? root.label : root.unsupported-label;
     VerticalLayout {
         padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 2;
-        Text { text: root.capability == DropCapability.available ? root.label : root.unsupported-label; color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
+        Text { text: root.capability == DropCapability.available ? root.label : root.unsupported-label; color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
     }
     drop := DropArea {

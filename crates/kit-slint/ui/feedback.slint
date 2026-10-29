@@ -38,8 +38,8 @@ export component KitAlert inherits Rectangle {
         width: max(0px, root.width - self.x - root.inset - root.trailing-space);
         height: self.preferred-height;
         spacing: root.theme.spacing.unit; alignment: start;
-        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
     dismiss := KitIconButton {
         width: self.preferred-width; height: self.preferred-height;
@@ -77,7 +77,7 @@ export component KitProgress inherits VerticalLayout {
     accessible-role: progress-indicator; accessible-label: root.label;
     accessible-value: Math.round(root.bounded-value * 100) + "%";
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.disabled-fill;
         Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; }
     }
@@ -98,7 +98,7 @@ export component KitRadialProgress inherits Rectangle {
         y: (root.height - self.height) / 2 + (root.height / 2 - 4px) * Math.sin(index * 6deg - 90deg);
         background: index / 60 < root.bounded-value ? root.theme.accent : root.theme.disabled-fill;
     }
-    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 // One projection per component Window, with monotonic owners so a stale blur
@@ -153,7 +153,7 @@ export component KitTooltipLayer inherits Rectangle {
         tip := Text {
             x: root.gap; y: root.gap; width: max(0px,parent.width - 2 * root.gap); height: max(0px,parent.height - 2 * root.gap);
             text: KitTooltipState.text; color: KitTooltipState.theme.surface;
-            font-size: KitMetrics.font-size(KitTooltipState.theme, TypographyRole.caption); wrap: word-wrap; overflow: elide;
+            font-family: KitTooltipState.theme.typography.family; font-size: KitMetrics.font-size(KitTooltipState.theme, TypographyRole.caption); wrap: word-wrap; overflow: elide;
         }
     }
 }
@@ -198,7 +198,7 @@ export component KitTooltip inherits Rectangle {
         Rectangle { background: root.theme.text-primary; border-radius: 6px;
             width: min(300px * root.theme.text-scale,max(80px,root.viewport-width - 2 * root.tip-gap));
             height: hover-tip.preferred-height + 2 * root.tip-gap;
-            hover-tip := Text { x: root.tip-gap; y: root.tip-gap; width: parent.width - 2 * root.tip-gap; text: root.text; color: root.theme.surface; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+            hover-tip := Text { x: root.tip-gap; y: root.tip-gap; width: parent.width - 2 * root.tip-gap; text: root.text; color: root.theme.surface; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         }
     }
 }
@@ -226,8 +226,8 @@ export component KitToast inherits Rectangle {
     content := VerticalLayout { padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 3;
         HorizontalLayout { spacing: root.theme.spacing.unit * 3;
             VerticalLayout { spacing: root.theme.spacing.unit;
-                Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-                if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
             if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; accessible-name: "Dismiss " + root.entry.title; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }

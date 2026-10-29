@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
@@ -83,7 +84,7 @@ export component KitCalendar inherits Rectangle {
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
             KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-left; ink: root.theme.text-primary; } } }
-            Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+            Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
             KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-right; ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
@@ -111,7 +112,7 @@ export component KitCalendar inherits Rectangle {
             for day-name[index] in root.weekdays: Text {
                 x: mod(index,7) * parent.width / 7; y: 0px;
                 width: parent.width / 7; height: root.cell-height;
-                text: day-name; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+                text: day-name; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
                 horizontal-alignment: center; vertical-alignment: center;
             }
             for day[index] in root.days: CalendarOption {
@@ -129,7 +130,7 @@ export component KitCalendar inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-index == index;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.choose(chosen); } }
-                Text { text: day.label; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
+                Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
     }
@@ -220,8 +221,8 @@ export component KitDatePicker inherits Rectangle {
     popup := PopupWindow {
         x: 0px; y: root.height + root.theme.spacing.unit; width: Math.max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 2 * root.popup-inset;
         close-policy: close-on-click-outside;
-        Rectangle { background: root.popup-surface.fill; border-radius: root.popup-surface.radius; border-width: root.popup-surface.border-width; border-color: root.popup-surface.border;
-            drop-shadow-offset-y: root.popup-surface.shadow.offset-y; drop-shadow-blur: root.popup-surface.shadow.blur; drop-shadow-color: root.popup-surface.shadow.color;
+        Rectangle {
+            ElevatedSurface { recipe: root.popup-surface; }
             calendar := KitCalendar { min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 choose(day) => { root.choose(day); root.open = false; }
@@ -251,7 +252,7 @@ export component KitDateRangePicker inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
-        Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? "Choose the start date" : root.phase == DateRangePhase.choosing-end ? "Choose the end date" : "Date range ready") : root.summary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; }
+        Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? "Choose the start date" : root.phase == DateRangePhase.choosing-end ? "Choose the end date" : "Date range ready") : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; }
         KitCalendar { theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancelled(); } }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {

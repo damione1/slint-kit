@@ -26,7 +26,7 @@ export component KitNavigationAction inherits KitOption {
         horizontal-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
         text: root.option-data.label;
         color: root.disabled ? root.theme.disabled-text : root.selected ? root.theme.accent : root.theme.text-primary;
-        font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
         vertical-alignment: center;
         overflow: elide;
     }
@@ -278,7 +278,7 @@ export component KitCollapse inherits VerticalLayout {
         activated => { root.expansion-requested(!root.expanded); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
-            Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
+            Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitThemes.icon-recipe(root.theme).size; horizontal-stretch: 0;
                 KitIcon { y: (parent.height - self.height) / 2; kind: root.expanded ? IconKind.chevron-down : IconKind.chevron-right; ink: root.theme.text-secondary; }
             }
@@ -345,7 +345,7 @@ export component KitAccordion inherits VerticalLayout {
             answer := Text {
                 x: root.inset-x; y: root.inset-y; width: max(0px,parent.width - 2 * root.inset-x);
                 text: row.item.description; color: root.theme.text-secondary;
-                font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap;
+                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap;
             }
         }
         Rectangle { height: root.theme.shape.border-width; background: root.theme.border-subtle; }
@@ -381,13 +381,13 @@ export component KitCarousel inherits Rectangle {
     content := VerticalLayout {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height; alignment: start;
         padding: root.inset; spacing: root.theme.spacing.unit * 3;
-        if root.rows.length == 0: Text { text: root.empty-label; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        if root.rows.length == 0: Text { text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         if root.state.active-index >= 0 && root.state.active-index < root.rows.length: VerticalLayout {
             width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; vertical-stretch: 0;
             spacing: root.theme.spacing.unit * 2;
             alignment: start;
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         }
         @children
         if root.action-label != "" && root.state.active-index >= 0 && root.state.active-index < root.rows.length: KitNavigationAction {
@@ -398,7 +398,7 @@ export component KitCarousel inherits Rectangle {
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2; alignment: space-between;
             KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: root.state.active-index <= 0; activated => { root.navigate(NavigationStep.previous); } }
-            Text { text: root.rows.length == 0 ? "0 / 0" : (root.state.active-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+            Text { text: root.rows.length == 0 ? "0 / 0" : (root.state.active-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
             KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: root.rows.length == 0 || root.state.active-index >= root.rows.length - 1; activated => { root.navigate(NavigationStep.next); } }
         }
     }
@@ -437,7 +437,7 @@ export component KitBreadcrumbs inherits Rectangle {
                 }
                 if index == root.rows.length - 1: Text {
                     text: row.label; color: root.theme.text-primary;
-                    font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                     vertical-alignment: center; overflow: elide;
                 }
             }
@@ -461,7 +461,7 @@ export component KitPagination inherits HorizontalLayout {
     accessible-role: navigation;
     accessible-label: "Pagination";
     KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: root.page-index <= 0 || root.page-count <= 0; activated => { root.navigate(NavigationStep.previous); } }
-    Text { text: root.page-count <= 0 ? "0 / 0" : (min(max(0, root.page-index), root.page-count - 1) + 1) + " / " + root.page-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+    Text { text: root.page-count <= 0 ? "0 / 0" : (min(max(0, root.page-index), root.page-count - 1) + 1) + " / " + root.page-count; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
     KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.navigate(NavigationStep.next); } }
 }
 
@@ -481,7 +481,7 @@ export component KitNotificationButton inherits KitPressable {
         label-text := Text {
             text: root.text;
             color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-            font-size: root.recipe.font-size;
+            font-family: root.theme.typography.family; font-size: root.recipe.font-size;
             vertical-alignment: center;
             overflow: elide;
         }
@@ -503,9 +503,9 @@ component NotificationAction inherits KitOption {
     label := Text {
         x: 0px; y: 0px; width: max(0px,root.width - 2 * root.recipe.padding-inline); height: max(0px,root.height - 2 * root.recipe.padding-block);
         text: root.option-data.label; color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-        font-size: root.recipe.font-size; horizontal-alignment: center; vertical-alignment: center;
+        font-family: root.theme.typography.family; font-size: root.recipe.font-size; horizontal-alignment: center; vertical-alignment: center;
     }
-    alternate := Text { visible: false; text: root.alternate-label; font-size: root.recipe.font-size; }
+    alternate := Text { visible: false; text: root.alternate-label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; }
 }
 enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
@@ -552,10 +552,10 @@ component NotificationItem inherits Rectangle {
                 x: 0px; y: 0px; width: parent.width; height: self.preferred-height;
                 padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 2; alignment: start;
                 HorizontalLayout { spacing: root.theme.spacing.unit * 2; alignment: start;
-                    Text { text: root.notice.item.label; horizontal-stretch: 1; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-                    Text { text: "•"; color: root.theme.accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); opacity: root.notice.read ? 0 : 1; horizontal-stretch: 0; }
+                    Text { text: root.notice.item.label; horizontal-stretch: 1; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                    Text { text: "•"; color: root.theme.accent; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); opacity: root.notice.read ? 0 : 1; horizontal-stretch: 0; }
                 }
-                Text { text: root.notice.item.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                Text { text: root.notice.item.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 FlexboxLayout {
                     spacing: root.theme.spacing.unit * 2; alignment: start;
                     open-preview := NotificationAction { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; option-data: {token:root.notice.item.token,generation:root.notice.item.generation,label:root.open-label,description:"",disabled:root.notice.item.disabled || root.inactive}; activate(token,generation) => {root.activate(token,generation);} }
@@ -592,8 +592,8 @@ export component KitNotificationCenter inherits Rectangle {
     preferred-height: root.rows.length == 0 ? 100px : root.rows.length <= 32 ? min(600px,bounded-content.preferred-height) : 400px;
     if root.rows.length == 0: VerticalLayout {
         alignment: center; spacing: root.theme.spacing.unit * 2;
-        Text { text: root.empty-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; }
-        Text { text: root.empty-description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; }
+        Text { text: root.empty-label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; }
+        Text { text: root.empty-description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; }
     }
     ScrollFrame {
         theme: root.theme;
@@ -657,7 +657,7 @@ export component KitDrawer inherits KitDialogSurface {
             padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 4;
             HorizontalLayout {
                 spacing: root.theme.spacing.unit * 3;
-                Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
+                Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
                 close-button := KitIconButton {
                     theme: root.theme; control-size: root.control-size; icon: IconKind.close;
                     accessible-name: root.close-label;

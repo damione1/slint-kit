@@ -28,7 +28,7 @@ export component KitFieldLabel inherits Rectangle {
         label := Text {
             horizontal-alignment: left;
             text: root.text;
-            font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
             font-weight: root.theme.typography.weight-semibold;
             color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
             wrap: word-wrap;
@@ -40,7 +40,7 @@ export component KitFieldDescription inherits Text {
     in property <KitTheme> theme: KitThemeContext.current;
     horizontal-alignment: left;
     color: root.theme.text-secondary;
-    font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
     wrap: word-wrap;
     vertical-stretch: 0;
 }
@@ -69,7 +69,7 @@ export component KitFieldSet inherits Rectangle {
         if root.legend != "": Text {
             text: root.legend;
             color: root.theme.text-primary;
-            font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
             font-weight: root.theme.typography.weight-semibold;
             wrap: word-wrap;
         }
@@ -133,7 +133,7 @@ export component KitInputGroupEnd inherits HorizontalLayout {
 }
 export component KitInputGroupText inherits Text {
     in property <KitTheme> theme: KitThemeContext.current;
-    font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
     color: root.theme.text-secondary;
     vertical-alignment: center;
     horizontal-stretch: 0;
@@ -158,7 +158,7 @@ export component KitFormErrorSummary inherits KitFieldGroup {
             height: max(0px, error-action.height - 2 * error-action.recipe.padding-block);
             text: error.message;
             color: root.theme.danger;
-            font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
             wrap: word-wrap;
             horizontal-alignment: left;
             vertical-alignment: center;

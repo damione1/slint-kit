@@ -11,6 +11,9 @@ pub fn ui_directory() -> PathBuf {
 }
 
 /// Preserve this configuration when adding application-specific libraries.
+///
+/// `@kit` resolves to the installed UI directory, so the opt-in Tailwind-inspired
+/// theme imports as `@kit/themes/tailwind.slint` without further registration.
 pub fn config() -> slint_build::CompilerConfiguration {
     slint_build::CompilerConfiguration::new()
         .with_library_paths(HashMap::from([("kit".into(), ui_directory())]))

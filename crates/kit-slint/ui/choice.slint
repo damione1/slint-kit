@@ -40,7 +40,7 @@ component ChoiceOption inherits KitPressable {
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
     measure := Text {
         visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.content-reserve);
-        text: root.option-data.label; font-size: root.recipe.font-size; wrap: word-wrap;
+        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap;
     }
     @children
 }
@@ -55,7 +55,7 @@ component RadioMark inherits Rectangle {
     width: root.choice.box-size; height: root.choice.box-size;
     border-radius: min(root.theme.shape.radius-pill, self.width / 2);
     border-width: root.theme.shape.border-width;
-    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.theme.border-subtle;
+    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.border-subtle : root.theme.border-strong;
     if root.selected: Rectangle {
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
@@ -97,7 +97,7 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-size: root.recipe.font-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checked: root.state == CheckState.checked;
@@ -109,7 +109,7 @@ export component KitCheckbox inherits KitPressable {
             width: root.choice.box-size; height: root.choice.box-size;
             border-radius: root.choice.box-radius;
             border-width: root.theme.shape.border-width;
-            border-color: checks.show-error ? root.theme.danger : root.state == CheckState.unchecked || root.disabled ? root.theme.border-subtle : root.theme.accent;
+            border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.border-subtle : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
             background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
                 : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
             if root.state == CheckState.checked: Path {
@@ -125,7 +125,7 @@ export component KitCheckbox inherits KitPressable {
                 background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -160,7 +160,7 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-size: root.recipe.font-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checked: root.checked;
@@ -170,7 +170,7 @@ export component KitSwitch inherits KitPressable {
         spacing: root.choice.label-gap;
         Rectangle {
             width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
-            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-subtle;
+            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-strong;
             Rectangle {
                 x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
                 y: root.choice.thumb-inset;
@@ -180,7 +180,7 @@ export component KitSwitch inherits KitPressable {
                 animate x { duration: root.choice.transition; easing: ease-in-out; }
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -274,7 +274,7 @@ export component KitRadioGroup inherits Rectangle {
             HorizontalLayout {
                 spacing: root.choice.label-gap;
                 RadioMark { theme: root.theme; selected: row.selected; invalid: checks.show-error; disabled: option.disabled; }
-                Text { text: row.label; font-size: option.recipe.font-size; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
+                Text { text: row.label; font-family: option.theme.typography.family; font-size: option.recipe.font-size; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
         }
@@ -296,7 +296,7 @@ export component KitRadioGroup inherits Rectangle {
             HorizontalLayout {
                 spacing: root.choice.label-gap;
                 RadioMark { theme: root.theme; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
-                Text { text: flow-option.display-choice.label; font-size: flow-option.recipe.font-size; color: flow-option.disabled ? flow-option.recipe.disabled-foreground : flow-option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
+                Text { text: flow-option.display-choice.label; font-family: flow-option.theme.typography.family; font-size: flow-option.recipe.font-size; color: flow-option.disabled ? flow-option.recipe.disabled-foreground : flow-option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
         }
@@ -364,7 +364,7 @@ export component KitSegmentedControl inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
@@ -429,7 +429,7 @@ export component KitToggleGroup inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
-                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
@@ -650,7 +650,7 @@ export component KitCombobox inherits Rectangle {
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            Text { text: root.selected-label == "" ? root.label : root.selected-label; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
+            Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
             // Points up while the list is presented below the trigger.
             KitIcon { kind: root.state.open ? IconKind.chevron-up : IconKind.chevron-down; ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
@@ -681,7 +681,7 @@ export component KitCombobox inherits Rectangle {
                     activate(token,generation) => { if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
                     HorizontalLayout {
                         spacing: KitMetrics.inline-gap(root.theme);
-                        Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
+                        Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
                         // The selected identity, independent of the active row.
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
                             if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
@@ -741,7 +741,7 @@ export component KitSlider inherits Rectangle {
     private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
     function update-position() { root.position-requested(clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1)); }
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(); } }
-    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; height: root.choice.slider-track-height; width: parent.width - 2 * root.edge; border-radius: self.height / 2; background: root.theme.border-subtle;
+    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; height: root.choice.slider-track-height; width: parent.width - 2 * root.edge; border-radius: self.height / 2; background: root.theme.border-strong;
         Rectangle { x: 0px; height: parent.height; width: parent.width * clamp(root.position,0,1); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-radius: parent.border-radius; }
     }
     Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
@@ -791,7 +791,7 @@ export component KitRangeSlider inherits Rectangle {
         let position = clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge),0,1);
         root.position-requested(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position,root.upper-position) : max(position,root.lower-position));
     }
-    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; width: parent.width - 2 * root.edge; height: root.choice.slider-track-height; border-radius: self.height / 2; background: root.theme.border-subtle;
+    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; width: parent.width - 2 * root.edge; height: root.choice.slider-track-height; border-radius: self.height / 2; background: root.theme.border-strong;
         Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: parent.height; border-radius: parent.border-radius; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; }
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses

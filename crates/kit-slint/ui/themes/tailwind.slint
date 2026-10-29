@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// An opt-in theme inspired by Tailwind CSS: import this file and assign
+// `TailwindThemes.light` or `.dark` to KitThemeContext.current or to a
+// subtree's `theme`. Components never import it, and nothing here is compiled
+// or embedded until an application imports it.
+//
+// Palette: about thirty semantic colors taken from the Tailwind CSS v3 sRGB
+// palette (Copyright (c) Tailwind Labs, Inc., MIT License; see
+// THIRD-PARTY-NOTICES.md). Each value names its source shade, for example
+// `slate-50` or `indigo-600`. Radii, the ring and the shadows follow the
+// Tailwind v4.3 scales. Slint has no shadow spread and one shadow per element,
+// so a surface paints the `key` layer of its level; dialogs and popovers stack
+// both layers (see KitShadow).
+//
+// Font: Inter 4.1 by The Inter Project Authors, SIL Open Font License 1.1
+// (fonts/Inter-OFL.txt). Importing this file embeds the four static weights
+// below, about 1.6 MB of font data.
+import "fonts/Inter-Regular.ttf";
+import "fonts/Inter-Medium.ttf";
+import "fonts/Inter-SemiBold.ttf";
+import "fonts/Inter-Bold.ttf";
+import { KitTheme, ElevationLevel, FocusRingStyle } from "../theme.slint";
+
+export global TailwindThemes {
+    out property <KitTheme> light: {
+        canvas: #f8fafc /* slate-50 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */,
+        text-primary: #0f172a /* slate-900 */, text-secondary: #475569 /* slate-600 */, placeholder: #64748b /* slate-500 */,
+        accent: #4f46e5 /* indigo-600 */, on-accent: #ffffff /* white */,
+        accent-hover: #4338ca /* indigo-700 */, accent-pressed: #3730a3 /* indigo-800 */, accent-subtle: #eef2ff /* indigo-50 */,
+        selection: #c7d2fe /* indigo-200 */, on-selection: #0f172a /* slate-900 */,
+        danger: #dc2626 /* red-600 */, danger-hover: #b91c1c /* red-700 */, danger-pressed: #991b1b /* red-800 */, danger-subtle: #fef2f2 /* red-50 */,
+        success: #16a34a /* green-600 */, success-subtle: #f0fdf4 /* green-50 */,
+        warning: #d97706 /* amber-600 */, warning-subtle: #fffbeb /* amber-50 */,
+        information: #0284c7 /* sky-600 */, information-subtle: #f0f9ff /* sky-50 */,
+        // border-strong outlines controls that a light border would hide:
+        // checkboxes, radios, switch and slider tracks, outline buttons.
+        border-subtle: #e2e8f0 /* slate-200 */, border-strong: #94a3b8 /* slate-400 */,
+        hover: #f1f5f9 /* slate-100 */, pressed: #e2e8f0 /* slate-200 */,
+        disabled-fill: #f1f5f9 /* slate-100 */, disabled-text: #94a3b8 /* slate-400 */, scrim: #00000080 /* black/50 */,
+        // rounded-md, rounded-lg, rounded-xl and rounded-full.
+        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
+        elevation: {
+            // Controls stay flat: a drop-shadow on a control repeated in a
+            // layout inflates its measured height in Slint 1.18.1.
+            control: ElevationLevel.none, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
+            // shadow-xs .. shadow-xl, rgb(0 0 0 / 0.05) and rgb(0 0 0 / 0.1).
+            xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #0000000d }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
+            sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #0000001a }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #0000001a } },
+            md: { key: { offset-y: 4px, blur: 6px, spread: -1px, color: #0000001a }, ambient: { offset-y: 2px, blur: 4px, spread: -2px, color: #0000001a } },
+            lg: { key: { offset-y: 10px, blur: 15px, spread: -3px, color: #0000001a }, ambient: { offset-y: 4px, blur: 6px, spread: -4px, color: #0000001a } },
+            xl: { key: { offset-y: 20px, blur: 25px, spread: -5px, color: #0000001a }, ambient: { offset-y: 8px, blur: 10px, spread: -6px, color: #0000001a } },
+        },
+        // ring-2 ring-offset-2 in indigo-500; invalid fields ring in red-600.
+        focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #6366f1 /* indigo-500 */, invalid-color: #dc2626 /* red-600 */ },
+        typography: {
+            family: "Inter", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
+            // text-xs, text-sm, text-base, text-xl and text-3xl; text-sm line height.
+            size-caption: 12px, size-control: 14px, size-body: 16px, size-subtitle: 20px, size-title: 30px,
+            line-height-control: 20px,
+        },
+        // --spacing: 0.25rem. Heights h-8, h-9 and h-10; paddings px-3/px-4/px-6, py-1.5/py-2.
+        spacing: {
+            unit: 4px,
+            compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
+            medium: { height: 36px, padding-inline: 16px, padding-block: 8px },
+            comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
+        },
+        // duration-150, duration-200 and duration-300.
+        motion: { fast: 150ms, base: 200ms, slow: 300ms },
+        reduced-motion: false, text-scale: 1,
+    };
+    out property <KitTheme> dark: {
+        canvas: #020617 /* slate-950 */, surface: #0f172a /* slate-900 */, surface-raised: #1e293b /* slate-800 */,
+        text-primary: #f8fafc /* slate-50 */, text-secondary: #94a3b8 /* slate-400 */, placeholder: #94a3b8 /* slate-400 */,
+        accent: #818cf8 /* indigo-400 */, on-accent: #1e1b4b /* indigo-950 */,
+        accent-hover: #a5b4fc /* indigo-300 */, accent-pressed: #c7d2fe /* indigo-200 */, accent-subtle: #1e1b4b /* indigo-950 */,
+        selection: #3730a3 /* indigo-800 */, on-selection: #f8fafc /* slate-50 */,
+        danger: #f87171 /* red-400 */, danger-hover: #fca5a5 /* red-300 */, danger-pressed: #fecaca /* red-200 */, danger-subtle: #450a0a /* red-950 */,
+        success: #4ade80 /* green-400 */, success-subtle: #052e16 /* green-950 */,
+        warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
+        information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
+        border-subtle: #1e293b /* slate-800 */, border-strong: #475569 /* slate-600 */,
+        hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
+        disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
+        shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
+        elevation: {
+            control: ElevationLevel.none, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
+            // The light geometry at rgb(0 0 0 / 0.3): a 10% shadow vanishes on slate-950.
+            xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #00000026 }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
+            sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #0000004d }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #0000004d } },
+            md: { key: { offset-y: 4px, blur: 6px, spread: -1px, color: #0000004d }, ambient: { offset-y: 2px, blur: 4px, spread: -2px, color: #0000004d } },
+            lg: { key: { offset-y: 10px, blur: 15px, spread: -3px, color: #0000004d }, ambient: { offset-y: 4px, blur: 6px, spread: -4px, color: #0000004d } },
+            xl: { key: { offset-y: 20px, blur: 25px, spread: -5px, color: #0000004d }, ambient: { offset-y: 8px, blur: 10px, spread: -6px, color: #0000004d } },
+        },
+        focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #818cf8 /* indigo-400 */, invalid-color: #f87171 /* red-400 */ },
+        typography: {
+            family: "Inter", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
+            size-caption: 12px, size-control: 14px, size-body: 16px, size-subtitle: 20px, size-title: 30px,
+            line-height-control: 20px,
+        },
+        spacing: {
+            unit: 4px,
+            compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
+            medium: { height: 36px, padding-inline: 16px, padding-block: 8px },
+            comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
+        },
+        motion: { fast: 150ms, base: 200ms, slow: 300ms },
+        reduced-motion: false, text-scale: 1,
+    };
+}

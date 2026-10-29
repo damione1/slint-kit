@@ -180,7 +180,7 @@ export component KitTextField inherits KitField {
             spacing: KitMetrics.inline-gap(root.theme);
             if root.prefix != "": Text {
                 text: root.prefix; color: root.theme.text-secondary;
-                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             Rectangle {
@@ -193,22 +193,22 @@ export component KitTextField inherits KitField {
                         visible: false;
                         width: viewport.width;
                         text: root.text == "" ? " " : root.text;
-                        font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
                         wrap: word-wrap;
                     }
                     if root.text == "": Text {
                         width: viewport.width; height: root.multiline ? self.preferred-height : viewport.height;
                         text: root.placeholder;
                         color: root.recipe.placeholder;
-                        font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
                         vertical-alignment: root.multiline ? top : center;
                         wrap: root.multiline ? word-wrap : no-wrap;
                         overflow: elide;
                     }
-                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-size: root.recipe.font-size; }
+                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-family: root.theme.typography.family; font-size: root.recipe.font-size; }
                     if root.formatted-at-rest: Text {
                         text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
-                        font-size: root.recipe.font-size; vertical-alignment: center;
+                        font-family: root.theme.typography.family; font-size: root.recipe.font-size; vertical-alignment: center;
                         horizontal-alignment: root.text-alignment;
                         color: root.recipe.foreground;
                     }
@@ -225,7 +225,7 @@ export component KitTextField inherits KitField {
                         color: root.formatted-at-rest ? transparent : root.recipe.foreground;
                         selection-background-color: root.formatted-at-rest ? transparent : root.recipe.selection;
                         selection-foreground-color: root.formatted-at-rest ? transparent : root.recipe.on-selection;
-                        font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
                         letter-spacing: root.text-letter-spacing;
                         horizontal-alignment: root.text-alignment;
                         vertical-alignment: root.multiline ? top : center;
@@ -274,7 +274,7 @@ export component KitTextField inherits KitField {
             }
             if root.suffix != "": Text {
                 text: root.suffix; color: root.theme.text-secondary;
-                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             // The pending check also has a text description below the field;
