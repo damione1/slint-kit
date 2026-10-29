@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconKind } from "icons.slint";
-import { KitTheme, KitThemes, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
 // Content must be non-interactive; the primitive owns hit testing and activation.
 export component KitPressable inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ButtonIntent> intent: ButtonIntent.secondary;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <ControlWidth> control-width: ControlWidth.intrinsic;
@@ -14,6 +15,10 @@ export component KitPressable inherits Rectangle {
     in property <bool> disabled;
     in property <bool> busy;
     in property <bool> tab-stop: true;
+    // A composite that keeps keyboard focus itself sets this on its active
+    // row; the row then paints `focus-ring` as if it held focus.
+    in property <bool> focus-indicated;
+    in property <KitFocusRing> focus-ring: root.recipe.focus;
     out property <bool> hovered: touch.has-hover && !root.disabled;
     out property <bool> pressed: (touch.pressed && root.pointer-armed && touch.has-hover) || root.space-held;
     out property <bool> has-focus: keys.has-focus;
@@ -64,8 +69,8 @@ export component KitPressable inherits Rectangle {
         // Native keyboard traversal reveals this geometry in ancestor scrolls.
         // Include the painted outline; focus-on-click remains off, so this does
         // not enlarge the pointer target or change the button's layout size.
-        x: -root.recipe.focus-offset - root.recipe.focus-width;
-        y: -root.recipe.focus-offset - root.recipe.focus-width;
+        x: -KitThemes.focus-outset(root.focus-ring);
+        y: -KitThemes.focus-outset(root.focus-ring);
         width: root.width - 2 * self.x;
         height: root.height - 2 * self.y;
         enabled: !root.disabled;
@@ -118,15 +123,9 @@ export component KitPressable inherits Rectangle {
             if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
         }
     }
-    if root.focus-visible : Rectangle {
-        x: -root.recipe.focus-offset - root.recipe.focus-width;
-        y: -root.recipe.focus-offset - root.recipe.focus-width;
-        width: root.width - 2 * self.x;
-        height: root.height - 2 * self.y;
-        border-radius: root.recipe.radius + root.recipe.focus-offset;
-        border-width: root.recipe.focus-width;
-        border-color: root.recipe.focus-color;
-        background: transparent;
+    if root.focus-visible || root.focus-indicated: FocusOutline {
+        ring: root.focus-ring; radius: root.recipe.radius;
+        host-width: root.width; host-height: root.height;
     }
 }
 

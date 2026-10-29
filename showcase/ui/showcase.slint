@@ -77,8 +77,7 @@ component ProjectTile inherits KitPressable {
         pressed-fill: base-recipe.pressed-fill, disabled-fill: base-recipe.disabled-fill,
         foreground: base-recipe.foreground, disabled-foreground: base-recipe.disabled-foreground,
         border: transparent, border-width: 0px, radius: 20px, padding-inline: 0px, padding-block: 0px, height: 166px,
-        font-size: base-recipe.font-size, focus-color: base-recipe.focus-color,
-        focus-width: base-recipe.focus-width, focus-offset: base-recipe.focus-offset,
+        font-size: base-recipe.font-size, focus: base-recipe.focus,
     };
     control-width: ControlWidth.fill;
     border-width: 0px;
@@ -126,14 +125,29 @@ export component Showcase inherits Window {
     in-out property <bool> enlarged: false;
     in-out property <bool> reduced-motion: false;
     private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
+    private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
+    private property <color> teal-hover: theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1;
+    private property <bool> teal: accent-style == AccentStyle.teal;
     out property <KitTheme> theme: {
         canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised,
-        text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary,
-        accent: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #65d8c4 : #087c70) : base-theme.accent,
-        on-accent: base-theme.on-accent, danger: base-theme.danger, success: base-theme.success, warning: base-theme.warning,
-        border-subtle: base-theme.border-subtle, focus-ring: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus-ring,
-        hover: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1) : base-theme.hover, pressed: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed, disabled-fill: base-theme.disabled-fill,
-        disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
+        text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary, placeholder: base-theme.placeholder,
+        accent: teal ? teal-accent : base-theme.accent, on-accent: base-theme.on-accent,
+        accent-subtle: teal ? teal-hover : base-theme.accent-subtle,
+        selection: teal ? teal-accent : base-theme.selection, on-selection: base-theme.on-selection,
+        danger: base-theme.danger, danger-subtle: base-theme.danger-subtle,
+        success: base-theme.success, success-subtle: base-theme.success-subtle,
+        warning: base-theme.warning, warning-subtle: base-theme.warning-subtle,
+        information: teal ? teal-accent : base-theme.information, information-subtle: teal ? teal-hover : base-theme.information-subtle,
+        border-subtle: base-theme.border-subtle, border-strong: base-theme.border-strong,
+        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed,
+        disabled-fill: base-theme.disabled-fill, disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
+        shape: base-theme.shape, elevation: base-theme.elevation,
+        focus: {
+            style: base-theme.focus.style, width: base-theme.focus.width, offset: base-theme.focus.offset,
+            color: teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus.color,
+            invalid-color: base-theme.focus.invalid-color,
+        },
+        typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
         reduced-motion: root.reduced-motion, text-scale: enlarged ? 2 : 1,
     };
     in property <[OptionRow]> rows;
@@ -377,7 +391,7 @@ export component Showcase inherits Window {
                             Rectangle {
                                 background: root.theme.canvas;
                                 border-width: 1px;
-                                border-color: input.has-focus ? root.theme.focus-ring : root.theme.border-subtle;
+                                border-color: input.has-focus ? root.theme.focus.color : root.theme.border-subtle;
                                 border-radius: 8px;
                             }
                             input := TextInput {
@@ -428,7 +442,7 @@ export component Showcase inherits Window {
                             height: max(48px,note.preferred-height + 20px);
                             focus-requested => { note.focus(); }
                             focus-observed(token, focused) => { root.focus-changed(token, focused); }
-                            Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus-ring : root.theme.border-subtle; }
+                            Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus.color : root.theme.border-subtle; }
                             note := TextInput { x: 12px; y: 10px; width: parent.width - 24px; height: parent.height - 20px; text <=> root.project-note; color: root.theme.text-primary; font-size:14px * root.theme.text-scale; single-line: true; accessible-label: "Optional project note"; changed has-focus => { root.focus-changed(16, self.has-focus); } }
                         }
                         if root.validation-message != "": Text {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { KitTheme, KitThemes } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext } from "theme.slint";
 import { KitIcon, IconKind } from "icons.slint";
 
 export enum Tone { neutral, accent, success, warning, danger }
@@ -11,7 +11,7 @@ export struct TimelineEntry { title: string, description: string, metadata: stri
 export struct StepEntry { token: int, label: string, state: StepState }
 
 export component KitBadge inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <Tone> tone: Tone.neutral;
     preferred-width: label.preferred-width + 16px;
@@ -31,7 +31,7 @@ export component KitBadge inherits Rectangle {
 }
 
 export component KitAvatar inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <image> source;
     in property <string> initials;
     in property <string> accessible-name;
@@ -48,17 +48,17 @@ export component KitAvatar inherits Rectangle {
 }
 
 export component KitCard inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     background: root.theme.surface;
     border-color: root.theme.border-subtle; border-width: 1px; border-radius: 12px;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     vertical-stretch: 0;
-    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.inset); spacing: KitLayoutMetrics.space(root.gap); alignment: start; @children }
+    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start; @children }
 }
 export component KitCardHeader inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
     spacing: 6px; vertical-stretch: 0;
@@ -69,26 +69,26 @@ export component KitCardBody inherits VerticalLayout { spacing: 12px; alignment:
 export component KitCardFooter inherits FlexboxLayout { spacing: 8px; flex-wrap: wrap; vertical-stretch: 0; @children }
 
 export component KitHero inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     background: root.theme.hover; border-radius: 16px; vertical-stretch: 0;
-    VerticalLayout { padding: KitLayoutMetrics.space(root.inset); spacing: KitLayoutMetrics.space(root.gap); alignment: start;
+    VerticalLayout { padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start;
         Text { text: root.title; color: root.theme.text-primary; font-size: 28px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
         if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
         @children
     }
 }
 export component KitFooter inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     background: root.theme.canvas; vertical-stretch: 0; accessible-role: content-info;
     content := VerticalLayout { y: 0px; width: root.width; height: self.preferred-height; padding-top: 20px; padding-bottom: 20px; spacing: 12px; alignment: start; @children }
 }
 export component KitDivider inherits HorizontalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
     spacing: 12px; vertical-stretch: 0;
     Rectangle { background: root.theme.border-subtle; height: 1px; vertical-stretch: 0; }
@@ -96,7 +96,7 @@ export component KitDivider inherits HorizontalLayout {
     Rectangle { background: root.theme.border-subtle; height: 1px; vertical-stretch: 0; }
 }
 export component KitStat inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
     in property <string> value;
     in property <string> description;
@@ -106,7 +106,7 @@ export component KitStat inherits VerticalLayout {
     if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
 }
 export component KitChatBubble inherits HorizontalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ChatSide> side: ChatSide.start;
     in property <string> author;
     in property <string> text;
@@ -125,7 +125,7 @@ export component KitChatBubble inherits HorizontalLayout {
     if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: 16px; }
 }
 export component KitSkeleton inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <bool> running: true;
     private property <bool> pulse;
     preferred-height: 20px; min-height: 8px; vertical-stretch: 0;
@@ -135,7 +135,7 @@ export component KitSkeleton inherits Rectangle {
     Timer { interval: 650ms; running: root.running && !root.theme.reduced-motion; triggered => { root.pulse = !root.pulse; } }
 }
 export component KitEmptyState inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
     preferred-height: content.preferred-height;
@@ -148,7 +148,7 @@ export component KitEmptyState inherits Rectangle {
     }
 }
 export component KitTimeline inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[TimelineEntry]> entries;
     spacing: 16px; vertical-stretch: 0;
     for entry in root.entries: HorizontalLayout { spacing: 12px;
@@ -164,7 +164,7 @@ export component KitTimeline inherits VerticalLayout {
     }
 }
 export component KitSteps inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[StepEntry]> entries;
     spacing: 12px; vertical-stretch: 0;
     for entry[index] in root.entries: HorizontalLayout { spacing: 12px;

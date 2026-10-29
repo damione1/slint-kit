@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth, KitThemeContext } from "theme.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup } from "field.slint";
 import { KitPressable } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
@@ -15,7 +15,6 @@ export enum TextLineMode { single-line, multiline }
 // All variants retain this one native TextInput throughout theme, validation,
 // placeholder and reveal changes. Parsing and grapheme counting belong to Rust.
 export component KitTextField inherits KitField {
-    in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -133,7 +132,7 @@ export component KitTextField inherits KitField {
     private property <length> line-height: 20px * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
-    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.control-size, root.theme.text-scale) - 12px;
+    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.theme, root.control-size) - 12px;
     if root.label != "": KitFieldLabel {
         theme: root.theme; text: root.label; access: root.access;
         focus-requested => { root.take-focus(); }
@@ -178,7 +177,7 @@ export component KitTextField inherits KitField {
             spacing: 8px;
             if root.prefix != "": Text {
                 text: root.prefix; color: root.theme.text-secondary;
-                font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             Rectangle {
@@ -272,20 +271,20 @@ export component KitTextField inherits KitField {
             }
             if root.suffix != "": Text {
                 text: root.suffix; color: root.theme.text-secondary;
-                font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             if root.action-visible: Rectangle {
                 // Reserve the action's width in the editor row, but let its
                 // comfortable hit area also use the surface's block padding.
-                width: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : 28px;
+                width: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : 28px;
                 height: root.editor-height;
                 action := KitPressable {
                     x: 0px; y: (parent.height - self.height) / 2;
                     theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
                     recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
                     width: parent.width;
-                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.control-size, root.theme.text-scale) : Math.min(28px, root.editor-height);
+                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : Math.min(28px, root.editor-height);
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {

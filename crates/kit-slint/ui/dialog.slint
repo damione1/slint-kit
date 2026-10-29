@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 export { DialogState, CloseReason } from "contracts.slint";
 export enum DialogTabPolicy { host, native }
@@ -7,7 +7,7 @@ export enum DialogTabPolicy { host, native }
 // Modal host: rendered last in its window. Topmost is projected by OverlayStack;
 // arbitrary content enters the focus registry via KitFocusTarget.
 export component KitDialogSurface inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <DialogState> state;
     in property <bool> dismiss-on-backdrop: true;
     // Native traversal follows the actual mounted controls. Its window host
@@ -47,7 +47,7 @@ export component KitDialogSurface inherits Rectangle {
 }
 // Place composed header/body/footer inside this panel to consume backdrop hits.
 export component KitDialogPanel inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name;
     in property <string> accessible-description-text;
     accessible-role: groupbox;
@@ -61,17 +61,17 @@ export component KitDialogPanel inherits Rectangle {
     @children
 }
 export component KitDialogHeader inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     min-height: 32px;
     HorizontalLayout { spacing: 12px; @children }
 }
 export component KitDialogBody inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     min-height: 48px;
     VerticalLayout { spacing: 12px; @children }
 }
 export component KitDialogFooter inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     min-height: 48px;
     HorizontalLayout { spacing: 8px; alignment: end; @children }
 }

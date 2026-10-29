@@ -469,7 +469,7 @@ mod tests {
                 "{name} accent label"
             );
             assert!(
-                contrast(theme.focus_ring, theme.surface) >= 3.,
+                contrast(theme.focus.color, theme.surface) >= 3.,
                 "{name} focus ring"
             );
             for intent in [

@@ -3,7 +3,7 @@ import { KitValidityState } from "validation.slint";
 import { NumberInputFormat } from "shared-contracts.slint";
 import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext } from "theme.slint";
 import { KitPressable } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
@@ -21,7 +21,6 @@ export component KitQuantityField inherits KitDecimalField { }
 export component KitDurationField inherits KitDecimalField { }
 
 export component KitNumberStepper inherits KitField {
-    in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -82,7 +81,7 @@ export component KitNumberStepper inherits KitField {
         }
         for direction in [StepDirection.decrement, StepDirection.increment]: KitPressable {
             theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
-            preferred-width: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+            preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;
             disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
             accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;

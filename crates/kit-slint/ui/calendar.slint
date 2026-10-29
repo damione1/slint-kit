@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, KitThemeContext } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
@@ -49,7 +49,7 @@ export component KitCalendar inherits Rectangle {
             step: root.step, default-value: root.default-value, min-length: -1, max-length: -1}, value, true, false, 0).validity.valid;
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[CalendarDay]> days;
@@ -67,7 +67,7 @@ export component KitCalendar inherits Rectangle {
     changed request-focus => { if (root.request-focus) { keyboard.focus(); } }
     init => { if (root.request-focus) { keyboard.focus(); } }
     out property <bool> has-focus: keyboard.has-focus;
-    private property <length> cell-height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+    private property <length> cell-height: KitMetrics.control-height(root.theme, root.control-size);
     private property <bool> activation-held;
     changed access => { root.activation-held = false; }
     min-width: 7 * root.cell-height;
@@ -124,8 +124,10 @@ export component KitCalendar inherits Rectangle {
                 accessible-role: list-item; accessible-name: day.accessible-label;
                 accessible-item-selectable: true; accessible-item-selected: day.selected;
                 background: day.selected ? root.theme.accent : day.in-range ? root.theme.hover : self.hovered ? root.theme.hover : transparent;
-                border-width: keyboard.has-focus && root.active-index == index ? 2px : day.today ? 1px : 0px;
-                border-color: keyboard.has-focus && root.active-index == index ? root.theme.focus-ring : root.theme.accent;
+                border-width: day.today ? 1px : 0px;
+                border-color: root.theme.accent;
+                focus-indicated: keyboard.has-focus && root.active-index == index;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.choose(chosen); } }
                 Text { text: day.label; font-size: 14px * root.theme.text-scale; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
@@ -159,7 +161,7 @@ export component KitDatePicker inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <CivilDateView> accepted-date;
@@ -229,7 +231,7 @@ export component KitDatePicker inherits Rectangle {
 // Selecting a start/end is provisional until Apply. The Rust DateRange model
 // rejects reversed dates or forbidden periods; it never normalizes them silently.
 export component KitDateRangePicker inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <DateRangePhase> phase: DateRangePhase.choosing-start;

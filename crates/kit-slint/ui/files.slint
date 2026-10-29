@@ -1,6 +1,6 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ButtonIntent, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext } from "theme.slint";
 import { KitButton } from "button.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
@@ -24,7 +24,7 @@ component FileRemoveButton inherits KitButton {
 }
 
 export component KitFileList inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[FileViewEntry]> entries;
@@ -72,7 +72,7 @@ export component KitFilePicker inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <FileSelectionMode> mode: FileSelectionMode.single;
@@ -123,7 +123,7 @@ export component KitDirectoryPicker inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <HostRequestPresentation> request-state: HostRequestPresentation.idle;
@@ -154,7 +154,7 @@ export component KitDirectoryPicker inherits Rectangle {
 // checks MIME/types in can-drop and resolves handles asynchronously in dropped.
 // The available flag is a host capability, never guessed from pointer events.
 export component KitFileDropZone inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <DropCapability> capability: DropCapability.unsupported;

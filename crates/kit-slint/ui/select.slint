@@ -4,7 +4,7 @@ import { FieldAccess } from "shared-contracts.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { ListView } from "std-widgets.slint";
 import { KitPressable } from "button.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext } from "theme.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
 
@@ -91,7 +91,7 @@ export component KitSelectTrigger inherits KitPressable {
 }
 
 export component KitSelectSurface inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <SelectState> state;
     in property <length> row-height: 48px;
     in property <length> viewport-height: content-box.height;
@@ -147,7 +147,7 @@ export component KitSelectSurface inherits Rectangle {
                 border-radius: 6px;
                 background: root.theme.canvas;
                 border-width: 1px;
-                border-color: search.has-focus ? root.theme.focus-ring : root.theme.border-subtle;
+                border-color: search.has-focus ? root.theme.focus.color : root.theme.border-subtle;
                 search-viewport := Rectangle {
                     x: 10px; y: 6px;
                     width: parent.width - 20px; height: parent.height - 12px;
@@ -220,7 +220,7 @@ export component KitOption inherits KitPressable {
     accessible-item-selected: root.selected;
     background: root.active ? root.theme.pressed : root.hovered ? root.theme.hover : transparent;
     border-width: root.active ? 1px : 0px;
-    border-color: root.theme.focus-ring;
+    border-color: root.theme.focus.color;
     private property <int> press-token;
     private property <int> press-generation;
     activation-started => {
@@ -251,7 +251,7 @@ export component KitSelect inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
     in property <string> placeholder: "Choose an option";
@@ -272,7 +272,7 @@ export component KitSelect inherits Rectangle {
     changed has-focus => { if (!root.has-focus && !root.state.open && !root.disabled) { checks.note-blur(); } }
     public function take-focus() { trigger.take-focus(); }
     public function cancel-press() {trigger.cancel-press();}
-    min-height: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+    min-height: KitMetrics.control-height(root.theme, root.control-size);
     preferred-height: root.min-height;
     max-height: root.preferred-height;
     vertical-stretch: 0;

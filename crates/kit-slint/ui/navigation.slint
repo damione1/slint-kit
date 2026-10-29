@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView } from "std-widgets.slint";
-import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent } from "theme.slint";
+import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, IconKind } from "icons.slint";
@@ -18,7 +18,7 @@ export component KitNavigationAction inherits KitOption {
     min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
     preferred-width: self.min-width;
     border-width: root.active || root.selected ? 1px : 0px;
-    border-color: root.active ? root.theme.focus-ring : root.theme.accent;
+    border-color: root.active ? root.theme.focus.color : root.theme.accent;
     label := Text {
         x: 0px; y: 0px;
         width: max(0px,root.width - 2 * root.recipe.padding-inline - root.trailing-space);
@@ -36,12 +36,12 @@ export component KitNavigationAction inherits KitOption {
 // The composite retains a single tab stop; the model is the source of truth.
 export component KitMenu inherits Rectangle {
     in property <bool> interactive: true;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
     in property <string> accessible-name: "Menu";
-    in property <length> row-height: max(KitMetrics.control-height(root.control-size, root.theme.text-scale), 20px * root.theme.text-scale + 16px);
+    in property <length> row-height: max(KitMetrics.control-height(root.theme, root.control-size), 20px * root.theme.text-scale + 16px);
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
@@ -117,7 +117,7 @@ export component KitMenu inherits Rectangle {
 }
 
 export component KitMenuBar inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
@@ -140,7 +140,7 @@ export component KitMenuBar inherits Rectangle {
     }
     accessible-role: navigation;
     accessible-label: root.accessible-name;
-    min-height: max(KitMetrics.control-height(root.control-size, root.theme.text-scale), 20px * root.theme.text-scale + 16px);
+    min-height: max(KitMetrics.control-height(root.theme, root.control-size), 20px * root.theme.text-scale + 16px);
     preferred-height: self.min-height;
     vertical-stretch: 0;
     forward-focus: keyboard;
@@ -181,7 +181,7 @@ export component KitMenuBar inherits Rectangle {
 }
 
 export component KitTabs inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
@@ -204,7 +204,7 @@ export component KitTabs inherits Rectangle {
     }
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
-    min-height: max(KitMetrics.control-height(root.control-size, root.theme.text-scale), 20px * root.theme.text-scale + 16px);
+    min-height: max(KitMetrics.control-height(root.theme, root.control-size), 20px * root.theme.text-scale + 16px);
     preferred-height: self.min-height;
     vertical-stretch: 0;
     forward-focus: keyboard;
@@ -246,7 +246,7 @@ export component KitTabs inherits Rectangle {
 }
 
 export component KitCollapse inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
     in property <bool> expanded;
@@ -281,7 +281,7 @@ export component KitCollapse inherits VerticalLayout {
 }
 
 export component KitAccordion inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[DisclosureRow]> rows;
     in property <SelectState> state;
@@ -336,7 +336,7 @@ export component KitAccordion inherits VerticalLayout {
 export component KitCarousel inherits Rectangle {
     in property <string> label: "Carousel";
     accessible-role: groupbox; accessible-label: root.label;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
@@ -380,11 +380,11 @@ export component KitCarousel inherits Rectangle {
 }
 
 export component KitBreadcrumbs inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
     callback activate(int, int);
-    min-height: max(KitMetrics.control-height(root.control-size, root.theme.text-scale), 20px * root.theme.text-scale + 16px);
+    min-height: max(KitMetrics.control-height(root.theme, root.control-size), 20px * root.theme.text-scale + 16px);
     preferred-height: self.min-height;
     vertical-stretch: 0;
     accessible-role: navigation;
@@ -422,7 +422,7 @@ export component KitBreadcrumbs inherits Rectangle {
 // Integers are a projection boundary; a Rust pagination controller validates
 // the page index/count. This view never mutates a remote collection itself.
 export component KitPagination inherits HorizontalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <int> page-index;
     in property <int> page-count;
@@ -541,7 +541,7 @@ component NotificationItem inherits Rectangle {
 }
 
 export component KitNotificationCenter inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[NotificationRow]> rows;
     in property <int> focus-token: -1;

@@ -1,8 +1,9 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
+import { FocusOutline } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
@@ -191,7 +192,7 @@ export component KitRadioGroup inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -227,8 +228,8 @@ export component KitRadioGroup inherits Rectangle {
             disabled: row.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: row.label;
             accessible-role: radio-button; accessible-checked: row.selected;
-            border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 0px;
-            border-color: root.theme.focus-ring;
+            focus-indicated: keyboard.has-focus && root.active-token == row.token;
+            focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: 10px;
@@ -251,8 +252,8 @@ export component KitRadioGroup inherits Rectangle {
             disabled: display-choice.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: display-choice.label;
             accessible-role: radio-button; accessible-checked: display-choice.selected;
-            border-width: keyboard.has-focus && root.active-token == display-choice.token ? 2px : 0px;
-            border-color: root.theme.focus-ring;
+            focus-indicated: keyboard.has-focus && root.active-token == display-choice.token;
+            focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: 10px;
@@ -287,7 +288,7 @@ export component KitSegmentedControl inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -323,8 +324,8 @@ export component KitSegmentedControl inherits Rectangle {
                 disabled: row.disabled || root.access == FieldAccess.disabled;
                 intent: row.selected ? ButtonIntent.primary : ButtonIntent.quiet;
                 accessible-role: radio-button; accessible-checked: row.selected;
-                border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 0px;
-                border-color: root.theme.focus-ring;
+                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
                 Text { text: row.label; color: row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-accent : root.theme.text-primary; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
@@ -353,7 +354,7 @@ export component KitToggleGroup inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -385,8 +386,10 @@ export component KitToggleGroup inherits Rectangle {
                 intent: row.selected ? ButtonIntent.primary : ButtonIntent.secondary;
                 disabled: row.disabled || root.access == FieldAccess.disabled;
                 accessible-checked: row.selected;
-                border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 1px;
-                border-color: keyboard.has-focus && root.active-token == row.token ? root.theme.focus-ring : root.theme.border-subtle;
+                border-width: 1px;
+                border-color: root.theme.border-subtle;
+                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
                 Text { text: row.label; color: row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-accent : root.theme.text-primary; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
@@ -426,7 +429,7 @@ export component KitMultiSelect inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[OptionRow]> rows;
@@ -498,7 +501,7 @@ export component KitTagInput inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChipRow]> chips;
@@ -549,7 +552,7 @@ export component KitCombobox inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[OptionRow]> rows;
@@ -569,7 +572,7 @@ export component KitCombobox inherits Rectangle {
     callback tab-navigation(bool) -> EventResult;
     private property <bool> opened: root.state.open;
     private property <bool> tab-restore-complete;
-    preferred-height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+    preferred-height: KitMetrics.control-height(root.theme, root.control-size);
     vertical-stretch: 0;
     out property <bool> has-focus: trigger.has-focus || readonly.has-focus;
     changed has-focus => { if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -662,7 +665,7 @@ component SliderKeyboard inherits FocusScope {
     }
 }
 export component KitSlider inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> position;
     in property <string> label;
@@ -688,7 +691,9 @@ export component KitSlider inherits Rectangle {
     Rectangle { x: 10px; y: (parent.height - 4px) / 2; height: 4px; width: parent.width - 20px; border-radius: 2px; background: root.theme.border-subtle;
         Rectangle { x: 0px; height: parent.height; width: parent.width * clamp(root.position,0,1); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-radius: 2px; }
     }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: keyboard.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
+    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
     keyboard := SliderKeyboard {
         access: root.access;
         navigate(step) => { root.navigate(step); }
@@ -707,7 +712,7 @@ export component KitSlider inherits Rectangle {
 }
 
 export component KitRangeSlider inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> lower-position;
     in property <float> upper-position: 1;
@@ -758,8 +763,12 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.committed(RangeThumb.upper); }
         cancelled => { root.gesture-active = false; root.cancelled(RangeThumb.upper); }
     }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.lower-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: lower.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.upper-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: upper.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
+    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.lower-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
+    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.upper-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
     pointer := TouchArea {
         enabled: root.access == FieldAccess.editable;
         pointer-event(event) => {
@@ -781,7 +790,7 @@ export component KitRangeSlider inherits Rectangle {
 
 export component KitRating inherits Rectangle {
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> scores;

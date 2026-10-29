@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { IconKind } from "icons.slint";
 import { FormConstraintState, KitFormValidation } from "validation.slint";
@@ -22,7 +22,7 @@ export struct LocalDateTimeDraft { date: string, time: string }
 export struct ZonedDateTimeDraft { date: string, time: string, zone: string }
 
 component TimeSegmentControl inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <TimeSegment> segment;
@@ -67,7 +67,7 @@ export component KitTimePicker inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <LocalTimeView> accepted-time;
@@ -121,7 +121,7 @@ export component KitDateTimeField inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <LocalDateTimeView> accepted-value;
@@ -184,7 +184,7 @@ export component KitZonedDateTimeField inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { local.reset-validation(); zone.reset-validation(); }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <LocalDateTimeView> accepted-local;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitValidityState } from "validation.slint";
@@ -47,7 +47,7 @@ export component KitColorField inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.opaque;
@@ -160,7 +160,7 @@ export component KitColorField inherits Rectangle {
 }
 
 component ColorChannelEditor inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ColorChannel> channel;
@@ -193,7 +193,7 @@ component ColorChannelEditor inherits Rectangle {
 }
 
 export component KitColorPicker inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.opaque;

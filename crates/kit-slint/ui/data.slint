@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "std-widgets.slint";
-import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ControlWidth, KitThemeContext } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { KitTextField } from "input.slint";
@@ -47,7 +47,7 @@ component DataAction inherits KitPressable {
 
 export component KitDataTable inherits Rectangle {
     in property <bool> interactive: true;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[TableColumn]> columns;
     in property <[TableRow]> rows;
@@ -61,7 +61,7 @@ export component KitDataTable inherits Rectangle {
     callback sort-requested(int);
     public function take-focus() {if(root.interactive){keys.focus();}}
     out property <length> scroll-y: list.content-y;
-    private property <length> row-height: KitMetrics.control-height(root.control-size,root.theme.text-scale) + 8px;
+    private property <length> row-height: KitMetrics.control-height(root.theme, root.control-size) + 8px;
     private property <length> grid-width: max(list.visible-width,root.columns.length * root.minimum-column-width);
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
@@ -111,8 +111,8 @@ export component KitDataTable inherits Rectangle {
             accessible-name:row.cells.length > 0 ? row.cells[0] : "Row";
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selected:row.selected;
             background:row.selected ? root.theme.hover : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
-            border-width:keys.has-focus && index == root.active-index ? 2px : 0px;border-color:root.theme.focus-ring;
-            recipe:{fill:transparent,hover-fill:root.theme.hover,pressed-fill:root.theme.pressed,disabled-fill:root.theme.disabled-fill,foreground:root.theme.text-primary,disabled-foreground:root.theme.disabled-text,border:transparent,radius:0px,padding-inline:0px,padding-block:6px,border-width:0px,height:root.row-height,font-size:14px * root.theme.text-scale,focus-color:root.theme.focus-ring,focus-width:2px,focus-offset:0px};
+            focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
+            recipe:{fill:transparent,hover-fill:root.theme.hover,pressed-fill:root.theme.pressed,disabled-fill:root.theme.disabled-fill,foreground:root.theme.text-primary,disabled-foreground:root.theme.disabled-text,border:transparent,radius:0px,padding-inline:0px,padding-block:6px,border-width:0px,height:root.row-height,font-size:14px * root.theme.text-scale,focus:KitThemes.inset-focus(root.theme)};
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:0px;
                 for cell[column-index] in row.cells: Rectangle {
@@ -126,7 +126,7 @@ export component KitDataTable inherits Rectangle {
 }
 
 export component KitContentList inherits Rectangle {
-    in property <KitTheme> theme:KitThemes.light;
+    in property <KitTheme> theme:KitThemeContext.current;
     in property <[ContentItem]> items;
     in property <int> generation;
     in property <int> active-index:-1;
@@ -154,7 +154,7 @@ export component KitContentList inherits Rectangle {
             width:list.visible-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             theme:root.theme;token:item.token;generation:root.generation;disabled:item.disabled;intent:ButtonIntent.quiet;
             accessible-name:item.title + ", " + item.metadata;accessible-role:AccessibleRole.list-item;
-            border-width:keys.has-focus && root.active-index==index ? 2px : 0px;border-color:root.theme.focus-ring;
+            focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
             background:item.selected ? root.theme.hover : root.theme.surface;
             requested(token,generation)=>{keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:16px; alignment: start;
@@ -175,7 +175,7 @@ export component KitContentList inherits Rectangle {
 }
 
 export component KitVirtualTextView inherits Rectangle {
-    in property <KitTheme> theme:KitThemes.light;
+    in property <KitTheme> theme:KitThemeContext.current;
     in property <[TextLine]> lines;
     in property <int> generation;
     in property <int> active-index:-1;

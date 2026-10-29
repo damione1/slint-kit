@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, KitThemeContext } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
 
@@ -8,7 +8,7 @@ export enum ToastInteraction { pointer, focus }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool }
 
 export component KitAlert inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <AlertSeverity> severity: AlertSeverity.information;
     in property <string> title;
     in property <string> message;
@@ -47,7 +47,7 @@ export component KitAlert inherits Rectangle {
 }
 
 export component KitSpinner inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label: "Loading";
     in property <bool> running: true;
     private property <int> phase;
@@ -64,7 +64,7 @@ export component KitSpinner inherits Rectangle {
 }
 
 export component KitProgress inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
     out property <float> bounded-value: min(1,max(0,root.value));
@@ -78,7 +78,7 @@ export component KitProgress inherits VerticalLayout {
     }
 }
 export component KitRadialProgress inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
     out property <float> bounded-value: min(1,max(0,root.value));
@@ -103,7 +103,7 @@ export global KitTooltipState {
     out property <int> owner;
     out property <int> suppressed-owner;
     out property <string> text;
-    out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> theme: KitThemeContext.current;
     out property <Point> anchor;
     out property <length> anchor-height;
     public function allocate() -> int {
@@ -154,7 +154,7 @@ export component KitTooltipLayer inherits Rectangle {
 // Native hover tips stay input-transparent. Bind target-focused to the composed
 // control's has-focus; mount KitTooltipLayer at the Window root for keyboard tips.
 export component KitTooltip inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <bool> target-focused;
     in property <length> viewport-width: 100000px;
@@ -196,7 +196,7 @@ export component KitTooltip inherits Rectangle {
 }
 
 export component KitToast inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ToastEntry> entry;
     callback action(int);
     callback dismiss(int);
@@ -225,7 +225,7 @@ export component KitToast inherits Rectangle {
 // The host owns lifetime and stable typed IDs. This view never creates a
 // timer per delegate or silently discards announcements on model changes.
 export component KitToastHost inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[ToastEntry]> entries;
     callback action(int);
     callback dismiss(int);
