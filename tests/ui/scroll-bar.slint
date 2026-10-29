@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe } from "@kit/kit.slint";
+
+export component ScrollBarFixture inherits Window {
+    width: 480px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <bool> enabled: true;
+    in property <length> maximum: 600px;
+    in property <length> page-size: 200px;
+    in-out property <length> value;
+    in-out property <int> scrolls;
+    out property <bool> bar-visible: bar.visible;
+    out property <bool> always-on-visible: always-on.visible;
+    out property <bool> always-off-visible: always-off.visible;
+    out property <bool> bar-active: bar.active;
+    out property <length> area-offset: area.content-y;
+    out property <length> area-viewport: area.visible-height;
+    out property <length> area-content: area.content-height;
+    public pure function recipe(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
+    bar := KitScrollBar {
+        x: 440px; y: 0px; width: KitThemes.scroll-bar-recipe(root.theme).thickness; height: 200px;
+        theme: root.theme; enabled: root.enabled;
+        maximum: root.maximum; page-size: root.page-size;
+        value <=> root.value;
+        scrolled => { root.scrolls += 1; }
+    }
+    always-on := KitScrollBar { x: 400px; y: 0px; width: KitThemes.scroll-bar-recipe(root.theme).thickness; height: 100px; policy: ScrollBarPolicy.always-on; maximum: root.maximum; page-size: root.page-size; }
+    always-off := KitScrollBar { x: 380px; y: 0px; width: KitThemes.scroll-bar-recipe(root.theme).thickness; height: 100px; policy: ScrollBarPolicy.always-off; maximum: root.maximum; page-size: root.page-size; }
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 200px; height: 120px;
+        theme: root.theme;
+        KitButton { text: "First action"; }
+        Rectangle { height: 400px; }
+        KitButton { text: "Last action"; }
+    }
+}

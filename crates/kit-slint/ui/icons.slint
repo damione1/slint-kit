@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Original paths on a common 16-unit grid; no external icon assets.
+import { KitThemes, KitThemeContext, IconRecipe } from "theme.slint";
 export enum IconKind { chevron-down, chevron-left, chevron-right, close, eye, eye-hidden, search, check, minus, plus, arrow-up-right, warning, chevron-up, bell, menu, information, article, home, grid, copy, upload, download, heart, cart, clock, settings, file, trash }
 export component KitIcon inherits Path {
     in property <IconKind> kind: IconKind.chevron-down;
-    in property <color> ink: #475569;
-    width: 16px; height: 16px;
+    // Geometry and the default ink follow the context theme's icon recipe.
+    private property <IconRecipe> recipe: KitThemes.icon-recipe(KitThemeContext.current);
+    in property <color> ink: root.recipe.color;
+    width: root.recipe.size; height: root.recipe.size;
     horizontal-stretch: 0; vertical-stretch: 0;
     viewbox-width: 16; viewbox-height: 16;
     commands: root.kind == IconKind.chevron-up ? "M 3 10 L 8 5 L 13 10"
@@ -35,5 +38,5 @@ export component KitIcon inherits Path {
         : root.kind == IconKind.warning ? "M 8 2 L 14 13 L 2 13 Z M 8 6 L 8 9 M 8 11 L 8 11.5"
         : root.kind == IconKind.eye-hidden ? "M 2 2 L 14 14 M 2 8 C 5 2 11 2 14 8 C 12 12 8 13 5 11 M 6 6 C 4 9 8 12 10 9"
         : "M 2 8 C 5 2 11 2 14 8 C 11 14 5 14 2 8 Z M 10 8 C 10 10.7 6 10.7 6 8 C 6 5.3 10 5.3 10 8 Z";
-    stroke: root.ink; stroke-width: 1.7px; fill: transparent;
+    stroke: root.ink; stroke-width: root.recipe.stroke-width; fill: transparent;
 }

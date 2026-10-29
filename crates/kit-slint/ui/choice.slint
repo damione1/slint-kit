@@ -9,7 +9,7 @@ import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
-import { ListView } from "std-widgets.slint";
+import { ListView } from "scroll.slint";
 
 import { CheckState, RangeThumb } from "shared-contracts.slint";
 export { CheckState, RangeThumb } from "shared-contracts.slint";
@@ -673,6 +673,7 @@ export component KitCombobox inherits Rectangle {
             query-edited(text) => { if (root.access == FieldAccess.editable) { root.query-edited(text); } }
             tab-navigation(reverse) => { return root.advance-tab(reverse); }
             options := ListView {
+                theme: root.theme;
                 for row in root.rows: KitOption {
                     theme: root.theme; option-data: row; height: root.row-height;
                     active: root.state.active.present && row.token == root.state.active.token;

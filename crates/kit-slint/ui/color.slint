@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitValidityState } from "validation.slint";
@@ -20,8 +20,8 @@ component ColorDraftChannel inherits HorizontalLayout {
     in property <int> value;
     callback requested(int);
     callback cancelled();
-    spacing: 12px;
-    Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
+    spacing: root.theme.spacing.unit * 3;
+    Text { text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
     KitSlider {
         theme: root.theme; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
         cancelled => { root.cancelled(); }
@@ -30,7 +30,7 @@ component ColorDraftChannel inherits HorizontalLayout {
             root.requested(step == NavigationStep.first ? 0 : step == NavigationStep.last ? 255 : max(0,min(255,root.value + (step == NavigationStep.next ? 1 : step == NavigationStep.previous ? -1 : step == NavigationStep.page-next ? 16 : -16))));
         }
     }
-    Text { text: root.value; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
+    Text { text: root.value; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
 }
 
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.
@@ -53,6 +53,8 @@ export component KitColorField inherits Rectangle {
     in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.opaque;
     in property <SrgbColorView> accepted-color;
     in property <color> swatch: #000000;
+    // Quick choices offered by the picker: application data, not theme tokens.
+    in property <[color]> palette: [#ef4444,#f59e0b,#22c55e,#06b6d4,#4f46e5,#a855f7,#111827,#ffffff];
     in property <string> label: "Color";
     in property <string> error;
     in-out property <string> text;
@@ -62,6 +64,8 @@ export component KitColorField inherits Rectangle {
     callback color-requested(SrgbColorView);
     out property <bool> picker-open: popup.is-open && root.access == FieldAccess.editable;
     private property <SrgbColorView> draft;
+    private property <SurfaceRecipe> popup-surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+    private property <length> popup-inset: root.theme.spacing.unit * 4;
     public function open-picker() {
         if (root.access == FieldAccess.editable) {
             root.draft = root.accepted-color;
@@ -75,10 +79,10 @@ export component KitColorField inherits Rectangle {
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 4px;
+        spacing: root.theme.spacing.unit;
         if root.label != "": KitFieldLabel {theme:root.theme;text:root.label;access:root.access;focus-requested=>{editor.take-focus();}}
         HorizontalLayout {
-            spacing: 12px;
+            spacing: root.theme.spacing.unit * 3;
             editor := KitTextField {
                 required: root.required; custom-validity <=> root.custom-validity;
                 pattern: root.alpha-mode == ColorAlphaMode.editable ? "#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?" : "#[0-9a-fA-F]{6}";
@@ -97,10 +101,10 @@ export component KitColorField inherits Rectangle {
                 accessible-name: "Open color picker for " + root.label;
                 disabled: root.access != FieldAccess.editable;
                 recipe: KitThemes.icon-button-recipe(root.theme,root.control-size);
-                border-width: 1px; border-color: root.theme.border-subtle;
+                border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
                 activated => { root.open-picker(); }
                 key-event(event) => { if (event.text == Key.Escape && root.picker-open) { root.cancel-picker(); return accept; } return reject; }
-                Rectangle {x:4px;y:4px;width:parent.width - 8px;height:parent.height - 8px;border-radius:5px;background:root.swatch;}
+                Rectangle {x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y;border-radius:5px;background:root.swatch;}
             }
         }
         KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
@@ -108,13 +112,14 @@ export component KitColorField inherits Rectangle {
         if root.error != "": KitFieldError {theme:root.theme;text:root.error;}
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + 4px;
+        x: 0px; y: root.height + root.theme.spacing.unit;
         width: max(340px,260px * root.theme.text-scale);
-        height: popup-content.preferred-height + 32px;
+        height: popup-content.preferred-height + 2 * root.popup-inset;
         close-policy: close-on-click-outside;
         Rectangle {
-            background: root.theme.surface-raised; border-radius: 12px;
-            border-width: 1px; border-color: root.theme.border-subtle;
+            background: root.popup-surface.fill; border-radius: root.popup-surface.radius;
+            border-width: root.popup-surface.border-width; border-color: root.popup-surface.border;
+            drop-shadow-offset-y: root.popup-surface.shadow.offset-y; drop-shadow-blur: root.popup-surface.shadow.blur; drop-shadow-color: root.popup-surface.shadow.color;
             popup-keys := FocusScope {
                 forward-focus: cancel-button;
                 private property <bool> shown: root.picker-open;
@@ -122,26 +127,32 @@ export component KitColorField inherits Rectangle {
                 changed shown => { if (self.shown) { self.focus(); } }
                 key-pressed(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
                 popup-content := VerticalLayout {
-                    x: 16px; y: 16px; width: parent.width - 32px;
-                    spacing: 16px;
-                    Text { text: root.label + " · sRGB"; font-size: 16px * root.theme.text-scale; color: root.theme.text-primary; font-weight: 600; wrap: word-wrap; }
+                    x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset;
+                    spacing: root.theme.spacing.unit * 4;
+                    Text { text: root.label + " · sRGB"; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                     Rectangle {
-                        height: 48px; border-radius: 8px; border-width: 1px; border-color: root.theme.border-subtle;
+                        height: 48px; border-radius: root.theme.shape.radius-control; border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
                         background: rgba(root.draft.red,root.draft.green,root.draft.blue,root.draft.alpha / 255);
                         accessible-role: image; accessible-label: "Draft color preview";
                     }
                     FlexboxLayout {
-                        spacing: 8px; alignment: start; flex-wrap: wrap;
-                        for choice in [#ef4444,#f59e0b,#22c55e,#06b6d4,#4f46e5,#a855f7,#111827,#ffffff]: KitPressable {
+                        spacing: root.theme.spacing.unit * 2; alignment: start; flex-wrap: wrap;
+                        for choice in root.palette: KitPressable {
                             theme: root.theme; control-size: ControlSize.compact;
                             disabled: root.access != FieldAccess.editable;
-                            preferred-width: 32px; min-height: 32px; preferred-height: 32px; max-height: 32px;
+                            private property <length> side: KitMetrics.density(root.theme, ControlSize.compact).height;
+                            // The draft's current choice keeps an accent edge, so the
+                            // selection reads without relying on the swatch color.
+                            private property <bool> chosen: choice.red == root.draft.red && choice.green == root.draft.green && choice.blue == root.draft.blue;
+                            preferred-width: self.side; min-height: self.side; preferred-height: self.side; max-height: self.side;
                             recipe: KitThemes.icon-button-recipe(root.theme,ControlSize.compact);
-                            border-width: 1px; border-color: root.theme.border-subtle;
+                            accessible-item-selectable: true; accessible-item-selected: self.chosen;
+                            border-width: self.chosen ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
+                            border-color: self.chosen ? root.theme.accent : root.theme.border-subtle;
                             key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
                             accessible-name: "Choose RGB " + choice.red + ", " + choice.green + ", " + choice.blue;
                             activated => { root.draft = {red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}; }
-                            Rectangle { x:4px;y:4px;width:parent.width - 8px;height:parent.height - 8px; background: choice; border-radius: 4px; }
+                            Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: 4px; }
                         }
                     }
                     ColorDraftChannel { theme: root.theme; access: root.access; label: "Red"; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.red = value; } }
@@ -149,7 +160,7 @@ export component KitColorField inherits Rectangle {
                     ColorDraftChannel { theme: root.theme; access: root.access; label: "Blue"; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.blue = value; } }
                     if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; access: root.access; label: "Alpha"; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
                     HorizontalLayout {
-                        alignment: end; spacing: 8px;
+                        alignment: end; spacing: root.theme.spacing.unit * 2;
                         cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } theme: root.theme; text: "Cancel"; activated => { root.cancel-picker(); } }
                         KitButton { theme: root.theme; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
                     }
@@ -177,7 +188,7 @@ component ColorChannelEditor inherits Rectangle {
     callback cancelled(ColorChannel);
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 4px;
+        spacing: root.theme.spacing.unit;
         KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
             edited(text) => { root.edited(root.channel,text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
@@ -222,7 +233,7 @@ export component KitColorPicker inherits Rectangle {
     callback cancelled(ColorChannel);
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 16px;
+        spacing: root.theme.spacing.unit * 4;
         KitColorField { theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; position: root.accepted-color.red / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }

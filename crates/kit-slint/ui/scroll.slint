@@ -1,0 +1,158 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitThemeContext, ScrollBarRecipe } from "theme.slint";
+
+// Pointer affordance for one axis of a scrolled viewport. `value` follows
+// Flickable's convention: 0 at the start and -maximum at the end. Like the
+// std-widgets bar it replaces, it takes no focus and adds nothing to the
+// accessibility tree; keyboard scrolling and semantics belong to the viewport.
+export component KitScrollBar inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <Orientation> orientation: Orientation.vertical;
+    in property <ScrollBarPolicy> policy: ScrollBarPolicy.as-needed;
+    in property <bool> enabled: true;
+    // Scrollable distance (content length minus the page) and the visible page.
+    in property <length> maximum;
+    in property <length> page-size;
+    in-out property <length> value;
+    // Emitted after a pointer drag, track press or wheel changes `value`.
+    callback scrolled();
+    out property <bool> active: root.enabled && (touch.has-hover || touch.pressed);
+    private property <ScrollBarRecipe> recipe: KitThemes.scroll-bar-recipe(root.theme);
+    private property <bool> horizontal: root.orientation == Orientation.horizontal;
+    private property <length> range: max(0px, root.maximum);
+    private property <length> track-length: max(0px, (root.horizontal ? root.width : root.height) - 2 * root.recipe.inset);
+    private property <length> thumb-length: root.range <= 0px ? 0px
+        : min(root.track-length, max(root.recipe.min-thumb-length, root.track-length * root.page-size / (root.range + root.page-size)));
+    private property <length> travel: max(0px, root.track-length - root.thumb-length);
+    private property <length> thumb-start: root.recipe.inset + (root.range <= 0px ? 0px : root.travel * max(0, min(1, -root.value / root.range)));
+    private property <length> thumb-thickness: root.active ? root.recipe.active-thumb-thickness : root.recipe.thumb-thickness;
+    function scroll-to(next: length) {
+        let bounded = max(-root.range, min(0px, next));
+        if (bounded != root.value) { root.value = bounded; root.scrolled(); }
+    }
+    visible: root.policy == ScrollBarPolicy.always-on || (root.policy == ScrollBarPolicy.as-needed && root.range > 0px);
+    min-width: root.horizontal ? 0px : root.recipe.thickness;
+    preferred-width: root.horizontal ? 0px : root.recipe.thickness;
+    max-width: root.horizontal ? 100000px : root.recipe.thickness;
+    min-height: root.horizontal ? root.recipe.thickness : 0px;
+    preferred-height: root.horizontal ? root.recipe.thickness : 0px;
+    max-height: root.horizontal ? root.recipe.thickness : 100000px;
+    horizontal-stretch: root.horizontal ? 1 : 0;
+    vertical-stretch: root.horizontal ? 0 : 1;
+    accessible-role: none;
+    background: root.active ? root.recipe.active-track : root.recipe.track;
+    border-radius: min(root.theme.shape.radius-pill, (root.horizontal ? self.height : self.width) / 2);
+    animate background { duration: root.recipe.transition; }
+    thumb := Rectangle {
+        visible: root.range > 0px;
+        x: root.horizontal ? root.thumb-start : root.width - root.recipe.inset - self.width;
+        y: root.horizontal ? root.height - root.recipe.inset - self.height : root.thumb-start;
+        width: root.horizontal ? root.thumb-length : root.thumb-thickness;
+        height: root.horizontal ? root.thumb-thickness : root.thumb-length;
+        border-radius: min(root.theme.shape.radius-pill, root.thumb-thickness / 2);
+        background: root.active ? root.recipe.active-thumb : root.recipe.thumb;
+        animate width, height, background { duration: root.recipe.transition; }
+    }
+    touch := TouchArea {
+        enabled: root.enabled;
+        // Drag reference: the pointer and value at press, rebased whenever the
+        // range changes under the pointer (a virtual list re-estimating its height).
+        property <bool> dragging;
+        property <length> press-pointer;
+        property <length> press-value;
+        property <length> press-range;
+        property <length> pointer: root.horizontal ? self.mouse-x : self.mouse-y;
+        function rebase() { self.press-pointer = self.pointer; self.press-value = root.value; self.press-range = root.range; }
+        pointer-event(event) => {
+            if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                if (self.pointer >= root.thumb-start && self.pointer <= root.thumb-start + root.thumb-length) {
+                    self.dragging = true;
+                    self.rebase();
+                } else {
+                    // A track press moves one page toward the pointer, as on the web.
+                    self.dragging = false;
+                    root.scroll-to(root.value + (self.pointer < root.thumb-start ? root.page-size : -root.page-size));
+                }
+            } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                self.dragging = false;
+            }
+        }
+        moved => {
+            if (!self.pressed || !self.dragging || root.travel <= 0px) { return; }
+            if (self.press-range != root.range) { self.rebase(); }
+            root.scroll-to(self.press-value - (self.pointer - self.press-pointer) * root.range / root.travel);
+        }
+        scroll-event(event) => {
+            let delta = root.horizontal ? (event.delta-x != 0px ? event.delta-x : event.delta-y) : event.delta-y;
+            if (delta == 0px || root.range <= 0px) { return reject; }
+            root.scroll-to(root.value + delta);
+            return accept;
+        }
+    }
+}
+
+// Themed replacement for the std-widgets ScrollView: a Flickable with
+// KitScrollBar overlays on its trailing edges. Internal to the kit; public
+// containers forward the parts of this API they support.
+export component ScrollFrame {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <bool> enabled: true;
+    out property <length> visible-width <=> flickable.width;
+    out property <length> visible-height <=> flickable.height;
+    in-out property <length> content-width <=> flickable.content-width;
+    in-out property <length> content-height <=> flickable.content-height;
+    in-out property <length> content-x <=> flickable.content-x;
+    in-out property <length> content-y <=> flickable.content-y;
+    in property <ScrollBarPolicy> vertical-scrollbar-policy <=> vertical-bar.policy;
+    in property <ScrollBarPolicy> horizontal-scrollbar-policy <=> horizontal-bar.policy;
+    in property <bool> mouse-drag-pan-enabled <=> flickable.mouse-drag-pan-enabled;
+    callback scrolled <=> flickable.flicked;
+    // The std-widgets ScrollView footprint: a scrolled viewport fills its slot.
+    min-height: 50px;
+    min-width: 50px;
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    preferred-height: 100%;
+    preferred-width: 100%;
+    flickable := Flickable {
+        mouse-drag-pan-enabled: false;
+        content-y <=> vertical-bar.value;
+        content-x <=> horizontal-bar.value;
+        width: parent.width;
+        height: parent.height;
+        @children
+    }
+    vertical-bar := KitScrollBar {
+        theme: root.theme;
+        enabled: root.enabled;
+        orientation: Orientation.vertical;
+        x: flickable.width - self.width;
+        y: 0px;
+        width: KitThemes.scroll-bar-recipe(root.theme).thickness;
+        height: horizontal-bar.visible ? parent.height - horizontal-bar.height : parent.height;
+        maximum: flickable.content-height - flickable.height;
+        page-size: flickable.height;
+        scrolled => { root.scrolled(); }
+    }
+    horizontal-bar := KitScrollBar {
+        theme: root.theme;
+        enabled: root.enabled;
+        orientation: Orientation.horizontal;
+        x: 0px;
+        y: flickable.height - self.height;
+        width: vertical-bar.visible ? parent.width - vertical-bar.width : parent.width;
+        height: KitThemes.scroll-bar-recipe(root.theme).thickness;
+        maximum: flickable.content-width - flickable.width;
+        page-size: flickable.width;
+        scrolled => { root.scrolled(); }
+    }
+}
+
+// Named ListView on purpose: Slint virtualizes a `for` placed directly in an
+// element whose base is called ListView and that exposes the content-* and
+// visible-* lengths. Internal to the kit, like ScrollFrame.
+export component ListView inherits ScrollFrame {
+    @children
+    accessible-role: list;
+    accessible-orientation: Orientation.vertical;
+}

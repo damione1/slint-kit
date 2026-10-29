@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth } from "@kit/kit.slint";
 
 export component BaseFeedbackFixture inherits Window {
     width: 640px; height: 480px;
@@ -106,3 +106,21 @@ export component BaseLayoutFixture inherits Window {
         }
     }
 }
+
+// A host measures exactly its toasts: no space is reserved below the last one.
+export component ToastHostFixture inherits Window {
+    width: 520px; height: 420px;
+    in property <[ToastEntry]> entries: [{ token: 1, title: "Project archived", message: "Your project can be restored.", action-label: "Undo", severity: AlertSeverity.success, dismissible: true }];
+    VerticalLayout {
+        alignment: start;
+        host := KitToastHost { entries: root.entries; }
+        Text { text: "Below the host"; }
+        // Repeated surfaces measure their content, shadow or not.
+        cards := VerticalLayout {
+            alignment: start;
+            for title in ["Repeated card"]: KitCard { KitCardHeader { title: title; } }
+        }
+        Text { text: "Below the cards"; }
+    }
+}
+

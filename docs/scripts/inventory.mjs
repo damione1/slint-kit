@@ -18,6 +18,7 @@ export const families = {
   files: { fr: 'Fichiers', en: 'Files' },
   color: { fr: 'Couleurs', en: 'Colors' },
   layout: { fr: 'Mise en page', en: 'Layout' },
+  scroll: { fr: 'Défilement', en: 'Scrolling' },
   display: { fr: 'Présentation', en: 'Display' },
   feedback: { fr: 'Retour et progression', en: 'Feedback and progress' },
   navigation: { fr: 'Navigation', en: 'Navigation' },

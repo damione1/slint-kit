@@ -198,7 +198,9 @@ try {
     await navigate(`${prefix}/components/`);
     await evaluate('document.querySelector("#component-filter").focus()');
     await call('Input.insertText', { text: 'KitButton' });
-    assert.equal(await evaluate('document.querySelector("#filter-status").innerText'), '2 / 123');
+    // The status counts the matches against the whole rendered catalogue.
+    const catalogueSize = await evaluate('document.querySelectorAll(".catalogue-item").length');
+    assert.equal(await evaluate('document.querySelector("#filter-status").innerText'), `2 / ${catalogueSize}`);
     assert.deepEqual(await evaluate('[...document.querySelectorAll(".catalogue-item")].filter(item=>!item.hidden).map(item=>item.querySelector("code").innerText)'), ['KitButton', 'KitButtonGroup']);
   }
   // Prove that the browser backend can construct every documented application.

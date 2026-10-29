@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ScrollView } from "std-widgets.slint";
+import { ScrollFrame } from "scroll.slint";
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
 
@@ -101,7 +101,7 @@ export component KitSection inherits VerticalLayout {
         text: root.title;
         color: root.theme.text-primary;
         font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle);
-        font-weight: 600;
+        font-weight: root.theme.typography.weight-semibold;
         wrap: word-wrap;
         vertical-stretch: 0;
     }
@@ -139,13 +139,20 @@ export component KitSurface inherits Rectangle {
 
 // Finite viewport allocated by the parent. One width-bound column reflows its
 // children and grows vertically; no horizontal scrolling or hidden focus scope.
-export component KitScrollArea inherits ScrollView {
+// The vertical bar is a themed KitScrollBar.
+export component KitScrollArea inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-    content-width: root.visible-width;
-    content-height: max(root.visible-height, body.preferred-height);
+    in property <bool> enabled <=> frame.enabled;
+    in property <ScrollBarPolicy> vertical-scrollbar-policy <=> frame.vertical-scrollbar-policy;
+    in property <bool> mouse-drag-pan-enabled <=> frame.mouse-drag-pan-enabled;
+    out property <length> visible-width: frame.visible-width;
+    out property <length> visible-height: frame.visible-height;
+    out property <length> content-width: frame.content-width;
+    out property <length> content-height: frame.content-height;
+    in-out property <length> content-y <=> frame.content-y;
+    callback scrolled <=> frame.scrolled;
     public function scroll-to-start() { root.content-y = 0px; }
     public function reveal(top: length, bottom: length) {
         // An oversized target cannot expose both edges. Reveal its leading edge
@@ -160,14 +167,28 @@ export component KitScrollArea inherits ScrollView {
             root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, bottom - root.visible-height));
         }
     }
-    body := VerticalLayout {
-        y: 0px;
-        width: root.visible-width;
-        height: self.preferred-height;
-        padding: KitLayoutMetrics.space(root.theme, root.inset);
-        spacing: KitLayoutMetrics.space(root.theme, root.gap);
-        alignment: start;
-        @children
+    min-width: frame.min-width;
+    min-height: frame.min-height;
+    preferred-width: 100%;
+    preferred-height: 100%;
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    frame := ScrollFrame {
+        theme: root.theme;
+        width: root.width;
+        height: root.height;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        content-width: self.visible-width;
+        content-height: max(self.visible-height, body.preferred-height);
+        body := VerticalLayout {
+            y: 0px;
+            width: frame.visible-width;
+            height: self.preferred-height;
+            padding: KitLayoutMetrics.space(root.theme, root.inset);
+            spacing: KitLayoutMetrics.space(root.theme, root.gap);
+            alignment: start;
+            @children
+        }
     }
 }
 

@@ -442,3 +442,47 @@ fn progress_fill_starts_at_the_track_origin_for_all_bounded_values() {
         assert!((fill.size().height - 8.).abs() <= 1.);
     }
 }
+
+#[test]
+fn a_toast_host_measures_exactly_its_toasts() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let host = ElementQuery::from_root(&window)
+        .match_inherits("KitToastHost")
+        .find_first()
+        .unwrap();
+    let toast = ElementQuery::from_root(&window)
+        .match_inherits("KitToast")
+        .find_first()
+        .unwrap();
+    let below = element(&window, "Below the host");
+    assert!(
+        (host.size().height - toast.size().height).abs() < 0.5,
+        "host {:?} toast {:?}",
+        host.size(),
+        toast.size()
+    );
+    let host_bottom = host.absolute_position().y + host.size().height;
+    assert!((below.absolute_position().y - host_bottom).abs() < 0.5);
+}
+
+#[test]
+fn a_repeated_card_measures_exactly_its_content() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let card = ElementQuery::from_root(&window)
+        .match_inherits("KitCard")
+        .find_first()
+        .unwrap();
+    let below = element(&window, "Below the cards");
+    let card_bottom = card.absolute_position().y + card.size().height;
+    assert!(
+        (below.absolute_position().y - card_bottom).abs() < 0.5,
+        "card {:?} {:?}, below {:?}",
+        card.absolute_position(),
+        card.size(),
+        below.absolute_position()
+    );
+}

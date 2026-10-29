@@ -13,6 +13,7 @@ export enum ElevationLevel { none, xs, sm, md, lg, xl }
 // over the host's own edge, for tightly packed rows, cells and thumbs.
 export enum FocusRingStyle { outside, inside }
 export enum SurfaceLevel { flat, raised, overlay, popover }
+export enum AlertSeverity { information, success, warning, error }
 
 // Slint draws one shadow per element and has no spread: a layer approximates
 // the dominant layer of a stacked web shadow.
@@ -80,6 +81,16 @@ export struct OptionRecipe {
     focus: KitFocusRing,
 }
 export struct IconRecipe { size: length, stroke-width: length, color: color, disabled-color: color }
+// A severity's tint, edge and mark, so alerts stay distinguishable without
+// relying on their titles.
+export struct AlertRecipe { fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length }
+// A scroll bar overlays its viewport edge. `thickness` is its footprint; the
+// thumb grows from `thumb-thickness` to `active-thumb-thickness` under the pointer.
+export struct ScrollBarRecipe {
+    thickness: length, thumb-thickness: length, active-thumb-thickness: length, inset: length, min-thumb-length: length,
+    thumb: color, active-thumb: color, track: color, active-track: color,
+    transition: duration,
+}
 
 // Metrics derive from theme tokens; text sizes and control heights follow text-scale.
 export global KitMetrics {
@@ -101,6 +112,11 @@ export global KitMetrics {
     public pure function density(theme: KitTheme, size: ControlSize) -> KitControlDensity {
         return size == ControlSize.compact ? theme.spacing.compact : size == ControlSize.comfortable ? theme.spacing.comfortable : theme.spacing.medium;
     }
+    // Menu, tab and breadcrumb rows: at least a control, and one scaled line
+    // of text with two spacing units above and below it.
+    public pure function row-height(theme: KitTheme, size: ControlSize) -> length {
+        return max(KitMetrics.control-height(theme, size), theme.typography.line-height-control * theme.text-scale + theme.spacing.unit * 4);
+    }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
         return max(KitMetrics.density(theme, size).height, theme.typography.line-height-control * theme.text-scale + 2 * KitMetrics.density(theme, size).padding-block);
@@ -113,8 +129,8 @@ export global KitThemes {
         text-primary: #0f172a, text-secondary: #475569, placeholder: #64748b,
         accent: #4f46e5, on-accent: #ffffff, accent-hover: #473ecc, accent-pressed: #4038b9, accent-subtle: #eef2ff,
         selection: #4f46e5, on-selection: #ffffff,
-        danger: #b91c1c, danger-hover: #a51919, danger-pressed: #951717, danger-subtle: #eef2ff, success: #15803d, success-subtle: #eef2ff,
-        warning: #a16207, warning-subtle: #eef2ff, information: #4f46e5, information-subtle: #eef2ff,
+        danger: #b91c1c, danger-hover: #a51919, danger-pressed: #951717, danger-subtle: #fef2f2, success: #15803d, success-subtle: #f0fdf4,
+        warning: #a16207, warning-subtle: #fefce8, information: #4f46e5, information-subtle: #eef2ff,
         border-subtle: #cbd5e1, border-strong: #cbd5e1,
         hover: #eef2ff, pressed: #e0e7ff, disabled-fill: #e2e8f0, disabled-text: #64748b, scrim: #0b122088,
         shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
@@ -144,8 +160,8 @@ export global KitThemes {
         text-primary: #e8eef8, text-secondary: #aab8cd, placeholder: #91a0b7,
         accent: #8b9dff, on-accent: #10152a, accent-hover: #7c8ce4, accent-pressed: #707fce, accent-subtle: #25354f,
         selection: #8b9dff, on-selection: #10152a,
-        danger: #ff9b9b, danger-hover: #e48a8a, danger-pressed: #ce7d7d, danger-subtle: #25354f, success: #86efac, success-subtle: #25354f,
-        warning: #fcd34d, warning-subtle: #25354f, information: #8b9dff, information-subtle: #25354f,
+        danger: #ff9b9b, danger-hover: #e48a8a, danger-pressed: #ce7d7d, danger-subtle: #3a1d24, success: #86efac, success-subtle: #14301f,
+        warning: #fcd34d, warning-subtle: #33280f, information: #8b9dff, information-subtle: #25354f,
         border-subtle: #475569, border-strong: #475569,
         hover: #25354f, pressed: #304568, disabled-fill: #233047, disabled-text: #91a0b7, scrim: #00000099,
         shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
@@ -258,6 +274,19 @@ export global KitThemes {
             focus: field.focus,
         };
     }
+    // A data-table row: a flat, square pressable that fills its cell grid and
+    // paints the theme's ring over its own edge while its table owns focus.
+    public pure function table-row-recipe(theme: KitTheme, size: ControlSize) -> ButtonRecipe {
+        return {
+            fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed, disabled-fill: theme.disabled-fill,
+            foreground: theme.text-primary, disabled-foreground: theme.disabled-text, border: transparent,
+            radius: 0px, padding-inline: 0px, padding-block: KitMetrics.density(theme, size).padding-block, border-width: 0px,
+            height: KitMetrics.control-height(theme, size) + theme.spacing.unit * 2,
+            font-size: KitMetrics.font-size(theme, TypographyRole.control),
+            busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            focus: KitThemes.inset-focus(theme),
+        };
+    }
     public pure function surface-recipe(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe {
         return {
             fill: level == SurfaceLevel.flat ? theme.surface : theme.surface-raised,
@@ -292,6 +321,25 @@ export global KitThemes {
             height: KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, TypographyRole.control),
             focus: KitThemes.inset-focus(theme),
+        };
+    }
+    public pure function alert-recipe(theme: KitTheme, severity: AlertSeverity) -> AlertRecipe {
+        return {
+            fill: severity == AlertSeverity.error ? theme.danger-subtle : severity == AlertSeverity.warning ? theme.warning-subtle
+                : severity == AlertSeverity.success ? theme.success-subtle : theme.information-subtle,
+            border: severity == AlertSeverity.error ? theme.danger : severity == AlertSeverity.warning ? theme.warning
+                : severity == AlertSeverity.success ? theme.success : theme.information,
+            mark: severity == AlertSeverity.error ? theme.danger : severity == AlertSeverity.warning ? theme.warning
+                : severity == AlertSeverity.success ? theme.success : theme.information,
+            radius: theme.shape.radius-container, border-width: theme.shape.border-width,
+            inset: theme.spacing.unit * 4, gap: theme.spacing.unit * 3,
+        };
+    }
+    public pure function scroll-bar-recipe(theme: KitTheme) -> ScrollBarRecipe {
+        return {
+            thickness: 14px, thumb-thickness: 6px, active-thumb-thickness: 8px, inset: 3px, min-thumb-length: 24px,
+            thumb: theme.border-strong, active-thumb: theme.text-secondary, track: transparent, active-track: theme.hover,
+            transition: theme.reduced-motion ? 0ms : theme.motion.fast,
         };
     }
     public pure function icon-recipe(theme: KitTheme) -> IconRecipe {

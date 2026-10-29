@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect } from "@kit/kit.slint";
 export { KitThemeContext } from "@kit/kit.slint";
 
 export component ThemeTokenFixture inherits Window {
@@ -32,6 +32,8 @@ export component ThemeTokenFixture inherits Window {
     public pure function choice(theme: KitTheme) -> ChoiceRecipe { return KitThemes.choice-recipe(theme); }
     public pure function option(theme: KitTheme, size: ControlSize) -> OptionRecipe { return KitThemes.option-recipe(theme, size); }
     public pure function icon-glyph(theme: KitTheme) -> IconRecipe { return KitThemes.icon-recipe(theme); }
+    public pure function alert(theme: KitTheme, severity: AlertSeverity) -> AlertRecipe { return KitThemes.alert-recipe(theme, severity); }
+    public pure function scroll-bar(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
     public function focus-button() { focus-button.take-focus(); }
     public function focus-slider() { slider.take-focus(); }
     public function focus-select() { access-select.take-focus(); }
@@ -49,4 +51,22 @@ export component ThemeTokenFixture inherits Window {
         open-requested => { root.select-opens += 1; }
     }
     slider := KitSlider { x: 40px; y: 200px; width: 200px; label: "Slider outline"; position: 0.5; }
+}
+
+export component TabsIndicatorFixture inherits Window {
+    width: 480px; height: 120px;
+    out property <KitTheme> theme-probe: KitThemes.light;
+    in property <SelectState> state: {
+        open: true, active: { present: false }, active-index: -1,
+        selected: { present: true, token: 2 }, generation: 1,
+    };
+    tabs := KitTabs {
+        x: 0px; y: 0px; width: 480px;
+        rows: [
+            { token: 1, generation: 1, label: "Overview" },
+            { token: 2, generation: 1, label: "Activity" },
+            { token: 3, generation: 1, label: "Settings" },
+        ];
+        state: root.state;
+    }
 }

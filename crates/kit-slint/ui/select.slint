@@ -2,7 +2,7 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { KitIcon, IconKind } from "icons.slint";
-import { ListView } from "std-widgets.slint";
+import { ListView } from "scroll.slint";
 import { KitPressable } from "button.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
@@ -380,6 +380,7 @@ export component KitSelect inherits Rectangle {
             tab-navigation(reverse) => { return root.advance-tab(reverse); }
             query-edited(text) => { root.query-edited(text); }
             options := ListView {
+                theme: root.theme;
                 for row in root.rows: KitOption {
                     theme: root.theme;
                     option-data: row;
@@ -390,7 +391,7 @@ export component KitSelect inherits Rectangle {
                     HorizontalLayout {
                         spacing: KitMetrics.inline-gap(root.theme);
                         VerticalLayout {
-                            spacing: 2px;
+                            spacing: root.theme.spacing.unit * 0.5;
                             Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
                             if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }

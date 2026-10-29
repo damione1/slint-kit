@@ -786,3 +786,110 @@ fn read_only_select_keeps_focus_but_never_opens() {
         assert_eq!(window.get_select_opens(), expected, "{access:?} opens");
     }
 }
+
+fn contrast(a: slint::Color, b: slint::Color) -> f64 {
+    fn luminance(color: slint::Color) -> f64 {
+        let linear = |c: u8| {
+            let s = f64::from(c) / 255.;
+            if s <= 0.04045 {
+                s / 12.92
+            } else {
+                ((s + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        linear(color.red()) * 0.2126
+            + linear(color.green()) * 0.7152
+            + linear(color.blue()) * 0.0722
+    }
+    let (a, b) = (luminance(a), luminance(b));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+
+#[test]
+fn every_alert_severity_has_its_own_legible_tint_edge_and_mark() {
+    let window = fixture();
+    let severities = [
+        AlertSeverity::Information,
+        AlertSeverity::Success,
+        AlertSeverity::Warning,
+        AlertSeverity::Error,
+    ];
+    for theme in [window.get_light(), window.get_dark()] {
+        let recipes: Vec<AlertRecipe> = severities
+            .iter()
+            .map(|severity| window.invoke_alert(theme.clone(), *severity))
+            .collect();
+        for (index, recipe) in recipes.iter().enumerate() {
+            for other in &recipes[index + 1..] {
+                assert_ne!(recipe.fill, other.fill, "tints must differ");
+                assert_ne!(recipe.border, other.border, "edges must differ");
+                assert_ne!(recipe.mark, other.mark, "marks must differ");
+            }
+            for text in [theme.text_primary, theme.text_secondary] {
+                assert!(
+                    contrast(text, recipe.fill) >= 4.5,
+                    "copy on tint: {}",
+                    contrast(text, recipe.fill)
+                );
+            }
+            assert!(contrast(recipe.mark, recipe.fill) >= 3., "mark on tint");
+            assert_eq!(recipe.radius, theme.shape.radius_container);
+            assert_eq!(recipe.border_width, theme.shape.border_width);
+        }
+        assert_eq!(recipes[3].border, theme.danger);
+        assert_eq!(recipes[0].border, theme.information);
+    }
+}
+
+#[test]
+fn the_selected_tab_carries_an_underline_and_no_outline() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = TabsIndicatorFixture::new().unwrap();
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    let theme = window.get_theme_probe();
+    let tabs: Vec<ElementHandle> = ElementQuery::from_root(&window)
+        .match_inherits("KitNavigationAction")
+        .find_all();
+    assert_eq!(tabs.len(), 3);
+    for tab in &tabs {
+        let selected = tab.accessible_label().as_deref() == Some("Activity");
+        assert_eq!(tab.accessible_item_selected(), Some(selected));
+        let indicator = tab
+            .query_descendants()
+            .match_predicate(move |e| {
+                e.type_name().as_deref() == Some("Rectangle")
+                    && (e.size().height - theme.shape.border_width_strong).abs() < 0.01
+            })
+            .find_first()
+            .expect("every tab owns an indicator slot");
+        let opacity = indicator.computed_opacity();
+        assert_eq!(opacity, if selected { 1. } else { 0. });
+        // The indicator spans the tab and sits on its bottom edge.
+        assert!((indicator.size().width - tab.size().width).abs() < 0.01);
+        assert!((indicator.absolute_position().x - tab.absolute_position().x).abs() < 0.01);
+        let bottom = indicator.absolute_position().y + indicator.size().height;
+        assert!((bottom - (tab.absolute_position().y + tab.size().height)).abs() < 0.01);
+    }
+}
+
+#[test]
+fn scroll_bar_recipe_reads_theme_tokens() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        let recipe = window.invoke_scroll_bar(theme.clone());
+        assert_eq!(recipe.thumb, theme.border_strong);
+        assert_eq!(recipe.active_thumb, theme.text_secondary);
+        assert_eq!(recipe.active_track, theme.hover);
+        assert_eq!(recipe.track.alpha(), 0);
+        assert!(recipe.active_thumb_thickness > recipe.thumb_thickness);
+        assert!(recipe.thumb_thickness + recipe.inset <= recipe.thickness);
+        assert!(
+            contrast(recipe.active_thumb, theme.surface) >= 3.,
+            "hovered thumb"
+        );
+        let mut reduced = theme.clone();
+        reduced.reduced_motion = true;
+        assert_eq!(window.invoke_scroll_bar(reduced).transition, 0);
+    }
+}

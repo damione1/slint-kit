@@ -40,6 +40,8 @@ Le `theme` de chaque composant vaut par défaut `KitThemeContext.current`, initi
 
 `ButtonIntent` propose `primary`, `secondary`, `outline`, `quiet` et `destructive`. `secondary` est une surface neutre remplie, `outline` un contrôle transparent bordé et `quiet` un contrôle sans bordure. Le retour utilisateur utilise des enums de sévérité et de ton. Choisissez l’état selon son sens, puis laissez le thème fournir la couleur. Accompagnez une bordure d’erreur d’un message et d’un libellé accessibles.
 
+Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marque à partir des jetons `information`, `success`, `warning` et `danger` et de leurs fonds `*-subtle` : les alertes restent distinctes sans lire leur titre. Les conteneurs défilants, listes et tableaux du kit dessinent leurs barres avec [KitScrollBar](/fr/components/scroll-bar/), qui suit le thème. Un `ScrollView` ou un `ListView` std-widgets dans le code de l’application conserve le style Slint et `Palette.color-scheme`.
+
 ## Taille et mise en page
 
 `ControlSize` vaut `compact`, `medium` ou `comfortable`. `ControlWidth.intrinsic` conserve la largeur du contenu ; `fill` utilise l’espace attribué par la mise en page. La hauteur est généralement intrinsèque. Donnez un viewport fini aux [composants de données virtualisées](/fr/components/#data) et conservez l’identité du modèle pendant le défilement.

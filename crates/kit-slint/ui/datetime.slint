@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext } from "theme.slint";
+import { KitFieldError } from "field.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { IconKind } from "icons.slint";
 import { FormConstraintState, KitFormValidation } from "validation.slint";
@@ -30,9 +31,9 @@ component TimeSegmentControl inherits Rectangle {
     callback adjust(TimeSegment,TimeAdjustment);
     vertical-stretch: 0;
     HorizontalLayout {
-        spacing: 8px;
+        spacing: root.theme.spacing.unit * 2;
         alignment: start;
-        Text { min-width: 72px * root.theme.text-scale; horizontal-stretch: 0; text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; wrap: word-wrap; }
+        Text { min-width: 72px * root.theme.text-scale; horizontal-stretch: 0; text: root.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; wrap: word-wrap; }
         KitIconButton { theme: root.theme; control-size: root.control-size; icon: IconKind.minus; accessible-name: "Decrease " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
         KitIconButton { theme: root.theme; control-size: root.control-size; icon: IconKind.plus; accessible-name: "Increase " + root.label; disabled: root.access != FieldAccess.editable; activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
     }
@@ -83,7 +84,7 @@ export component KitTimePicker inherits Rectangle {
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 8px;
+        spacing: root.theme.spacing.unit * 2;
         editor := KitTimeField {
                 required: root.required; min: root.min; max: root.max; step: root.step;
                 custom-validity <=> root.custom-validity;
@@ -148,7 +149,7 @@ export component KitDateTimeField inherits Rectangle {
     public function take-focus() { date.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 16px;
+        spacing: root.theme.spacing.unit * 4;
         date := KitDateField {
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
             focus-observed(focused) => { root.date-focused = focused; }
@@ -164,7 +165,7 @@ export component KitDateTimeField inherits Rectangle {
             commit-requested(text) => { if (root.report-validity()) { root.commit-requested({date: root.date-text, time: text}); } }
             cancelled => { root.cancelled(); }
         }
-        if checks.show-error && root.date-error == "" && root.time-error == "": Text { text: checks.validation-message; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        if checks.show-error && root.date-error == "" && root.time-error == "": KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
 }
 
@@ -222,7 +223,7 @@ export component KitZonedDateTimeField inherits Rectangle {
     public function take-focus() { local.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 16px;
+        spacing: root.theme.spacing.unit * 4;
         local := KitDateTimeField {
             required: root.required || root.zone-text != ""; min: root.min; max: root.max; step: root.step;
             custom-validity: root.custom-validity != "" ? root.custom-validity
@@ -247,11 +248,11 @@ export component KitZonedDateTimeField inherits Rectangle {
         if root.resolution != ZonedTimePresentation.unresolved: Text {
             text: root.resolution-message;
             color: root.resolution == ZonedTimePresentation.unique ? root.theme.text-secondary : root.theme.danger;
-            font-size: 12px * root.theme.text-scale; wrap: word-wrap;
+            font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap;
             accessible-live-region: polite;
         }
         if root.resolution == ZonedTimePresentation.ambiguous: VerticalLayout {
-            spacing: 8px;
+            spacing: root.theme.spacing.unit * 2;
             KitButton { theme: root.theme; text: root.earlier-label; disabled: root.access != FieldAccess.editable; activation-started => { root.ambiguity-started(); } activated => { root.ambiguity-chosen(AmbiguousTimeChoice.earlier); } }
             KitButton { theme: root.theme; text: root.later-label; disabled: root.access != FieldAccess.editable; activation-started => { root.ambiguity-started(); } activated => { root.ambiguity-chosen(AmbiguousTimeChoice.later); } }
         }

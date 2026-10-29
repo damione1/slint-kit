@@ -40,6 +40,8 @@ Every component's `theme` defaults to `KitThemeContext.current`, which starts as
 
 `ButtonIntent` has `primary`, `secondary`, `outline`, `quiet` and `destructive` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
 
+Each `AlertSeverity` takes its own subtle background, border and mark from the `information`, `success`, `warning` and `danger` tokens and their `*-subtle` backgrounds, so alerts stay distinguishable without reading their titles. Kit scroll containers, lists and tables draw their bars with [KitScrollBar](/components/scroll-bar/), which follows the theme. A std-widgets `ScrollView` or `ListView` in application code keeps the Slint style and `Palette.color-scheme`.
+
 ## Size and layout
 
 `ControlSize` is `compact`, `medium` or `comfortable`. `ControlWidth.intrinsic` preserves the component's content width; `fill` asks it to use the space allocated by its layout. Most component heights are intrinsic. Set a finite viewport for [virtualized data components](/components/#data), and keep their model identity stable while scrolling.

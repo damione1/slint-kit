@@ -127,6 +127,8 @@ for name in ['KitContainer','KitStack','KitInline','KitWrap','KitGrid','KitSecti
     if name=='KitScrollArea':attrs+=' height: 190px;'
     add(name,name+' { '+attrs+children+' }',400)
 
+# A consumer viewport drives the themed bar: Flickable owns the position.
+add('KitScrollBar', 'HorizontalLayout { height: 150px; spacing: 8px; notes := Flickable { content-height: column.preferred-height; column := VerticalLayout { width: notes.width; spacing: 8px; alignment: start; '+''.join(txt(s) for s in ['Team workspace','Keep observations and decisions together.','Field notes','Every small detail has room to breathe as the content grows.','Ready to publish your changes?'])+' } } KitScrollBar { theme: root.theme; maximum: notes.content-height - notes.height; page-size: notes.height; value <=> notes.content-y; scrolled => { root.status = "Notes scrolled"; } } }', 260)
 add('KitBadge', 'HorizontalLayout { alignment: start; spacing: 12px; KitBadge { theme: root.theme; text: "Draft"; } KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; } KitBadge { theme: root.theme; text: "3 updates"; tone: Tone.accent; } }')
 add('KitAvatar', 'HorizontalLayout { alignment: start; spacing: 16px; KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Alex Morgan"; size: 56px; } KitAvatar { theme: root.theme; initials: "JS"; accessible-name: "Jamie Smith"; shape: AvatarShape.rounded; size: 56px; } }')
 add('KitCard', 'KitCard { theme: root.theme; KitCardHeader { theme: root.theme; title: "Field notes"; description: "Your team’s shared research workspace."; } KitCardBody { '+txt('Keep observations and decisions together.')+' } KitCardFooter { '+button('Open project')+' } }',340)
@@ -226,7 +228,7 @@ geometry.update({
     'KitStack': (480, 290), 'KitInline': (420, 160),
     'KitWrap': (420, 220), 'KitGrid': (420, 230),
     'KitSection': (480, 350), 'KitSurface': (480, 300),
-    'KitScrollArea': (480, 290), 'KitAppShell': (520, 310),
+    'KitScrollArea': (480, 290), 'KitScrollBar': (420, 260), 'KitAppShell': (520, 310),
     'KitCard': (480, 300), 'KitCardBody': (440, 260),
     'KitCardFooter': (480, 220), 'KitHero': (520, 300),
     'KitFooter': (480, 240), 'KitDivider': (420, 270),
