@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCombobox, KitSelect, OptionRow, SelectState } from "@kit/kit.slint";
+
+export component SelectGeometryFixture inherits Window {
+    width: 520px; height: 420px;
+    in property <bool> combobox;
+    in property <[OptionRow]> rows;
+    in property <SelectState> state;
+    in-out property <string> query;
+    if root.combobox: KitCombobox {
+        x: 24px; y: 24px; width: 472px;
+        rows: root.rows; state: root.state; query <=> root.query;
+        label: "Workspace"; selected-label: "Personal";
+    }
+    if !root.combobox: KitSelect {
+        x: 24px; y: 24px; width: 472px;
+        rows: root.rows; state: root.state;
+    }
+}
