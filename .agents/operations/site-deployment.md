@@ -33,21 +33,41 @@ The new domain is verified separately; the Change of Address action must target
 only `slint-kit.damiengoehrig.ca` (or its HTTPS URL-prefix property), never the
 parent `damiengoehrig.ca` property.
 
-Workers Builds runs `npm run build` in `docs`. In that environment only,
-`WORKERS_CI=1` provisions Rust 1.98.1, the wasm32 target and wasm-bindgen
-0.2.129 under ignored `.cache/tools`; release downloads are checksum-checked.
-Local builds continue to use the developer's installed tools.
-Workers Builds uses Thin LTO and 16 codegen units for the generated preview
-bundle, instead of the monolithic full-LTO profile used by local release builds.
-This limits the resources required to optimize all 123 demos together.
+## Automatic deployment
+
+GitHub Actions is the build and deployment owner. The Check workflow runs the
+workspace gate and builds the documentation, records the source SHA in
+`deployment-revision.txt`, and uploads the validated `_site` directory as an
+artifact named for that SHA. The deployment job waits for both checks, downloads
+that exact artifact, verifies its revision, and runs Wrangler with
+`docs/wrangler.toml`. It performs no Rust compilation. Deployments are serialized;
+obsolete main revisions are skipped before deployment. Pull requests and tags
+do not deploy. `workflow_dispatch` can retry main after configuring credentials.
+
+One-time account setup:
+
+1. Create a scoped Cloudflare API token for the existing account, with Workers
+   Scripts Edit, Workers Routes Edit and Zone Read for the two managed zones
+   (`slint-kit.dev` and `damiengoehrig.ca`). The Cloudflare “Edit Cloudflare
+   Workers” token template is the starting point.
+2. Add it as the GitHub repository Actions secret `CLOUDFLARE_API_TOKEN`. The
+   account ID is public and already configured in the workflow. Do not put the
+   token in source code or chat.
+3. In the `slint-kit` Worker’s Settings > Builds, disconnect the Git repository
+   so Workers Builds stops launching a second Rust compilation. Existing Worker
+   deployments and custom domains remain in place. GitHub Actions then owns
+   future deployments through Wrangler.
+
+Workers Builds timed out on a cold compile of the generated preview bundle.
+Caching alone cannot fix a cold build that never finishes and therefore never
+populates its cache. The GitHub documentation build completes successfully and
+provides the deployable artifact. No Cloudflare-side Rust bootstrap is required.
 
 ## Persistent build cache
 
-Cloudflare caches Eleventy's `docs/.cache` directory when build caching is
-enabled (npm's cache alone does not retain Rust compilation). In Workers Builds,
-Rust tools, the Cargo registry and compilation target live under this directory.
-GitHub Actions separately restores `docs/.cache/previews`, in addition to its
-existing Rust dependency cache.
+GitHub Actions restores `docs/.cache/previews`, in addition to its Rust dependency
+cache. Local builds use the same preview cache directory. The preview crate uses
+Thin LTO and 16 codegen units on both local and GitHub builds.
 
 The final JavaScript/WASM artifacts are cached by source contents, actual Rust
 compiler identity, wasm-bindgen version and compilation flags. A fresh checkout's
