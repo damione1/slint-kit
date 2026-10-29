@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
-import { IconGlyph } from "icons/glyph.slint";
+import { IconGlyph, IconStroke } from "icons/glyph.slint";
 export enum ControlSize { compact, medium, comfortable }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
@@ -24,9 +24,11 @@ export struct ShadowLayer { offset-y: length, blur: length, spread: length, colo
 // `ambient` the tighter one under it.
 export struct KitShadow { key: ShadowLayer, ambient: ShadowLayer }
 // Radii by role. Pill radii are clamped by recipes to half the shorter side.
+// `icon-stroke` is the icon line weight: grid units for a scaled stroke,
+// logical pixels for an absolute one (see IconStroke).
 export struct KitShape {
     radius-control: length, radius-container: length, radius-overlay: length, radius-pill: length,
-    border-width: length, border-width-strong: length,
+    border-width: length, border-width-strong: length, icon-stroke: float,
 }
 export struct KitElevation {
     control: ElevationLevel, container: ElevationLevel, overlay: ElevationLevel, popover: ElevationLevel,
@@ -85,9 +87,9 @@ export struct OptionRecipe {
     active-border: color, border-width: length, radius: length, padding-inline: length, height: length, font-size: length,
     focus: KitFocusRing,
 }
-// An icon's box and inks. Its stroke width depends on the glyph's grid as well:
-// see `KitThemes.icon-stroke-width`.
-export struct IconRecipe { size: length, color: color, disabled-color: color }
+// An icon's box, inks and stroke token. The drawn stroke width also depends on
+// the glyph's grid and the stroke mode: see `KitThemes.icon-stroke-width`.
+export struct IconRecipe { size: length, color: color, disabled-color: color, stroke: float }
 // A severity's tint, edge and mark, so alerts stay distinguishable without
 // relying on their titles.
 export struct AlertRecipe { fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length }
@@ -144,7 +146,7 @@ export global KitThemes {
         warning: #a16207, warning-subtle: #fefce8, information: #4f46e5, information-subtle: #eef2ff,
         border-subtle: #cbd5e1, border-strong: #cbd5e1,
         hover: #eef2ff, pressed: #e0e7ff, disabled-fill: #e2e8f0, disabled-text: #64748b, scrim: #0b122088,
-        shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
+        shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
         elevation: {
             control: ElevationLevel.none, container: ElevationLevel.none, overlay: ElevationLevel.none, popover: ElevationLevel.none,
             xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #0f172a0d }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
@@ -177,7 +179,7 @@ export global KitThemes {
         warning: #fcd34d, warning-subtle: #33280f, information: #8b9dff, information-subtle: #25354f,
         border-subtle: #475569, border-strong: #475569,
         hover: #25354f, pressed: #304568, disabled-fill: #233047, disabled-text: #91a0b7, scrim: #00000099,
-        shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px },
+        shape: { radius-control: 8px, radius-container: 12px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
         elevation: {
             control: ElevationLevel.none, container: ElevationLevel.none, overlay: ElevationLevel.none, popover: ElevationLevel.none,
             xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #00000040 }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
@@ -365,13 +367,18 @@ export global KitThemes {
         };
     }
     public pure function icon-recipe(theme: KitTheme, size: ControlSize) -> IconRecipe {
-        return { size: KitMetrics.icon-size(theme, size), color: theme.text-secondary, disabled-color: theme.disabled-text };
+        return {
+            size: KitMetrics.icon-size(theme, size), color: theme.text-secondary, disabled-color: theme.disabled-text,
+            stroke: theme.shape.icon-stroke,
+        };
     }
-    // The glyph's stroke-to-grid ratio at the drawn extent, as an SVG stroke
-    // scales with its view box: Lucide's 2 on 24 is 1.33px at 16px and 2.67px
-    // at 32px. A glyph without a grid draws nothing.
-    public pure function icon-stroke-width(glyph: IconGlyph, extent: length) -> length {
-        return glyph.viewbox > 0 ? extent * glyph.stroke / glyph.viewbox : 0px;
+    // scaled: the token in grid units at the drawn extent, as an SVG stroke
+    // scales with its view box, so 2 on 24 is 1.33px at 16px and 2.67px at
+    // 32px; a glyph without a grid draws nothing. absolute: the token in
+    // logical pixels, whatever the extent.
+    public pure function icon-stroke-width(recipe: IconRecipe, glyph: IconGlyph, mode: IconStroke, extent: length) -> length {
+        return mode == IconStroke.absolute ? recipe.stroke * 1px
+            : glyph.viewbox > 0 ? extent * recipe.stroke / glyph.viewbox : 0px;
     }
 }
 

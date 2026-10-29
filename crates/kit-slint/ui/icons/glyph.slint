@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// A vector icon: SVG path `commands` on a square grid of `viewbox` units,
-// painted by a round-capped, round-joined stroke `stroke` units wide. Glyphs
-// come from generated or kit globals (`LucideIcons.arrow-up()`,
-// `KitGlyphs.check()`); writing one by hand is possible but explicit.
-export struct IconGlyph { commands: string, viewbox: float, stroke: float }
+// A vector icon on a square grid of `viewbox` units, as SVG path commands:
+// `stroke` holds the shapes painted by a round-capped, round-joined stroke,
+// `fill` the shapes painted solid ("" when the icon has none). A shape the
+// source both strokes and fills is in both. Glyphs come from generated or kit
+// globals (`LucideIcons.arrow-up()`, `KitGlyphs.check()`); writing one by
+// hand is possible but explicit.
+export struct IconGlyph { stroke: string, fill: string, viewbox: float }
+
+// How the theme's icon stroke token becomes a width. scaled: the token is in
+// grid units and grows with the icon, as an SVG stroke does (2 on 24 is
+// 1.33px at 16px). absolute: the token is in logical pixels at every size.
+export enum IconStroke { scaled, absolute }

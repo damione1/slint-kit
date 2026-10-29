@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Compiles the generated Lucide globals (all.slint and every category file)
-// and exercises KitIcon sizing, stroke and accessibility.
-import { KitIcon, KitIconButton, KitGlyphs, IconGlyph, IconPurpose, IconRecipe, KitTheme, KitThemes, ControlSize } from "@kit/kit.slint";
+// and exercises KitIcon sizing, stroke, fill, geometry and accessibility.
+import { KitIcon, KitIconButton, KitGlyphs, IconGlyph, IconPurpose, IconStroke, IconRecipe, KitTheme, KitThemes, ControlSize } from "@kit/kit.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 import { LucideAccessibility } from "@kit/icons/lucide/accessibility.slint";
 import { LucideAccount } from "@kit/icons/lucide/account.slint";
@@ -144,17 +144,48 @@ export component IconFixture inherits Window {
         LucideIcons.bubbles()
     ];
     out property <IconGlyph> arrow-up: LucideIcons.arrow-up();
+    out property <IconGlyph> tag: LucideIcons.tag();
     out property <IconGlyph> kit-check: KitGlyphs.check();
-    public pure function stroke-width(theme: KitTheme, size: ControlSize, glyph: IconGlyph) -> length {
-        return KitThemes.icon-stroke-width(glyph, KitThemes.icon-recipe(theme, size).size);
+    public pure function stroke-width(theme: KitTheme, size: ControlSize, glyph: IconGlyph, mode: IconStroke) -> length {
+        return KitThemes.icon-stroke-width(KitThemes.icon-recipe(theme, size), glyph, mode, KitThemes.icon-recipe(theme, size).size);
     }
-    HorizontalLayout {
+    // Explicit 16px and 24px icons in both stroke modes, for the geometry test.
+    out property <[length]> geometry-strokes: [scaled-16.stroke-width, absolute-16.stroke-width, scaled-24.stroke-width, absolute-24.stroke-width];
+    VerticalLayout {
         alignment: start;
         spacing: 8px;
-        KitIcon { theme: root.theme; glyph: LucideIcons.arrow-up(); control-size: ControlSize.compact; purpose: root.arrow-purpose; label: "Sort ascending"; }
-        KitIcon { theme: root.theme; glyph: LucideIcons.circle-check(); purpose: IconPurpose.informative; label: "Saved"; }
-        KitIcon { theme: root.theme; glyph: LucideIcons.triangle-alert(); control-size: ControlSize.comfortable; purpose: IconPurpose.informative; label: "Warning"; }
-        decorative := KitIcon { theme: root.theme; glyph: KitGlyphs.search(); }
-        KitIconButton { theme: root.theme; glyph: LucideIcons.trash(); accessible-name: "Delete row"; }
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            KitIcon { theme: root.theme; glyph: LucideIcons.arrow-up(); control-size: ControlSize.compact; purpose: root.arrow-purpose; label: "Sort ascending"; }
+            KitIcon { theme: root.theme; glyph: LucideIcons.circle-check(); purpose: IconPurpose.informative; label: "Saved"; }
+            KitIcon { theme: root.theme; glyph: LucideIcons.triangle-alert(); control-size: ControlSize.comfortable; purpose: IconPurpose.informative; label: "Warning"; }
+            decorative := KitIcon { theme: root.theme; glyph: KitGlyphs.search(); }
+            KitIconButton { theme: root.theme; glyph: LucideIcons.trash(); accessible-name: "Delete row"; }
+        }
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            scaled-16 := KitIcon { theme: root.theme; glyph: LucideIcons.tag(); width: 16px; height: 16px; }
+            absolute-16 := KitIcon { theme: root.theme; glyph: LucideIcons.tag(); stroke-mode: IconStroke.absolute; width: 16px; height: 16px; }
+            scaled-24 := KitIcon { theme: root.theme; glyph: LucideIcons.minus(); width: 24px; height: 24px; }
+            absolute-24 := KitIcon { theme: root.theme; glyph: LucideIcons.minus(); stroke-mode: IconStroke.absolute; width: 24px; height: 24px; }
+        }
     }
+}
+
+// Rendered by the software rasterizer: black ink on white, each icon at a
+// known whole-pixel origin, so its pixels can be compared with the SVG
+// geometry of its glyph.
+export component IconRenderFixture inherits Window {
+    width: 160px;
+    height: 56px;
+    background: white;
+    // A filled square from 4 to 20 units, with nothing to stroke.
+    private property <IconGlyph> square: { stroke: "", fill: "M 4 4 L 20 4 L 20 20 L 4 20 Z", viewbox: 24 };
+    KitIcon { x: 4px; y: 4px; width: 24px; height: 24px; glyph: LucideIcons.tag(); ink: black; }
+    KitIcon { x: 36px; y: 4px; width: 24px; height: 24px; glyph: LucideIcons.minus(); ink: black; }
+    KitIcon { x: 68px; y: 4px; width: 24px; height: 24px; glyph: root.square; ink: black; }
+    KitIcon { x: 100px; y: 4px; width: 48px; height: 48px; glyph: LucideIcons.minus(); stroke-mode: IconStroke.absolute; ink: black; }
+    KitIcon { x: 4px; y: 32px; width: 48px; height: 24px; glyph: LucideIcons.minus(); ink: black; }
 }

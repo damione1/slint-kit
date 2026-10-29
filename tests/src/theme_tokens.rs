@@ -160,6 +160,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         radius_pill,
         border_width,
         border_width_strong,
+        icon_stroke,
     } = shape;
     for (name, value) in [
         ("shape.radius-control", radius_control),
@@ -171,6 +172,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     ] {
         tokens.push((name.to_owned(), Token::Length(value)));
     }
+    tokens.push(("shape.icon-stroke".into(), Token::Float(icon_stroke)));
 
     let KitElevation {
         control,
@@ -548,8 +550,8 @@ fn recipes_reproduce_the_default_geometry() {
         assert_eq!(option.focus.style, FocusRingStyle::Inside);
         let icon = window.invoke_icon_glyph(theme.clone(), ControlSize::Medium);
         assert_eq!(
-            (icon.size, icon.color, icon.disabled_color),
-            (16., theme.text_secondary, theme.disabled_text)
+            (icon.size, icon.color, icon.disabled_color, icon.stroke),
+            (16., theme.text_secondary, theme.disabled_text, 2.)
         );
     }
 }
@@ -1210,4 +1212,14 @@ fn third_party_notices_ship_unchanged_with_the_published_crates() {
     assert!(lucide.contains("ISC License") && lucide.contains("Cole Bemis"));
     let version = snapshot.file_name().unwrap().to_string_lossy().into_owned();
     assert!(notices.contains(&format!("vendor/lucide/{version}/")));
+}
+
+#[test]
+fn every_shipped_theme_draws_lucide_weight_icon_strokes() {
+    let window = fixture();
+    // Lucide draws 2 units on its 24-unit grid; every shipped theme keeps it,
+    // so a scaled stroke is 1.33px at 16px and an absolute one 2px.
+    for (name, _, theme) in shipped_themes(&window) {
+        assert_eq!(theme.shape.icon_stroke, 2., "{name}");
+    }
 }

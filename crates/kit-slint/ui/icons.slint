@@ -1,40 +1,41 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitThemeContext, ControlSize, IconRecipe } from "theme.slint";
-import { IconGlyph } from "icons/glyph.slint";
-export { IconGlyph }
+import { IconGlyph, IconStroke } from "icons/glyph.slint";
+export { IconGlyph, IconStroke }
 
-// The kit's own glyphs: original paths on a 16-unit grid with a 1.7-unit
-// stroke, no external icon assets. Lucide icons are generated separately into
+// The kit's own glyphs: original stroked paths on the 24-unit grid Lucide
+// uses, so the theme's icon stroke token weighs the same on both sets. No
+// external icon assets. Lucide icons are generated separately into
 // `@kit/icons/lucide/` and are not copied here.
 export global KitGlyphs {
-    public pure function chevron-down() -> IconGlyph { return { commands: "M 3 6 L 8 11 L 13 6", viewbox: 16, stroke: 1.7 }; }
-    public pure function chevron-left() -> IconGlyph { return { commands: "M 10 3 L 5 8 L 10 13", viewbox: 16, stroke: 1.7 }; }
-    public pure function chevron-right() -> IconGlyph { return { commands: "M 6 3 L 11 8 L 6 13", viewbox: 16, stroke: 1.7 }; }
-    public pure function close() -> IconGlyph { return { commands: "M 4 4 L 12 12 M 12 4 L 4 12", viewbox: 16, stroke: 1.7 }; }
-    public pure function eye() -> IconGlyph { return { commands: "M 2 8 C 5 2 11 2 14 8 C 11 14 5 14 2 8 Z M 10 8 C 10 10.7 6 10.7 6 8 C 6 5.3 10 5.3 10 8 Z", viewbox: 16, stroke: 1.7 }; }
-    public pure function eye-hidden() -> IconGlyph { return { commands: "M 2 2 L 14 14 M 2 8 C 5 2 11 2 14 8 C 12 12 8 13 5 11 M 6 6 C 4 9 8 12 10 9", viewbox: 16, stroke: 1.7 }; }
-    public pure function search() -> IconGlyph { return { commands: "M 10.5 10.5 L 14 14 M 12 7 C 12 9.8 9.8 12 7 12 C 4.2 12 2 9.8 2 7 C 2 4.2 4.2 2 7 2 C 9.8 2 12 4.2 12 7 Z", viewbox: 16, stroke: 1.7 }; }
-    public pure function check() -> IconGlyph { return { commands: "M 3 8 L 6.5 11.5 L 13 4.5", viewbox: 16, stroke: 1.7 }; }
-    public pure function minus() -> IconGlyph { return { commands: "M 3 8 L 13 8", viewbox: 16, stroke: 1.7 }; }
-    public pure function plus() -> IconGlyph { return { commands: "M 3 8 L 13 8 M 8 3 L 8 13", viewbox: 16, stroke: 1.7 }; }
-    public pure function arrow-up-right() -> IconGlyph { return { commands: "M 4 12 L 12 4 M 4 4 L 12 4 L 12 12", viewbox: 16, stroke: 1.7 }; }
-    public pure function warning() -> IconGlyph { return { commands: "M 8 2 L 14 13 L 2 13 Z M 8 6 L 8 9 M 8 11 L 8 11.5", viewbox: 16, stroke: 1.7 }; }
-    public pure function chevron-up() -> IconGlyph { return { commands: "M 3 10 L 8 5 L 13 10", viewbox: 16, stroke: 1.7 }; }
-    public pure function bell() -> IconGlyph { return { commands: "M 4 6 C 4 1 12 1 12 6 L 12 10 L 14 12 L 2 12 L 4 10 Z M 6 14 L 10 14", viewbox: 16, stroke: 1.7 }; }
-    public pure function menu() -> IconGlyph { return { commands: "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12", viewbox: 16, stroke: 1.7 }; }
-    public pure function information() -> IconGlyph { return { commands: "M 14 8 C 14 16 2 16 2 8 C 2 0 14 0 14 8 Z M 8 7 L 8 11 M 8 4.5 L 8 5", viewbox: 16, stroke: 1.7 }; }
-    public pure function article() -> IconGlyph { return { commands: "M 4 2 L 12 2 L 12 14 L 4 14 Z M 6 5 L 10 5 M 6 8 L 10 8 M 6 11 L 9 11", viewbox: 16, stroke: 1.7 }; }
-    public pure function home() -> IconGlyph { return { commands: "M 2 7 L 8 2 L 14 7 M 4 6 L 4 14 L 7 14 L 7 10 L 10 10 L 10 14 L 12 14 L 12 6", viewbox: 16, stroke: 1.7 }; }
-    public pure function grid() -> IconGlyph { return { commands: "M 2 2 L 6 2 L 6 6 L 2 6 Z M 10 2 L 14 2 L 14 6 L 10 6 Z M 2 10 L 6 10 L 6 14 L 2 14 Z M 10 10 L 14 10 L 14 14 L 10 14 Z", viewbox: 16, stroke: 1.7 }; }
-    public pure function copy() -> IconGlyph { return { commands: "M 6 6 L 14 6 L 14 14 L 6 14 Z M 10 3 L 10 2 L 2 2 L 2 10 L 3 10", viewbox: 16, stroke: 1.7 }; }
-    public pure function upload() -> IconGlyph { return { commands: "M 3 10 L 3 14 L 13 14 L 13 10 M 8 11 L 8 2 M 4 6 L 8 2 L 12 6", viewbox: 16, stroke: 1.7 }; }
-    public pure function download() -> IconGlyph { return { commands: "M 3 10 L 3 14 L 13 14 L 13 10 M 8 2 L 8 10 M 4 6 L 8 10 L 12 6", viewbox: 16, stroke: 1.7 }; }
-    public pure function heart() -> IconGlyph { return { commands: "M 8 14 L 2 8 C -1 2 5 0 8 4 C 11 0 17 2 14 8 Z", viewbox: 16, stroke: 1.7 }; }
-    public pure function cart() -> IconGlyph { return { commands: "M 1 2 L 3 2 L 5 11 L 13 11 M 4 5 L 14 5 L 13 9 L 5 9 M 6 13 L 6 14 M 12 13 L 12 14", viewbox: 16, stroke: 1.7 }; }
-    public pure function clock() -> IconGlyph { return { commands: "M 14 8 C 14 16 2 16 2 8 C 2 0 14 0 14 8 Z M 8 4 L 8 8 L 11 10", viewbox: 16, stroke: 1.7 }; }
-    public pure function settings() -> IconGlyph { return { commands: "M 2 4 L 14 4 M 2 8 L 14 8 M 2 12 L 14 12 M 5 2 L 5 6 M 11 6 L 11 10 M 7 10 L 7 14", viewbox: 16, stroke: 1.7 }; }
-    public pure function file() -> IconGlyph { return { commands: "M 4 2 L 9 2 L 13 6 L 13 14 L 4 14 Z M 9 2 L 9 6 L 13 6", viewbox: 16, stroke: 1.7 }; }
-    public pure function trash() -> IconGlyph { return { commands: "M 3 4 L 13 4 M 6 2 L 10 2 M 4 4 L 5 14 L 11 14 L 12 4 M 7 6 L 7 11 M 9 6 L 9 11", viewbox: 16, stroke: 1.7 }; }
+    public pure function chevron-down() -> IconGlyph { return { stroke: "M 4.5 9 L 12 16.5 L 19.5 9", fill: "", viewbox: 24 }; }
+    public pure function chevron-left() -> IconGlyph { return { stroke: "M 15 4.5 L 7.5 12 L 15 19.5", fill: "", viewbox: 24 }; }
+    public pure function chevron-right() -> IconGlyph { return { stroke: "M 9 4.5 L 16.5 12 L 9 19.5", fill: "", viewbox: 24 }; }
+    public pure function close() -> IconGlyph { return { stroke: "M 6 6 L 18 18 M 18 6 L 6 18", fill: "", viewbox: 24 }; }
+    public pure function eye() -> IconGlyph { return { stroke: "M 3 12 C 7.5 3 16.5 3 21 12 C 16.5 21 7.5 21 3 12 Z M 15 12 C 15 16.05 9 16.05 9 12 C 9 7.95 15 7.95 15 12 Z", fill: "", viewbox: 24 }; }
+    public pure function eye-hidden() -> IconGlyph { return { stroke: "M 3 3 L 21 21 M 3 12 C 7.5 3 16.5 3 21 12 C 18 18 12 19.5 7.5 16.5 M 9 9 C 6 13.5 12 18 15 13.5", fill: "", viewbox: 24 }; }
+    public pure function search() -> IconGlyph { return { stroke: "M 15.75 15.75 L 21 21 M 18 10.5 C 18 14.7 14.7 18 10.5 18 C 6.3 18 3 14.7 3 10.5 C 3 6.3 6.3 3 10.5 3 C 14.7 3 18 6.3 18 10.5 Z", fill: "", viewbox: 24 }; }
+    public pure function check() -> IconGlyph { return { stroke: "M 4.5 12 L 9.75 17.25 L 19.5 6.75", fill: "", viewbox: 24 }; }
+    public pure function minus() -> IconGlyph { return { stroke: "M 4.5 12 L 19.5 12", fill: "", viewbox: 24 }; }
+    public pure function plus() -> IconGlyph { return { stroke: "M 4.5 12 L 19.5 12 M 12 4.5 L 12 19.5", fill: "", viewbox: 24 }; }
+    public pure function arrow-up-right() -> IconGlyph { return { stroke: "M 6 18 L 18 6 M 6 6 L 18 6 L 18 18", fill: "", viewbox: 24 }; }
+    public pure function warning() -> IconGlyph { return { stroke: "M 12 3 L 21 19.5 L 3 19.5 Z M 12 9 L 12 13.5 M 12 16.5 L 12 17.25", fill: "", viewbox: 24 }; }
+    public pure function chevron-up() -> IconGlyph { return { stroke: "M 4.5 15 L 12 7.5 L 19.5 15", fill: "", viewbox: 24 }; }
+    public pure function bell() -> IconGlyph { return { stroke: "M 6 9 C 6 1.5 18 1.5 18 9 L 18 15 L 21 18 L 3 18 L 6 15 Z M 9 21 L 15 21", fill: "", viewbox: 24 }; }
+    public pure function menu() -> IconGlyph { return { stroke: "M 3 6 L 21 6 M 3 12 L 21 12 M 3 18 L 21 18", fill: "", viewbox: 24 }; }
+    public pure function information() -> IconGlyph { return { stroke: "M 21 12 C 21 24 3 24 3 12 C 3 0 21 0 21 12 Z M 12 10.5 L 12 16.5 M 12 6.75 L 12 7.5", fill: "", viewbox: 24 }; }
+    public pure function article() -> IconGlyph { return { stroke: "M 6 3 L 18 3 L 18 21 L 6 21 Z M 9 7.5 L 15 7.5 M 9 12 L 15 12 M 9 16.5 L 13.5 16.5", fill: "", viewbox: 24 }; }
+    public pure function home() -> IconGlyph { return { stroke: "M 3 10.5 L 12 3 L 21 10.5 M 6 9 L 6 21 L 10.5 21 L 10.5 15 L 15 15 L 15 21 L 18 21 L 18 9", fill: "", viewbox: 24 }; }
+    public pure function grid() -> IconGlyph { return { stroke: "M 3 3 L 9 3 L 9 9 L 3 9 Z M 15 3 L 21 3 L 21 9 L 15 9 Z M 3 15 L 9 15 L 9 21 L 3 21 Z M 15 15 L 21 15 L 21 21 L 15 21 Z", fill: "", viewbox: 24 }; }
+    public pure function copy() -> IconGlyph { return { stroke: "M 9 9 L 21 9 L 21 21 L 9 21 Z M 15 4.5 L 15 3 L 3 3 L 3 15 L 4.5 15", fill: "", viewbox: 24 }; }
+    public pure function upload() -> IconGlyph { return { stroke: "M 4.5 15 L 4.5 21 L 19.5 21 L 19.5 15 M 12 16.5 L 12 3 M 6 9 L 12 3 L 18 9", fill: "", viewbox: 24 }; }
+    public pure function download() -> IconGlyph { return { stroke: "M 4.5 15 L 4.5 21 L 19.5 21 L 19.5 15 M 12 3 L 12 15 M 6 9 L 12 15 L 18 9", fill: "", viewbox: 24 }; }
+    public pure function heart() -> IconGlyph { return { stroke: "M 12 21 L 3 12 C -1.5 3 7.5 0 12 6 C 16.5 0 25.5 3 21 12 Z", fill: "", viewbox: 24 }; }
+    public pure function cart() -> IconGlyph { return { stroke: "M 1.5 3 L 4.5 3 L 7.5 16.5 L 19.5 16.5 M 6 7.5 L 21 7.5 L 19.5 13.5 L 7.5 13.5 M 9 19.5 L 9 21 M 18 19.5 L 18 21", fill: "", viewbox: 24 }; }
+    public pure function clock() -> IconGlyph { return { stroke: "M 21 12 C 21 24 3 24 3 12 C 3 0 21 0 21 12 Z M 12 6 L 12 12 L 16.5 15", fill: "", viewbox: 24 }; }
+    public pure function settings() -> IconGlyph { return { stroke: "M 3 6 L 21 6 M 3 12 L 21 12 M 3 18 L 21 18 M 7.5 3 L 7.5 9 M 16.5 9 L 16.5 15 M 10.5 15 L 10.5 21", fill: "", viewbox: 24 }; }
+    public pure function file() -> IconGlyph { return { stroke: "M 6 3 L 13.5 3 L 19.5 9 L 19.5 21 L 6 21 Z M 13.5 3 L 13.5 9 L 19.5 9", fill: "", viewbox: 24 }; }
+    public pure function trash() -> IconGlyph { return { stroke: "M 4.5 6 L 19.5 6 M 9 3 L 15 3 M 6 6 L 7.5 21 L 16.5 21 L 18 6 M 10.5 9 L 10.5 16.5 M 13.5 9 L 13.5 16.5", fill: "", viewbox: 24 }; }
 }
 
 // decorative: hidden from assistive technology, because the surrounding control
@@ -43,26 +44,43 @@ export global KitGlyphs {
 // must then be set.
 export enum IconPurpose { decorative, informative }
 
-// A glyph painted by a round-capped, round-joined stroke. Size follows
-// `control-size` and the theme's text scale; the stroke keeps the glyph's own
-// stroke-to-grid ratio at every size, including an explicit width and height.
-// The parent passes `ink` from its recipe.
+// A glyph painted by a round-capped, round-joined stroke, then by a solid fill
+// for the glyph's filled shapes. Size follows `control-size` and the theme's
+// text scale; the stroke width follows the theme's icon stroke token and
+// `stroke-mode`, including at an explicit width and height. The parent passes
+// `ink` from its recipe.
 export component KitIcon inherits Rectangle {
     in property <IconGlyph> glyph;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <IconPurpose> purpose: IconPurpose.decorative;
+    in property <IconStroke> stroke-mode: IconStroke.scaled;
     in property <string> label;
     private property <IconRecipe> recipe: KitThemes.icon-recipe(root.theme, root.control-size);
     in property <color> ink: root.recipe.color;
+    // The drawn stroke width in logical pixels.
+    out property <length> stroke-width: KitThemes.icon-stroke-width(root.recipe, root.glyph, root.stroke-mode, min(root.width, root.height));
     width: root.recipe.size; height: root.recipe.size;
     horizontal-stretch: 0; vertical-stretch: 0;
+    // Slint fits a Path's view box into the Path's box shrunk by the stroke
+    // width and offset by half of it, where SVG maps the view box onto the
+    // whole box. Each Path is therefore one stroke width larger than the icon
+    // and moved back by half, so the view box lands exactly on the icon. The
+    // fill layer keeps the same stroke width, unpainted, to share that mapping.
     Path {
-        width: 100%; height: 100%;
+        x: -root.stroke-width / 2; y: -root.stroke-width / 2;
+        width: root.width + root.stroke-width; height: root.height + root.stroke-width;
         viewbox-width: root.glyph.viewbox; viewbox-height: root.glyph.viewbox;
-        commands: root.glyph.commands;
-        stroke: root.ink; stroke-width: KitThemes.icon-stroke-width(root.glyph, min(self.width, self.height)); fill: transparent;
+        commands: root.glyph.stroke;
+        stroke: root.ink; stroke-width: root.stroke-width; fill: transparent;
         stroke-line-cap: round; stroke-line-join: round;
+    }
+    if root.glyph.fill != "": Path {
+        x: -root.stroke-width / 2; y: -root.stroke-width / 2;
+        width: root.width + root.stroke-width; height: root.height + root.stroke-width;
+        viewbox-width: root.glyph.viewbox; viewbox-height: root.glyph.viewbox;
+        commands: root.glyph.fill;
+        stroke: transparent; stroke-width: root.stroke-width; fill: root.ink;
     }
     // Slint fixes `accessible-role` at compile time, so the informative role
     // lives on a node that exists only for informative icons.

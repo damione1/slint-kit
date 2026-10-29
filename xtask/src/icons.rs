@@ -17,6 +17,10 @@ const OUTPUT_DIRECTORY: &str = "icons/lucide";
 /// The global holding every icon once.
 const ALL_FILE: &str = "all.slint";
 const ALL_GLOBAL: &str = "LucideIcons";
+/// The stroke width, in grid units, every stroked Lucide shape must use: the
+/// themes' `shape.icon-stroke` token is calibrated against it, and KitIcon
+/// draws that token instead of a per-glyph width.
+const DESIGN_STROKE: f32 = 2.;
 /// Coordinates keep this many decimals; Lucide draws on a 24-unit grid, so a
 /// thousandth of a unit is far below one device pixel at any icon size.
 const DECIMALS: usize = 3;
@@ -138,11 +142,12 @@ enum Lifecycle {
     Deprecated { reason: String },
 }
 
-/// Path commands on a square view box, painted by a round-capped stroke.
+/// Path commands on a square view box: the stroked shapes and the filled
+/// shapes, each in source order. A shape with both paints is in both.
 struct Glyph {
-    commands: String,
+    stroke: String,
+    fill: String,
     viewbox: f32,
-    stroke: f32,
 }
 
 struct Icon {
@@ -346,8 +351,11 @@ fn glyph(source: &str) -> Result<Glyph, String> {
     if paths.len() != shapes {
         return Err(format!("{shapes} shapes became {} paths", paths.len()));
     }
-    let mut stroke_width = None;
-    let mut commands = String::new();
+    let mut glyph = Glyph {
+        stroke: String::new(),
+        fill: String::new(),
+        viewbox: size.width(),
+    };
     for path in paths {
         if !path.is_visible() {
             return Err("invisible shape".into());
@@ -355,61 +363,84 @@ fn glyph(source: &str) -> Result<Glyph, String> {
         if !path.abs_transform().is_identity() {
             return Err("transformed shape".into());
         }
-        let stroke = path.stroke().ok_or("unstroked shape")?;
-        if !matches!(stroke.linecap(), usvg::LineCap::Round)
-            || !matches!(stroke.linejoin(), usvg::LineJoin::Round)
-        {
-            return Err("stroke caps and joins must be round".into());
+        // Each shape goes where its paints say, never by icon name: a stroke
+        // paint puts it in `stroke`, a fill paint in `fill`, both in both.
+        // Lucide's dots are filled and also inherit the root's 2-unit round
+        // stroke, so drawing them fill-only would shrink them.
+        if path.stroke().is_none() && path.fill().is_none() {
+            return Err("unpainted shape".into());
         }
-        let width = stroke.width().get();
-        match stroke_width {
-            None => stroke_width = Some(width),
-            Some(first) if first == width => {}
-            Some(first) => return Err(format!("stroke widths {first} and {width} differ")),
+        if let Some(stroke) = path.stroke() {
+            solid(stroke.paint(), stroke.opacity().get())?;
+            if !matches!(stroke.linecap(), usvg::LineCap::Round)
+                || !matches!(stroke.linejoin(), usvg::LineJoin::Round)
+            {
+                return Err("stroke caps and joins must be round".into());
+            }
+            let width = stroke.width().get();
+            if width != DESIGN_STROKE {
+                return Err(format!(
+                    "stroke width {width} is not the {DESIGN_STROKE}-unit design stroke"
+                ));
+            }
+            commands(&mut glyph.stroke, path);
         }
-        // KitIcon paints strokes only. A filled shape is accepted when the
-        // round stroke already covers it (Lucide's dots), so both renderings
-        // are the same disc.
-        if path.fill().is_some() {
-            let bounds = path.data().bounds();
-            if bounds.width() > width || bounds.height() > width {
-                return Err("filled shape larger than its stroke".into());
+        if let Some(fill) = path.fill() {
+            solid(fill.paint(), fill.opacity().get())?;
+            match fill.rule() {
+                usvg::FillRule::NonZero => {}
+                usvg::FillRule::EvenOdd => return Err("even-odd fill rule".into()),
             }
-        }
-        for segment in path.data().segments() {
-            if !commands.is_empty() {
-                commands.push(' ');
-            }
-            match segment {
-                PathSegment::MoveTo(p) => {
-                    commands.push('M');
-                    point(&mut commands, p);
-                }
-                PathSegment::LineTo(p) => {
-                    commands.push('L');
-                    point(&mut commands, p);
-                }
-                PathSegment::QuadTo(p1, p) => {
-                    commands.push('Q');
-                    point(&mut commands, p1);
-                    point(&mut commands, p);
-                }
-                PathSegment::CubicTo(p1, p2, p) => {
-                    commands.push('C');
-                    point(&mut commands, p1);
-                    point(&mut commands, p2);
-                    point(&mut commands, p);
-                }
-                PathSegment::Close => commands.push('Z'),
-            }
+            commands(&mut glyph.fill, path);
         }
     }
-    let stroke = stroke_width.ok_or("no shape")?;
-    Ok(Glyph {
-        commands,
-        viewbox: size.width(),
-        stroke,
-    })
+    if glyph.stroke.is_empty() && glyph.fill.is_empty() {
+        return Err("no shape".into());
+    }
+    Ok(glyph)
+}
+
+/// KitIcon paints every shape with one ink, so a paint must be an opaque
+/// solid color (`currentColor` resolves to one).
+fn solid(paint: &usvg::Paint, opacity: f32) -> Result<(), String> {
+    match paint {
+        usvg::Paint::Color(_) if opacity == 1. => Ok(()),
+        usvg::Paint::Color(_) => Err("translucent paint".into()),
+        usvg::Paint::LinearGradient(_)
+        | usvg::Paint::RadialGradient(_)
+        | usvg::Paint::Pattern(_) => Err("gradient or pattern paint".into()),
+    }
+}
+
+/// Appends a shape's segments as absolute commands.
+fn commands(out: &mut String, path: &usvg::Path) {
+    for segment in path.data().segments() {
+        if !out.is_empty() {
+            out.push(' ');
+        }
+        match segment {
+            PathSegment::MoveTo(p) => {
+                out.push('M');
+                point(out, p);
+            }
+            PathSegment::LineTo(p) => {
+                out.push('L');
+                point(out, p);
+            }
+            PathSegment::QuadTo(p1, p) => {
+                out.push('Q');
+                point(out, p1);
+                point(out, p);
+            }
+            PathSegment::CubicTo(p1, p2, p) => {
+                out.push('C');
+                point(out, p1);
+                point(out, p2);
+                point(out, p);
+            }
+            PathSegment::Close => out.push('Z'),
+        }
+    }
 }
 
 fn collect_paths<'a>(group: &'a usvg::Group, out: &mut Vec<&'a usvg::Path>) -> Result<(), String> {
@@ -449,16 +480,16 @@ fn function(out: &mut String, icon: &Icon) {
         out.push_str(&format!("    // Deprecated by Lucide ({reason}).\n"));
     }
     let Glyph {
-        commands,
-        viewbox,
         stroke,
+        fill,
+        viewbox,
     } = &icon.glyph;
     out.push_str(&format!(
-        "    public pure function {}() -> IconGlyph {{ return {{ commands: \"{}\", viewbox: {}, stroke: {} }}; }}\n",
+        "    public pure function {}() -> IconGlyph {{ return {{ stroke: \"{}\", fill: \"{}\", viewbox: {} }}; }}\n",
         icon.name,
-        escape(commands),
+        escape(stroke),
+        escape(fill),
         number(*viewbox),
-        number(*stroke),
     ));
 }
 
@@ -580,37 +611,131 @@ mod tests {
 </svg>"#;
 
     #[test]
-    fn shapes_flatten_to_absolute_commands_with_the_source_stroke() {
+    fn shapes_flatten_to_absolute_commands_split_by_paint() {
         let glyph = glyph(SHAPES_SVG).unwrap();
         assert_eq!(glyph.viewbox, 24.);
-        assert_eq!(glyph.stroke, 2.);
         assert!(
-            glyph
-                .commands
-                .starts_with("M 12 19 L 12 5 M 5 12 L 19 12 M "),
+            glyph.stroke.starts_with("M 12 19 L 12 5 M 5 12 L 19 12 M "),
             "{}",
-            glyph.commands
+            glyph.stroke
         );
         // Circles become closed cubic curves, never arcs or relative commands.
-        assert_eq!(glyph.commands.matches('C').count(), 8);
-        assert_eq!(glyph.commands.matches('Z').count(), 2);
-        assert!(!glyph.commands.contains(['A', 'a', 'h', 'v', 'H', 'V']));
+        assert_eq!(glyph.stroke.matches('C').count(), 8);
+        assert_eq!(glyph.stroke.matches('Z').count(), 2);
+        assert!(!glyph.stroke.contains(['A', 'a', 'h', 'v', 'H', 'V']));
+        // The filled dot keeps the inherited stroke too, so it is in both.
+        assert_eq!(glyph.fill.matches('C').count(), 4);
+        assert_eq!(glyph.fill.matches('Z').count(), 1);
+        assert!(glyph.stroke.ends_with(&glyph.fill), "{}", glyph.fill);
+        // A shape with only a fill paint is in `fill` alone.
+        let fill_only = SHAPES_SVG.replace(
+            "fill=\"currentColor\" />",
+            "fill=\"currentColor\" stroke=\"none\" />",
+        );
+        let split = super::glyph(&fill_only).unwrap();
+        assert_eq!(split.fill, glyph.fill);
+        assert_eq!(split.stroke.matches('Z').count(), 1);
+        assert!(!split.stroke.contains(&glyph.fill));
+        // Without filled shapes, `fill` stays empty.
+        let unfilled = SHAPES_SVG.replace("fill=\"currentColor\" ", "");
+        assert_eq!(super::glyph(&unfilled).unwrap().fill, "");
     }
 
     #[test]
     fn unsupported_paint_is_rejected() {
-        let filled = SHAPES_SVG.replace("r=\".5\"", "r=\"4\"");
+        let cases = [
+            (
+                "stroke-linecap=\"round\"",
+                "stroke-linecap=\"butt\"",
+                "stroke caps and joins must be round",
+            ),
+            (
+                "<line ",
+                "<line transform=\"translate(1 0)\" ",
+                "transformed shape",
+            ),
+            (
+                "<line ",
+                "<line stroke-width=\"1.5\" ",
+                "stroke width 1.5 is not the 2-unit design stroke",
+            ),
+            (
+                "fill=\"currentColor\" />",
+                "fill=\"currentColor\" fill-rule=\"evenodd\" />",
+                "even-odd fill rule",
+            ),
+            (
+                "fill=\"currentColor\" />",
+                "fill=\"currentColor\" fill-opacity=\".5\" />",
+                "translucent paint",
+            ),
+            // usvg reports a shape without any paint as invisible.
+            ("<line ", "<line stroke=\"none\" ", "invisible shape"),
+        ];
+        for (from, to, error) in cases {
+            let source = SHAPES_SVG.replacen(from, to, 1);
+            assert_ne!(source, SHAPES_SVG, "{error}");
+            assert_eq!(glyph(&source).err().as_deref(), Some(error), "{to}");
+        }
+    }
+
+    /// Whether the SVG source paints any shape with a fill, read straight from
+    /// its attributes (Lucide sets `fill` on the shape or on the root), so the
+    /// generator's usvg-based split is checked against an independent reading.
+    fn source_has_fill(source: &str) -> bool {
+        let document = usvg::roxmltree::Document::parse(source).unwrap();
+        let root_fill = document.root_element().attribute("fill").unwrap_or("black");
+        document
+            .descendants()
+            .filter(|node| SHAPES.contains(&node.tag_name().name()))
+            .any(|node| node.attribute("fill").unwrap_or(root_fill) != "none")
+    }
+
+    #[test]
+    fn fill_is_set_exactly_for_icons_whose_source_fills_a_shape() {
+        let (directory, _) = snapshot_directory(&repository_root()).unwrap();
+        let snapshot = load_snapshot(&repository_root()).unwrap();
+        let mut filled = Vec::new();
+        for icon in &snapshot.icons {
+            let source = read(&directory.join(format!("icons/{}.svg", icon.name))).unwrap();
+            assert_eq!(
+                !icon.glyph.fill.is_empty(),
+                source_has_fill(&source),
+                "{}",
+                icon.name
+            );
+            assert!(!icon.glyph.stroke.is_empty(), "{}", icon.name);
+            if !icon.glyph.fill.is_empty() {
+                // Every filled Lucide shape also inherits the root stroke, so
+                // each filled subpath is in the stroke layer too.
+                for subpath in icon.glyph.fill.split(" M ") {
+                    let subpath = subpath.trim_start_matches("M ");
+                    assert!(
+                        icon.glyph.stroke.contains(subpath),
+                        "{}: {subpath}",
+                        icon.name
+                    );
+                }
+                filled.push(icon.name.to_string());
+            }
+        }
         assert_eq!(
-            glyph(&filled).err().as_deref(),
-            Some("filled shape larger than its stroke")
+            filled,
+            [
+                "brain-circuit",
+                "chart-quadrant",
+                "chart-scatter",
+                "galaxy",
+                "images",
+                "key-round",
+                "palette",
+                "tag",
+                "tag-plus",
+                "tag-x",
+                "tags",
+                "vault",
+            ]
         );
-        let butt = SHAPES_SVG.replace("stroke-linecap=\"round\"", "stroke-linecap=\"butt\"");
-        assert_eq!(
-            glyph(&butt).err().as_deref(),
-            Some("stroke caps and joins must be round")
-        );
-        let moved = SHAPES_SVG.replace("<line ", "<line transform=\"translate(1 0)\" ");
-        assert_eq!(glyph(&moved).err().as_deref(), Some("transformed shape"));
     }
 
     #[test]
@@ -654,7 +779,7 @@ mod tests {
             snapshot.icons.len()
         );
         assert!(all.contains(
-            "public pure function arrow-up() -> IconGlyph { return { commands: \"M 5 12 L 12 5 L 19 12 M 12 19 L 12 5\", viewbox: 24, stroke: 2 }; }"
+            "public pure function arrow-up() -> IconGlyph { return { stroke: \"M 5 12 L 12 5 L 19 12 M 12 19 L 12 5\", fill: \"\", viewbox: 24 }; }"
         ));
         // Every icon appears in each of its categories.
         let memberships: usize = snapshot.icons.iter().map(|i| i.categories.len()).sum();
