@@ -50,9 +50,9 @@ One-time account setup:
    Scripts Edit, Workers Routes Edit and Zone Read for the two managed zones
    (`slint-kit.dev` and `damiengoehrig.ca`). The Cloudflare “Edit Cloudflare
    Workers” token template is the starting point.
-2. Add it as the GitHub repository Actions secret `CLOUDFLARE_API_TOKEN`. The
-   account ID is public and already configured in the workflow. Do not put the
-   token in source code or chat.
+2. Add it as the GitHub repository Actions secret `CLOUDFLARE_API_TOKEN`. Set the
+   Actions variable `CLOUDFLARE_ACCOUNT_ID` to `38a68fae0765d8ec046acaaed0cbf111`.
+   The account ID is public; the token belongs in the secret, not source code.
 3. In the `slint-kit` Worker’s Settings > Builds, disconnect the Git repository
    so Workers Builds stops launching a second Rust compilation. Existing Worker
    deployments and custom domains remain in place. GitHub Actions then owns
