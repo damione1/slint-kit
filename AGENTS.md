@@ -30,4 +30,4 @@ Homeward is the first concrete integration POC for this kit, which was built ind
 
 Fix confirmed kit defects in this repository, with a suitable regression check; Homeward consumes the correction rather than hiding the defect in application code. Distinguish kit defects from application and upstream Slint defects before choosing the source to change.
 
-For this campaign Damien authorizes local commits here, but no push. Record tested source revisions and keep the existing official gate.
+Record tested source revisions and keep the existing official gate.
