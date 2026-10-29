@@ -85,6 +85,22 @@ export function scanComponents() {
       components.push({ screenshots, name, slug: slugify(name), base, family, familyLabel: families[family], types: publicTypes, source: `crates/kit-slint/ui/${file}`, line: source.slice(0, match.index).split('\n').length, properties, callbacks, functions, ...metadata[name] });
     }
   }
+  const byName = new Map(components.map(component => [component.name, component]));
+  const inherited = (component, seen = new Set()) => {
+    if (seen.has(component.name)) throw new Error(`Cyclic component inheritance: ${component.name}`);
+    seen.add(component.name);
+    const parent = byName.get(component.base);
+    const properties = new Map((parent ? inherited(parent, seen) : []).map(property => [property.name, property]));
+    for (const property of component.properties) properties.set(property.name, { ...property, owner: component.name });
+    return [...properties.values()];
+  };
+  for (const component of components) component.effectiveProperties = inherited(component);
+  const optionPages = components.filter(component => component.sharedOption);
+  for (const component of components) {
+    component.optionDemos = optionPages.filter(page => component.effectiveProperties.some(property => property.name === page.sharedOption));
+    component.optionConsumers = component.sharedOption ? components.filter(candidate => candidate.effectiveProperties.some(property => property.name === component.sharedOption)).map(candidate => ({name:candidate.name,slug:candidate.slug})) : [];
+    component.inheritedProperties = component.effectiveProperties.filter(property => property.owner !== component.name);
+  }
   return components.sort((a, b) => a.name.localeCompare(b.name));
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) console.log(JSON.stringify(scanComponents(), null, 2));

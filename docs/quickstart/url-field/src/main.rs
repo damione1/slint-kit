@@ -4,11 +4,11 @@ slint::include_modules!();
 #[derive(Clone, PartialEq)]
 struct Value(String);
 fn parse(text: &str) -> DraftValue<Value> {
-    if text.is_empty() {
-        DraftValue::Empty
-    } else {
-        DraftValue::Parsed(Value(text.into()))
-    }
+    let value = text.replace(['\r', '\n'], "");
+    let value = value.trim_matches(|c| matches!(c, ' ' | '\t' | '\u{c}'));
+    if value.is_empty() { DraftValue::Empty }
+    else if url::Url::parse(value).is_ok() { DraftValue::Parsed(Value(value.into())) }
+    else { DraftValue::Invalid(ParseIssue::InvalidSyntax) }
 }
 fn format(value: &Value) -> String {
     value.0.clone()
@@ -28,8 +28,9 @@ fn main() -> Result<(), slint::PlatformError> {
         |_| String::new(),
         move |view| {
             if let Some(app) = weak.upgrade() {
+                let draft_empty = view.draft.is_empty();
                 app.set_draft(view.draft.into());
-                app.set_error(view.error.into());
+                app.set_error(if view.error.is_empty() { String::new() } else if draft_empty { "Please fill out this field.".into() } else { "Please enter a valid absolute URL.".into() }.into());
             }
         },
     );

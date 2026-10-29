@@ -14,6 +14,8 @@ eleventyComputed:
 
 {% if locale == 'fr' %}Trouvez un composant par usage, consultez sa capture et ses branchements. Pour un premier essai fonctionnel : [bouton](/fr/components/button/) ou [liste avec recherche](/fr/components/combobox/).{% else %}Find a component by purpose, inspect its screenshot and wiring. For a first working example, try a [button](/components/button/) or a [searchable combobox](/components/combobox/).{% endif %}
 
+{% if locale == 'fr' %}Les champs prêts à l’emploi intègrent leurs options de libellé et de message. Les [briques de formulaire](#field) permettent une composition personnalisée ; leurs exemples indiquent quels contrôles offrent déjà l’option correspondante.{% else %}Ready-to-use fields include their label and message options. [Form primitives](#field) support custom composition; their examples list the controls that already provide the corresponding option.{% endif %}
+
 <div class="catalogue-search"><label for="component-filter">{{ ui[locale].search }}</label><input type="search" id="component-filter" placeholder="KitButton, slider…" autocomplete="off" aria-controls="component-catalogue"><p role="status" id="filter-status" data-empty="{{ ui[locale].noResults }}"></p></div>
 <div id="component-catalogue">
 {% for family, label in ui.families %}

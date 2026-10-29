@@ -22,6 +22,10 @@ eleventyComputed:
 
 {{ text.summary }}
 
+{% if component.sharedOption %}
+<p class="component-kind">{% if locale == 'fr' %}Composant de composition · option commune <code>{{ component.sharedOption }}</code>{% else %}Composition primitive · shared <code>{{ component.sharedOption }}</code> option{% endif %}</p>
+{% endif %}
+
 {% set quickstart = quickstarts[component.slug] %}
 {% if quickstart %}
 <section class="live-preview" data-component="{{ component.slug }}" data-width="{{ quickstart.displayWidth }}" data-height="{{ quickstart.height / (quickstart.width / quickstart.displayWidth) }}" aria-label="{% if locale == 'fr' %}Aperçu interactif{% else %}Interactive preview{% endif %}">
@@ -46,6 +50,28 @@ eleventyComputed:
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
 <p class="source-link"><a href="{{ site.repository }}/blob/{{ site.sourceRef }}/{{ component.source }}#L{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
+
+{% if component.optionConsumers.length %}
+## {% if locale == 'fr' %}Option commune{% else %}Shared option{% endif %} `{{ component.sharedOption }}`
+
+{% if locale == 'fr' %}La démonstration utilise la brique `{{ component.name }}` séparément. Les contrôles ci-dessous exposent directement une propriété `{{ component.sharedOption }}` : utilisez-la pour leur comportement intégré. Le rendu et les détails de focus dépendent du contrôle choisi.{% else %}This demonstration uses `{{ component.name }}` separately. The controls below expose a built-in `{{ component.sharedOption }}` property: use that property for their integrated behavior. Rendering and focus details depend on the selected control.{% endif %}
+
+<details class="option-consumers"><summary>{% if locale == 'fr' %}Les {{ component.optionConsumers.length }} composants exposant cette propriété{% else %}The {{ component.optionConsumers.length }} components exposing this property{% endif %}</summary>
+
+{% for consumer in component.optionConsumers %}- [{{ consumer.name }}]({{ ('components/' + consumer.slug + '/') | localeUrl(locale) }})
+{% endfor %}
+
+</details>
+{% endif %}
+
+{% if component.optionDemos.length %}
+<p><a href="{{ 'guides/forms/' | localeUrl(locale) }}">{% if locale == 'fr' %}Choisir entre une option intégrée et une composition personnalisée{% else %}Choose between built-in options and custom composition{% endif %}</a></p>
+
+### {% if locale == 'fr' %}Options partagées{% else %}Shared options{% endif %}
+
+{% for demo in component.optionDemos %}- [`{{ demo.sharedOption }}`]({{ ('components/' + demo.slug + '/') | localeUrl(locale) }}) — {% if locale == 'fr' %}propriété intégrée ; exemple de composition personnalisé{% else %}built-in property; custom composition example{% endif %}
+{% endfor %}
+{% endif %}
 
 ## {% if locale == 'fr' %}Composition visuelle{% else %}Visual composition{% endif %}
 
@@ -77,6 +103,16 @@ eleventyComputed:
 | --- | --- | --- |
 {% for property in component.properties %}| `{{ property.name }}` | `{{ property.type | mdEscape }}` | `{{ property.direction }}` |
 {% endfor %}
+{% endif %}
+{% if component.inheritedProperties.length %}
+<details class="inherited-api"><summary>{% if locale == 'fr' %}Propriétés héritées disponibles{% else %}Available inherited properties{% endif %}</summary>
+
+| {{ ui[locale].name }} | {{ ui[locale].type }} | {% if locale == 'fr' %}Définie sur{% else %}Defined on{% endif %} |
+| --- | --- | --- |
+{% for property in component.inheritedProperties %}| `{{ property.name }}` | `{{ property.type | mdEscape }}` | `{{ property.owner }}` |
+{% endfor %}
+
+</details>
 {% endif %}
 {% if component.types.length %}
 ### {% if locale == 'fr' %}Types et variantes{% else %}Types and variants{% endif %}
