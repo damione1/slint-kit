@@ -424,7 +424,8 @@ export component KitCombobox inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + 4px; width: max(root.width, 280px); height: 320px;
+        x: 0px; y: root.height + 4px; width: max(root.width, 280px);
+        height: min(320px, max(1, root.rows.length) * max(48px, 32px * root.theme.text-scale) + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         KitSelectSurface {
             theme: root.theme; state: root.state; query <=> root.query;
@@ -445,7 +446,7 @@ export component KitCombobox inherits Rectangle {
                     active: root.state.active.present && row.token == root.state.active.token;
                     selected: root.state.selected.present && row.token == root.state.selected.token;
                     activate(token,generation) => { if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                    Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; }
+                    Text { x: 0px; y: 0px; width: parent.width; height: parent.height; text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; }
                 }
             }
         }

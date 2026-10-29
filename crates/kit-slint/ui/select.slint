@@ -146,20 +146,41 @@ export component KitSelectSurface inherits Rectangle {
                 background: root.theme.canvas;
                 border-width: 1px;
                 border-color: search.has-focus ? root.theme.focus-ring : root.theme.border-subtle;
-                search := TextInput {
+                search-viewport := Rectangle {
                     x: 10px; y: 6px;
                     width: parent.width - 20px; height: parent.height - 12px;
-                    text <=> root.query;
-                    color: root.theme.text-primary;
-                    font-size: 14px * root.theme.text-scale;
-                    single-line: true;
-                    accessible-label: root.search-label;
-                    edited => { root.query-edited(self.text); root.ensure-active-visible(); }
-                    key-pressed(event) => {
-                        if (event.text == Key.Escape || event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Return || event.text == Key.PageDown || event.text == Key.PageUp) {
-                            return keyboard.handle-key(event);
+                    clip: true;
+                    if root.query == "": Text {
+                        x: 0px; y: 0px; width: parent.width; height: parent.height;
+                        text: root.search-label; color: root.theme.disabled-text;
+                        font-size: 14px * root.theme.text-scale;
+                        vertical-alignment: center; overflow: elide;
+                    }
+                    search-scroll := Flickable {
+                        interactive: false;
+                        content-width: max(self.width, search.preferred-width + 2px);
+                        content-height: self.height;
+                        search := TextInput {
+                            width: search-scroll.content-width; height: search-scroll.height;
+                            text <=> root.query;
+                            color: root.theme.text-primary;
+                            font-size: 14px * root.theme.text-scale;
+                            single-line: true;
+                            accessible-label: root.search-label;
+                            edited => { root.query-edited(self.text); root.ensure-active-visible(); }
+                            cursor-position-changed(position) => {
+                                if (position.x + search-scroll.content-x < 0px) { search-scroll.content-x = -position.x; }
+                                else if (position.x + 2px + search-scroll.content-x > search-scroll.width) {
+                                    search-scroll.content-x = search-scroll.width - position.x - 2px;
+                                }
+                            }
+                            key-pressed(event) => {
+                                if (event.text == Key.Escape || event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Return || event.text == Key.PageDown || event.text == Key.PageUp) {
+                                    return keyboard.handle-key(event);
+                                }
+                                return reject;
+                            }
                         }
-                        return reject;
                     }
                 }
             }
@@ -290,7 +311,7 @@ export component KitSelect inherits Rectangle {
         x: 0px;
         y: root.height + 4px;
         width: max(root.width, 240px);
-        height: root.popup-height;
+        height: min(root.popup-height, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
             theme: root.theme;
