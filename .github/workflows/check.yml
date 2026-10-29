@@ -1,5 +1,10 @@
 name: Check
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   desktop:
     runs-on: macos-latest
@@ -41,3 +46,60 @@ jobs:
           restore-keys: ${{ runner.os }}-docs-previews-v1-
       - run: python3 -m unittest discover -s docs/scripts -p 'test_web_cache.py'
       - run: npm --prefix docs run build
+      - name: Record the built source revision
+        run: git rev-parse HEAD > docs/_site/deployment-revision.txt
+      - uses: actions/upload-artifact@v7
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: slint-kit-site-${{ github.sha }}
+          path: docs/_site/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+  deploy:
+    name: Deploy documentation
+    needs: [desktop, documentation]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: slint-kit-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check that this revision is still current
+        id: current
+        shell: bash
+        run: |
+          latest_main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$latest_main_sha" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping an outdated revision; a newer main revision will deploy."
+          fi
+      - uses: actions/download-artifact@v8
+        if: steps.current.outputs.deploy == 'true'
+        with:
+          name: slint-kit-site-${{ github.sha }}
+          path: docs/_site/
+      - name: Verify the artifact revision
+        if: steps.current.outputs.deploy == 'true'
+        shell: bash
+        run: test "$(cat docs/_site/deployment-revision.txt)" = "$GITHUB_SHA"
+      - uses: actions/setup-node@v6
+        if: steps.current.outputs.deploy == 'true'
+        with:
+          node-version: '22'
+      - name: Deploy the tested artifact to Cloudflare
+        if: steps.current.outputs.deploy == 'true'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: 38a68fae0765d8ec046acaaed0cbf111
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Set the repository secret CLOUDFLARE_API_TOKEN before deploying."
+            exit 1
+          fi
+          npx --yes wrangler@4.154.0 deploy --config docs/wrangler.toml --message "GitHub Actions $GITHUB_SHA"
