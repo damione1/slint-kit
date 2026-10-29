@@ -54,13 +54,7 @@ cargo run --release --locked -p kit-showcase
 
 ## Contribute
 
-See [AGENTS.md](AGENTS.md) for structure and checks. Run `cargo run -p xtask --locked -- check` before submitting changes. Backend support, IME and assistive technology require native qualification on the target device.
-
-## Documentation hosting
-
-Build with `npm --prefix docs ci` and `npm --prefix docs run build`, then deploy the verified output with `npx wrangler deploy --config docs/wrangler.toml --keep-vars`. The build checks native screenshot provenance against the kit sources; publish from a revision whose captures pass this check.
-
-Eleventy writes content-addressed CSS and JavaScript under `/assets/versioned/`, with one year of immutable browser caching. Replaceable screenshots and branding use a one-day cache. HTML keeps the default browser revalidation policy. Cache rules live in `docs/src/_headers` and are copied into the deployed assets.
+Pull requests follow the design and type rules in [AGENTS.md](AGENTS.md) and update the English and French documentation with the change. Run `cargo run -p xtask --locked -- check` before submitting.
 
 ## License
 
