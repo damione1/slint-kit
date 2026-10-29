@@ -5,7 +5,7 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.3.1`; verify that it is published before using its new APIs from crates.io. The compatible dependency range is `"0.3"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.4.0`, which changes the theme and icon contracts (see [CHANGELOG.md](../../../CHANGELOG.md)); verify that it is published before using its APIs from crates.io, and stay on `"0.3"` with the 0.3 API until it is. The compatible dependency range is `"0.4"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
 
 ## Find documentation and examples
 
@@ -16,7 +16,7 @@ The public documentation is [English at the site root](https://slint-kit.dev/) a
 - [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.dev/guides/controllers/), [themes and accessibility](https://slint-kit.dev/guides/themes/) and [native integration](https://slint-kit.dev/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.3.1/source/). Keep runtime and build dependencies on the same `"0.3"` compatibility range.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.4.0/source/). Keep runtime and build dependencies on the same `"0.4"` compatibility range.
 
 ## Wire the consumer
 
@@ -24,11 +24,11 @@ Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-slint-kit = "0.3"
+slint-kit = "0.4"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.3"
+slint-kit-build = "0.4"
 ```
 
 Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
@@ -84,7 +84,9 @@ Keep accepted application values in Rust. `slint_kit` reexports the domain types
 
 Use `DecimalValue`, `Money` and explicit currency/locale/rounding rules for numeric domains. Use civil dates, local times and explicit time-zone resolution; never convert an ambiguous local time silently. Renderer positions and byte-channel projections do not replace validated domain values.
 
-Pass `KitTheme` and `ControlSize` into composed controls, or assign `KitThemeContext.current` once (re-export `KitThemeContext` from the main file to set it from Rust); every component defaults to it. Write a custom theme as a complete literal, including the `shape`, `elevation`, `focus`, `typography`, `spacing` and `motion` token groups: an omitted struct field silently becomes zero or transparent. `KitCard` and `KitHero` accept `LayoutSpace` inset and gap values. Choose `ControlWidth.fill` where the containing layout needs it. Build custom skins on the shared pressable, selection and dialog primitives so pointer, keyboard, focus and disabled behavior remain consistent. For larger screens, inspect the [layout wrappers](../../../crates/kit-slint/ui/layout.slint); for large collections, inspect [data components](../../../crates/kit-slint/ui/data.slint) and preserve model identity and virtualization.
+Pass `KitTheme` and `ControlSize` into composed controls, or assign `KitThemeContext.current` once (re-export `KitThemeContext` from the main file to set it from Rust, for example to follow the system's dark mode); every component defaults to it, and a subtree's `theme` property still overrides it. The built-in themes are `KitThemes.light` and `.dark`. For the opt-in Tailwind-inspired look, `import { TailwindThemes } from "@kit/themes/tailwind.slint";` and assign `TailwindThemes.light` or `.dark`; importing it embeds Inter (about 1.6 MB), so do not import it otherwise. Write a custom theme as a complete literal, including the `shape`, `elevation`, `focus`, `typography`, `spacing` and `motion` token groups: an omitted struct field silently becomes zero or transparent. Change one token by copying a shipped theme in Rust and setting the field.
+
+Icons are `IconGlyph` values from named functions: `KitGlyphs.close()` for the kit's own glyphs, or `LucideIcons.trash()` after `import { LucideIcons } from "@kit/icons/lucide/all.slint";` (one file per Lucide category also exists; check names there, since Lucide renamed several Feather icons). Paint them with `KitIcon { glyph: ...; }` or `KitIconButton { glyph: ...; accessible-name: "..."; }`; there is no `IconKind` any more. Pass `ink` from the surrounding recipe. Icons are decorative by default; set `purpose: IconPurpose.informative` and a `label` only when no nearby text says what the icon means. Size follows `control-size` and `text-scale`; `stroke-mode: IconStroke.absolute` keeps a fixed stroke width. Never edit the generated Lucide files. `KitCard` and `KitHero` accept `LayoutSpace` inset and gap values. Choose `ControlWidth.fill` where the containing layout needs it. Build custom skins on the shared pressable, selection and dialog primitives so pointer, keyboard, focus and disabled behavior remain consistent. For larger screens, inspect the [layout wrappers](../../../crates/kit-slint/ui/layout.slint); for large collections, inspect [data components](../../../crates/kit-slint/ui/data.slint) and preserve model identity and virtualization.
 
 The [display gallery](../../../showcase/ui/base-display.slint) and [its controller](../../../showcase/src/base_display.rs) show alerts, tooltips, toasts and progress. Mount one `KitTooltipLayer` as the final child of each window, provide its viewport size, and disable it while a modal or another screen hides its triggers. `KitTooltip` reports keyboard focus to that window-local layer. Keep toast lifetimes in Rust with `ToastQueue`; map `ToastInteraction.pointer` and `.focus` to separate `ToastPause` sources. Pause/resume must preserve the remaining lifetime.
 

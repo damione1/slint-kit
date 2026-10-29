@@ -25,11 +25,11 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-slint-kit = "0.3"
+slint-kit = "0.4"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.3"
+slint-kit-build = "0.4"
 ```
 
 Créez `build.rs` à la racine de l’application. `slint-kit-build` enregistre la bibliothèque `@kit` et vérifie les contrats partagés générés avant de compiler l’interface.

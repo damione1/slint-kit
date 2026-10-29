@@ -11,7 +11,7 @@ permalink: "{{ 'guides/native/' | localeUrl(locale) }}index.html"
 Enable host services explicitly. The core domain and visual file components do not require a native picker dependency. Add the optional `native` feature only in an application that needs it:
 
 ```toml
-slint-kit = { version = "0.3", features = ["native"] }
+slint-kit = { version = "0.4", features = ["native"] }
 ```
 
 ## Requests and outcomes

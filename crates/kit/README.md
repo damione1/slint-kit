@@ -4,11 +4,11 @@ Composable native Rust and Slint components with typed behavior, native text edi
 
 ```toml
 [dependencies]
-slint-kit = "0.3"
+slint-kit = "0.4"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.3"
+slint-kit-build = "0.4"
 ```
 
 Compile your UI in `build.rs`:

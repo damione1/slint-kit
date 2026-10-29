@@ -86,6 +86,10 @@ export component Toolbar inherits HorizontalLayout {
 
 Icon size follows `control-size` (14, 16 or 20 px) multiplied by the theme's `text-scale`. The stroke width comes from the theme's `shape.icon-stroke` token, 2 in every shipped theme. With the default `stroke-mode: IconStroke.scaled` the token is in grid units and scales with the icon, as in SVG: Lucide's 2 units on 24 draw 1.33 px at 16 px and 2.67 px at 200% text. With `IconStroke.absolute` the stroke stays 2 px at every size. An `IconGlyph` has a `stroke` layer and a `fill` layer (empty for most icons): a few Lucide icons, such as `tag` or `palette`, have filled dots, painted with the same `ink`. Pass `ink` from the surrounding recipe. An icon is decorative by default and stays out of the accessibility tree; when it carries meaning that no nearby text gives, set `purpose: IconPurpose.informative` and a `label`, and it is announced as an image.
 
+The kit's components use the same glyphs. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
+
+Moving from 0.3: `IconKind` no longer exists. Replace `KitIcon { kind: IconKind.close; }` with `KitIcon { glyph: KitGlyphs.close(); }`, and `KitIconButton { icon: IconKind.close; }` with `KitIconButton { glyph: KitGlyphs.close(); }`. The [changelog](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) lists every 0.4.0 change.
+
 The Lucide files are generated from a vendored release and never edited by hand. Lucide is under the ISC license, and the icons it derives from Feather are also under the MIT license; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate.
 
 ## Size and layout
