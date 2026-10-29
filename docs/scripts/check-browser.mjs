@@ -9,7 +9,9 @@ import { once } from 'node:events';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 const docs = fileURLToPath(new URL('../', import.meta.url));
-const output = path.join(docs, '.verification/browser');
+const browserDensity = Number(process.env.BROWSER_DPR || 1);
+assert([1, 2].includes(browserDensity), 'BROWSER_DPR must be 1 or 2');
+const output = path.join(docs, browserDensity === 2 ? '.verification/browser-retina' : '.verification/browser');
 await fs.mkdir(output, { recursive: true });
 const chrome = process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 await fs.access(chrome);
@@ -34,7 +36,10 @@ server.listen(0, '127.0.0.1');
 await once(server, 'listening');
 const origin = `http://127.0.0.1:${server.address().port}`;
 const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'slint-kit-browser-'));
-const processChrome = spawn(chrome, ['--headless=new', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+// CDP's deviceScaleFactor alone changes devicePixelRatio but leaves
+// ResizeObserver.devicePixelContentBoxSize at the host density. Winit uses
+// that physical box, so launch with a matching density for canvas checks.
+const processChrome = spawn(chrome, ['--headless=new', `--force-device-scale-factor=${browserDensity}`, '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 let socket;
 let sourceId;
 const pending = new Map();
@@ -99,6 +104,7 @@ try {
   await call('Network.enable');
   await call('Network.setCacheDisabled', { cacheDisabled: true });
   await call('Page.bringToFront');
+  await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: browserDensity, mobile: false });
   sourceId = (await call('Page.addScriptToEvaluateOnNewDocument', { source: `window.auditShifts=[];new PerformanceObserver(list=>{for(const item of list.getEntries())if(!item.hadRecentInput)window.auditShifts.push(item.value)}).observe({type:'layout-shift',buffered:true});` })).identifier;
   // Inspect meaningful open states as well as constructors: an unopened
   // dialog's canvas only shows its launcher.
@@ -118,7 +124,7 @@ try {
     const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
       clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
-    const visualOutput = path.join(docs, '.verification/visual-qa/web');
+    const visualOutput = path.join(docs, browserDensity === 2 ? '.verification/visual-qa/web-retina' : '.verification/visual-qa/web');
     await fs.mkdir(visualOutput, { recursive: true });
     await fs.writeFile(path.join(visualOutput, `${slug}-open.png`), Buffer.from(capture.data, 'base64'));
     results.push({ name: 'browser-preview-open-state', component: slug });
@@ -198,7 +204,7 @@ try {
   // Prove that the browser backend can construct every documented application.
   // Native interaction proofs remain separate from browser startup coverage.
   await call('Network.setCacheDisabled', { cacheDisabled: false });
-  await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: 1, mobile: false });
+  await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: browserDensity, mobile: false });
   const starters = JSON.parse(await fs.readFile(path.join(docs, 'content/starters.json'), 'utf8'));
   for (const slug of Object.keys(starters)) {
     await navigate(`/preview/?component=${slug}`);
@@ -209,15 +215,17 @@ try {
     const state = await evaluate('({ready:window.previewReady,error:window.previewError,width:document.querySelector("canvas").width,height:document.querySelector("canvas").height})');
     assert(state.ready && !state.error && state.width > 0 && state.height > 0, `${slug}: browser startup ${JSON.stringify(state)}`);
     const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
+    assert(Math.abs(state.width - canvas.width * browserDensity) <= 1 && Math.abs(state.height - canvas.height * browserDensity) <= 1,
+      `${slug}: canvas backing pixels must match its CSS size and actual browser density`);
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
       clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
-    const visualOutput = path.join(docs, '.verification/visual-qa/web');
+    const visualOutput = path.join(docs, browserDensity === 2 ? '.verification/visual-qa/web-retina' : '.verification/visual-qa/web');
     await fs.mkdir(visualOutput, { recursive: true });
     await fs.writeFile(path.join(visualOutput, `${slug}.png`), Buffer.from(capture.data, 'base64'));
     results.push({ name: 'browser-preview-startup', component: slug, ...state });
   }
   for (const locale of ['en', 'fr']) {
-    await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: 1, mobile: false });
+    await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: browserDensity, mobile: false });
     const start = requests.length;
     await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
     assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
@@ -243,7 +251,7 @@ try {
   }
   // An iframe can fit the page while its canvas/credits still overflow inside.
   // Check the desktop gutter, retina, mobile scaling and enlarged credits.
-  for (const [width, density] of [[1500, 1], [1500, 2], [375, 2]]) {
+  for (const [width, density] of [[1500, browserDensity], [375, browserDensity]]) {
     await call('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: density, mobile: false });
     await navigate('/fr/components/input-group/');
     await click('.run-preview');
@@ -257,14 +265,19 @@ try {
       const host = document.querySelector('.preview-frame').getBoundingClientRect();
       const frame = document.querySelector('iframe'); const bounds = frame.getBoundingClientRect();
       const innerDocument = frame.contentDocument;
+      const canvas = innerDocument.querySelector('canvas'); const canvasBounds = canvas.getBoundingClientRect();
       return { centered: Math.abs(bounds.x + bounds.width / 2 - host.x - host.width / 2) < 1,
         fitted: bounds.width <= host.width && bounds.height <= host.height,
+        backingPixelsMatch: Math.abs(canvas.width - canvasBounds.width * frame.contentWindow.devicePixelRatio) <= 1 && Math.abs(canvas.height - canvasBounds.height * frame.contentWindow.devicePixelRatio) <= 1,
         noHorizontalOverflow: innerDocument.documentElement.scrollWidth <= frame.contentWindow.innerWidth,
         noVerticalOverflow: innerDocument.documentElement.scrollHeight <= frame.contentWindow.innerHeight,
         footerVisible: innerDocument.querySelector('footer').getBoundingClientRect().bottom <= frame.contentWindow.innerHeight + 1 };
     })()`);
     assert(Object.values(geometry).every(Boolean), `Preview geometry ${width}/${density}: ${JSON.stringify(geometry)}`);
     results.push({ name: 'preview-canvas-and-credits-fit', width, density, ...geometry });
+    await evaluate('document.querySelector(".preview-frame").scrollIntoView({block:"center"})');
+    const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+    await fs.writeFile(path.join(output, `input-group-${width}-${density}.png`), Buffer.from(capture.data, 'base64'));
   }
   passed = true;
   console.log(`Browser checks PASS: ${results.filter(row => row.route).length} page captures, ${results.filter(row => row.name === "browser-preview-startup").length} preview startups, EN/FR on-demand mobile previews, delayed script/image CLS, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);

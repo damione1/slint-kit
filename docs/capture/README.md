@@ -18,6 +18,10 @@ python3 -B docs/scripts/capture-starters.py drawer \
 
 Inspect every changed poster and its interactive browser preview. Browser checks
 save canvas captures for visual review in `.verification/visual-qa/web`.
+Run `npm --prefix docs run check:browser` and
+`BROWSER_DPR=2 npm --prefix docs run check:browser` for standard and Retina
+canvas checks. The Retina run writes `web-retina` and `browser-retina` evidence
+and verifies the canvas backing pixels as well as its visible frame.
 
 Build the embedded MCP server for development without changing the library’s
 default features:
