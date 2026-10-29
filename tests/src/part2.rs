@@ -11,6 +11,7 @@ use std::{
 fn fixture() -> Part2Fixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = Part2Fixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
     window.show().unwrap();
     window
 }

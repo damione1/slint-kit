@@ -28,11 +28,11 @@ Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Ru
 
 ```toml
 [dependencies]
-slint-kit = "0.2"
+slint-kit = "0.3"
 slint = "=1.18.1"
 
 [build-dependencies]
-slint-kit-build = "0.2"
+slint-kit-build = "0.3"
 ```
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
@@ -60,8 +60,6 @@ See [AGENTS.md](AGENTS.md) for structure and checks. Run `cargo run -p xtask --l
 Build with `npm --prefix docs ci` and `npm --prefix docs run build`, then deploy the verified output with `npx wrangler deploy --config docs/wrangler.toml --keep-vars`. The build checks native screenshot provenance against the kit sources; publish from a revision whose captures pass this check.
 
 Eleventy writes content-addressed CSS and JavaScript under `/assets/versioned/`, with one year of immutable browser caching. Replaceable screenshots and branding use a one-day cache. HTML keeps the default browser revalidation policy. Cache rules live in `docs/src/_headers` and are copied into the deployed assets.
-
-Every component page includes a standalone project from `docs/quickstart/`, built against the published crates, and an on-demand browser preview. Displayed and downloadable sources stay identical; the documentation build checks this. CI compiles all 123 projects. See [browser preview build instructions](docs/preview/README.md). Native captures and browser code use the same documented application sources. Component source links follow `site.sourceRef` in `docs/eleventy.config.js` and must match the documented release.
 
 ## License
 

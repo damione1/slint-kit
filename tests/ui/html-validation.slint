@@ -1,0 +1,54 @@
+import { KitEmailField, KitUrlField, KitTextField, KitTextArea, KitIntegerField, KitDecimalField, KitButton, KitThemes, KitTheme, NumberInputFormat, HtmlInputKind, KitValidityState, ValidationTiming, FieldAccess } from "@kit/kit.slint";
+export { NumberInputFormat, KitFormValidation, HtmlInputKind, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+export component HtmlFixture inherits Window {
+    title: "Form validation";
+    preferred-width: 600px; preferred-height: 780px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <string> email-text;
+    in-out property <string> url-text;
+    in-out property <string> code-text;
+    in-out property <string> count-text;
+    in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    in property <string> count-step: "2";
+    out property <KitValidityState> count-validity: number.validity;
+    out property <string> count-value: number.value;
+    public function focus-count() { number.take-focus(); }
+    public function select-count() { number.select-all(); }
+    in property <bool> multiple;
+    in property <bool> required;
+    in property <string> pattern: "[A-Z]{3}";
+    out property <KitValidityState> email-validity: email.validity;
+    out property <KitValidityState> url-validity: website.validity;
+    out property <KitValidityState> code-validity: code.validity;
+    out property <bool> email-will-validate: email.will-validate;
+    out property <string> email-error: email.validation-message;
+    out property <bool> email-touched: email.touched;
+    out property <string> pattern-error: code.pattern-error;
+    callback email-commit(string);
+    callback email-invalid();
+    callback email-blur();
+    public function focus-email() { email.take-focus(); }
+    public function focus-url() { website.take-focus(); }
+    public function report-email() -> bool { return email.report-validity(); }
+    public function custom-email(message: string) { email.set-custom-validity(message); }
+    public function reset-email() { email.reset-field(); }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        email := KitEmailField {
+            theme: root.theme; label: "Email"; text <=> root.email-text;
+            access: root.access; required: root.required; multiple: root.multiple;
+            invalid => { root.email-invalid(); }
+            commit-requested(value) => { root.email-commit(value); }
+            focus-observed(focus) => { if (!focus) { root.email-blur(); } }
+        }
+        website := KitUrlField { theme: root.theme; label: "URL"; text <=> root.url-text; }
+        code := KitTextField { theme: root.theme; label: "Code"; text <=> root.code-text; pattern: root.pattern; pattern-message: "Use three uppercase letters."; }
+        KitTextArea { theme: root.theme; label: "Notes"; min-length: 4; max-length: 40; }
+        number := KitIntegerField { theme: root.theme; label: "Count"; min: "2"; max: "10"; step: root.count-step; number-format: root.number-format; text <=> root.count-text; }
+        KitButton { theme: root.theme; text: "Validate"; activated => { root.report-email(); } }
+    }
+}

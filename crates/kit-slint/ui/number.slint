@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitValidityState } from "validation.slint";
+import { NumberInputFormat } from "shared-contracts.slint";
 import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics } from "theme.slint";
@@ -10,8 +12,8 @@ export { StepDirection } from "shared-contracts.slint";
 // Native numeric filtering rejects letters on typing and paste. Decimal mode
 // retains signs and incomplete decimals; Rust still parses exact domain values,
 // integer constraints, scale and bounds without accepting renderer floats.
-export component KitIntegerField inherits KitTextField { input-type: InputType.decimal; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
-export component KitDecimalField inherits KitIntegerField { }
+export component KitIntegerField inherits KitTextField { step: "1"; input-type: InputType.decimal; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
+export component KitDecimalField inherits KitIntegerField { step: "any"; }
 export component KitMoneyField inherits KitDecimalField { }
 export component KitPercentField inherits KitDecimalField { suffix: "%"; }
 export component KitQuantityField inherits KitDecimalField { }
@@ -23,6 +25,21 @@ export component KitNumberStepper inherits KitField {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <bool> required;
+    in property <string> min;
+    in property <string> max;
+    in property <string> step: "1";
+    in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    in property <string> default-value;
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: editor.validity;
+    out property <bool> will-validate: editor.will-validate;
+    out property <string> validation-message: editor.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return editor.check-validity(); }
+    public function report-validity() -> bool { return editor.report-validity(); }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { editor.reset-validation(); }
     in property <string> label;
     in property <string> description;
     in property <string> error;
@@ -48,6 +65,11 @@ export component KitNumberStepper inherits KitField {
     HorizontalLayout {
         spacing: 8px;
         editor := KitDecimalField {
+            show-validation-message: false; error: root.error;
+            required: root.required; min: root.min; max: root.max; step: root.step;
+            number-format: root.number-format; default-value: root.default-value;
+            custom-validity <=> root.custom-validity;
+            invalid => { root.invalid(); }
             theme: root.theme; control-size: root.control-size;
             access: root.access; validation: root.validation;
             accessible-name: root.label;
@@ -74,6 +96,7 @@ export component KitNumberStepper inherits KitField {
             }
         }
     }
+    if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
     if root.validation == ValidationPresentation.invalid && root.error != "": KitFieldError { theme: root.theme; text: root.error; }
     if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
 }

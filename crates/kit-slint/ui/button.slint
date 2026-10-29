@@ -165,8 +165,13 @@ export component KitButton inherits KitPressable {
 export enum FormAction { submit, reset }
 export component KitFormButton inherits KitButton {
     in property <FormAction> action: FormAction.submit;
+    in property <bool> form-no-validate;
+    callback validation-requested() -> bool;
+    validation-requested => { return true; }
     callback form-action(FormAction);
-    activated => { root.form-action(root.action); }
+    activated => {
+        if (root.action != FormAction.submit || root.form-no-validate || root.validation-requested()) { root.form-action(root.action); }
+    }
 }
 export component KitSubmitButton inherits KitFormButton {
     action: FormAction.submit;

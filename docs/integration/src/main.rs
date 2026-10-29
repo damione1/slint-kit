@@ -29,6 +29,7 @@ enum WorkspaceKey {
 fn main() -> Result<(), slint::PlatformError> {
     let french = std::env::args().any(|arg| arg == "--fr");
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     app.set_language(if french {
         ui::ExampleLanguage::French
     } else {

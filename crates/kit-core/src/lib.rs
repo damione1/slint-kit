@@ -8,6 +8,7 @@ mod field;
 mod focus;
 mod geometry;
 mod host;
+mod html;
 mod notification;
 mod numeric;
 mod overlay;
@@ -21,6 +22,7 @@ pub use field::*;
 pub use focus::*;
 pub use geometry::*;
 pub use host::*;
+pub use html::*;
 pub use notification::*;
 pub use numeric::*;
 pub use overlay::*;
@@ -41,6 +43,13 @@ macro_rules! contract_enums {
 }
 
 contract_enums! {
+    NumberInputFormat => "NumberInputFormat" { Canonical => "canonical", DecimalComma => "decimal-comma" }
+    HtmlInputKind => "HtmlInputKind" {
+        Text => "text", Search => "search", Telephone => "telephone", Email => "email", Url => "url",
+        Password => "password", TextArea => "text-area", Number => "number", Date => "date", Month => "month",
+        Week => "week", Time => "time", DateTimeLocal => "date-time-local", Checkbox => "checkbox",
+        Radio => "radio", Select => "select", File => "file", Range => "range", Color => "color",
+    }
     CheckState => "CheckState" { Unchecked => "unchecked", Checked => "checked", Mixed => "mixed" }
     RangeThumb => "RangeThumb" { Start => "lower", End => "upper" }
     FileSelectionMode => "FileSelectionMode" { Single => "single", Multiple => "multiple" }

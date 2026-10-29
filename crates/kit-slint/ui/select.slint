@@ -1,4 +1,6 @@
+import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { FieldAccess } from "shared-contracts.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { ListView } from "std-widgets.slint";
 import { KitPressable } from "button.slint";
@@ -231,6 +233,24 @@ export component KitOption inherits KitPressable {
 }
 
 export component KitSelect inherits Rectangle {
+    in property <bool> required;
+    in property <string> required-message: "Please make a selection.";
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: checks.validity;
+    out property <bool> will-validate: checks.will-validate;
+    out property <string> validation-message: checks.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return checks.check-validity(); }
+    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { checks.reset-validation(); }
+    checks := FormConstraintState {
+        kind: HtmlInputKind.select; access: root.disabled ? FieldAccess.disabled : FieldAccess.editable; required: root.required;
+        custom-validity: root.custom-validity != "" ? root.custom-validity : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : ""; required-message: root.required-message;
+        selected-count: root.state.selected.present && root.state.selection-availability != SelectionAvailability.unavailable ? 1 : 0;
+        invalid => { root.invalid(); }
+    }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
@@ -249,6 +269,7 @@ export component KitSelect inherits Rectangle {
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
     out property <bool> has-focus: trigger.has-focus;
+    changed has-focus => { if (!root.has-focus && !root.state.open && !root.disabled) { checks.note-blur(); } }
     public function take-focus() { trigger.take-focus(); }
     public function cancel-press() {trigger.cancel-press();}
     min-height: KitMetrics.control-height(root.control-size, root.theme.text-scale);
@@ -284,8 +305,8 @@ export component KitSelect inherits Rectangle {
         state: root.state;
         disabled: root.disabled;
         accessible-name: root.placeholder;
-        accessible-description: root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
-        border-color: root.state.selection-availability == SelectionAvailability.unavailable ? root.theme.danger : root.theme.border-subtle;
+        accessible-description: checks.show-error ? checks.validation-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
+        border-color: checks.show-error ? root.theme.danger : root.state.selection-availability == SelectionAvailability.unavailable ? root.theme.danger : root.theme.border-subtle;
         open-requested => { root.open-requested(); }
         navigate(step) => { root.navigate(step); }
         activate(token, generation) => { root.activate(token, generation); }

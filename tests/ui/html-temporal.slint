@@ -1,0 +1,31 @@
+import { KitTheme, KitThemes, KitDatePicker, KitCalendar, KitTimeField, KitDateTimeField, KitZonedDateTimeField, KitColorField, KitValidityState, CalendarDay, ClockFormat } from "@kit/kit.slint";
+export component HtmlTemporalFixture inherits Window {
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
+    preferred-width: 700px; preferred-height: 1000px;
+    in property <[CalendarDay]> days;
+    in property <int> active-index;
+    in-out property <string> date-text;
+    in-out property <string> time-text;
+    in-out property <string> local-date: "2026-10-28";
+    in-out property <string> local-time: "01:30 PM";
+    in-out property <string> zone: "America/Toronto";
+    in-out property <string> color-text;
+    out property <KitValidityState> date-validity: date.validity;
+    out property <KitValidityState> time-validity: time.validity;
+    out property <KitValidityState> local-validity: local.validity;
+    out property <KitValidityState> zoned-validity: zoned.validity;
+    out property <KitValidityState> color-validity: color.validity;
+    callback chosen();
+    public function focus-calendar() { calendar.take-focus(); }
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        date := KitDatePicker { theme: root.theme; label: "Date"; text <=> root.date-text; min: "2026-10-28"; max: "2026-10-29"; }
+        calendar := KitCalendar { theme: root.theme; days: root.days; active-index: root.active-index; min: "2026-10-28"; max: "2026-10-29"; step: "2"; choose(day) => {root.chosen();} }
+        time := KitTimeField { theme: root.theme; label: "Time"; clock-format: ClockFormat.twelve-hour; text <=> root.time-text; min: "13:00"; max: "14:00"; }
+        local := KitDateTimeField { theme: root.theme; label: "Local time"; date-text <=> root.local-date; time-text <=> root.local-time; clock-format: ClockFormat.twelve-hour; min: "2026-10-28T13:00"; max: "2026-10-28T14:00"; }
+        zoned := KitZonedDateTimeField { theme: root.theme; label: "Zoned time"; date-text <=> root.local-date; time-text <=> root.local-time; zone-text <=> root.zone; clock-format: ClockFormat.twelve-hour; }
+        color := KitColorField { theme: root.theme; label: "Color"; text <=> root.color-text; }
+    }
+}

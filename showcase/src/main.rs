@@ -542,6 +542,7 @@ fn main() -> Result<(), slint::PlatformError> {
         std::process::exit(2)
     });
     let window = Showcase::new()?;
+    kit::init_form_validation!(ui, window);
     application_icon::install()?;
     form_fields::install(&window);
     form_choices::install(&window);

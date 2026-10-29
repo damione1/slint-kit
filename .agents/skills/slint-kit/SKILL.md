@@ -5,7 +5,7 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. The current release is `0.2.0`, with the compatible dependency range `"0.2"` used below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. The current release is `0.3.0`, with the compatible dependency range `"0.3"` used below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
 
 ## Find documentation and examples
 
@@ -16,7 +16,7 @@ The public documentation is [English at the site root](https://slint-kit.damieng
 - [Typed controller application](https://slint-kit.damiengoehrig.ca/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.damiengoehrig.ca/guides/controllers/), [themes and accessibility](https://slint-kit.damiengoehrig.ca/guides/themes/) and [native integration](https://slint-kit.damiengoehrig.ca/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [versioned repository](https://github.com/damione1/slint-kit/tree/v0.2.0) for release 0.2.0. The component reference and examples document 0.2.0, including temporal/empty-state labels, composite focus signals, `DialogTabPolicy`, and menu/table `interactive`. Keep both kit dependencies on the same `"0.2"` compatibility range.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.3.0/source/). Keep runtime and build dependencies on the same `"0.3"` compatibility range.
 
 ## Wire the consumer
 
@@ -24,11 +24,11 @@ Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-slint-kit = "0.2"
+slint-kit = "0.3"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.2"
+slint-kit-build = "0.3"
 ```
 
 Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
@@ -45,6 +45,7 @@ For custom Slint compiler configuration, start with `slint_kit_build::config()` 
 
 ```slint
 import { KitButton, KitTextField } from "@kit/kit.slint";
+export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 export component App inherits Window {
     preferred-width: 360px;
     preferred-height: 180px;
@@ -65,12 +66,13 @@ slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     app.on_save(|name| println!("Draft submitted: {name}"));
     app.run()
 }
 ```
 
-Run `cargo run`. The example logs the draft; validate it before accepting it into domain state. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
+Run `cargo run`. Initialize form validation once per window before showing it. Set intrinsic options such as `required`, `pattern`, `min`, `max` and `step` on the control. Guard Rust submission with matching `FieldBinding::set_html_constraints(HtmlConstraints { ... })` rules before accepting a domain value; the example callback only logs the draft. See the [forms guide](https://slint-kit.damiengoehrig.ca/guides/forms/). Ordinary fields already include `label`, help and error presentation. `KitFieldLabel` is a composition primitive for custom skins; it is not needed to set a field label. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
 
 For local toolkit development, use `slint-kit = { path = "../slint-kit/crates/kit" }` and `slint-kit-build = { path = "../slint-kit/crates/kit-build" }` with paths adjusted to the checkout. The library files are bundled in the registry packages; consumers do not need a checkout.
 

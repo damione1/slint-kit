@@ -1,3 +1,4 @@
+import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, ButtonIntent, ControlSize } from "theme.slint";
 import { KitButton } from "button.slint";
@@ -53,6 +54,24 @@ export component KitFileList inherits Rectangle {
 }
 
 export component KitFilePicker inherits Rectangle {
+    in property <bool> required;
+    in property <string> required-message: "Please make a selection.";
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: checks.validity;
+    out property <bool> will-validate: checks.will-validate;
+    out property <string> validation-message: checks.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return checks.check-validity(); }
+    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { checks.reset-validation(); }
+    checks := FormConstraintState {
+        kind: HtmlInputKind.file; access: root.access; required: root.required;
+        custom-validity <=> root.custom-validity; required-message: root.required-message;
+        selected-count: root.entries.length;
+        invalid => { root.invalid(); }
+    }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -79,12 +98,31 @@ export component KitFilePicker inherits Rectangle {
         if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
         if root.request-state == HostRequestPresentation.unsupported: Text { text: "File selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
         if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        if root.error == "" && checks.show-error: Text { text: checks.validation-message; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
         if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
         KitFileList { theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
     }
 }
 
 export component KitDirectoryPicker inherits Rectangle {
+    in property <bool> required;
+    in property <string> required-message: "Please make a selection.";
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: checks.validity;
+    out property <bool> will-validate: checks.will-validate;
+    out property <string> validation-message: checks.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return checks.check-validity(); }
+    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { checks.reset-validation(); }
+    checks := FormConstraintState {
+        kind: HtmlInputKind.file; access: root.access; required: root.required;
+        custom-validity <=> root.custom-validity; required-message: root.required-message;
+        selected-count: root.selected-name != "" ? 1 : 0;
+        invalid => { root.invalid(); }
+    }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -107,6 +145,7 @@ export component KitDirectoryPicker inherits Rectangle {
         }
         if root.request-state == HostRequestPresentation.unsupported: Text { text: "Folder selection is unavailable on this platform."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
         if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-size:12px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        if root.error == "" && checks.show-error: Text { text: checks.validation-message; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
         if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
     }
 }

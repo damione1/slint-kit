@@ -338,6 +338,20 @@ fn canonicalize<T>(
     if text.is_empty() {
         return Err(DraftValue::Empty);
     }
+    if let Some((mantissa, exponent)) = text.split_once(['e', 'E']) {
+        let mantissa = canonicalize::<T>(mantissa, locale, true, sign)?;
+        let digits = exponent.strip_prefix(['-', '+']).unwrap_or(exponent);
+        if digits.is_empty() {
+            return Err(DraftValue::Incomplete);
+        }
+        if !digits.bytes().all(|c| c.is_ascii_digit()) {
+            return Err(DraftValue::Invalid(ParseIssue::InvalidSyntax));
+        }
+        let exponent = exponent
+            .parse::<i32>()
+            .map_err(|_| DraftValue::Invalid(ParseIssue::Overflow))?;
+        return expand_exponent(&mantissa, exponent).map_err(DraftValue::Invalid);
+    }
     let negative = text.starts_with('-');
     if negative && sign == SignPolicy::NonNegative {
         return Err(DraftValue::Invalid(ParseIssue::BelowMinimum));
@@ -390,16 +404,47 @@ fn canonicalize<T>(
     }
     Ok(result)
 }
+fn expand_exponent(mantissa: &str, exponent: i32) -> Result<String, ParseIssue> {
+    let negative = mantissa.starts_with('-');
+    let unsigned = mantissa.trim_start_matches('-');
+    let (integer, fraction) = unsigned.split_once('.').unwrap_or((unsigned, ""));
+    let digits = format!("{integer}{fraction}");
+    let pivot =
+        i64::try_from(integer.len()).map_err(|_| ParseIssue::Overflow)? + i64::from(exponent);
+    let length = i64::try_from(digits.len()).map_err(|_| ParseIssue::Overflow)?;
+    if pivot.max(length) - pivot.min(0) > 4096 {
+        if digits.bytes().all(|c| c == b'0') {
+            return Ok("0".into());
+        }
+        return Err(ParseIssue::Overflow);
+    }
+    let value = if pivot <= 0 {
+        format!("0.{}{digits}", "0".repeat((-pivot) as usize))
+    } else if pivot >= length {
+        format!("{digits}{}", "0".repeat((pivot - length) as usize))
+    } else {
+        format!(
+            "{}.{}",
+            &digits[..pivot as usize],
+            &digits[pivot as usize..]
+        )
+    };
+    Ok(if negative { format!("-{value}") } else { value })
+}
 pub fn parse_integer(
     text: &str,
     locale: NumberLocale,
     bounds: Option<NumericBounds<i64>>,
 ) -> DraftValue<i64> {
-    let canonical = match canonicalize(text, locale, false, SignPolicy::Signed) {
+    let canonical = match canonicalize(text, locale, true, SignPolicy::Signed) {
         Ok(value) => value,
         Err(value) => return value,
     };
-    match canonical
+    let (integer, fraction) = canonical.split_once('.').unwrap_or((&canonical, ""));
+    if fraction.bytes().any(|c| c != b'0') {
+        return DraftValue::Invalid(ParseIssue::InvalidSyntax);
+    }
+    match integer
         .parse::<i64>()
         .map_err(|_| ParseIssue::Overflow)
         .and_then(|value| bounds.map_or(Ok(value), |bounds| bounds.validate(value)))
@@ -753,5 +798,55 @@ mod tests {
                     .is_ok()
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod html_numeric_drafts {
+    use super::*;
+    #[test]
+    fn scientific_and_integral_decimal_drafts_keep_exact_domain_values() {
+        assert_eq!(
+            parse_integer("1e2", NumberLocale::EnCa, None),
+            DraftValue::Parsed(100)
+        );
+        assert_eq!(
+            parse_integer("12.0", NumberLocale::EnCa, None),
+            DraftValue::Parsed(12)
+        );
+        assert_eq!(
+            parse_integer("1,5e2", NumberLocale::FrCa, None),
+            DraftValue::Parsed(150)
+        );
+        assert_eq!(
+            parse_integer("1e", NumberLocale::EnCa, None),
+            DraftValue::Incomplete
+        );
+        assert_eq!(
+            parse_integer("1e-1", NumberLocale::EnCa, None),
+            DraftValue::Invalid(ParseIssue::InvalidSyntax)
+        );
+        let rules = DecimalRules {
+            locale: NumberLocale::EnCa,
+            scale: DecimalScale::new(2).unwrap(),
+            sign: SignPolicy::Signed,
+            bounds: None,
+        };
+        assert_eq!(
+            rules.parse("0.1e-1"),
+            DraftValue::Parsed(DecimalValue::parse_canonical("0.01").unwrap())
+        );
+        assert_eq!(
+            rules.parse("1.001e0"),
+            DraftValue::Invalid(ParseIssue::ScaleExceeded)
+        );
+        assert_eq!(
+            rules.parse("1e1000000"),
+            DraftValue::Invalid(ParseIssue::Overflow)
+        );
+        assert_eq!(
+            rules.parse("NaN"),
+            DraftValue::Invalid(ParseIssue::InvalidSyntax)
+        );
     }
 }

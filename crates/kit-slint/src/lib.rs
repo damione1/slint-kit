@@ -15,3 +15,8 @@ mod macros;
 mod field;
 #[cfg(feature = "adapter")]
 pub use field::*;
+
+#[cfg(feature = "adapter")]
+mod html;
+#[cfg(feature = "adapter")]
+pub use html::*;

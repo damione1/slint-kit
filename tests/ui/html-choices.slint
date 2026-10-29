@@ -1,0 +1,34 @@
+import { KitTheme, KitThemes, KitCheckbox, KitRadioGroup, KitSelect, KitMultiSelect, KitFilePicker, KitSubmitButton, KitResetButton, KitValidityState, ChoiceRow, ChipRow, OptionRow, SelectState, FileViewEntry, CheckState } from "@kit/kit.slint";
+export component HtmlChoiceFixture inherits Window {
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
+    preferred-width: 640px; preferred-height: 700px;
+    in property <CheckState> checked;
+    in property <[ChoiceRow]> rows;
+    in property <[OptionRow]> options;
+    in property <SelectState> select-state;
+    in property <[ChipRow]> chips;
+    in property <[FileViewEntry]> files;
+    in property <bool> disabled;
+    in property <bool> allow-submit;
+    in property <bool> no-validate;
+    out property <KitValidityState> checkbox-validity: checkbox.validity;
+    out property <KitValidityState> radio-validity: radio.validity;
+    out property <KitValidityState> select-validity: select.validity;
+    out property <KitValidityState> multi-validity: multi.validity;
+    out property <KitValidityState> files-validity: picker.validity;
+    callback submitted();
+    callback reset();
+    public function report-checkbox() -> bool { return checkbox.report-validity(); }
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        checkbox := KitCheckbox { theme: root.theme; label: "Consent"; state: root.checked; required: true; }
+        radio := KitRadioGroup { theme: root.theme; label: "Plan"; rows: root.rows; required: true; }
+        select := KitSelect { theme: root.theme; placeholder: "Select plan"; rows: root.options; state: root.select-state; required: true; disabled: root.disabled; }
+        multi := KitMultiSelect { theme: root.theme; rows: root.options; chips: root.chips; required: true; }
+        picker := KitFilePicker { theme: root.theme; label: "Attachment"; entries: root.files; required: true; }
+        KitSubmitButton { theme: root.theme; text: "Submit"; form-no-validate: root.no-validate; validation-requested => { return root.allow-submit; } form-action(action) => { root.submitted(); } }
+        KitResetButton { theme: root.theme; text: "Reset"; validation-requested => { return false; } form-action(action) => { root.reset(); } }
+    }
+}

@@ -2,7 +2,7 @@
 
 Use strict domain types: enums for finite policies and states, newtypes for IDs and validated values. Keep money and decimal arithmetic exact; renderer floats are projections. Application identity is a stable key, never a visual row index.
 
-Use familiar web control behavior as the default interaction reference, including numeric input filtering, keyboard navigation, selection, disabled/read-only states and form actions. Preserve native editing and accessibility; document and verify platform differences instead of silently inventing a different interaction.
+Use familiar web control behavior as the default interaction reference, including numeric input filtering, keyboard navigation, selection, disabled/read-only states and form actions. Preserve native editing and accessibility; document and verify platform differences instead of silently inventing a different interaction. Intrinsic form rules belong in the shared HTML constraint engine; email/URL examples must not accept arbitrary nonempty strings. Initialize validation once per window and guard Rust submission paths as well. Document shared properties and composition primitives distinctly, with compatibility links derived from actual inherited APIs.
 
 ## Structure
 

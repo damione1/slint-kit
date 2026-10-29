@@ -8,6 +8,7 @@ use std::{cell::RefCell, rc::Rc};
 fn fixture() -> BaseDataFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = BaseDataFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
     window.show().unwrap();
     window
 }

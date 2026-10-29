@@ -2,6 +2,9 @@
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
+import { KitFormValidation } from "validation.slint";
+import { KitValidityState } from "validation.slint";
+import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitIcon, IconKind } from "icons.slint";
@@ -33,6 +36,19 @@ component CalendarOption inherits KitPressable {
 // One roving keyboard target announces the active civil date, while individual
 // cells remain accessible and pointer-activatable without adding 42 Tab stops.
 export component KitCalendar inherits Rectangle {
+    in property <string> min;
+    in property <string> max;
+    in property <string> step;
+    in property <string> default-value;
+    pure function day-allowed(day: CalendarDay) -> bool {
+        if (!day.enabled) { return false; }
+        if (!KitFormValidation.ready) { return true; }
+        let year = (day.year < 10 ? "000" : day.year < 100 ? "00" : day.year < 1000 ? "0" : "") + day.year;
+        let value = year + "-" + (day.month < 10 ? "0" : "") + day.month + "-" + (day.day < 10 ? "0" : "") + day.day;
+        return KitFormValidation.evaluate({kind: HtmlInputKind.date, min: root.min, max: root.max,
+            step: root.step, default-value: root.default-value, min-length: -1, max-length: -1}, value, true, false, 0).validity.valid;
+    }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -56,7 +72,7 @@ export component KitCalendar inherits Rectangle {
     changed access => { root.activation-held = false; }
     min-width: 7 * root.cell-height;
     preferred-width: 448px;
-    max-width: max(448px,7 * root.cell-height);
+    max-width: Math.max(448px,7 * root.cell-height);
     preferred-height: 8px + root.cell-height * 8;
     vertical-stretch: 0;
     accessible-role: groupbox;
@@ -85,7 +101,7 @@ export component KitCalendar inherits Rectangle {
                 if (event.text == Key.PageUp) { root.navigate(event.modifiers.shift ? CalendarNavigation.previous-year : CalendarNavigation.previous-month); return accept; }
                 if (event.text == Key.PageDown) { root.navigate(event.modifiers.shift ? CalendarNavigation.next-year : CalendarNavigation.next-month); return accept; }
                 if (event.text == Key.Return || event.text == Key.Space) {
-                    if (!root.activation-held && root.active-index >= 0 && root.active-index < root.days.length && root.days[root.active-index].enabled) { root.activation-held = true; root.choose(root.days[root.active-index]); }
+                    if (!root.activation-held && root.active-index >= 0 && root.active-index < root.days.length && root.day-allowed(root.days[root.active-index])) { root.activation-held = true; root.choose(root.days[root.active-index]); }
                     return accept;
                 }
                 return reject;
@@ -104,20 +120,21 @@ export component KitCalendar inherits Rectangle {
                 y: (1 + floor(index / 7)) * root.cell-height;
                 width: parent.width / 7; height: root.cell-height;
                 theme: root.theme; intent: day.selected ? ButtonIntent.primary : ButtonIntent.quiet;
-                disabled: !day.enabled || root.access == FieldAccess.disabled; tab-stop: false;
+                disabled: !root.day-allowed(day) || root.access == FieldAccess.disabled; tab-stop: false;
                 accessible-role: list-item; accessible-name: day.accessible-label;
                 accessible-item-selectable: true; accessible-item-selected: day.selected;
                 background: day.selected ? root.theme.accent : day.in-range ? root.theme.hover : self.hovered ? root.theme.hover : transparent;
                 border-width: keyboard.has-focus && root.active-index == index ? 2px : day.today ? 1px : 0px;
                 border-color: keyboard.has-focus && root.active-index == index ? root.theme.focus-ring : root.theme.accent;
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.choose(chosen); } }
-                Text { text: day.label; font-size: 14px * root.theme.text-scale; color: !day.enabled ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
+                Text { text: day.label; font-size: 14px * root.theme.text-scale; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
     }
 }
 
 export component KitDateField inherits KitTextField {
+    input-kind: HtmlInputKind.date;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
     in property <CivilDateView> accepted-date;
     placeholder: "YYYY-MM-DD";
@@ -127,6 +144,21 @@ export component KitDateField inherits KitTextField {
 // TextInput stays mounted when the calendar opens. Host parsing, bounds and
 // selection apply atomically; opening an overlay never rewrites the draft.
 export component KitDatePicker inherits Rectangle {
+    in property <bool> required;
+    in property <string> min;
+    in property <string> max;
+    in property <string> step;
+    in property <string> default-value;
+    in-out property <string> custom-validity;
+    out property <KitValidityState> validity: editor.validity;
+    out property <bool> will-validate: editor.will-validate;
+    out property <string> validation-message: editor.validation-message;
+    callback invalid();
+    public function check-validity() -> bool { return editor.check-validity(); }
+    public function report-validity() -> bool { return editor.report-validity(); }
+    public function set-custom-validity(message: string) { root.custom-validity = message; }
+    public function reset-validation() { editor.reset-validation(); }
+
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -162,6 +194,12 @@ export component KitDatePicker inherits Rectangle {
         HorizontalLayout {
             spacing: 8px;
             editor := KitDateField {
+                show-validation-message: false;
+                required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value;
+                custom-validity <=> root.custom-validity;
+                error: root.error;
+                invalid => { root.invalid(); }
+
                 theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-date;
                 label: ""; description: ""; placeholder: root.placeholder; accessible-name: root.label; text <=> root.text;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
@@ -171,14 +209,15 @@ export component KitDatePicker inherits Rectangle {
             }
             KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
         }
+        if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + 4px; width: max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 24px;
+        x: 0px; y: root.height + 4px; width: Math.max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 24px;
         close-policy: close-on-click-outside;
         Rectangle { background: root.theme.surface-raised; border-radius: 12px; border-width: 1px; border-color: root.theme.border-subtle;
-            calendar := KitCalendar { x: 12px; y: 12px; width: parent.width - 24px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
+            calendar := KitCalendar { min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: 12px; y: 12px; width: parent.width - 24px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 choose(day) => { root.choose(day); root.open = false; }
                 cancelled => { root.cancelled(); root.open = false; }
@@ -219,17 +258,20 @@ export component KitDateRangePicker inherits Rectangle {
 }
 
 export component KitMonthField inherits KitTextField {
+    input-kind: HtmlInputKind.month;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
     in property <int> accepted-year;
     in property <int> accepted-month;
     placeholder: "YYYY-MM";
 }
 export component KitYearField inherits KitTextField {
+    input-type: InputType.decimal; min: "1"; max: "9999"; step: "1";
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
     in property <int> accepted-year;
     placeholder: "YYYY";
 }
 export component KitIsoWeekField inherits KitTextField {
+    input-kind: HtmlInputKind.week;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
     in property <int> accepted-week-year;
     in property <int> accepted-week;

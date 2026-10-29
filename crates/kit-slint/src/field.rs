@@ -2,8 +2,8 @@
 //! Weak-window friendly field bindings. Native TextInput remains the editor.
 use kit_core::{
     AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldAccess, FieldController,
-    FieldFailure, FieldIntent, Ownership, ParseIssue, ValidationGeneration, ValidationPresentation,
-    ValidationState, grapheme_count,
+    FieldFailure, FieldIntent, HtmlConstraints, HtmlInputState, HtmlValidity, Ownership,
+    ParseIssue, ValidationGeneration, ValidationPresentation, ValidationState, grapheme_count,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -17,6 +17,8 @@ pub struct FieldProjection {
     pub dirty: bool,
     pub touched: bool,
     pub character_count: usize,
+    pub html_validity: Option<HtmlValidity>,
+    pub will_validate: bool,
 }
 
 type Parser<T> = Rc<dyn Fn(&str) -> DraftValue<T>>;
@@ -34,6 +36,9 @@ struct BoundField<T, E> {
     failure: Option<FieldFailure>,
     ownership: Ownership,
     awaiting_ack: bool,
+    html: Option<HtmlConstraints>,
+    html_user_edited: bool,
+    html_reported: bool,
 }
 /// A local controller with an explicit parsing/formatting boundary. The publisher
 /// should capture a weak window. No thread, task runtime or global state is used.
@@ -82,6 +87,9 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 failure: None,
                 ownership,
                 awaiting_ack: false,
+                html: None,
+                html_user_edited: false,
+                html_reported: false,
             })),
             publish: Rc::new(publish),
             intent: Rc::new(RefCell::new(None)),
@@ -90,6 +98,36 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         };
         binding.refresh();
         binding
+    }
+    /// Intrinsic HTML constraints run before the application's domain parser.
+    /// This also guards commits triggered by blur or a form submit in Rust.
+    pub fn set_html_constraints(&self, rules: HtmlConstraints) {
+        {
+            let mut inner = self.inner.borrow_mut();
+            inner.html = Some(rules);
+            let draft = inner.controller.draft().to_string();
+            let parsed = Self::parse_draft(&inner, &draft, inner.html_user_edited);
+            inner.controller.reparse(parsed);
+            inner.failure = None;
+        }
+        self.refresh();
+    }
+    fn parse_draft(inner: &BoundField<T, E>, text: &str, user_edited: bool) -> DraftValue<T> {
+        if let Some(rules) = &inner.html {
+            let validity = rules.validate(
+                text,
+                HtmlInputState {
+                    user_edited,
+                    ..Default::default()
+                },
+            );
+            if !validity.valid() && !text.is_empty() {
+                return DraftValue::Invalid(ParseIssue::InvalidSyntax);
+            }
+            (inner.codec.parse)(&rules.sanitize(text))
+        } else {
+            (inner.codec.parse)(text)
+        }
     }
     pub fn on_intent(&self, callback: impl Fn(FieldIntent<T>) + 'static) {
         *self.intent.borrow_mut() = Some(Rc::new(callback));
@@ -103,12 +141,12 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
     pub fn snapshot(&self) -> FieldProjection {
         let inner = self.inner.borrow();
         let c = &inner.controller;
-        let validation = if inner.failure.is_some() {
+        let mut validation = if inner.failure.is_some() {
             ValidationPresentation::Invalid
         } else {
             c.presentation()
         };
-        let error = match c.validation() {
+        let mut error = match c.validation() {
             ValidationState::Invalid(errors) => errors
                 .iter()
                 .map(|e| (self.error_text)(e))
@@ -126,6 +164,43 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 },
             },
         };
+        let html_validity = inner.html.as_ref().map(|rules| {
+            rules.validate(
+                c.draft(),
+                HtmlInputState {
+                    user_edited: inner.html_user_edited,
+                    ..Default::default()
+                },
+            )
+        });
+        let will_validate = c.access() == FieldAccess::Editable
+            && inner
+                .html
+                .as_ref()
+                .is_none_or(HtmlConstraints::will_validate);
+        if let (Some(rules), Some(validity)) = (&inner.html, html_validity) {
+            if !will_validate {
+                validation = ValidationPresentation::Pristine;
+                error.clear();
+            } else if !validity.valid() {
+                let show = c.touched()
+                    || inner.html_reported
+                    || c.commit_policy() == CommitPolicy::OnChangeWhenValid
+                    || (inner.html_user_edited
+                        && rules.kind == kit_core::HtmlInputKind::Email
+                        && kit_core::html_email_hard_error(c.draft(), rules.multiple));
+                validation = if show {
+                    ValidationPresentation::Invalid
+                } else {
+                    ValidationPresentation::Pristine
+                };
+                error = if show {
+                    validity.message(rules)
+                } else {
+                    String::new()
+                };
+            }
+        }
         FieldProjection {
             draft: c.draft().into(),
             formatted: c
@@ -137,6 +212,8 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
             dirty: c.dirty(),
             touched: c.touched(),
             character_count: grapheme_count(c.draft()),
+            html_validity,
+            will_validate,
         }
     }
     pub fn refresh(&self) {
@@ -149,10 +226,20 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         }
     }
     pub fn edited(&self, text: &str) -> Result<(), FieldFailure> {
+        if self
+            .inner
+            .borrow()
+            .html
+            .as_ref()
+            .is_some_and(|rules| rules.disabled || rules.read_only)
+        {
+            return Err(FieldFailure::AccessDenied);
+        }
         {
             let mut inner = self.inner.borrow_mut();
-            let parsed = (inner.codec.parse)(text);
+            let parsed = Self::parse_draft(&inner, text, true);
             inner.controller.edit(text.into(), parsed)?;
+            inner.html_user_edited = true;
             inner.failure = None;
             inner.awaiting_ack = false;
         }
@@ -160,6 +247,45 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         self.commit(CommitTrigger::Change).map(|_| ())
     }
     pub fn commit(&self, trigger: CommitTrigger) -> Result<Option<FieldIntent<T>>, FieldFailure> {
+        if self
+            .inner
+            .borrow()
+            .html
+            .as_ref()
+            .is_some_and(|rules| rules.disabled || rules.read_only)
+        {
+            return Err(FieldFailure::AccessDenied);
+        }
+        if self.inner.borrow().controller.access() != FieldAccess::Editable {
+            return Err(FieldFailure::AccessDenied);
+        }
+        if trigger == CommitTrigger::Blur {
+            self.inner.borrow_mut().controller.mark_touched();
+        }
+        if matches!(trigger, CommitTrigger::Submit | CommitTrigger::Explicit) {
+            self.inner.borrow_mut().html_reported = true;
+        }
+        let html_failure = {
+            let inner = self.inner.borrow();
+            inner.html.as_ref().is_some_and(|rules| {
+                inner.controller.permits_commit(trigger)
+                    && rules.will_validate()
+                    && !rules
+                        .validate(
+                            inner.controller.draft(),
+                            HtmlInputState {
+                                user_edited: inner.html_user_edited,
+                                ..Default::default()
+                            },
+                        )
+                        .valid()
+            })
+        };
+        if html_failure {
+            self.inner.borrow_mut().failure = Some(FieldFailure::ValidationFailed);
+            self.refresh();
+            return Err(FieldFailure::ValidationFailed);
+        }
         let validator = self.validator.borrow().clone();
         let (value, should_validate) = {
             let inner = self.inner.borrow();
@@ -212,6 +338,8 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
             let intent = inner.controller.cancel(|v| format(v));
             inner.failure = None;
             inner.awaiting_ack = false;
+            inner.html_user_edited = false;
+            inner.html_reported = false;
             Self::apply_pending(&mut inner);
             intent
         };
@@ -225,6 +353,8 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
             inner.controller.reset(value, |v| format(v));
             inner.failure = None;
             inner.awaiting_ack = false;
+            inner.html_user_edited = false;
+            inner.html_reported = false;
             Self::apply_pending(&mut inner);
         }
         self.refresh();
@@ -237,6 +367,8 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 inner.awaiting_ack = false;
                 let format = inner.codec.format.clone();
                 inner.controller.cancel(|v| format(v));
+                inner.html_user_edited = false;
+                inner.html_reported = false;
                 Self::apply_pending(&mut inner);
             }
         }
@@ -448,5 +580,121 @@ mod tests {
         b.edited("003").unwrap();
         assert_eq!(b.accepted(), Some(3));
         assert_eq!(b.snapshot().draft, "003");
+    }
+}
+
+#[cfg(test)]
+mod html_tests {
+    use super::*;
+    use kit_core::HtmlInputKind;
+    #[test]
+    fn intrinsic_rules_guard_blur_and_submit_even_with_an_unrestricted_domain_parser() {
+        let field = FieldBinding::<String, ()>::new(
+            Some("alex@example.com".into()),
+            Ownership::Local,
+            CommitPolicy::OnBlur,
+            AbsencePolicy::Required,
+            |s| {
+                if s.is_empty() {
+                    DraftValue::Empty
+                } else {
+                    DraftValue::Parsed(s.into())
+                }
+            },
+            Clone::clone,
+            |_| String::new(),
+            |_| {},
+        );
+        field.set_html_constraints(HtmlConstraints {
+            kind: HtmlInputKind::Email,
+            required: true,
+            ..Default::default()
+        });
+        field.edited("alex@@example.com").unwrap();
+        assert!(field.snapshot().html_validity.unwrap().type_mismatch);
+        assert_eq!(
+            field.snapshot().error,
+            "Please enter a valid email address."
+        );
+        assert_eq!(
+            field.commit(CommitTrigger::Blur),
+            Err(FieldFailure::ValidationFailed)
+        );
+        assert_eq!(
+            field.commit(CommitTrigger::Submit),
+            Err(FieldFailure::ValidationFailed)
+        );
+        assert_eq!(field.accepted().as_deref(), Some("alex@example.com"));
+        field.edited(" other@example.net ").unwrap();
+        field.commit(CommitTrigger::Blur).unwrap();
+        assert_eq!(field.accepted().as_deref(), Some("other@example.net"));
+    }
+}
+
+#[cfg(test)]
+mod html_editing_origin_tests {
+    use super::*;
+    #[test]
+    fn accepted_edits_remain_subject_to_length_rules_after_constraints_change() {
+        let field = FieldBinding::<String, ()>::new(
+            None,
+            Ownership::Local,
+            CommitPolicy::OnBlur,
+            AbsencePolicy::Optional,
+            |s| {
+                if s.is_empty() {
+                    DraftValue::Empty
+                } else {
+                    DraftValue::Parsed(s.into())
+                }
+            },
+            Clone::clone,
+            |_| String::new(),
+            |_| {},
+        );
+        field.set_html_constraints(HtmlConstraints::default());
+        field.edited("ABCD").unwrap();
+        field.commit(CommitTrigger::Blur).unwrap();
+        assert!(!field.snapshot().dirty);
+        field.set_html_constraints(HtmlConstraints {
+            min_length: Some(6),
+            ..Default::default()
+        });
+        assert!(field.snapshot().html_validity.unwrap().too_short);
+        assert_eq!(
+            field.commit(CommitTrigger::Submit),
+            Err(FieldFailure::ValidationFailed)
+        );
+        field.reset(Some("ABCD".into()));
+        assert!(!field.snapshot().html_validity.unwrap().too_short);
+    }
+    #[test]
+    fn incomplete_email_is_deferred_to_blur_but_never_accepted() {
+        let field = FieldBinding::<String, ()>::new(
+            None,
+            Ownership::Local,
+            CommitPolicy::OnBlur,
+            AbsencePolicy::Optional,
+            |s| DraftValue::Parsed(s.into()),
+            Clone::clone,
+            |_| String::new(),
+            |_| {},
+        );
+        field.set_html_constraints(HtmlConstraints {
+            kind: kit_core::HtmlInputKind::Email,
+            ..Default::default()
+        });
+        field.edited("alex").unwrap();
+        assert!(field.snapshot().html_validity.unwrap().type_mismatch);
+        assert_eq!(
+            field.snapshot().validation,
+            ValidationPresentation::Pristine
+        );
+        assert_eq!(
+            field.commit(CommitTrigger::Blur),
+            Err(FieldFailure::ValidationFailed)
+        );
+        assert_eq!(field.snapshot().validation, ValidationPresentation::Invalid);
+        assert!(field.accepted().is_none());
     }
 }

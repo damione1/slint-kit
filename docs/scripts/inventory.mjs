@@ -48,6 +48,8 @@ export function scanComponents() {
     const masked = mask(source);
     for (const match of masked.matchAll(/export\s+component\s+(\w+)\s+inherits\s+(\w+)\s*\{/g)) {
       const [declaration, name, base] = match;
+      // Nonvisual state helpers are documented in guides, outside the control catalogue.
+      if (!name.startsWith("Kit")) continue;
       let depth = 1, end = match.index + declaration.length;
       const start = end;
       while (depth && end < masked.length) { if (masked[end] === '{') depth++; if (masked[end] === '}') depth--; end++; }
