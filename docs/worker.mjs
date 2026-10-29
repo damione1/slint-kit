@@ -4,7 +4,7 @@ const aliases = new Set(['slint-kit.damiengoehrig.ca', 'www.slint-kit.dev']);
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (aliases.has(url.hostname)) {
+    if (aliases.has(url.hostname) || (url.hostname === 'slint-kit.dev' && url.protocol !== 'https:')) {
       url.protocol = 'https:';
       url.host = 'slint-kit.dev';
       // Resolve retired English prefixes and guide URLs in the same hop.

@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tarfile
+import importlib.util
 
 DOCS = Path(__file__).resolve().parents[1]
 ROOT = DOCS.parent
@@ -21,6 +22,10 @@ def run(*args, **kwargs):
 
 
 def build():
+    tools_spec = importlib.util.spec_from_file_location('web_tools', DOCS / 'scripts/web-tools.py')
+    tools = importlib.util.module_from_spec(tools_spec)
+    tools_spec.loader.exec_module(tools)
+    tools.prepare()
     bindgen = os.environ.get('WASM_BINDGEN', 'wasm-bindgen')
     version = subprocess.check_output([bindgen, '--version'], text=True).strip()
     if version != f'wasm-bindgen {BINDGEN_VERSION}':
@@ -41,7 +46,7 @@ def build():
     files = [ROOT / name for name in ['Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md']]
     files += [p for p in (ROOT / 'crates').rglob('*') if p.is_file() and 'target' not in p.parts]
     files += [p for p in (DOCS / 'preview').rglob('*') if p.is_file() and 'target' not in p.parts]
-    files += [DOCS / 'scripts/build-web-previews.py', DOCS / 'content/starters.json']
+    files += [DOCS / 'scripts/build-web-previews.py', DOCS / 'scripts/web-tools.py', DOCS / 'content/starters.json']
     for slug in json.loads((DOCS / 'content/starters.json').read_text()):
         files += [DOCS / 'quickstart' / slug / name for name in ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint']]
     with (temporary / 'source.tar.gz').open('wb') as compressed, gzip.GzipFile(fileobj=compressed, mode='wb', mtime=0, filename='') as gzip_stream, tarfile.open(fileobj=gzip_stream, mode='w') as archive:

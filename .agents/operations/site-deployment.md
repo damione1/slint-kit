@@ -3,7 +3,7 @@
 The canonical origin is `https://slint-kit.dev`. `docs/scripts/routes.mjs`
 controls canonical URLs, language alternatives, structured data and the sitemap.
 The `slint-kit` Cloudflare Worker and its custom domains are configured in the
-repository-root `wrangler.toml`; deploy from that configuration so the migration
+`docs/wrangler.toml`; deploy from that configuration so the migration
 handler and asset binding are retained.
 
 From the repository root:
@@ -13,7 +13,7 @@ npm ci --prefix docs
 # Requires Rust's wasm32-unknown-unknown target and wasm-bindgen-cli 0.2.129.
 npm --prefix docs run build
 cargo run -p xtask --locked -- check
-npx wrangler deploy --config wrangler.toml
+npx wrangler deploy --config docs/wrangler.toml
 ```
 
 `docs/worker.mjs` permanently redirects `slint-kit.damiengoehrig.ca` and
@@ -30,4 +30,10 @@ certificate and redirects for at least a year (preferably indefinitely). Keep
 Google's DNS verification TXT record and both Search Console properties.
 Monitor the new sitemap and indexing reports as Google recrawls the site.
 The new domain is verified separately; the Change of Address action must target
-only `slint-kit.damiengoehrig.ca`, never the parent `damiengoehrig.ca` property.
+only `slint-kit.damiengoehrig.ca` (or its HTTPS URL-prefix property), never the
+parent `damiengoehrig.ca` property.
+
+Workers Builds runs `npm run build` in `docs`. In that environment only,
+`WORKERS_CI=1` provisions Rust 1.98.1, the wasm32 target and wasm-bindgen
+0.2.129 under ignored `.generated/tools`; release downloads are checksum-checked.
+Local builds continue to use the developer's installed tools.

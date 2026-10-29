@@ -22,4 +22,7 @@ for (const host of ['slint-kit.damiengoehrig.ca', 'www.slint-kit.dev']) {
 const response = await worker.fetch(new Request('https://slint-kit.dev/fr/'), { ASSETS: assets });
 assert.equal(response.status, 200);
 assert.equal(await response.text(), 'asset');
-console.log('Domain migration: 18 redirects preserve paths/query strings; canonical host serves assets.');
+const insecure = await worker.fetch(new Request('http://slint-kit.dev/fr/?ref=http'), { ASSETS: assets });
+assert.equal(insecure.status, 301);
+assert.equal(insecure.headers.get('location'), 'https://slint-kit.dev/fr/?ref=http');
+console.log('Domain migration: 19 redirects preserve paths/query strings and enforce HTTPS; canonical host serves assets.');
