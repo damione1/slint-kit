@@ -9,12 +9,12 @@ Read the target application’s dependency and build configuration before integr
 
 ## Find documentation and examples
 
-The public documentation is [English at the site root](https://slint-kit.damiengoehrig.ca/) and [French under `/fr/`](https://slint-kit.damiengoehrig.ca/fr/). Start with the relevant guide:
+The public documentation is [English at the site root](https://slint-kit.dev/) and [French under `/fr/`](https://slint-kit.dev/fr/). Start with the relevant guide:
 
-- [Getting started](https://slint-kit.damiengoehrig.ca/guides/getting-started/): a complete registry-based application and desktop prerequisites.
-- [Component catalogue](https://slint-kit.damiengoehrig.ca/components/): component screenshots and complete Slint examples.
-- [Typed controller application](https://slint-kit.damiengoehrig.ca/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
-- [Controllers](https://slint-kit.damiengoehrig.ca/guides/controllers/), [themes and accessibility](https://slint-kit.damiengoehrig.ca/guides/themes/) and [native integration](https://slint-kit.damiengoehrig.ca/guides/native/): domain ownership, presentation and host services.
+- [Getting started](https://slint-kit.dev/guides/getting-started/): a complete registry-based application and desktop prerequisites.
+- [Component catalogue](https://slint-kit.dev/components/): component screenshots and complete Slint examples.
+- [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
+- [Controllers](https://slint-kit.dev/guides/controllers/), [themes and accessibility](https://slint-kit.dev/guides/themes/) and [native integration](https://slint-kit.dev/guides/native/): domain ownership, presentation and host services.
 
 For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.3.0/source/). Keep runtime and build dependencies on the same `"0.3"` compatibility range.
 
@@ -72,7 +72,7 @@ fn main() -> Result<(), slint::PlatformError> {
 }
 ```
 
-Run `cargo run`. Initialize form validation once per window before showing it. Set intrinsic options such as `required`, `pattern`, `min`, `max` and `step` on the control. Guard Rust submission with matching `FieldBinding::set_html_constraints(HtmlConstraints { ... })` rules before accepting a domain value; the example callback only logs the draft. See the [forms guide](https://slint-kit.damiengoehrig.ca/guides/forms/). Ordinary fields already include `label`, help and error presentation. `KitFieldLabel` is a composition primitive for custom skins; it is not needed to set a field label. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
+Run `cargo run`. Initialize form validation once per window before showing it. Set intrinsic options such as `required`, `pattern`, `min`, `max` and `step` on the control. Guard Rust submission with matching `FieldBinding::set_html_constraints(HtmlConstraints { ... })` rules before accepting a domain value; the example callback only logs the draft. See the [forms guide](https://slint-kit.dev/guides/forms/). Ordinary fields already include `label`, help and error presentation. `KitFieldLabel` is a composition primitive for custom skins; it is not needed to set a field label. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
 
 For local toolkit development, use `slint-kit = { path = "../slint-kit/crates/kit" }` and `slint-kit-build = { path = "../slint-kit/crates/kit-build" }` with paths adjusted to the checkout. The library files are bundled in the registry packages; consumers do not need a checkout.
 
@@ -100,4 +100,4 @@ The [navigation gallery](../../../showcase/ui/base-navigation.slint) demonstrate
 
 Native file requests are asynchronous and return explicit cancellation, failure or unsupported outcomes. Read [host integration](../../../crates/kit-native/src/lib.rs) and [the showcase integration](../../../showcase/src/form_files.rs) before enabling pickers or drag and drop. Capability depends on the actual backend and target; exposing a DropArea alone does not prove external file-drop support.
 
-Verify the target app builds, exercise its real callbacks and inspect its native rendering in light/dark themes, at 200% text and with keyboard navigation. Native screenshots are visual examples, not screen-reader, IME or external-drop qualification. To build the showcase, follow [Build the showcase](https://slint-kit.damiengoehrig.ca/guides/getting-started/); cloning is needed for that source application, not for installing the library. For toolkit changes in a checkout, use the checks in [AGENTS.md](../../../AGENTS.md). Preserve the toolkit's [GPL-3.0-or-later license](../../../LICENSE) for its code and bundled assets, along with dependency notices. Choose and document application-specific assets separately.
+Verify the target app builds, exercise its real callbacks and inspect its native rendering in light/dark themes, at 200% text and with keyboard navigation. Native screenshots are visual examples, not screen-reader, IME or external-drop qualification. To build the showcase, follow [Build the showcase](https://slint-kit.dev/guides/getting-started/); cloning is needed for that source application, not for installing the library. For toolkit changes in a checkout, use the checks in [AGENTS.md](../../../AGENTS.md). Preserve the toolkit's [GPL-3.0-or-later license](../../../LICENSE) for its code and bundled assets, along with dependency notices. Choose and document application-specific assets separately.

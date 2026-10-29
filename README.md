@@ -20,7 +20,7 @@
 
 Buttons, fields, selections, dialogs, calendars and composable display, navigation and layout primitives. Rust owns validated values and identity; Slint owns their presentation and native interaction.
 
-[Website](https://slint-kit.damiengoehrig.ca/) · [Documentation](https://slint-kit.damiengoehrig.ca/guides/getting-started/) · [Components](https://slint-kit.damiengoehrig.ca/components/)
+[Website](https://slint-kit.dev/) · [Documentation](https://slint-kit.dev/guides/getting-started/) · [Components](https://slint-kit.dev/components/)
 
 ## Try it
 
@@ -35,7 +35,7 @@ slint = "=1.18.1"
 slint-kit-build = "0.3"
 ```
 
-Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.damiengoehrig.ca/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
+Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
 
 ## Build the showcase

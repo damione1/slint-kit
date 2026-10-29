@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 const prefixes = Object.freeze({ en: '', fr: '/fr' });
-export const defaultSiteOrigin = 'https://slint-kit.damiengoehrig.ca';
+export const defaultSiteOrigin = 'https://slint-kit.dev';
 
 export function localePrefix(locale) {
   if (!Object.hasOwn(prefixes, locale)) throw new Error(`Unsupported documentation language: ${locale}`);
