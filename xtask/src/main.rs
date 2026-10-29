@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use std::process::{Command, ExitCode};
 
+mod lint_tokens;
+
 enum Task {
     VerifyContracts,
     GenerateContracts,
+    LintTokens,
     Check,
 }
 impl Task {
@@ -11,8 +14,12 @@ impl Task {
         match value.as_deref() {
             Some("contracts") => Ok(Self::VerifyContracts),
             Some("generate-contracts") => Ok(Self::GenerateContracts),
+            Some("lint-tokens") => Ok(Self::LintTokens),
             Some("check") => Ok(Self::Check),
-            _ => Err("usage: cargo run -p xtask -- [contracts|generate-contracts|check]".into()),
+            _ => Err(
+                "usage: cargo run -p xtask -- [contracts|generate-contracts|lint-tokens|check]"
+                    .into(),
+            ),
         }
     }
     fn run(self) -> Result<(), String> {
@@ -23,8 +30,10 @@ impl Task {
                 kit_build::shared_contract_source(),
             )
             .map_err(|e| e.to_string()),
+            Self::LintTokens => lint_tokens::run(),
             Self::Check => run("cargo", &["fmt", "--all", "--", "--check"])
                 .and_then(|_| kit_build::verify_contracts().map_err(|e| e.to_string()))
+                .and_then(|_| lint_tokens::run())
                 .and_then(|_| run("cargo", &["test", "--workspace", "--locked"]))
                 .and_then(|_| {
                     run(

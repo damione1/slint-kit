@@ -44,6 +44,8 @@ Be precise once, in the type, so the compiler checks every consumer.
 
 Run `cargo run -p xtask --locked -- check` before submitting; it formats, verifies generated files, runs the tests and clippy with warnings denied, and checks for hard-coded design values. New behavior comes with a test in `tests` (keyboard, pointer, identity or geometry as relevant). For UI changes, exercise the actual interaction and inspect the rendering in light/dark themes and at 200% text. Report backend, device and accessibility qualification honestly; a passing headless test does not qualify IME or a screen reader.
 
+Components in `crates/kit-slint/ui` read geometry, colors, durations and font weights from theme tokens and recipes in `theme.slint`; `check` runs `lint-tokens`, which rejects other literals unless `xtask/token-allowlist.txt` lists them with a reason.
+
 ## Documentation
 
 A change to a public API is not complete until its documentation is updated in the same pull request, in English and French:

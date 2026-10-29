@@ -1,0 +1,158 @@
+# Literals allowed in crates/kit-slint/ui outside theme.slint, checked by
+# `cargo run -p xtask -- lint-tokens` (part of `xtask check`).
+#
+# Format: file | literal | context | reason
+# The literal is allowed where it lies inside `context` on its source line.
+# An entry that no longer matches a literal fails the check: remove it.
+# Prefer a theme token or a recipe field; list a literal here only when it is
+# a layout bound, intrinsic geometry of one control, application data, or an
+# arithmetic guard, and say which.
+
+# Layout bounds: default intrinsic sizes and size limits, not theme values.
+button.slint | 120px | preferred-width: 120px | layout bound: a pressable's default width before its content is measured
+calendar.slint | 448px | preferred-width: 448px | layout bound: the calendar grid's natural width
+calendar.slint | 448px | max-width: Math.max(448px,7 * root.cell-height) | layout bound: the calendar grid's widest natural width
+calendar.slint | 320px | width: Math.max(320px, 240px * root.theme.text-scale) | layout bound: date picker popup width
+calendar.slint | 240px | width: Math.max(320px, 240px * root.theme.text-scale) | layout bound: date picker popup width at scaled text
+choice.slint | 280px | preferred-width: 280px | layout bound: natural width of radio, segmented, toggle and rating groups
+choice.slint | 220px | preferred-width: 220px * root.theme.text-scale | layout bound: read-only chip list width
+choice.slint | 220px | max-width: 220px * root.theme.text-scale | layout bound: read-only chip list width
+choice.slint | 280px | width: max(root.width, 280px) | layout bound: combobox popup minimum width
+choice.slint | 320px | height: min(320px, max(1, root.rows.length) | layout bound: combobox popup maximum height
+choice.slint | 40px | preferred-height: 40px | layout bound: slider natural height
+choice.slint | 120px | min-width: 120px | layout bound: slider minimum track width
+color.slint | 48px | min-width: 48px * root.theme.text-scale | layout bound: channel label column
+color.slint | 26px | min-width: 26px * root.theme.text-scale | layout bound: channel value column
+color.slint | 340px | width: max(340px,260px * root.theme.text-scale) | layout bound: color picker popup width
+color.slint | 260px | width: max(340px,260px * root.theme.text-scale) | layout bound: color picker popup width at scaled text
+color.slint | 48px | height: 48px | layout bound: draft color preview height
+data.slint | 140px | in property <length> minimum-column-width: 140px * root.theme.text-scale | layout bound: default table column width
+data.slint | 700px | preferred-width: 700px | layout bound: data table natural width
+data.slint | 160px | min-height: 160px | layout bound: data table minimum height
+data.slint | 320px | preferred-height: 320px | layout bound: data table natural height
+data.slint | 700px | preferred-width:700px | layout bound: content list and text view natural width
+data.slint | 160px | min-height:160px | layout bound: content list minimum height
+data.slint | 420px | preferred-height:420px | layout bound: content list natural height
+data.slint | 180px | min-height:180px | layout bound: text view minimum height
+data.slint | 360px | preferred-height:360px | layout bound: text view natural height
+data.slint | 64px | width:64px | layout bound: line number column
+data.slint | 84px | max(84px,64px * root.theme.text-scale) | layout bound: line editor band
+data.slint | 64px | max(84px,64px * root.theme.text-scale) | layout bound: line editor band at scaled text
+datetime.slint | 72px | min-width: 72px * root.theme.text-scale | layout bound: time segment label column
+display.slint | 40px | in property <length> size: 40px | layout bound: default avatar size, a caller choice
+display.slint | 24px | width: max(root.size, 24px * root.theme.text-scale) | layout bound: avatar minimum at scaled text
+feedback.slint | 300px | width: min(300px * KitTooltipState.theme.text-scale | layout bound: tooltip reading width
+feedback.slint | 300px | width: min(300px * root.theme.text-scale | layout bound: tooltip reading width
+feedback.slint | 80px | max(80px,root.viewport-width - 2 * root.tip-gap) | layout bound: native tooltip minimum width
+files.slint | 100px | min-height: max(100px, 64px * root.theme.text-scale) | layout bound: drop zone minimum height
+files.slint | 64px | min-height: max(100px, 64px * root.theme.text-scale) | layout bound: drop zone minimum height at scaled text
+layout.slint | 720px | ContentWidth.reading ? 720px | layout bound: reading content width
+layout.slint | 1040px | ContentWidth.standard ? 1040px | layout bound: standard content width
+layout.slint | 1360px | ContentWidth.wide ? 1360px | layout bound: wide content width
+navigation.slint | 320px | preferred-height: min(320px, root.rows.length * root.row-height) | layout bound: menu natural maximum height
+navigation.slint | 100px | min-width: 100px | layout bound: menu minimum width
+navigation.slint | 160px | preferred-height: max(160px,content.preferred-height) | layout bound: carousel minimum natural height
+navigation.slint | 100px | min-height: 100px | layout bound: notification center minimum height
+navigation.slint | 100px | root.rows.length == 0 ? 100px | layout bound: empty notification center height
+navigation.slint | 600px | min(600px,bounded-content.preferred-height) | layout bound: bounded inbox maximum height
+navigation.slint | 400px | bounded-content.preferred-height) : 400px | layout bound: virtual inbox viewport height
+navigation.slint | 380px | in property <length> panel-width: 380px | layout bound: default drawer width, a caller choice
+scroll.slint | 50px | min-height: 50px | layout bound: std-widgets ScrollView minimum, kept for compatibility
+scroll.slint | 50px | min-width: 50px | layout bound: std-widgets ScrollView minimum, kept for compatibility
+select.slint | 320px | in property <length> popup-height: 320px | layout bound: select popup maximum height, a caller choice
+select.slint | 160px | min-width: 160px | layout bound: select minimum width
+select.slint | 240px | width: max(root.width, 240px) | layout bound: select popup minimum width
+
+# Row heights of option lists, tuned for touch targets at scaled text.
+choice.slint | 48px | row-height: max(48px, 32px * root.theme.text-scale) | intrinsic geometry: combobox option row
+choice.slint | 32px | row-height: max(48px, 32px * root.theme.text-scale) | intrinsic geometry: combobox option row at scaled text
+data.slint | 132px | row-height:max(132px,116px * root.theme.text-scale) | intrinsic geometry: content list row, a 72px thumbnail and three lines
+data.slint | 116px | row-height:max(132px,116px * root.theme.text-scale) | intrinsic geometry: content list row at scaled text
+data.slint | 32px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line
+data.slint | 24px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line at scaled text
+data.slint | 8px | line-height:max(32px,24px * root.theme.text-scale + 8px) | intrinsic geometry: text view line padding
+select.slint | 48px | in property <length> row-height: 48px | intrinsic geometry: select surface default row, a caller choice
+select.slint | 48px | row-height: max(48px, 32px * root.theme.text-scale) | intrinsic geometry: select option row
+select.slint | 32px | row-height: max(48px, 32px * root.theme.text-scale) | intrinsic geometry: select option row at scaled text
+
+# Search box of select and combobox popups: one field row inside the surface.
+choice.slint | 36px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search row
+choice.slint | 20px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search line
+choice.slint | 12px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search padding
+choice.slint | 18px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup surface insets
+select.slint | 36px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search row
+select.slint | 20px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search line
+select.slint | 12px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup search padding
+select.slint | 18px | max(36px, 20px * root.theme.text-scale + 12px) + 18px | intrinsic geometry: popup surface insets
+select.slint | 36px | height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px | intrinsic geometry: popup search row
+select.slint | 12px | height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px | intrinsic geometry: popup search padding
+select.slint | 10px | x: 10px | intrinsic geometry: popup search inset
+select.slint | 6px | y: 6px | intrinsic geometry: popup search inset
+select.slint | 20px | width: parent.width - 20px | intrinsic geometry: popup search inset
+select.slint | 12px | height: parent.height - 12px | intrinsic geometry: popup search inset
+
+# Intrinsic geometry of one control, independent of the theme.
+color.slint | 5px | border-radius:5px | intrinsic geometry: color field swatch corner inside its button
+color.slint | 4px | border-radius: 4px | intrinsic geometry: palette swatch corner inside its button
+data.slint | 72px | width:72px | intrinsic geometry: content list thumbnail
+data.slint | 72px | height:72px | intrinsic geometry: content list thumbnail
+data.slint | 24px | width:24px | intrinsic geometry: content list placeholder icon
+data.slint | 24px | height:24px | intrinsic geometry: content list placeholder icon
+data.slint | 10px | border-radius: 10px | intrinsic geometry: data table corner, between the control and container radii
+display.slint | 6px | border-radius: 6px | intrinsic geometry: badge and skeleton corner, between the control and pill radii
+display.slint | 16px | border-radius: 16px | intrinsic geometry: hero corner, larger than any container
+display.slint | 12px | width: 12px | intrinsic geometry: timeline marker column
+display.slint | 5px | y: 5px | intrinsic geometry: timeline marker, centred on the first text line
+display.slint | 10px | height: 10px | intrinsic geometry: timeline marker
+display.slint | 10px | width: 10px | intrinsic geometry: timeline marker
+display.slint | 5px | border-radius: 5px | intrinsic geometry: timeline marker, a circle
+display.slint | 4px | x: 4px | intrinsic geometry: timeline connector, centred under the marker
+display.slint | 19px | y: 19px | intrinsic geometry: timeline connector start below the marker
+display.slint | 2px | width: 2px | intrinsic geometry: timeline connector
+display.slint | 19px | height: max(0px,parent.height - 19px) | intrinsic geometry: timeline connector start below the marker
+display.slint | 28px | width: max(28px,22px * root.theme.text-scale) | intrinsic geometry: step marker
+display.slint | 22px | width: max(28px,22px * root.theme.text-scale) | intrinsic geometry: step marker at scaled text
+feedback.slint | 24px | preferred-width: 24px | intrinsic geometry: spinner
+feedback.slint | 24px | preferred-height: 24px | intrinsic geometry: spinner
+feedback.slint | 16px | min-width: 16px | intrinsic geometry: spinner minimum
+feedback.slint | 16px | min-height: 16px | intrinsic geometry: spinner minimum
+feedback.slint | 4px | width: 4px | intrinsic geometry: spinner and radial progress dot
+feedback.slint | 4px | height: 4px | intrinsic geometry: spinner and radial progress dot
+feedback.slint | 3px | (root.width / 2 - 3px) | intrinsic geometry: spinner dot orbit
+feedback.slint | 3px | (root.height / 2 - 3px) | intrinsic geometry: spinner dot orbit
+feedback.slint | 88px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress
+feedback.slint | 64px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress at scaled text
+feedback.slint | 4px | (root.width / 2 - 4px) | intrinsic geometry: radial progress dot orbit
+feedback.slint | 4px | (root.height / 2 - 4px) | intrinsic geometry: radial progress dot orbit
+feedback.slint | 6px | border-radius: 6px | intrinsic geometry: tooltip corner, between the control and pill radii
+input.slint | 28px | KitMetrics.control-height(root.theme, root.control-size) : 28px | intrinsic geometry: field action button
+input.slint | 28px | Math.min(28px, root.editor-height) | intrinsic geometry: field action button
+input.slint | 10px | text-letter-spacing: 10px | intrinsic geometry: one-time code digit spacing
+
+# Behaviour constants, not motion tokens.
+display.slint | 650ms | interval: 650ms | behaviour: skeleton pulse period, longer than the slow fade it toggles
+feedback.slint | 100ms | interval: 100ms | behaviour: spinner frame period
+
+# Application data offered as defaults.
+color.slint | #000000 | in property <color> swatch: #000000 | application data: default swatch until the host projects a color
+color.slint | #ef4444 | palette: [#ef4444, | application data: default picker palette
+color.slint | #f59e0b | #f59e0b, | application data: default picker palette
+color.slint | #22c55e | #22c55e, | application data: default picker palette
+color.slint | #06b6d4 | #06b6d4, | application data: default picker palette
+color.slint | #4f46e5 | #4f46e5, | application data: default picker palette
+color.slint | #a855f7 | #a855f7, | application data: default picker palette
+color.slint | #111827 | #111827, | application data: default picker palette
+color.slint | #ffffff | #ffffff] | application data: default picker palette
+
+# Arithmetic guards and text slack.
+choice.slint | 1px | max(1px,root.width | guard: a measuring width never reaches zero
+choice.slint | 1px | max(1px, root.width - 2 * root.edge) | guard: no division by a zero-width track
+choice.slint | 1px | max(1px,root.width - 2 * root.edge) | guard: no division by a zero-width track
+input.slint | 2px | formatted-measure.preferred-width) + 2px) | text slack: room for the caret after the last glyph
+input.slint | 2px | formatted-measure.preferred-width + 2px) | text slack: room for the caret after the last glyph
+input.slint | 2px | self.preferred-width + 2px) | text slack: room for the caret after the last glyph
+input.slint | 2px | position.x + 2px | text slack: room for the caret after the last glyph
+input.slint | 2px | position.x - 2px | text slack: room for the caret after the last glyph
+select.slint | 2px | search.preferred-width + 2px) | text slack: room for the caret after the last glyph
+select.slint | 2px | position.x + 2px | text slack: room for the caret after the last glyph
+select.slint | 2px | position.x - 2px | text slack: room for the caret after the last glyph
