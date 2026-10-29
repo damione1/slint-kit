@@ -80,10 +80,14 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         placeholder,
         accent,
         on_accent,
+        accent_hover,
+        accent_pressed,
         accent_subtle,
         selection,
         on_selection,
         danger,
+        danger_hover,
+        danger_pressed,
         danger_subtle,
         success,
         success_subtle,
@@ -116,10 +120,14 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("placeholder", placeholder),
         ("accent", accent),
         ("on-accent", on_accent),
+        ("accent-hover", accent_hover),
+        ("accent-pressed", accent_pressed),
         ("accent-subtle", accent_subtle),
         ("selection", selection),
         ("on-selection", on_selection),
         ("danger", danger),
+        ("danger-hover", danger_hover),
+        ("danger-pressed", danger_pressed),
         ("danger-subtle", danger_subtle),
         ("success", success),
         ("success-subtle", success_subtle),
@@ -397,19 +405,23 @@ fn recipes_reproduce_the_default_geometry() {
         for intent in [
             ButtonIntent::Primary,
             ButtonIntent::Secondary,
+            ButtonIntent::Outline,
             ButtonIntent::Quiet,
             ButtonIntent::Destructive,
         ] {
             let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
             assert_eq!(recipe.radius, 8.);
-            assert_eq!(
-                recipe.border_width,
-                if intent == ButtonIntent::Secondary {
-                    1.
-                } else {
-                    0.
-                }
-            );
+            let (border_width, hover, pressed) = match intent {
+                ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
+                ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
+                ButtonIntent::Secondary | ButtonIntent::Outline => (1., theme.hover, theme.pressed),
+                ButtonIntent::Quiet => (0., theme.hover, theme.pressed),
+            };
+            assert_eq!(recipe.border_width, border_width, "{intent:?}");
+            // Hover and press read explicit tokens, never a derived darkening.
+            assert_eq!(recipe.hover_fill.color(), hover, "{intent:?}");
+            assert_eq!(recipe.pressed_fill.color(), pressed, "{intent:?}");
+            assert_eq!((recipe.busy_mark_size, recipe.busy_mark_stroke), (14., 2.));
             assert_eq!(recipe.focus, theme.focus);
         }
         assert_eq!(
@@ -600,4 +612,177 @@ fn every_public_component_is_in_the_theme_matrix() {
         .unwrap()
         .join()
         .unwrap();
+}
+
+#[test]
+fn outline_is_a_bordered_transparent_intent_distinct_from_secondary() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        for size in [
+            ControlSize::Compact,
+            ControlSize::Medium,
+            ControlSize::Comfortable,
+        ] {
+            let outline = window.invoke_button(theme.clone(), ButtonIntent::Outline, size);
+            let secondary = window.invoke_button(theme.clone(), ButtonIntent::Secondary, size);
+            // Same geometry, so swapping the intent never moves a layout.
+            assert_eq!(
+                (
+                    outline.height,
+                    outline.padding_inline,
+                    outline.padding_block
+                ),
+                (
+                    secondary.height,
+                    secondary.padding_inline,
+                    secondary.padding_block
+                )
+            );
+            assert_eq!(
+                (outline.radius, outline.border_width, outline.font_size),
+                (
+                    secondary.radius,
+                    secondary.border_width,
+                    secondary.font_size
+                )
+            );
+            // Distinct surface: secondary is filled, outline shows its parent.
+            assert_eq!(secondary.fill.color(), theme.surface);
+            assert_eq!(outline.fill.color().alpha(), 0);
+            assert_eq!(outline.disabled_fill.color().alpha(), 0);
+            assert_eq!(secondary.border, theme.border_subtle);
+            assert_eq!(outline.border, theme.border_strong);
+            assert_eq!(outline.foreground, theme.text_primary);
+            assert_eq!(outline.disabled_foreground, theme.disabled_text);
+        }
+    }
+}
+
+#[test]
+fn field_and_trigger_recipes_render_read_only_and_hover() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        let field = |access, validation| {
+            window.invoke_field(theme.clone(), ControlSize::Medium, access, validation)
+        };
+        let editable = field(FieldAccess::Editable, ValidationPresentation::Pristine);
+        assert_eq!(editable.hover_border, theme.border_strong);
+        let read_only = field(FieldAccess::ReadOnly, ValidationPresentation::Pristine);
+        assert_eq!(read_only.fill.color(), theme.canvas);
+        assert_eq!(read_only.foreground, theme.text_primary);
+        // A read-only field offers no editing affordance on hover.
+        assert_eq!(read_only.hover_border, read_only.border);
+        let invalid = field(FieldAccess::Editable, ValidationPresentation::Invalid);
+        assert_eq!(invalid.hover_border, theme.danger);
+        assert_eq!(editable.placeholder, theme.placeholder);
+        assert_eq!(
+            (editable.selection, editable.on_selection),
+            (theme.selection, theme.on_selection)
+        );
+
+        for (access, answers_pointer) in [
+            (FieldAccess::Editable, true),
+            (FieldAccess::ReadOnly, false),
+            (FieldAccess::Disabled, false),
+        ] {
+            let trigger = window.invoke_trigger(
+                theme.clone(),
+                ControlSize::Medium,
+                access,
+                ValidationPresentation::Pristine,
+            );
+            let surface = field(access, ValidationPresentation::Pristine);
+            assert_eq!(trigger.fill, surface.fill, "{access:?}");
+            assert_eq!(
+                (trigger.radius, trigger.height, trigger.padding_inline),
+                (surface.radius, surface.height, surface.padding_inline)
+            );
+            assert_eq!(
+                trigger.hover_fill.color() != trigger.fill.color(),
+                answers_pointer,
+                "{access:?} hover"
+            );
+            assert_eq!(
+                trigger.pressed_fill.color() != trigger.fill.color(),
+                answers_pointer,
+                "{access:?} press"
+            );
+        }
+        let invalid_trigger = window.invoke_trigger(
+            theme.clone(),
+            ControlSize::Medium,
+            FieldAccess::Editable,
+            ValidationPresentation::Invalid,
+        );
+        assert_eq!(invalid_trigger.border, theme.danger);
+        assert_eq!(invalid_trigger.focus.color, theme.focus.invalid_color);
+
+        let choice = window.invoke_choice(theme.clone());
+        assert_eq!((choice.check_size, choice.mixed_width), (14., 12.));
+        assert_eq!(
+            (choice.group_radius, choice.group_padding, choice.group_gap),
+            (10., 3., 6.)
+        );
+    }
+}
+
+#[test]
+fn input_group_reports_hover_without_taking_the_press() {
+    let window = fixture();
+    let group = labelled(&window, "Field outline");
+    let inside = group.absolute_position();
+    // The group's first row: later siblings cover the rest of its height.
+    let point = slint::LogicalPosition::new(inside.x + group.size().width / 2., inside.y + 20.);
+    assert!(!window.get_field_hovered());
+    window
+        .window()
+        .dispatch_event(slint::platform::WindowEvent::PointerMoved { position: point });
+    assert!(window.get_field_hovered());
+    window
+        .window()
+        .dispatch_event(slint::platform::WindowEvent::PointerMoved {
+            position: slint::LogicalPosition::new(470., 350.),
+        });
+    assert!(!window.get_field_hovered());
+}
+
+#[test]
+fn read_only_select_keeps_focus_but_never_opens() {
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    let window = fixture();
+    let press = |key: Key| {
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+    };
+    let trigger = labelled(&window, "Access select");
+    for (access, focusable, opens) in [
+        (FieldAccess::Editable, true, true),
+        (FieldAccess::ReadOnly, true, false),
+        (FieldAccess::Disabled, false, false),
+    ] {
+        // Move focus away first: Slint 1.18.1 ignores FocusOut on a
+        // FocusScope that is disabled while focused, leaving has-focus stale.
+        window.invoke_focus_button();
+        window.set_select_access(access);
+        window.set_select_opens(0);
+        window.invoke_focus_select();
+        assert_eq!(window.get_select_focused(), focusable, "{access:?} focus");
+        assert_eq!(
+            trigger.accessible_enabled(),
+            Some(access != FieldAccess::Disabled),
+            "{access:?} enabled"
+        );
+        if focusable {
+            press(Key::DownArrow);
+            press(Key::Space);
+            press(Key::Return);
+        }
+        trigger.mock_single_click(PointerEventButton::Left);
+        let expected = if opens { 4 } else { 0 };
+        assert_eq!(window.get_select_opens(), expected, "{access:?} opens");
+    }
 }

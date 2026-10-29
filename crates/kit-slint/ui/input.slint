@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth, KitThemeContext } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe } from "theme.slint";
+import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup } from "field.slint";
 import { KitPressable } from "button.slint";
 import { KitIcon, IconKind } from "icons.slint";
@@ -129,10 +130,12 @@ export component KitTextField inherits KitField {
         root.focus-observed(root.has-focus);
     }
     changed purpose => { if (root.has-focus) { KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone; } }
-    private property <length> line-height: 20px * root.theme.text-scale;
+    private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.effective-validation);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme);
+    private property <length> line-height: root.theme.typography.line-height-control * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
-    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.theme, root.control-size) - 12px;
+    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.theme, root.control-size) - 2 * root.recipe.padding-block;
     if root.label != "": KitFieldLabel {
         theme: root.theme; text: root.label; access: root.access;
         focus-requested => { root.take-focus(); }
@@ -140,7 +143,7 @@ export component KitTextField inherits KitField {
     surface := KitInputGroup {
         theme: root.theme; control-size: root.control-size; access: root.access; validation: root.effective-validation;
         focused: root.has-focus;
-        preferred-height: root.editor-height + 12px;
+        preferred-height: root.editor-height + 2 * root.recipe.padding-block;
         max-height: self.preferred-height;
         checks := FormConstraintState {
             kind: root.input-kind; twelve-hour: root.validation-twelve-hour; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
@@ -174,7 +177,7 @@ export component KitTextField inherits KitField {
             }
         }
         HorizontalLayout {
-            spacing: 8px;
+            spacing: KitMetrics.inline-gap(root.theme);
             if root.prefix != "": Text {
                 text: root.prefix; color: root.theme.text-secondary;
                 font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
@@ -190,24 +193,24 @@ export component KitTextField inherits KitField {
                         visible: false;
                         width: viewport.width;
                         text: root.text == "" ? " " : root.text;
-                        font-size: 14px * root.theme.text-scale;
+                        font-size: root.recipe.font-size;
                         wrap: word-wrap;
                     }
                     if root.text == "": Text {
                         width: viewport.width; height: root.multiline ? self.preferred-height : viewport.height;
                         text: root.placeholder;
-                        color: root.theme.disabled-text;
-                        font-size: 14px * root.theme.text-scale;
+                        color: root.recipe.placeholder;
+                        font-size: root.recipe.font-size;
                         vertical-alignment: root.multiline ? top : center;
                         wrap: root.multiline ? word-wrap : no-wrap;
                         overflow: elide;
                     }
-                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-size: 14px * root.theme.text-scale; }
+                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-size: root.recipe.font-size; }
                     if root.formatted-at-rest: Text {
                         text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
-                        font-size: 14px * root.theme.text-scale; vertical-alignment: center;
+                        font-size: root.recipe.font-size; vertical-alignment: center;
                         horizontal-alignment: root.text-alignment;
-                        color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
+                        color: root.recipe.foreground;
                     }
                     editor := TextInput {
                         width: root.multiline ? viewport.width : Math.max(viewport.width, self.preferred-width + 2px);
@@ -219,10 +222,10 @@ export component KitTextField inherits KitField {
                         wrap: root.multiline ? word-wrap : no-wrap;
                         input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
                         input-method-hints: root.input-method-hints;
-                        color: root.formatted-at-rest ? transparent : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
-                        selection-background-color: root.formatted-at-rest ? transparent : root.theme.accent;
-                        selection-foreground-color: root.formatted-at-rest ? transparent : root.theme.on-accent;
-                        font-size: 14px * root.theme.text-scale;
+                        color: root.formatted-at-rest ? transparent : root.recipe.foreground;
+                        selection-background-color: root.formatted-at-rest ? transparent : root.recipe.selection;
+                        selection-foreground-color: root.formatted-at-rest ? transparent : root.recipe.on-selection;
+                        font-size: root.recipe.font-size;
                         letter-spacing: root.text-letter-spacing;
                         horizontal-alignment: root.text-alignment;
                         vertical-alignment: root.multiline ? top : center;
@@ -274,6 +277,13 @@ export component KitTextField inherits KitField {
                 font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                 vertical-alignment: center; horizontal-stretch: 0;
             }
+            // The pending check also has a text description below the field;
+            // the mark is decorative so it is not announced twice.
+            if root.validation == ValidationPresentation.checking: KitSpinner {
+                theme: root.theme; label: root.checking-label; accessible-role: none;
+                preferred-width: root.icon.size; preferred-height: root.icon.size;
+                min-width: root.icon.size; min-height: root.icon.size;
+            }
             if root.action-visible: Rectangle {
                 // Reserve the action's width in the editor row, but let its
                 // comfortable hit area also use the surface's block padding.
@@ -295,7 +305,7 @@ export component KitTextField inherits KitField {
                     KitIcon {
                         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
                         kind: root.purpose == TextPurpose.search ? IconKind.close : root.secret-visibility == SecretVisibility.hidden ? IconKind.eye : IconKind.eye-hidden;
-                        ink: action.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+                        ink: action.disabled ? root.icon.disabled-color : root.icon.color;
                     }
                 }
             }

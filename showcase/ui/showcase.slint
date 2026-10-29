@@ -4,6 +4,7 @@ import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
 import { OptionRow, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
+import { FieldAccess } from "@kit/contracts.slint";
 import { KitIcon, IconKind } from "@kit/icons.slint";
 import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
@@ -132,9 +133,11 @@ export component Showcase inherits Window {
         canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised,
         text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary, placeholder: base-theme.placeholder,
         accent: teal ? teal-accent : base-theme.accent, on-accent: base-theme.on-accent,
+        accent-hover: teal ? teal-accent.darker(12%) : base-theme.accent-hover,
+        accent-pressed: teal ? teal-accent.darker(24%) : base-theme.accent-pressed,
         accent-subtle: teal ? teal-hover : base-theme.accent-subtle,
         selection: teal ? teal-accent : base-theme.selection, on-selection: base-theme.on-selection,
-        danger: base-theme.danger, danger-subtle: base-theme.danger-subtle,
+        danger: base-theme.danger, danger-hover: base-theme.danger-hover, danger-pressed: base-theme.danger-pressed, danger-subtle: base-theme.danger-subtle,
         success: base-theme.success, success-subtle: base-theme.success-subtle,
         warning: base-theme.warning, warning-subtle: base-theme.warning-subtle,
         information: teal ? teal-accent : base-theme.information, information-subtle: teal ? teal-hover : base-theme.information-subtle,
@@ -414,7 +417,7 @@ export component Showcase inherits Window {
                             focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             nested-trigger := KitSelectTrigger {
                                 theme: root.theme; control-size: root.density; state: root.select-state;
-                                disabled: root.dialog-state.busy;
+                                access: root.dialog-state.busy ? FieldAccess.disabled : FieldAccess.editable;
                                 accessible-name: "Choose a collaborator inside dialog";
                                 private property <PopupRect> anchor-geometry: {x: self.absolute-position.x, y: self.absolute-position.y, width: self.width, height: self.height};
                                 changed anchor-geometry => { if (root.dialog-state.open) { root.popup-anchor = self.anchor-geometry; } }

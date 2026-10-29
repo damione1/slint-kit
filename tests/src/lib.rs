@@ -475,6 +475,7 @@ mod tests {
             for intent in [
                 ButtonIntent::Primary,
                 ButtonIntent::Secondary,
+                ButtonIntent::Outline,
                 ButtonIntent::Quiet,
                 ButtonIntent::Destructive,
             ] {

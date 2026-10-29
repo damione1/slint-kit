@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect } from "@kit/kit.slint";
 export { KitThemeContext } from "@kit/kit.slint";
 
 export component ThemeTokenFixture inherits Window {
@@ -14,6 +14,10 @@ export component ThemeTokenFixture inherits Window {
     out property <KitTheme> context-default: context-probe.theme;
     out property <color> context-color: context-probe.background;
     out property <color> local-color: local-probe.background;
+    out property <bool> field-hovered: group.hovered;
+    in property <FieldAccess> select-access: FieldAccess.editable;
+    in-out property <int> select-opens;
+    out property <bool> select-focused: access-select.has-focus;
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length { return KitMetrics.control-height(theme, size); }
     public pure function font-size(theme: KitTheme, role: TypographyRole) -> length { return KitMetrics.font-size(theme, role); }
     public pure function space(theme: KitTheme, value: LayoutSpace) -> length { return KitLayoutMetrics.space(theme, value); }
@@ -23,19 +27,26 @@ export component ThemeTokenFixture inherits Window {
     public pure function button(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe { return KitThemes.button-recipe(theme, intent, size); }
     public pure function icon-button(theme: KitTheme, size: ControlSize) -> ButtonRecipe { return KitThemes.icon-button-recipe(theme, size); }
     public pure function field(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> FieldRecipe { return KitThemes.field-recipe(theme, size, access, validation); }
+    public pure function trigger(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> ButtonRecipe { return KitThemes.trigger-recipe(theme, KitThemes.field-recipe(theme, size, access, validation), access); }
     public pure function surface(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe { return KitThemes.surface-recipe(theme, level); }
     public pure function choice(theme: KitTheme) -> ChoiceRecipe { return KitThemes.choice-recipe(theme); }
     public pure function option(theme: KitTheme, size: ControlSize) -> OptionRecipe { return KitThemes.option-recipe(theme, size); }
     public pure function icon-glyph(theme: KitTheme) -> IconRecipe { return KitThemes.icon-recipe(theme); }
     public function focus-button() { focus-button.take-focus(); }
     public function focus-slider() { slider.take-focus(); }
+    public function focus-select() { access-select.take-focus(); }
     context-probe := KitFieldSeparator { x: 0px; y: 0px; width: 40px; }
     local-probe := KitFieldSeparator { x: 0px; y: 8px; width: 40px; theme: root.local-theme; }
     focus-button := KitButton { x: 40px; y: 40px; width: 160px; text: "Focus geometry"; }
-    KitInputGroup {
+    group := KitInputGroup {
         x: 40px; y: 120px; width: 200px;
         accessible-role: groupbox; accessible-label: "Field outline";
         focused: root.field-focused; validation: root.field-validation;
+    }
+    access-select := KitSelect {
+        x: 260px; y: 40px; width: 180px;
+        placeholder: "Access select"; access: root.select-access;
+        open-requested => { root.select-opens += 1; }
     }
     slider := KitSlider { x: 40px; y: 200px; width: 200px; label: "Slider outline"; position: 0.5; }
 }

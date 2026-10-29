@@ -1,10 +1,10 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { FieldAccess } from "shared-contracts.slint";
+import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { KitIcon, IconKind } from "icons.slint";
 import { ListView } from "std-widgets.slint";
 import { KitPressable } from "button.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
 
@@ -59,28 +59,37 @@ export component KitSelectKeyboard inherits FocusScope {
     focus-lost(reason) => { root.activation-held = false; }
 }
 
+// The trigger is the field surface of a popover. Read-only keeps it focusable
+// and announced, but it neither opens nor answers hover and press.
 export component KitSelectTrigger inherits KitPressable {
     control-width: ControlWidth.fill;
     in property <SelectState> state;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
     callback tab-navigation(bool) -> EventResult;
-    intent: ButtonIntent.secondary;
+    private property <FieldRecipe> field: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
+    recipe: KitThemes.trigger-recipe(root.theme, root.field, root.access);
+    disabled: root.access == FieldAccess.disabled;
+    border-color: root.hovered && !root.state.open ? root.field.hover-border : root.recipe.border;
     accessible-role: combobox;
     accessible-expanded: root.state.open;
+    accessible-read-only: root.access == FieldAccess.read-only;
+    function request-open() { if (root.access == FieldAccess.editable) { root.open-requested(); } }
     activated => {
         if (root.state.open) { root.dismiss(CloseReason.trigger-toggle); }
-        else { root.open-requested(); }
+        else { root.request-open(); }
     }
     key-event(event) => { return translator.handle-key(event); }
     translator := KitSelectKeyboard {
         width: 0px; height: 0px;
         enabled: false;
         state: root.state;
-        open-requested => { root.open-requested(); }
+        open-requested => { root.request-open(); }
         navigate(step) => { root.navigate(step); }
         activate(token, generation) => { root.activate(token, generation); }
         dismiss(reason) => { root.dismiss(reason); }
@@ -127,10 +136,16 @@ export component KitSelectSurface inherits Rectangle {
     private property <bool> opened: root.state.open;
     changed opened => { if (root.opened) { root.take-focus(); root.ensure-active-visible(); } }
     init => { if (root.state.open) { root.take-focus(); root.ensure-active-visible(); } }
-    background: root.theme.surface-raised;
-    border-radius: 12px;
-    border-width: 1px;
-    border-color: root.theme.border-subtle;
+    private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+    // Content inset; nested corners follow the outer radius minus this inset.
+    private property <length> inset: root.theme.spacing.unit * 1.5;
+    background: root.recipe.fill;
+    border-radius: root.recipe.radius;
+    border-width: root.recipe.border-width;
+    border-color: root.recipe.border;
+    drop-shadow-offset-y: root.recipe.shadow.offset-y;
+    drop-shadow-blur: root.recipe.shadow.blur;
+    drop-shadow-color: root.recipe.shadow.color;
     keyboard := KitSelectKeyboard {
         state: root.state;
         navigate(step) => { root.navigate(step); root.ensure-active-visible(); }
@@ -139,14 +154,14 @@ export component KitSelectSurface inherits Rectangle {
         typeahead(text) => { root.typeahead(text); root.ensure-active-visible(); }
         tab-navigation(reverse) => { return root.tab-navigation(reverse); }
         VerticalLayout {
-            padding: 6px;
-            spacing: 6px;
+            padding: root.inset;
+            spacing: root.inset;
             Rectangle {
                 visible: root.searchable;
                 height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
-                border-radius: 6px;
+                border-radius: max(0px, root.recipe.radius - root.inset);
                 background: root.theme.canvas;
-                border-width: 1px;
+                border-width: root.theme.shape.border-width;
                 border-color: search.has-focus ? root.theme.focus.color : root.theme.border-subtle;
                 search-viewport := Rectangle {
                     x: 10px; y: 6px;
@@ -154,8 +169,8 @@ export component KitSelectSurface inherits Rectangle {
                     clip: true;
                     if root.query == "": Text {
                         x: 0px; y: 0px; width: parent.width; height: parent.height;
-                        text: root.search-label; color: root.theme.disabled-text;
-                        font-size: 14px * root.theme.text-scale;
+                        text: root.search-label; color: root.theme.placeholder;
+                        font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                         vertical-alignment: center; overflow: elide;
                     }
                     search-scroll := Flickable {
@@ -166,7 +181,9 @@ export component KitSelectSurface inherits Rectangle {
                             width: search-scroll.content-width; height: search-scroll.height;
                             text <=> root.query;
                             color: root.theme.text-primary;
-                            font-size: 14px * root.theme.text-scale;
+                            selection-background-color: root.theme.selection;
+                            selection-foreground-color: root.theme.on-selection;
+                            font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                             single-line: true;
                             accessible-label: root.search-label;
                             edited => { root.query-edited(self.text); root.ensure-active-visible(); }
@@ -194,7 +211,7 @@ export component KitSelectSurface inherits Rectangle {
                 if root.empty: Text {
                     text: root.empty-label;
                     color: root.theme.text-secondary;
-                    font-size: 14px * root.theme.text-scale;
+                    font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                     horizontal-alignment: center;
                     vertical-alignment: center;
                     wrap: word-wrap;
@@ -218,9 +235,13 @@ export component KitOption inherits KitPressable {
     accessible-description: root.option-data.description;
     accessible-item-selectable: true;
     accessible-item-selected: root.selected;
-    background: root.active ? root.theme.pressed : root.hovered ? root.theme.hover : transparent;
-    border-width: root.active ? 1px : 0px;
-    border-color: root.theme.focus.color;
+    private property <OptionRecipe> row-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    // A pressed row shows the active tone. A disabled row answers neither
+    // hover nor press, but keeps the active indicator for keyboard users.
+    background: root.active || root.pressed ? root.row-recipe.active-fill : root.hovered ? root.row-recipe.hover-fill : root.row-recipe.fill;
+    border-radius: root.row-recipe.radius;
+    border-width: root.active ? root.row-recipe.border-width : 0px;
+    border-color: root.row-recipe.active-border;
     private property <int> press-token;
     private property <int> press-generation;
     activation-started => {
@@ -245,7 +266,7 @@ export component KitSelect inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
-        kind: HtmlInputKind.select; access: root.disabled ? FieldAccess.disabled : FieldAccess.editable; required: root.required;
+        kind: HtmlInputKind.select; access: root.access; required: root.required;
         custom-validity: root.custom-validity != "" ? root.custom-validity : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : ""; required-message: root.required-message;
         selected-count: root.state.selected.present && root.state.selection-availability != SelectionAvailability.unavailable ? 1 : 0;
         invalid => { root.invalid(); }
@@ -256,7 +277,9 @@ export component KitSelect inherits Rectangle {
     in property <SelectState> state;
     in property <string> placeholder: "Choose an option";
     in property <string> unavailable-label: "Selected option is unavailable";
-    in property <bool> disabled;
+    in property <FieldAccess> access: FieldAccess.editable;
+    // A composite (multi-select) reports its own constraint through this.
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <length> popup-height: 320px;
     in property <length> row-height: max(48px, 32px * root.theme.text-scale);
@@ -269,7 +292,14 @@ export component KitSelect inherits Rectangle {
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
     out property <bool> has-focus: trigger.has-focus;
-    changed has-focus => { if (!root.has-focus && !root.state.open && !root.disabled) { checks.note-blur(); } }
+    changed has-focus => { if (!root.has-focus && !root.state.open && root.access != FieldAccess.disabled) { checks.note-blur(); } }
+    changed access => {
+        trigger.cancel-press();
+        // The controller's closed state then closes the presentation once.
+        if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); }
+    }
+    private property <ValidationPresentation> presented-validation: checks.show-error || root.state.selection-availability == SelectionAvailability.unavailable ? ValidationPresentation.invalid : root.validation;
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme);
     public function take-focus() { trigger.take-focus(); }
     public function cancel-press() {trigger.cancel-press();}
     min-height: KitMetrics.control-height(root.theme, root.control-size);
@@ -291,7 +321,7 @@ export component KitSelect inherits Rectangle {
         if (root.state.open) { popup.show(); }
         else {
             popup.close();
-            if (!root.tab-restore-complete && !root.disabled) { trigger.take-focus(); }
+            if (!root.tab-restore-complete && root.access != FieldAccess.disabled) { trigger.take-focus(); }
             root.tab-restore-complete = false;
         }
     }
@@ -303,10 +333,10 @@ export component KitSelect inherits Rectangle {
         theme: root.theme;
         control-size: root.control-size;
         state: root.state;
-        disabled: root.disabled;
+        access: root.access;
+        validation: root.presented-validation;
         accessible-name: root.placeholder;
         accessible-description: checks.show-error ? checks.validation-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
-        border-color: checks.show-error ? root.theme.danger : root.state.selection-availability == SelectionAvailability.unavailable ? root.theme.danger : root.theme.border-subtle;
         open-requested => { root.open-requested(); }
         navigate(step) => { root.navigate(step); }
         activate(token, generation) => { root.activate(token, generation); }
@@ -314,23 +344,25 @@ export component KitSelect inherits Rectangle {
         typeahead(text) => { root.typeahead(text); }
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
-            spacing: 12px;
-            Text { text: root.placeholder; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; overflow: elide; vertical-alignment: center; }
+            spacing: root.theme.spacing.unit * 3;
+            Text { text: root.placeholder; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
             Rectangle {
-                width: 16px;
+                width: root.icon.size;
                 if root.state.selection-availability == SelectionAvailability.unavailable: Text {
                     text: "!"; color: root.theme.danger; vertical-alignment: center; horizontal-alignment: center;
                 }
+                // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: KitIcon {
                     y: (parent.height - self.height) / 2;
-                    ink: root.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+                    kind: root.state.open ? IconKind.chevron-up : IconKind.chevron-down;
+                    ink: trigger.disabled ? root.icon.disabled-color : root.icon.color;
                 }
             }
         }
     }
     popup := PopupWindow {
         x: 0px;
-        y: root.height + 4px;
+        y: root.height + root.theme.spacing.unit;
         width: max(root.width, 240px);
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
@@ -356,13 +388,13 @@ export component KitSelect inherits Rectangle {
                     selected: root.state.selected.present && root.state.selected.token == row.token;
                     activate(token, generation) => { root.activate(token, generation); }
                     HorizontalLayout {
-                        spacing: 8px;
+                        spacing: KitMetrics.inline-gap(root.theme);
                         VerticalLayout {
                             spacing: 2px;
-                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; overflow: elide; vertical-alignment: center; }
-                            if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
+                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
+                            if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
-                        Rectangle { width: 16px; horizontal-stretch: 0;
+                        Rectangle { width: root.icon.size; horizontal-stretch: 0;
                             if root.state.selected.present && root.state.selected.token == row.token: KitIcon { kind: IconKind.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }

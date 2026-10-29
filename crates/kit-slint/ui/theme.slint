@@ -3,7 +3,9 @@ import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 export enum ControlSize { compact, medium, comfortable }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
-export enum ButtonIntent { primary, secondary, quiet, destructive }
+// secondary is a filled neutral surface; outline is a transparent bordered
+// control; quiet is borderless (the web's ghost).
+export enum ButtonIntent { primary, secondary, outline, quiet, destructive }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
 // enums. A level names a shadow; the theme supplies that shadow's geometry.
 export enum ElevationLevel { none, xs, sm, md, lg, xl }
@@ -40,8 +42,9 @@ export struct KitMotion { fast: duration, base: duration, slow: duration }
 export struct KitTheme {
     canvas: color, surface: color, surface-raised: color,
     text-primary: color, text-secondary: color, placeholder: color,
-    accent: color, on-accent: color, accent-subtle: color, selection: color, on-selection: color,
-    danger: color, danger-subtle: color, success: color, success-subtle: color,
+    accent: color, on-accent: color, accent-hover: color, accent-pressed: color, accent-subtle: color,
+    selection: color, on-selection: color,
+    danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, success-subtle: color,
     warning: color, warning-subtle: color, information: color, information-subtle: color,
     border-subtle: color, border-strong: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
@@ -54,10 +57,11 @@ export struct ButtonRecipe {
     fill: brush, hover-fill: brush, pressed-fill: brush, disabled-fill: brush,
     foreground: color, disabled-foreground: color, border: color,
     radius: length, padding-inline: length, padding-block: length, border-width: length, height: length, font-size: length,
+    busy-mark-size: length, busy-mark-stroke: length,
     focus: KitFocusRing,
 }
 export struct FieldRecipe {
-    fill: brush, border: color, foreground: color, placeholder: color, selection: color, on-selection: color,
+    fill: brush, border: color, hover-border: color, foreground: color, placeholder: color, selection: color, on-selection: color,
     radius: length, border-width: length, padding-inline: length, padding-block: length, height: length, font-size: length,
     focus: KitFocusRing,
 }
@@ -65,7 +69,10 @@ export struct SurfaceRecipe { fill: brush, border: color, radius: length, border
 export struct ChoiceRecipe {
     box-size: length, box-radius: length, mark-stroke: length, radio-dot-size: length, label-gap: length,
     track-width: length, track-height: length, track-radius: length, thumb-size: length, thumb-inset: length,
-    slider-track-height: length, slider-thumb-size: length, transition: duration, focus: KitFocusRing,
+    check-size: length, mixed-width: length,
+    slider-track-height: length, slider-thumb-size: length,
+    group-radius: length, group-padding: length, group-gap: length,
+    transition: duration, focus: KitFocusRing,
 }
 export struct OptionRecipe {
     fill: brush, hover-fill: brush, active-fill: brush, foreground: color, disabled-foreground: color,
@@ -77,6 +84,9 @@ export struct IconRecipe { size: length, stroke-width: length, color: color, dis
 // Metrics derive from theme tokens; text sizes and control heights follow text-scale.
 export global KitMetrics {
     public pure function label-gap(theme: KitTheme) -> length { return theme.spacing.unit * 2; }
+    // Between the items of one control row: adornments, an editor and its
+    // actions, a group of buttons.
+    public pure function inline-gap(theme: KitTheme) -> length { return theme.spacing.unit * 2; }
     public pure function help-gap(theme: KitTheme) -> length { return theme.spacing.unit; }
     public pure function field-gap(theme: KitTheme) -> length { return theme.spacing.unit * 4; }
     public pure function section-gap(theme: KitTheme) -> length { return theme.spacing.unit * 6; }
@@ -101,8 +111,9 @@ export global KitThemes {
     out property <KitTheme> light: {
         canvas: #f8fafc, surface: #ffffff, surface-raised: #ffffff,
         text-primary: #0f172a, text-secondary: #475569, placeholder: #64748b,
-        accent: #4f46e5, on-accent: #ffffff, accent-subtle: #eef2ff, selection: #4f46e5, on-selection: #ffffff,
-        danger: #b91c1c, danger-subtle: #eef2ff, success: #15803d, success-subtle: #eef2ff,
+        accent: #4f46e5, on-accent: #ffffff, accent-hover: #473ecc, accent-pressed: #4038b9, accent-subtle: #eef2ff,
+        selection: #4f46e5, on-selection: #ffffff,
+        danger: #b91c1c, danger-hover: #a51919, danger-pressed: #951717, danger-subtle: #eef2ff, success: #15803d, success-subtle: #eef2ff,
         warning: #a16207, warning-subtle: #eef2ff, information: #4f46e5, information-subtle: #eef2ff,
         border-subtle: #cbd5e1, border-strong: #cbd5e1,
         hover: #eef2ff, pressed: #e0e7ff, disabled-fill: #e2e8f0, disabled-text: #64748b, scrim: #0b122088,
@@ -131,8 +142,9 @@ export global KitThemes {
     out property <KitTheme> dark: {
         canvas: #0b1220, surface: #111b2e, surface-raised: #1b2940,
         text-primary: #e8eef8, text-secondary: #aab8cd, placeholder: #91a0b7,
-        accent: #8b9dff, on-accent: #10152a, accent-subtle: #25354f, selection: #8b9dff, on-selection: #10152a,
-        danger: #ff9b9b, danger-subtle: #25354f, success: #86efac, success-subtle: #25354f,
+        accent: #8b9dff, on-accent: #10152a, accent-hover: #7c8ce4, accent-pressed: #707fce, accent-subtle: #25354f,
+        selection: #8b9dff, on-selection: #10152a,
+        danger: #ff9b9b, danger-hover: #e48a8a, danger-pressed: #ce7d7d, danger-subtle: #25354f, success: #86efac, success-subtle: #25354f,
         warning: #fcd34d, warning-subtle: #25354f, information: #8b9dff, information-subtle: #25354f,
         border-subtle: #475569, border-strong: #475569,
         hover: #25354f, pressed: #304568, disabled-fill: #233047, disabled-text: #91a0b7, scrim: #00000099,
@@ -183,31 +195,38 @@ export global KitThemes {
             radius: 6px, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size),
             font-size: KitMetrics.font-size(theme, TypographyRole.control),
+            busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
             focus: theme.focus,
         };
     }
     public pure function button-recipe(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe {
         return {
-            fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger : intent == ButtonIntent.quiet ? transparent : theme.surface,
-            hover-fill: intent == ButtonIntent.primary ? theme.accent.darker(12%) : intent == ButtonIntent.destructive ? theme.danger.darker(12%) : theme.hover,
-            pressed-fill: intent == ButtonIntent.primary ? theme.accent.darker(24%) : intent == ButtonIntent.destructive ? theme.danger.darker(24%) : theme.pressed,
-            disabled-fill: theme.disabled-fill,
+            fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
+                : intent == ButtonIntent.secondary ? theme.surface : transparent,
+            hover-fill: intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover : theme.hover,
+            pressed-fill: intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed : theme.pressed,
+            disabled-fill: intent == ButtonIntent.outline ? transparent : theme.disabled-fill,
             foreground: intent == ButtonIntent.primary || intent == ButtonIntent.destructive ? theme.on-accent : theme.text-primary,
             disabled-foreground: theme.disabled-text,
-            border: intent == ButtonIntent.secondary ? theme.border-subtle : transparent,
+            border: intent == ButtonIntent.secondary ? theme.border-subtle : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,
             padding-inline: KitMetrics.density(theme, size).padding-inline,
             padding-block: KitMetrics.density(theme, size).padding-block,
-            border-width: intent == ButtonIntent.secondary ? theme.shape.border-width : 0px,
+            border-width: intent == ButtonIntent.secondary || intent == ButtonIntent.outline ? theme.shape.border-width : 0px,
             height: KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, size == ControlSize.comfortable ? TypographyRole.body : TypographyRole.control),
+            busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
             focus: theme.focus,
         };
     }
     public pure function field-recipe(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> FieldRecipe {
         return {
-            fill: access == FieldAccess.disabled ? theme.disabled-fill : theme.surface,
+            // Read-only content stays legible and selectable on the canvas tone,
+            // so it reads as not editable without looking disabled.
+            fill: access == FieldAccess.disabled ? theme.disabled-fill : access == FieldAccess.read-only ? theme.canvas : theme.surface,
             border: validation == ValidationPresentation.invalid ? theme.danger : theme.border-subtle,
+            hover-border: validation == ValidationPresentation.invalid ? theme.danger
+                : access == FieldAccess.editable ? theme.border-strong : theme.border-subtle,
             foreground: access == FieldAccess.disabled ? theme.disabled-text : theme.text-primary,
             placeholder: theme.placeholder, selection: theme.selection, on-selection: theme.on-selection,
             radius: theme.shape.radius-control, border-width: theme.shape.border-width,
@@ -221,6 +240,22 @@ export global KitThemes {
                 color: validation == ValidationPresentation.invalid ? theme.focus.invalid-color : theme.focus.color,
                 invalid-color: theme.focus.invalid-color,
             },
+        };
+    }
+    // A popover trigger (select, combobox): its field surface, activated like
+    // a button. Only an editable trigger answers hover and press.
+    public pure function trigger-recipe(theme: KitTheme, field: FieldRecipe, access: FieldAccess) -> ButtonRecipe {
+        return {
+            fill: field.fill,
+            hover-fill: access == FieldAccess.editable ? theme.hover : field.fill,
+            pressed-fill: access == FieldAccess.editable ? theme.pressed : field.fill,
+            disabled-fill: theme.disabled-fill,
+            foreground: field.foreground, disabled-foreground: theme.disabled-text,
+            border: field.border,
+            radius: field.radius, padding-inline: field.padding-inline, padding-block: field.padding-block,
+            border-width: field.border-width, height: field.height, font-size: field.font-size,
+            busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            focus: field.focus,
         };
     }
     public pure function surface-recipe(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe {
@@ -239,7 +274,9 @@ export global KitThemes {
         return {
             box-size: 20px, box-radius: 5px, mark-stroke: theme.shape.border-width-strong, radio-dot-size: 10px, label-gap: 10px,
             track-width: 38px, track-height: 22px, track-radius: min(theme.shape.radius-pill, 11px), thumb-size: 18px, thumb-inset: 2px,
+            check-size: 14px, mixed-width: 12px,
             slider-track-height: 4px, slider-thumb-size: 16px,
+            group-radius: 10px, group-padding: 3px, group-gap: 6px,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
             focus: KitThemes.inset-focus(theme),
         };

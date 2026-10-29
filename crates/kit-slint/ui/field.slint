@@ -29,7 +29,7 @@ export component KitFieldLabel inherits Rectangle {
             horizontal-alignment: left;
             text: root.text;
             font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-            font-weight: 600;
+            font-weight: root.theme.typography.weight-semibold;
             color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
             wrap: word-wrap;
         }
@@ -70,7 +70,7 @@ export component KitFieldSet inherits Rectangle {
             text: root.legend;
             color: root.theme.text-primary;
             font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
-            font-weight: 600;
+            font-weight: root.theme.typography.weight-semibold;
             wrap: word-wrap;
         }
         @children
@@ -82,6 +82,7 @@ export component KitInputGroup inherits Rectangle {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <bool> focused;
+    out property <bool> hovered: hover.has-hover;
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     in property <length> padding-inline: root.recipe.padding-inline;
     in property <length> padding-block: root.recipe.padding-block;
@@ -91,12 +92,16 @@ export component KitInputGroup inherits Rectangle {
     background: root.recipe.fill;
     border-radius: root.recipe.radius;
     border-width: root.recipe.border-width;
-    border-color: root.recipe.border;
-    Rectangle {
-        x: root.padding-inline; y: root.padding-block;
-        width: max(0px, parent.width - 2 * root.padding-inline);
-        height: max(0px, parent.height - 2 * root.padding-block);
-        @children
+    border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
+    // A parent TouchArea observes hover before its children see the event,
+    // so the native editor and actions keep every press, caret and selection.
+    hover := TouchArea {
+        Rectangle {
+            x: root.padding-inline; y: root.padding-block;
+            width: max(0px, parent.width - 2 * root.padding-inline);
+            height: max(0px, parent.height - 2 * root.padding-block);
+            @children
+        }
     }
     if root.focused: FocusOutline {
         ring: root.recipe.focus; radius: root.recipe.radius;
@@ -105,7 +110,7 @@ export component KitInputGroup inherits Rectangle {
 }
 export component KitFieldSeparator inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
-    height: 1px;
+    height: root.theme.shape.border-width;
     background: root.theme.border-subtle;
     vertical-stretch: 0;
 }
@@ -140,11 +145,11 @@ export component KitFormErrorSummary inherits KitFieldGroup {
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
     spacing: KitMetrics.help-gap(root.theme);
-    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: 600; }
+    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
     for error in root.errors: error-action := KitPressable {
         theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
         accessible-name: error.message;
-        preferred-height: max(32px, message.preferred-height + 12px);
+        preferred-height: max(KitMetrics.density(root.theme, ControlSize.compact).height, message.preferred-height + 2 * error-action.recipe.padding-block);
         min-height: self.preferred-height;
         activated => { root.error-activated(error.target); }
         message := Text {

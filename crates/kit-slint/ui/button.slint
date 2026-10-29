@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconKind } from "icons.slint";
-import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
@@ -36,7 +36,8 @@ export component KitPressable inherits Rectangle {
         root.enter-held = false;
         root.pointer-armed = false;
     }
-    public function take-focus() { keys.focus(); }
+    // Like a disabled web control, a disabled pressable cannot take focus.
+    public function take-focus() { if (!root.disabled) { keys.focus(); } }
     function activate-once() {
         if (!root.disabled && !root.busy) { root.activated(); }
     }
@@ -151,11 +152,11 @@ export component KitButton inherits KitPressable {
     // Busy therefore changes neither intrinsic width nor the content center.
     if root.busy: Rectangle {
         Path {
-        x: (parent.width - 14px) / 2; y: (parent.height - 14px) / 2;
-        width: 14px; height: 14px;
-        viewbox-width: 16; viewbox-height: 16;
-        commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
-        stroke: root.recipe.foreground; stroke-width: 2px; fill: transparent;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: root.recipe.busy-mark-size; height: root.recipe.busy-mark-size;
+            viewbox-width: 16; viewbox-height: 16;
+            commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
+            stroke: root.recipe.foreground; stroke-width: root.recipe.busy-mark-stroke; fill: transparent;
         }
     }
 }
@@ -195,7 +196,8 @@ export component KitIconButton inherits KitPressable {
     }
 }
 export component KitButtonGroup inherits HorizontalLayout {
-    spacing: 8px;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.inline-gap(root.theme);
     alignment: start;
     vertical-stretch: 0;
     @children

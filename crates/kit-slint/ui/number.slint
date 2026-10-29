@@ -62,7 +62,7 @@ export component KitNumberStepper inherits KitField {
         focus-requested => { root.take-focus(); }
     }
     HorizontalLayout {
-        spacing: 8px;
+        spacing: KitMetrics.inline-gap(root.theme);
         editor := KitDecimalField {
             show-validation-message: false; error: root.error;
             required: root.required; min: root.min; max: root.max; step: root.step;
@@ -79,7 +79,7 @@ export component KitNumberStepper inherits KitField {
             cancelled => { root.cancelled(); }
             focus-observed(value) => { root.focus-observed(value); }
         }
-        for direction in [StepDirection.decrement, StepDirection.increment]: KitPressable {
+        for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
             theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
             preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;
@@ -90,7 +90,7 @@ export component KitNumberStepper inherits KitField {
                 KitIcon {
                 x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
                 kind: direction == StepDirection.increment ? IconKind.plus : IconKind.minus;
-                ink: root.theme.text-primary;
+                ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
                 }
             }
         }
