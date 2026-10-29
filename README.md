@@ -52,6 +52,10 @@ cargo build --release --locked -p kit-showcase
 cargo run --release --locked -p kit-showcase
 ```
 
+## Contribute
+
+Pull requests follow the design and type rules in [AGENTS.md](AGENTS.md) and update the English and French documentation with the change. Run `cargo run -p xtask --locked -- check` before submitting.
+
 ## License
 
 Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.
