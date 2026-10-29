@@ -34,13 +34,40 @@ export component Example inherits Window {
 
 ## Couleurs sémantiques
 
-Un thème personnalisé fournit canevas, surfaces normale et élevée ; textes primaire, secondaire et indicatif ; accent, texte sur accent, accent survolé et pressé, accent atténué et sélection de texte ; danger avec ses tons survolé et pressé, succès, avertissement et information avec leurs fonds atténués ; bordures légère et marquée, survol, pression et désactivation ; voile modal ; `reduced-motion` et `text-scale`. Au-delà des couleurs, un thème porte des groupes de jetons typés : `shape` (rayons par rôle pour les contrôles, conteneurs, surcouches et pastilles, et épaisseurs de bordure), `elevation` (un niveau par rôle et une couche d’ombre par niveau), `focus` (style, épaisseur, décalage et couleurs de l’anneau), `typography` (famille, graisses, tailles), `spacing` (une unité de base, et la hauteur et les marges de chaque `ControlSize`) et `motion` (durées rapide, de base et lente). Slint n’a pas de syntaxe de décomposition et un champ de struct omis vaut silencieusement zéro ou transparent : écrivez donc un thème personnalisé en littéral complet, ou copiez un thème livré et modifiez ses champs depuis Rust. Les [déclarations publiques du thème](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) définissent ce contrat.
+Un thème personnalisé fournit canevas, surfaces normale et élevée ; textes primaire, secondaire et indicatif ; accent, texte sur accent, accent survolé et pressé, accent atténué et sélection de texte ; danger avec ses tons survolé et pressé, succès, avertissement et information avec leurs fonds atténués ; bordures légère et marquée, survol, pression et désactivation ; voile modal ; `reduced-motion` et `text-scale`. Au-delà des couleurs, un thème porte des groupes de jetons typés : `shape` (rayons par rôle pour les contrôles, conteneurs, surcouches et pastilles, et épaisseurs de bordure), `elevation` (un niveau par rôle, et une couche d’ombre principale et une couche ambiante par niveau), `focus` (style, épaisseur, décalage et couleurs de l’anneau), `typography` (famille, graisses, tailles), `spacing` (une unité de base, et la hauteur et les marges de chaque `ControlSize`) et `motion` (durées rapide, de base et lente). Slint n’a pas de syntaxe de décomposition et un champ de struct omis vaut silencieusement zéro ou transparent : écrivez donc un thème personnalisé en littéral complet, ou copiez un thème livré et modifiez ses champs depuis Rust. Les [déclarations publiques du thème](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) définissent ce contrat.
 
 Le `theme` de chaque composant vaut par défaut `KitThemeContext.current`, initialisé à `KitThemes.light`. Affectez-le une fois pour thémer toute une fenêtre, y compris les composants qui n’ont pas reçu de thème ; la propriété `theme` d’un composant le remplace toujours pour son sous-arbre. Pour le changer depuis Rust, réexportez le global depuis le fichier principal de l’application avec `export { KitThemeContext } from "@kit/kit.slint";`, puis appelez `KitThemeContext::get(&window).set_current(theme)`.
 
 `ButtonIntent` propose `primary`, `secondary`, `outline`, `quiet` et `destructive`. `secondary` est une surface neutre remplie, `outline` un contrôle transparent bordé et `quiet` un contrôle sans bordure. Le retour utilisateur utilise des enums de sévérité et de ton. Choisissez l’état selon son sens, puis laissez le thème fournir la couleur. Accompagnez une bordure d’erreur d’un message et d’un libellé accessibles.
 
 Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marque à partir des jetons `information`, `success`, `warning` et `danger` et de leurs fonds `*-subtle` : les alertes restent distinctes sans lire leur titre. Les conteneurs défilants, listes et tableaux du kit dessinent leurs barres avec [KitScrollBar](/fr/components/scroll-bar/), qui suit le thème. Un `ScrollView` ou un `ListView` std-widgets dans le code de l’application conserve le style Slint et `Palette.color-scheme`.
+
+## Thème inspiré de Tailwind
+
+`@kit/themes/tailwind.slint` est un thème optionnel à l’allure de Tailwind CSS : une palette réduite de teintes slate, indigo, red, green, amber et sky, des contrôles `rounded-md`, des conteneurs `rounded-lg` et des surfaces superposées `rounded-xl`, les ombres de Tailwind, un anneau de deux pixels décalé de deux pixels, une hauteur de contrôle par défaut de 36 px et la police [Inter](https://rsms.me/inter/). Importez-le et affectez l’une de ses valeurs ; les composants ne l’importent jamais, donc une application qui ne l’importe pas n’en compile ni n’en embarque rien. Il n’y a aucune feature Cargo à activer.
+
+```slint
+import { KitThemeContext, KitButton } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit/themes/tailwind.slint";
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    in property <bool> dark;
+    init => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
+    changed dark => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
+    background: KitThemeContext.current.canvas;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        KitButton { text: "Continuer"; }
+    }
+}
+```
+
+`TailwindThemes.light` et `TailwindThemes.dark` sont des valeurs `KitTheme` complètes ; les règles habituelles s’appliquent donc : modifiez des champs depuis Rust, réglez `text-scale` pour un texte à 200 %, ou transmettez une valeur au `theme` d’un seul sous-arbre. Importer le fichier embarque Inter 4.1 en quatre graisses statiques (400, 500, 600 et 700), soit environ 1,6 Mo de données de police dans le binaire de l’application ; son `typography.family` vaut `"Inter"`. Le texte du kit lit `typography.family`, tandis que le texte propre à l’application garde le `default-font-family` de la fenêtre.
+
+Les couleurs proviennent de la palette de Tailwind CSS, sous licence MIT, et Inter est sous SIL Open Font License 1.1 ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate. Slint dessine une seule ombre par élément et ne gère pas l’étalement (spread) : les cartes et les toasts peignent la couche dominante de leur ombre Tailwind, tandis que les dialogues et les popovers empilent les deux couches sur des rectangles rétrécis de l’étalement de chaque couche. Les contrôles restent plats. Avec le moteur de rendu logiciel, qui ne dessine pas d’ombre, les surfaces gardent leur bordure.
 
 ## Taille et mise en page
 

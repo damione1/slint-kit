@@ -125,3 +125,14 @@ value. Masks do not verify country allocation or whether a line exists.
 HTML's unopinionated telephone state is still available with
 `KitTextField { input-kind: HtmlInputKind.telephone; }`. Its HTML validation rules
 have not been narrowed globally.
+
+## Optional Tailwind-inspired theme
+
+`@kit/themes/tailwind.slint` exports `TailwindThemes.light` and
+`TailwindThemes.dark`, complete `KitTheme` values with a reduced Tailwind CSS
+palette, role radii, Tailwind shadows and the Inter typeface. Components never
+import it: an application opts in by importing the file and assigning a value to
+`KitThemeContext.current` or to a subtree's `theme`. Importing it embeds Inter 4.1
+in four weights, about 1.6 MB. The palette values (MIT) and Inter (SIL Open Font
+License 1.1) keep their own licenses; see `THIRD-PARTY-NOTICES.md` and
+`ui/themes/fonts/Inter-OFL.txt`.
