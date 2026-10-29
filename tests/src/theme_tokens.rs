@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
+use crate::variants::{
+    alert_severities, button_intents, control_sizes, elevation_levels, field_accesses,
+    surface_levels, typography_roles,
+};
 use i_slint_backend_testing::{ElementHandle, ElementQuery};
 use slint::{ComponentHandle, Model, SharedString};
 
@@ -304,10 +308,7 @@ const KIT_ZERO_ALLOWED: &[(&str, &str)] = &[
     ("elevation.popover", "the default themes draw flat popovers"),
 ];
 /// Tokens only the Tailwind themes may leave at the zero value.
-const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[(
-    "elevation.control",
-    "a drop-shadow on a control repeated in a layout inflates its measured height",
-)];
+const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[];
 
 fn zero_allowed(
     family: ThemeFamily,
@@ -401,11 +402,12 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
         }
         for scale in [1., 2.] {
             theme.text_scale = scale;
-            for (size, height) in [
-                (ControlSize::Compact, 32.),
-                (ControlSize::Medium, 40.),
-                (ControlSize::Comfortable, 48.),
-            ] {
+            for size in control_sizes() {
+                let height = match size {
+                    ControlSize::Compact => 32.,
+                    ControlSize::Medium => 40.,
+                    ControlSize::Comfortable => 48.,
+                };
                 // One scaled 20px line plus 6px block padding on each side.
                 let expected = f32::max(height, 20. * scale + 12.);
                 assert_eq!(window.invoke_control_height(theme.clone(), size), expected);
@@ -441,13 +443,14 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
                     expected
                 );
             }
-            for (role, size) in [
-                (TypographyRole::Caption, 12.),
-                (TypographyRole::Control, 14.),
-                (TypographyRole::Body, 16.),
-                (TypographyRole::Subtitle, 20.),
-                (TypographyRole::Title, 28.),
-            ] {
+            for role in typography_roles() {
+                let size = match role {
+                    TypographyRole::Caption => 12.,
+                    TypographyRole::Control => 14.,
+                    TypographyRole::Body => 16.,
+                    TypographyRole::Subtitle => 20.,
+                    TypographyRole::Title => 28.,
+                };
                 assert_eq!(window.invoke_font_size(theme.clone(), role), size * scale);
             }
         }
@@ -458,15 +461,13 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
 fn recipes_reproduce_the_default_geometry() {
     let window = fixture();
     for theme in [window.get_light(), window.get_dark()] {
-        for intent in [
-            ButtonIntent::Primary,
-            ButtonIntent::Secondary,
-            ButtonIntent::Outline,
-            ButtonIntent::Quiet,
-            ButtonIntent::Destructive,
-        ] {
+        for intent in button_intents() {
             let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
             assert_eq!(recipe.radius, 8.);
+            // Button labels are medium weight; the default themes draw flat controls.
+            assert_eq!(recipe.font_weight, theme.typography.weight_medium);
+            assert_eq!(recipe.elevation, ElevationLevel::None);
+            assert_eq!(recipe.shadow.color.alpha(), 0);
             let (border_width, hover, pressed) = match intent {
                 ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
                 ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
@@ -484,7 +485,7 @@ fn recipes_reproduce_the_default_geometry() {
             window
                 .invoke_icon_button(theme.clone(), ControlSize::Medium)
                 .radius,
-            6.
+            theme.shape.radius_control
         );
 
         let field = window.invoke_field(
@@ -508,12 +509,14 @@ fn recipes_reproduce_the_default_geometry() {
         assert_eq!(invalid.focus.color, theme.focus.invalid_color);
         assert_eq!(invalid.focus.width, theme.focus.width);
 
-        for (level, fill, radius) in [
-            (SurfaceLevel::Flat, theme.surface, 12.),
-            (SurfaceLevel::Raised, theme.surface_raised, 12.),
-            (SurfaceLevel::Overlay, theme.surface_raised, 12.),
-            (SurfaceLevel::Popover, theme.surface_raised, 12.),
-        ] {
+        for level in surface_levels() {
+            let fill = match level {
+                SurfaceLevel::Flat => theme.surface,
+                SurfaceLevel::Raised | SurfaceLevel::Overlay | SurfaceLevel::Popover => {
+                    theme.surface_raised
+                }
+            };
+            let radius = 12.;
             let surface = window.invoke_surface(theme.clone(), level);
             assert_eq!(surface.fill.color(), fill, "{level:?}");
             assert_eq!(surface.radius, radius, "{level:?}");
@@ -524,7 +527,7 @@ fn recipes_reproduce_the_default_geometry() {
             assert_eq!(surface.shadow.color.alpha(), 0);
         }
 
-        let choice = window.invoke_choice(theme.clone());
+        let choice = window.invoke_choice(theme.clone(), ControlSize::Medium);
         assert_eq!(
             (choice.box_size, choice.box_radius, choice.mark_stroke),
             (20., 5., 2.)
@@ -542,12 +545,21 @@ fn recipes_reproduce_the_default_geometry() {
         assert_eq!(choice.focus.style, FocusRingStyle::Inside);
         let mut reduced = theme.clone();
         reduced.reduced_motion = true;
-        assert_eq!(window.invoke_choice(reduced).transition, 0);
+        assert_eq!(
+            window
+                .invoke_choice(reduced, ControlSize::Medium)
+                .transition,
+            0
+        );
 
         let option = window.invoke_option(theme.clone(), ControlSize::Medium);
-        assert_eq!(option.active_fill.color(), theme.pressed);
-        assert_eq!(option.active_border, theme.focus.color);
+        assert_eq!(option.hover_fill.color(), theme.hover);
+        assert_eq!(option.pressed_fill.color(), theme.pressed);
+        assert_eq!(option.active_fill.color(), theme.accent_subtle);
+        assert_eq!(option.selected_fill.color(), theme.accent_subtle);
+        assert_eq!(option.selected_foreground, theme.accent);
         assert_eq!(option.focus.style, FocusRingStyle::Inside);
+        assert_eq!(option.focus.width, theme.focus.width);
         let icon = window.invoke_icon_glyph(theme.clone(), ControlSize::Medium);
         assert_eq!(
             (icon.size, icon.color, icon.disabled_color, icon.stroke),
@@ -618,6 +630,23 @@ fn one_focus_outline_serves_buttons_fields_and_inset_hosts() {
     assert!(
         (thumb_y - (slider.absolute_position().y + (slider.size().height - 16.) / 2.)).abs() < 0.01
     );
+
+    // The active row of a menu, and a standalone option, paint the same inset
+    // ring over their own edge; the selected, inactive menu row paints none.
+    window.set_rows_active(true);
+    let rings = outlines(&window);
+    assert_eq!(rings.len(), 3);
+    for label in ["Menu second", "Option row"] {
+        let row = labelled(&window, label);
+        let origin = row.absolute_position();
+        let ring = rings
+            .iter()
+            .find(|ring| ring.absolute_position() == origin)
+            .unwrap_or_else(|| panic!("{label} ring"));
+        assert_ring(ring, &row, 0.);
+    }
+    window.set_rows_active(false);
+    assert_eq!(outlines(&window).len(), 1);
 }
 
 #[test]
@@ -781,11 +810,12 @@ fn field_and_trigger_recipes_render_read_only_and_hover() {
         assert_eq!(invalid_trigger.border, theme.danger);
         assert_eq!(invalid_trigger.focus.color, theme.focus.invalid_color);
 
-        let choice = window.invoke_choice(theme.clone());
+        let choice = window.invoke_choice(theme.clone(), ControlSize::Medium);
         assert_eq!((choice.check_size, choice.mixed_width), (14., 12.));
+        // The group nests its options' control radius inside its padding.
         assert_eq!(
             (choice.group_radius, choice.group_padding, choice.group_gap),
-            (10., 3., 6.)
+            (theme.shape.radius_control + 3., 3., 6.)
         );
     }
 }
@@ -823,11 +853,12 @@ fn read_only_select_keeps_focus_but_never_opens() {
             .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
     };
     let trigger = labelled(&window, "Access select");
-    for (access, focusable, opens) in [
-        (FieldAccess::Editable, true, true),
-        (FieldAccess::ReadOnly, true, false),
-        (FieldAccess::Disabled, false, false),
-    ] {
+    for access in field_accesses() {
+        let (focusable, opens) = match access {
+            FieldAccess::Editable => (true, true),
+            FieldAccess::ReadOnly => (true, false),
+            FieldAccess::Disabled => (false, false),
+        };
         // Move focus away first: Slint 1.18.1 ignores FocusOut on a
         // FocusScope that is disabled while focused, leaving has-focus stale.
         window.invoke_focus_button();
@@ -839,6 +870,12 @@ fn read_only_select_keeps_focus_but_never_opens() {
             trigger.accessible_enabled(),
             Some(access != FieldAccess::Disabled),
             "{access:?} enabled"
+        );
+        // Assistive technology hears that a read-only trigger cannot change.
+        assert_eq!(
+            trigger.accessible_read_only(),
+            Some(access == FieldAccess::ReadOnly),
+            "{access:?} read-only"
         );
         if focusable {
             press(Key::DownArrow);
@@ -872,12 +909,7 @@ fn contrast(a: slint::Color, b: slint::Color) -> f64 {
 #[test]
 fn every_alert_severity_has_its_own_legible_tint_edge_and_mark() {
     let window = fixture();
-    let severities = [
-        AlertSeverity::Information,
-        AlertSeverity::Success,
-        AlertSeverity::Warning,
-        AlertSeverity::Error,
-    ];
+    let severities = alert_severities();
     for (_, _, theme) in shipped_themes(&window) {
         let recipes: Vec<AlertRecipe> = severities
             .iter()
@@ -900,8 +932,15 @@ fn every_alert_severity_has_its_own_legible_tint_edge_and_mark() {
             assert_eq!(recipe.radius, theme.shape.radius_container);
             assert_eq!(recipe.border_width, theme.shape.border_width);
         }
-        assert_eq!(recipes[3].border, theme.danger);
-        assert_eq!(recipes[0].border, theme.information);
+        for (severity, recipe) in severities.iter().zip(&recipes) {
+            let edge = match severity {
+                AlertSeverity::Information => theme.information,
+                AlertSeverity::Success => theme.success,
+                AlertSeverity::Warning => theme.warning,
+                AlertSeverity::Error => theme.danger,
+            };
+            assert_eq!(recipe.border, edge, "{severity:?}");
+        }
     }
 }
 
@@ -1091,12 +1130,27 @@ fn tailwind_themes_use_role_radii_density_inter_and_shadows() {
             ValidationPresentation::Pristine,
         );
         assert_eq!(field.radius, 6.);
-        for (level, radius, elevation) in [
-            (SurfaceLevel::Flat, 8., ElevationLevel::Sm),
-            (SurfaceLevel::Raised, 8., ElevationLevel::Sm),
-            (SurfaceLevel::Overlay, 12., ElevationLevel::Lg),
-            (SurfaceLevel::Popover, 12., ElevationLevel::Md),
-        ] {
+        // Filled buttons carry shadow-xs; outline and quiet ones stay flat.
+        for intent in button_intents() {
+            let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
+            let lifted = match intent {
+                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
+                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+            };
+            if lifted {
+                assert_eq!(recipe.elevation, ElevationLevel::Xs, "{intent:?}");
+                assert_eq!(recipe.shadow, theme.elevation.xs.key, "{intent:?}");
+            } else {
+                assert_eq!(recipe.elevation, ElevationLevel::None, "{intent:?}");
+                assert_eq!(recipe.shadow.color.alpha(), 0, "{intent:?}");
+            }
+        }
+        for level in surface_levels() {
+            let (radius, elevation) = match level {
+                SurfaceLevel::Flat | SurfaceLevel::Raised => (8., ElevationLevel::Sm),
+                SurfaceLevel::Overlay => (12., ElevationLevel::Lg),
+                SurfaceLevel::Popover => (12., ElevationLevel::Md),
+            };
             let surface = window.invoke_surface(theme.clone(), level);
             assert_eq!(surface.radius, radius, "{level:?}");
             assert_eq!(surface.elevation, elevation, "{level:?}");
@@ -1222,4 +1276,128 @@ fn every_shipped_theme_draws_lucide_weight_icon_strokes() {
     for (name, _, theme) in shipped_themes(&window) {
         assert_eq!(theme.shape.icon_stroke, 2., "{name}");
     }
+}
+
+#[test]
+fn every_elevation_level_maps_to_its_own_shadow() {
+    let window = fixture();
+    for (name, _, theme) in shipped_themes(&window) {
+        for level in elevation_levels() {
+            let expected = match level {
+                ElevationLevel::None => None,
+                ElevationLevel::Xs => Some(theme.elevation.xs.clone()),
+                ElevationLevel::Sm => Some(theme.elevation.sm.clone()),
+                ElevationLevel::Md => Some(theme.elevation.md.clone()),
+                ElevationLevel::Lg => Some(theme.elevation.lg.clone()),
+                ElevationLevel::Xl => Some(theme.elevation.xl.clone()),
+            };
+            let shadow = window.invoke_elevation_shadow(theme.clone(), level);
+            match expected {
+                Some(expected) => assert_eq!(shadow, expected, "{name} {level:?}"),
+                None => {
+                    assert_eq!(shadow.key.color.alpha(), 0, "{name}");
+                    assert_eq!(shadow.ambient.color.alpha(), 0, "{name}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn every_shipped_theme_sets_state_tones_apart_from_their_surfaces() {
+    let window = fixture();
+    // A hovered option in a popover, a pressed button in a dialog and a
+    // popover's own edge must each read against the surface they sit on.
+    const VISIBLE: f64 = 1.05;
+    for (name, _, theme) in shipped_themes(&window) {
+        let surfaces = [
+            ("surface", theme.surface),
+            ("surface-raised", theme.surface_raised),
+        ];
+        let tones = [
+            ("hover", theme.hover),
+            ("pressed", theme.pressed),
+            ("accent-subtle", theme.accent_subtle),
+            ("border-subtle", theme.border_subtle),
+        ];
+        for (surface_name, surface) in surfaces {
+            for (tone_name, tone) in tones {
+                let ratio = contrast(tone, surface);
+                assert!(
+                    ratio >= VISIBLE,
+                    "{name} {tone_name} on {surface_name}: {ratio:.3}"
+                );
+            }
+        }
+        let ratio = contrast(theme.pressed, theme.hover);
+        assert!(ratio >= VISIBLE, "{name} pressed against hover: {ratio:.3}");
+        // The selected label of a menu row stays legible on its tint.
+        let ratio = contrast(theme.accent, theme.accent_subtle);
+        assert!(ratio >= 4.5, "{name} accent on accent-subtle: {ratio:.2}");
+    }
+}
+
+fn is_name(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '-' || c == '_'
+}
+/// Whether `needle`, starting with a name, occurs in `source` as a whole name
+/// (not preceded by a name character) followed by a character accepted by `next`.
+fn accessed(source: &str, needle: &str, next: impl Fn(char) -> bool) -> bool {
+    source.match_indices(needle).any(|(at, _)| {
+        let before = source[..at].chars().next_back();
+        let after = source[at + needle.len()..].chars().next();
+        before.is_none_or(|c| !is_name(c)) && after.is_some_and(&next)
+    })
+}
+/// Whether some value's `field` is read: `.field` not followed by a name character.
+fn member_read(source: &str, field: &str) -> bool {
+    let needle = format!(".{field}");
+    source.match_indices(&needle).any(|(at, _)| {
+        source[at + needle.len()..]
+            .chars()
+            .next()
+            .is_some_and(|c| !is_name(c))
+    })
+}
+
+#[test]
+fn every_theme_token_has_a_reader() {
+    let window = fixture();
+    // Components and recipes live in the top-level UI files; `themes/` only
+    // assigns token values and `icons/` holds generated glyphs.
+    let ui = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../crates/kit-slint/ui");
+    let mut source = String::new();
+    for entry in std::fs::read_dir(&ui).unwrap() {
+        let path = entry.unwrap().path();
+        if path
+            .extension()
+            .is_some_and(|extension| extension == "slint")
+        {
+            source.push_str(&std::fs::read_to_string(&path).unwrap());
+        }
+    }
+    let unread: Vec<String> = tokens(window.get_light())
+        .into_iter()
+        .map(|(path, _)| path)
+        .filter(|path| {
+            let segments: Vec<&str> = path.split('.').collect();
+            // Read as itself, e.g. `theme.typography.weight-medium`.
+            if accessed(&source, &format!("theme.{path}"), |c| !is_name(c)) {
+                return false;
+            }
+            // Or read through a whole struct value, e.g. `theme.focus` passed
+            // to a recipe whose ring then reads `.width`.
+            !(1..segments.len()).any(|split| {
+                let whole = format!("theme.{}", segments[..split].join("."));
+                accessed(&source, &whole, |c| !is_name(c) && c != '.')
+                    && segments[split..]
+                        .iter()
+                        .all(|field| member_read(&source, field))
+            })
+        })
+        .collect();
+    assert!(
+        unread.is_empty(),
+        "theme tokens no component or recipe reads; wire or remove them: {unread:?}"
+    );
 }

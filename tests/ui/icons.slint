@@ -51,7 +51,7 @@ import { LucideWeather } from "@kit/icons/lucide/weather.slint";
 
 export component IconFixture inherits Window {
     width: 480px;
-    height: 160px;
+    height: 260px;
     in-out property <KitTheme> theme: KitThemes.light;
     in property <IconPurpose> arrow-purpose: IconPurpose.informative;
     // The first icon of each category global, then the same icons from LucideIcons.
@@ -148,6 +148,7 @@ export component IconFixture inherits Window {
     out property <IconGlyph> arrow-up: LucideIcons.arrow-up();
     out property <IconGlyph> tag: LucideIcons.tag();
     out property <IconGlyph> kit-check: KitGlyphs.check();
+    public pure function icon-size(theme: KitTheme, size: ControlSize) -> length { return KitThemes.icon-recipe(theme, size).size; }
     public pure function stroke-width(theme: KitTheme, size: ControlSize, glyph: IconGlyph, mode: IconStroke) -> length {
         return KitThemes.icon-stroke-width(KitThemes.icon-recipe(theme, size), glyph, mode, KitThemes.icon-recipe(theme, size).size);
     }
@@ -172,6 +173,12 @@ export component IconFixture inherits Window {
             absolute-16 := KitIcon { theme: root.theme; glyph: LucideIcons.tag(); stroke-mode: IconStroke.absolute; width: 16px; height: 16px; }
             scaled-24 := KitIcon { theme: root.theme; glyph: LucideIcons.minus(); width: 24px; height: 24px; }
             absolute-24 := KitIcon { theme: root.theme; glyph: LucideIcons.minus(); stroke-mode: IconStroke.absolute; width: 24px; height: 24px; }
+        }
+        HorizontalLayout {
+            alignment: start;
+            spacing: 8px;
+            KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: LucideIcons.trash(); accessible-name: "Delete compact"; }
+            KitIconButton { theme: root.theme; control-size: ControlSize.comfortable; glyph: LucideIcons.trash(); accessible-name: "Delete comfortable"; }
         }
     }
 }

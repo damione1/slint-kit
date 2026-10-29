@@ -131,7 +131,11 @@ export component KitTextField inherits KitField {
     }
     changed purpose => { if (root.has-focus) { KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone; } }
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.effective-validation);
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
+    // The square action button of a compact or medium field: its icon plus
+    // 1.5 spacing units on each side, so a scaled icon always fits. The row
+    // clamps it to one line of text, which is never shorter than the icon.
+    private property <length> action-extent: root.icon.size + root.theme.spacing.unit * 3;
     private property <length> line-height: root.theme.typography.line-height-control * root.theme.text-scale;
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
@@ -287,14 +291,14 @@ export component KitTextField inherits KitField {
             if root.action-visible: Rectangle {
                 // Reserve the action's width in the editor row, but let its
                 // comfortable hit area also use the surface's block padding.
-                width: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : 28px;
+                width: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : root.action-extent;
                 height: root.editor-height;
                 action := KitPressable {
                     x: 0px; y: (parent.height - self.height) / 2;
                     theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
                     recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
                     width: parent.width;
-                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : Math.min(28px, root.editor-height);
+                    height: root.control-size == ControlSize.comfortable ? KitMetrics.control-height(root.theme, root.control-size) : Math.min(root.action-extent, root.editor-height);
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {
@@ -303,7 +307,7 @@ export component KitTextField inherits KitField {
                         root.take-focus();
                     }
                     KitIcon {
-                        theme: root.theme;
+                        theme: root.theme; control-size: root.control-size;
                         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
                         glyph: root.purpose == TextPurpose.search ? KitGlyphs.close() : root.secret-visibility == SecretVisibility.hidden ? KitGlyphs.eye() : KitGlyphs.eye-hidden();
                         ink: action.disabled ? root.icon.disabled-color : root.icon.color;

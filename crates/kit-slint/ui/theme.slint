@@ -64,8 +64,11 @@ export struct KitTheme {
 export struct ButtonRecipe {
     fill: brush, hover-fill: brush, pressed-fill: brush, disabled-fill: brush,
     foreground: color, disabled-foreground: color, border: color,
-    radius: length, padding-inline: length, padding-block: length, border-width: length, height: length, font-size: length,
+    radius: length, padding-inline: length, padding-block: length, border-width: length, height: length,
+    font-size: length, font-weight: int,
     busy-mark-size: length, busy-mark-stroke: length,
+    // The control's elevation: the key layer of `elevation`, painted under it.
+    elevation: ElevationLevel, shadow: ShadowLayer,
     focus: KitFocusRing,
 }
 export struct FieldRecipe {
@@ -82,9 +85,12 @@ export struct ChoiceRecipe {
     group-radius: length, group-padding: length, group-gap: length,
     transition: duration, focus: KitFocusRing,
 }
+// Rows of a list or menu. The active row is the keyboard target of its
+// composite and paints `focus` over its own edge; selected rows keep a tint.
 export struct OptionRecipe {
-    fill: brush, hover-fill: brush, active-fill: brush, foreground: color, disabled-foreground: color,
-    active-border: color, border-width: length, radius: length, padding-inline: length, height: length, font-size: length,
+    fill: brush, hover-fill: brush, pressed-fill: brush, active-fill: brush, selected-fill: brush,
+    foreground: color, selected-foreground: color, disabled-foreground: color,
+    radius: length, padding-inline: length, height: length, font-size: length,
     focus: KitFocusRing,
 }
 // An icon's box, inks and stroke token. The drawn stroke width also depends on
@@ -231,10 +237,12 @@ export global KitThemes {
             fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed,
             disabled-fill: transparent, foreground: theme.text-primary,
             disabled-foreground: theme.disabled-text, border: transparent,
-            radius: 6px, padding-inline: 0px, padding-block: 0px, border-width: 0px,
+            radius: theme.shape.radius-control, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size),
-            font-size: KitMetrics.font-size(theme, TypographyRole.control),
+            font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-medium,
             busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            // A borderless control stays flat, like a quiet button.
+            elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: theme.focus,
         };
     }
@@ -254,7 +262,13 @@ export global KitThemes {
             border-width: intent == ButtonIntent.secondary || intent == ButtonIntent.outline ? theme.shape.border-width : 0px,
             height: KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, size == ControlSize.comfortable ? TypographyRole.body : TypographyRole.control),
+            font-weight: theme.typography.weight-medium,
             busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            // Filled intents lift by the theme's control elevation. Outline and
+            // quiet controls show their parent through a transparent fill, which
+            // a shadow would tint, so they stay flat.
+            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control,
+            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control),
             focus: theme.focus,
         };
     }
@@ -293,7 +307,9 @@ export global KitThemes {
             border: field.border,
             radius: field.radius, padding-inline: field.padding-inline, padding-block: field.padding-block,
             border-width: field.border-width, height: field.height, font-size: field.font-size,
+            font-weight: theme.typography.weight-regular,
             busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: field.focus,
         };
     }
@@ -305,8 +321,9 @@ export global KitThemes {
             foreground: theme.text-primary, disabled-foreground: theme.disabled-text, border: transparent,
             radius: 0px, padding-inline: 0px, padding-block: KitMetrics.density(theme, size).padding-block, border-width: 0px,
             height: KitMetrics.control-height(theme, size) + theme.spacing.unit * 2,
-            font-size: KitMetrics.font-size(theme, TypographyRole.control),
+            font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-regular,
             busy-mark-size: 14px, busy-mark-stroke: theme.shape.border-width-strong,
+            elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: KitThemes.inset-focus(theme),
         };
     }
@@ -321,26 +338,39 @@ export global KitThemes {
             ambient-shadow: KitThemes.ambient-shadow(theme, level == SurfaceLevel.overlay ? theme.elevation.overlay : level == SurfaceLevel.popover ? theme.elevation.popover : theme.elevation.container),
         };
     }
-    // Checkbox, radio, switch and slider geometry: intrinsic to the control,
-    // independent of ControlSize in the default themes.
-    public pure function choice-recipe(theme: KitTheme) -> ChoiceRecipe {
+    // The box of a checkbox or radio by ControlSize: Tailwind size-4/5/6.
+    public pure function choice-box-size(size: ControlSize) -> length {
+        return size == ControlSize.compact ? 16px : size == ControlSize.comfortable ? 24px : 20px;
+    }
+    // Checkbox, radio, switch and slider geometry, sized by ControlSize. Marks,
+    // track and thumb derive from the box, so they keep their proportions; a
+    // box corner never exceeds a quarter of the box. Segmented and toggle
+    // groups nest their options' control radius inside their own padding.
+    public pure function choice-recipe(theme: KitTheme, size: ControlSize) -> ChoiceRecipe {
         return {
-            box-size: 20px, box-radius: 5px, mark-stroke: theme.shape.border-width-strong, radio-dot-size: 10px, label-gap: 10px,
-            track-width: 38px, track-height: 22px, track-radius: min(theme.shape.radius-pill, 11px), thumb-size: 18px, thumb-inset: 2px,
-            check-size: 14px, mixed-width: 12px,
-            slider-track-height: 4px, slider-thumb-size: 16px,
-            group-radius: 10px, group-padding: 3px, group-gap: 6px,
+            box-size: KitThemes.choice-box-size(size),
+            box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(size) / 4),
+            mark-stroke: theme.shape.border-width-strong,
+            radio-dot-size: KitThemes.choice-box-size(size) / 2, label-gap: theme.spacing.unit * 2.5,
+            track-width: KitThemes.choice-box-size(size) * 1.9, track-height: KitThemes.choice-box-size(size) + 2px,
+            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(size) + 2px) / 2),
+            thumb-size: KitThemes.choice-box-size(size) - 2px, thumb-inset: 2px,
+            check-size: KitThemes.choice-box-size(size) * 0.7, mixed-width: KitThemes.choice-box-size(size) * 0.6,
+            slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(size) - 4px,
+            group-radius: theme.shape.radius-control + theme.spacing.unit * 0.75,
+            group-padding: theme.spacing.unit * 0.75, group-gap: theme.spacing.unit * 1.5,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
             focus: KitThemes.inset-focus(theme),
         };
     }
-    // Rows of a list, menu or table: one keyboard target owns focus and the
-    // active row carries the indicator.
+    // Rows of a list or menu: one keyboard target owns focus and the active
+    // row carries the inset ring over its accent-subtle tint.
     public pure function option-recipe(theme: KitTheme, size: ControlSize) -> OptionRecipe {
         return {
-            fill: transparent, hover-fill: theme.hover, active-fill: theme.pressed,
-            foreground: theme.text-primary, disabled-foreground: theme.disabled-text,
-            active-border: theme.focus.color, border-width: theme.shape.border-width, radius: theme.shape.radius-control,
+            fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed,
+            active-fill: theme.accent-subtle, selected-fill: theme.accent-subtle,
+            foreground: theme.text-primary, selected-foreground: theme.accent, disabled-foreground: theme.disabled-text,
+            radius: theme.shape.radius-control,
             padding-inline: KitMetrics.density(theme, size).padding-inline,
             height: KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, TypographyRole.control),

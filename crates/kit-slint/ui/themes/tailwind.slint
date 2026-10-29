@@ -40,9 +40,9 @@ export global TailwindThemes {
         // rounded-md, rounded-lg, rounded-xl and rounded-full.
         shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
         elevation: {
-            // Controls stay flat: a drop-shadow on a control repeated in a
-            // layout inflates its measured height in Slint 1.18.1.
-            control: ElevationLevel.none, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
+            // Filled buttons carry shadow-xs, cards shadow-sm, popovers
+            // shadow-md and dialogs shadow-lg.
+            control: ElevationLevel.xs, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
             // shadow-xs .. shadow-xl, rgb(0 0 0 / 0.05) and rgb(0 0 0 / 0.1).
             xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #0000000d }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
             sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #0000001a }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #0000001a } },
@@ -70,7 +70,10 @@ export global TailwindThemes {
         reduced-motion: false, text-scale: 1,
     };
     out property <KitTheme> dark: {
-        canvas: #020617 /* slate-950 */, surface: #0f172a /* slate-900 */, surface-raised: #1e293b /* slate-800 */,
+        // Raised surfaces (popovers, dialogs) keep the card tone, as shadcn's
+        // dark popover does: border, shadow and scrim set them apart, so the
+        // slate-800 hover and border stay visible on every surface.
+        canvas: #020617 /* slate-950 */, surface: #0f172a /* slate-900 */, surface-raised: #0f172a /* slate-900 */,
         text-primary: #f8fafc /* slate-50 */, text-secondary: #94a3b8 /* slate-400 */, placeholder: #94a3b8 /* slate-400 */,
         accent: #818cf8 /* indigo-400 */, on-accent: #1e1b4b /* indigo-950 */,
         accent-hover: #a5b4fc /* indigo-300 */, accent-pressed: #c7d2fe /* indigo-200 */, accent-subtle: #1e1b4b /* indigo-950 */,
@@ -84,7 +87,7 @@ export global TailwindThemes {
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
         shape: { radius-control: 6px, radius-container: 8px, radius-overlay: 12px, radius-pill: 9999px, border-width: 1px, border-width-strong: 2px, icon-stroke: 2 },
         elevation: {
-            control: ElevationLevel.none, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
+            control: ElevationLevel.xs, container: ElevationLevel.sm, overlay: ElevationLevel.lg, popover: ElevationLevel.md,
             // The light geometry at rgb(0 0 0 / 0.3): a 10% shadow vanishes on slate-950.
             xs: { key: { offset-y: 1px, blur: 2px, spread: 0px, color: #00000026 }, ambient: { offset-y: 0px, blur: 0px, spread: 0px, color: transparent } },
             sm: { key: { offset-y: 1px, blur: 3px, spread: 0px, color: #0000004d }, ambient: { offset-y: 1px, blur: 2px, spread: -1px, color: #0000004d } },

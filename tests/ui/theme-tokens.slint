@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption } from "@kit/kit.slint";
 import { TailwindThemes } from "@kit/themes/tailwind.slint";
+import { ElevationLevel, KitShadow } from "@kit/theme.slint";
 export { KitThemeContext } from "@kit/kit.slint";
 
 export component ThemeTokenFixture inherits Window {
@@ -19,6 +20,8 @@ export component ThemeTokenFixture inherits Window {
     out property <color> local-color: local-probe.background;
     out property <bool> field-hovered: group.hovered;
     in property <FieldAccess> select-access: FieldAccess.editable;
+    // The keyboard-active row of a menu and of a standalone option.
+    in property <bool> rows-active;
     in-out property <int> select-opens;
     out property <bool> select-focused: access-select.has-focus;
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length { return KitMetrics.control-height(theme, size); }
@@ -32,11 +35,12 @@ export component ThemeTokenFixture inherits Window {
     public pure function field(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> FieldRecipe { return KitThemes.field-recipe(theme, size, access, validation); }
     public pure function trigger(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> ButtonRecipe { return KitThemes.trigger-recipe(theme, KitThemes.field-recipe(theme, size, access, validation), access); }
     public pure function surface(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe { return KitThemes.surface-recipe(theme, level); }
-    public pure function choice(theme: KitTheme) -> ChoiceRecipe { return KitThemes.choice-recipe(theme); }
+    public pure function choice(theme: KitTheme, size: ControlSize) -> ChoiceRecipe { return KitThemes.choice-recipe(theme, size); }
     public pure function option(theme: KitTheme, size: ControlSize) -> OptionRecipe { return KitThemes.option-recipe(theme, size); }
     public pure function icon-glyph(theme: KitTheme, size: ControlSize) -> IconRecipe { return KitThemes.icon-recipe(theme, size); }
     public pure function alert(theme: KitTheme, severity: AlertSeverity) -> AlertRecipe { return KitThemes.alert-recipe(theme, severity); }
     public pure function scroll-bar(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
+    public pure function elevation-shadow(theme: KitTheme, level: ElevationLevel) -> KitShadow { return KitThemes.elevation-shadow(theme, level); }
     public function focus-button() { focus-button.take-focus(); }
     public function focus-slider() { slider.take-focus(); }
     public function focus-select() { access-select.take-focus(); }
@@ -54,6 +58,17 @@ export component ThemeTokenFixture inherits Window {
         open-requested => { root.select-opens += 1; }
     }
     slider := KitSlider { x: 40px; y: 200px; width: 200px; label: "Slider outline"; position: 0.5; }
+    KitMenu {
+        x: 260px; y: 100px; width: 180px; height: 120px;
+        accessible-name: "Row menu";
+        rows: [{ token: 1, generation: 1, label: "Menu first" }, { token: 2, generation: 1, label: "Menu second" }];
+        state: { open: true, active: { present: root.rows-active, token: 2 }, active-index: root.rows-active ? 1 : -1, selected: { present: true, token: 1 }, generation: 1 };
+    }
+    KitOption {
+        x: 260px; y: 240px; width: 180px; height: 40px;
+        option-data: { token: 7, generation: 1, label: "Option row" };
+        active: root.rows-active;
+    }
 }
 
 export component TabsIndicatorFixture inherits Window {

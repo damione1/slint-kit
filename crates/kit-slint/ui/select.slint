@@ -231,13 +231,17 @@ export component KitOption inherits KitPressable {
     accessible-description: root.option-data.description;
     accessible-item-selectable: true;
     accessible-item-selected: root.selected;
+    // A row has the quiet geometry: no edge and no elevation of its own.
+    recipe: KitThemes.button-recipe(root.theme, ButtonIntent.quiet, root.control-size);
     private property <OptionRecipe> row-recipe: KitThemes.option-recipe(root.theme, root.control-size);
-    // A pressed row shows the active tone. A disabled row answers neither
-    // hover nor press, but keeps the active indicator for keyboard users.
-    background: root.active || root.pressed ? root.row-recipe.active-fill : root.hovered ? root.row-recipe.hover-fill : root.row-recipe.fill;
+    // A disabled row answers neither hover nor press, but keeps the active
+    // indicator for keyboard users.
+    background: root.pressed ? root.row-recipe.pressed-fill : root.active ? root.row-recipe.active-fill
+        : root.selected ? root.row-recipe.selected-fill : root.hovered ? root.row-recipe.hover-fill : root.row-recipe.fill;
     border-radius: root.row-recipe.radius;
-    border-width: root.active ? root.row-recipe.border-width : 0px;
-    border-color: root.row-recipe.active-border;
+    // The composite keeps keyboard focus; its active row paints the ring.
+    focus-indicated: root.active;
+    focus-ring: root.row-recipe.focus;
     private property <int> press-token;
     private property <int> press-generation;
     activation-started => {
@@ -295,7 +299,7 @@ export component KitSelect inherits Rectangle {
         if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); }
     }
     private property <ValidationPresentation> presented-validation: checks.show-error || root.state.selection-availability == SelectionAvailability.unavailable ? ValidationPresentation.invalid : root.validation;
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
     public function take-focus() { trigger.take-focus(); }
     public function cancel-press() {trigger.cancel-press();}
     min-height: KitMetrics.control-height(root.theme, root.control-size);
@@ -349,7 +353,7 @@ export component KitSelect inherits Rectangle {
                 }
                 // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: TurningIcon {
-                    theme: root.theme;
+                    theme: root.theme; control-size: root.control-size;
                     y: (parent.height - self.height) / 2;
                     turned: root.state.open;
                     rest-glyph: KitGlyphs.chevron-down();
@@ -395,7 +399,7 @@ export component KitSelect inherits Rectangle {
                             if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }

@@ -59,6 +59,18 @@ export component KitPressable inherits Rectangle {
     accessible-enabled: !root.disabled && !root.busy;
     accessible-action-default => { root.activation-started(); root.activate-once(); }
     forward-focus: keys;
+    // The recipe's elevation, painted by a child that repeats the host's own
+    // fill and edge so only its shadow shows past them. A shadow on the host
+    // itself would take part in its measured height inside a layout.
+    if root.recipe.shadow.color.to-hsv().alpha > 0: Rectangle {
+        background: root.background;
+        border-radius: root.border-radius;
+        border-width: root.border-width;
+        border-color: root.border-color;
+        drop-shadow-offset-y: root.recipe.shadow.offset-y;
+        drop-shadow-blur: root.recipe.shadow.blur;
+        drop-shadow-color: root.recipe.shadow.color;
+    }
     Rectangle {
         x: root.recipe.padding-inline;
         y: root.recipe.padding-block;
@@ -143,7 +155,7 @@ export component KitButton inherits KitPressable {
         opacity: root.busy ? 0 : 1;
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+        font-family: root.theme.typography.family; font-size: root.recipe.font-size; font-weight: root.recipe.font-weight;
         horizontal-alignment: center;
         vertical-alignment: center;
         overflow: elide;
@@ -191,7 +203,7 @@ export component KitIconButton inherits KitPressable {
     Rectangle {
         KitIcon {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-            theme: root.theme;
+            theme: root.theme; control-size: root.control-size;
             glyph: root.glyph;
             ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         }

@@ -21,7 +21,7 @@ export component KitBadge inherits Rectangle {
     preferred-height: label.preferred-height + 2 * root.inset-y;
     min-height: self.preferred-height; max-height: self.preferred-height;
     vertical-stretch: 0; horizontal-stretch: 0;
-    border-radius: 6px;
+    border-radius: root.theme.shape.radius-control;
     border-width: root.tone == Tone.success || root.tone == Tone.warning || root.tone == Tone.danger ? root.theme.shape.border-width : 0px;
     border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.theme.danger;
     background: root.tone == Tone.accent ? root.theme.accent : root.theme.hover;
@@ -82,7 +82,7 @@ export component KitHero inherits Rectangle {
     in property <string> description;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    background: root.theme.hover; border-radius: 16px; vertical-stretch: 0;
+    background: root.theme.hover; border-radius: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat).radius; vertical-stretch: 0;
     VerticalLayout { padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start;
         Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
         if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
@@ -138,7 +138,7 @@ export component KitSkeleton inherits Rectangle {
     private property <bool> pulse;
     // One line of control text, unscaled: a skeleton stands in for copy.
     preferred-height: root.theme.typography.line-height-control; min-height: root.theme.spacing.unit * 2; vertical-stretch: 0;
-    background: root.theme.disabled-fill; border-radius: 6px;
+    background: root.theme.disabled-fill; border-radius: root.theme.shape.radius-control;
     opacity: root.pulse && !root.theme.reduced-motion ? 0.5 : 1;
     animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
     Timer { interval: 650ms; running: root.running && !root.theme.reduced-motion; triggered => { root.pulse = !root.pulse; } }

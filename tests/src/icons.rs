@@ -91,6 +91,32 @@ fn icon_size_follows_control_size_and_text_scale() {
         let (bx, by) = centre(&button);
         let (ix, iy) = centre(icon);
         assert!(close(bx, ix) && close(by, iy), "icon centred in its button");
+
+        // An icon button sizes its glyph by its own control size.
+        let theme = window.get_theme();
+        for (label, size) in [
+            ("Delete compact", ControlSize::Compact),
+            ("Delete row", ControlSize::Medium),
+            ("Delete comfortable", ControlSize::Comfortable),
+        ] {
+            let button = labelled(&window, label).unwrap();
+            let icon = button
+                .query_descendants()
+                .match_inherits("KitIcon")
+                .find_first()
+                .expect("icon button draws a KitIcon");
+            let side = window.invoke_icon_size(theme.clone(), size);
+            assert_eq!(
+                (icon.size().width, icon.size().height),
+                (side, side),
+                "{label} at text scale {scale}"
+            );
+            let (bx, by) = centre(&button);
+            let (ix, iy) = centre(&icon);
+            assert!(close(bx, ix) && close(by, iy), "{label} icon centred");
+            assert!(icon.size().width < button.size().width);
+            assert!(icon.size().height < button.size().height);
+        }
     }
 }
 
@@ -179,7 +205,7 @@ fn fitted_view_box(path: &ElementHandle, stroke_width: f32) -> (f32, f32, f32, f
 fn both_layers_map_the_view_box_onto_the_icon_in_both_modes() {
     let window = fixture();
     let all = icons(&window);
-    let geometry = &all[5..];
+    let geometry = &all[5..9];
     let strokes: Vec<f32> = window.get_geometry_strokes().iter().collect();
     // scaled 16, absolute 16, scaled 24, absolute 24.
     let expected = [16. * 2. / 24., 2., 2., 2.];

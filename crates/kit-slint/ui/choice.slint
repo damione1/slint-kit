@@ -48,10 +48,11 @@ component ChoiceOption inherits KitPressable {
 // The radio indicator, shared by both group orientations.
 component RadioMark inherits Rectangle {
     in property <KitTheme> theme;
+    in property <ControlSize> control-size;
     in property <bool> selected;
     in property <bool> invalid;
     in property <bool> disabled;
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     width: root.choice.box-size; height: root.choice.box-size;
     border-radius: min(root.theme.shape.radius-pill, self.width / 2);
     border-width: root.theme.shape.border-width;
@@ -89,7 +90,7 @@ export component KitCheckbox inherits KitPressable {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
     callback toggled(CheckState);
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
     disabled: root.access == FieldAccess.disabled;
@@ -152,7 +153,7 @@ export component KitSwitch inherits KitPressable {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
     callback toggled(bool);
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
     disabled: root.access == FieldAccess.disabled;
@@ -240,7 +241,7 @@ export component KitRadioGroup inherits Rectangle {
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <string> label;
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
     callback activate(int, int);
     out property <bool> has-focus: keyboard.has-focus;
@@ -273,7 +274,7 @@ export component KitRadioGroup inherits Rectangle {
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: root.choice.label-gap;
-                RadioMark { theme: root.theme; selected: row.selected; invalid: checks.show-error; disabled: option.disabled; }
+                RadioMark { theme: root.theme; control-size: root.control-size; selected: row.selected; invalid: checks.show-error; disabled: option.disabled; }
                 Text { text: row.label; font-family: option.theme.typography.family; font-size: option.recipe.font-size; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
@@ -295,7 +296,7 @@ export component KitRadioGroup inherits Rectangle {
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: root.choice.label-gap;
-                RadioMark { theme: root.theme; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
+                RadioMark { theme: root.theme; control-size: root.control-size; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
                 Text { text: flow-option.display-choice.label; font-family: flow-option.theme.typography.family; font-size: flow-option.recipe.font-size; color: flow-option.disabled ? flow-option.recipe.disabled-foreground : flow-option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
@@ -338,7 +339,7 @@ export component KitSegmentedControl inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group; accessible-label: root.label;
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     border-radius: root.choice.group-radius; background: root.theme.canvas;
     border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
     preferred-height: max(choices.min-height,choices.preferred-height);
@@ -400,7 +401,7 @@ export component KitToggleGroup inherits Rectangle {
     in property <string> label;
     callback navigate(NavigationStep);
     callback toggled(int, int);
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
@@ -636,7 +637,7 @@ export component KitCombobox inherits Rectangle {
     callback tab-navigation(bool) -> EventResult;
     private property <bool> opened: root.state.open;
     private property <bool> tab-restore-complete;
-    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, ControlSize.medium);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
     private property <length> row-height: max(48px, 32px * root.theme.text-scale);
     preferred-height: KitMetrics.control-height(root.theme, root.control-size);
     vertical-stretch: 0;
@@ -676,7 +677,7 @@ export component KitCombobox inherits Rectangle {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
             // Points up while the list is presented below the trigger.
-            TurningIcon { theme: root.theme; turned: root.state.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
+            TurningIcon { theme: root.theme; control-size: root.control-size; turned: root.state.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
     }
     popup := PopupWindow {
@@ -708,7 +709,7 @@ export component KitCombobox inherits Rectangle {
                         Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
                         // The selected identity, independent of the active row.
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }
@@ -740,6 +741,8 @@ component SliderKeyboard inherits FocusScope {
 }
 export component KitSlider inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
+    // Sizes the thumb with the checkbox and radio boxes of the same size.
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> position;
     in property <string> label;
@@ -760,7 +763,7 @@ export component KitSlider inherits Rectangle {
     accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.navigate(NavigationStep.previous); } }
     public function take-focus() { keyboard.focus(); }
     forward-focus: keyboard;
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     // The track starts and ends at the thumb centre's travel limits.
     private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
     function update-position() { root.position-requested(clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1)); }
@@ -790,6 +793,7 @@ export component KitSlider inherits Rectangle {
 
 export component KitRangeSlider inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> lower-position;
     in property <float> upper-position: 1;
@@ -809,7 +813,7 @@ export component KitRangeSlider inherits Rectangle {
     public function take-focus() { lower.focus(); }
     forward-focus: lower;
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(root.active-thumb); } }
-    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
     function update-position() {
         let position = clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge),0,1);

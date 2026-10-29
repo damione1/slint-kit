@@ -1,9 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 
 export { AlertSeverity } from "theme.slint";
+
+// Internal: the mark an alert draws for its severity. Warnings and errors share
+// the warning sign and differ by their recipe's tint, edge and ink.
+export global KitAlertMarks {
+    public pure function glyph(severity: AlertSeverity) -> IconGlyph {
+        return severity == AlertSeverity.success ? KitGlyphs.check()
+            : severity == AlertSeverity.warning || severity == AlertSeverity.error ? KitGlyphs.warning()
+            : KitGlyphs.information();
+    }
+}
 export enum ToastInteraction { pointer, focus }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool }
 
@@ -31,7 +41,7 @@ export component KitAlert inherits Rectangle {
     icon := KitIcon {
         theme: root.theme;
         x: root.inset; y: root.inset;
-        glyph: root.severity == AlertSeverity.success ? KitGlyphs.check() : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? KitGlyphs.warning() : KitGlyphs.plus();
+        glyph: KitAlertMarks.glyph(root.severity);
         ink: root.recipe.mark;
     }
     copy := VerticalLayout {
@@ -150,7 +160,10 @@ export component KitTooltipLayer inherits Rectangle {
         y: max(root.gap,min(root.viewport-height - self.height - root.gap,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + root.gap > root.viewport-height ? KitTooltipState.anchor.y - self.height - root.gap : KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap));
         width: min(300px * KitTooltipState.theme.text-scale,max(0px,root.viewport-width - 2 * root.gap));
         height: min(tip.preferred-height + 2 * root.gap,max(0px,root.viewport-height - 2 * root.gap));
-        background: KitTooltipState.theme.text-primary; border-radius: 6px;
+        background: KitTooltipState.theme.text-primary; border-radius: KitTooltipState.theme.shape.radius-control;
+        drop-shadow-offset-y: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).offset-y;
+        drop-shadow-blur: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).blur;
+        drop-shadow-color: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).color;
         tip := Text {
             x: root.gap; y: root.gap; width: max(0px,parent.width - 2 * root.gap); height: max(0px,parent.height - 2 * root.gap);
             text: KitTooltipState.text; color: KitTooltipState.theme.surface;
@@ -196,7 +209,7 @@ export component KitTooltip inherits Rectangle {
     }
     private property <length> tip-gap: root.theme.spacing.unit * 2;
     if !root.suppressed && root.text != "": Tooltip {
-        Rectangle { background: root.theme.text-primary; border-radius: 6px;
+        Rectangle { background: root.theme.text-primary; border-radius: root.theme.shape.radius-control;
             width: min(300px * root.theme.text-scale,max(80px,root.viewport-width - 2 * root.tip-gap));
             height: hover-tip.preferred-height + 2 * root.tip-gap;
             hover-tip := Text { x: root.tip-gap; y: root.tip-gap; width: parent.width - 2 * root.tip-gap; text: root.text; color: root.theme.surface; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
