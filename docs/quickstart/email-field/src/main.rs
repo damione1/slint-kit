@@ -4,26 +4,15 @@ slint::include_modules!();
 #[derive(Clone, PartialEq)]
 struct Value(String);
 fn parse(text: &str) -> DraftValue<Value> {
-    let value = text.replace(['\r', '\n'], "");
-    let value = value.trim_matches(|c| matches!(c, ' ' | '\t' | '\u{c}'));
-    if value.is_empty() { return DraftValue::Empty; }
-    let Some((local, domain)) = value.split_once('@') else {
-        return DraftValue::Invalid(ParseIssue::InvalidSyntax);
-    };
-    let valid = !local.is_empty()
-        && local.bytes().all(|c| c.is_ascii_alphanumeric() || b".!#$%&'*+/=?^_`{|}~-".contains(&c))
-        && domain.split('.').all(|part| !part.is_empty() && part.len() <= 63
-            && part.as_bytes()[0].is_ascii_alphanumeric()
-            && part.as_bytes()[part.len() - 1].is_ascii_alphanumeric()
-            && part.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-'));
-    if valid { DraftValue::Parsed(Value(value.into())) }
-    else { DraftValue::Invalid(ParseIssue::InvalidSyntax) }
+    if text.is_empty() { DraftValue::Empty }
+    else { DraftValue::Parsed(Value(text.into())) }
 }
 fn format(value: &Value) -> String {
     value.0.clone()
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let initial = Value("alex@example.com".into());
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
@@ -37,12 +26,15 @@ fn main() -> Result<(), slint::PlatformError> {
         |_| String::new(),
         move |view| {
             if let Some(app) = weak.upgrade() {
-                let draft_empty = view.draft.is_empty();
                 app.set_draft(view.draft.into());
-                app.set_error(if view.error.is_empty() { String::new() } else if draft_empty { "Please fill out this field.".into() } else { "Please enter a valid email address.".into() }.into());
+                app.set_error(view.error.into());
             }
         },
     );
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Email, required: true,
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

@@ -15,6 +15,7 @@ fn format(value: &Value) -> String {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let initial = Value("+1 514 555 0123".into());
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
@@ -33,6 +34,10 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         },
     );
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Telephone, required: true,
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

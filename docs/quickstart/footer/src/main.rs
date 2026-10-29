@@ -5,6 +5,7 @@ slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let count = Cell::new(0_u32);
     let weak = app.as_weak();
     app.on_action_requested(move |action| {

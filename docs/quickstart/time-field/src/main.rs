@@ -13,6 +13,7 @@ fn format(value: &Value) -> String {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let initial = LocalTime::new(9, 30, 0).unwrap();
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
@@ -31,6 +32,11 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         },
     );
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Time, required: true,
+        step: Some("60".into()),
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

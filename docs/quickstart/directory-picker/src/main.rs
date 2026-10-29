@@ -17,6 +17,7 @@ fn fail(app: &ui::App, error: HostError) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let selected = Rc::new(RefCell::new(None::<DirectoryHandle>));
     let requests = Rc::new(RefCell::new(
         HostRequestController::<DirectoryHandle>::default(),

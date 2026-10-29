@@ -24,6 +24,7 @@ impl Workspace {
 
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let selection = slint_kit::bind_select!(
         ui,
         app,

@@ -15,6 +15,7 @@ fn publish(app: &ui::App, notices: &[(Notice, bool)]) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let notices = Rc::new(RefCell::new(vec![(Notice::SharedDocument, false), (Notice::ExportReady, false)]));
     publish(&app, &notices.borrow());
     let weak = app.as_weak(); let state = notices.clone();

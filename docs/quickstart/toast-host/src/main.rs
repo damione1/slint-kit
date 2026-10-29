@@ -10,6 +10,7 @@ fn publish(app: &ui::App, queue: &ToastQueue<()>) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let epoch = Instant::now();
     let queue = Rc::new(RefCell::new(ToastQueue::new(NonZeroUsize::new(3).unwrap())));
     queue.borrow_mut().push((), ToastLifetime::Persistent, epoch.elapsed()).expect("toast identity");

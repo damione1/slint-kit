@@ -4,6 +4,7 @@ use slint_kit::{OverlayStack, OverlaySpec, OverlayId, DismissReason, CloseResult
 mod ui { slint::include_modules!(); }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let overlays = std::rc::Rc::new(std::cell::RefCell::new(OverlayStack::new()));
     let weak = app.as_weak();
     let stack = overlays.clone();

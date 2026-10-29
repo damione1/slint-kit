@@ -4,6 +4,7 @@ use slint::ComponentHandle;
 mod ui { slint::include_modules!(); }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let weak = app.as_weak();
     app.on_navigate(move |step| { if let Some(app) = weak.upgrade() {
         let page = app.get_page();

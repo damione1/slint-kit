@@ -11,6 +11,7 @@ fn publish(app: &ui::App, range: &RangeController) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let range = Rc::new(RefCell::new(RangeController::new(NumericBounds::new(value(0), value(100)).unwrap(), OrderedRange::new(value(0), value(65)).unwrap(), DecimalStep::new(value(5)).unwrap()).unwrap()));
     publish(&app, &range.borrow());
     let state = range.clone(); let weak = app.as_weak();

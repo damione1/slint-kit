@@ -53,6 +53,7 @@ fn failed(app: &ui::App, error: HostError) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let state = Rc::new(RefCell::new(Files {
         generation: 1,
         next_id: 1,

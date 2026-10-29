@@ -24,6 +24,7 @@ fn publish(app: &ui::App, controller: &MultiSelectController<Channel>, open: boo
 fn step(value: ui::NavigationStep) -> NavigationStep { match value { ui::NavigationStep::Next => NavigationStep::Next, ui::NavigationStep::Previous => NavigationStep::Previous, ui::NavigationStep::First => NavigationStep::First, ui::NavigationStep::Last => NavigationStep::Last, ui::NavigationStep::PageNext => NavigationStep::PageNext, ui::NavigationStep::PagePrevious => NavigationStep::PagePrevious } }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let controller = Rc::new(RefCell::new(MultiSelectController::new(Channel::all().into_iter().map(|key| SelectOption::new(key, key.label())).collect(), vec![Channel::Email], Ownership::Local, None).expect("unique channel keys")));
     controller.borrow_mut().navigate(NavigationStep::First, 3);
     publish(&app, &controller.borrow(), false);

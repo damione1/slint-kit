@@ -34,6 +34,7 @@ fn view(value: LocalDateTime) -> ui::LocalDateTimeView {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let initial = local("2026-10-17", "09:30").unwrap();
     app.set_accepted_local(view(initial));
     app.set_accepted("Not resolved yet".into());

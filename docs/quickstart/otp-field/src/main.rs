@@ -10,6 +10,7 @@ fn format(value: &Value) -> String {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let initial = match parse("123456") {
         DraftValue::Parsed(value) => value,
         _ => unreachable!(),
@@ -31,6 +32,10 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         },
     );
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Text, required: true,
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

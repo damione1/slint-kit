@@ -27,6 +27,7 @@ enum WorkspaceKey {
 fn main() -> Result<(), slint::PlatformError> {
     let french = std::env::args().any(|arg| arg == "--fr");
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     app.set_language(if french {
         ui::ExampleLanguage::French
     } else {
@@ -81,6 +82,10 @@ fn main() -> Result<(), slint::PlatformError> {
         } else {
             Vec::new()
         }
+    });
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Text, required: true,
+        ..Default::default()
     });
     let weak = app.as_weak();
     field.on_intent(move |intent| {

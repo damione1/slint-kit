@@ -21,7 +21,7 @@ The label, help and error are already built into the control. [KitFieldLabel](/c
 
 ## Validate the accepted value
 
-The downloadable projects use Slint Kit 0.2.0 with a Rust `FieldBinding`. The project parser distinguishes the draft from the accepted value: an invalid draft remains editable and cannot replace the last valid value. Try the complete [email](/components/email-field/), [URL](/components/url-field/) and [masked field](/components/masked-field/) projects.
+The downloadable projects use Slint Kit 0.3.0 with a Rust `FieldBinding`. The project parser distinguishes the draft from the accepted value: an invalid draft remains editable and cannot replace the last valid value. Try the complete [email](/components/email-field/), [URL](/components/url-field/) and [masked field](/components/masked-field/) projects.
 
 Email follows the HTML grammar: one `@`, a valid local part and a valid domain. A domain without a dot, such as `name@machine`, is allowed. A URL must be absolute; validation does not establish that the site exists. [HTML email and URL reference](https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type=email)).
 

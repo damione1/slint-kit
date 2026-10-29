@@ -19,6 +19,7 @@ fn format(value: &Value) -> String {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let initial = DecimalValue::from_integer(12);
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
@@ -37,6 +38,11 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         },
     );
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Number, required: true,
+        step: Some("1".into()),
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

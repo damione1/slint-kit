@@ -2,5 +2,7 @@
 slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
-    App::new()?.run()
+    let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
+    app.run()
 }

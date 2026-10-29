@@ -54,6 +54,7 @@ fn publish(app: &ui::App, state: &State) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let date = CivilDate::new(2026, 10, 17).unwrap();
     let state = Rc::new(RefCell::new(State {
         calendar: CalendarController::new(Some(date), date.year_month(), None, WeekStart::Monday),

@@ -263,6 +263,7 @@ fn publish(
 
 pub fn create_app(french: bool) -> Result<ui::TableApp, slint::PlatformError> {
     let app = ui::TableApp::new()?;
+    slint_kit::init_form_validation!(ui, app);
     app.set_language(if french {
         ui::TableLanguage::French
     } else {

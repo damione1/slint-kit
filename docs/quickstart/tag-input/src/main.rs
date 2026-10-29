@@ -11,6 +11,7 @@ fn publish(app: &ui::App, tags: &[Tag]) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let tags = Rc::new(RefCell::new(vec![Tag { id: TagId(1), label: "Design".into() }]));
     let next = Cell::new(2_i32);
     publish(&app, &tags.borrow());

@@ -25,11 +25,11 @@ edition = "2024"
 rust-version = "1.92"
 
 [dependencies]
-slint-kit = "0.2"
+slint-kit = "0.3"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.2"
+slint-kit-build = "0.3"
 ```
 
 Créez `build.rs` à la racine de l’application. `slint-kit-build` enregistre la bibliothèque `@kit` et vérifie les contrats partagés générés avant de compiler l’interface.
@@ -44,6 +44,8 @@ Créez `ui/app.slint` :
 
 ```slint
 import { KitButton, KitTextField, KitThemes } from "@kit/kit.slint";
+
+export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 
 export component App inherits Window {
     title: "Slint Kit";
@@ -75,6 +77,7 @@ slint::include_modules!();
 
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     app.on_save(|name| println!("Enregistré : {name}"));
     app.run()
 }

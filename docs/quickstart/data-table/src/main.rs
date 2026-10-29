@@ -84,6 +84,7 @@ fn publish(state: &RefCell<State>, app: &ui::App) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let state = Rc::new(RefCell::new(State {
         order: vec![Person::Zoe, Person::Ada, Person::Lina],
         selected: None,

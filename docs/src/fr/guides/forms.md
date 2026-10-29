@@ -21,7 +21,7 @@ Le libellé, l’aide et l’erreur sont déjà intégrés au contrôle. Les bri
 
 ## Valider la valeur acceptée
 
-Les projets téléchargeables de cette documentation utilisent Slint Kit 0.2.0 avec un `FieldBinding` Rust. Le parseur du projet distingue le brouillon de la valeur acceptée : une erreur reste modifiable et ne remplace pas la dernière valeur valide. Essayez les exemples complets [email](/fr/components/email-field/), [URL](/fr/components/url-field/) et [masque](/fr/components/masked-field/).
+Les projets téléchargeables de cette documentation utilisent Slint Kit 0.3.0 avec un `FieldBinding` Rust. Le parseur du projet distingue le brouillon de la valeur acceptée : une erreur reste modifiable et ne remplace pas la dernière valeur valide. Essayez les exemples complets [email](/fr/components/email-field/), [URL](/fr/components/url-field/) et [masque](/fr/components/masked-field/).
 
 L’email suit la grammaire HTML : un seul `@`, une partie locale et un domaine valides. Un domaine sans point, comme `nom@machine`, est autorisé. Une URL doit être absolue ; cette validation ne vérifie pas que le site existe. [Référence HTML email et URL](https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type=email)).
 

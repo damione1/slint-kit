@@ -4,6 +4,7 @@ use slint::ComponentHandle;
 mod ui { slint::include_modules!(); }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let weak = app.as_weak();
     app.on_remove(move |token| { if token == 11 { if let Some(app) = weak.upgrade() { app.set_showing(false); } } });
     let weak = app.as_weak();

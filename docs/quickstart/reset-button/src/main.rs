@@ -12,6 +12,7 @@ impl ProjectName {
 
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
+    slint_kit::init_form_validation!(self, app);
     let weak = app.as_weak();
     app.on_form_action(move |action, draft| {
         if let Some(app) = weak.upgrade() {

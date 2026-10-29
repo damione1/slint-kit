@@ -27,6 +27,7 @@ fn publish(app: &ui::App, color: SrgbColor, accepted: bool) {
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
+    slint_kit::init_form_validation!(ui, app);
     let initial = SrgbColor {
         red: 79,
         green: 70,

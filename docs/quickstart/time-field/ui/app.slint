@@ -1,3 +1,4 @@
+export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import { KitTimeField, KitButton, KitThemes, ValidationPresentation } from "@kit/kit.slint";
 export component App inherits Window {
     title: "Local time"; preferred-width: 520px; preferred-height: 320px;
@@ -8,6 +9,7 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         control := KitTimeField {
+            required: true;
             label: "Local time"; text <=> root.draft; error: root.error;
             validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             placeholder: "09:30";

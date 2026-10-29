@@ -18,7 +18,7 @@ eleventyComputed:
 
 # {{ component | componentLabel(locale) }} {% if locale == 'fr' %}pour Slint{% else %}for Slint{% endif %}
 
-<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.2.0</p>
+<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.3.0</p>
 
 {{ text.summary }}
 
@@ -49,7 +49,7 @@ eleventyComputed:
 
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
-<p class="source-link"><a href="{{ site.repository }}/blob/{{ site.sourceRef }}/{{ component.source }}#L{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
+<p class="source-link"><a href="https://docs.rs/crate/slint-kit-slint/{{ project.version }}/source/{{ component.source | replace("crates/kit-slint/", "") }}#{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
 
 {% if component.optionConsumers.length %}
 ## {% if locale == 'fr' %}Option commune{% else %}Shared option{% endif %} `{{ component.sharedOption }}`
