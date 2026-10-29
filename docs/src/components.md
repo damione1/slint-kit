@@ -18,7 +18,7 @@ eleventyComputed:
 
 # {{ component | componentLabel(locale) }} {% if locale == 'fr' %}pour Slint{% else %}for Slint{% endif %}
 
-<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.3.0</p>
+<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.3.1</p>
 
 {{ text.summary }}
 
@@ -46,6 +46,8 @@ eleventyComputed:
 {{ text.usage | prose | safe }}
 
 {{ text.behavior | prose | safe }}
+
+{% if component.name == "KitTelephoneField" %}{% include "telephone-options.njk" %}{% endif %}
 
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 

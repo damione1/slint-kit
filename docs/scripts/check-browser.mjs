@@ -206,7 +206,9 @@ try {
   await call('Network.setCacheDisabled', { cacheDisabled: false });
   await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: browserDensity, mobile: false });
   const starters = JSON.parse(await fs.readFile(path.join(docs, 'content/starters.json'), 'utf8'));
-  for (const slug of Object.keys(starters)) {
+  const previewSlugs = process.env.BROWSER_COMPONENTS?.split(',').filter(Boolean) || Object.keys(starters);
+  assert(previewSlugs.length && previewSlugs.every(slug => Object.hasOwn(starters, slug)), 'BROWSER_COMPONENTS must list known component slugs');
+  for (const slug of previewSlugs) {
     await navigate(`/preview/?component=${slug}`);
     for (let count = 0; count < 300; count++) {
       if (await evaluate('Boolean(window.previewReady || window.previewError)')) break;
@@ -224,6 +226,39 @@ try {
     await fs.writeFile(path.join(visualOutput, `${slug}.png`), Buffer.from(capture.data, 'base64'));
     results.push({ name: 'browser-preview-startup', component: slug, ...state });
   }
+  // Winit's DOM paste handler bypasses TextInput key callbacks. Exercise the
+  // real browser event, including formatted paste and leaving the Slint window.
+  await navigate('/preview/?component=telephone-field');
+  for (let count = 0; count < 300; count++) {
+    if (await evaluate('Boolean(window.previewReady || window.previewError)')) break;
+    await pause(100);
+  }
+  assert(await evaluate('Boolean(window.previewReady && !window.previewError)'));
+  await call('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, x: 120, y: 70 });
+  await call('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, x: 120, y: 70 });
+  await pause(100);
+  const phonePaste = await evaluate(`(() => {
+    const target = document.activeElement;
+    const paste = text => {
+      const data = new DataTransfer(); data.setData('text/plain', text);
+      const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+      let propagated = false; const observe = () => { propagated = true; };
+      document.addEventListener('paste', observe, true);
+      target.dispatchEvent(event); document.removeEventListener('paste', observe, true);
+      return { prevented: event.defaultPrevented, propagated };
+    };
+    return { rejected: paste('+1 ABC 555-0123'), formatted: paste('+1 (438) 555-0123') };
+  })()`);
+  assert(phonePaste.rejected.prevented && !phonePaste.rejected.propagated, 'Phone must reject letters before the browser backend inserts them');
+  assert(phonePaste.formatted.propagated, 'Phone must let the native editor handle supported formatted paste');
+  assert(await evaluate(`(async () => {
+    const input = document.createElement('input'); document.body.append(input); input.focus();
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const data = new DataTransfer(); data.setData('text/plain', 'Ada');
+    const event = new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true });
+    input.dispatchEvent(event); input.remove(); return !event.defaultPrevented;
+  })()`), 'Phone paste guard must leave external HTML inputs alone');
+  results.push({ name: 'phone-browser-paste-guard', ...phonePaste, externalInputPreserved: true });
   for (const locale of ['en', 'fr']) {
     await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: browserDensity, mobile: false });
     const start = requests.length;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTelephoneField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitTelephoneField, PhoneNumberMode, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
     title: "KitTelephoneField example";
@@ -13,7 +13,8 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Telephone Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitTelephoneField { theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; edited(value) => { root.status = "Draft: " + value; } }
+        KitTelephoneField {
+            number-mode: PhoneNumberMode.international; expected-digits: 11; display-mask: "+# ### ### ####"; theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; edited(value) => { root.status = "Draft: " + value; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

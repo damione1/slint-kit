@@ -22,7 +22,7 @@ KitEmailField {
 
 ## Initialiser la validation
 
-Les projets complets utilisent Slint Kit **0.3.0** et initialisent le moteur une fois par fenêtre. Pour l’ajouter à votre application, exportez ces types depuis le fichier Slint principal, puis installez le moteur dans Rust :
+Les projets complets utilisent Slint Kit **0.3** et initialisent le moteur une fois par fenêtre. Pour l’ajouter à votre application, exportez ces types depuis le fichier Slint principal, puis installez le moteur dans Rust :
 
 ```slint
 export { KitFormValidation, HtmlInputKind, NumberInputFormat,
