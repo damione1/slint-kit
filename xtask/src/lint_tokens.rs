@@ -23,6 +23,12 @@ const EXEMPT_FILES: [(&str, &str); 3] = [
     ),
 ];
 
+/// Directories of generated files, relative to the UI directory.
+const EXEMPT_DIRECTORIES: [(&str, &str); 1] = [(
+    "icons/lucide/",
+    "generated from the vendored Lucide snapshot, never hand-edited",
+)];
+
 /// Literals allowed everywhere, with the reason.
 const ALLOWED_LITERALS: [(&str, &str); 1] = [("100000px", "Slint's unbounded maximum size")];
 
@@ -367,8 +373,14 @@ pub fn run() -> Result<(), String> {
     let mut files = Vec::new();
     slint_files(&ui, &ui, &mut files)?;
     let mut problems = Vec::new();
+    let mut skipped = 0;
     for (relative, path) in &files {
-        if EXEMPT_FILES.iter().any(|(name, _)| name == relative) {
+        if EXEMPT_FILES.iter().any(|(name, _)| name == relative)
+            || EXEMPT_DIRECTORIES
+                .iter()
+                .any(|(directory, _)| relative.starts_with(directory))
+        {
+            skipped += 1;
             continue;
         }
         let source =
@@ -398,8 +410,8 @@ pub fn run() -> Result<(), String> {
     }
     if problems.is_empty() {
         println!(
-            "lint-tokens: {} files checked, {} allowlist entries in use",
-            files.len(),
+            "lint-tokens: {} files checked ({skipped} exempt), {} allowlist entries in use",
+            files.len() - skipped,
             entries.len()
         );
         Ok(())
