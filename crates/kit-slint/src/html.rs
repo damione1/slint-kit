@@ -57,6 +57,70 @@ macro_rules! init_form_validation {
             count
         });
         global.on_numeric_insertion(|text| $crate::__core::html_numeric_insertion(text.as_str()));
+        global.on_phone_insertion(|text| $crate::__core::phone_insertion(text.as_str()));
+        #[cfg(target_arch = "wasm32")]
+        let phone_paste_guard = {
+            let weak = window.as_weak();
+            $crate::guard_web_phone_paste(move || {
+                weak.upgrade()
+                    .is_some_and(|view| view.global::<$ui::KitFormValidation>().get_phone_focused())
+            })
+            .expect("install phone paste guard")
+        };
+        global.on_phone_paste(move |text| {
+            #[cfg(target_arch = "wasm32")]
+            let _keep_alive = &phone_paste_guard;
+            $crate::__core::normalize_phone(text.as_str()).is_ok()
+        });
+        global.on_phone_value(|text| {
+            $crate::__core::normalize_phone(text.as_str())
+                .unwrap_or_default()
+                .into()
+        });
+        global.on_phone_display(|text, source| {
+            let Ok(canonical) = $crate::__core::normalize_phone(text.as_str()) else {
+                return text;
+            };
+            if source.is_empty() {
+                return canonical.into();
+            }
+            $crate::__core::PhoneDisplayMask::new(source.as_str())
+                .map_or(canonical.clone(), |mask| mask.format(&canonical))
+                .into()
+        });
+        global.on_phone_mask_error(|source| {
+            if source.is_empty() || $crate::__core::PhoneDisplayMask::new(source.as_str()).is_ok() {
+                "".into()
+            } else {
+                "Use 1–15 # digit slots, visual separators and at most one leading +.".into()
+            }
+        });
+        global.on_phone_error(|text, allow_plus, require_plus, min, max, syntax, length| {
+            use $crate::__core::{PhoneError, PhoneNumberMode, PhoneRules};
+            let mode = if require_plus {
+                PhoneNumberMode::International
+            } else if allow_plus {
+                PhoneNumberMode::Either
+            } else {
+                PhoneNumberMode::National
+            };
+            let rules = u8::try_from(min)
+                .ok()
+                .zip(u8::try_from(max).ok())
+                .and_then(|(min, max)| PhoneRules::new(mode, min, max).ok());
+            let Some(rules) = rules else {
+                return "Phone digit bounds must be between 1 and 15, with min <= max.".into();
+            };
+            match rules.validate(text.as_str()) {
+                Ok(_) => "".into(),
+                Err(PhoneError::TooShort | PhoneError::TooLong) => length,
+                Err(
+                    PhoneError::UnsupportedCharacter
+                    | PhoneError::InvalidPrefix
+                    | PhoneError::InvalidConfiguration,
+                ) => syntax,
+            }
+        });
         global.on_evaluate(move |c, text, user_edited, checked, selected_count| {
             use $crate::__core::HtmlInputKind as Core;
             use $ui::HtmlInputKind as View;

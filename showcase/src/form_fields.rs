@@ -448,26 +448,14 @@ fn parse_website(text: &str) -> DraftValue<Website> {
     }
 }
 fn parse_phone(text: &str) -> DraftValue<PhoneNumber> {
-    if text.is_empty() {
-        return DraftValue::Empty;
-    }
-    // This example's application policy accepts international numbers. It keeps
-    // punctuation and leading zeros; it does not claim regional deliverability.
-    if !text.starts_with('+')
-        || text
-            .chars()
-            .skip(1)
-            .any(|c| !(c.is_ascii_digit() || matches!(c, ' ' | '(' | ')' | '-' | '.')))
+    match kit::PhoneRules::new(kit::PhoneNumberMode::International, 7, 15)
+        .unwrap()
+        .parse(text)
     {
-        return DraftValue::Invalid(ParseIssue::InvalidSyntax);
-    }
-    let digits = text.bytes().filter(u8::is_ascii_digit).count();
-    if digits < 7 {
-        DraftValue::Incomplete
-    } else if digits > 15 {
-        DraftValue::Invalid(ParseIssue::InvalidSyntax)
-    } else {
-        DraftValue::Parsed(PhoneNumber(text.into()))
+        DraftValue::Parsed(value) => DraftValue::Parsed(PhoneNumber(value.as_str().into())),
+        DraftValue::Empty => DraftValue::Empty,
+        DraftValue::Incomplete => DraftValue::Incomplete,
+        DraftValue::Invalid(issue) => DraftValue::Invalid(issue),
     }
 }
 fn parse_password(text: &str) -> DraftValue<SecretText> {
@@ -600,7 +588,7 @@ fn initial_profile() -> ProfilePayload {
         website: Some(Website(
             url::Url::parse("https://allsafe.example").expect("sample URL"),
         )),
-        phone: PhoneNumber("+1 514 555 0100".into()),
+        phone: PhoneNumber("+15145550100".into()),
         biography: Some(Biography(
             "Security engineer at Allsafe.\nI keep incident notes for the team.".into(),
         )),
