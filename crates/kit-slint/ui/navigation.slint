@@ -3,7 +3,7 @@ import { ListView, ScrollFrame } from "scroll.slint";
 import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitDialogSurface, KitDialogPanel } from "dialog.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
@@ -280,7 +280,7 @@ export component KitCollapse inherits VerticalLayout {
             spacing: root.theme.spacing.unit * 2;
             Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitMetrics.icon-size(root.theme, ControlSize.medium); horizontal-stretch: 0;
-                KitIcon { theme: root.theme; y: (parent.height - self.height) / 2; glyph: root.expanded ? KitGlyphs.chevron-down() : KitGlyphs.chevron-right(); ink: root.theme.text-secondary; }
+                TurningIcon { theme: root.theme; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: KitGlyphs.chevron-right(); turned-glyph: KitGlyphs.chevron-down(); turn: 90deg; ink: root.theme.text-secondary; }
             }
         }
     }
@@ -336,7 +336,7 @@ export component KitAccordion inherits VerticalLayout {
             activate(token, generation) => { root.expansion-requested(token, generation, !row.expanded, root.mode); }
             // Children of a pressable sit in its padded content box, while
             // `parent` names the pressable itself: place from its own metrics.
-            KitIcon { theme: root.theme; x: max(0px,trigger.width - self.width - 2 * root.inset-x); y: (trigger.height - 2 * trigger.recipe.padding-block - self.height) / 2; glyph: row.expanded ? KitGlyphs.chevron-down() : KitGlyphs.chevron-right(); ink: root.theme.text-secondary; }
+            TurningIcon { theme: root.theme; x: max(0px,trigger.width - self.width - 2 * root.inset-x); y: (trigger.height - 2 * trigger.recipe.padding-block - self.height) / 2; turned: row.expanded; rest-glyph: KitGlyphs.chevron-right(); turned-glyph: KitGlyphs.chevron-down(); turn: 90deg; ink: root.theme.text-secondary; }
         }
         Rectangle {
             height: row.expanded ? answer.preferred-height + 2 * root.inset-y : 0px;

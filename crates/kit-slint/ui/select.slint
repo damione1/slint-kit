@@ -1,7 +1,7 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
@@ -348,10 +348,12 @@ export component KitSelect inherits Rectangle {
                     text: "!"; color: root.theme.danger; font-family: root.theme.typography.family; vertical-alignment: center; horizontal-alignment: center;
                 }
                 // Points up while the list is presented below the trigger.
-                if root.state.selection-availability != SelectionAvailability.unavailable: KitIcon {
+                if root.state.selection-availability != SelectionAvailability.unavailable: TurningIcon {
                     theme: root.theme;
                     y: (parent.height - self.height) / 2;
-                    glyph: root.state.open ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down();
+                    turned: root.state.open;
+                    rest-glyph: KitGlyphs.chevron-down();
+                    turned-glyph: KitGlyphs.chevron-up();
                     ink: trigger.disabled ? root.icon.disabled-color : root.icon.color;
                 }
             }

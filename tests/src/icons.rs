@@ -366,3 +366,94 @@ fn informative_icons_are_named_images_and_decorative_icons_stay_silent() {
         Some(AccessibleRole::Image)
     );
 }
+
+fn advance(milliseconds: u64) {
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(milliseconds));
+    slint::platform::update_timers_and_animations();
+}
+
+#[test]
+fn turning_icons_rest_unrotated_on_the_glyph_of_their_state() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = TurningIconFixture::new().unwrap();
+    window.show().unwrap();
+    // At rest each icon draws its state's glyph without rotation, so a
+    // renderer that cannot rotate paths still points the right way.
+    assert_eq!(window.get_chevron_glyph(), window.get_down());
+    assert_eq!(window.get_disclosure_glyph(), window.get_right());
+    assert_eq!(window.get_chevron_rotation(), 0.);
+    assert_eq!(window.get_disclosure_rotation(), 0.);
+
+    window.set_open(true);
+    // The new glyph appears at once, rotated back onto the old direction:
+    // up turned half a turn looks down; down turned a quarter back looks right.
+    assert_eq!(window.get_chevron_glyph(), window.get_up());
+    assert_eq!(window.get_disclosure_glyph(), window.get_down());
+    assert!(close(window.get_chevron_rotation(), -180.));
+    assert!(close(window.get_disclosure_rotation(), -90.));
+    advance(75);
+    let halfway = window.get_chevron_rotation();
+    assert!(
+        -180. < halfway && halfway < 0.,
+        "mid-turn rotation {halfway}"
+    );
+    advance(200);
+    assert_eq!(window.get_chevron_rotation(), 0.);
+    assert_eq!(window.get_disclosure_rotation(), 0.);
+
+    window.set_open(false);
+    assert_eq!(window.get_chevron_glyph(), window.get_down());
+    assert_eq!(window.get_disclosure_glyph(), window.get_right());
+    // Right turned a quarter clockwise looks down, the state just left.
+    assert!(close(window.get_disclosure_rotation(), 90.));
+    advance(300);
+    assert_eq!(window.get_disclosure_rotation(), 0.);
+}
+
+#[test]
+fn turning_icons_snap_with_reduced_motion() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = TurningIconFixture::new().unwrap();
+    window.show().unwrap();
+    let mut theme = window.get_theme();
+    theme.reduced_motion = true;
+    window.set_theme(theme);
+    window.set_open(true);
+    advance(0);
+    assert_eq!(window.get_chevron_glyph(), window.get_up());
+    assert_eq!(window.get_chevron_rotation(), 0.);
+    assert_eq!(window.get_disclosure_rotation(), 0.);
+}
+
+#[test]
+fn chips_mark_removal_with_the_close_glyph() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = TurningIconFixture::new().unwrap();
+    window.show().unwrap();
+    let chip = ElementQuery::from_root(&window)
+        .match_inherits("KitChip")
+        .find_first()
+        .expect("chip");
+    assert_eq!(chip.accessible_label().as_deref(), Some("Remove Alpha"));
+    let labels: Vec<_> = ElementQuery::from_root(&window)
+        .match_type_name("Text")
+        .find_all()
+        .into_iter()
+        .filter_map(|text| text.accessible_value().or_else(|| text.accessible_label()))
+        .collect();
+    assert_eq!(labels, ["Alpha"], "the label carries no text glyph");
+    let icon = ElementQuery::from_root(&window)
+        .match_inherits("KitIcon")
+        .find_all()
+        .into_iter()
+        .find(|icon| {
+            let (position, chip_position) = (icon.absolute_position(), chip.absolute_position());
+            position.y >= chip_position.y && position.x > chip_position.x
+        })
+        .expect("close glyph inside the chip");
+    // The compact icon size, inside the chip's trailing padding.
+    assert!(close(icon.size().width, 14.));
+    let right = icon.absolute_position().x + icon.size().width;
+    assert!(right < chip.absolute_position().x + chip.size().width);
+    assert!(window.get_chip_width() > 14.);
+}

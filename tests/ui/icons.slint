@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Compiles the generated Lucide globals (all.slint and every category file)
 // and exercises KitIcon sizing, stroke, fill, geometry and accessibility.
-import { KitIcon, KitIconButton, KitGlyphs, IconGlyph, IconPurpose, IconStroke, IconRecipe, KitTheme, KitThemes, ControlSize } from "@kit/kit.slint";
+import { KitIcon, KitIconButton, KitChip, KitGlyphs, IconGlyph, IconPurpose, IconStroke, IconRecipe, KitTheme, KitThemes, ControlSize } from "@kit/kit.slint";
+// Internal: the turning chevron the kit's selects and disclosures use.
+import { TurningIcon } from "@kit/icons.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 import { LucideAccessibility } from "@kit/icons/lucide/accessibility.slint";
 import { LucideAccount } from "@kit/icons/lucide/account.slint";
@@ -188,4 +190,24 @@ export component IconRenderFixture inherits Window {
     KitIcon { x: 68px; y: 4px; width: 24px; height: 24px; glyph: root.square; ink: black; }
     KitIcon { x: 100px; y: 4px; width: 48px; height: 48px; glyph: LucideIcons.minus(); stroke-mode: IconStroke.absolute; ink: black; }
     KitIcon { x: 4px; y: 32px; width: 48px; height: 24px; glyph: LucideIcons.minus(); ink: black; }
+}
+
+// A select-style chevron, a disclosure chevron and a chip, to check that each
+// turning icon rests on the glyph of its state and turns home over time.
+export component TurningIconFixture inherits Window {
+    width: 200px;
+    height: 80px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> open;
+    out property <angle> chevron-rotation: chevron.rotation;
+    out property <IconGlyph> chevron-glyph: chevron.glyph;
+    out property <angle> disclosure-rotation: disclosure.rotation;
+    out property <IconGlyph> disclosure-glyph: disclosure.glyph;
+    out property <IconGlyph> up: KitGlyphs.chevron-up();
+    out property <IconGlyph> down: KitGlyphs.chevron-down();
+    out property <IconGlyph> right: KitGlyphs.chevron-right();
+    out property <length> chip-width: chip.width;
+    chevron := TurningIcon { x: 4px; y: 4px; theme: root.theme; turned: root.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); }
+    disclosure := TurningIcon { x: 28px; y: 4px; theme: root.theme; turned: root.open; rest-glyph: KitGlyphs.chevron-right(); turned-glyph: KitGlyphs.chevron-down(); turn: 90deg; }
+    chip := KitChip { x: 4px; y: 32px; theme: root.theme; chip: { token: 1, label: "Alpha", removable: true }; }
 }

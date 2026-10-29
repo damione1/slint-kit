@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, ControlSize, IconRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, ControlSize, IconRecipe } from "theme.slint";
 import { IconGlyph, IconStroke } from "icons/glyph.slint";
 export { IconGlyph, IconStroke }
 
@@ -88,5 +88,38 @@ export component KitIcon inherits Rectangle {
         width: 100%; height: 100%;
         accessible-role: image;
         accessible-label: root.label;
+    }
+}
+
+// Internal: an icon that turns between two glyphs, like a chevron that points
+// down while closed and up while open. At rest it draws the glyph of its state
+// unrotated, so every renderer shows the right direction, including the
+// software renderer, which does not rotate paths. On a change it swaps the
+// glyph at once and starts it rotated back onto the old direction, then turns
+// it home over the theme's fast duration (instantly with reduced motion).
+export component TurningIcon inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <color> ink: KitThemes.icon-recipe(root.theme, root.control-size).color;
+    in property <bool> turned;
+    in property <IconGlyph> rest-glyph;
+    in property <IconGlyph> turned-glyph;
+    // The clockwise angle that carries `rest-glyph` onto `turned-glyph`.
+    in property <angle> turn: 180deg;
+    private property <angle> target: root.turned ? root.turn : 0deg;
+    private property <angle> eased: root.target;
+    animate eased { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; easing: ease-in-out; }
+    // The rotation currently applied: zero at rest.
+    out property <angle> rotation: root.eased - root.target;
+    // The glyph drawn for the current state.
+    out property <IconGlyph> glyph: root.turned ? root.turned-glyph : root.rest-glyph;
+    width: KitMetrics.icon-size(root.theme, root.control-size); height: self.width;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    // Slint does not rotate a component's root, so the icon turns inside it.
+    KitIcon {
+        width: root.width; height: root.height;
+        theme: root.theme; control-size: root.control-size; ink: root.ink;
+        glyph: root.glyph;
+        transform-rotation: root.rotation;
     }
 }

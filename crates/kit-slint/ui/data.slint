@@ -2,7 +2,7 @@
 import { ListView } from "scroll.slint";
 import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
@@ -97,7 +97,7 @@ export component KitDataTable inherits Rectangle {
                     Text {horizontal-stretch: 0; max-width: self.preferred-width; text:column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-semibold;overflow:elide;vertical-alignment:center;}
                     if column.sort != DataSortDirection.unsorted: Rectangle {
                         width: KitMetrics.icon-size(root.theme, ControlSize.medium); height: parent.height;
-                        KitIcon {theme: root.theme; y: (parent.height - self.height) / 2; glyph:column.sort == DataSortDirection.ascending ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down();ink:root.theme.text-secondary;}
+                        TurningIcon {theme: root.theme; y: (parent.height - self.height) / 2; turned: column.sort == DataSortDirection.descending; rest-glyph: KitGlyphs.chevron-up(); turned-glyph: KitGlyphs.chevron-down();ink:root.theme.text-secondary;}
                     }
                 }
             }

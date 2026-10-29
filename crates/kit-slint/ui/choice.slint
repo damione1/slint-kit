@@ -7,7 +7,7 @@ import { FocusOutline } from "focus.slint";
 import { KitFieldLabel, KitFieldError } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
 import { ListView } from "scroll.slint";
 
@@ -435,12 +435,36 @@ export component KitToggleGroup inherits Rectangle {
     }
 }
 
-export component KitChip inherits KitButton {
+// A removable value: its label, then a close glyph that marks the press as removal.
+export component KitChip inherits KitPressable {
     in property <ChipRow> chip;
     callback remove-requested(int);
     private property <int> press-token;
-    text: root.chip.label + " ×";
+    private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> gap: root.theme.spacing.unit;
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.gap + root.icon-size + 2 * root.recipe.padding-inline);
+    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    preferred-width: root.natural-width;
     control-size: ControlSize.compact;
+    HorizontalLayout {
+        spacing: root.gap;
+        label := Text {
+            text: root.chip.label;
+            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle {
+            width: root.icon-size; horizontal-stretch: 0;
+            KitIcon {
+                theme: root.theme; control-size: root.control-size;
+                y: (parent.height - self.height) / 2;
+                glyph: KitGlyphs.close();
+                ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            }
+        }
+    }
     accessible-name: "Remove " + root.chip.label;
     disabled: !root.chip.removable;
     activation-started => { root.press-token = root.chip.token; }
@@ -652,7 +676,7 @@ export component KitCombobox inherits Rectangle {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
             // Points up while the list is presented below the trigger.
-            KitIcon { theme: root.theme; glyph: root.state.open ? KitGlyphs.chevron-up() : KitGlyphs.chevron-down(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
+            TurningIcon { theme: root.theme; turned: root.state.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
     }
     popup := PopupWindow {
