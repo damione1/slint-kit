@@ -1,60 +1,81 @@
 ---
 layout: base.njk
 locale: fr
-title: "Formulaires, options et validation"
+title: "Formulaires, options partagées et validation"
 translationKey: "guides/forms/"
 permalink: "{{ 'guides/forms/' | localeUrl(locale) }}index.html"
 ---
-# Formulaires, options et validation
+# Formulaires, options partagées et validation
 
-Pour un champ courant, choisissez le contrôle et définissez ses options :
+Choisissez un champ, puis réglez ses options :
 
 ```slint
 KitEmailField {
-    label: "Adresse email";
-    placeholder: "nom@example.com";
-    description: "Utilisée pour les notifications.";
+    label: "Email professionnel";
+    required: true;
+    pattern: ".+@example\\.com";
+    pattern-message: "Utilisez votre adresse example.com.";
 }
 ```
 
-Le libellé, l’aide et l’erreur sont déjà intégrés au contrôle. Les briques [KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) servent à une composition personnalisée. Leurs pages recensent les contrôles qui offrent déjà la propriété correspondante ; chaque référence affiche aussi ses propriétés héritées.
+`label`, `description` et `error` sont intégrés aux champs. [KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) servent à composer une présentation personnalisée. Leurs pages listent les contrôles compatibles ; chaque référence affiche aussi ses propriétés héritées.
 
-## Valider la valeur acceptée
+## Initialiser la validation
 
-Les projets téléchargeables de cette documentation utilisent Slint Kit 0.3.0 avec un `FieldBinding` Rust. Le parseur du projet distingue le brouillon de la valeur acceptée : une erreur reste modifiable et ne remplace pas la dernière valeur valide. Essayez les exemples complets [email](/fr/components/email-field/), [URL](/fr/components/url-field/) et [masque](/fr/components/masked-field/).
+Les projets complets utilisent Slint Kit **0.3.0** et initialisent le moteur une fois par fenêtre. Pour l’ajouter à votre application, exportez ces types depuis le fichier Slint principal, puis installez le moteur dans Rust :
 
-L’email suit la grammaire HTML : un seul `@`, une partie locale et un domaine valides. Un domaine sans point, comme `nom@machine`, est autorisé. Une URL doit être absolue ; cette validation ne vérifie pas que le site existe. [Référence HTML email et URL](https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type=email)).
+```slint
+export { KitFormValidation, HtmlInputKind, NumberInputFormat,
+    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+```
 
-Un champ vide est facultatif sauf si le contrôleur utilise `AbsencePolicy::Required`. Vérifiez aussi la soumission en Rust ; une indication visuelle ne remplace pas le refus d’accepter une valeur invalide. [Contraintes et soumission HTML](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
+```rust
+// Après App::new(), avant app.run().
+slint_kit::init_form_validation!(self, app);
+```
+
+Si le code généré est dans `mod ui`, utilisez `init_form_validation!(ui, app)`. Sans initialisation, `validation-ready` reste faux et les vérifications refusent la validation. Les projets [email](/fr/components/email-field/), [URL](/fr/components/url-field/) et [champ texte](/fr/components/text-field/) contiennent les fichiers complets.
+
+## Choisir les contraintes
+
+| Option | Usage |
+| --- | --- |
+| `required` | Refuser une valeur vide ou une sélection obligatoire manquante. |
+| `multiple` | Autoriser plusieurs emails séparés par des virgules. |
+| `min-length`, `max-length` | Longueur des champs texte en unités UTF-16 ; `-1` désactive la limite. Le brouillon natif reste modifiable. |
+| `pattern`, `pattern-message` | Regex ECMAScript `v`, appliquée à toute la valeur. |
+| `min`, `max`, `step` | Bornes et pas des nombres, dates et heures, sous forme canonique ; `step: "any"` enlève la contrainte de pas. |
+| `default-value` | Valeur de réinitialisation et base du pas si `min` est absent. |
+| `validation-timing` | `on-blur` par défaut ; aussi `on-input` et `on-submit`. |
+| `custom-validity` | Erreur de l’application ; une chaîne vide la retire. |
+
+Un email incomplet devient une erreur à la perte du focus. Un second `@` ou un caractère interdit révèle l’erreur dès la saisie. `name@machine` est valide selon HTML : un point dans le domaine n’est pas obligatoire. Une URL doit être absolue ; `https://example.comddf.dofmo@` est invalide, tandis que `mailto:a@example.com` est valide. La validation ne vérifie ni l’existence d’une boîte email ni celle d’un site. [Règles HTML email et URL](https://html.spec.whatwg.org/multipage/input.html).
+
+`validity` expose les motifs d’erreur indépendants ; `value` fournit la valeur canonique et `text` conserve le brouillon natif. `check-validity()` vérifie ; `report-validity()` affiche l’erreur et place le focus. Les champs désactivés sont exclus, ainsi que les champs texte en lecture seule. [Validation des formulaires HTML](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
+
+## Protéger la valeur acceptée en Rust
+
+Un message visuel ne remplace pas la vérification au moment d’accepter la valeur. Les exemples utilisent `FieldBinding` avec les mêmes contraintes :
+
+```rust
+field.set_html_constraints(slint_kit::HtmlConstraints {
+    kind: slint_kit::HtmlInputKind::Email,
+    required: true,
+    pattern: Some(slint_kit::HtmlPattern::compile(r".+@example\.com").expect("valid application pattern")),
+    ..Default::default()
+});
+```
+
+Le moteur vérifie avant le parseur métier. Le parseur reçoit la valeur normalisée ; un brouillon invalide ne remplace pas la dernière valeur acceptée. Pour plusieurs champs, utilisez `HtmlFormValidation<CleChamp>` et `first_invalid()`, ou reliez `KitSubmitButton.validation-requested`. `form-no-validate` contourne cette vérification ; une réinitialisation ne soumet pas.
 
 ## Masque ou regex
 
-Le masque vérifie une structure à positions fixes. Une regex permet d’exprimer une règle plus libre. Pour ajouter une règle au [projet de champ texte](/fr/components/text-field/), ajoutez `regress = "=0.12.0"` dans ses dépendances, puis remplacez son parseur :
+Un [masque](/fr/components/masked-field/) guide une structure fixe. Une regex valide sans réécrire la saisie. Par exemple, `pattern: "[A-Z]{3}-[0-9]{4}"` accepte `ABC-1234`, refuse `abc-1234` et refuse `XABC-1234`. Il s’agit d’une option commune, pas d’un composant supplémentaire.
 
-```rust
-fn parse(text: &str) -> DraftValue<Value> {
-    use std::sync::OnceLock;
-    static PATTERN: OnceLock<regress::Regex> = OnceLock::new();
-    let pattern = PATTERN.get_or_init(|| {
-        regress::Regex::with_flags(r"^(?:[A-Z]{3}-\d{4})$", "v")
-            .expect("valid application pattern")
-    });
-    if text.is_empty() {
-        DraftValue::Empty
-    } else if pattern.find(text).is_some_and(|m| m.range() == (0..text.len())) {
-        DraftValue::Parsed(Value(text.into()))
-    } else {
-        DraftValue::Invalid(ParseIssue::InvalidSyntax)
-    }
-}
-```
+HTML n’applique pas `pattern` à `textarea`. Pour une règle multiligne, utilisez `HtmlPattern` en Rust et transmettez son résultat avec `custom-validity`. Une regex invalide est ignorée comme en HTML ; `pattern-error` expose le diagnostic. `pattern-enabled: true` distingue un motif explicitement vide de l’absence de motif. [Attribut HTML pattern](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
 
-Définissez aussi la valeur initiale du projet avec `let initial = Value("ABC-1234".into());`.
+## Composer et étendre
 
-`ABC-1234` est accepté ; `abc-1234` et `XABC-1234` sont refusés. Le matching porte sur toute la valeur. Le mode `v` utilise la syntaxe ECMAScript, avec les ensembles Unicode. [API du moteur regex](https://docs.rs/regress/0.12.0/regress/struct.Regex.html).
+Conservez l’éditeur natif pour le curseur, la sélection et l’historique. Les thèmes, libellés, messages, préfixes et suffixes restent personnalisables. Pour un autre habillage, importez le composant non visuel `FormConstraintState` depuis `@kit/validation.slint`. Les règles métier, montants exacts, masques, alphabets OTP et résolution des fuseaux restent dans les contrôleurs typés. [Contrôleurs](/fr/guides/controllers/).
 
-En HTML, `pattern` s’applique aux champs texte, email, URL, téléphone, recherche et mot de passe ; il ne s’applique pas à `textarea`. Une règle spécifique sur une zone multiligne reste une validation explicite de l’application. [Attribut `pattern`](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
-
-## Étendre sans remplacer l’éditeur
-
-Conservez le `TextInput` du contrôle pour sa sélection, son curseur et son historique. Personnalisez le thème, les libellés, les préfixes et suffixes ; raccordez votre parseur et vos contraintes de domaine à `FieldBinding`. Pour des règles partagées ou asynchrones, consultez les [contrôleurs typés](/fr/guides/controllers/).
+Le kit fournit une validation native inspirée du standard HTML. Le transport HTTP des formulaires, l’autofill des navigateurs et les claviers propres à chaque plateforme nécessitent une intégration hôte ; les contrôles de couleur conservent leur modèle sRGB typé.

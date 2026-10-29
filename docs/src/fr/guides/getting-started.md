@@ -89,15 +89,7 @@ Lancez `cargo run` depuis `my-app`. Cette configuration utilise le **backend win
 
 Pour une application fonctionnelle, commencez par le [bouton](/fr/components/button/) ou la [liste avec recherche](/fr/components/combobox/) : chaque fiche fournit les quatre fichiers et leurs callbacks Rust raccordés.
 
-Les autres [fiches de composant](/fr/components/) contiennent la composition visuelle de la capture. Pour l’afficher, copiez le fichier `.slint` dans `ui/app.slint` et conservez `build.rs`. Ces fichiers exportent `Example` ; utilisez ce point d’entrée :
-
-```rust
-slint::include_modules!();
-
-fn main() -> Result<(), slint::PlatformError> {
-    Example::new()?.run()
-}
-```
+Chaque fiche propose un projet complet téléchargeable avec `Cargo.lock`, Rust, Slint et `build.rs`. Décompressez le ZIP, puis lancez `cargo run --locked`. La capture et la preview interactive utilisent ce même exemple. Pour les règles communes des champs, consultez les [formulaires et validations](/fr/guides/forms/).
 
 Les captures montrent l’état déclaré dans l’exemple. Les actions système comme l’ouverture d’un sélecteur de fichiers nécessitent l’[adaptateur natif](/fr/guides/native/). Pour une édition validée et une sélection interactive, consultez l’[application avec contrôleurs typés](/fr/guides/typed-example/).
 

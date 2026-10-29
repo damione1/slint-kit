@@ -73,7 +73,6 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData('components', () => inventory);
   eleventyConfig.addGlobalData('site', {
     name: 'Slint Kit', repository: 'https://github.com/damione1/slint-kit',
-    sourceRef: 'v0.3.0',
     url: siteOrigin(),
   });
   const manifest = fs.readFileSync('../Cargo.toml', 'utf8');

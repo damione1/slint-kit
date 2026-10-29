@@ -7,54 +7,75 @@ permalink: "{{ 'guides/forms/' | localeUrl(locale) }}index.html"
 ---
 # Forms, shared options and validation
 
-For a standard field, choose the control and set its options:
+Choose a field, then set its options:
 
 ```slint
 KitEmailField {
-    label: "Email address";
-    placeholder: "name@example.com";
-    description: "Used for notifications.";
+    label: "Work email";
+    required: true;
+    pattern: ".+@example\\.com";
+    pattern-message: "Use your example.com address.";
 }
 ```
 
-The label, help and error are already built into the control. [KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are primitives for custom composition. Their pages list controls with the corresponding built-in property; each reference also shows inherited properties.
+Fields already include `label`, `description` and `error`. [KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are primitives for custom composition. Their pages list compatible controls; each reference also shows inherited properties.
 
-## Validate the accepted value
+## Initialize validation
 
-The downloadable projects use Slint Kit 0.3.0 with a Rust `FieldBinding`. The project parser distinguishes the draft from the accepted value: an invalid draft remains editable and cannot replace the last valid value. Try the complete [email](/components/email-field/), [URL](/components/url-field/) and [masked field](/components/masked-field/) projects.
+The complete projects use Slint Kit **0.3.0** and install the engine once per window. Export these types from your root Slint file, then initialize the Rust engine:
 
-Email follows the HTML grammar: one `@`, a valid local part and a valid domain. A domain without a dot, such as `name@machine`, is allowed. A URL must be absolute; validation does not establish that the site exists. [HTML email and URL reference](https://html.spec.whatwg.org/multipage/input.html#e-mail-state-(type=email)).
+```slint
+export { KitFormValidation, HtmlInputKind, NumberInputFormat,
+    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+```
 
-An empty field is optional unless its controller uses `AbsencePolicy::Required`. Guard Rust submission too; showing an error does not replace refusing an invalid accepted value. [HTML constraints and submission](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
+```rust
+// After App::new(), before app.run().
+slint_kit::init_form_validation!(self, app);
+```
+
+If generated code lives in `mod ui`, use `init_form_validation!(ui, app)`. Without initialization, `validation-ready` stays false and validity checks fail. The [email](/components/email-field/), [URL](/components/url-field/) and [text field](/components/text-field/) projects contain all files.
+
+## Choose constraints
+
+| Option | Purpose |
+| --- | --- |
+| `required` | Reject an empty value or a missing required selection. |
+| `multiple` | Accept comma-separated email addresses. |
+| `min-length`, `max-length` | Text length in UTF-16 code units; `-1` removes the limit. The native draft remains editable. |
+| `pattern`, `pattern-message` | ECMAScript `v` regex, matching the whole value. |
+| `min`, `max`, `step` | Canonical number/date/time bounds and steps; `step: "any"` removes the step constraint. |
+| `default-value` | Reset value and step base when `min` is absent. |
+| `validation-timing` | Defaults to `on-blur`; also `on-input` and `on-submit`. |
+| `custom-validity` | Application error; an empty string clears it. |
+
+An incomplete email shows an error on blur. A second `@` or an unsupported character reveals it while typing. HTML accepts `name@machine`: the domain does not require a dot. URLs must be absolute; `https://example.comddf.dofmo@` is invalid, while `mailto:a@example.com` is valid. Validation does not establish that a mailbox or website exists. [HTML email and URL rules](https://html.spec.whatwg.org/multipage/input.html).
+
+`validity` exposes independent flags; `value` is canonical and `text` preserves the native draft. `check-validity()` checks; `report-validity()` also reveals the error and focuses the control. Disabled controls and read-only text fields are excluded. [HTML form validation](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
+
+## Guard the accepted value in Rust
+
+A visual error does not replace validation before accepting a value. The examples configure matching `FieldBinding` constraints:
+
+```rust
+field.set_html_constraints(slint_kit::HtmlConstraints {
+    kind: slint_kit::HtmlInputKind::Email,
+    required: true,
+    pattern: Some(slint_kit::HtmlPattern::compile(r".+@example\.com").expect("valid application pattern")),
+    ..Default::default()
+});
+```
+
+The engine checks before the domain parser, which receives the normalized value. An invalid draft cannot replace the last accepted value. For several fields, use `HtmlFormValidation<FieldKey>` and `first_invalid()`, or connect `KitSubmitButton.validation-requested`. `form-no-validate` bypasses this guard; reset never submits.
 
 ## Mask or regex
 
-A mask checks a fixed sequence of slots. A regex expresses a more flexible rule. To add one to the [text field project](/components/text-field/), add `regress = "=0.12.0"` to its dependencies and replace its parser:
+A [mask](/components/masked-field/) guides a fixed structure. A regex validates without rewriting the draft. For example, `pattern: "[A-Z]{3}-[0-9]{4}"` accepts `ABC-1234`, rejects `abc-1234` and rejects `XABC-1234`. This is a shared option, not another component.
 
-```rust
-fn parse(text: &str) -> DraftValue<Value> {
-    use std::sync::OnceLock;
-    static PATTERN: OnceLock<regress::Regex> = OnceLock::new();
-    let pattern = PATTERN.get_or_init(|| {
-        regress::Regex::with_flags(r"^(?:[A-Z]{3}-\d{4})$", "v")
-            .expect("valid application pattern")
-    });
-    if text.is_empty() {
-        DraftValue::Empty
-    } else if pattern.find(text).is_some_and(|m| m.range() == (0..text.len())) {
-        DraftValue::Parsed(Value(text.into()))
-    } else {
-        DraftValue::Invalid(ParseIssue::InvalidSyntax)
-    }
-}
-```
+HTML does not apply `pattern` to `textarea`. For a multiline rule, use `HtmlPattern` in Rust and report the result through `custom-validity`. Invalid patterns impose no constraint, as in HTML; `pattern-error` exposes the diagnostic. `pattern-enabled: true` distinguishes an explicit empty pattern from no pattern. [HTML pattern attribute](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
 
-Also set the project’s initial value to `let initial = Value("ABC-1234".into());`.
+## Compose and extend
 
-`ABC-1234` is accepted; `abc-1234` and `XABC-1234` are rejected. Matching covers the entire value. The `v` mode uses ECMAScript syntax, including Unicode sets. [Regex engine API](https://docs.rs/regress/0.12.0/regress/struct.Regex.html).
+Keep the native editor for caret, selection and history. Themes, labels, messages, prefixes and suffixes remain customizable. For another skin, import the nonvisual `FormConstraintState` from `@kit/validation.slint`. Business rules, exact money, masks, OTP alphabets and zone resolution remain in typed controllers. [Controllers](/guides/controllers/).
 
-HTML `pattern` applies to text, email, URL, telephone, search and password fields. It does not apply to `textarea`; a custom multiline rule remains explicit application validation. [The `pattern` attribute](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
-
-## Extend without replacing the editor
-
-Keep the control’s native `TextInput` for selection, caret and editing history. Customize its theme, labels, prefixes and suffixes, and connect domain parsing and constraints through `FieldBinding`. For shared or asynchronous rules, see [typed controllers](/guides/controllers/).
+The kit provides native validation based on HTML. HTTP form transport, browser autofill and platform-specific keyboards need host integration; color controls retain their typed sRGB model.

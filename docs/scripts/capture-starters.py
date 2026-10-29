@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import shutil
 import struct
 import subprocess
 import sys
@@ -25,6 +26,8 @@ def main():
     parser.add_argument('--activate', help='Open a dialog/drawer with this button before capture; never enter test text.')
     parser.add_argument('--target-dir', type=Path, required=True,
                         help='Shared native Cargo target; never create one target per starter.')
+    parser.add_argument('--discard-binaries', action='store_true',
+                        help='Remove each verified example executable after capture; retain shared dependencies.')
     args = parser.parse_args()
     entries = json.loads((DOCS / 'content/starters.json').read_text())
     captures_path = DOCS / 'content/starter-captures.json'
@@ -101,6 +104,19 @@ def main():
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
+        if args.discard_binaries:
+            binary.unlink(missing_ok=True)
+            binary.with_suffix('.d').unlink(missing_ok=True)
+            prefix = f'slint_kit_{slug.replace("-", "_")}_example-'
+            for artifact in (args.target_dir / 'debug/deps').glob(prefix + '*'):
+                if artifact.is_file():
+                    artifact.unlink()
+            # Each example also links a large Slint compiler build script.
+            # These directories belong to this example, not shared dependencies.
+            for directory in ['build', '.fingerprint']:
+                for artifact in (args.target_dir / 'debug' / directory).glob(f'slint-kit-{slug}-example-*'):
+                    if artifact.is_dir():
+                        shutil.rmtree(artifact)
 
 
 if __name__ == '__main__':

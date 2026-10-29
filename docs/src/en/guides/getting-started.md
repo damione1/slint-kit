@@ -89,15 +89,7 @@ Run `cargo run` from `my-app`. This configuration uses the **winit backend and S
 
 For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page provides all four files with its Rust callbacks connected.
 
-Other [component pages](/components/) include the visual composition used for the screenshot. To render one, copy its `.slint` file to `ui/app.slint` and keep the same `build.rs`. These files export `Example`; use this entry point:
-
-```rust
-slint::include_modules!();
-
-fn main() -> Result<(), slint::PlatformError> {
-    Example::new()?.run()
-}
-```
+Each page offers a complete downloadable project with `Cargo.lock`, Rust, Slint and `build.rs`. Extract its ZIP, then run `cargo run --locked`. The screenshot and interactive preview use that same example. For shared field rules, see [forms and validation](/guides/forms/).
 
 The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/guides/native/). For validated editing and interactive selection, see the [typed controller application](/guides/typed-example/).
 
