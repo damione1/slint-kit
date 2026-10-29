@@ -64,4 +64,8 @@ def prepare():
                     'wasm32-unknown-unknown'], check=True)
     os.environ.setdefault('CARGO_BUILD_JOBS', '2')
     os.environ.setdefault('CARGO_INCREMENTAL', '0')
+    # The 123 generated demos make full single-unit LTO very expensive.
+    # Thin LTO keeps cross-module optimization within the build runner's budget.
+    os.environ.setdefault('CARGO_PROFILE_RELEASE_LTO', 'thin')
+    os.environ.setdefault('CARGO_PROFILE_RELEASE_CODEGEN_UNITS', '16')
     print(f'Workers tools ready: Rust {RUST}, wasm-bindgen {BINDGEN}', flush=True)
