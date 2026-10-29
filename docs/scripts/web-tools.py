@@ -28,7 +28,8 @@ def prepare():
         return
     if platform.system() != 'Linux' or platform.machine() not in ARCHIVES:
         raise SystemExit('Workers web build requires Linux x86_64 or aarch64')
-    tools = Path(__file__).resolve().parents[1] / '.generated/tools'
+    cache = Path(__file__).resolve().parents[1] / '.cache'
+    tools = cache / 'tools' / platform.machine()
     tools.mkdir(parents=True, exist_ok=True)
     target, checksum = ARCHIVES[platform.machine()]
     bindgen = tools / f'wasm-bindgen-{BINDGEN}-{target}/wasm-bindgen'
@@ -64,6 +65,7 @@ def prepare():
                     'wasm32-unknown-unknown'], check=True)
     os.environ.setdefault('CARGO_BUILD_JOBS', '2')
     os.environ.setdefault('CARGO_INCREMENTAL', '0')
+    os.environ.setdefault('SLINT_WEB_TARGET_DIR', str(cache / 'target'))
     # The 123 generated demos make full single-unit LTO very expensive.
     # Thin LTO keeps cross-module optimization within the build runner's budget.
     os.environ.setdefault('CARGO_PROFILE_RELEASE_LTO', 'thin')
