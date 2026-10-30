@@ -1,12 +1,16 @@
 //! Civil values never acquire a timezone implicitly. IANA resolution is explicit.
+mod availability;
+mod date_pattern;
 use crate::CalendarMove;
 use crate::{ClockFormat, TimePrecision};
 use crate::{DraftValue, NumericBounds, ParseIssue};
+pub use availability::*;
 use chrono::{
     DateTime, Datelike, Days, LocalResult, Months, NaiveDate, NaiveDateTime, NaiveTime, TimeZone,
     Timelike, Utc, Weekday,
 };
 use chrono_tz::Tz;
+pub use date_pattern::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Year(i32);
 impl Year {
@@ -334,6 +338,10 @@ impl DateRange {
     pub fn end(self) -> CivilDate {
         self.end
     }
+    /// Number of civil nights (end minus start), independent of DST.
+    pub fn nights(self) -> u32 {
+        u32::try_from((self.end.0 - self.start.0).num_days()).expect("ordered civil dates")
+    }
     pub fn contains(self, date: CivilDate) -> bool {
         self.start <= date && date <= self.end
     }
@@ -376,12 +384,22 @@ pub enum ZonedResolution {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WeekStart {
     Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
     Sunday,
 }
 impl WeekStart {
     fn index(self) -> u32 {
         match self {
             Self::Monday => 0,
+            Self::Tuesday => 1,
+            Self::Wednesday => 2,
+            Self::Thursday => 3,
+            Self::Friday => 4,
+            Self::Saturday => 5,
             Self::Sunday => 6,
         }
     }
@@ -395,12 +413,12 @@ pub struct CalendarCell {
     pub selected: bool,
     pub focused: bool,
 }
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CalendarController {
     selected: Option<CivilDate>,
     displayed: YearMonth,
     focused: CivilDate,
-    bounds: Option<NumericBounds<CivilDate>>,
+    constraints: DateConstraints,
     week_start: WeekStart,
 }
 impl CalendarController {
@@ -420,11 +438,44 @@ impl CalendarController {
         };
         Self {
             selected,
-            displayed,
+            displayed: focus.year_month(),
             focused: focus,
-            bounds,
+            constraints: DateConstraints::new(bounds),
             week_start,
         }
+    }
+    pub fn with_constraints(
+        selected: Option<CivilDate>,
+        displayed: YearMonth,
+        constraints: DateConstraints,
+        week_start: WeekStart,
+    ) -> Result<Self, ParseIssue> {
+        if let Some(date) = selected {
+            constraints.validate(date)?;
+        }
+        let mut calendar = Self::new(selected, displayed, constraints.bounds(), week_start);
+        calendar.constraints = constraints;
+        Ok(calendar)
+    }
+    pub fn week_start(&self) -> WeekStart {
+        self.week_start
+    }
+    pub fn set_week_start(&mut self, value: WeekStart) {
+        self.week_start = value;
+    }
+    /// Render another month with the same stable selection and availability.
+    pub fn grid_for_month(&self, month: YearMonth) -> Vec<Option<CalendarCell>> {
+        let mut other = self.clone();
+        other.displayed = month;
+        other.grid_slots()
+    }
+    pub fn constraints(&self) -> &DateConstraints {
+        &self.constraints
+    }
+    /// Whether navigation can move the roving target within the date bounds.
+    pub fn can_navigate(&self, direction: CalendarMove) -> bool {
+        let mut next = self.clone();
+        next.navigate(direction).is_ok() && next.focused != self.focused
     }
     pub fn selected(&self) -> Option<CivilDate> {
         self.selected
@@ -436,7 +487,21 @@ impl CalendarController {
         self.displayed
     }
     pub fn show_month(&mut self, month: YearMonth) {
-        self.displayed = month;
+        let date = CivilDate::new(
+            month.year(),
+            month.month(),
+            self.focused.day().min(month.days_in_month()),
+        )
+        .expect("validated month and clamped day");
+        self.focus_date(date);
+    }
+    /// Move focus without accepting a value; unavailable days remain browsable.
+    pub fn focus_date(&mut self, date: CivilDate) {
+        let date = self.constraints.bounds().map_or(date, |bounds| {
+            date.max(bounds.minimum()).min(bounds.maximum())
+        });
+        self.focused = date;
+        self.displayed = date.year_month();
     }
     pub fn grid(&self) -> Vec<CalendarCell> {
         self.grid_slots().into_iter().flatten().collect()
@@ -455,9 +520,7 @@ impl CalendarController {
                     .map(|date| CalendarCell {
                         date,
                         in_displayed_month: date.year_month() == self.displayed,
-                        enabled: self
-                            .bounds
-                            .is_none_or(|bounds| bounds.validate(date).is_ok()),
+                        enabled: self.constraints.validate(date).is_ok(),
                         selected: self.selected == Some(date),
                         focused: self.focused == date,
                     })
@@ -465,9 +528,7 @@ impl CalendarController {
             .collect()
     }
     pub fn choose(&mut self, date: CivilDate) -> Result<(), ParseIssue> {
-        if let Some(bounds) = self.bounds {
-            bounds.validate(date)?;
-        }
+        self.constraints.validate(date)?;
         self.selected = Some(date);
         self.focused = date;
         self.displayed = date.year_month();
@@ -507,7 +568,7 @@ impl CalendarController {
                 )?
             }
         };
-        let target = if let Some(bounds) = self.bounds {
+        let target = if let Some(bounds) = self.constraints.bounds() {
             target.max(bounds.minimum()).min(bounds.maximum())
         } else {
             target
@@ -527,24 +588,42 @@ pub enum RangeSelection {
 pub struct DateRangeController {
     accepted: Option<DateRange>,
     draft: RangeSelection,
+    rules: DateRangeRules,
 }
 impl DateRangeController {
     pub fn new(accepted: Option<DateRange>) -> Self {
         Self {
             accepted,
             draft: RangeSelection::ChoosingStart,
+            rules: DateRangeRules::default(),
         }
+    }
+    pub fn with_rules(
+        accepted: Option<DateRange>,
+        rules: DateRangeRules,
+    ) -> Result<Self, ParseIssue> {
+        if let Some(range) = accepted {
+            rules.validate(range)?;
+        }
+        Ok(Self {
+            accepted,
+            draft: RangeSelection::ChoosingStart,
+            rules,
+        })
     }
     pub fn draft(&self) -> RangeSelection {
         self.draft
     }
     pub fn choose(&mut self, date: CivilDate) -> Result<(), ParseIssue> {
+        self.rules.dates().validate(date)?;
         self.draft = match self.draft {
             RangeSelection::ChoosingStart | RangeSelection::Complete(_) => {
                 RangeSelection::ChoosingEnd { start: date }
             }
             RangeSelection::ChoosingEnd { start } => {
-                RangeSelection::Complete(DateRange::new(start, date)?)
+                let range = DateRange::new(start, date)?;
+                self.rules.validate(range)?;
+                RangeSelection::Complete(range)
             }
         };
         Ok(())

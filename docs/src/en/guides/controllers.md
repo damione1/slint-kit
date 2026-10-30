@@ -53,3 +53,29 @@ Keep `FocusRegistry` and the exact opener in the host controller. Dialog and dra
 ## Tables and row identity
 
 The [complete sortable table application](/guides/table-example/) demonstrates selection surviving sorting, keyboard navigation and rejection of events from an older generation.
+
+## Calendar dates, formats and availability
+
+`CivilDate` uses the proleptic Gregorian calendar, years 1–9999. `KitDateField` and `KitDatePicker` keep their HTML date contract: drafts, `min`, `max` and accepted strings use `YYYY-MM-DD`. A display label and a date input format are separate choices. There is no automatic inference between day-first and month-first input, and no implicit time zone.
+
+For application-owned text fields or date labels, validate a `DatePattern` once and keep it with the controller:
+
+```rust
+use slint_kit::{CivilDate, DateNames, DatePattern, DraftValue};
+let pattern = DatePattern::new("%d/%m/%Y").unwrap();
+let DraftValue::Parsed(date) = pattern.parse("29/02/2024") else { return };
+assert_eq!(date, CivilDate::new(2024, 2, 29).unwrap());
+assert_eq!(date.iso_string(), "2024-02-29");
+let spoken = DatePattern::new("%A %-d %B %Y").unwrap();
+assert_eq!(spoken.format_with_names(date, &DateNames::french()), "jeudi 29 février 2024");
+```
+
+Supported directives are `%Y`, `%m`, `%d`, `%e`, `%b`, `%B`, `%a`, `%A`, `%j`, `%G`, `%V`, `%u`, `%F` and `%%`; numeric directives accept `-`, `_` or `0` padding. This covers numeric orders and separators, compact dates, English month names, ordinal dates and ISO week dates. `%y` is rejected because a two-digit year requires a century policy. Plain `parse`/`format` use English names. `parse_with_names`/`format_with_names` use validated host-owned `DateNames`; a French preset is included. Name matching uses Unicode lowercase, retains accents and requires configured abbreviation punctuation. Other calendar systems and locale-specific digit shapes require an explicit host adapter.
+
+Keep the native `KitTextField` editor for custom-format text. Parse its draft with the chosen pattern, then validate the resulting `CivilDate` against the same rules as calendar clicks. Do not attach `HtmlInputKind.date` to localized text; the shared HTML date engine expects ISO. If the field participates in a form, apply its required/custom validity rules and guard the Rust submit path too.
+
+`DateConstraints` combines optional inclusive `NumericBounds<CivilDate>`, unavailable `DateRange` values and unavailable weekdays. Pass it to `CalendarController::with_constraints`. `choose` rejects blocked dates while keyboard focus may inspect them. All seven `WeekStart` values are available; changing `set_week_start` also requires rotating the host's weekday labels. `can_navigate` drives `previous-enabled` and `next-enabled`. `show_month` and `focus_date` move the visible keyboard target without committing a value. `grid_for_month` lets an application compose several `KitCalendar` views over the same selection and rules.
+
+`DateRangeRules` adds optional minimum/maximum nights. A same-day range is zero nights; the inclusive range may not cross an unavailable day. `DateRangeController::with_rules` preserves the previous accepted range until Apply and restores it on Cancel. Failed end-date selection preserves the start. `DateSetController` supports multiple dates keyed by `CivilDate`: project `selected().contains(&date)` into `CalendarDay.selected`, then call `toggle` from the calendar action. There is no visual-index identity.
+
+Calendar keyboard actions use arrows, Home/End and Page Up/Down; Shift changes the paging unit to years. Read-only calendars remain browsable and cannot accept a date. Supply localized month titles, weekday labels, accessible date labels and range action labels. The [calendar](/components/calendar/), [date picker](/components/date-picker/) and [range picker](/components/date-range-picker/) executable examples combine the kit's card, badge and helper primitives with real availability rules. Their reference date is fixed for reproducible examples. These APIs do not by themselves qualify a screen reader or IME on a particular backend.

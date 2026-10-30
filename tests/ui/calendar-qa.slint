@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDateRangePicker, KitTheme, KitThemes, CalendarDay, CalendarNavigation, DateRangePhase, FieldAccess } from "@kit/kit.slint";
+export { CalendarNavigation } from "@kit/kit.slint";
+export component CalendarQaFixture inherits Window {
+    width: 800px; height: 1000px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> previous-enabled: true;
+    in property <bool> next-enabled: true;
+    in property <[CalendarDay]> days;
+    in property <int> active;
+    callback navigate(CalendarNavigation);
+    callback choose(CalendarDay);
+    callback cancel();
+    callback apply();
+    public function focus-calendar() { calendar.take-focus(); }
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        calendar := KitCalendar {
+            theme: root.theme; access: root.access;
+            days: root.days; active-index: root.active; title: "Octobre 2026";
+            label: "Date de rendez-vous"; previous-month-label: "Mois précédent"; next-month-label: "Mois suivant";
+            previous-enabled: root.previous-enabled; next-enabled: root.next-enabled;
+            weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
+            navigate(step) => { root.navigate(step); }
+            choose(day) => { root.choose(day); }
+        }
+        KitDateRangePicker {
+            theme: root.theme; access: root.access;
+            days: root.days; active-index: root.active; title: "Octobre 2026"; phase: DateRangePhase.complete;
+            label: "Période de réservation"; previous-month-label: "Période précédente"; next-month-label: "Période suivante";
+            cancel-label: "Annuler"; apply-label: "Confirmer la période"; ready-label: "Période prête";
+            cancelled => { root.cancel(); }
+            apply-requested => { root.apply(); }
+        }
+    }
+}
