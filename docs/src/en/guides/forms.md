@@ -79,3 +79,7 @@ HTML does not apply `pattern` to `textarea`. For a multiline rule, use `HtmlPatt
 Keep the native editor for caret, selection and history. Themes, labels, messages, prefixes and suffixes remain customizable. For another skin, import the nonvisual `FormConstraintState` from `@kit/validation.slint`. Business rules, exact money, masks, OTP alphabets and zone resolution remain in typed controllers. [Controllers](/guides/controllers/).
 
 The kit provides native validation based on HTML. HTTP form transport, browser autofill and platform-specific keyboards need host integration; color controls retain their typed sRGB model.
+
+For [one-time codes](/components/otp-field/), set `slots` and a complete-draft `pattern` such as `[A-Za-z0-9]*`; guard Rust acceptance with the same `OtpRules` and `HtmlPattern`. For a read-only masked view use `input-type: InputType.password` with `access: FieldAccess.read-only`; editable password undo has a known Slint 1.18.1 failure after a shorter selection replacement. Slot bounds validate excess input; Slint 1.18.1 does not expose a public hook to enforce a hard limit while preserving native selection, history and composition. `ValidationTiming.on-submit` lets incomplete drafts wait until acceptance.
+
+Optional grouping uses inherited `display-text`: store `FG76657` with seven slots and pattern `[A-Z]{2}[0-9]{5}`, then project `FG‑76657` only at rest. The example groups accepted values, shows raw drafts while focused and expects raw paste without a separator. Grouping and the read-only masked view are independent options.

@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOtpField, KitTheme, KitThemes, KitValidityState, FieldDecoration, ValidationTiming, FieldAccess } from "@kit/kit.slint";
+export component OtpFixture inherits Window {
+    width: 600px; height: 240px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    background: root.theme.canvas;
+    in-out property <string> text;
+    in property <int> slots: 6;
+    in property <string> pattern: "[0-9]*";
+    in property <bool> masked;
+    in property <string> display-text: root.text;
+    in property <FieldAccess> access: FieldAccess.editable;
+    out property <KitValidityState> validity: otp.validity;
+    out property <bool> validation-visible: otp.validation-visible;
+    in-out property <int> edits;
+    in-out property <int> commits;
+    public function focus-code() { otp.take-focus(); }
+    public function blur-code() { other.focus(); }
+    public function select-code() { otp.select-all(); }
+    public function report-code() -> bool { return otp.report-validity(); }
+    public function reset-code() { otp.reset-validation(); }
+    other := FocusScope { width: 0px; height: 0px; }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        otp := KitOtpField {
+            theme: root.theme; label: "Verification code"; slots: root.slots; required: true;
+            text <=> root.text; pattern: root.pattern;
+            display-text: root.display-text;
+            access: root.access;
+            decoration: FieldDecoration.underlined;
+            validation-timing: ValidationTiming.on-submit;
+            input-type: root.masked ? InputType.password : InputType.text;
+            edited(value) => { root.edits += 1; }
+            commit-requested(value) => { root.commits += 1; }
+        }
+    }
+}

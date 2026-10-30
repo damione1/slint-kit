@@ -254,7 +254,7 @@ export component KitTextField inherits KitField {
                         vertical-alignment: root.multiline ? top : center;
                         accessible-enabled: root.access != FieldAccess.disabled;
                         accessible-label: root.accessible-name;
-                        accessible-value: root.formatted-at-rest ? root.display-text : root.text;
+                        accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
                         accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
                             if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
@@ -371,9 +371,13 @@ export component KitTextArea inherits KitTextField {
 }
 
 // One real editor handles the whole code, including paste, selection and undo.
-// The OtpLength/OtpAlphabet core parser owns bounds; spacing is presentation only.
+// The shared HTML engine validates syntax/length; the Rust parser guards acceptance.
+// Slint 1.18.1 has no public before-insert constraint hook: bounds validate, not truncate.
 export component KitOtpField inherits KitTextField {
     in property <int> slots: 6;
+    min-length: max(1, root.slots);
+    max-length: max(1, root.slots);
+    pattern: "[0-9]*";
     private property <length> cell-width: KitMetrics.control-height(root.theme, root.control-size);
     preferred-width: max(1, root.slots) * root.cell-width + 2 * root.padding-inline;
     max-width: self.preferred-width; horizontal-stretch: 0;

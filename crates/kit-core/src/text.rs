@@ -1,5 +1,5 @@
 //! Bounded structured text parsers. Native text editing is never synthesized here.
-use crate::{DraftValue, ParseIssue, grapheme_count};
+use crate::{DraftValue, HtmlPattern, ParseIssue, grapheme_count};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OtpAlphabet {
     AsciiDigits,
@@ -40,6 +40,39 @@ impl OtpValue {
             DraftValue::Incomplete
         } else {
             DraftValue::Parsed(Self(text.into()))
+        }
+    }
+}
+/// OTP input and acceptance rules sharing HTML's ECMAScript UnicodeSets pattern engine.
+/// The pattern matches the complete draft, as the Slint field's `pattern` does.
+/// Length counts UTF-16 units, matching HTML constraints. ASCII codes keep one glyph per slot.
+#[derive(Clone, Debug)]
+pub struct OtpRules {
+    length: OtpLength,
+    pattern: HtmlPattern,
+}
+impl OtpRules {
+    pub fn new(length: OtpLength, pattern: HtmlPattern) -> Self {
+        Self { length, pattern }
+    }
+    pub fn length(&self) -> OtpLength {
+        self.length
+    }
+    /// A draft passes syntax and bounds; only `parse` can produce an accepted code.
+    /// Use a pattern allowing partial drafts (for example `[A-Za-z0-9]*`) if desired.
+    pub fn accepts_draft(&self, text: &str) -> bool {
+        text.encode_utf16().count() <= usize::from(self.length.get())
+            && (text.is_empty() || self.pattern.matches(text))
+    }
+    pub fn parse(&self, text: &str) -> DraftValue<OtpValue> {
+        if text.is_empty() {
+            DraftValue::Empty
+        } else if !self.accepts_draft(text) {
+            DraftValue::Invalid(ParseIssue::InvalidSyntax)
+        } else if text.encode_utf16().count() < usize::from(self.length.get()) {
+            DraftValue::Incomplete
+        } else {
+            DraftValue::Parsed(OtpValue(text.into()))
         }
     }
 }
@@ -138,6 +171,36 @@ mod tests {
         ));
         assert_eq!(
             OtpValue::parse("１２３４５６", length, OtpAlphabet::AsciiDigits),
+            DraftValue::Invalid(ParseIssue::InvalidSyntax)
+        );
+    }
+    #[test]
+    fn otp_rules_share_html_patterns_and_keep_partial_drafts_editable() {
+        let rules = OtpRules::new(
+            OtpLength::new(6).unwrap(),
+            HtmlPattern::compile("[A-Za-z0-9]*").unwrap(),
+        );
+        assert!(rules.accepts_draft(""));
+        assert_eq!(rules.parse("AB1"), DraftValue::Incomplete);
+        assert!(matches!(rules.parse("AB12cd"), DraftValue::Parsed(_)));
+        assert!(!rules.accepts_draft("AB12cd7"));
+        assert!(!rules.accepts_draft("AB 12c"));
+        let grouped = OtpRules::new(
+            OtpLength::new(7).unwrap(),
+            HtmlPattern::compile("[A-Z]{2}[0-9]{5}").unwrap(),
+        );
+        assert!(matches!(grouped.parse("FG76657"), DraftValue::Parsed(_)));
+        assert_eq!(
+            grouped.parse("FG-76657"),
+            DraftValue::Invalid(ParseIssue::InvalidSyntax)
+        );
+        let letters = OtpRules::new(
+            OtpLength::new(2).unwrap(),
+            HtmlPattern::compile("\\p{Letter}*").unwrap(),
+        );
+        assert!(matches!(letters.parse("éA"), DraftValue::Parsed(_)));
+        assert_eq!(
+            letters.parse("é1"),
             DraftValue::Invalid(ParseIssue::InvalidSyntax)
         );
     }

@@ -4,10 +4,16 @@
 
 0.4.0 changes the theme and icon contracts. The Slint compiler reports every site that must change, so upgrade by following its errors. This list names each break.
 
+### OTP patterns and native masking
+
+- Add `OtpRules` for fixed-length code acceptance with the shared `HtmlPattern` engine. It uses complete-draft patterns and UTF-16 length units. `OtpValue::parse` and `OtpAlphabet` remain available.
+- **Validation change:** `KitOtpField` now defaults to the digits pattern `[0-9]*` and minimum/maximum lengths matching `slots`. Set `pattern` explicitly for existing non-numeric codes. Lengths validate rather than truncate: Slint 1.18.1 has no public before-insert hook that preserves all native editing paths.
+- Masked native fields no longer expose their raw value through the kit accessibility override. Examples include an empty underlined field, regex-validated alphanumeric codes and a native masked read-only view, with acceptance in Rust. An independent seven-character code stores `FG76657` and projects `FG‑76657` through inherited `display-text` only at rest; editing and paste use the raw code. Editable masking is not qualified: Slint 1.18.1 can panic on undo after a shorter selection replacement.
+
 ### Component polish and representative examples
 
 - Add `AvatarInteraction.static`/`.action`, `KitAvatar.activated`, `disabled`, `has-focus` and `take-focus()`. Portraits now scale to their actual bounds; initial avatars have a contrasted surface and action states. The example bundles an original fictional portrait and demonstrates image, initials and shape variants.
-- Add `FieldDecoration.boxed`/`.underlined` and `underline-segments` to native text fields and `KitInputGroup`; `KitOtpField.slots` controls its visual six-slot layout while Rust remains responsible for accepted length. Native editing stays in one `TextInput`; `text-font-family`, `text-inset` and measured `text-cell-width` let the OTP align partial native drafts with their first slot. **Theme contract:** `KitTypography.family-monospace` supplies the code font in both shipped themes.
+- Add `FieldDecoration.boxed`/`.underlined` and `underline-segments` to native text fields and `KitInputGroup`; `KitOtpField.slots` controls its visual six-slot layout and default length validation while Rust remains responsible for acceptance. Native editing stays in one `TextInput`; `text-font-family`, `text-inset` and measured `text-cell-width` let the OTP align partial native drafts with their first slot. **Theme contract:** `KitTypography.family-monospace` supplies the code font in both shipped themes.
 - Add optional decorative `leading-icon` to badges and stats, and semantic `tone` to stats. Improve semantic badge fills, steps, file rows and loading placeholders; skeletons remain visible on the light canvas.
 - Center checkbox indicators beside wrapped labels and content-list thumbnails beside copy. Color-picker popup actions fit the intrinsically measured content at enlarged text sizes.
 - Strengthen active control boundaries to at least 3:1 against both shipped canvases and surfaces, including the empty checkbox in dark mode.

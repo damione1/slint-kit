@@ -1,23 +1,36 @@
-import { InterFont } from "@kit/fonts/inter.slint";
-// Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitOtpField, FieldDecoration, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitOtpField, FieldDecoration, KitTheme, KitThemes, FieldAccess, ValidationTiming } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitOtpField — exemple";
-    preferred-width: 420px;
-    preferred-height: 320px;
-    max-width: 100000px;
-    max-height: 100000px;
+    title: "KitOtpField";
+    preferred-width: 480px; preferred-height: 570px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
     VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Champ de code à usage unique"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitOtpField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Code de vérification"; text: "482913"; edited(value) => { root.status = "Brouillon : " + value; } }
-        KitOtpField { theme: root.theme; label: "Underlined code"; decoration: FieldDecoration.underlined; slots: 6; text: "482913"; edited(value) => { root.status = "Draft: " + value; } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        padding: 24px; spacing: 24px; alignment: start;
+        KitOtpField {
+            theme: root.theme; label: "Code vide, six emplacements";
+            decoration: FieldDecoration.underlined; slots: 6;
+            validation-timing: ValidationTiming.on-submit;
+        }
+        KitOtpField {
+            theme: root.theme; label: "Lettres et chiffres";
+            slots: 6; pattern: "[A-Za-z0-9]*"; text: "ABC123";
+            validation-timing: ValidationTiming.on-submit;
+        }
+        KitOtpField {
+            theme: root.theme; label: "Code masqué (lecture seule)";
+            slots: 6; text: "731952"; input-type: InputType.password; access: FieldAccess.read-only;
+            validation-timing: ValidationTiming.on-submit;
+        }
+        KitOtpField {
+            theme: root.theme; label: "Affichage groupé au repos";
+            slots: 7; pattern: "[A-Z]{2}[0-9]{5}"; text: "FG76657";
+            text-letter-spacing: 0px; text-inset: 0px;
+            display-text: self.text == "FG76657" ? "FG‑76657" : self.text;
+            validation-timing: ValidationTiming.on-submit;
+        }
     }
 }

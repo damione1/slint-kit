@@ -2,41 +2,80 @@ export { KitThemeContext, KitThemes } from "@kit/kit.slint";
 import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-import { KitOtpField, FieldDecoration, KitButton, KitThemes, ValidationPresentation } from "@kit/kit.slint";
+import { KitOtpField, FieldDecoration, KitButton, FieldAccess, ValidationTiming } from "@kit/kit.slint";
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
-    title: "Six-digit code"; preferred-width: 520px; preferred-height: 440px;
+    title: "Verification codes"; preferred-width: 520px; preferred-height: 900px;
     max-width: 100000px; max-height: 100000px; background: root.theme.canvas;
-    in-out property <string> draft; in property <string> error; in property <string> accepted;
-    callback edited(string); callback commit(); callback blurred(); callback cancel();
-
+    in-out property <string> draft;
+    in-out property <string> alpha-draft;
+    in property <string> accepted: "None yet";
+    in property <string> alpha-accepted: "None yet";
+    in-out property <string> formatted-draft;
+    in property <string> formatted-accepted;
+    in property <string> formatted-display;
+    callback edited(string); callback commit(); callback cancel();
+    callback alpha-edited(string); callback alpha-commit(); callback alpha-cancel();
+    callback formatted-edited(string); callback formatted-commit(); callback formatted-cancel();
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
-        control := KitOtpField { theme: root.theme;
-            required: true;
-            label: "Six-digit code"; text <=> root.draft; error: root.error;
-            validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-            placeholder: "123456";
+        numeric := KitOtpField {
+            theme: root.theme; label: "Start with an empty code";
+            description: "Six digits. All six available slots remain visible.";
+            decoration: FieldDecoration.underlined; slots: 6; required: true;
+            validation-timing: ValidationTiming.on-submit;
+            text <=> root.draft;
             edited(value) => { root.edited(value); }
             commit-requested(value) => { root.commit(); }
             cancelled => { root.cancel(); }
-            focus-observed(focused) => { if (!focused) { root.blurred(); } }
-
         }
-        KitOtpField { theme: root.theme;
-            label: "Or use the minimal underline style"; description: "One native editor: paste, select and correct the complete six-digit code.";
-            decoration: FieldDecoration.underlined; slots: 6;
-            required: true; text <=> root.draft; error: root.error;
-            validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-            placeholder: "123456";
-            edited(value) => { root.edited(value); }
-            commit-requested(value) => { root.commit(); }
-            cancelled => { root.cancel(); }
-            focus-observed(focused) => { if (!focused) { root.blurred(); } }
+        KitButton {
+            theme: root.theme; text: "Accept numeric code";
+            activated => { if (numeric.report-validity()) { root.commit(); } }
         }
-        KitButton { theme: root.theme; text: "Accept"; activated => { root.commit(); } }
-        Text { text: "Accepted: " + root.accepted; color: root.theme.text-primary; wrap: word-wrap; }
+        Text { text: "Numeric code accepted: " + root.accepted; color: root.theme.text-secondary; wrap: word-wrap; }
+        alpha := KitOtpField {
+            theme: root.theme; label: "Letters and digits";
+            description: "A–Z, a–z and 0–9, in any order.";
+            pattern: "[A-Za-z0-9]*"; slots: 6; required: true;
+            pattern-message: "Use only letters A–Z and digits 0–9.";
+            validation-timing: ValidationTiming.on-submit;
+            text <=> root.alpha-draft;
+            edited(value) => { root.alpha-edited(value); }
+            commit-requested(value) => { root.alpha-commit(); }
+            cancelled => { root.alpha-cancel(); }
+        }
+        KitOtpField {
+            theme: root.theme; label: "The same code, masked (read-only)";
+            description: "Edit the code above; this protected view follows the same value.";
+            pattern: "[A-Za-z0-9]*"; slots: 6; required: true;
+            input-type: InputType.password; access: FieldAccess.read-only;
+            validation-timing: ValidationTiming.on-submit;
+            text: root.alpha-draft;
+        }
+        KitButton {
+            theme: root.theme; text: "Accept alphanumeric code";
+            activated => { if (alpha.report-validity()) { root.alpha-commit(); } }
+        }
+        Text { text: "Alphanumeric code accepted: " + root.alpha-accepted; color: root.theme.text-secondary; wrap: word-wrap; }
+        formatted := KitOtpField {
+            theme: root.theme; label: "Seven-character code, grouped at rest";
+            description: "FG76657 displays as FG‑76657 after acceptance. Paste the raw code without a separator.";
+            pattern: "[A-Z]{2}[0-9]{5}"; slots: 7; required: true;
+            validation-timing: ValidationTiming.on-submit;
+            text-letter-spacing: 0px; text-inset: 0px;
+            text <=> root.formatted-draft;
+            display-text: root.formatted-draft == root.formatted-accepted ? root.formatted-display : root.formatted-draft;
+            edited(value) => { root.formatted-edited(value); }
+            commit-requested(value) => { root.formatted-commit(); }
+            cancelled => { root.formatted-cancel(); }
+        }
+        KitButton {
+            theme: root.theme; text: "Accept grouped code";
+            activated => { if (formatted.report-validity()) { root.formatted-commit(); } }
+        }
+        Text { text: "Grouped code accepted (raw): " + root.formatted-accepted; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }
