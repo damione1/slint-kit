@@ -116,6 +116,14 @@ fn main() -> Result<(), slint::PlatformError> {
     publish(&app, &state.borrow());
     app.set_draft(date.iso_string().into());
     let weak = app.as_weak();
+    app.on_draft_edited(move |_| {
+        if let Some(app) = weak.upgrade() {
+            // A business error belongs to the rejected draft. Clear it when the
+            // user edits so the next valid native submission can reach Rust.
+            app.set_error("".into());
+        }
+    });
+    let weak = app.as_weak();
     let shared = state.clone();
     app.on_navigate(move |step| {
         if let Some(app) = weak.upgrade() {
