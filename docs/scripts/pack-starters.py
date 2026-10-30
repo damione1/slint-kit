@@ -6,14 +6,14 @@ import json
 import zipfile
 import tomllib
 from doc_inputs import ROOT, DOCS, write_changed
-from starter_sources import FILES, prepare
+from starter_sources import source_files, prepare
 
 output = DOCS / '.generated/starters'
 output.mkdir(parents=True, exist_ok=True)
 consumers = prepare()
 changed = 0
 for slug, folder in consumers.items():
-    files = {name: (folder / name).read_bytes() for name in FILES}
+    files = {name: (folder / name).read_bytes() for name in source_files(folder)}
     dependency = tomllib.loads(files['Cargo.toml'].decode())['dependencies']['slint-kit']
     kit_version = (dependency if isinstance(dependency, str) else dependency['version']).removeprefix('=')
     files['LICENSE'] = (ROOT / 'LICENSE').read_bytes()

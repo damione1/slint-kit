@@ -5,12 +5,28 @@ import unittest
 import json
 from unittest.mock import patch
 from PIL import Image
-from doc_inputs import generated_identity, key_for, write_changed, digest, compiler_environment
+from doc_inputs import generated_identity, key_for, write_changed, digest, compiler_environment, relocated_source, local_image_files
 from presentation import themed_source
 import capture_pipeline as captures
 
 
 class DocumentationIdentityTests(unittest.TestCase):
+    def test_relative_images_resolve_from_authored_source_instead_of_generated_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            authored = root / 'project/ui/app.slint'
+            asset = authored.parent / 'assets/profile.jpg'
+            asset.parent.mkdir(parents=True)
+            asset.write_bytes(b'portrait')
+            source = 'Image { source: @image-url("assets/profile.jpg"); }'
+            moved = relocated_source(source, authored)
+            self.assertIn(json.dumps(str(asset)), moved)
+            self.assertEqual(local_image_files(source, authored), [asset])
+            self.assertEqual(relocated_source(moved, authored), moved)
+            remote = 'Image { source: @image-url("https://example.org/photo.jpg"); }'
+            self.assertEqual(relocated_source(remote, authored), remote)
+            self.assertEqual(local_image_files(remote, authored), [])
+
     def test_used_resource_bytes_invalidate_but_checkout_location_does_not(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

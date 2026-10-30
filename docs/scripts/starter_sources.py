@@ -18,6 +18,11 @@ LOCK_PACKAGE = 'slint-kit-consumer-lock'
 _prepared = {}
 
 
+def source_files(folder):
+    assets = folder / 'ui/assets'
+    return FILES + tuple(str(path.relative_to(folder)) for path in sorted(assets.rglob('*')) if path.is_file())
+
+
 class BuildMode(Enum):
     LOCAL = 'local'
     RELEASE = 'release'
@@ -130,13 +135,18 @@ def prepare(mode=None):
         lock = rename_lock(graphs[graph], LOCK_PACKAGE, manifest['package']['name'])
         destination = public / slug
         native = ROOT / 'docs/.cache/native-source' / slug if mode is BuildMode.LOCAL else destination
-        for name in FILES:
+        names = source_files(original)
+        for target in {destination, native}:
+            for asset in (target / 'ui/assets').rglob('*'):
+                if asset.is_file() and str(asset.relative_to(target)) not in names:
+                    asset.unlink()
+        for name in names:
             data = source.encode() if name == 'Cargo.toml' else lock.encode() if name == 'Cargo.lock' else (original / name).read_bytes()
             write_changed(destination / name, data)
             if native != destination:
                 write_changed(native / name, data + local_patches().encode() if name == 'Cargo.toml' else data)
         consumers[slug], private[slug] = destination, native
-        checksums[slug] = {name: digest((destination / name).read_bytes()) for name in FILES}
+        checksums[slug] = {name: digest((destination / name).read_bytes()) for name in names}
     write_changed(public / 'manifest.json', json.dumps({'schemaVersion': 1, 'mode': mode.value,
                   'version': version, 'slugs': sorted(consumers), 'source_sha256': checksums},
                   sort_keys=True, indent=2) + '\n')

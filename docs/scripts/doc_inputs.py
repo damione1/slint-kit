@@ -93,6 +93,28 @@ def consumer_identity(slug):
 # Only resource macro paths are normalized. UI text and generated code remain
 # byte exact; never strip arbitrary paths, comments, or whitespace from code.
 RESOURCE = re.compile(r'include_bytes\s*!\s*\(\s*("(?:[^"\\]|\\.)*"|r(?P<marks>\#*)".*?"(?P=marks))', re.S)
+IMAGE_URL = re.compile(r'(@image-url\s*\(\s*)("(?:[^"\\]|\\.)*")(\s*\))')
+
+
+def local_image_files(source, path):
+    paths = []
+    for match in IMAGE_URL.finditer(source):
+        name = json.loads(match[2])
+        if name.startswith('@') or re.match(r'[a-zA-Z][a-zA-Z0-9+.-]*:', name):
+            continue
+        paths.append((Path(path).parent / name).resolve())
+    return paths
+
+
+def relocated_source(source, path):
+    # Generated UI moves away from the authored project. Keep the public source
+    # portable while resolving its local resources at their original location.
+    def replace(match):
+        name = json.loads(match[2])
+        if name.startswith('@') or re.match(r'[a-zA-Z][a-zA-Z0-9+.-]*:', name):
+            return match[0]
+        return match[1] + json.dumps(str((Path(path).parent / name).resolve())) + match[3]
+    return IMAGE_URL.sub(replace, source)
 
 
 def generated_identity(source):
@@ -140,6 +162,7 @@ def build_inputs():
     files = list((ROOT / 'crates/kit-slint/ui').rglob('*'))
     files = [path for path in files if path.is_file()]
     files += [path for path, _ in requests.values()]
+    files += [image for path, _ in requests.values() for image in local_image_files(path.read_text(), path)]
     files += [ROOT / 'xtask/src/docs.rs', ROOT / 'Cargo.lock']
     hashes = source_hashes(files)
     target = DOCS / '.generated/inputs'
@@ -158,7 +181,7 @@ def build_inputs():
             text = themed_source(text, theme)
         elif theme == 'dark':
             text = text.replace('KitThemes.light', 'KitThemes.dark')
-        prepared[identifier] = text
+        prepared[identifier] = relocated_source(text, source)
     previous_hashes = {name: checksum for name, checksum in previous.get('sourceHashes', {}).items()
                        if name not in ('docs/scripts/doc_inputs.py', 'docs/scripts/presentation.py')}
     same_frontend = (previous.get('schema') == SCHEMA and previous_hashes == hashes

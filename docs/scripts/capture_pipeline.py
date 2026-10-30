@@ -244,11 +244,11 @@ def update_legacy(task, record):
     if task['kind'] == SceneKind.STARTER:
         path = DOCS / 'content/starter-captures.json'
         captures = json.loads(path.read_text())
-        from starter_sources import source_directory, FILES
+        from starter_sources import source_directory, source_files
         source = source_directory(task['slug'])
         width, height = dimensions(task['outputs'][0])
         captures[task['slug']] = {'environment': {'platform': record['origin']['environment'].get('platform'), 'backend': 'browser', 'renderer': 'femtovg', 'scale_factor': 2},
-                'source_sha256': {name: digest((source / name).read_bytes()) for name in FILES},
+                'source_sha256': {name: digest((source / name).read_bytes()) for name in source_files(source)},
                 'image': {'file': 'preview@2x.png', 'sha256': digest(task['outputs'][0].read_bytes()), 'width': width, 'height': height},
                 'renderKey': task['key'], 'theme': 'tailwind'}
         write_changed(path, json.dumps(captures, indent=2, ensure_ascii=False) + '\n')

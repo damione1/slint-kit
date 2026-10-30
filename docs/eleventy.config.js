@@ -31,6 +31,8 @@ export default function (eleventyConfig) {
     for (const file of starterFiles) {
       eleventyConfig.addPassthroughCopy({ [`${file.endsWith('.png') ? 'quickstart' : '.generated/consumers'}/${slug}/${file}`]: `quickstart/${slug}/${file}` });
     }
+    const assets = `.generated/consumers/${slug}/ui/assets`;
+    if (fs.existsSync(assets)) eleventyConfig.addPassthroughCopy({ [assets]: `quickstart/${slug}/ui/assets` });
   }
   eleventyConfig.addFilter('componentLabel', componentLabel);
   eleventyConfig.addFilter('quickstartSource', (file, slug) => fs.readFileSync(path.join('.generated/consumers', slug, file), 'utf8'));

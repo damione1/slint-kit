@@ -1,13 +1,16 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Verify independent public sources, lock reuse and explicit publication modes."""
 import json
+import runpy
 from pathlib import Path
 import tempfile
 import tomllib
 import unittest
+import zipfile
 from unittest.mock import patch
 
 import starter_sources
+import doc_inputs
 
 
 class StarterSourceTests(unittest.TestCase):
@@ -93,6 +96,27 @@ version = "0.3.0"
         self.assertEqual(self.cargo.call_count, 1)
         self.assertEqual((consumers['checkbox'] / 'ui/app.slint').read_text(), 'new UI')
         self.assertEqual((consumers['radio-group'] / 'ui/app.slint').read_text(), 'original')
+
+    def test_bundled_images_and_notices_reach_native_sources_hashes_and_standalone_zip(self):
+        asset = self.root / 'docs/quickstart/checkbox/ui/assets/profile.jpg'
+        asset.parent.mkdir()
+        asset.write_bytes(b'original image')
+        asset.with_name('NOTICE.txt').write_text('Original artwork license')
+        consumers = starter_sources.prepare('local')
+        for directory in [consumers['checkbox'], starter_sources.source_directory('checkbox', 'local', native=True)]:
+            self.assertEqual((directory / 'ui/assets/profile.jpg').read_bytes(), b'original image')
+        manifest = json.loads((self.root / 'docs/.generated/consumers/manifest.json').read_text())
+        self.assertIn('ui/assets/profile.jpg', manifest['source_sha256']['checkbox'])
+        (self.root / 'LICENSE').write_text('GPL-3.0-or-later')
+        with patch.object(doc_inputs, 'ROOT', self.root), patch.object(doc_inputs, 'DOCS', self.root / 'docs'), patch.object(starter_sources, 'prepare', return_value=consumers):
+            runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')))
+        with zipfile.ZipFile(self.root / 'docs/.generated/starters/checkbox.zip') as archive:
+            self.assertEqual(archive.read('checkbox/ui/assets/profile.jpg'), b'original image')
+            self.assertEqual(archive.read('checkbox/ui/assets/NOTICE.txt'), b'Original artwork license')
+        asset.unlink()
+        starter_sources.prepare('local')
+        self.assertFalse((consumers['checkbox'] / 'ui/assets/profile.jpg').exists())
+        self.assertFalse((starter_sources.source_directory('checkbox', 'local', native=True) / 'ui/assets/profile.jpg').exists())
 
     def test_release_generates_a_separate_registry_lock_without_any_path_patch(self):
         starter_sources.prepare('local')

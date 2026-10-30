@@ -16,7 +16,7 @@ import tomllib
 import fcntl
 from functools import wraps
 
-from doc_inputs import ROOT, DOCS, build_inputs, digest, runtime_inputs, write_changed, write_json, consumer_identity, compiler_environment
+from doc_inputs import ROOT, DOCS, build_inputs, digest, runtime_inputs, write_changed, write_json, consumer_identity, compiler_environment, relocated_source
 from presentation import ThemeFamily, themed_source
 from web_cache import ASSETS, restore, save
 
@@ -62,11 +62,13 @@ def content_hash(directory, names):
 
 
 def corresponding_sources(slug):
+    from starter_sources import source_files
     files = [ROOT / name for name in ['Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md']]
     files += [path for path in (ROOT / 'crates').rglob('*') if path.is_file() and 'target' not in path.parts]
     files += [path for path in (DOCS / 'preview').rglob('*') if path.is_file() and 'target' not in path.parts]
     files += [DOCS / 'scripts' / name for name in ['build-web-previews.py', 'web_cache.py', 'presentation.py', 'doc_inputs.py']]
-    files += [DOCS / 'quickstart' / slug / name for name in ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint']]
+    starter = DOCS / 'quickstart' / slug
+    files += [starter / name for name in source_files(starter)]
     return sorted(set(files))
 
 
@@ -177,7 +179,7 @@ def build_fixture(task, inputs):
             if task['recipe']['theme'] == 'dark':
                 text = text.replace('KitThemes.light', 'KitThemes.dark')
             ui_dir = DOCS / '.generated/preview-ui' / family
-            write_changed(ui_dir / (slug + '.slint'), text)
+            write_changed(ui_dir / (slug + '.slint'), relocated_source(text, source))
             viewport = task['recipe']['viewport']
             env = {**environment, 'SLINT_PREVIEW_COMPONENTS': slug, 'SLINT_PREVIEW_SOURCE_DIR': str(ui_dir),
                    'SLINT_PREVIEW_FIXTURE': '1', 'SLINT_PREVIEW_TEXT_SCALE': str(task['recipe']['textScale']),
@@ -247,7 +249,8 @@ def build():
                 else:
                     print(f'WASM build {slug}/{family.value}', flush=True)
                     ui_dir = DOCS / '.generated/preview-ui' / family.value
-                    write_changed(ui_dir / f'{slug}.slint', themed_source((DOCS / 'quickstart' / slug / 'ui/app.slint').read_text(), family.value))
+                    source = DOCS / 'quickstart' / slug / 'ui/app.slint'
+                    write_changed(ui_dir / f'{slug}.slint', relocated_source(themed_source(source.read_text(), family.value), source))
                     env = {**environment, 'SLINT_PREVIEW_COMPONENTS': slug, 'SLINT_PREVIEW_SOURCE_DIR': str(ui_dir)}
                     log_path = DOCS / '.verification/wasm' / f'{slug}-{family.value}.log'
                     log_path.parent.mkdir(parents=True, exist_ok=True)
