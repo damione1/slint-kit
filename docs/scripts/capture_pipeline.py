@@ -30,6 +30,7 @@ class ImageOrigin(StrEnum):
 class PosterAction(StrEnum):
     CLICK = 'click'
     HOVER = 'hover'
+    FOCUS_FIRST = 'focus-first'
 
 
 def poster_activation(value):
@@ -37,9 +38,13 @@ def poster_activation(value):
         return None
     if isinstance(value, list):
         value = {'action': PosterAction.CLICK.value, 'point': value}
+    if value == {'action': PosterAction.FOCUS_FIRST.value}:
+        return {'action': PosterAction.FOCUS_FIRST.value}
     if not isinstance(value, dict) or set(value) != {'action', 'point'}:
         raise ValueError('Poster activation needs an action and point')
     action = PosterAction(value['action'])
+    if action == PosterAction.FOCUS_FIRST:
+        raise ValueError('Keyboard poster activation does not take coordinates')
     point = value['point']
     if (not isinstance(point, list) or len(point) != 2
             or any(isinstance(number, bool) or not isinstance(number, (int, float))

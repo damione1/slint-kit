@@ -161,11 +161,13 @@ class DocumentationIdentityTests(unittest.TestCase):
         self.assertEqual(scene['output'], 'preview@2x.png')
         task['recipe']['activation'] = {'action': 'hover', 'point': [90, 42]}
         self.assertEqual(captures.browser_scene(task, {'base': '/assets/previews/tooltip'})['activation'], task['recipe']['activation'])
+        task['recipe']['activation'] = {'action': 'focus-first'}
+        self.assertEqual(captures.browser_scene(task, {'base': '/assets/previews/tooltip'})['activation'], task['recipe']['activation'])
         task['recipe']['activation'] = None
         self.assertNotIn('activation', captures.browser_scene(task, {'base': '/assets/previews/dialog'}))
 
     def test_invalid_poster_actions_and_coordinates_fail_before_browser_work(self):
-        for value in [{'action': 'focus', 'point': [1, 2]}, {'action': 'click', 'point': [False, 2]},
+        for value in [{'action': 'focus', 'point': [1, 2]}, {'action': 'focus-first', 'point': [1, 2]}, {'action': 'click', 'point': [False, 2]},
                       [-1, 2], [1], [float('nan'), 2], {'point': [1, 2]}]:
             with self.assertRaises(ValueError):
                 captures.poster_activation(value)

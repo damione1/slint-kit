@@ -73,15 +73,22 @@ try{
     // Overlay posters use a declared point inside their known opener. Regular
     // interaction qualification remains in check-browser.mjs.
     const activation=Array.isArray(scene.activation)?{action:'click',point:scene.activation}:scene.activation;
-    assert(['click','hover'].includes(activation.action),'Unknown poster action');
-    assert(Array.isArray(activation.point)&&activation.point.length===2&&activation.point.every(Number.isFinite),'Invalid poster point');
-    const [x,y]=activation.point;
-    await call('Input.dispatchMouseEvent',{type:'mouseMoved',x,y});
-    if(activation.action==='click'){
-      await call('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
-      await call('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
+    assert(['click','hover','focus-first'].includes(activation.action),'Unknown poster action');
+    if(activation.action==='focus-first'){
+      // Exercise the actual first Slint tab stop after entering its DOM canvas.
+      await evaluate("document.querySelector('canvas').focus()");
+      await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+      await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
+    }else{
+      assert(Array.isArray(activation.point)&&activation.point.length===2&&activation.point.every(Number.isFinite),'Invalid poster point');
+      const [x,y]=activation.point;
+      await call('Input.dispatchMouseEvent',{type:'mouseMoved',x,y});
+      if(activation.action==='click'){
+        await call('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
+        await call('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
+      }
     }
-    await pause(activation.action==='hover'?750:200);
+    await pause(activation.action==='hover'?750:activation.action==='focus-first'?500:200);
   }
   const screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:rectangle.x,y:rectangle.y,width:rectangle.width,height:rectangle.height,scale:1}});
   const destination=path.resolve(root,scene.output);await fs.mkdir(path.dirname(destination),{recursive:true});
