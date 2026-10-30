@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FocusRequest } from "contracts.slint";
+import { KitFocusRing, KitThemes, FocusRingStyle } from "theme.slint";
 export { FocusRequest } from "contracts.slint";
 
 // The host registers logical targets after window creation. A recycled target
@@ -29,4 +30,22 @@ export component KitFocusTarget inherits FocusScope {
     focus-gained(reason) => { root.focus-observed(root.token, true); }
     focus-lost(reason) => { root.focus-observed(root.token, false); }
     @children
+}
+
+// The single focus indicator of the kit. Place it as a direct child of the
+// focusable host, after its content, and give it the host's size and painted
+// radius; the ring supplies position, width and color. It never takes input.
+export component FocusOutline inherits Rectangle {
+    in property <KitFocusRing> ring;
+    in property <length> radius;
+    in property <length> host-width;
+    in property <length> host-height;
+    x: -KitThemes.focus-outset(root.ring);
+    y: -KitThemes.focus-outset(root.ring);
+    width: root.host-width - 2 * self.x;
+    height: root.host-height - 2 * self.y;
+    border-radius: root.ring.style == FocusRingStyle.outside ? root.radius + root.ring.offset : root.radius;
+    border-width: root.ring.width;
+    border-color: root.ring.color;
+    background: transparent;
 }

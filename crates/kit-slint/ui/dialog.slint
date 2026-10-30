@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
+import { ElevatedSurface } from "elevation.slint";
 export { DialogState, CloseReason } from "contracts.slint";
 export enum DialogTabPolicy { host, native }
 
 // Modal host: rendered last in its window. Topmost is projected by OverlayStack;
 // arbitrary content enters the focus registry via KitFocusTarget.
 export component KitDialogSurface inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <DialogState> state;
     in property <bool> dismiss-on-backdrop: true;
     // Native traversal follows the actual mounted controls. Its window host
@@ -47,33 +48,34 @@ export component KitDialogSurface inherits Rectangle {
 }
 // Place composed header/body/footer inside this panel to consume backdrop hits.
 export component KitDialogPanel inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> accessible-name;
     in property <string> accessible-description-text;
     accessible-role: groupbox;
     accessible-label: root.accessible-name;
     accessible-description: root.accessible-description-text;
-    border-radius: 12px;
-    background: root.theme.surface-raised;
-    border-width: 1px;
-    border-color: root.theme.border-subtle;
+    private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.overlay);
+    // The host stays transparent: the surface and its two-layer shadow paint
+    // under the composed content, with the host's radius (a drawer squares it).
+    border-radius: root.recipe.radius;
+    ElevatedSurface { recipe: root.recipe; radius: root.border-radius; }
     TouchArea { }
     @children
 }
 export component KitDialogHeader inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
-    min-height: 32px;
-    HorizontalLayout { spacing: 12px; @children }
+    in property <KitTheme> theme: KitThemeContext.current;
+    min-height: root.theme.spacing.unit * 8;
+    HorizontalLayout { spacing: root.theme.spacing.unit * 3; @children }
 }
 export component KitDialogBody inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
-    min-height: 48px;
-    VerticalLayout { spacing: 12px; @children }
+    in property <KitTheme> theme: KitThemeContext.current;
+    min-height: root.theme.spacing.unit * 12;
+    VerticalLayout { spacing: root.theme.spacing.unit * 3; @children }
 }
 export component KitDialogFooter inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
-    min-height: 48px;
-    HorizontalLayout { spacing: 8px; alignment: end; @children }
+    in property <KitTheme> theme: KitThemeContext.current;
+    min-height: root.theme.spacing.unit * 12;
+    HorizontalLayout { spacing: root.theme.spacing.unit * 2; alignment: end; @children }
 }
 
 export { KitFocusTarget } from "focus.slint";

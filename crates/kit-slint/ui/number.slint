@@ -3,9 +3,9 @@ import { KitValidityState } from "validation.slint";
 import { NumberInputFormat } from "shared-contracts.slint";
 import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext } from "theme.slint";
 import { KitPressable } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
 export { StepDirection } from "shared-contracts.slint";
 
@@ -21,7 +21,6 @@ export component KitQuantityField inherits KitDecimalField { }
 export component KitDurationField inherits KitDecimalField { }
 
 export component KitNumberStepper inherits KitField {
-    in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -63,7 +62,7 @@ export component KitNumberStepper inherits KitField {
         focus-requested => { root.take-focus(); }
     }
     HorizontalLayout {
-        spacing: 8px;
+        spacing: KitMetrics.inline-gap(root.theme);
         editor := KitDecimalField {
             show-validation-message: false; error: root.error;
             required: root.required; min: root.min; max: root.max; step: root.step;
@@ -80,18 +79,19 @@ export component KitNumberStepper inherits KitField {
             cancelled => { root.cancelled(); }
             focus-observed(value) => { root.focus-observed(value); }
         }
-        for direction in [StepDirection.decrement, StepDirection.increment]: KitPressable {
+        for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
             theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
-            preferred-width: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+            preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;
             disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
             accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
             activated => { root.step-requested(direction); }
             Rectangle {
                 KitIcon {
+                theme: root.theme; control-size: root.control-size;
                 x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                kind: direction == StepDirection.increment ? IconKind.plus : IconKind.minus;
-                ink: root.theme.text-primary;
+                glyph: direction == StepDirection.increment ? KitGlyphs.plus() : KitGlyphs.minus();
+                ink: step.disabled ? step.recipe.disabled-foreground : step.recipe.foreground;
                 }
             }
         }

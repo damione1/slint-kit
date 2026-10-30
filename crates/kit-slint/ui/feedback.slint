@@ -1,14 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 
-export enum AlertSeverity { information, success, warning, error }
+export { AlertSeverity } from "theme.slint";
+
+// Internal: the mark an alert draws for its severity. Warnings and errors share
+// the warning sign and differ by their recipe's tint, edge and ink.
+export global KitAlertMarks {
+    public pure function glyph(severity: AlertSeverity) -> IconGlyph {
+        return severity == AlertSeverity.success ? KitGlyphs.check()
+            : severity == AlertSeverity.warning || severity == AlertSeverity.error ? KitGlyphs.warning()
+            : KitGlyphs.information();
+    }
+}
 export enum ToastInteraction { pointer, focus }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool }
 
 export component KitAlert inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <AlertSeverity> severity: AlertSeverity.information;
     in property <string> title;
     in property <string> message;
@@ -17,37 +27,43 @@ export component KitAlert inherits Rectangle {
     // Measure wrapped copy at the allocated width, including when this component
     // lives inside a conditional layout. An unconstrained row's preferred height
     // measures its copy at minimum width and leaves unused space below the alert.
-    private property <length> trailing-space: root.dismissible ? dismiss.width + 12px : 0px;
-    preferred-height: 32px + max(copy.preferred-height, icon.height, root.dismissible ? dismiss.height : 0px);
+    private property <AlertRecipe> recipe: KitThemes.alert-recipe(root.theme, root.severity);
+    private property <length> inset: root.recipe.inset;
+    private property <length> gap: root.recipe.gap;
+    private property <length> trailing-space: root.dismissible ? dismiss.width + root.gap : 0px;
+    preferred-height: 2 * root.inset + max(copy.preferred-height, icon.height, root.dismissible ? dismiss.height : 0px);
     min-height: self.preferred-height;
-    min-width: 32px + icon.width + 12px + root.trailing-space;
-    background: root.theme.hover; border-radius: 10px; vertical-stretch: 0;
+    min-width: 2 * root.inset + icon.width + root.gap + root.trailing-space;
+    background: root.recipe.fill;
+    border-width: root.recipe.border-width; border-color: root.recipe.border;
+    border-radius: root.recipe.radius; vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {
-        x: 16px; y: 16px;
-        kind: root.severity == AlertSeverity.success ? IconKind.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? IconKind.warning : IconKind.plus;
-        ink: root.severity == AlertSeverity.error ? root.theme.danger : root.theme.accent;
+        theme: root.theme;
+        x: root.inset; y: root.inset;
+        glyph: KitAlertMarks.glyph(root.severity);
+        ink: root.recipe.mark;
     }
     copy := VerticalLayout {
-        x: icon.x + icon.width + 12px; y: 16px;
-        width: max(0px, root.width - self.x - 16px - root.trailing-space);
+        x: icon.x + icon.width + root.gap; y: root.inset;
+        width: max(0px, root.width - self.x - root.inset - root.trailing-space);
         height: self.preferred-height;
-        spacing: 4px; alignment: start;
-        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+        spacing: root.theme.spacing.unit; alignment: start;
+        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
     dismiss := KitIconButton {
         width: self.preferred-width; height: self.preferred-height;
-        x: root.width - self.width - 16px; y: 16px;
+        x: root.width - self.width - root.inset; y: root.inset;
         visible: root.dismissible; disabled: !root.dismissible;
         theme: root.theme; control-size: ControlSize.compact;
-        icon: IconKind.close; accessible-name: "Dismiss " + root.title;
+        glyph: KitGlyphs.close(); accessible-name: "Dismiss " + root.title;
         activated => { root.dismissed(); }
     }
 }
 
 export component KitSpinner inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label: "Loading";
     in property <bool> running: true;
     private property <int> phase;
@@ -55,7 +71,7 @@ export component KitSpinner inherits Rectangle {
     max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: AccessibleRole.text; accessible-label: root.label;
-    for index in 8: Rectangle { width: 4px; height: 4px; border-radius: 2px;
+    for index in 8: Rectangle { width: 4px; height: 4px; border-radius: self.width / 2;
         x: (root.width - self.width) / 2 + (root.width / 2 - 3px) * Math.cos(index * 45deg);
         y: (root.height - self.height) / 2 + (root.height / 2 - 3px) * Math.sin(index * 45deg);
         background: root.theme.accent; opacity: root.theme.reduced-motion || !root.running ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase,8) / 7;
@@ -64,21 +80,21 @@ export component KitSpinner inherits Rectangle {
 }
 
 export component KitProgress inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
     out property <float> bounded-value: min(1,max(0,root.value));
-    spacing: 8px; vertical-stretch: 0;
+    spacing: root.theme.spacing.unit * 2; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
     accessible-value: Math.round(root.bounded-value * 100) + "%";
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-    Rectangle { height: 8px; border-radius: 4px; background: root.theme.disabled-fill;
-        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: 4px; background: root.theme.accent; }
+    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.disabled-fill;
+        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; }
     }
 }
 export component KitRadialProgress inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
     out property <float> bounded-value: min(1,max(0,root.value));
@@ -88,12 +104,12 @@ export component KitRadialProgress inherits Rectangle {
     accessible-role: progress-indicator; accessible-label: root.label;
     accessible-value: Math.round(root.bounded-value * 100) + "%";
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    for index in 60: Rectangle { width: 4px; height: 4px; border-radius: 2px;
+    for index in 60: Rectangle { width: 4px; height: 4px; border-radius: self.width / 2;
         x: (root.width - self.width) / 2 + (root.width / 2 - 4px) * Math.cos(index * 6deg - 90deg);
         y: (root.height - self.height) / 2 + (root.height / 2 - 4px) * Math.sin(index * 6deg - 90deg);
         background: index / 60 < root.bounded-value ? root.theme.accent : root.theme.disabled-fill;
     }
-    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 // One projection per component Window, with monotonic owners so a stale blur
@@ -103,7 +119,7 @@ export global KitTooltipState {
     out property <int> owner;
     out property <int> suppressed-owner;
     out property <string> text;
-    out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> theme: KitThemeContext.current;
     out property <Point> anchor;
     out property <length> anchor-height;
     public function allocate() -> int {
@@ -137,16 +153,28 @@ export component KitTooltipLayer inherits Rectangle {
     in property <length> viewport-height: root.height;
     public function dismiss() { KitTooltipState.dismiss(); }
     changed enabled => { KitTooltipState.dismiss(); }
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(KitTooltipState.theme);
+    // The tip's distance from the anchor and the window edges.
+    private property <length> gap: root.tip-recipe.gap;
     if root.enabled && KitTooltipState.owner != 0: Rectangle {
-        x: max(8px,min(KitTooltipState.anchor.x,root.viewport-width - self.width - 8px));
-        y: max(8px,min(root.viewport-height - self.height - 8px,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + 8px > root.viewport-height ? KitTooltipState.anchor.y - self.height - 8px : KitTooltipState.anchor.y + KitTooltipState.anchor-height + 8px));
-        width: min(300px * KitTooltipState.theme.text-scale,max(0px,root.viewport-width - 16px));
-        height: min(tip.preferred-height + 16px,max(0px,root.viewport-height - 16px));
-        background: KitTooltipState.theme.text-primary; border-radius: 6px;
+        x: max(root.gap,min(KitTooltipState.anchor.x,root.viewport-width - self.width - root.gap));
+        y: max(root.gap,min(root.viewport-height - self.height - root.gap,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + root.gap > root.viewport-height ? KitTooltipState.anchor.y - self.height - root.gap : KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap));
+        // As wide as one line of its text, up to the recipe's reading width.
+        width: min(min(root.tip-recipe.max-width,line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.gap));
+        height: min(tip.preferred-height + 2 * root.tip-recipe.padding-block,max(0px,root.viewport-height - 2 * root.gap));
+        background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
+        drop-shadow-offset-y: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).offset-y;
+        drop-shadow-blur: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).blur;
+        drop-shadow-color: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).color;
+        line := Text {
+            visible: false; accessible-role: none; text: KitTooltipState.text;
+            font-family: KitTooltipState.theme.typography.family; font-size: root.tip-recipe.font-size;
+        }
         tip := Text {
-            x: 8px; y: 8px; width: max(0px,parent.width - 16px); height: max(0px,parent.height - 16px);
-            text: KitTooltipState.text; color: KitTooltipState.theme.surface;
-            font-size: 12px * KitTooltipState.theme.text-scale; wrap: word-wrap; overflow: elide;
+            x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block;
+            width: max(0px,parent.width - 2 * root.tip-recipe.padding-inline); height: max(0px,parent.height - 2 * root.tip-recipe.padding-block);
+            text: KitTooltipState.text; color: root.tip-recipe.foreground;
+            font-family: KitTooltipState.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; overflow: elide;
         }
     }
 }
@@ -154,7 +182,7 @@ export component KitTooltipLayer inherits Rectangle {
 // Native hover tips stay input-transparent. Bind target-focused to the composed
 // control's has-focus; mount KitTooltipLayer at the Window root for keyboard tips.
 export component KitTooltip inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <bool> target-focused;
     in property <length> viewport-width: 100000px;
@@ -186,17 +214,19 @@ export component KitTooltip inherits Rectangle {
         key-pressed(event) => { if (event.text == Key.Escape && root.keyboard-visible) { root.dismiss(); return accept; } return reject; }
         content := VerticalLayout { @children }
     }
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(root.theme);
     if !root.suppressed && root.text != "": Tooltip {
-        Rectangle { background: root.theme.text-primary; border-radius: 6px;
-            width: min(300px * root.theme.text-scale,max(80px,root.viewport-width - 16px));
-            height: hover-tip.preferred-height + 16px;
-            hover-tip := Text { x: 8px; y: 8px; width: parent.width - 16px; text: root.text; color: root.theme.surface; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        Rectangle { background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
+            width: min(min(root.tip-recipe.max-width,hover-line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.tip-recipe.gap));
+            height: hover-tip.preferred-height + 2 * root.tip-recipe.padding-block;
+            hover-line := Text { visible: false; accessible-role: none; text: root.text; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; }
+            hover-tip := Text { x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block; width: parent.width - 2 * root.tip-recipe.padding-inline; text: root.text; color: root.tip-recipe.foreground; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; }
         }
     }
 }
 
 export component KitToast inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ToastEntry> entry;
     callback action(int);
     callback dismiss(int);
@@ -207,14 +237,19 @@ export component KitToast inherits Rectangle {
     private property <bool> focus-engaged: root.action-focused || root.dismiss-focused;
     changed pointer-engaged => { root.interaction(root.entry.token,ToastInteraction.pointer,root.pointer-engaged); }
     changed focus-engaged => { root.interaction(root.entry.token,ToastInteraction.focus,root.focus-engaged); }
-    background: root.theme.surface-raised; border-color: root.theme.border-subtle; border-width: 1px; border-radius: 12px; vertical-stretch: 0;
+    private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.overlay);
+    background: root.surface.fill; border-color: root.surface.border; border-width: root.surface.border-width; border-radius: root.surface.radius; vertical-stretch: 0;
+    drop-shadow-offset-y: root.surface.shadow.offset-y; drop-shadow-blur: root.surface.shadow.blur; drop-shadow-color: root.surface.shadow.color;
+    // Measure the content explicitly: Slint 1.18.1 wraps a repeated element
+    // that has a drop shadow, and the wrapper's implicit measure adds space.
+    min-height: content.min-height; preferred-height: content.preferred-height;
     accessible-role: groupbox; accessible-label: root.entry.title; accessible-live-region: root.entry.severity == AlertSeverity.error ? assertive : polite;
     hover := TouchArea {
-    VerticalLayout { padding: 16px; spacing: 12px;
-        HorizontalLayout { spacing: 12px;
-            VerticalLayout { spacing: 4px;
-                Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-                if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    content := VerticalLayout { padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 3;
+        HorizontalLayout { spacing: root.theme.spacing.unit * 3;
+            VerticalLayout { spacing: root.theme.spacing.unit;
+                Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
             if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; accessible-name: "Dismiss " + root.entry.title; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }
@@ -225,11 +260,11 @@ export component KitToast inherits Rectangle {
 // The host owns lifetime and stable typed IDs. This view never creates a
 // timer per delegate or silently discards announcements on model changes.
 export component KitToastHost inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[ToastEntry]> entries;
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
-    spacing: 12px; alignment: start; vertical-stretch: 0;
+    spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0;
     for entry in root.entries: KitToast { theme: root.theme; entry: entry; action(token) => { root.action(token); } dismiss(token) => { root.dismiss(token); } interaction(token,source,engaged) => { root.interaction(token,source,engaged); } }
 }

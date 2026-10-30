@@ -4,7 +4,7 @@ Build-time registration of the installed [Slint Kit](https://github.com/damione1
 
 ```toml
 [build-dependencies]
-slint-kit-build = "0.3"
+slint-kit-build = "0.4"
 ```
 
 In `build.rs`:

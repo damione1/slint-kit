@@ -1,0 +1,20 @@
+// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitScrollBar, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitScrollBar — exemple";
+    preferred-width: 420px;
+    preferred-height: 260px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Barre de défilement"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        HorizontalLayout { height: 120px; spacing: 8px; notes := Flickable { content-height: column.preferred-height; column := VerticalLayout { width: notes.width; spacing: 8px; alignment: start; Text { text: "Espace de travail de l’équipe"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Gardez les observations et les décisions au même endroit."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Lundi : lancement avec l’équipe de design."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Mardi : revue du parcours d’accueil."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Mercredi : rédaction des notes de version."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Jeudi : test de l’import sur de gros fichiers."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Vendredi : publication du résumé de la semaine."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Prêt à publier vos modifications ?"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } } } KitScrollBar { theme: root.theme; maximum: notes.content-height - notes.height; page-size: notes.height; value <=> notes.content-y; scrolled => { root.status = "Notes défilées"; } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

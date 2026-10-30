@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
 import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
+import { TailwindThemes } from "@kit/themes/tailwind.slint";
 import { OptionRow, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
-import { KitIcon, IconKind } from "@kit/icons.slint";
+import { FieldAccess } from "@kit/contracts.slint";
+import { KitIcon, KitGlyphs } from "@kit/icons.slint";
 import { DisplayGallery, DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 export { DisplayExamples, ToastExample, ProgressDemoState, ToastEntry, AlertSeverity, ToastInteraction } from "base-display.slint";
 import { NavigationDrawer, NavigationGallery, NavigationExamples, NavigationDemo, DrawerFocus, ExpansionMode, DisclosureRow, NotificationRow } from "base-navigation.slint";
@@ -46,6 +48,8 @@ export enum TextSample { standard, long-french, right-to-left }
 export enum ThemeMode { light, dark }
 export enum ShowcaseSkin { mineral, expressive }
 export enum AccentStyle { indigo, teal }
+// The shipped theme family the catalogue starts from.
+export enum ThemeFamily { kit, tailwind }
 export enum TabDisposition { host-handled, native-navigation }
 export enum ValidationPhase { idle, pending, failed, succeeded }
 export struct PopupRect { x: length, y: length, width: length, height: length }
@@ -77,8 +81,7 @@ component ProjectTile inherits KitPressable {
         pressed-fill: base-recipe.pressed-fill, disabled-fill: base-recipe.disabled-fill,
         foreground: base-recipe.foreground, disabled-foreground: base-recipe.disabled-foreground,
         border: transparent, border-width: 0px, radius: 20px, padding-inline: 0px, padding-block: 0px, height: 166px,
-        font-size: base-recipe.font-size, focus-color: base-recipe.focus-color,
-        focus-width: base-recipe.focus-width, focus-offset: base-recipe.focus-offset,
+        font-size: base-recipe.font-size, focus: base-recipe.focus,
     };
     control-width: ControlWidth.fill;
     border-width: 0px;
@@ -90,7 +93,7 @@ component ProjectTile inherits KitPressable {
         padding: 24px;
         spacing: 12px;
         HorizontalLayout {
-            KitIcon {kind:IconKind.arrow-up-right;ink:root.theme.on-accent;width:28px;height:28px;}
+            KitIcon {glyph:KitGlyphs.arrow-up-right();ink:root.theme.on-accent;width:28px;height:28px;}
             Rectangle { horizontal-stretch: 1; background: transparent; }
             Rectangle {
                 width: 62px; height: 24px; border-radius: 12px;
@@ -120,20 +123,40 @@ export component Showcase inherits Window {
     init => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
     changed theme-mode => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
     in-out property <AccentStyle> accent-style: AccentStyle.indigo;
+    in-out property <ThemeFamily> theme-family: ThemeFamily.kit;
     in-out property <ControlSize> density: ControlSize.medium;
     in-out property <TextSample> text-sample: TextSample.standard;
     private property <string> sample-label: text-sample == TextSample.standard ? "Run action" : text-sample == TextSample.long-french ? "Partager ce nouveau projet avec toutes les personnes de votre équipe et conserver les modifications" : "مشاركة هذا المشروع الجديد مع أعضاء الفريق";
     in-out property <bool> enlarged: false;
     in-out property <bool> reduced-motion: false;
-    private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
+    private property <KitTheme> base-theme: theme-family == ThemeFamily.tailwind
+        ? (theme-mode == ThemeMode.dark ? TailwindThemes.dark : TailwindThemes.light)
+        : (theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light);
+    private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
+    private property <color> teal-hover: theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1;
+    private property <bool> teal: accent-style == AccentStyle.teal;
     out property <KitTheme> theme: {
         canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised,
-        text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary,
-        accent: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #65d8c4 : #087c70) : base-theme.accent,
-        on-accent: base-theme.on-accent, danger: base-theme.danger, success: base-theme.success, warning: base-theme.warning,
-        border-subtle: base-theme.border-subtle, focus-ring: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus-ring,
-        hover: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1) : base-theme.hover, pressed: accent-style == AccentStyle.teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed, disabled-fill: base-theme.disabled-fill,
-        disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
+        text-primary: base-theme.text-primary, text-secondary: base-theme.text-secondary, placeholder: base-theme.placeholder,
+        accent: teal ? teal-accent : base-theme.accent, on-accent: base-theme.on-accent,
+        accent-hover: teal ? teal-accent.darker(12%) : base-theme.accent-hover,
+        accent-pressed: teal ? teal-accent.darker(24%) : base-theme.accent-pressed,
+        accent-subtle: teal ? teal-hover : base-theme.accent-subtle,
+        selection: teal ? teal-accent : base-theme.selection, on-selection: base-theme.on-selection,
+        danger: base-theme.danger, danger-hover: base-theme.danger-hover, danger-pressed: base-theme.danger-pressed, danger-subtle: base-theme.danger-subtle,
+        success: base-theme.success, success-subtle: base-theme.success-subtle,
+        warning: base-theme.warning, warning-subtle: base-theme.warning-subtle,
+        information: teal ? teal-accent : base-theme.information, information-subtle: teal ? teal-hover : base-theme.information-subtle,
+        border-subtle: base-theme.border-subtle, border-strong: base-theme.border-strong,
+        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed,
+        disabled-fill: base-theme.disabled-fill, disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
+        shape: base-theme.shape, elevation: base-theme.elevation,
+        focus: {
+            style: base-theme.focus.style, width: base-theme.focus.width, offset: base-theme.focus.offset,
+            color: teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus.color,
+            invalid-color: base-theme.focus.invalid-color,
+        },
+        typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
         reduced-motion: root.reduced-motion, text-scale: enlarged ? 2 : 1,
     };
     in property <[OptionRow]> rows;
@@ -209,6 +232,7 @@ export component Showcase inherits Window {
                 accessible-label: "Slint Kit";
             }
             KitButton { theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+            KitButton { theme: root.theme; control-size: root.density; text: root.theme-family == ThemeFamily.tailwind ? "Tailwind" : "Kit"; activated => { root.theme-family = root.theme-family == ThemeFamily.tailwind ? ThemeFamily.kit : ThemeFamily.tailwind; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
             KitButton { theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
@@ -301,7 +325,7 @@ export component Showcase inherits Window {
                                             Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; overflow: elide; }
                                             Text { text: root.selected-detail; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
                                         }
-                                        Rectangle { width: 16px; horizontal-stretch: 0; KitIcon { kind: IconKind.chevron-down; ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; } }
+                                        Rectangle { width: 16px; horizontal-stretch: 0; KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; } }
                                     }
                                 }
                             }
@@ -377,7 +401,7 @@ export component Showcase inherits Window {
                             Rectangle {
                                 background: root.theme.canvas;
                                 border-width: 1px;
-                                border-color: input.has-focus ? root.theme.focus-ring : root.theme.border-subtle;
+                                border-color: input.has-focus ? root.theme.focus.color : root.theme.border-subtle;
                                 border-radius: 8px;
                             }
                             input := TextInput {
@@ -400,7 +424,7 @@ export component Showcase inherits Window {
                             focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             nested-trigger := KitSelectTrigger {
                                 theme: root.theme; control-size: root.density; state: root.select-state;
-                                disabled: root.dialog-state.busy;
+                                access: root.dialog-state.busy ? FieldAccess.disabled : FieldAccess.editable;
                                 accessible-name: "Choose a collaborator inside dialog";
                                 private property <PopupRect> anchor-geometry: {x: self.absolute-position.x, y: self.absolute-position.y, width: self.width, height: self.height};
                                 changed anchor-geometry => { if (root.dialog-state.open) { root.popup-anchor = self.anchor-geometry; } }
@@ -411,7 +435,7 @@ export component Showcase inherits Window {
                             dismiss(reason) => { root.select-dismiss(reason); }
                             typeahead(text) => { root.select-typeahead(text); }
                             tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
-                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; } KitIcon { kind: IconKind.chevron-down; ink: root.theme.text-secondary; } }
+                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; } KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; } }
                             }
                         }
                         Text { text: "Try accents, emoji, selection, undo and paste. Escape closes one layer at a time."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
@@ -428,7 +452,7 @@ export component Showcase inherits Window {
                             height: max(48px,note.preferred-height + 20px);
                             focus-requested => { note.focus(); }
                             focus-observed(token, focused) => { root.focus-changed(token, focused); }
-                            Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus-ring : root.theme.border-subtle; }
+                            Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus.color : root.theme.border-subtle; }
                             note := TextInput { x: 12px; y: 10px; width: parent.width - 24px; height: parent.height - 20px; text <=> root.project-note; color: root.theme.text-primary; font-size:14px * root.theme.text-scale; single-line: true; accessible-label: "Optional project note"; changed has-focus => { root.focus-changed(16, self.has-focus); } }
                         }
                         if root.validation-message != "": Text {

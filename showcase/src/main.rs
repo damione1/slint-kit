@@ -212,6 +212,7 @@ impl PreviewScene {
 struct Preview {
     scene: Option<PreviewScene>,
     dark: bool,
+    tailwind: bool,
     enlarged: bool,
     dialog: Option<ShowcaseSkin>,
     select: Option<ShowcaseSkin>,
@@ -252,6 +253,7 @@ impl Preview {
                 }
                 "--invalid" => result.invalid = true,
                 "--dark" => result.dark = true,
+                "--tailwind" => result.tailwind = true,
                 "--text-200" => result.enlarged = true,
                 "--content-lab" => result.content_lab = true,
                 "--density" => {
@@ -284,7 +286,7 @@ impl Preview {
                         _ => unreachable!("option was matched above"),
                     }
                 }
-                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files|display|navigation|data] [--scene name] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
+                "--help" => return Err("Usage: kit-showcase [--page gallery|profile|billing|choices|schedule|files|display|navigation|data] [--scene name] [--position top|middle|end] [--width pixels] [--height pixels] [--dark] [--tailwind] [--text-200] [--invalid] [--dialog mineral|expressive] [--select mineral|expressive] [--density compact|medium|comfortable] [--text-sample standard|french|rtl] [--content-lab] [--snapshot output.png]".into()),
                 value => return Err(format!("unknown argument {value}")),
             }
         }
@@ -934,6 +936,9 @@ fn main() -> Result<(), slint::PlatformError> {
     if preview.dark {
         window.set_theme_mode(ThemeMode::Dark);
     }
+    if preview.tailwind {
+        window.set_theme_family(ThemeFamily::Tailwind);
+    }
     window.set_enlarged(preview.enlarged);
     if let Some(density) = preview.density {
         window.set_density(density);
@@ -1155,7 +1160,7 @@ mod preview_tests {
                         .query_descendants()
                         .match_inherits("KitButton")
                         .find_all();
-                    assert_eq!(controls.len(), 5);
+                    assert_eq!(controls.len(), 6);
                     let brand = header
                         .query_descendants()
                         .match_id("Showcase::brand-label")
@@ -1200,6 +1205,29 @@ mod preview_tests {
         window.set_enlarged(false);
         button(&window, "Text 100%").mock_single_click(PointerEventButton::Left);
         assert!(window.get_enlarged());
+    }
+    #[test]
+    fn the_theme_family_button_switches_to_tailwind_in_both_modes() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.show().unwrap();
+        assert_eq!(window.get_theme_family(), ThemeFamily::Kit);
+        assert_eq!(window.get_theme().typography.family, "");
+        button(&window, "Kit").mock_single_click(PointerEventButton::Left);
+        assert_eq!(window.get_theme_family(), ThemeFamily::Tailwind);
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            window.set_theme_mode(mode);
+            let theme = window.get_theme();
+            assert_eq!(theme.typography.family, "Inter");
+            assert_eq!(theme.shape.radius_control, 6.);
+            assert_ne!(theme.elevation.overlay, ElevationLevel::None);
+        }
+        // The accent, motion and text-scale choices still apply on top.
+        window.set_enlarged(true);
+        assert_eq!(window.get_theme().text_scale, 2.);
+        button(&window, "Tailwind").mock_single_click(PointerEventButton::Left);
+        assert_eq!(window.get_theme_family(), ThemeFamily::Kit);
+        assert_eq!(window.get_theme().shape.radius_control, 8.);
     }
     #[test]
     fn gallery_end_scroll_keeps_navigation_fixed_and_footer_inside_viewport() {

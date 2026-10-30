@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ScrollView } from "std-widgets.slint";
-import { KitTheme, KitThemes, KitMetrics, TypographyRole } from "theme.slint";
+import { ScrollFrame } from "scroll.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
+export { SurfaceLevel } from "theme.slint";
 
 // Presentation-only contracts: Rust consumers use the generated Slint enums.
 export enum LayoutSpace { none, tight, compact, regular, roomy, section }
 export enum ContentWidth { reading, standard, wide, fluid }
-export enum SurfaceLevel { flat, raised }
 export enum SurfaceBorder { none, subtle }
 export global KitLayoutMetrics {
-    public pure function space(value: LayoutSpace) -> length {
-        return value == LayoutSpace.none ? 0px : value == LayoutSpace.tight ? 4px : value == LayoutSpace.compact ? 8px : value == LayoutSpace.regular ? 16px : value == LayoutSpace.roomy ? 24px : 32px;
+    // Multiples of the theme's spacing unit: 0, 1, 2, 4, 6 and 8.
+    public pure function space(theme: KitTheme, value: LayoutSpace) -> length {
+        return theme.spacing.unit * (value == LayoutSpace.none ? 0 : value == LayoutSpace.tight ? 1 : value == LayoutSpace.compact ? 2 : value == LayoutSpace.regular ? 4 : value == LayoutSpace.roomy ? 6 : 8);
     }
     public pure function width-limit(value: ContentWidth) -> length {
         return value == ContentWidth.reading ? 720px : value == ContentWidth.standard ? 1040px : value == ContentWidth.wide ? 1360px : 100000px;
@@ -19,6 +20,7 @@ export global KitLayoutMetrics {
 // A finite width comes from the parent. The inner column owns its natural height;
 // the width limit never becomes the outer element's minimum width.
 export component KitContainer inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ContentWidth> content-width: ContentWidth.standard;
     in property <LayoutSpace> gutter: LayoutSpace.regular;
     in property <LayoutSpace> gap: LayoutSpace.regular;
@@ -29,20 +31,21 @@ export component KitContainer inherits Rectangle {
     preferred-height: body.preferred-height;
     body := VerticalLayout {
         y: 0px;
-        width: min(max(0px, root.width - 2 * KitLayoutMetrics.space(root.gutter)), KitLayoutMetrics.width-limit(root.content-width));
+        width: min(max(0px, root.width - 2 * KitLayoutMetrics.space(root.theme, root.gutter)), KitLayoutMetrics.width-limit(root.content-width));
         x: (root.width - self.width) / 2;
         height: self.preferred-height;
         alignment: start;
-        spacing: KitLayoutMetrics.space(root.gap);
+        spacing: KitLayoutMetrics.space(root.theme, root.gap);
         @children
     }
 }
 
 export component KitStack inherits VerticalLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    spacing: KitLayoutMetrics.space(root.gap);
-    padding: KitLayoutMetrics.space(root.inset);
+    spacing: KitLayoutMetrics.space(root.theme, root.gap);
+    padding: KitLayoutMetrics.space(root.theme, root.inset);
     alignment: start;
     vertical-stretch: 0;
     @children
@@ -51,10 +54,11 @@ export component KitStack inherits VerticalLayout {
 // Natural main-axis sizing; callers choose LayoutAlignment and each child's
 // horizontal-stretch. This is intentionally a single line, not a flex-wrap API.
 export component KitInline inherits HorizontalLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.compact;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    spacing: KitLayoutMetrics.space(root.gap);
-    padding: KitLayoutMetrics.space(root.inset);
+    spacing: KitLayoutMetrics.space(root.theme, root.gap);
+    padding: KitLayoutMetrics.space(root.theme, root.inset);
     alignment: start;
     vertical-stretch: 0;
     @children
@@ -63,10 +67,11 @@ export component KitInline inherits HorizontalLayout {
 // FlexboxLayout is public in Slint 1.18. It reflows ordinary children while
 // retaining their instances, so focus and native editor state survive resizing.
 export component KitWrap inherits FlexboxLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.compact;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    spacing: KitLayoutMetrics.space(root.gap);
-    padding: KitLayoutMetrics.space(root.inset);
+    spacing: KitLayoutMetrics.space(root.theme, root.gap);
+    padding: KitLayoutMetrics.space(root.theme, root.inset);
     flex-wrap: wrap;
     vertical-stretch: 0;
     @children
@@ -75,34 +80,35 @@ export component KitWrap inherits FlexboxLayout {
 // Public Slint grid semantics: declare Row/col/rowspan at the call site.
 // Automatic redistribution of opaque @children is not supported by Slint.
 export component KitGrid inherits GridLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    spacing: KitLayoutMetrics.space(root.gap);
-    padding: KitLayoutMetrics.space(root.inset);
+    spacing: KitLayoutMetrics.space(root.theme, root.gap);
+    padding: KitLayoutMetrics.space(root.theme, root.inset);
     vertical-stretch: 0;
     @children
 }
 
 export component KitSection inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    spacing: KitLayoutMetrics.space(root.gap);
+    spacing: KitLayoutMetrics.space(root.theme, root.gap);
     alignment: start;
     vertical-stretch: 0;
     if root.title != "": Text {
         text: root.title;
         color: root.theme.text-primary;
-        font-size: KitMetrics.font-size(TypographyRole.subtitle, root.theme.text-scale);
-        font-weight: 600;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle);
+        font-weight: root.theme.typography.weight-semibold;
         wrap: word-wrap;
         vertical-stretch: 0;
     }
     if root.description != "": Text {
         text: root.description;
         color: root.theme.text-secondary;
-        font-size: KitMetrics.font-size(TypographyRole.body, root.theme.text-scale);
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
         wrap: word-wrap;
         vertical-stretch: 0;
     }
@@ -112,19 +118,20 @@ export component KitSection inherits VerticalLayout {
 // Exactly one painted surface and one padding owner. This does not capture
 // pointer/focus events; interactive card behavior belongs to KitPressable.
 export component KitSurface inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <SurfaceLevel> level: SurfaceLevel.flat;
     in property <SurfaceBorder> border: SurfaceBorder.subtle;
     in property <LayoutSpace> inset: LayoutSpace.regular;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    border-radius: 12px;
-    border-width: root.border == SurfaceBorder.subtle ? 1px : 0px;
-    border-color: root.theme.border-subtle;
-    background: root.level == SurfaceLevel.raised ? root.theme.surface-raised : root.theme.surface;
+    private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    border-radius: root.recipe.radius;
+    border-width: root.border == SurfaceBorder.subtle ? root.recipe.border-width : 0px;
+    border-color: root.recipe.border;
+    background: root.recipe.fill;
     vertical-stretch: 0;
     VerticalLayout {
-        padding: KitLayoutMetrics.space(root.inset);
-        spacing: KitLayoutMetrics.space(root.gap);
+        padding: KitLayoutMetrics.space(root.theme, root.inset);
+        spacing: KitLayoutMetrics.space(root.theme, root.gap);
         alignment: start;
         @children
     }
@@ -132,12 +139,20 @@ export component KitSurface inherits Rectangle {
 
 // Finite viewport allocated by the parent. One width-bound column reflows its
 // children and grows vertically; no horizontal scrolling or hidden focus scope.
-export component KitScrollArea inherits ScrollView {
+// The vertical bar is a themed KitScrollBar.
+export component KitScrollArea inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
-    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-    content-width: root.visible-width;
-    content-height: max(root.visible-height, body.preferred-height);
+    in property <bool> enabled <=> frame.enabled;
+    in property <ScrollBarPolicy> vertical-scrollbar-policy <=> frame.vertical-scrollbar-policy;
+    in property <bool> mouse-drag-pan-enabled <=> frame.mouse-drag-pan-enabled;
+    out property <length> visible-width: frame.visible-width;
+    out property <length> visible-height: frame.visible-height;
+    out property <length> content-width: frame.content-width;
+    out property <length> content-height: frame.content-height;
+    in-out property <length> content-y <=> frame.content-y;
+    callback scrolled <=> frame.scrolled;
     public function scroll-to-start() { root.content-y = 0px; }
     public function reveal(top: length, bottom: length) {
         // An oversized target cannot expose both edges. Reveal its leading edge
@@ -152,27 +167,41 @@ export component KitScrollArea inherits ScrollView {
             root.content-y = -min(max(0px, root.content-height - root.visible-height), max(0px, bottom - root.visible-height));
         }
     }
-    body := VerticalLayout {
-        y: 0px;
-        width: root.visible-width;
-        height: self.preferred-height;
-        padding: KitLayoutMetrics.space(root.inset);
-        spacing: KitLayoutMetrics.space(root.gap);
-        alignment: start;
-        @children
+    min-width: frame.min-width;
+    min-height: frame.min-height;
+    preferred-width: 100%;
+    preferred-height: 100%;
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    frame := ScrollFrame {
+        theme: root.theme;
+        width: root.width;
+        height: root.height;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        content-width: self.visible-width;
+        content-height: max(self.visible-height, body.preferred-height);
+        body := VerticalLayout {
+            y: 0px;
+            width: frame.visible-width;
+            height: self.preferred-height;
+            padding: KitLayoutMetrics.space(root.theme, root.inset);
+            spacing: KitLayoutMetrics.space(root.theme, root.gap);
+            alignment: start;
+            @children
+        }
     }
 }
 
 // Compose header, stretchable content, and footer as ordinary children in their
 // reading order. The caller chooses which child consumes remaining height.
 export component KitAppShell inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> gap: LayoutSpace.none;
     background: root.theme.canvas;
     horizontal-stretch: 1;
     vertical-stretch: 1;
     VerticalLayout {
-        spacing: KitLayoutMetrics.space(root.gap);
+        spacing: KitLayoutMetrics.space(root.theme, root.gap);
         alignment: stretch;
         @children
     }

@@ -469,12 +469,13 @@ mod tests {
                 "{name} accent label"
             );
             assert!(
-                contrast(theme.focus_ring, theme.surface) >= 3.,
+                contrast(theme.focus.color, theme.surface) >= 3.,
                 "{name} focus ring"
             );
             for intent in [
                 ButtonIntent::Primary,
                 ButtonIntent::Secondary,
+                ButtonIntent::Outline,
                 ButtonIntent::Quiet,
                 ButtonIntent::Destructive,
             ] {
@@ -758,14 +759,19 @@ mod form_corrections;
 #[cfg(test)]
 mod base_data;
 mod button_sizing;
+mod control_states;
+mod icons;
 mod menu_focus;
 mod native_dialog;
+mod theme_tokens;
+mod variants;
 
 #[cfg(test)]
 mod base_feedback;
 
 mod datetime_localization;
 mod numeric_input;
+mod scroll_bar;
 mod select_geometry;
 
 mod html_validation;

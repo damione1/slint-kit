@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { IconKind, KitIconButton, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitGlyphs, KitIconButton, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
     title: "KitIconButton example";
@@ -13,7 +13,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Icon Button"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitIconButton { theme: root.theme; icon: IconKind.plus; accessible-name: "New project"; activated => { root.status = "New project requested"; } }
+        KitIconButton { theme: root.theme; glyph: KitGlyphs.plus(); accessible-name: "New project"; activated => { root.status = "New project requested"; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

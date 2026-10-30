@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { KitTheme, KitThemes } from "theme.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 
 export enum Tone { neutral, accent, success, warning, danger }
 export enum AvatarShape { circle, rounded, square }
@@ -11,27 +11,29 @@ export struct TimelineEntry { title: string, description: string, metadata: stri
 export struct StepEntry { token: int, label: string, state: StepState }
 
 export component KitBadge inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <Tone> tone: Tone.neutral;
-    preferred-width: label.preferred-width + 16px;
+    private property <length> inset-x: root.theme.spacing.unit * 2;
+    private property <length> inset-y: root.theme.spacing.unit;
+    preferred-width: label.preferred-width + 2 * root.inset-x;
     min-width: self.preferred-width; max-width: self.preferred-width;
-    preferred-height: label.preferred-height + 8px;
+    preferred-height: label.preferred-height + 2 * root.inset-y;
     min-height: self.preferred-height; max-height: self.preferred-height;
     vertical-stretch: 0; horizontal-stretch: 0;
-    border-radius: 6px;
-    border-width: root.tone == Tone.success || root.tone == Tone.warning || root.tone == Tone.danger ? 1px : 0px;
+    border-radius: root.theme.shape.radius-control;
+    border-width: root.tone == Tone.success || root.tone == Tone.warning || root.tone == Tone.danger ? root.theme.shape.border-width : 0px;
     border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.theme.danger;
     background: root.tone == Tone.accent ? root.theme.accent : root.theme.hover;
     accessible-role: AccessibleRole.text; accessible-label: root.text;
-    label := Text { x: 8px; y: 4px; text: root.text;
+    label := Text { x: root.inset-x; y: root.inset-y; text: root.text;
         color: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
-        font-size: 12px * root.theme.text-scale; font-weight: 600;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
     }
 }
 
 export component KitAvatar inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <image> source;
     in property <string> initials;
     in property <string> accessible-name;
@@ -40,140 +42,148 @@ export component KitAvatar inherits Rectangle {
     width: max(root.size, 24px * root.theme.text-scale);
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
-    border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? 8px : 0px;
+    border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? root.theme.shape.radius-control : 0px;
     background: root.theme.hover; clip: true;
     accessible-role: AccessibleRole.image; accessible-label: root.accessible-name;
     if root.source.width > 0: Image { source: root.source; image-fit: cover; }
-    if root.source.width == 0: Text { text: root.initials; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
+    if root.source.width == 0: Text { text: root.initials; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 export component KitCard inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    background: root.theme.surface;
-    border-color: root.theme.border-subtle; border-width: 1px; border-radius: 12px;
+    private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
+    background: root.surface.fill;
+    border-color: root.surface.border; border-width: root.surface.border-width; border-radius: root.surface.radius;
+    drop-shadow-offset-y: root.surface.shadow.offset-y; drop-shadow-blur: root.surface.shadow.blur; drop-shadow-color: root.surface.shadow.color;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     vertical-stretch: 0;
-    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.inset); spacing: KitLayoutMetrics.space(root.gap); alignment: start; @children }
+    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start; @children }
 }
 export component KitCardHeader inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
-    spacing: 6px; vertical-stretch: 0;
-    Text { width: root.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-    if root.description != "": Text { width: root.width; height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    spacing: root.theme.spacing.unit * 1.5; vertical-stretch: 0;
+    Text { width: root.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+    if root.description != "": Text { width: root.width; height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
 }
-export component KitCardBody inherits VerticalLayout { spacing: 12px; alignment: start; vertical-stretch: 0; @children }
-export component KitCardFooter inherits FlexboxLayout { spacing: 8px; flex-wrap: wrap; vertical-stretch: 0; @children }
+export component KitCardBody inherits VerticalLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0; @children }
+export component KitCardFooter inherits FlexboxLayout {
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; vertical-stretch: 0; @children }
 
 export component KitHero inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    background: root.theme.hover; border-radius: 16px; vertical-stretch: 0;
-    VerticalLayout { padding: KitLayoutMetrics.space(root.inset); spacing: KitLayoutMetrics.space(root.gap); alignment: start;
-        Text { text: root.title; color: root.theme.text-primary; font-size: 28px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
-        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+    background: root.theme.hover; border-radius: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat).radius; vertical-stretch: 0;
+    VerticalLayout { padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start;
+        Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+        if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
         @children
     }
 }
 export component KitFooter inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     background: root.theme.canvas; vertical-stretch: 0; accessible-role: content-info;
-    content := VerticalLayout { y: 0px; width: root.width; height: self.preferred-height; padding-top: 20px; padding-bottom: 20px; spacing: 12px; alignment: start; @children }
+    content := VerticalLayout { y: 0px; width: root.width; height: self.preferred-height; padding-top: root.theme.spacing.unit * 5; padding-bottom: root.theme.spacing.unit * 5; spacing: root.theme.spacing.unit * 3; alignment: start; @children }
 }
 export component KitDivider inherits HorizontalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
-    spacing: 12px; vertical-stretch: 0;
-    Rectangle { background: root.theme.border-subtle; height: 1px; vertical-stretch: 0; }
-    if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; horizontal-stretch: 0; }
-    Rectangle { background: root.theme.border-subtle; height: 1px; vertical-stretch: 0; }
+    spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
+    Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
+    if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
+    Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
 }
 export component KitStat inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
     in property <string> value;
     in property <string> description;
-    spacing: 4px; vertical-stretch: 0;
-    Text { text: root.label; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-    Text { text: root.value; color: root.theme.text-primary; font-size: 28px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
-    if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    spacing: root.theme.spacing.unit; vertical-stretch: 0;
+    Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+    Text { text: root.value; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+    if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 export component KitChatBubble inherits HorizontalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ChatSide> side: ChatSide.start;
     in property <string> author;
     in property <string> text;
     in property <string> metadata;
     vertical-stretch: 0;
-    if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: 16px; }
-    VerticalLayout { spacing: 6px; horizontal-stretch: 4;
-        Text { text: root.author; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-        Rectangle { background: root.side == ChatSide.end ? root.theme.accent : root.theme.hover; border-radius: 12px;
-            VerticalLayout { padding: 14px;
-                Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
+        Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        Rectangle { background: root.side == ChatSide.end ? root.theme.accent : root.theme.hover; border-radius: root.theme.shape.radius-container;
+            VerticalLayout { padding: root.theme.spacing.unit * 3.5;
+                Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
         }
-        if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
-    if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: 16px; }
+    if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
 }
 export component KitSkeleton inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <bool> running: true;
     private property <bool> pulse;
-    preferred-height: 20px; min-height: 8px; vertical-stretch: 0;
-    background: root.theme.disabled-fill; border-radius: 6px;
+    // One line of control text, unscaled: a skeleton stands in for copy.
+    preferred-height: root.theme.typography.line-height-control; min-height: root.theme.spacing.unit * 2; vertical-stretch: 0;
+    background: root.theme.disabled-fill; border-radius: root.theme.shape.radius-control;
     opacity: root.pulse && !root.theme.reduced-motion ? 0.5 : 1;
-    animate opacity { duration: root.theme.reduced-motion ? 0ms : 600ms; }
+    animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
     Timer { interval: 650ms; running: root.running && !root.theme.reduced-motion; triggered => { root.pulse = !root.pulse; } }
 }
 export component KitEmptyState inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> title;
     in property <string> description;
+    private property <length> inset: root.theme.spacing.unit * 6;
     preferred-height: content.preferred-height;
     min-height: self.preferred-height;
     vertical-stretch: 0;
-    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: 24px; spacing: 12px; alignment: start;
-        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        if root.description != "": Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: root.inset; spacing: root.theme.spacing.unit * 3; alignment: start;
+        Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        if root.description != "": Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         @children
     }
 }
 export component KitTimeline inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[TimelineEntry]> entries;
-    spacing: 16px; vertical-stretch: 0;
-    for entry in root.entries: HorizontalLayout { spacing: 12px;
+    spacing: root.theme.spacing.unit * 4; vertical-stretch: 0;
+    for entry in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
         Rectangle { width: 12px; horizontal-stretch: 0;
             Rectangle { y: 5px; height: 10px; width: 10px; border-radius: 5px; background: root.theme.accent; }
             Rectangle { x: 4px; y: 19px; width: 2px; height: max(0px,parent.height - 19px); background: root.theme.border-subtle; }
         }
-        VerticalLayout { spacing: 4px;
-            Text { text: entry.title; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-            if entry.description != "": Text { text: entry.description; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-            if entry.metadata != "": Text { text: entry.metadata; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        VerticalLayout { spacing: root.theme.spacing.unit;
+            Text { text: entry.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            if entry.description != "": Text { text: entry.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            if entry.metadata != "": Text { text: entry.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
         }
     }
 }
 export component KitSteps inherits VerticalLayout {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <[StepEntry]> entries;
-    spacing: 12px; vertical-stretch: 0;
-    for entry[index] in root.entries: HorizontalLayout { spacing: 12px;
+    spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
+    for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
         Rectangle { width: max(28px,22px * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
             background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : root.theme.hover;
-            border-width: entry.state == StepState.error ? 1px : 0px; border-color: root.theme.danger;
-            if entry.state == StepState.complete: KitIcon { x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; kind: IconKind.check; ink: root.theme.on-accent; }
-            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-size: 12px * root.theme.text-scale; horizontal-alignment: center; vertical-alignment: center; }
+            border-width: entry.state == StepState.error ? root.theme.shape.border-width : 0px; border-color: root.theme.danger;
+            if entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: KitGlyphs.check(); ink: root.theme.on-accent; }
+            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
         }
-        Text { text: entry.label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: entry.state == StepState.current ? 700 : 400; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
+        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
     }
 }

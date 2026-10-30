@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit/themes/tailwind.slint";
+import { ElevationLevel, KitShadow } from "@kit/theme.slint";
+export { KitThemeContext } from "@kit/kit.slint";
+
+export component ThemeTokenFixture inherits Window {
+    width: 480px; height: 360px;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
+    in property <KitTheme> local-theme: KitThemes.light;
+    in property <bool> field-focused;
+    in property <ValidationPresentation> field-validation: ValidationPresentation.pristine;
+    // A component without an explicit theme follows KitThemeContext.current;
+    // an explicit binding keeps its own subtree theme.
+    out property <KitTheme> context-default: context-probe.theme;
+    out property <color> context-color: context-probe.background;
+    out property <color> local-color: local-probe.background;
+    out property <bool> field-hovered: group.hovered;
+    in property <FieldAccess> select-access: FieldAccess.editable;
+    // The keyboard-active row of a menu and of a standalone option.
+    in property <bool> rows-active;
+    in-out property <int> select-opens;
+    out property <bool> select-focused: access-select.has-focus;
+    public pure function control-height(theme: KitTheme, size: ControlSize) -> length { return KitMetrics.control-height(theme, size); }
+    public pure function font-size(theme: KitTheme, role: TypographyRole) -> length { return KitMetrics.font-size(theme, role); }
+    public pure function space(theme: KitTheme, value: LayoutSpace) -> length { return KitLayoutMetrics.space(theme, value); }
+    public pure function gaps(theme: KitTheme) -> [length] {
+        return [KitMetrics.help-gap(theme), KitMetrics.label-gap(theme), KitMetrics.footer-gap(theme), KitMetrics.field-gap(theme), KitMetrics.section-gap(theme)];
+    }
+    public pure function button(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe { return KitThemes.button-recipe(theme, intent, size); }
+    public pure function icon-button(theme: KitTheme, size: ControlSize) -> ButtonRecipe { return KitThemes.icon-button-recipe(theme, size); }
+    public pure function field(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> FieldRecipe { return KitThemes.field-recipe(theme, size, access, validation); }
+    public pure function trigger(theme: KitTheme, size: ControlSize, access: FieldAccess, validation: ValidationPresentation) -> ButtonRecipe { return KitThemes.trigger-recipe(theme, KitThemes.field-recipe(theme, size, access, validation), access); }
+    public pure function surface(theme: KitTheme, level: SurfaceLevel) -> SurfaceRecipe { return KitThemes.surface-recipe(theme, level); }
+    public pure function choice(theme: KitTheme, size: ControlSize) -> ChoiceRecipe { return KitThemes.choice-recipe(theme, size); }
+    public pure function option(theme: KitTheme, size: ControlSize) -> OptionRecipe { return KitThemes.option-recipe(theme, size); }
+    public pure function icon-glyph(theme: KitTheme, size: ControlSize) -> IconRecipe { return KitThemes.icon-recipe(theme, size); }
+    public pure function alert(theme: KitTheme, severity: AlertSeverity) -> AlertRecipe { return KitThemes.alert-recipe(theme, severity); }
+    public pure function scroll-bar(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
+    public pure function elevation-shadow(theme: KitTheme, level: ElevationLevel) -> KitShadow { return KitThemes.elevation-shadow(theme, level); }
+    public function focus-button() { focus-button.take-focus(); }
+    public function focus-slider() { slider.take-focus(); }
+    public function focus-select() { access-select.take-focus(); }
+    context-probe := KitFieldSeparator { x: 0px; y: 0px; width: 40px; }
+    local-probe := KitFieldSeparator { x: 0px; y: 8px; width: 40px; theme: root.local-theme; }
+    focus-button := KitButton { x: 40px; y: 40px; width: 160px; text: "Focus geometry"; }
+    group := KitInputGroup {
+        x: 40px; y: 120px; width: 200px;
+        accessible-role: groupbox; accessible-label: "Field outline";
+        focused: root.field-focused; validation: root.field-validation;
+    }
+    access-select := KitSelect {
+        x: 260px; y: 40px; width: 180px;
+        placeholder: "Access select"; access: root.select-access;
+        open-requested => { root.select-opens += 1; }
+    }
+    slider := KitSlider { x: 40px; y: 200px; width: 200px; label: "Slider outline"; position: 0.5; }
+    KitMenu {
+        x: 260px; y: 100px; width: 180px; height: 120px;
+        accessible-name: "Row menu";
+        rows: [{ token: 1, generation: 1, label: "Menu first" }, { token: 2, generation: 1, label: "Menu second" }];
+        state: { open: true, active: { present: root.rows-active, token: 2 }, active-index: root.rows-active ? 1 : -1, selected: { present: true, token: 1 }, generation: 1 };
+    }
+    KitOption {
+        x: 260px; y: 240px; width: 180px; height: 40px;
+        option-data: { token: 7, generation: 1, label: "Option row" };
+        active: root.rows-active;
+    }
+}
+
+export component TabsIndicatorFixture inherits Window {
+    width: 480px; height: 120px;
+    out property <KitTheme> theme-probe: KitThemes.light;
+    in property <SelectState> state: {
+        open: true, active: { present: false }, active-index: -1,
+        selected: { present: true, token: 2 }, generation: 1,
+    };
+    tabs := KitTabs {
+        x: 0px; y: 0px; width: 480px;
+        rows: [
+            { token: 1, generation: 1, label: "Overview" },
+            { token: 2, generation: 1, label: "Activity" },
+            { token: 3, generation: 1, label: "Settings" },
+        ];
+        state: root.state;
+    }
+}
+
+// A dialog panel paints its surface over both shadow layers, each inset by
+// the layer's spread.
+export component ElevationFixture inherits Window {
+    width: 320px; height: 240px;
+    in property <KitTheme> theme: TailwindThemes.light;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    KitDialogPanel { x: 40px; y: 40px; width: 200px; height: 120px; theme: root.theme; accessible-name: "Elevated panel"; }
+}

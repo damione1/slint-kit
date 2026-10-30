@@ -1,14 +1,15 @@
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, TypographyRole } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
-import { KitFieldLabel } from "field.slint";
+import { FocusOutline } from "focus.slint";
+import { KitFieldLabel, KitFieldError } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
-import { ListView } from "std-widgets.slint";
+import { ListView } from "scroll.slint";
 
 import { CheckState, RangeThumb } from "shared-contracts.slint";
 export { CheckState, RangeThumb } from "shared-contracts.slint";
@@ -33,13 +34,37 @@ component ChoiceOption inherits KitPressable {
     changed generation => { root.cancel-press(); }
     changed access => { root.cancel-press(); }
     activated => { if (root.access == FieldAccess.editable) { root.activate(root.press-token,root.press-generation); } }
+    // Read-only keeps the value legible and focusable without press affordance.
+    background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     min-width: 0px;
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
     measure := Text {
         visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.content-reserve);
-        text: root.option-data.label; font-size: root.recipe.font-size; wrap: word-wrap;
+        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap;
     }
     @children
+}
+
+// The radio indicator, shared by both group orientations.
+component RadioMark inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <bool> selected;
+    in property <bool> invalid;
+    in property <bool> disabled;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.box-size; height: root.choice.box-size;
+    border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+    border-width: root.theme.shape.border-width;
+    // A disabled mark keeps its edge in the dimmed ink of its label: the
+    // disabled row fill can equal border-subtle, which would erase the ring.
+    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+    if root.selected: Rectangle {
+        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+        width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
+        border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+        background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+    }
 }
 
 // All boolean skins use the same Pressable activation and cancellation machine.
@@ -67,34 +92,43 @@ export component KitCheckbox inherits KitPressable {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
     callback toggled(CheckState);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
     disabled: root.access == FieldAccess.disabled;
+    background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - 30px); text: root.label; font-size: root.recipe.font-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checked: root.state == CheckState.checked;
     accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? "Partially selected" : root.access == FieldAccess.read-only ? "Read only" : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked); } }
     HorizontalLayout {
-        spacing: 10px;
+        spacing: root.choice.label-gap;
         Rectangle {
-            width: 20px; height: 20px;
-            border-radius: 5px;
-            border-width: 1px;
-            border-color: checks.show-error ? root.theme.danger : root.state == CheckState.unchecked ? root.theme.border-subtle : root.theme.accent;
-            background: root.disabled ? root.theme.disabled-fill : root.state == CheckState.unchecked ? root.theme.surface : root.theme.accent;
+            width: root.choice.box-size; height: root.choice.box-size;
+            border-radius: root.choice.box-radius;
+            border-width: root.theme.shape.border-width;
+            border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
+            background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
+                : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
             if root.state == CheckState.checked: Path {
-                x: 3px; y: 3px; width: 14px; height: 14px;
+                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                width: root.choice.check-size; height: root.choice.check-size;
                 commands: "M 2 7 L 5 10 L 12 3";
-                stroke: root.theme.on-accent; stroke-width: 2px; fill: transparent;
+                stroke: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+                stroke-width: root.choice.mark-stroke; fill: transparent;
             }
-            if root.state == CheckState.mixed: Rectangle { x: 4px; y: 9px; width: 12px; height: 2px; background: root.theme.on-accent; }
+            if root.state == CheckState.mixed: Rectangle {
+                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                width: root.choice.mixed-width; height: root.choice.mark-stroke;
+                background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+            }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -121,26 +155,38 @@ export component KitSwitch inherits KitPressable {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
     callback toggled(bool);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
     disabled: root.access == FieldAccess.disabled;
+    background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - 48px); text: root.label; font-size: root.recipe.font-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checked: root.checked;
     accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(!root.checked); } }
     HorizontalLayout {
-        spacing: 10px;
+        spacing: root.choice.label-gap;
         Rectangle {
-            width: 38px; height: 22px; border-radius: 11px;
-            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-subtle;
-            Rectangle { x: root.checked ? 18px : 2px; y: 2px; width: 18px; height: 18px; border-radius: 9px; background: root.checked ? root.theme.on-accent : root.theme.surface; }
+            width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
+            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-strong;
+            // The disabled track matches the disabled row fill; its edge keeps it visible.
+            border-width: root.disabled ? root.theme.shape.border-width : 0px;
+            border-color: root.theme.disabled-text;
+            Rectangle {
+                x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
+                y: root.choice.thumb-inset;
+                width: root.choice.thumb-size; height: root.choice.thumb-size;
+                border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+                background: root.checked ? root.theme.on-accent : root.theme.surface;
+                animate x { duration: root.choice.transition; easing: ease-in-out; }
+            }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -191,7 +237,7 @@ export component KitRadioGroup inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -200,6 +246,7 @@ export component KitRadioGroup inherits Rectangle {
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <string> label;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
     callback activate(int, int);
     out property <bool> has-focus: keyboard.has-focus;
@@ -220,22 +267,20 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: 0px;
-        for row in root.rows: ChoiceOption {
-            option-data: row; generation: root.generation; access: root.access; content-reserve: 30px;
+        for row in root.rows: option := ChoiceOption {
+            option-data: row; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
             disabled: row.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: row.label;
             accessible-role: radio-button; accessible-checked: row.selected;
-            border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 0px;
-            border-color: root.theme.focus-ring;
+            focus-indicated: keyboard.has-focus && root.active-token == row.token;
+            focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
-                spacing: 10px;
-                Rectangle { width: 20px; height: 20px; border-radius: 10px; border-width: 1px; border-color: checks.show-error ? root.theme.danger : row.selected ? root.theme.accent : root.theme.border-subtle;
-                    if row.selected: Rectangle { x: 5px; y: 5px; width: 10px; height: 10px; border-radius: 5px; background: root.theme.accent; }
-                }
-                Text { text: row.label; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; wrap: word-wrap; vertical-alignment: center; }
+                spacing: root.choice.label-gap;
+                RadioMark { theme: root.theme; control-size: root.control-size; selected: row.selected; invalid: checks.show-error; disabled: option.disabled; }
+                Text { text: row.label; font-family: option.theme.typography.family; font-size: option.recipe.font-size; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
         }
@@ -243,23 +288,21 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: 0px;
-        for source-display-choice[index] in root.rows: ChoiceOption {
+        for source-display-choice[index] in root.rows: flow-option := ChoiceOption {
             in property <ChoiceRow> display-choice: root.flow == ChoiceFlow.right-to-left ? root.rows[root.rows.length - 1 - index] : source-display-choice;
-            option-data: display-choice; generation: root.generation; access: root.access; content-reserve: 30px;
+            option-data: display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
             disabled: display-choice.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: display-choice.label;
             accessible-role: radio-button; accessible-checked: display-choice.selected;
-            border-width: keyboard.has-focus && root.active-token == display-choice.token ? 2px : 0px;
-            border-color: root.theme.focus-ring;
+            focus-indicated: keyboard.has-focus && root.active-token == display-choice.token;
+            focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
-                spacing: 10px;
-                Rectangle { width: 20px; height: 20px; border-radius: 10px; border-width: 1px; border-color: checks.show-error ? root.theme.danger : display-choice.selected ? root.theme.accent : root.theme.border-subtle;
-                    if display-choice.selected: Rectangle { x: 5px; y: 5px; width: 10px; height: 10px; border-radius: 5px; background: root.theme.accent; }
-                }
-                Text { text: display-choice.label; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; color: display-choice.disabled ? root.theme.disabled-text : root.theme.text-primary; wrap: word-wrap; vertical-alignment: center; }
+                spacing: root.choice.label-gap;
+                RadioMark { theme: root.theme; control-size: root.control-size; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
+                Text { text: flow-option.display-choice.label; font-family: flow-option.theme.typography.family; font-size: flow-option.recipe.font-size; color: flow-option.disabled ? flow-option.recipe.disabled-foreground : flow-option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
         }
         }
@@ -287,7 +330,7 @@ export component KitSegmentedControl inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -301,8 +344,9 @@ export component KitSegmentedControl inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group; accessible-label: root.label;
-    border-radius: 10px; background: root.theme.canvas;
-    border-width: 1px; border-color: root.theme.border-subtle;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    border-radius: root.choice.group-radius; background: root.theme.canvas;
+    border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-description: checks.show-error ? checks.validation-message : "";
@@ -313,8 +357,8 @@ export component KitSegmentedControl inherits Rectangle {
         activate => { root.activate(root.active-token, root.generation); }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
-            padding: 3px; spacing: 3px;
-            for row in root.rows: ChoiceOption {
+            padding: root.choice.group-padding; spacing: root.choice.group-padding;
+            for row in root.rows: option := ChoiceOption {
                 option-data: row; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size;
@@ -323,10 +367,10 @@ export component KitSegmentedControl inherits Rectangle {
                 disabled: row.disabled || root.access == FieldAccess.disabled;
                 intent: row.selected ? ButtonIntent.primary : ButtonIntent.quiet;
                 accessible-role: radio-button; accessible-checked: row.selected;
-                border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 0px;
-                border-color: root.theme.focus-ring;
+                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                Text { text: row.label; color: row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-accent : root.theme.text-primary; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
@@ -353,7 +397,7 @@ export component KitToggleGroup inherits Rectangle {
     }
 
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> rows;
@@ -362,6 +406,7 @@ export component KitToggleGroup inherits Rectangle {
     in property <string> label;
     callback navigate(NavigationStep);
     callback toggled(int, int);
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
@@ -376,8 +421,8 @@ export component KitToggleGroup inherits Rectangle {
         activate => { checks.note-edit(); root.toggled(root.active-token, root.generation); }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
-            spacing: 6px;
-            for row in root.rows: ChoiceOption {
+            spacing: root.choice.group-gap;
+            for row in root.rows: option := ChoiceOption {
                 option-data: row; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size; accessible-name: row.label;
@@ -385,21 +430,47 @@ export component KitToggleGroup inherits Rectangle {
                 intent: row.selected ? ButtonIntent.primary : ButtonIntent.secondary;
                 disabled: row.disabled || root.access == FieldAccess.disabled;
                 accessible-checked: row.selected;
-                border-width: keyboard.has-focus && root.active-token == row.token ? 2px : 1px;
-                border-color: keyboard.has-focus && root.active-token == row.token ? root.theme.focus-ring : root.theme.border-subtle;
+                border-width: root.theme.shape.border-width;
+                border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
+                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
-                Text { text: row.label; color: row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-accent : root.theme.text-primary; font-size: (root.control-size == ControlSize.comfortable ? 16px : 14px) * root.theme.text-scale; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
 }
 
-export component KitChip inherits KitButton {
+// A removable value: its label, then a close glyph that marks the press as removal.
+export component KitChip inherits KitPressable {
     in property <ChipRow> chip;
     callback remove-requested(int);
     private property <int> press-token;
-    text: root.chip.label + " ×";
+    private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> gap: root.theme.spacing.unit;
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.gap + root.icon-size + 2 * root.recipe.padding-inline);
+    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    preferred-width: root.natural-width;
     control-size: ControlSize.compact;
+    HorizontalLayout {
+        spacing: root.gap;
+        label := Text {
+            text: root.chip.label;
+            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+        Rectangle {
+            width: root.icon-size; horizontal-stretch: 0;
+            KitIcon {
+                theme: root.theme; control-size: root.control-size;
+                y: (parent.height - self.height) / 2;
+                glyph: KitGlyphs.close();
+                ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            }
+        }
+    }
     accessible-name: "Remove " + root.chip.label;
     disabled: !root.chip.removable;
     activation-started => { root.press-token = root.chip.token; }
@@ -426,7 +497,7 @@ export component KitMultiSelect inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[OptionRow]> rows;
@@ -445,10 +516,10 @@ export component KitMultiSelect inherits Rectangle {
     public function take-focus() { selector.take-focus(); }
     changed access => { selector.cancel-press(); if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); } }
     VerticalLayout {
-        spacing: 8px;
+        spacing: KitMetrics.label-gap(root.theme);
         if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: 8px; alignment: start;
+            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitTextField {
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
@@ -458,7 +529,7 @@ export component KitMultiSelect inherits Rectangle {
         }
         if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: 8px; alignment: start;
+            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip; disabled: !chip.removable || root.access != FieldAccess.editable;
                 remove-requested(token) => { root.remove-requested(token); }
@@ -466,7 +537,9 @@ export component KitMultiSelect inherits Rectangle {
         }
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; placeholder: root.placeholder;
-            disabled: root.access == FieldAccess.disabled;
+            access: root.access;
+            // The chips carry the selection, so this composite owns the constraint.
+            validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             open-requested => { if (root.access == FieldAccess.editable) { root.open-requested(); } }
             navigate(step) => { if (root.access == FieldAccess.editable) { root.navigate(step); } }
             activate(token,generation) => { if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
@@ -475,7 +548,7 @@ export component KitMultiSelect inherits Rectangle {
             tab-navigation(reverse) => { return root.tab-navigation(reverse); }
             query-edited(text) => { if (root.access == FieldAccess.editable) { root.query-edited(text); } }
         }
-        if checks.show-error: Text { text: checks.validation-message; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        if checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
 }
 
@@ -498,7 +571,7 @@ export component KitTagInput inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChipRow]> chips;
@@ -511,11 +584,11 @@ export component KitTagInput inherits Rectangle {
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 8px; alignment: start;
+        spacing: KitMetrics.label-gap(root.theme); alignment: start;
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: 8px; alignment: start;
+            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
         }
         editor := KitTextField {
@@ -524,7 +597,7 @@ export component KitTagInput inherits Rectangle {
             edited(text) => { root.edited(text); }
             commit-requested(text) => { if (root.access == FieldAccess.editable) { root.create-requested(text); } }
         }
-        if checks.show-error: Text { text: checks.validation-message; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        if checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
 }
 
@@ -549,7 +622,7 @@ export component KitCombobox inherits Rectangle {
         invalid => { root.invalid(); }
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[OptionRow]> rows;
@@ -569,7 +642,9 @@ export component KitCombobox inherits Rectangle {
     callback tab-navigation(bool) -> EventResult;
     private property <bool> opened: root.state.open;
     private property <bool> tab-restore-complete;
-    preferred-height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+    private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
+    private property <length> row-height: max(48px, 32px * root.theme.text-scale);
+    preferred-height: KitMetrics.control-height(root.theme, root.control-size);
     vertical-stretch: 0;
     out property <bool> has-focus: trigger.has-focus || readonly.has-focus;
     changed has-focus => { if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -593,11 +668,10 @@ export component KitCombobox inherits Rectangle {
     trigger := KitSelectTrigger {
         visible: root.access != FieldAccess.read-only;
         theme: root.theme; control-size: root.control-size; control-width: ControlWidth.fill; state: root.state;
-        disabled: root.access == FieldAccess.disabled; accessible-role: combobox;
+        access: root.access;
+        validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
         accessible-name: root.label;
         accessible-description: checks.show-error ? checks.validation-message : "";
-        border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
-        accessible-expanded: root.state.open;
         open-requested => { if (root.access == FieldAccess.editable) { root.open-requested(); } }
         navigate(step) => { if (root.access == FieldAccess.editable) { root.navigate(step); } }
         activate(token,generation) => { if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
@@ -605,14 +679,15 @@ export component KitCombobox inherits Rectangle {
         typeahead(text) => { if (root.access == FieldAccess.editable) { root.typeahead(text); } }
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
-            spacing: 12px;
-            Text { text: root.selected-label == "" ? root.label : root.selected-label; font-size: 14px * root.theme.text-scale; color: root.theme.text-primary; overflow: elide; vertical-alignment: center; }
-            KitIcon { kind: IconKind.chevron-down; ink: root.theme.text-secondary; }
+            spacing: root.theme.spacing.unit * 3;
+            Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
+            // Points up while the list is presented below the trigger.
+            TurningIcon { theme: root.theme; control-size: root.control-size; turned: root.state.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + 4px; width: max(root.width, 280px);
-        height: min(320px, max(1, root.rows.length) * max(48px, 32px * root.theme.text-scale) + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
+        x: 0px; y: root.height + root.theme.spacing.unit; width: max(root.width, 280px);
+        height: min(320px, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         KitSelectSurface {
             theme: root.theme; state: root.state; query <=> root.query;
@@ -628,12 +703,20 @@ export component KitCombobox inherits Rectangle {
             query-edited(text) => { if (root.access == FieldAccess.editable) { root.query-edited(text); } }
             tab-navigation(reverse) => { return root.advance-tab(reverse); }
             options := ListView {
+                theme: root.theme;
                 for row in root.rows: KitOption {
-                    theme: root.theme; option-data: row; height: max(48px, 32px * root.theme.text-scale);
+                    theme: root.theme; option-data: row; height: root.row-height;
                     active: root.state.active.present && row.token == root.state.active.token;
                     selected: root.state.selected.present && row.token == root.state.selected.token;
                     activate(token,generation) => { if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                    Text { x: 0px; y: 0px; width: parent.width; height: parent.height; text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; }
+                    HorizontalLayout {
+                        spacing: KitMetrics.inline-gap(root.theme);
+                        Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
+                        // The selected identity, independent of the active row.
+                        Rectangle { width: root.icon.size; horizontal-stretch: 0;
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                        }
+                    }
                 }
             }
         }
@@ -662,7 +745,9 @@ component SliderKeyboard inherits FocusScope {
     }
 }
 export component KitSlider inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
+    // Sizes the thumb with the checkbox and radio boxes of the same size.
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> position;
     in property <string> label;
@@ -683,12 +768,17 @@ export component KitSlider inherits Rectangle {
     accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.navigate(NavigationStep.previous); } }
     public function take-focus() { keyboard.focus(); }
     forward-focus: keyboard;
-    function update-position() { root.position-requested(clamp((pointer.mouse-x - 10px) / max(1px, root.width - 20px), 0, 1)); }
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    // The track starts and ends at the thumb centre's travel limits.
+    private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
+    function update-position() { root.position-requested(clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1)); }
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(); } }
-    Rectangle { x: 10px; y: (parent.height - 4px) / 2; height: 4px; width: parent.width - 20px; border-radius: 2px; background: root.theme.border-subtle;
-        Rectangle { x: 0px; height: parent.height; width: parent.width * clamp(root.position,0,1); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-radius: 2px; }
+    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; height: root.choice.slider-track-height; width: parent.width - 2 * root.edge; border-radius: self.height / 2; background: root.theme.border-strong;
+        Rectangle { x: 0px; height: parent.height; width: parent.width * clamp(root.position,0,1); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-radius: parent.border-radius; }
     }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: keyboard.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
+    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
     keyboard := SliderKeyboard {
         access: root.access;
         navigate(step) => { root.navigate(step); }
@@ -707,7 +797,8 @@ export component KitSlider inherits Rectangle {
 }
 
 export component KitRangeSlider inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <float> lower-position;
     in property <float> upper-position: 1;
@@ -727,12 +818,14 @@ export component KitRangeSlider inherits Rectangle {
     public function take-focus() { lower.focus(); }
     forward-focus: lower;
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(root.active-thumb); } }
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
     function update-position() {
-        let position = clamp((pointer.mouse-x - 10px) / max(1px, root.width - 20px),0,1);
+        let position = clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge),0,1);
         root.position-requested(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position,root.upper-position) : max(position,root.lower-position));
     }
-    Rectangle { x: 10px; y: (parent.height - 4px) / 2; width: parent.width - 20px; height: 4px; border-radius: 2px; background: root.theme.border-subtle;
-        Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: 4px; border-radius: 2px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; }
+    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; width: parent.width - 2 * root.edge; height: root.choice.slider-track-height; border-radius: self.height / 2; background: root.theme.border-strong;
+        Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: parent.height; border-radius: parent.border-radius; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; }
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
@@ -758,13 +851,17 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.committed(RangeThumb.upper); }
         cancelled => { root.gesture-active = false; root.cancelled(RangeThumb.upper); }
     }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.lower-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: lower.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
-    Rectangle { x: 2px + (parent.width - 20px) * clamp(root.upper-position,0,1); y: (parent.height - 16px) / 2; width: 16px; height: 16px; border-radius: 8px; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-width: upper.has-focus ? 2px : 0px; border-color: root.theme.focus-ring; }
+    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.lower-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
+    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.upper-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+        if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
     pointer := TouchArea {
         enabled: root.access == FieldAccess.editable;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
-                let position = clamp((self.mouse-x - 10px) / max(1px,root.width - 20px),0,1);
+                let position = clamp((self.mouse-x - root.edge) / max(1px,root.width - 2 * root.edge),0,1);
                 let lower-distance = abs(position - root.lower-position);
                 let upper-distance = abs(position - root.upper-position);
                 if (lower-distance < upper-distance) { root.active-thumb = RangeThumb.lower; }
@@ -781,7 +878,7 @@ export component KitRangeSlider inherits Rectangle {
 
 export component KitRating inherits Rectangle {
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[ChoiceRow]> scores;
@@ -794,7 +891,7 @@ export component KitRating inherits Rectangle {
     vertical-stretch: 0;
     preferred-height: content.preferred-height;
     content := HorizontalLayout {
-        spacing: 8px;
+        spacing: KitMetrics.inline-gap(root.theme);
         KitSegmentedControl { theme: root.theme; control-size: root.control-size; access: root.access; rows: root.scores; generation: root.generation; active-token: root.active-token; label: root.label; navigate(step) => { root.navigate(step); } activate(token,generation) => { root.choose(token,generation); } }
         KitButton { theme: root.theme; control-size: root.control-size; text: "Clear rating"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
     }

@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// State renderings of fields, buttons, pickers and choice groups: field action
+// icons at scaled text, control elevation inside a layout, and states that
+// have no other observable output than their marks, labels and edges.
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitDataTable, DataSortDirection, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit/themes/tailwind.slint";
+// Internal: the mark each alert severity draws.
+import { KitAlertMarks } from "@kit/feedback.slint";
+
+// Search and password actions in every size, for the text-scale geometry test.
+export component FieldActionFixture inherits Window {
+    width: 520px; height: 420px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> tailwind: TailwindThemes.light;
+    public pure function icon-size(theme: KitTheme, size: ControlSize) -> length { return KitThemes.icon-recipe(theme, size).size; }
+    VerticalLayout {
+        alignment: start; spacing: 8px; padding: 8px;
+        KitSearchField { theme: root.theme; control-size: ControlSize.compact; text: "compact"; clear-label: "Clear compact"; }
+        KitSearchField { theme: root.theme; control-size: ControlSize.medium; text: "medium"; clear-label: "Clear medium"; }
+        KitSearchField { theme: root.theme; control-size: ControlSize.comfortable; text: "comfortable"; clear-label: "Clear comfortable"; }
+        KitPasswordField { theme: root.theme; control-size: ControlSize.compact; text: "secret"; reveal-label: "Reveal compact"; }
+        KitPasswordField { theme: root.theme; control-size: ControlSize.medium; text: "secret"; reveal-label: "Reveal medium"; }
+    }
+}
+
+// Filled, outline and quiet buttons stacked in a layout, so a control shadow
+// can be checked against the layout's measured height.
+export component ControlElevationFixture inherits Window {
+    width: 320px; height: 320px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> tailwind: TailwindThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <length> stack-height: stack.preferred-height;
+    out property <length> stack-spacing: 8px;
+    stack := VerticalLayout {
+        x: 20px; y: 20px; width: 200px; height: self.preferred-height;
+        spacing: root.stack-spacing; alignment: start;
+        KitButton { theme: root.theme; intent: ButtonIntent.primary; text: "Primary lift"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.secondary; text: "Secondary lift"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.destructive; text: "Destructive lift"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.outline; text: "Outline flat"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.quiet; text: "Quiet flat"; }
+    }
+}
+
+export component ControlStateFixture inherits Window {
+    width: 720px; height: 900px;
+    in property <ValidationPresentation> checking-validation: ValidationPresentation.checking;
+    in property <HostRequestPresentation> file-state: HostRequestPresentation.failed;
+    in property <FieldAccess> select-access: FieldAccess.editable;
+    in-out property <[CloseReason]> select-dismissals;
+    public pure function alert-mark(severity: AlertSeverity) -> IconGlyph { return KitAlertMarks.glyph(severity); }
+    out property <IconGlyph> information-glyph: KitGlyphs.information();
+    out property <IconGlyph> check-glyph: KitGlyphs.check();
+    out property <IconGlyph> warning-glyph: KitGlyphs.warning();
+    public function open-palette() { color.open-picker(); }
+    public function focus-lines() { lines.take-focus(); }
+    VerticalLayout {
+        alignment: start; spacing: 8px; padding: 8px;
+        KitTextField { label: "Username"; accessible-name: "Username"; text: "ada"; validation: root.checking-validation; checking-label: "Checking availability"; }
+        KitFilePicker { label: "Attachments"; request-state: root.file-state; failed-label: "Files could not be read"; }
+        KitDirectoryPicker { label: "Folder"; request-state: root.file-state; failed-label: "Folder could not be read"; }
+        color := KitColorField { label: "Brand"; accepted-color: { red: 79, green: 70, blue: 229, alpha: 255 }; text: "#4f46e5"; }
+        lines := KitVirtualTextView {
+            height: 160px; active-index: 1; generation: 1;
+            lines: [
+                { token: 1, number: 1, text: "first line", selected: false },
+                { token: 2, number: 2, text: "second line", selected: false },
+                { token: 3, number: 3, text: "third line", selected: false },
+            ];
+        }
+        KitSelect {
+            placeholder: "Open select"; access: root.select-access;
+            rows: [{ token: 1, generation: 1, label: "One" }, { token: 2, generation: 1, label: "Two" }];
+            state: { open: true, active: { present: true, token: 1 }, active-index: 0, selected: { present: false }, generation: 1 };
+            dismiss(reason) => { root.select-dismissals = [reason]; }
+        }
+    }
+}
+
+// Rendered by the software rasterizer, on the light theme at whole-pixel
+// origins, so an edge or fill can be read back from a snapshot.
+export component ControlStateRenderFixture inherits Window {
+    width: 400px; height: 360px;
+    background: KitThemes.light.canvas;
+    out property <KitTheme> theme: KitThemes.light;
+    public function report() {
+        multi.report-validity();
+        segmented.report-validity();
+        toggles.report-validity();
+    }
+    private property <[ChoiceRow]> choices: [{ token: 1, label: "Day" }, { token: 2, label: "Week" }];
+    multi := KitMultiSelect {
+        x: 20px; y: 20px; width: 300px; height: self.preferred-height;
+        required: true; placeholder: "Pick tags";
+        rows: [{ token: 1, generation: 1, label: "Alpha" }];
+    }
+    segmented := KitSegmentedControl { x: 20px; y: 100px; width: 300px; height: self.preferred-height; required: true; label: "Range"; rows: root.choices; generation: 1; }
+    toggles := KitToggleGroup { x: 20px; y: 170px; width: 300px; height: self.preferred-height; required: true; label: "Days"; rows: root.choices; generation: 1; }
+    KitFileDropZone { x: 20px; y: 240px; width: 300px; height: 100px; access: FieldAccess.disabled; capability: DropCapability.available; label: "Drop disabled"; }
+}
+
+// Selected segments and toggles, and disabled radio, checkbox and switch
+// marks, rendered in a chosen theme for the legibility and indicator checks.
+// The disabled checkbox and switch carry no label, so only their marks ink.
+export component SelectedChoiceRenderFixture inherits Window {
+    width: 400px; height: 360px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
+    background: root.theme.canvas;
+    KitSegmentedControl {
+        theme: root.theme; x: 20px; y: 20px; width: 300px; height: self.preferred-height; label: "Layout"; generation: 1;
+        rows: [{ token: 1, label: "List" }, { token: 2, label: "Board", selected: true }, { token: 3, label: "Calendar" }];
+    }
+    KitToggleGroup {
+        theme: root.theme; x: 20px; y: 90px; width: 300px; height: self.preferred-height; label: "Formats"; generation: 1;
+        rows: [{ token: 1, label: "PDF", selected: true }, { token: 2, label: "CSV" }, { token: 3, label: "JSON" }];
+    }
+    KitRadioGroup {
+        theme: root.theme; x: 20px; y: 160px; width: 300px; height: self.preferred-height; label: "Plan"; generation: 1;
+        rows: [{ token: 1, label: "Team", selected: true }, { token: 2, label: "Enterprise", disabled: true }];
+    }
+    KitCheckbox { theme: root.theme; x: 20px; y: 260px; width: 80px; height: self.preferred-height; access: FieldAccess.disabled; }
+    KitSwitch { theme: root.theme; x: 120px; y: 260px; width: 100px; height: self.preferred-height; access: FieldAccess.disabled; }
+}
+
+// A table whose last column cannot sort, rendered in a chosen theme: its
+// header cell is static text on the header tone.
+export component DataTableHeaderRenderFixture inherits Window {
+    width: 480px; height: 220px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
+    background: root.theme.canvas;
+    KitDataTable {
+        theme: root.theme; x: 20px; y: 20px; width: 440px; height: 180px; generation: 1;
+        columns: [
+            { token: 1, label: "Project", sortable: true, sort: DataSortDirection.ascending },
+            { token: 2, label: "Owner", sortable: false },
+        ];
+        rows: [{ token: 10, cells: ["Field notes", "Alex"] }];
+    }
+}

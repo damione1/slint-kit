@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitScrollBar, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component Example inherits Window {
+    title: "KitScrollBar example";
+    preferred-width: 420px;
+    preferred-height: 260px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Scroll Bar"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        HorizontalLayout { height: 120px; spacing: 8px; notes := Flickable { content-height: column.preferred-height; column := VerticalLayout { width: notes.width; spacing: 8px; alignment: start; Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Keep observations and decisions together."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Monday: kickoff with the design team."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Tuesday: review the onboarding flow."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Wednesday: draft the release notes."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Thursday: test the import on large files."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Friday: publish the weekly summary."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }Text { text: "Ready to publish your changes?"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } } } KitScrollBar { theme: root.theme; maximum: notes.content-height - notes.height; page-size: notes.height; value <=> notes.content-y; scrolled => { root.status = "Notes scrolled"; } } }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    }
+}

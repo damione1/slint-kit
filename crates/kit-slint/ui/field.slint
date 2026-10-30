@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext } from "theme.slint";
+import { FocusOutline } from "focus.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent, ControlWidth } from "theme.slint";
 import { FocusRequest } from "contracts.slint";
@@ -7,13 +8,14 @@ import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 export { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 
 export component KitField inherits VerticalLayout {
-    spacing: KitMetrics.help-gap;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.help-gap(root.theme);
     alignment: start;
     vertical-stretch: 0;
     @children
 }
 export component KitFieldLabel inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <FieldAccess> access: FieldAccess.editable;
     callback focus-requested();
@@ -22,12 +24,12 @@ export component KitFieldLabel inherits Rectangle {
     // preferred-height back into this rectangle recurses when a wrapping parent
     // measures the field before assigning its final width.
     VerticalLayout {
-        padding-bottom: KitMetrics.label-gap - KitMetrics.help-gap;
+        padding-bottom: KitMetrics.label-gap(root.theme) - KitMetrics.help-gap(root.theme);
         label := Text {
             horizontal-alignment: left;
             text: root.text;
-            font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
-            font-weight: 600;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.theme.typography.weight-medium;
             color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
             wrap: word-wrap;
         }
@@ -35,10 +37,10 @@ export component KitFieldLabel inherits Rectangle {
     TouchArea { enabled: root.access != FieldAccess.disabled; clicked => { root.focus-requested(); } }
 }
 export component KitFieldDescription inherits Text {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     horizontal-alignment: left;
     color: root.theme.text-secondary;
-    font-size: KitMetrics.font-size(TypographyRole.caption, root.theme.text-scale);
+    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
     wrap: word-wrap;
     vertical-stretch: 0;
 }
@@ -48,13 +50,14 @@ export component KitFieldError inherits KitFieldDescription {
     accessible-live-region: polite;
 }
 export component KitFieldGroup inherits VerticalLayout {
-    spacing: KitMetrics.field-gap;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.field-gap(root.theme);
     alignment: start;
     vertical-stretch: 0;
     @children
 }
 export component KitFieldSet inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <string> legend;
     accessible-role: groupbox;
     accessible-label: root.legend;
@@ -62,48 +65,52 @@ export component KitFieldSet inherits Rectangle {
     vertical-stretch: 0;
     content := VerticalLayout {
         alignment: start;
-        spacing: KitMetrics.field-gap;
+        spacing: KitMetrics.field-gap(root.theme);
         if root.legend != "": Text {
             text: root.legend;
             color: root.theme.text-primary;
-            font-size: KitMetrics.font-size(TypographyRole.body, root.theme.text-scale);
-            font-weight: 600;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+            font-weight: root.theme.typography.weight-semibold;
             wrap: word-wrap;
         }
         @children
     }
 }
 export component KitInputGroup inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <bool> focused;
-    in property <length> padding-inline: root.control-size == ControlSize.compact ? 12px : 16px;
-    in property <length> padding-block: 6px;
-    min-height: KitMetrics.control-height(root.control-size, root.theme.text-scale);
+    out property <bool> hovered: hover.has-hover;
+    private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
+    in property <length> padding-inline: root.recipe.padding-inline;
+    in property <length> padding-block: root.recipe.padding-block;
+    min-height: root.recipe.height;
     preferred-height: self.min-height;
     vertical-stretch: 0;
-    background: root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.theme.surface;
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.theme.border-subtle;
-    Rectangle {
-        x: root.padding-inline; y: root.padding-block;
-        width: max(0px, parent.width - 2 * root.padding-inline);
-        height: max(0px, parent.height - 2 * root.padding-block);
-        @children
+    background: root.recipe.fill;
+    border-radius: root.recipe.radius;
+    border-width: root.recipe.border-width;
+    border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
+    // A parent TouchArea observes hover before its children see the event,
+    // so the native editor and actions keep every press, caret and selection.
+    hover := TouchArea {
+        Rectangle {
+            x: root.padding-inline; y: root.padding-block;
+            width: max(0px, parent.width - 2 * root.padding-inline);
+            height: max(0px, parent.height - 2 * root.padding-block);
+            @children
+        }
     }
-    if root.focused: Rectangle {
-        x: -3px; y: -3px; width: parent.width + 6px; height: parent.height + 6px;
-        border-radius: 10px; border-width: 2px;
-        border-color: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.theme.focus-ring;
-        background: transparent;
+    if root.focused: FocusOutline {
+        ring: root.recipe.focus; radius: root.recipe.radius;
+        host-width: root.width; host-height: root.height;
     }
 }
 export component KitFieldSeparator inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
-    height: 1px;
+    in property <KitTheme> theme: KitThemeContext.current;
+    height: root.theme.shape.border-width;
     background: root.theme.border-subtle;
     vertical-stretch: 0;
 }
@@ -111,20 +118,22 @@ export component KitFieldSeparator inherits Rectangle {
 // Place these parts alongside a native editor inside an InputGroup's single
 // children surface. They do not add padding, borders or another focus target.
 export component KitInputGroupStart inherits HorizontalLayout {
-    spacing: KitMetrics.label-gap;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.label-gap(root.theme);
     alignment: start;
     horizontal-stretch: 0;
     @children
 }
 export component KitInputGroupEnd inherits HorizontalLayout {
-    spacing: KitMetrics.label-gap;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.label-gap(root.theme);
     alignment: end;
     horizontal-stretch: 0;
     @children
 }
 export component KitInputGroupText inherits Text {
-    in property <KitTheme> theme: KitThemes.light;
-    font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+    in property <KitTheme> theme: KitThemeContext.current;
+    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
     color: root.theme.text-secondary;
     vertical-alignment: center;
     horizontal-stretch: 0;
@@ -132,16 +141,15 @@ export component KitInputGroupText inherits Text {
 
 export struct FormErrorRow { target: FocusRequest, message: string }
 export component KitFormErrorSummary inherits KitFieldGroup {
-    in property <KitTheme> theme: KitThemes.light;
     in property <string> title: "Please check these fields";
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
-    spacing: KitMetrics.help-gap;
-    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: 600; }
+    spacing: KitMetrics.help-gap(root.theme);
+    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
     for error in root.errors: error-action := KitPressable {
         theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
         accessible-name: error.message;
-        preferred-height: max(32px, message.preferred-height + 12px);
+        preferred-height: max(KitMetrics.density(root.theme, ControlSize.compact).height, message.preferred-height + 2 * error-action.recipe.padding-block);
         min-height: self.preferred-height;
         activated => { root.error-activated(error.target); }
         message := Text {
@@ -150,7 +158,7 @@ export component KitFormErrorSummary inherits KitFieldGroup {
             height: max(0px, error-action.height - 2 * error-action.recipe.padding-block);
             text: error.message;
             color: root.theme.danger;
-            font-size: KitMetrics.font-size(TypographyRole.control, root.theme.text-scale);
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
             wrap: word-wrap;
             horizontal-alignment: left;
             vertical-alignment: center;

@@ -84,6 +84,41 @@ fn keyboard_tooltip_escapes_clipping_and_escape_preserves_the_trigger_focus() {
 }
 
 #[test]
+fn a_tooltip_is_as_wide_as_its_text_up_to_the_recipe_reading_width() {
+    let window = fixture();
+    let theme = window.get_theme();
+    let recipe = window.invoke_tooltip(theme.clone());
+    assert_eq!(recipe.padding_inline, theme.spacing.unit * 3.);
+    assert_eq!(recipe.padding_block, theme.spacing.unit * 1.5);
+    assert_eq!(recipe.max_width, theme.spacing.unit * 80.);
+    assert_eq!(recipe.fill, theme.text_primary);
+    assert_eq!(recipe.foreground, theme.surface);
+    window.invoke_focus_trigger();
+    settle(1);
+    // A short tip wraps nothing and stays far narrower than the cap.
+    let short = element(&window, "Keyboard help").size().width;
+    assert!(
+        short > 0. && short < recipe.max_width / 2.,
+        "short tip text box {short}"
+    );
+    let long = "Create a new project in this workspace, then invite the people who will review it.";
+    window.set_help(long.into());
+    settle(1);
+    let width = element(&window, long).size().width;
+    assert!(
+        (width - (recipe.max_width - 2. * recipe.padding_inline)).abs() < 0.5,
+        "long tip text box {width}"
+    );
+    // The cap follows text-scale.
+    let mut scaled = theme.clone();
+    scaled.text_scale = 2.;
+    assert_eq!(
+        window.invoke_tooltip(scaled).max_width,
+        recipe.max_width * 2.
+    );
+}
+
+#[test]
 fn tooltip_projection_is_window_local_and_overlay_invalidation_blocks_reopening() {
     let first = fixture();
     let second = BaseFeedbackFixture::new().unwrap();
@@ -441,4 +476,48 @@ fn progress_fill_starts_at_the_track_origin_for_all_bounded_values() {
         assert!((fill.size().width - track.size().width * value.clamp(0., 1.)).abs() <= 1.);
         assert!((fill.size().height - 8.).abs() <= 1.);
     }
+}
+
+#[test]
+fn a_toast_host_measures_exactly_its_toasts() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let host = ElementQuery::from_root(&window)
+        .match_inherits("KitToastHost")
+        .find_first()
+        .unwrap();
+    let toast = ElementQuery::from_root(&window)
+        .match_inherits("KitToast")
+        .find_first()
+        .unwrap();
+    let below = element(&window, "Below the host");
+    assert!(
+        (host.size().height - toast.size().height).abs() < 0.5,
+        "host {:?} toast {:?}",
+        host.size(),
+        toast.size()
+    );
+    let host_bottom = host.absolute_position().y + host.size().height;
+    assert!((below.absolute_position().y - host_bottom).abs() < 0.5);
+}
+
+#[test]
+fn a_repeated_card_measures_exactly_its_content() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let card = ElementQuery::from_root(&window)
+        .match_inherits("KitCard")
+        .find_first()
+        .unwrap();
+    let below = element(&window, "Below the cards");
+    let card_bottom = card.absolute_position().y + card.size().height;
+    assert!(
+        (below.absolute_position().y - card_bottom).abs() < 0.5,
+        "card {:?} {:?}, below {:?}",
+        card.absolute_position(),
+        card.size(),
+        below.absolute_position()
+    );
 }

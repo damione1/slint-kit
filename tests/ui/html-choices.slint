@@ -1,4 +1,4 @@
-import { KitTheme, KitThemes, KitCheckbox, KitRadioGroup, KitSelect, KitMultiSelect, KitFilePicker, KitSubmitButton, KitResetButton, KitValidityState, ChoiceRow, ChipRow, OptionRow, SelectState, FileViewEntry, CheckState } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitCheckbox, KitRadioGroup, KitSelect, KitMultiSelect, KitFilePicker, KitSubmitButton, KitResetButton, KitValidityState, ChoiceRow, ChipRow, OptionRow, SelectState, FileViewEntry, CheckState, FieldAccess } from "@kit/kit.slint";
 export component HtmlChoiceFixture inherits Window {
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> dark-theme: KitThemes.dark;
@@ -25,7 +25,7 @@ export component HtmlChoiceFixture inherits Window {
     VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
         checkbox := KitCheckbox { theme: root.theme; label: "Consent"; state: root.checked; required: true; }
         radio := KitRadioGroup { theme: root.theme; label: "Plan"; rows: root.rows; required: true; }
-        select := KitSelect { theme: root.theme; placeholder: "Select plan"; rows: root.options; state: root.select-state; required: true; disabled: root.disabled; }
+        select := KitSelect { theme: root.theme; placeholder: "Select plan"; rows: root.options; state: root.select-state; required: true; access: root.disabled ? FieldAccess.disabled : FieldAccess.editable; }
         multi := KitMultiSelect { theme: root.theme; rows: root.options; chips: root.chips; required: true; }
         picker := KitFilePicker { theme: root.theme; label: "Attachment"; entries: root.files; required: true; }
         KitSubmitButton { theme: root.theme; text: "Submit"; form-no-validate: root.no-validate; validation-requested => { return root.allow-submit; } form-action(action) => { root.submitted(); } }

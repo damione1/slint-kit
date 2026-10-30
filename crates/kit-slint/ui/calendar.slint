@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
 import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
-import { KitIcon, IconKind } from "icons.slint";
+import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess } from "contracts.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
@@ -49,7 +50,7 @@ export component KitCalendar inherits Rectangle {
             step: root.step, default-value: root.default-value, min-length: -1, max-length: -1}, value, true, false, 0).validity.valid;
     }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[CalendarDay]> days;
@@ -67,24 +68,24 @@ export component KitCalendar inherits Rectangle {
     changed request-focus => { if (root.request-focus) { keyboard.focus(); } }
     init => { if (root.request-focus) { keyboard.focus(); } }
     out property <bool> has-focus: keyboard.has-focus;
-    private property <length> cell-height: KitMetrics.control-height(root.control-size,root.theme.text-scale);
+    private property <length> cell-height: KitMetrics.control-height(root.theme, root.control-size);
     private property <bool> activation-held;
     changed access => { root.activation-held = false; }
     min-width: 7 * root.cell-height;
     preferred-width: 448px;
     max-width: Math.max(448px,7 * root.cell-height);
-    preferred-height: 8px + root.cell-height * 8;
+    preferred-height: root.theme.spacing.unit * 2 + root.cell-height * 8;
     vertical-stretch: 0;
     accessible-role: groupbox;
     accessible-label: root.label + ": " + (root.active-index >= 0 && root.active-index < root.days.length ? root.days[root.active-index].accessible-label : root.title);
     forward-focus: keyboard;
     VerticalLayout {
-        spacing: 8px;
+        spacing: root.theme.spacing.unit * 2;
         HorizontalLayout {
-            spacing: 8px;
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-left; ink: root.theme.text-primary; } } }
-            Text { text: root.title; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; horizontal-alignment: center; vertical-alignment: center; }
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { kind: IconKind.chevron-right; ink: root.theme.text-primary; } } }
+            spacing: root.theme.spacing.unit * 2;
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: KitGlyphs.chevron-left(); ink: root.theme.text-primary; } } }
+            Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: KitGlyphs.chevron-right(); ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
             min-height: root.cell-height * 7;
@@ -111,7 +112,7 @@ export component KitCalendar inherits Rectangle {
             for day-name[index] in root.weekdays: Text {
                 x: mod(index,7) * parent.width / 7; y: 0px;
                 width: parent.width / 7; height: root.cell-height;
-                text: day-name; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale;
+                text: day-name; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
                 horizontal-alignment: center; vertical-alignment: center;
             }
             for day[index] in root.days: CalendarOption {
@@ -124,10 +125,12 @@ export component KitCalendar inherits Rectangle {
                 accessible-role: list-item; accessible-name: day.accessible-label;
                 accessible-item-selectable: true; accessible-item-selected: day.selected;
                 background: day.selected ? root.theme.accent : day.in-range ? root.theme.hover : self.hovered ? root.theme.hover : transparent;
-                border-width: keyboard.has-focus && root.active-index == index ? 2px : day.today ? 1px : 0px;
-                border-color: keyboard.has-focus && root.active-index == index ? root.theme.focus-ring : root.theme.accent;
+                border-width: day.today ? root.theme.shape.border-width : 0px;
+                border-color: root.theme.accent;
+                focus-indicated: keyboard.has-focus && root.active-index == index;
+                focus-ring: KitThemes.inset-focus(root.theme);
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.choose(chosen); } }
-                Text { text: day.label; font-size: 14px * root.theme.text-scale; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
+                Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
     }
@@ -159,7 +162,7 @@ export component KitDatePicker inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
 
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <CivilDateView> accepted-date;
@@ -187,12 +190,14 @@ export component KitDatePicker inherits Rectangle {
     vertical-stretch: 0;
     changed open => { if (root.open) { popup.show(); root.opened(); } else { popup.close(); editor.take-focus(); } }
     private property <bool> presented: popup.is-open;
+    private property <SurfaceRecipe> popup-surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+    private property <length> popup-inset: root.theme.spacing.unit * 3;
     changed presented => { if (!root.presented && root.open) { root.open = false; } }
     VerticalLayout {
-        spacing: 4px;
+        spacing: root.theme.spacing.unit;
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; access: root.access; focus-requested => { editor.take-focus(); } }
         HorizontalLayout {
-            spacing: 8px;
+            spacing: root.theme.spacing.unit * 2;
             editor := KitDateField {
                 show-validation-message: false;
                 required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value;
@@ -214,10 +219,11 @@ export component KitDatePicker inherits Rectangle {
         if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + 4px; width: Math.max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 24px;
+        x: 0px; y: root.height + root.theme.spacing.unit; width: Math.max(320px, 240px * root.theme.text-scale); height: calendar.preferred-height + 2 * root.popup-inset;
         close-policy: close-on-click-outside;
-        Rectangle { background: root.theme.surface-raised; border-radius: 12px; border-width: 1px; border-color: root.theme.border-subtle;
-            calendar := KitCalendar { min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: 12px; y: 12px; width: parent.width - 24px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
+        Rectangle {
+            ElevatedSurface { recipe: root.popup-surface; }
+            calendar := KitCalendar { min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 choose(day) => { root.choose(day); root.open = false; }
                 cancelled => { root.cancelled(); root.open = false; }
@@ -229,7 +235,7 @@ export component KitDatePicker inherits Rectangle {
 // Selecting a start/end is provisional until Apply. The Rust DateRange model
 // rejects reversed dates or forbidden periods; it never normalizes them silently.
 export component KitDateRangePicker inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <DateRangePhase> phase: DateRangePhase.choosing-start;
@@ -245,12 +251,12 @@ export component KitDateRangePicker inherits Rectangle {
     callback cancelled();
     vertical-stretch: 0;
     VerticalLayout {
-        spacing: 8px;
-        Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? "Choose the start date" : root.phase == DateRangePhase.choosing-end ? "Choose the end date" : "Date range ready") : root.summary; font-size: 14px * root.theme.text-scale; color: root.theme.text-primary; wrap: word-wrap; }
+        spacing: root.theme.spacing.unit * 2;
+        Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? "Choose the start date" : root.phase == DateRangePhase.choosing-end ? "Choose the end date" : "Date range ready") : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; }
         KitCalendar { theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancelled(); } }
-        if root.error != "": Text { text: root.error; color: root.theme.danger; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
-            spacing: 12px;
+            spacing: root.theme.spacing.unit * 3;
             KitButton { theme: root.theme; control-size: root.control-size; text: "Cancel"; intent: ButtonIntent.quiet; activated => { root.cancelled(); } }
             KitButton { theme: root.theme; control-size: root.control-size; text: "Apply range"; intent: ButtonIntent.primary; disabled: root.access != FieldAccess.editable || root.phase != DateRangePhase.complete || root.error != ""; activated => { root.apply-requested(); } }
         }

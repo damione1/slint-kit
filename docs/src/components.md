@@ -18,7 +18,7 @@ eleventyComputed:
 
 # {{ component | componentLabel(locale) }} {% if locale == 'fr' %}pour Slint{% else %}for Slint{% endif %}
 
-<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.3.1</p>
+<p class="component-identifier"><code>{{ component.name }}</code> · Slint Kit 0.4.0</p>
 
 {{ text.summary }}
 

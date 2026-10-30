@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitIcon, IconKind } from "icons.slint";
-import { KitTheme, KitThemes, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitIcon, IconGlyph } from "icons.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
 // Content must be non-interactive; the primitive owns hit testing and activation.
 export component KitPressable inherits Rectangle {
-    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> theme: KitThemeContext.current;
     in property <ButtonIntent> intent: ButtonIntent.secondary;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <ControlWidth> control-width: ControlWidth.intrinsic;
@@ -14,6 +15,10 @@ export component KitPressable inherits Rectangle {
     in property <bool> disabled;
     in property <bool> busy;
     in property <bool> tab-stop: true;
+    // A composite that keeps keyboard focus itself sets this on its active
+    // row; the row then paints `focus-ring` as if it held focus.
+    in property <bool> focus-indicated;
+    in property <KitFocusRing> focus-ring: root.recipe.focus;
     out property <bool> hovered: touch.has-hover && !root.disabled;
     out property <bool> pressed: (touch.pressed && root.pointer-armed && touch.has-hover) || root.space-held;
     out property <bool> has-focus: keys.has-focus;
@@ -31,7 +36,8 @@ export component KitPressable inherits Rectangle {
         root.enter-held = false;
         root.pointer-armed = false;
     }
-    public function take-focus() { keys.focus(); }
+    // Like a disabled web control, a disabled pressable cannot take focus.
+    public function take-focus() { if (!root.disabled) { keys.focus(); } }
     function activate-once() {
         if (!root.disabled && !root.busy) { root.activated(); }
     }
@@ -53,6 +59,18 @@ export component KitPressable inherits Rectangle {
     accessible-enabled: !root.disabled && !root.busy;
     accessible-action-default => { root.activation-started(); root.activate-once(); }
     forward-focus: keys;
+    // The recipe's elevation, painted by a child that repeats the host's own
+    // fill and edge so only its shadow shows past them. A shadow on the host
+    // itself would take part in its measured height inside a layout.
+    if root.recipe.shadow.color.to-hsv().alpha > 0: Rectangle {
+        background: root.background;
+        border-radius: root.border-radius;
+        border-width: root.border-width;
+        border-color: root.border-color;
+        drop-shadow-offset-y: root.recipe.shadow.offset-y;
+        drop-shadow-blur: root.recipe.shadow.blur;
+        drop-shadow-color: root.recipe.shadow.color;
+    }
     Rectangle {
         x: root.recipe.padding-inline;
         y: root.recipe.padding-block;
@@ -64,8 +82,8 @@ export component KitPressable inherits Rectangle {
         // Native keyboard traversal reveals this geometry in ancestor scrolls.
         // Include the painted outline; focus-on-click remains off, so this does
         // not enlarge the pointer target or change the button's layout size.
-        x: -root.recipe.focus-offset - root.recipe.focus-width;
-        y: -root.recipe.focus-offset - root.recipe.focus-width;
+        x: -KitThemes.focus-outset(root.focus-ring);
+        y: -KitThemes.focus-outset(root.focus-ring);
         width: root.width - 2 * self.x;
         height: root.height - 2 * self.y;
         enabled: !root.disabled;
@@ -118,15 +136,9 @@ export component KitPressable inherits Rectangle {
             if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
         }
     }
-    if root.focus-visible : Rectangle {
-        x: -root.recipe.focus-offset - root.recipe.focus-width;
-        y: -root.recipe.focus-offset - root.recipe.focus-width;
-        width: root.width - 2 * self.x;
-        height: root.height - 2 * self.y;
-        border-radius: root.recipe.radius + root.recipe.focus-offset;
-        border-width: root.recipe.focus-width;
-        border-color: root.recipe.focus-color;
-        background: transparent;
+    if root.focus-visible || root.focus-indicated: FocusOutline {
+        ring: root.focus-ring; radius: root.recipe.radius;
+        host-width: root.width; host-height: root.height;
     }
 }
 
@@ -143,7 +155,7 @@ export component KitButton inherits KitPressable {
         opacity: root.busy ? 0 : 1;
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-        font-size: root.recipe.font-size;
+        font-family: root.theme.typography.family; font-size: root.recipe.font-size; font-weight: root.recipe.font-weight;
         horizontal-alignment: center;
         vertical-alignment: center;
         overflow: elide;
@@ -152,11 +164,11 @@ export component KitButton inherits KitPressable {
     // Busy therefore changes neither intrinsic width nor the content center.
     if root.busy: Rectangle {
         Path {
-        x: (parent.width - 14px) / 2; y: (parent.height - 14px) / 2;
-        width: 14px; height: 14px;
-        viewbox-width: 16; viewbox-height: 16;
-        commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
-        stroke: root.recipe.foreground; stroke-width: 2px; fill: transparent;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: root.recipe.busy-mark-size; height: root.recipe.busy-mark-size;
+            viewbox-width: 16; viewbox-height: 16;
+            commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
+            stroke: root.recipe.foreground; stroke-width: root.recipe.busy-mark-stroke; fill: transparent;
         }
     }
 }
@@ -182,7 +194,8 @@ export component KitResetButton inherits KitFormButton {
     intent: ButtonIntent.quiet;
 }
 export component KitIconButton inherits KitPressable {
-    in property <IconKind> icon: IconKind.close;
+    // The action's glyph, e.g. `KitGlyphs.close()` or `LucideIcons.trash()`.
+    in property <IconGlyph> glyph;
     intent: ButtonIntent.quiet;
     recipe: KitThemes.icon-button-recipe(root.theme, root.control-size);
     preferred-width: root.preferred-height;
@@ -190,13 +203,15 @@ export component KitIconButton inherits KitPressable {
     Rectangle {
         KitIcon {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-            kind: root.icon;
+            theme: root.theme; control-size: root.control-size;
+            glyph: root.glyph;
             ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         }
     }
 }
 export component KitButtonGroup inherits HorizontalLayout {
-    spacing: 8px;
+    in property <KitTheme> theme: KitThemeContext.current;
+    spacing: KitMetrics.inline-gap(root.theme);
     alignment: start;
     vertical-stretch: 0;
     @children
