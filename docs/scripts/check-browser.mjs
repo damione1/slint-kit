@@ -94,9 +94,30 @@ async function changeLivePreviewTheme(theme) {
   })`);
   await pause(400);
 }
+// CDP clips use document coordinates, while DOM rectangles are relative to
+// the viewport. Include the top-level scroll and the iframe's CSS transform.
+async function canvasClip(inFrame = false) {
+  return evaluate(`(()=>{
+    const frame=${inFrame ? "document.querySelector('iframe')" : 'null'};
+    const canvas=(frame?frame.contentDocument:document).querySelector('canvas');
+    const bounds=canvas.getBoundingClientRect();
+    const host=frame?.getBoundingClientRect();
+    const scale=frame?host.width/frame.offsetWidth:1;
+    return{x:scrollX+(frame?host.x+(frame.clientLeft+bounds.x)*scale:bounds.x),
+      y:scrollY+(frame?host.y+(frame.clientTop+bounds.y)*scale:bounds.y),
+      width:bounds.width*scale,height:bounds.height*scale,scale:1};
+  })()`);
+}
 async function liveCanvasCapture() {
-  const clip=await evaluate(`(()=>{const frame=document.querySelector('iframe'),r=frame.getBoundingClientRect(),c=frame.contentDocument.querySelector('canvas').getBoundingClientRect(),scale=r.width/frame.contentWindow.innerWidth;return{x:r.x+c.x*scale,y:r.y+c.y*scale,width:c.width*scale,height:c.height*scale,scale:1}})()`);
+  const clip=await canvasClip(true);
   return (await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip})).data;
+}
+// Input events keep viewport coordinates. Use an actual blank point inside
+// the canvas to clear Slint hover, rather than relying on iframe mouseleave.
+async function liveCanvasPoint(x, y) {
+  return evaluate(`(()=>{const frame=document.querySelector('iframe'),host=frame.getBoundingClientRect(),bounds=frame.contentDocument.querySelector('canvas').getBoundingClientRect(),scale=host.width/frame.offsetWidth;
+    return{x:host.x+(frame.clientLeft+bounds.x+${x ?? 'bounds.width-4'})*scale,
+      y:host.y+(frame.clientTop+bounds.y+${y ?? 'bounds.height-4'})*scale}})()`);
 }
 try {
   let port;
@@ -140,7 +161,7 @@ try {
     await pause(750);
     const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
-      clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
+      clip: await canvasClip() });
     const visualOutput = path.join(docs, browserDensity === 2 ? '.verification/visual-qa/web-retina' : '.verification/visual-qa/web');
     await fs.mkdir(visualOutput, { recursive: true });
     await fs.writeFile(path.join(visualOutput, `${slug}-open.png`), Buffer.from(capture.data, 'base64'));
@@ -242,7 +263,7 @@ try {
     assert(Math.abs(state.width - canvas.width * browserDensity) <= 1 && Math.abs(state.height - canvas.height * browserDensity) <= 1,
       `${slug}: canvas backing pixels must match its CSS size and actual browser density`);
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
-      clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
+      clip: await canvasClip() });
     const visualOutput = path.join(docs, browserDensity === 2 ? '.verification/visual-qa/web-retina' : '.verification/visual-qa/web');
     await fs.mkdir(visualOutput, { recursive: true });
     await fs.writeFile(path.join(visualOutput, `${slug}.png`), Buffer.from(capture.data, 'base64'));
@@ -299,11 +320,17 @@ try {
     assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Live preview must fit mobile width');
     assert.equal(await evaluate('new URL(document.querySelector("iframe").src).searchParams.get("theme")'),'dark','Preview starts in the requested dark mode');
     await evaluate('document.querySelector(".preview-frame").scrollIntoView({block:"center"})');
-    const point = await evaluate('(()=>{const f=document.querySelector("iframe");const r=f.getBoundingClientRect();const c=f.contentDocument.querySelector("canvas");return {x:r.x+80*r.width/c.getBoundingClientRect().width,y:r.y+44*r.width/c.getBoundingClientRect().width}})()');
+    // Compare the same neutral pointer state in every theme, and record the
+    // initial counter before activation so a missed click cannot pass vacuously.
+    await call('Input.dispatchMouseEvent', {type:'mouseMoved',...await liveCanvasPoint()});
+    await changeLivePreviewTheme('dark');
+    const darkInitial=await liveCanvasCapture();
+    const point = await liveCanvasPoint(80,44);
     for (let i = 0; i < 3; i++) {
       await call('Input.dispatchMouseEvent', { type:'mousePressed', button:'left', clickCount:1, ...point });
       await call('Input.dispatchMouseEvent', { type:'mouseReleased', button:'left', clickCount:1, ...point });
     }
+    await call('Input.dispatchMouseEvent', {type:'mouseMoved',...await liveCanvasPoint()});
     await pause(200);
     await evaluate('window.qaThemeFrame=document.querySelector("iframe")');
     await changeLivePreviewTheme('dark');
@@ -314,8 +341,10 @@ try {
     await changeLivePreviewTheme('dark');
     const darkAfter=await liveCanvasCapture();
     assert.equal(await evaluate('window.qaThemeFrame===document.querySelector("iframe")'),true,'Changing theme keeps the existing app frame');
-    assert.equal(darkBefore,darkAfter,'The Rust counter and rendered state survive a theme round trip');
-    for(const [name,data] of [['dark-before',darkBefore],['light',light],['dark-after',darkAfter]]) await fs.writeFile(path.join(output,`${locale}-theme-${name}.png`),Buffer.from(data,'base64'));
+    for(const [name,data] of [['dark-initial',darkInitial],['dark-before',darkBefore],['light',light],['dark-after',darkAfter]]) await fs.writeFile(path.join(output,`${locale}-theme-${name}.png`),Buffer.from(data,'base64'));
+    await fs.writeFile(path.join(output,`${locale}-theme-geometry.json`),JSON.stringify(await evaluate(`(()=>{const frame=document.querySelector('iframe');return{frame:frame.getBoundingClientRect().toJSON(),canvas:frame.contentDocument.querySelector('canvas').getBoundingClientRect().toJSON(),scroll:{x:scrollX,y:scrollY},frameLayoutWidth:frame.offsetWidth,activeElement:document.activeElement.tagName,innerActiveElement:frame.contentDocument.activeElement.tagName,theme:frame.contentWindow.previewTheme}})()`),null,2));
+    assert(darkInitial!==darkBefore,'Pointer clicks must change the real Rust counter before the theme round trip');
+    assert(darkBefore===darkAfter,'The Rust counter and rendered state survive a theme round trip');
     results.push({name:'live-theme-preserves-rust-state',locale,startedDark:true,roundTrip:true});
     const capture = await call('Page.captureScreenshot', { format:'png', captureBeyondViewport:false });
     await fs.writeFile(path.join(output, `${locale}-live-button.png`), Buffer.from(capture.data, 'base64'));
