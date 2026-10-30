@@ -85,6 +85,11 @@ fn main() -> Result<(), slint::PlatformError> {
             Vec::new()
         }
     });
+    field.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Text,
+        required: true,
+        ..Default::default()
+    });
     let weak = app.as_weak();
     field.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

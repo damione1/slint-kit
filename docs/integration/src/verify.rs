@@ -74,7 +74,7 @@ pub fn schedule(app: &App) {
         assert_eq!(app.get_accepted_label(), valid_draft);
         // Open through the actual trigger pointer route, navigate through its
         // keyboard handler, then commit a stable WorkspaceKey through bind_select!.
-        click(&app, 100., 230.);
+        click(&app, 100., 205.);
         assert!(
             app.get_select_state().open,
             "trigger opens controlled presentation"
