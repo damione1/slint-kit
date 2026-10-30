@@ -20,10 +20,11 @@ eleventyComputed:
 <div id="component-catalogue">
 {% for family, label in ui.families %}
 <section class="catalogue-family" id="{{ family }}">
-<div class="catalogue-family-heading">{{ family | familyIllustration | safe }}<h2>{{ label[locale] }}</h2></div>
+<div class="catalogue-family-heading"><h2>{{ label[locale] }}</h2></div>
 <div class="catalogue-grid">
-{% for component in components | whereFamily(family) %}<a class="catalogue-item" href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}" data-search="{{ component.name | lower }} {{ component | componentLabel(locale) | lower }} {{ component[locale].summary | lower }}"><strong>{{ component | componentLabel(locale) }}</strong><code>{{ component.name }}</code><span>{{ component[locale].summary }}</span></a>{% endfor %}
+{% for component in components | whereFamily(family) %}<a class="catalogue-item" href="{{ ('components/' + component.slug + '/') | localeUrl(locale) }}" data-search="{{ component.name | lower }} {{ component | componentLabel(locale) | lower }} {{ component[locale].summary | lower }}"><canvas class="component-mockup" data-component-mockup="{{ component.slug }}" width="640" height="336" aria-hidden="true"></canvas><strong>{{ component | componentLabel(locale) }}</strong><code>{{ component.name }}</code><span>{{ component[locale].summary }}</span></a>{% endfor %}
 </div>
 </section>
 {% endfor %}
 </div>
+<script type="module" src="{{ '/assets/component-mockups.js' | versionedAsset }}"></script>

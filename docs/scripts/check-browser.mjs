@@ -331,6 +331,46 @@ try {
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     await fs.writeFile(path.join(output, `input-group-${width}-${density}.png`), Buffer.from(capture.data, 'base64'));
   }
+  // Canvas cards stay independent of Slint compilation. Gallery glyphs and
+  // copyable snippets must follow the selected icon in both languages.
+  for (const locale of ['en','fr']) {
+    await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1050, deviceScaleFactor: browserDensity, mobile: false });
+    await navigate(locale==='fr'?'/fr/components/':'/components/');
+    assert.equal(await evaluate('document.querySelectorAll("[data-component-mockup]").length'),124);
+    assert(await evaluate(`(()=>{const c=document.querySelector('[data-component-mockup="button"]');return c.getContext('2d').getImageData(10,10,1,1).data[3]>0})()`), 'Visible mockup must be painted');
+    assert.equal(await evaluate('document.querySelectorAll(".family-illustration").length'),0);
+    const catalogue = await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+    await fs.writeFile(path.join(output,`${locale}-component-mockups.png`),Buffer.from(catalogue.data,'base64'));
+    const galleryRequests=requests.length;
+    await navigate(locale==='fr'?'/fr/components/icon/':'/components/icon/');
+    assert.equal(await evaluate('document.querySelectorAll(".icon-tile").length'),1999);
+    assert(!requests.slice(galleryRequests).some(url=>url.includes('.wasm')), 'The icon gallery must not start a WASM preview');
+    await evaluate(`(()=>{const s=document.querySelector('#icon-search');s.value='arrow up';s.dispatchEvent(new Event('input'));const c=document.querySelector('#icon-category');c.value='arrows';c.dispatchEvent(new Event('change'))})()`);
+    assert(await evaluate(`(()=>{const tiles=[...document.querySelectorAll('.icon-tile:not([hidden])')];return tiles.length>0&&tiles.every(t=>t.dataset.search.includes('arrow')&&t.dataset.search.includes('up')&&t.dataset.categories.split(' ').includes('arrows'))})()`));
+    await click('[data-icon="arrow-up"]');
+    assert.equal(await evaluate('document.querySelector("#selected-icon-name").textContent'),'arrow-up');
+    assert(await evaluate('document.querySelector("#icon-snippet").textContent.includes("LucideIcons.arrow-up()")'));
+    await evaluate('document.querySelector(\'[data-icon="arrow-up-right"]\').focus()');
+    await keyEnter();
+    assert.equal(await evaluate('document.querySelector("#selected-icon-name").textContent'),'arrow-up-right');
+    await evaluate(`(()=>{const m=document.querySelector('#icon-integration');m.value='pressable';m.dispatchEvent(new Event('change'));navigator.clipboard.writeText=async text=>window.copiedIcon=text})()`);
+    await click('.icon-inspector .code-actions button');
+    assert(await evaluate('window.copiedIcon===document.querySelector("#icon-snippet").textContent&&window.copiedIcon.includes("KitPressable")&&window.copiedIcon.includes("callback action-requested();")'));
+    await evaluate(`(()=>{const s=document.querySelector('#icon-search');s.value='no-such-lucide-icon';s.dispatchEvent(new Event('input'))})()`);
+    assert(await evaluate('!document.querySelector("#icon-empty").hidden'));
+    await evaluate(`(()=>{const s=document.querySelector('#icon-search');s.value='';s.dispatchEvent(new Event('input'));const c=document.querySelector('#icon-category');c.value='';c.dispatchEvent(new Event('change'));document.querySelector('#lucide-title').scrollIntoView()})()`);
+    for(const [variant,width,dark,textScale] of [['light',1440,false,1],['dark',1440,true,1],['mobile',375,false,1],['text200',1100,false,2]]) {
+      await call('Emulation.setDeviceMetricsOverride',{width,height:1100,deviceScaleFactor:browserDensity,mobile:false});
+      await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:dark?'dark':'light'}]});
+      await evaluate(`document.documentElement.style.fontSize='${16*textScale}px';document.querySelector('#lucide-title').scrollIntoView()`);
+      await pause(300);
+      assert(await evaluate('document.documentElement.scrollWidth<=innerWidth'),`${locale} icon gallery overflows at ${variant}`);
+      const screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+      await fs.writeFile(path.join(output,`${locale}-lucide-${variant}.png`),Buffer.from(screenshot.data,'base64'));
+    }
+    results.push({name:'visual-catalogues',locale,icons:1999,mockups:124,search:true,categories:true,copy:true});
+    await evaluate("document.documentElement.style.fontSize=''");
+  }
   passed = true;
   console.log(`Browser checks PASS: ${results.filter(row => row.route).length} page captures, ${results.filter(row => row.name === "browser-preview-startup").length} preview startups, EN/FR on-demand mobile previews, delayed script/image CLS, light/dark, text200, keyboard/pointer, no-JS menu and filter.`);
 } finally {

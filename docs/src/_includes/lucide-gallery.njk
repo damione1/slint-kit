@@ -1,0 +1,37 @@
+<section class="lucide-gallery" aria-labelledby="lucide-title" data-sprite="{{ lucide.url }}">
+<h2 id="lucide-title">{% if locale == 'fr' %}Les {{ lucide.icons.length }} icônes Lucide{% else %}All {{ lucide.icons.length }} Lucide icons{% endif %}</h2>
+<p>{% if locale == 'fr' %}Choisissez une icône pour copier son intégration Slint. Lucide {{ lucide.version }} est inclus dans Slint Kit ; seules les fonctions utilisées sont embarquées dans votre application.{% else %}Choose an icon to copy its Slint integration. Lucide {{ lucide.version }} ships with Slint Kit; only the functions you use are included in your application.{% endif %}</p>
+<div class="icon-picker-layout">
+<div class="icon-browser">
+<div class="icon-filters">
+<label>{% if locale == 'fr' %}Rechercher (noms et mots-clés Lucide en anglais){% else %}Search names and Lucide keywords{% endif %}<input id="icon-search" type="search" placeholder="search, arrow, cloud…" autocomplete="off" aria-controls="icon-grid"></label>
+<label>{% if locale == 'fr' %}Catégorie{% else %}Category{% endif %}<select id="icon-category" aria-controls="icon-grid"><option value="">{% if locale == 'fr' %}Toutes les catégories{% else %}All categories{% endif %}</option>{% for category in lucide.categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select></label>
+</div>
+<p id="icon-results" role="status">{{ lucide.icons.length }} / {{ lucide.icons.length }}</p>
+<div id="icon-grid" class="icon-grid" tabindex="0" role="group" aria-label="{% if locale == 'fr' %}Icônes Lucide{% else %}Lucide icons{% endif %}">
+{% for icon in lucide.icons %}<button type="button" class="icon-tile" data-icon="{{ icon.name }}" data-search="{{ icon.search | escape }}" data-categories="{{ icon.categories | join(' ') }}" aria-pressed="{{ 'true' if icon.name == 'search' else 'false' }}"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><use href="{{ lucide.url }}#{{ icon.name }}"/></svg><span>{{ icon.name }}</span>{% if icon.deprecated %}<small>{% if locale == 'fr' %}Dépréciée{% else %}Deprecated{% endif %}</small>{% endif %}</button>{% endfor %}
+</div>
+<p id="icon-empty" hidden>{% if locale == 'fr' %}Aucune icône ne correspond. Essayez un nom anglais ou une autre catégorie.{% else %}No matching icons. Try another name or category.{% endif %}</p>
+</div>
+<aside class="icon-inspector" aria-labelledby="selected-icon-name">
+<svg class="selected-icon" viewBox="0 0 24 24" width="56" height="56" aria-hidden="true" focusable="false"><use href="{{ lucide.url }}#search"/></svg>
+<h3 id="selected-icon-name">search</h3>
+<label for="icon-integration">{% if locale == 'fr' %}Intégration{% else %}Integration{% endif %}</label>
+<select id="icon-integration"><option value="standalone">KitIcon</option><option value="button">KitIconButton</option><option value="pressable">KitPressable + {% if locale == 'fr' %}libellé{% else %}label{% endif %}</option></select>
+<p id="icon-integration-help">{% if locale == 'fr' %}Icône décorative. Pour porter un sens sans texte voisin, ajoutez IconPurpose.informative et un label.{% else %}Decorative icon. To convey meaning without nearby text, add IconPurpose.informative and a label.{% endif %}</p>
+<pre><code id="icon-snippet" class="language-slint">{{ 'search' | iconSnippet('standalone', locale) | escape | safe }}</code></pre>
+<p>{% if locale == 'fr' %}Le fichier Slint s’intègre avec votre configuration habituelle de Slint Kit. Les actions sont émises vers votre code hôte.{% else %}The Slint file uses your usual Slint Kit build setup. Actions are emitted to your host code.{% endif %}</p>
+<a href="#icon-integration-guide">{% if locale == 'fr' %}Choisir le bon composant{% else %}Choose the right component{% endif %}</a>
+</aside>
+</div>
+<noscript><p>{% if locale == 'fr' %}Toutes les icônes sont visibles. Activez JavaScript pour filtrer et générer le snippet de l’icône choisie ; vous pouvez remplacer <code>search</code> par son nom dans l’exemple.{% else %}All icons are visible. Enable JavaScript to filter and generate the selected icon’s snippet; you can replace <code>search</code> with its name in the example.{% endif %}</p></noscript>
+<h2 id="icon-integration-guide">{% if locale == 'fr' %}Utiliser une icône dans un composant{% else %}Use an icon inside a component{% endif %}</h2>
+<ul>
+<li><code>KitIcon</code> : {% if locale == 'fr' %}affichage seul, ou enfant d’une carte, d’un layout ou d’un emplacement de composition.{% else %}standalone display, or a child of a card, layout or composition slot.{% endif %}</li>
+<li><a href="{{ 'components/icon-button/' | localeUrl(locale) }}"><code>KitIconButton</code></a> : {% if locale == 'fr' %}propriété <code>glyph</code>, <code>accessible-name</code> obligatoire et signal <code>activated</code> pour l’action.{% else %}<code>glyph</code> property, required <code>accessible-name</code> and <code>activated</code> for the action.{% endif %}</li>
+<li><a href="{{ 'components/pressable/' | localeUrl(locale) }}"><code>KitPressable</code></a> : {% if locale == 'fr' %}composez une icône et un libellé pour une action textuelle personnalisée. <code>KitButton</code> ne possède pas de propriété <code>glyph</code>.{% else %}compose an icon and label for a custom text action. <code>KitButton</code> has no <code>glyph</code> property.{% endif %}</li>
+<li><a href="{{ 'components/input-group-start/' | localeUrl(locale) }}"><code>KitInputGroupStart</code></a> / <a href="{{ 'components/input-group-end/' | localeUrl(locale) }}"><code>KitInputGroupEnd</code></a> : {% if locale == 'fr' %}accueillent un <code>KitIcon</code> ou un <code>KitIconButton</code> dans un champ composé. Les icônes internes des contrôles ne sont pas toutes personnalisables.{% else %}accept a <code>KitIcon</code> or <code>KitIconButton</code> in a composed field. Internal control icons are not all customizable.{% endif %}</li>
+</ul>
+<p>{% if locale == 'fr' %}Les glyphes propres au kit restent disponibles dans <code>KitGlyphs</code>. Pour les tailles, l’épaisseur et l’accessibilité, consultez le{% else %}The kit’s own glyphs remain available in <code>KitGlyphs</code>. For sizing, stroke width and accessibility, see the{% endif %} <a href="{{ 'guides/themes/' | localeUrl(locale) }}">{% if locale == 'fr' %}guide des thèmes{% else %}theme guide{% endif %}</a>.</p>
+<p class="icon-license">Lucide {{ lucide.version }} · ISC / MIT (Feather) · <a href="https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md">{% if locale == 'fr' %}Licences et attributions{% else %}Licenses and attribution{% endif %}</a></p>
+</section>

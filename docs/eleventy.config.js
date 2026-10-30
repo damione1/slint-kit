@@ -7,10 +7,14 @@ import { scanComponents, componentLabel } from './scripts/inventory.mjs';
 import { localePrefix, localeUrl, siteOrigin } from './scripts/routes.mjs';
 import { structuredData, scriptJson } from './scripts/metadata.mjs';
 import { loadStarters, starterFiles } from './scripts/starters.mjs';
-import { familyIllustration } from './scripts/family-illustrations.mjs';
+import { lucideCatalogue } from './scripts/lucide-catalogue.mjs';
+import { mockups } from './src/assets/component-mockups.js';
+import { iconSnippet } from './src/assets/lucide-gallery.js';
 export default function (eleventyConfig) {
   const outputDirectory = process.env.DOCS_SITE_STAGE || '_site';
-  eleventyConfig.addFilter('familyIllustration', familyIllustration);
+  const lucide = lucideCatalogue();
+  eleventyConfig.addGlobalData('lucide', lucide);
+  eleventyConfig.addFilter('iconSnippet', (name, mode, locale) => iconSnippet(name, mode, locale === 'fr'));
   eleventyConfig.addPassthroughCopy('src/assets');
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
@@ -52,6 +56,9 @@ export default function (eleventyConfig) {
     return versionedAssets.get(key).url;
   });
   eleventyConfig.on('eleventy.after', () => {
+    const spriteTarget = path.join(outputDirectory, lucide.url.slice(1));
+    fs.mkdirSync(path.dirname(spriteTarget), { recursive: true });
+    fs.writeFileSync(spriteTarget, lucide.sprite);
     for (const { url, content } of versionedAssets.values()) {
       const target = path.join(outputDirectory, url.slice(1));
       fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -74,7 +81,12 @@ export default function (eleventyConfig) {
   eleventyConfig.addWatchTarget('examples');
   eleventyConfig.addWatchTarget('content');
   let inventory = scanComponents();
-  eleventyConfig.on('eleventy.before', () => { inventory = scanComponents(); });
+  eleventyConfig.on('eleventy.before', () => {
+    inventory = scanComponents();
+    for (const component of inventory) {
+      if (!mockups[component.slug]) throw new Error(`Missing mockup: ${component.slug}`);
+    }
+  });
   eleventyConfig.addGlobalData('components', () => inventory);
   eleventyConfig.addGlobalData('site', {
     name: 'Slint Kit', repository: 'https://github.com/damione1/slint-kit',

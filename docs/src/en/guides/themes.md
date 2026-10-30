@@ -73,6 +73,8 @@ The palette values come from the Tailwind CSS palette under the MIT license, and
 
 `KitIcon` and `KitIconButton` paint an `IconGlyph`. The kit's own glyphs are `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Every [Lucide](https://lucide.dev) 1.64.0 icon is also available: `@kit/icons/lucide/all.slint` exports `LucideIcons`, and each Lucide category has its own file with the same glyphs, for example `LucideArrows` in `@kit/icons/lucide/arrows.slint`. Each icon is a named function, so a misspelt name fails at compile time, and only the icons an application calls reach its binary.
 
+[Browse all Lucide icons and copy their integration](/components/icon/).
+
 ```slint
 import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";

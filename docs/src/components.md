@@ -22,6 +22,12 @@ eleventyComputed:
 
 {{ text.summary }}
 
+{% if component.name == 'KitIcon' %}
+{% include "lucide-gallery.njk" %}
+<script type="module" src="{{ '/assets/lucide-gallery.js' | versionedAsset }}"></script>
+<details class="visual-example"><summary>{% if locale == 'fr' %}Exemple complet avec les glyphes du kit{% else %}Complete example with the kit glyphs{% endif %}</summary>
+{% endif %}
+
 {% if component.sharedOption %}
 <p class="component-kind">{% if locale == 'fr' %}Composant de composition · option commune <code>{{ component.sharedOption }}</code>{% else %}Composition primitive · shared <code>{{ component.sharedOption }}</code> option{% endif %}</p>
 {% endif %}
@@ -45,6 +51,7 @@ eleventyComputed:
 {% endif %}
 
 {{ text.usage | prose | safe }}
+{% if component.name == 'KitIcon' %}</details>{% endif %}
 
 {{ text.behavior | prose | safe }}
 

@@ -73,6 +73,8 @@ Les couleurs proviennent de la palette de Tailwind CSS, sous licence MIT, et Int
 
 `KitIcon` et `KitIconButton` peignent un `IconGlyph`. Les glyphes propres au kit sont dans `KitGlyphs` (`KitGlyphs.check()`, `KitGlyphs.chevron-down()`…). Toutes les icônes de [Lucide](https://lucide.dev) 1.64.0 sont aussi disponibles : `@kit/icons/lucide/all.slint` exporte `LucideIcons`, et chaque catégorie Lucide a son propre fichier avec les mêmes glyphes, par exemple `LucideArrows` dans `@kit/icons/lucide/arrows.slint`. Chaque icône est une fonction nommée : un nom mal orthographié échoue à la compilation, et seules les icônes appelées par l’application arrivent dans son binaire.
 
+[Parcourir toutes les icônes Lucide et copier leur intégration](/fr/components/icon/).
+
 ```slint
 import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
