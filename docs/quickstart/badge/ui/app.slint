@@ -1,20 +1,34 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-// SPDX-License-Identifier: GPL-3.0-or-later
-import { KitBadge, KitTheme, KitThemes, Tone } from "@kit/kit.slint";
-
+import { KitBadge, KitCard, KitTheme, KitThemes, Tone } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
-    title: "KitBadge example";
-    preferred-width: 360px;
-    preferred-height: 160px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    title: "Badge";
+    preferred-width: 620px; preferred-height: 390px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Badge"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        HorizontalLayout { alignment: start; spacing: 12px; KitBadge { theme: root.theme; text: "Draft"; } KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; } KitBadge { theme: root.theme; text: "3 updates"; tone: Tone.accent; } }
+    background: root.theme.canvas;
+
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "A little context, at a glance"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Status, counts, and categories with a consistent visual language."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCard { theme: root.theme;
+            Text { text: "WORKFLOW"; color: root.theme.text-secondary; font-size: 11px * root.theme.text-scale; font-weight: 600; }
+            FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+                KitBadge { theme: root.theme; leading-icon: root.theme.icons.check; text: "Draft"; }
+                KitBadge { theme: root.theme; text: "In review"; tone: Tone.accent; }
+                KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; }
+                KitBadge { theme: root.theme; text: "Needs attention"; tone: Tone.warning; }
+                KitBadge { theme: root.theme; text: "Blocked"; tone: Tone.danger; }
+            }
+            Text { text: "DETAILS"; color: root.theme.text-secondary; font-size: 11px * root.theme.text-scale; font-weight: 600; }
+            FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+                KitBadge { theme: root.theme; text: "12 updates"; tone: Tone.accent; }
+                KitBadge { theme: root.theme; text: "Design"; }
+                KitBadge { theme: root.theme; text: "Version 2.4"; }
+                KitBadge { theme: root.theme; text: "All systems operational"; tone: Tone.success; }
+            }
+        }
     }
 }

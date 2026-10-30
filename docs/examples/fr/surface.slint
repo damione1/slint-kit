@@ -1,22 +1,28 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitSurface, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitBadge, Tone, KitCardHeader, KitButton, KitSurface, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export enum DemoAction { save-project }
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitSurface — exemple";
+    title: "KitSurface example";
     preferred-width: 480px;
-    preferred-height: 300px;
+    preferred-height: 420px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
+    in-out property <string> draft-0: "Field notes";
+    in property <string> status: "Choose an action.";
+    callback action-requested(DemoAction);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Surface"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSurface { theme: root.theme;Text { text: "Espace de travail de l’équipe"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; text: "Notes de terrain"; }KitButton { theme: root.theme; text: "Enregistrer le projet"; activated => { root.status = "Action demandée"; } } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        KitSurface { theme: root.theme;
+            KitBadge { theme: root.theme; tone: Tone.accent; text: "Paramètres du projet"; }
+            KitCardHeader { theme: root.theme; title: "Faites place à votre prochaine idée"; description: "Donnez un nom reconnaissable aux projets partagés par votre équipe."; }
+            KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

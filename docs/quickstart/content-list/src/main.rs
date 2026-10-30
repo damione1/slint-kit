@@ -21,6 +21,9 @@ enum Article {
     Setup,
     State,
     Accessibility,
+    Themes,
+    Forms,
+    Shipping,
 }
 impl Article {
     fn token(self) -> i32 {
@@ -28,6 +31,9 @@ impl Article {
             Self::Setup => 11,
             Self::State => 23,
             Self::Accessibility => 37,
+            Self::Themes => 51,
+            Self::Forms => 66,
+            Self::Shipping => 80,
         }
     }
     fn title(self) -> &'static str {
@@ -35,6 +41,9 @@ impl Article {
             Self::Setup => "Install Slint Kit",
             Self::State => "Keep selection stable",
             Self::Accessibility => "Accessible controls",
+            Self::Themes => "Make the theme your own",
+            Self::Forms => "Build a better form",
+            Self::Shipping => "From prototype to desktop",
         }
     }
     fn excerpt(self) -> &'static str {
@@ -42,10 +51,13 @@ impl Article {
             Self::Setup => "Import a component and connect its Rust callback.",
             Self::State => "Use an application key when the display order changes.",
             Self::Accessibility => "Preserve keyboard navigation and clear focus states.",
+            Self::Themes => "Bring your brand to surfaces, typography, and interaction states.",
+            Self::Forms => "Give every field a label, useful help, and a clear recovery path.",
+            Self::Shipping => "Package the same Rust and Slint application for your users.",
         }
     }
 }
-const ARTICLES: [Article; 3] = [Article::Setup, Article::State, Article::Accessibility];
+const ARTICLES: [Article; 6] = [Article::Setup, Article::State, Article::Accessibility, Article::Themes, Article::Forms, Article::Shipping];
 #[derive(Default)]
 struct State {
     selected: Option<Article>,
@@ -59,9 +71,9 @@ fn publish(state: &RefCell<State>, app: &ui::App) {
             token: article.token(),
             title: article.title().into(),
             excerpt: article.excerpt().into(),
-            metadata: "Guide".into(),
+            metadata: match article { Article::Setup | Article::Shipping => "Getting started · 5 min read", Article::State | Article::Forms => "Engineering · 8 min read", Article::Accessibility | Article::Themes => "Design · 6 min read" }.into(),
             link_label: "Select article".into(),
-            thumbnail: slint::Image::default(),
+            thumbnail: landscape(match article { Article::Setup | Article::Themes => Landscape::Alpine, Article::State | Article::Forms => Landscape::Desert, Article::Accessibility | Article::Shipping => Landscape::Coast }),
             selected: state.selected == Some(*article),
             disabled: false,
         })
@@ -112,4 +124,27 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
     app.run()
+}
+
+// Original landscape illustrations, rendered locally; no external asset or network dependency.
+#[derive(Clone, Copy)]
+enum Landscape { Alpine, Desert, Coast }
+fn landscape(scene: Landscape) -> slint::Image {
+    let (sky, ridge, near, sun): ([u8; 3], [u8; 3], [u8; 3], [u8; 3]) = match scene {
+        Landscape::Alpine => ([204, 230, 239], [90, 139, 148], [30, 81, 95], [255, 246, 212]),
+        Landscape::Desert => ([249, 222, 192], [205, 134, 111], [136, 74, 78], [255, 250, 222]),
+        Landscape::Coast => ([210, 229, 235], [99, 158, 165], [43, 107, 123], [255, 246, 215]),
+    };
+    let mut buffer = slint::SharedPixelBuffer::<slint::Rgb8Pixel>::new(640, 260);
+    for (index, pixel) in buffer.make_mut_slice().iter_mut().enumerate() {
+        let x = i32::try_from(index % 640).expect("image width fits i32");
+        let y = i32::try_from(index / 640).expect("image height fits i32");
+        let distant = 145 - (130 - (x - 210).abs()).max(0) / 2;
+        let foreground = 222 - (180 - (x - 495).abs()).max(0) / 3;
+        let color = if (x - 493).pow(2) + (y - 62).pow(2) < 28 * 28 {
+            sun
+        } else if y > foreground { near } else if y > distant { ridge } else { sky };
+        *pixel = slint::Rgb8Pixel::new(color[0], color[1], color[2]);
+    }
+    slint::Image::from_rgb8(buffer)
 }

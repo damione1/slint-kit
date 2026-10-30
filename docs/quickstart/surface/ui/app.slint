@@ -1,7 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitSurface, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitBadge, Tone, KitCardHeader, KitButton, KitSurface, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export enum DemoAction { save-project }
 
@@ -9,7 +9,7 @@ export component App inherits Window {
     default-font-family: InterFont.family;
     title: "KitSurface example";
     preferred-width: 480px;
-    preferred-height: 300px;
+    preferred-height: 420px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -20,7 +20,10 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Surface"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSurface { theme: root.theme;Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        KitSurface { theme: root.theme;
+            KitBadge { theme: root.theme; tone: Tone.accent; text: "Workspace settings"; }
+            KitCardHeader { theme: root.theme; title: "Make room for your next idea"; description: "Keep a recognizable name for the projects your team shares."; }
+            KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

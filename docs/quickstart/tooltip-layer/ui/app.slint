@@ -19,10 +19,11 @@ export component App inherits Window {
         alignment: start;
         tip := KitTooltip {
             theme: root.theme; text: "Create a project in this workspace.";
-            target-focused: create-button.has-focus;
+            target-focused: create-button.focus-visible;
             viewport-width: root.width; viewport-height: root.height;
-            create-button := KitButton { theme: root.theme; text: "New project"; activated => { root.create(); } }
+            create-button := KitButton { theme: root.theme; text: "New project"; leading-icon: root.theme.icons.plus; activated => { root.create(); } }
         }
+        Text { text: "Hover for a hint, or use Tab to focus the action. Escape dismisses the hint."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
         result := Text { text: "Projects created: " + root.created; color: root.theme.text-primary; }
     }
     layer := KitTooltipLayer { viewport-width: root.width; viewport-height: root.height; }

@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSkeleton, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitSurface, KitSkeleton, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitSkeleton — exemple";
     preferred-width: 420px;
-    preferred-height: 200px;
+    preferred-height: 300px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -16,7 +16,16 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Forme d’attente"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSkeleton { theme: root.theme; running: false; height: 22px; } KitSkeleton { theme: root.theme; running: false; height: 16px; width: 340px; } KitSkeleton { theme: root.theme; running: false; height: 16px; width: 260px; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        KitSurface { theme: root.theme;
+            HorizontalLayout { spacing: 16px;
+                KitSkeleton { theme: root.theme; width: 48px; height: 48px; border-radius: 24px; }
+                VerticalLayout { alignment: center; spacing: 10px;
+                    KitSkeleton { theme: root.theme; height: 18px; }
+                    KitSkeleton { theme: root.theme; height: 12px; max-width: 240px; }
+                }
+            }
+            KitSkeleton { theme: root.theme; height: 14px; }
+            KitSkeleton { theme: root.theme; height: 14px; max-width: 280px; }
+        }
     }
 }

@@ -77,7 +77,7 @@ Use the theme for shared identity, `control-size` for density, and local propert
 | Component | Local presentation |
 | --- | --- |
 | `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
-| `KitTextField` and its derived field types | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
+| `KitTextField` and its derived field types | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon`, `decoration`, `underline-segments` |
 | `KitCard`, `KitSurface` | `corner-radius`, `elevation`; existing inset and gap properties |
 | `KitCheckbox`, `KitSwitch`, `KitOption`, `KitNavigationAction` | inherited Pressable settings on their label and surface; indicator geometry still follows the family recipe |
 | `KitAlert` | `corner-radius`, `inset` (length); severity keeps resolving its colors |
@@ -181,3 +181,7 @@ For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced m
 Check light and dark themes, 200% text, keyboard navigation, focus visibility and disabled actions in the actual application. Preserve the native text editor for caret, selection, undo and IME. Provide meaningful accessible names, particularly for icon buttons, custom pressables and focus targets.
 
 The site includes browser previews and native captures; their captions identify the rendering environment. A rendered example does not certify a screen reader, IME behavior, external file dropping or another backend. Native device and assistive-technology qualification belongs to the consuming application's target platforms. [Slint accessibility documentation](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) describes accessibility properties and native inspection practices.
+
+Use `KitAvatar` with `AvatarInteraction.action` for profile navigation: supply an action name and handle `activated`. Static avatars remain images. `KitBadge` and `KitStat` accept optional `leading-icon` glyphs; keep the accompanying status and value readable. Underlined OTP fields still use one native editor. Match visual `slots` with the host’s accepted code length. Tooltips on Kit buttons should bind `target-focused` to `focus-visible`, preserving hover help without turning a pointer click into a keyboard popup.
+
+Custom `KitTypography` values must include `family-monospace`, used by code entry fields. The shipped themes use the platform’s monospace family. `KitTextField.text-cell-width` measures the actual zero glyph for skins that align code cells.

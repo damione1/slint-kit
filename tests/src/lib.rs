@@ -779,3 +779,4 @@ mod html_validation;
 mod phone;
 
 mod product_style;
+mod qa_polish;

@@ -1,21 +1,68 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSelectTrigger, KitTheme, KitThemes, SelectionAvailability } from "@kit/kit.slint";
-
+import { KitSelectTrigger, KitGlyphs, KitOption, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes, KitSurface, KitCardHeader, KitIcon } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitSelectTrigger example";
-    preferred-width: 420px;
-    preferred-height: 180px;
+    preferred-width: 520px;
+    preferred-height: 520px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
+    in property <length> row-height: max(54px, 38px * root.theme.text-scale);
+    in property <[OptionRow]> rows: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
+    in property <SelectState> select-state: {open:false, generation:1,active-index:0,active:{present:true,token:11},selected:{present:true,token:11},selection-availability:SelectionAvailability.available};
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
     VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Select Trigger"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSelectTrigger { theme: root.theme; Text { text: "Overview"; color: root.theme.text-primary; vertical-alignment: center; } state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; activate(token, generation) => { root.status = "Activated stable token " + token; } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        KitCardHeader { theme: root.theme; title: "Choose your next destination"; description: "A clear selection, descriptive rows and familiar keyboard navigation."; }
+        trigger := KitSelectTrigger {
+            theme: root.theme; state: root.select-state; accessible-name: "Choose destination";
+            open-requested => { root.select-open(); }
+            navigate(step) => { root.select-navigate(step); }
+            activate(token, generation) => { root.select-activate(token, generation); }
+            dismiss(reason) => { root.select-dismiss(reason); }
+            typeahead(text) => { root.select-typeahead(text); }
+            tab-navigation(reverse) => { return reject; }
+            HorizontalLayout {
+                spacing: 8px;
+                Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; horizontal-stretch: 1; overflow: elide; }
+                Rectangle { width: 20px * root.theme.text-scale; horizontal-stretch: 0;
+                    KitIcon { theme: root.theme; glyph: root.select-state.open ? root.theme.icons.chevron-up : root.theme.icons.chevron-down; ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; }
+                }
+            }
+        }
+        if root.select-state.open: KitSurface { theme: root.theme;
+            for row in root.rows: KitOption {
+                theme: root.theme; option-data: row; height: root.row-height;
+                selected: root.select-state.selected.present && root.select-state.selected.token == row.token;
+                activate(token, generation) => { root.select-activate(token, generation); }
+                HorizontalLayout {
+                    spacing: 12px;
+                    Rectangle { width: 20px * root.theme.text-scale; horizontal-stretch: 0;
+                        KitIcon { theme: root.theme; glyph: root.theme.icons.article; ink: row.disabled ? root.theme.disabled-text : root.theme.accent; y: (parent.height - self.height) / 2; }
+                    }
+                    VerticalLayout { alignment: center; spacing: 3px;
+                        Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 500; overflow: elide; }
+                        if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
+                    }
+                    Rectangle { width: 20px * root.theme.text-scale; horizontal-stretch: 0;
+                        if root.select-state.selected.present && root.select-state.selected.token == row.token: KitIcon { theme: root.theme; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                    }
+                }
+            }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
     }
+
 }

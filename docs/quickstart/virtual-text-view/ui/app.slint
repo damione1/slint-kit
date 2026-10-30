@@ -6,7 +6,7 @@ export { TextLine, NavigationStep }
 export component App inherits Window {
     default-font-family: InterFont.family;
     title: "Slint virtual text view";
-    preferred-width: 640px; preferred-height: 340px;
+    preferred-width: 640px; preferred-height: 620px;
     max-width: 100000px; max-height: 100000px;
     background: KitThemes.light.canvas;
     in property <[TextLine]> lines;
@@ -20,13 +20,17 @@ export component App inherits Window {
     callback copied(int, int);
     VerticalLayout {
         padding: 24px; spacing: 16px;
-        document := KitVirtualTextView { height: 240px; lines: root.lines; generation: 1;
+        Text { text: "Project notebook"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; }
+        Text { text: "15 lines · choose a line to edit, save, or copy it."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
+        Rectangle { border-width: 1px; border-color: KitThemes.light.border-subtle; border-radius: 12px; background: KitThemes.light.surface;
+        document := KitVirtualTextView { height: 420px; lines: root.lines; generation: 1;
             active-index: root.active-index; access: TextViewAccess.edit-line;
             line-draft <=> root.draft; error: root.error;
             select-line(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }
             commit-line(token, generation, text) => { root.save(token, generation, text); }
             copy-requested(token, generation) => { root.copied(token, generation); }
+        }
         }
         Text { text: root.status; color: KitThemes.light.text-primary; }
     }

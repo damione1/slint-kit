@@ -6,7 +6,7 @@ export { ContentItem, NavigationStep }
 export component App inherits Window {
     default-font-family: InterFont.family;
     title: "Slint content list";
-    preferred-width: 580px; preferred-height: 540px;
+    preferred-width: 580px; preferred-height: 650px;
     max-width: 100000px; max-height: 100000px;
     background: KitThemes.light.canvas;
     in property <[ContentItem]> items;
@@ -16,7 +16,9 @@ export component App inherits Window {
     callback move(NavigationStep);
     VerticalLayout {
         padding: 24px; spacing: 16px;
-        list := KitContentList { height: 420px; items: root.items; generation: 1;
+        Text { text: "A little inspiration for your next build"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Practical guides for thoughtful, accessible native applications."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
+        list := KitContentList { height: 440px; items: root.items; generation: 1;
             active-index: root.active-index;
             activate(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }

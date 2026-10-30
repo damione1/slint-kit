@@ -114,7 +114,7 @@ export component KitColorField inherits Rectangle {
     }
     popup := PopupWindow {
         x: 0px; y: root.height + root.theme.spacing.unit;
-        width: max(340px,260px * root.theme.text-scale);
+        width: max(340px,340px * root.theme.text-scale);
         height: popup-content.preferred-height + 2 * root.popup-inset;
         close-policy: close-on-click-outside;
         Rectangle {
@@ -127,6 +127,7 @@ export component KitColorField inherits Rectangle {
                 key-pressed(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
                 popup-content := VerticalLayout {
                     x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset;
+                    height: self.preferred-height; alignment: start;
                     spacing: root.theme.spacing.unit * 4;
                     Text { text: root.label + " · sRGB"; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                     Rectangle {

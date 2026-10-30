@@ -1,21 +1,21 @@
-import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChip, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitChip, KitButton, KitTheme, KitThemes, ChipRow } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitChip example";
-    preferred-width: 420px;
-    preferred-height: 180px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    title: "Chip";
+    preferred-width: 560px; preferred-height: 300px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Chip"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitChip { theme: root.theme; chip: { token: 11, label: "Design", removable: true }; remove-requested(token) => { root.status = "Remove token " + token; } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    background: root.theme.canvas;
+    in property <[ChipRow]> chips: [{ token: 11, label: "Design", removable: true }, { token: 23, label: "Research", removable: true }, { token: 38, label: "Accessibility", removable: true }, { token: 52, label: "Rust", removable: true }, { token: 67, label: "Mobile", removable: true }, { token: 81, label: "Documentation", removable: true }]; callback remove(int); callback reset();
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Make it your own"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Tags keep a project easy to find. Remove a tag or restore the set."; color: root.theme.text-secondary; wrap: word-wrap; }
+        FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+            for chip in root.chips: KitChip { theme: root.theme; chip: chip; remove-requested(token) => { root.remove(token); } }
+        }
+        KitButton { theme: root.theme; text: "Restore tags"; activated => { root.reset(); } }
+        result := Text { text: root.chips.length + " tags selected"; color: root.theme.text-secondary; }
     }
 }

@@ -6,7 +6,7 @@ export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep
 export component App inherits Window {
     default-font-family: InterFont.family;
     title: "Slint data table";
-    preferred-width: 520px; preferred-height: 320px;
+    preferred-width: 620px; preferred-height: 520px;
     max-width: 100000px; max-height: 100000px;
     background: KitThemes.light.canvas;
     in property <[TableRow]> rows;
@@ -19,8 +19,10 @@ export component App inherits Window {
     callback move(NavigationStep);
     VerticalLayout {
         padding: 24px; spacing: 16px;
+        Text { text: "The people behind the work"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "8 teammates · sort by name or select a row to see its accepted identity."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
         table := KitDataTable {
-            height: 220px; rows: root.rows; columns: root.columns;
+            height: 350px; rows: root.rows; columns: root.columns;
             generation: root.generation; active-index: root.active-index;
             sort-requested(token) => { root.sort(token); }
             activate(token, generation) => { root.choose(token, generation); }

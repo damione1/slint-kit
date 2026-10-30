@@ -2,6 +2,7 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
+import { KitIcon } from "icons.slint";
 import { KitButton } from "button.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
@@ -36,12 +37,19 @@ export component KitFileList inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         for entry in root.entries: Rectangle {
-            border-radius: root.theme.shape.radius-control; background: root.theme.canvas;
+            border-radius: root.theme.shape.radius-container; background: root.theme.surface;
+            border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
+            accessible-role: list-item; accessible-label: entry.name;
             HorizontalLayout {
                 padding: root.theme.spacing.unit * 2.5; spacing: root.theme.spacing.unit * 3;
+                Rectangle {
+                    width: KitMetrics.icon-size(root.theme, root.control-size) + root.theme.spacing.unit * 5;
+                    horizontal-stretch: 0;
+                    KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.article; ink: root.theme.accent; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
+                }
                 VerticalLayout {
                     spacing: root.theme.spacing.unit;
-                    Text { text: entry.name; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                    Text { text: entry.name; font-weight: root.theme.typography.weight-medium; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
                 FileRemoveButton {

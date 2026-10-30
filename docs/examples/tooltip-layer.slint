@@ -6,7 +6,7 @@ export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitTooltipLayer example";
     preferred-width: 360px;
-    preferred-height: 220px;
+    preferred-height: 260px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -15,7 +15,8 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Tooltip Layer"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitTooltip { theme: root.theme; text: "Create a new project in this workspace."; target-focused: true; viewport-width: root.width; viewport-height: root.height; KitButton { theme: root.theme; text: "New project"; activated => { root.status = "Action requested"; } } }
+        KitTooltip { theme: root.theme; text: "Create a new project in this workspace."; target-focused: trigger.focus-visible; viewport-width: root.width; viewport-height: root.height; trigger := KitButton { theme: root.theme; text: "New project"; activated => { root.status = "Action requested"; } } }
+        Text { text: "Hover for help, Tab for keyboard focus. Escape dismisses the hint."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
     KitTooltipLayer { viewport-width: root.width; viewport-height: root.height; }

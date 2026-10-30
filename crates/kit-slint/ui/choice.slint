@@ -109,7 +109,10 @@ export component KitCheckbox inherits KitPressable {
     HorizontalLayout {
         spacing: root.choice.label-gap;
         Rectangle {
-            width: root.choice.box-size; height: root.choice.box-size;
+            width: root.choice.box-size; horizontal-stretch: 0;
+            indicator := Rectangle {
+                y: (parent.height - self.height) / 2;
+                width: root.choice.box-size; height: root.choice.box-size;
             border-radius: root.choice.box-radius;
             border-width: root.theme.shape.border-width;
             border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
@@ -127,7 +130,8 @@ export component KitCheckbox inherits KitPressable {
                 background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        }
+        label := Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -199,9 +203,17 @@ component ChoiceKeyboard inherits FocusScope {
     callback navigate(NavigationStep);
     callback activate();
     private property <bool> held;
+    private property <bool> keyboard-focus;
+    out property <bool> focus-visible: root.has-focus && root.keyboard-focus;
+    public function pointer-focus() { root.focus(); root.keyboard-focus = false; }
+    focus-gained(reason) => {
+        if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
+        else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
+    }
     changed access => { root.held = false; }
     enabled: root.access != FieldAccess.disabled;
     key-pressed(event) => {
+        root.keyboard-focus = true;
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
@@ -273,9 +285,9 @@ export component KitRadioGroup inherits Rectangle {
             disabled: row.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: row.label;
             accessible-role: radio-button; accessible-checked: row.selected;
-            focus-indicated: keyboard.has-focus && root.active-token == row.token;
+            focus-indicated: keyboard.focus-visible && root.active-token == row.token;
             focus-ring: KitThemes.inset-focus(root.theme);
-            activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
+            activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: root.choice.label-gap;
                 RadioMark { theme: root.theme; control-size: root.control-size; selected: row.selected; invalid: checks.show-error; disabled: option.disabled; }
@@ -295,9 +307,9 @@ export component KitRadioGroup inherits Rectangle {
             disabled: display-choice.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: display-choice.label;
             accessible-role: radio-button; accessible-checked: display-choice.selected;
-            focus-indicated: keyboard.has-focus && root.active-token == display-choice.token;
+            focus-indicated: keyboard.focus-visible && root.active-token == display-choice.token;
             focus-ring: KitThemes.inset-focus(root.theme);
-            activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
+            activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
             HorizontalLayout {
                 spacing: root.choice.label-gap;
                 RadioMark { theme: root.theme; control-size: root.control-size; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
@@ -366,9 +378,9 @@ export component KitSegmentedControl inherits Rectangle {
                 disabled: row.disabled || root.access == FieldAccess.disabled;
                 intent: row.selected ? ButtonIntent.primary : ButtonIntent.quiet;
                 accessible-role: radio-button; accessible-checked: row.selected;
-                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-indicated: keyboard.focus-visible && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
-                activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
+                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
                 Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
@@ -431,9 +443,9 @@ export component KitToggleGroup inherits Rectangle {
                 accessible-checked: row.selected;
                 border-width: root.theme.shape.border-width;
                 border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
-                focus-indicated: keyboard.has-focus && root.active-token == row.token;
+                focus-indicated: keyboard.focus-visible && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
-                activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
+                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
                 Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }

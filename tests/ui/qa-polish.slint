@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCheckbox, KitAvatar, AvatarInteraction, KitSkeleton, KitOtpField, FieldDecoration, KitToggleGroup, KitTheme, KitThemes, KitColorField, KitTooltip, KitTooltipLayer, KitButton, KitFormErrorSummary, FieldAccess } from "@kit/kit.slint";
+export component QaPolishFixture inherits Window {
+    width: 700px; height: 640px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <bool> disabled;
+    in-out property <string> code;
+    in-out property <int> avatar-activations;
+    in-out property <int> active-token: 11;
+    out property <bool> toggle-focused: toggles.has-focus;
+    in-out property <int> last-toggled;
+    out property <bool> tip-visible: tip.keyboard-visible;
+    public function focus-avatar() { avatar.take-focus(); }
+    public function focus-toggle() { toggles.take-focus(); }
+    public function open-color() { color-field.open-picker(); }
+    public function focus-tip() { trigger.take-focus(); }
+    checkbox := KitCheckbox { x: 24px; y: 20px; width: 280px; theme: root.theme; label: "Send useful product updates and release notes"; }
+    avatar := KitAvatar { x: 560px; y: 20px; theme: root.theme; size: 64px; initials: "AM"; accessible-name: "Open profile"; interaction: AvatarInteraction.action; disabled: root.disabled; activated => { root.avatar-activations += 1; } }
+    skeleton := KitSkeleton { x: 24px; y: 140px; width: 300px; height: 20px; theme: root.theme; running: false; }
+    otp := KitOtpField { x: 24px; y: 185px; theme: root.theme; label: "Code"; decoration: FieldDecoration.underlined; text <=> root.code; }
+    toggles := KitToggleGroup { x: 24px; y: 300px; width: 450px; height: self.preferred-height; theme: root.theme; label: "Delivery channels"; toggled(token,generation) => { root.last-toggled = token; } active-token: root.active-token; generation: 1; rows: [{token:11,label:"Email",disabled:false,selected:true},{token:23,label:"Push",disabled:false,selected:false}]; navigate(step) => { root.active-token = root.active-token == 11 ? 23 : 11; } }
+    color-field := KitColorField { x: 24px; y: 390px; width: 350px; theme: root.theme; text: "#4f46e5"; label: "Accent"; accepted-color: { red:79, green:70, blue:229, alpha:255 }; }
+    summary := KitFormErrorSummary { x: 400px; y: 390px; width: 270px;
+        theme: root.theme; errors: [{target:{present:true,token:11,generation:1,request:1},message:"Enter a descriptive project name so everyone in the team can recognize this workspace and distinguish it from archived projects."}];
+    }
+    tip := KitTooltip { x: 24px; y: 510px; theme: root.theme; text: "A keyboard hint"; target-focused: trigger.focus-visible; viewport-width: root.width; viewport-height: root.height; trigger := KitButton { theme: root.theme; text: "Create project"; } }
+    KitTooltipLayer { viewport-width: root.width; viewport-height: root.height; }
+}
