@@ -43,7 +43,7 @@ add('KitFocusTarget', 'KitFocusTarget { token: 42; generation: 1; request: { pre
 
 values = {
 'KitTextField': ('Project name','Field notes'), 'KitPasswordField':('Password','keep-it-secret'),
-'KitSearchField':('Search projects','design'), 'KitEmailField':('Email address','alex@example.com'),
+'KitSearchField':('Search projects','design'), 'KitEmailField':('Email address','elliot@example.com'),
 'KitUrlField':('Website','https://example.com'), 'KitTelephoneField':('Phone','+1 514 555 0132'),
 'KitTextArea':('Notes','A native editor preserves selection, undo and input methods.'),
 'KitOtpField':('Verification code','482913'), 'KitMaskedField':('Reference','AB-2048'),
@@ -60,15 +60,15 @@ for name,(label,value) in values.items():
 
 add('KitField', 'KitField { KitFieldLabel { theme: root.theme; text: "Display name"; } KitTextField { theme: root.theme; text: "Elliot Alderson"; } KitFieldDescription { theme: root.theme; text: "Visible to your team."; } }')
 add('KitFieldLabel', 'KitFieldLabel { theme: root.theme; text: "Email address"; } KitTextField { theme: root.theme; placeholder: "you@example.com"; }')
-add('KitFieldDescription', 'KitTextField { theme: root.theme; label: "Username"; text: "alex"; } KitFieldDescription { theme: root.theme; text: "Use 3–24 letters, numbers or underscores."; }')
-add('KitFieldError', 'KitTextField { theme: root.theme; label: "Email"; text: "alex@"; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }')
+add('KitFieldDescription', 'KitTextField { theme: root.theme; label: "Username"; text: "elliot"; } KitFieldDescription { theme: root.theme; text: "Use 3–24 letters, numbers or underscores."; }')
+add('KitFieldError', 'KitTextField { theme: root.theme; label: "Email"; text: "elliot@"; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }')
 add('KitFieldGroup', 'KitFieldGroup { KitTextField { theme: root.theme; label: "First name"; text: "Elliot"; } KitTextField { theme: root.theme; label: "Last name"; text: "Alderson"; } }', 330)
 add('KitFieldSet', 'KitFieldSet { theme: root.theme; legend: "Shipping address"; KitTextField { theme: root.theme; label: "City"; text: "Montréal"; } KitTextField { theme: root.theme; label: "Postal code"; text: "H2Y 1C6"; } }', 360)
 add('KitInputGroup', 'KitInputGroup { theme: root.theme; HorizontalLayout { spacing: 8px; KitInputGroupText { theme: root.theme; text: "https://"; } TextInput { text: "example.com"; color: root.theme.text-primary; } KitInputGroupText { theme: root.theme; text: "/"; } } }')
 for name in ['KitInputGroupStart','KitInputGroupEnd','KitInputGroupText']:
     content = f'{name} {{ ' + ('theme: root.theme; text: "USD";' if name=='KitInputGroupText' else 'KitInputGroupText { theme: root.theme; text: "USD"; }') + ' }'
     add(name, 'KitInputGroup { theme: root.theme; HorizontalLayout { spacing: 12px; ' + (content if name!='KitInputGroupEnd' else '') + ' TextInput { text: "129.95"; color: root.theme.text-primary; } ' + (content if name=='KitInputGroupEnd' else '') + ' } }')
-add('KitFieldSeparator', 'KitTextField { theme: root.theme; label: "Work email"; text: "alex@example.com"; } KitFieldSeparator { theme: root.theme; } KitTextField { theme: root.theme; label: "Personal email"; placeholder: "Optional"; }', 330)
+add('KitFieldSeparator', 'KitTextField { theme: root.theme; label: "Work email"; text: "elliot@example.com"; } KitFieldSeparator { theme: root.theme; } KitTextField { theme: root.theme; label: "Personal email"; placeholder: "Optional"; }', 330)
 add('KitFormErrorSummary', 'KitFormErrorSummary { theme: root.theme; errors: [{ target: { present: true, token: 42, generation: 1, request: 1 }, message: "Enter a complete email address." }]; error-activated(request) => { root.status = "Focus field " + request.token; } }')
 
 rows='[{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]'
@@ -173,7 +173,7 @@ for name in ['KitDialogPanel','KitDialogHeader','KitDialogBody','KitDialogFooter
 
 # Demonstrate the layout behavior inside finite caller-chosen viewports.
 bodies['KitWrap'] = 'KitWrap { '+button('Overview')+button('Activity')+button('Settings')+button('Members')+button('Project settings')+' }'
-bodies['KitScrollArea'] = 'KitScrollArea { height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } KitTextField { theme: root.theme; label: "Email address"; text: "alex@example.com"; } KitTextField { theme: root.theme; label: "Website"; text: "https://example.com"; } KitTextField { theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } '+button('Save project')+' }'
+bodies['KitScrollArea'] = 'KitScrollArea { height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } KitTextField { theme: root.theme; label: "Email address"; text: "elliot@example.com"; } KitTextField { theme: root.theme; label: "Website"; text: "https://example.com"; } KitTextField { theme: root.theme; label: "Phone"; text: "+1 514 555 0132"; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } '+button('Save project')+' }'
 
 # Dialog slots use intrinsic reading-order content and shared type hierarchy.
 dialog_title = 'Text { text: "Archive this project?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; vertical-stretch: 0; }'

@@ -383,7 +383,7 @@ mod tests {
         ));
         assert!(window.invoke_workspace_save_account(
             "Elliot".into(),
-            "alex@example.com".into(),
+            "elliot@example.com".into(),
             true
         ));
         window.invoke_workspace_save_project(
