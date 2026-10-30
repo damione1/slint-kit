@@ -144,6 +144,16 @@ def read_manifest():
     return json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {'schema': 2, 'entries': {}}
 
 
+def browser_scene(task, entry):
+    scene = {'id': task['id'], 'slug': task['slug'], 'base': entry['base'],
+             'output': str(task['outputs'][0].relative_to(ROOT)),
+             'sceneKey': task['sceneKey'], 'key': task['key']}
+    activation = task['recipe'].get('activation')
+    if activation is not None:
+        scene['activation'] = activation
+    return scene
+
+
 def output_record(path, native):
     width, height = dimensions(path)
     return {'sha256': digest(path.read_bytes()), 'width': width, 'height': height,
@@ -364,8 +374,7 @@ def main():
         browser_plan = []
         for task in pending:
             entry = web.build_fixture(task, inputs) if task['kind'] == SceneKind.CATALOGUE else browser_entries[task['slug']]['tailwind']
-            browser_plan.append({'id': task['id'], 'slug': task['slug'], 'base': entry['base'],
-                                 'output': str(task['outputs'][0].relative_to(ROOT)), 'sceneKey': task['sceneKey'], 'key': task['key']})
+            browser_plan.append(browser_scene(task, entry))
         plan_path = DOCS / '.generated/browser-capture-plan.json'
         write_json(plan_path, browser_plan)
         process = subprocess.run(['node', str(DOCS / 'scripts/capture-browser.mjs'), str(plan_path)], cwd=ROOT)
