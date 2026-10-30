@@ -269,7 +269,7 @@ try {
     const start = requests.length;
     await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
     assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
-    assert.equal(await evaluate('document.querySelector(".preview-theme")'), null, 'There is only one built-in presentation');
+    assert.deepEqual(await evaluate('[...document.querySelector(".preview-theme").options].map(option=>option.value)'), ['light', 'dark'], 'The built-in presentation supports both color modes');
     await click('.run-preview');
     for (let count = 0; count < 300; count++) {
       if (await evaluate('document.querySelector(".component-preview").hidden')) break;
