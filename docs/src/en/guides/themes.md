@@ -95,6 +95,10 @@ Use the theme for shared identity, `control-size` for density, and local propert
 | `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
 | `KitTextField` and its derived field types | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
 | `KitCard`, `KitSurface` | `corner-radius`, `elevation`; existing inset and gap properties |
+| `KitCheckbox`, `KitSwitch`, `KitOption`, `KitNavigationAction` | inherited Pressable settings on their label and surface; indicator geometry still follows the family recipe |
+| `KitAlert` | `corner-radius`, `inset` (length); severity keeps resolving its colors |
+
+Composite groups, selects, tabs and menus retain their theme, size and composition contracts; the table does not imply the same local properties exist on every container. Field labels and helper/error messages keep their typography roles rather than inheriting the editor’s `text-size`.
 
 ```slint
 import { KitButton, ButtonIntent, KitThemeContext } from "@kit/kit.slint";

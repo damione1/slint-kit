@@ -95,6 +95,10 @@ Utilisez le thème pour l’identité partagée, `control-size` pour la densité
 | `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
 | `KitTextField` et ses types dérivés | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
 | `KitCard`, `KitSurface` | `corner-radius`, `elevation` ; propriétés existantes d’inset et de gap |
+| `KitCheckbox`, `KitSwitch`, `KitOption`, `KitNavigationAction` | réglages hérités de Pressable sur le libellé et la surface ; géométrie de l’indicateur issue de la recette de famille |
+| `KitAlert` | `corner-radius`, `inset` (longueur) ; couleurs toujours résolues par la sévérité |
+
+Les groupes composés, sélecteurs, onglets et menus conservent leurs contrats de thème, taille et composition ; ce tableau ne promet pas les mêmes propriétés locales sur chaque conteneur. Les libellés, aides et erreurs gardent leurs rôles typographiques et ne prennent pas le `text-size` de l’éditeur.
 
 ```slint
 import { KitButton, ButtonIntent, KitThemeContext } from "@kit/kit.slint";

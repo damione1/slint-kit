@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitNavigationAction, KitDivider, KitIconButton, KitTextField, KitCheckbox, KitCard, KitThemes, KitTheme, KitThemeContext, ButtonIntent, IconGlyph, FieldAccess, ValidationPresentation, CheckState, KitIconSet } from "@kit/kit.slint";
+import { KitButton, KitSelectSurface, KitNavigationAction, KitDivider, KitIconButton, KitTextField, KitCheckbox, KitCard, KitThemes, KitTheme, KitThemeContext, ButtonIntent, IconGlyph, FieldAccess, ValidationPresentation, CheckState, KitIconSet } from "@kit/kit.slint";
 import { TailwindThemes } from "@kit-tailwind/theme.slint";
 export component ProductStyleFixture inherits Window {
     width: 800px; height: 700px;
@@ -22,6 +22,7 @@ export component ProductStyleFixture inherits Window {
     out property <KitTheme> nested-theme: nested.theme;
     out property <KitTheme> explicit-child-theme: explicit-child.theme;
     out property <KitTheme> implicit-child-theme: implicit-child.theme;
+    out property <KitTheme> popup-theme: popup.theme;
     out property <KitTheme> sister-theme: sister.theme;
     out property <brush> icon-button-fill: icon-action.background;
     public function focus-action() { action.take-focus(); }
@@ -41,4 +42,11 @@ export component ProductStyleFixture inherits Window {
         }
         sister := KitButton { text: "Global sister"; }
     }
+    popup := KitSelectSurface {
+        x: 540px; y: 420px; width: 240px; height: 160px;
+        theme: nested.theme;
+        state: {open:true,active:{present:true,token:1},active-index:0,generation:1};
+        KitButton { theme: popup.theme; text: "Explicit dark popup"; }
+    }
+
 }

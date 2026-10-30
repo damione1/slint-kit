@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! In-memory host for the reusable workspace composition.
-use crate::ui::{EditorStatus, ProjectFilter, Showcase, WorkspaceProject};
+use crate::ui::{
+    EditorStatus, ProjectFilter, SelectionRef, Showcase, WorkspaceDraft, WorkspaceProject,
+};
 use kit::{HtmlConstraints, HtmlInputKind, HtmlInputState};
-use slint::{ComponentHandle, Model};
+use slint::{ComponentHandle, Model, SharedString};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -12,13 +14,107 @@ impl ProjectId {
         (value > 0).then_some(Self(value))
     }
 }
+
+fn required_text(draft: SharedString, minimum: usize) -> Option<SharedString> {
+    let rules = HtmlConstraints {
+        required: true,
+        min_length: Some(minimum),
+        ..Default::default()
+    };
+    let value = rules.sanitize(&draft);
+    rules
+        .validate(
+            &value,
+            HtmlInputState {
+                user_edited: true,
+                ..Default::default()
+            },
+        )
+        .valid()
+        .then(|| value.into())
+}
 #[derive(Clone)]
+struct ProjectName(SharedString);
+impl ProjectName {
+    fn parse(draft: SharedString) -> Option<Self> {
+        required_text(draft, 3).map(Self)
+    }
+}
+#[derive(Clone)]
+struct AccountName(SharedString);
+impl AccountName {
+    fn parse(draft: SharedString) -> Option<Self> {
+        required_text(draft, 1).map(Self)
+    }
+}
+#[derive(Clone)]
+struct EmailAddress(SharedString);
+impl EmailAddress {
+    fn parse(draft: SharedString) -> Option<Self> {
+        let rules = HtmlConstraints {
+            kind: HtmlInputKind::Email,
+            required: true,
+            ..Default::default()
+        };
+        let value = rules.sanitize(&draft);
+        rules
+            .validate(&value, HtmlInputState::default())
+            .valid()
+            .then(|| Self(value.into()))
+    }
+}
+struct Account {
+    name: AccountName,
+    email: EmailAddress,
+    notifications: bool,
+}
+impl Account {
+    fn parse(name: SharedString, email: SharedString, notifications: bool) -> Option<Self> {
+        Some(Self {
+            name: AccountName::parse(name)?,
+            email: EmailAddress::parse(email)?,
+            notifications,
+        })
+    }
+    fn publish(&self, window: &Showcase) {
+        window.set_workspace_accepted_name(self.name.0.clone());
+        window.set_workspace_accepted_email(self.email.0.clone());
+        window.set_workspace_accepted_notifications(self.notifications);
+    }
+}
 struct Project {
     id: ProjectId,
-    view: WorkspaceProject,
+    name: ProjectName,
+    description: SharedString,
+    owner: SharedString,
+    updated: SharedString,
+    archived: bool,
+}
+impl Project {
+    fn from_view(view: WorkspaceProject) -> Self {
+        Self {
+            id: ProjectId::parse(view.key).expect("positive sample identity"),
+            name: ProjectName::parse(view.name).expect("valid sample project name"),
+            description: view.description,
+            owner: view.owner,
+            updated: view.updated,
+            archived: view.archived,
+        }
+    }
+    fn view(&self) -> WorkspaceProject {
+        WorkspaceProject {
+            key: self.id.0,
+            name: self.name.0.clone(),
+            description: self.description.clone(),
+            owner: self.owner.clone(),
+            updated: self.updated.clone(),
+            archived: self.archived,
+        }
+    }
 }
 struct Workspace {
     projects: Vec<Project>,
+    account: Account,
     query: String,
     filter: ProjectFilter,
 }
@@ -31,33 +127,24 @@ impl Workspace {
             .filter(|project| {
                 let filter = match self.filter {
                     ProjectFilter::All => true,
-                    ProjectFilter::Active => !project.view.archived,
-                    ProjectFilter::Archived => project.view.archived,
+                    ProjectFilter::Active => !project.archived,
+                    ProjectFilter::Archived => project.archived,
                 };
                 filter
-                    && (project.view.name.to_lowercase().contains(&query)
-                        || project.view.description.to_lowercase().contains(&query))
+                    && (project.name.0.to_lowercase().contains(&query)
+                        || project.description.to_lowercase().contains(&query))
             })
-            .map(|project| project.view.clone())
+            .map(Project::view)
             .collect::<Vec<_>>();
+        let selected = window.get_workspace_selection();
+        if selected.present && !rows.iter().any(|row| row.key == selected.token) {
+            window.set_workspace_selection(SelectionRef {
+                present: false,
+                token: selected.token,
+            });
+        }
         window.set_workspace_projects(slint::ModelRc::new(slint::VecModel::from(rows)));
     }
-}
-
-fn valid_text(text: &str, minimum: usize) -> bool {
-    HtmlConstraints {
-        required: true,
-        min_length: Some(minimum),
-        ..Default::default()
-    }
-    .validate(
-        text,
-        HtmlInputState {
-            user_edited: true,
-            ..Default::default()
-        },
-    )
-    .valid()
 }
 
 pub fn install(window: &Showcase) {
@@ -65,14 +152,18 @@ pub fn install(window: &Showcase) {
         projects: window
             .get_workspace_projects()
             .iter()
-            .map(|view| Project {
-                id: ProjectId::parse(view.key).expect("positive sample identity"),
-                view,
-            })
+            .map(Project::from_view)
             .collect(),
+        account: Account::parse(
+            window.get_workspace_accepted_name(),
+            window.get_workspace_accepted_email(),
+            window.get_workspace_accepted_notifications(),
+        )
+        .expect("valid initial account"),
         query: String::new(),
         filter: ProjectFilter::All,
     }));
+    state.borrow().account.publish(window);
     let weak = window.as_weak();
     let filtered = state.clone();
     window.on_workspace_query_changed(move |query, filter| {
@@ -84,32 +175,45 @@ pub fn install(window: &Showcase) {
         }
     });
     let weak = window.as_weak();
+    let accounts = state.clone();
     window.on_workspace_save_account(move |name, email, notifications| {
-        let valid = valid_text(&name, 1)
-            && HtmlConstraints {
-                kind: HtmlInputKind::Email,
-                required: true,
-                ..Default::default()
-            }
-            .validate(&email, HtmlInputState::default())
-            .valid();
-        if valid {
-            if let Some(window) = weak.upgrade() {
-                window.set_workspace_accepted_name(name);
-                window.set_workspace_accepted_email(email);
-                window.set_workspace_accepted_notifications(notifications);
-            }
+        let Some(account) = Account::parse(name, email, notifications) else {
+            return false;
+        };
+        accounts.borrow_mut().account = account;
+        if let Some(window) = weak.upgrade() {
+            accounts.borrow().account.publish(&window);
         }
-        valid
+        true
     });
     let weak = window.as_weak();
+    let loading = state.clone();
+    window.on_workspace_load_project(move |reference| {
+        if !reference.present {
+            return WorkspaceDraft::default();
+        }
+        let Some(id) = ProjectId::parse(reference.token) else {
+            return WorkspaceDraft::default();
+        };
+        loading
+            .borrow()
+            .projects
+            .iter()
+            .find(|project| project.id == id)
+            .map(|project| WorkspaceDraft {
+                present: true,
+                name: project.name.0.clone(),
+                description: project.description.clone(),
+            })
+            .unwrap_or_default()
+    });
     window.on_workspace_save_project(move |reference, name, description| {
-        if !valid_text(&name, 3) {
+        let Some(name) = ProjectName::parse(name) else {
             if let Some(window) = weak.upgrade() {
                 window.set_workspace_editor(EditorStatus::Editing);
             }
             return;
-        }
+        };
         let id = if reference.present {
             let Some(id) = ProjectId::parse(reference.token) else {
                 if let Some(window) = weak.upgrade() {
@@ -140,20 +244,22 @@ pub fn install(window: &Showcase) {
                     let id = ProjectId(next);
                     state.projects.push(Project {
                         id,
-                        view: WorkspaceProject {
-                            key: next,
-                            owner: "Alex Morgan".into(),
-                            updated: "Just now".into(),
-                            ..Default::default()
-                        },
+                        name: name.clone(),
+                        description: description.clone(),
+                        owner: "Alex Morgan".into(),
+                        updated: "Just now".into(),
+                        archived: false,
                     });
                     id
                 };
                 if let Some(project) = state.projects.iter_mut().find(|project| project.id == id) {
-                    project.view.name = name;
-                    project.view.description = description;
-                    project.view.updated = "Just now".into();
-                    window.set_workspace_selected_key(id.0);
+                    project.name = name;
+                    project.description = description;
+                    project.updated = "Just now".into();
+                    window.set_workspace_selection(SelectionRef {
+                        present: true,
+                        token: id.0,
+                    });
                     state.publish(&window);
                     window.set_workspace_editor(EditorStatus::Saved);
                 } else {
@@ -199,13 +305,21 @@ mod tests {
         let window = setup();
         click(&window, "Archived");
         assert_eq!(window.get_workspace_projects().row_count(), 1);
+        assert!(!window.get_workspace_selection().present);
+        assert_eq!(
+            ElementHandle::find_by_accessible_label(&window, "Edit project")
+                .next()
+                .unwrap()
+                .accessible_enabled(),
+            Some(false)
+        );
         assert_eq!(
             window.get_workspace_projects().row_data(0).unwrap().key,
             412
         );
         click(&window, "All projects");
         click(&window, "Customer portal, Sam Rivera");
-        assert_eq!(window.get_workspace_selected_key(), 205);
+        assert_eq!(window.get_workspace_selection().token, 205);
         window.invoke_workspace_query_changed("missing".into(), ProjectFilter::All);
         assert_eq!(window.get_workspace_projects().row_count(), 0);
         assert!(
@@ -227,7 +341,7 @@ mod tests {
         );
         i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(601));
         slint::platform::update_timers_and_animations();
-        assert_eq!(window.get_workspace_selected_key(), 205);
+        assert_eq!(window.get_workspace_selection().token, 205);
         assert!(
             window
                 .get_workspace_projects()
@@ -321,5 +435,42 @@ mod collection_scale_tests {
         app.invoke_workspace_query_changed("Project 10000".into(), ProjectFilter::All);
         assert_eq!(app.get_workspace_projects().row_count(), 1);
         assert_eq!(app.get_workspace_projects().row_data(0).unwrap().key, 10000);
+    }
+}
+
+#[cfg(test)]
+mod accepted_state_tests {
+    use super::*;
+    use crate::ui;
+    #[test]
+    fn creation_has_no_existing_identity_and_account_snapshot_advances_after_save() {
+        i_slint_backend_testing::init_no_event_loop();
+        let app = Showcase::new().unwrap();
+        install(&app);
+        assert!(app.invoke_workspace_save_account(
+            "Updated name".into(),
+            "updated@example.com".into(),
+            false
+        ));
+        assert_eq!(app.get_workspace_accepted_name(), "Updated name");
+        assert_eq!(app.get_workspace_accepted_email(), "updated@example.com");
+        assert!(!app.get_workspace_accepted_notifications());
+        let original = app.get_workspace_projects().row_data(0).unwrap();
+        app.invoke_workspace_save_project(
+            ui::SelectionRef {
+                present: false,
+                token: 0,
+            },
+            "A new project".into(),
+            "New context".into(),
+        );
+        i_slint_backend_testing::mock_elapsed_time(Duration::from_millis(601));
+        slint::platform::update_timers_and_animations();
+        assert_eq!(app.get_workspace_projects().row_count(), 5);
+        assert_eq!(app.get_workspace_projects().row_data(0).unwrap(), original);
+        let added = app.get_workspace_projects().row_data(4).unwrap();
+        assert_eq!(added.name, "A new project");
+        assert!(added.key > 412);
+        assert_eq!(app.get_workspace_selection().token, added.key);
     }
 }

@@ -98,7 +98,11 @@ mod tests {
         let before = generate("before");
         let choice = library.join("choice.slint");
         let original = std::fs::read_to_string(&choice).unwrap();
-        let changed = original.replace("M 2 7 L 5 10 L 12 3", "M 2 8 L 5 11 L 12 4");
+        let changed = original.replacen(
+            "glyph: root.theme.icons.check;",
+            "glyph: root.theme.icons.plus;",
+            1,
+        );
         assert_ne!(changed, original);
         std::fs::write(&choice, changed).unwrap();
         let checkbox = generate("checkbox");

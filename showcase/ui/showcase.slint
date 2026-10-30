@@ -1,5 +1,5 @@
 import { InterFont } from "@kit-tailwind/fonts/inter.slint";
-import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
+import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
 import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
@@ -133,9 +133,10 @@ export component Showcase inherits Window {
     in-out property <string> workspace-accepted-email: "alex@studio.example";
     in-out property <bool> workspace-accepted-notifications: true;
     in-out property <[WorkspaceProject]> workspace-projects: WorkspaceSamples.projects;
-    in-out property <int> workspace-selected-key: 101;
+    in-out property <SelectionRef> workspace-selection: {present:true,token:101};
     callback workspace-query-changed(string,ProjectFilter);
     callback workspace-save-account(string,string,bool) -> bool;
+    callback workspace-load-project(SelectionRef) -> WorkspaceDraft;
     callback workspace-save-project(SelectionRef,string,string);
     in-out property <WorkspacePage> workspace-page;
     in-out property <EditorStatus> workspace-editor;
@@ -549,10 +550,11 @@ export component Showcase inherits Window {
 
     if root.product-workspace: ProductWorkspace {
         x: 0px; y: root.header-height; width: root.width; height: root.height - root.header-height;
-        theme: root.theme; accepted-name: root.workspace-accepted-name; accepted-email: root.workspace-accepted-email; accepted-notifications: root.workspace-accepted-notifications; projects: root.workspace-projects; selected-key <=> root.workspace-selected-key; french: root.text-sample == TextSample.long-french; invalid-preview: root.workspace-invalid; page <=> root.workspace-page; editor-status <=> root.workspace-editor;
+        theme: root.theme; accepted-name: root.workspace-accepted-name; accepted-email: root.workspace-accepted-email; accepted-notifications: root.workspace-accepted-notifications; projects: root.workspace-projects; selection <=> root.workspace-selection; french: root.text-sample == TextSample.long-french; invalid-preview: root.workspace-invalid; page <=> root.workspace-page; editor-status <=> root.workspace-editor;
         modal-changed(open) => { root.product-modal = open; }
         query-changed(query,filter) => { root.workspace-query-changed(query,filter); }
         save-account(name,email,notifications) => { return root.workspace-save-account(name,email,notifications); }
+        load-project(reference) => { return root.workspace-load-project(reference); }
         save-project(key, name, description) => { root.workspace-save-project(key,name,description); }
     }
 

@@ -18,7 +18,7 @@ const decode = text => text.replaceAll('&quot;', '"').replaceAll('&#39;', "'").r
 const capturesPath = path.join(docs, 'content/captures.json');
 const provenance = fs.existsSync(capturesPath) ? JSON.parse(fs.readFileSync(capturesPath, 'utf8')) : { components: {} };
 check(provenance.environment?.backend === 'winit' && provenance.environment?.renderer === 'skia', 'Capture manifest must identify its native backend and renderer');
-for (const arguments_ of [['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check']]) {
+for (const arguments_ of [['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check'], ['scripts/build-workspace-preview.py','--check']]) {
   const result = spawnSync('python3', arguments_, {cwd:docs,stdio:'inherit'});
   check(result.status === 0, `Individual documentation artifacts are stale: ${arguments_[0]}`);
 }
@@ -135,9 +135,34 @@ for (const component of components) {
 // Check every emitted HTML link/image, including fragment destinations. This
 // catches navigation breakage outside the component catalogue and both locales.
 function walk(directory) { return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? walk(path.join(directory, entry.name)) : [path.join(directory, entry.name)]); }
-const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsWith('.html') && file !== path.join(output, 'preview/index.html')) : [];
+const demoPages = ['preview/index.html', 'examples/workspace/index.html'];
+const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsWith('.html') && !demoPages.some(name => file === path.join(output, name))) : [];
 const browserPreview = fs.readFileSync(path.join(output, 'preview/index.html'), 'utf8');
 check(browserPreview.includes('<meta name="robots" content="noindex">'), 'Interactive preview shell must stay out of search results');
+const workspacePage = path.join(output, 'examples/workspace/index.html');
+check(fs.existsSync(workspacePage), 'Missing workspace demonstration page');
+if (fs.existsSync(workspacePage)) {
+  check(fs.readFileSync(workspacePage, 'utf8').includes('<meta name="robots" content="noindex">'), 'Workspace demonstration must stay out of search results');
+}
+const workspaceManifest = path.join(output, 'assets/workspace-preview/manifest.json');
+check(fs.existsSync(workspaceManifest), 'Missing workspace module manifest');
+if (fs.existsSync(workspaceManifest)) {
+  const entry = JSON.parse(fs.readFileSync(workspaceManifest, 'utf8'));
+  const validBase = /^\/assets\/workspace-preview\/[a-f0-9]{20}$/.test(entry.base || '');
+  check(entry.schema === 1 && validBase, 'Workspace assets need a content-addressed base URL');
+  check(entry.module === `${entry.base}/workspace.js`, 'Workspace module URL must match its verified base');
+  for (const [kind, required] of [['assets',['workspace.js','workspace_bg.wasm']], ['downloads',['source.tar.gz','LICENSE','NOTICE.txt','THIRD_PARTY_NOTICES.txt']]]) {
+    check(required.every(name => entry[kind]?.[name]), `Missing workspace ${kind}`);
+    if (!validBase) continue;
+    for (const [name, record] of Object.entries(entry[kind] || {})) {
+      check(!name.includes('/') && name !== '..', `Invalid workspace asset filename: ${name}`);
+      if (name.includes('/') || name === '..') continue;
+      const file = path.join(output, entry.base, name);
+      const content = fs.existsSync(file) ? fs.readFileSync(file) : null;
+      check(content && content.length === record.bytes && sha(content) === record.sha256, `Workspace ${kind} integrity mismatch: ${name}`);
+    }
+  }
+}
 const webPreviews = JSON.parse(fs.readFileSync(path.join(docs, '.generated/web/manifest.json'), 'utf8'));
 check(webPreviews.schema === 2 && webPreviews.defaultTheme === 'tailwind', 'Browser previews need individual theme variants with Tailwind as default');
 check(webPreviews.components.length === components.length && components.every(c => webPreviews.components.includes(c.slug)), 'Browser preview must cover every public component');
@@ -172,7 +197,8 @@ function redirectTarget(route) {
 check(redirectTarget('/en')?.destination === '/' && redirectTarget('/en')?.status === '301', 'Old /en homepage must permanently redirect to /');
 const expectedRoutes = new Set();
 for (const locale of ['en', 'fr']) {
-  for (const key of ['', 'components/', ...['getting-started', 'controllers', 'forms', 'themes', 'native', 'typed-example', 'table-example'].map(guide => `guides/${guide}/`), ...components.map(component => `components/${component.slug}/`)]) {
+  const generalPages = Object.keys(JSON.parse(fs.readFileSync(path.join(docs, 'content/pages.json'), 'utf8')));
+  for (const key of [...generalPages, ...components.map(component => `components/${component.slug}/`)]) {
     expectedRoutes.add(localeUrl(key, locale));
   }
 }

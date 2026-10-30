@@ -55,12 +55,14 @@ fn icons_and_explicit_theme_regions_follow_their_own_context() {
     let light = app.get_theme();
     let dark = app.get_nested_theme();
     assert_eq!(app.get_explicit_child_theme(), dark);
+    assert_eq!(app.get_popup_theme(), dark);
     assert_eq!(app.get_implicit_child_theme(), light);
     assert_eq!(app.get_sister_theme(), light);
     global.set_current(dark.clone());
     assert_eq!(app.get_implicit_child_theme(), dark);
     assert_eq!(app.get_sister_theme(), dark);
     assert_eq!(app.get_explicit_child_theme(), dark);
+    assert_eq!(app.get_popup_theme(), dark);
     // The explicit fixture controls still use their supplied light theme.
     assert_eq!(
         app.get_icon_button_fill(),

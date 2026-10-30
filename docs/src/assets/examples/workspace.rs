@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // In-memory host for the reusable workspace composition.
-pub mod ui { slint::include_modules!(); }
-use ui::{EditorStatus, ProjectFilter, App, WorkspaceProject};
+pub mod ui {
+    slint::include_modules!();
+}
+use slint::{ComponentHandle, Model, SharedString};
 use slint_kit::{HtmlConstraints, HtmlInputKind, HtmlInputState};
-use slint::{ComponentHandle, Model};
 use std::{cell::RefCell, rc::Rc, time::Duration};
+use ui::{App, EditorStatus, ProjectFilter, SelectionRef, WorkspaceDraft, WorkspaceProject};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct ProjectId(i32);
@@ -13,13 +15,107 @@ impl ProjectId {
         (value > 0).then_some(Self(value))
     }
 }
+
+fn required_text(draft: SharedString, minimum: usize) -> Option<SharedString> {
+    let rules = HtmlConstraints {
+        required: true,
+        min_length: Some(minimum),
+        ..Default::default()
+    };
+    let value = rules.sanitize(&draft);
+    rules
+        .validate(
+            &value,
+            HtmlInputState {
+                user_edited: true,
+                ..Default::default()
+            },
+        )
+        .valid()
+        .then(|| value.into())
+}
 #[derive(Clone)]
+struct ProjectName(SharedString);
+impl ProjectName {
+    fn parse(draft: SharedString) -> Option<Self> {
+        required_text(draft, 3).map(Self)
+    }
+}
+#[derive(Clone)]
+struct AccountName(SharedString);
+impl AccountName {
+    fn parse(draft: SharedString) -> Option<Self> {
+        required_text(draft, 1).map(Self)
+    }
+}
+#[derive(Clone)]
+struct EmailAddress(SharedString);
+impl EmailAddress {
+    fn parse(draft: SharedString) -> Option<Self> {
+        let rules = HtmlConstraints {
+            kind: HtmlInputKind::Email,
+            required: true,
+            ..Default::default()
+        };
+        let value = rules.sanitize(&draft);
+        rules
+            .validate(&value, HtmlInputState::default())
+            .valid()
+            .then(|| Self(value.into()))
+    }
+}
+struct Account {
+    name: AccountName,
+    email: EmailAddress,
+    notifications: bool,
+}
+impl Account {
+    fn parse(name: SharedString, email: SharedString, notifications: bool) -> Option<Self> {
+        Some(Self {
+            name: AccountName::parse(name)?,
+            email: EmailAddress::parse(email)?,
+            notifications,
+        })
+    }
+    fn publish(&self, window: &App) {
+        window.set_accepted_name(self.name.0.clone());
+        window.set_accepted_email(self.email.0.clone());
+        window.set_accepted_notifications(self.notifications);
+    }
+}
 struct Project {
     id: ProjectId,
-    view: WorkspaceProject,
+    name: ProjectName,
+    description: SharedString,
+    owner: SharedString,
+    updated: SharedString,
+    archived: bool,
+}
+impl Project {
+    fn from_view(view: WorkspaceProject) -> Self {
+        Self {
+            id: ProjectId::parse(view.key).expect("positive sample identity"),
+            name: ProjectName::parse(view.name).expect("valid sample project name"),
+            description: view.description,
+            owner: view.owner,
+            updated: view.updated,
+            archived: view.archived,
+        }
+    }
+    fn view(&self) -> WorkspaceProject {
+        WorkspaceProject {
+            key: self.id.0,
+            name: self.name.0.clone(),
+            description: self.description.clone(),
+            owner: self.owner.clone(),
+            updated: self.updated.clone(),
+            archived: self.archived,
+        }
+    }
 }
 struct Workspace {
     projects: Vec<Project>,
+    account: Account,
     query: String,
     filter: ProjectFilter,
 }
@@ -32,27 +128,24 @@ impl Workspace {
             .filter(|project| {
                 let filter = match self.filter {
                     ProjectFilter::All => true,
-                    ProjectFilter::Active => !project.view.archived,
-                    ProjectFilter::Archived => project.view.archived,
+                    ProjectFilter::Active => !project.archived,
+                    ProjectFilter::Archived => project.archived,
                 };
                 filter
-                    && (project.view.name.to_lowercase().contains(&query)
-                        || project.view.description.to_lowercase().contains(&query))
+                    && (project.name.0.to_lowercase().contains(&query)
+                        || project.description.to_lowercase().contains(&query))
             })
-            .map(|project| project.view.clone())
+            .map(Project::view)
             .collect::<Vec<_>>();
+        let selected = window.get_selection();
+        if selected.present && !rows.iter().any(|row| row.key == selected.token) {
+            window.set_selection(SelectionRef {
+                present: false,
+                token: selected.token,
+            });
+        }
         window.set_projects(slint::ModelRc::new(slint::VecModel::from(rows)));
     }
-}
-
-fn valid_text(text: &str, minimum: usize) -> bool {
-    HtmlConstraints {
-        required: true,
-        min_length: Some(minimum),
-        ..Default::default()
-    }
-    .validate(text, HtmlInputState { user_edited: true, ..Default::default() })
-    .valid()
 }
 
 pub fn install(window: &App) {
@@ -60,14 +153,18 @@ pub fn install(window: &App) {
         projects: window
             .get_projects()
             .iter()
-            .map(|view| Project {
-                id: ProjectId::parse(view.key).expect("positive sample identity"),
-                view,
-            })
+            .map(Project::from_view)
             .collect(),
+        account: Account::parse(
+            window.get_accepted_name(),
+            window.get_accepted_email(),
+            window.get_accepted_notifications(),
+        )
+        .expect("valid initial account"),
         query: String::new(),
         filter: ProjectFilter::All,
     }));
+    state.borrow().account.publish(window);
     let weak = window.as_weak();
     let filtered = state.clone();
     window.on_query_changed(move |query, filter| {
@@ -79,23 +176,56 @@ pub fn install(window: &App) {
         }
     });
     let weak = window.as_weak();
+    let accounts = state.clone();
     window.on_save_account(move |name, email, notifications| {
-        let valid = valid_text(&name, 1) && HtmlConstraints { kind: HtmlInputKind::Email, required: true, ..Default::default() }.validate(&email, HtmlInputState::default()).valid();
-        if valid { if let Some(window) = weak.upgrade() { window.set_accepted_name(name); window.set_accepted_email(email); window.set_accepted_notifications(notifications); } }
-        valid
+        let Some(account) = Account::parse(name, email, notifications) else {
+            return false;
+        };
+        accounts.borrow_mut().account = account;
+        if let Some(window) = weak.upgrade() {
+            accounts.borrow().account.publish(&window);
+        }
+        true
     });
     let weak = window.as_weak();
+    let loading = state.clone();
+    window.on_load_project(move |reference| {
+        if !reference.present {
+            return WorkspaceDraft::default();
+        }
+        let Some(id) = ProjectId::parse(reference.token) else {
+            return WorkspaceDraft::default();
+        };
+        loading
+            .borrow()
+            .projects
+            .iter()
+            .find(|project| project.id == id)
+            .map(|project| WorkspaceDraft {
+                present: true,
+                name: project.name.0.clone(),
+                description: project.description.clone(),
+            })
+            .unwrap_or_default()
+    });
     window.on_save_project(move |reference, name, description| {
-        if !valid_text(&name, 3) {
+        let Some(name) = ProjectName::parse(name) else {
             if let Some(window) = weak.upgrade() {
                 window.set_editor_status(EditorStatus::Editing);
             }
             return;
-        }
+        };
         let id = if reference.present {
-            let Some(id) = ProjectId::parse(reference.token) else { if let Some(window) = weak.upgrade() { window.set_editor_status(EditorStatus::Editing); } return; };
+            let Some(id) = ProjectId::parse(reference.token) else {
+                if let Some(window) = weak.upgrade() {
+                    window.set_editor_status(EditorStatus::Editing);
+                }
+                return;
+            };
             Some(id)
-        } else { None };
+        } else {
+            None
+        };
         let weak = weak.clone();
         let state = state.clone();
         slint::Timer::single_shot(Duration::from_millis(600), move || {
@@ -115,20 +245,22 @@ pub fn install(window: &App) {
                     let id = ProjectId(next);
                     state.projects.push(Project {
                         id,
-                        view: WorkspaceProject {
-                            key: next,
-                            owner: "Alex Morgan".into(),
-                            updated: "Just now".into(),
-                            ..Default::default()
-                        },
+                        name: name.clone(),
+                        description: description.clone(),
+                        owner: "Alex Morgan".into(),
+                        updated: "Just now".into(),
+                        archived: false,
                     });
                     id
                 };
                 if let Some(project) = state.projects.iter_mut().find(|project| project.id == id) {
-                    project.view.name = name;
-                    project.view.description = description;
-                    project.view.updated = "Just now".into();
-                    window.set_selected_key(id.0);
+                    project.name = name;
+                    project.description = description;
+                    project.updated = "Just now".into();
+                    window.set_selection(SelectionRef {
+                        present: true,
+                        token: id.0,
+                    });
                     state.publish(&window);
                     window.set_editor_status(EditorStatus::Saved);
                 } else {
@@ -146,4 +278,6 @@ pub fn create() -> Result<ui::App, slint::PlatformError> {
     Ok(app)
 }
 #[cfg(not(target_arch = "wasm32"))]
-fn main() -> Result<(), slint::PlatformError> { create()?.run() }
+fn main() -> Result<(), slint::PlatformError> {
+    create()?.run()
+}
