@@ -125,7 +125,13 @@ export component KitChatBubble inherits HorizontalLayout {
     if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
     VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
         Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        Rectangle { background: root.side == ChatSide.end ? root.theme.accent : root.theme.hover; border-radius: root.theme.shape.radius-container;
+        Rectangle {
+            background: root.side == ChatSide.end ? root.theme.accent : root.theme.surface;
+            border-radius: root.theme.shape.radius-container;
+            // Received messages are surfaces, not hover states. Their edge
+            // also keeps them visible when a conversation sits on a panel.
+            border-width: root.side == ChatSide.start ? root.theme.shape.border-width : 0px;
+            border-color: root.side == ChatSide.start ? root.theme.border-subtle : transparent;
             VerticalLayout { padding: root.theme.spacing.unit * 3.5;
                 Text { text: root.text; color: root.side == ChatSide.end ? root.theme.on-accent : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }

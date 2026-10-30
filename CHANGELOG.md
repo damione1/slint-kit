@@ -12,6 +12,7 @@
 - Tailwind medium controls now actually fit a 36 px line at normal text scale; body/subtitle hierarchy uses 14/18 px. The built-in theme supplies distinct semantic icons, subtle selected rows, a slate workspace canvas, light borders, elevation and optional Inter.
 - Correct theme scope documentation: the global is per window/component tree; supplied children require explicit theme bindings. There is no implicit ancestor cascade.
 - The showcase adds reusable account, project collection and editing dialog compositions, with filtered host models, stable identity, in-memory persistence, guarded submissions and cancellation/focus restoration. Download the same Slint/Rust sources and run the WASM demonstration at `/examples/workspace/`.
+- Incoming chat bubbles use a bordered theme surface so messages remain visible on both the canvas and same-color panels.
 - Correct leading/trailing icon placement inside padded buttons, including navigation actions and locally customized padding.
 - Documentation gains a fuzzy search across guides and component references, representative chat/list examples and corrected canvas mockups; migration-only pages are removed.
 - Fix a visible gap at the center of an unlabelled divider.

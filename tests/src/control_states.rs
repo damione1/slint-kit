@@ -325,6 +325,70 @@ fn software_rendering() {
     })))
     .unwrap();
 }
+
+#[test]
+fn received_chat_bubbles_keep_a_surface_and_outline_on_canvas_or_panels() {
+    software_rendering();
+    let window = show(ChatBubbleRenderFixture::new().unwrap());
+    for mut theme in [window.get_theme(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            for on_surface in [false, true] {
+                window.set_surface_background(on_surface);
+                let snapshot = window.window().take_snapshot().unwrap();
+                for (id, fill, edge) in [
+                    ("incoming", theme.surface, Some(theme.border_subtle)),
+                    ("outgoing", theme.accent, None),
+                ] {
+                    let message = ElementQuery::from_root(&window)
+                        .match_id(format!("ChatBubbleRenderFixture::{id}"))
+                        .find_first()
+                        .unwrap();
+                    let text = message
+                        .query_descendants()
+                        .match_type_name("Text")
+                        .find_all();
+                    let body = text
+                        .iter()
+                        .find(|element| {
+                            element.accessible_label().as_deref()
+                                == Some(if id == "incoming" {
+                                    "Can you review the project?"
+                                } else {
+                                    "I will review it today."
+                                })
+                        })
+                        .unwrap();
+                    let y = body.absolute_position().y + body.size().height / 2.;
+                    let x = body.absolute_position().x - theme.spacing.unit * 1.5;
+                    assert_pixel(
+                        &snapshot,
+                        x,
+                        y,
+                        fill,
+                        &format!("{id} fill at {scale}, panel={on_surface}"),
+                    );
+                    if let Some(edge) = edge {
+                        assert_ne!(
+                            edge, theme.surface,
+                            "the contour remains visible on a surface panel"
+                        );
+                        let x = body.absolute_position().x - theme.spacing.unit * 3.5;
+                        assert_pixel(
+                            &snapshot,
+                            x,
+                            y,
+                            edge,
+                            &format!("{id} outline at {scale}, panel={on_surface}"),
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn pixel_at(
     snapshot: &slint::SharedPixelBuffer<slint::Rgba8Pixel>,
     x: f32,

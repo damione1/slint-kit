@@ -2,9 +2,23 @@
 // State renderings of fields, buttons, pickers and choice groups: field action
 // icons at scaled text, control elevation inside a layout, and states that
 // have no other observable output than their marks, labels and edges.
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitDataTable, DataSortDirection, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitDataTable, DataSortDirection, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs, KitChatBubble, ChatSide } from "@kit/kit.slint";
 // Internal: the mark each alert severity draws.
 import { KitAlertMarks } from "@kit/feedback.slint";
+
+export component ChatBubbleRenderFixture inherits Window {
+    width: 640px; height: 500px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <bool> surface-background;
+    background: root.surface-background ? root.theme.surface : root.theme.canvas;
+    VerticalLayout {
+        x: 20px; y: 20px; width: 600px; height: self.preferred-height;
+        spacing: 24px; alignment: start;
+        incoming := KitChatBubble { theme: root.theme; author: "Alex"; text: "Can you review the project?"; metadata: "10:42"; }
+        outgoing := KitChatBubble { theme: root.theme; side: ChatSide.end; author: "You"; text: "I will review it today."; metadata: "10:43"; }
+    }
+}
 
 // Search and password actions in every size, for the text-scale geometry test.
 export component FieldActionFixture inherits Window {
