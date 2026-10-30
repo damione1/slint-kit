@@ -65,13 +65,14 @@ async function navigate(route) {
   const url = new URL(route, origin);
   url.searchParams.set('verification', ++navigationSequence);
   const targetUrl = url.href;
+  const matchesTarget=`(()=>{const actual=new URL(location.href),expected=new URL(${JSON.stringify(targetUrl)});if(expected.pathname==='/preview/'&&!expected.searchParams.has('theme')){if(!['light','dark'].includes(actual.searchParams.get('theme')))return false;actual.searchParams.delete('theme')}return actual.href===expected.href})()`;
   await call('Page.navigate', { url: targetUrl });
   for (let count = 0; count < 150; count++) {
-    if (await evaluate(`location.href === ${JSON.stringify(targetUrl)} && document.readyState === 'complete'`).catch(() => false)) break;
+    if (await evaluate(`(${matchesTarget}) && document.readyState === 'complete'`).catch(() => false)) break;
     await pause(100);
   }
   assert.equal(await evaluate('document.readyState'), 'complete');
-  assert.equal(await evaluate('location.href'), targetUrl);
+  assert(await evaluate(matchesTarget),'Navigation must preserve the requested route and parameters');
   await pause(400);
 }
 async function click(selector) {
