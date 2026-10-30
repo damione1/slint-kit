@@ -122,9 +122,9 @@ try {
   sourceId = (await call('Page.addScriptToEvaluateOnNewDocument', { source: `window.auditShifts=[];new PerformanceObserver(list=>{for(const item of list.getEntries())if(!item.hadRecentInput)window.auditShifts.push(item.value)}).observe({type:'layout-shift',buffered:true});` })).identifier;
   // Inspect meaningful open states as well as constructors: an unopened
   // dialog's canvas only shows its launcher.
-  for (const [slug, x, y] of [['dialog-surface', 90, 44], ['drawer', 90, 44],
-    ['combobox', 140, 44], ['select', 140, 44], ['select-trigger', 140, 44],
-    ['multi-select', 140, 84], ['tooltip', 90, 44], ['tooltip-layer', 90, 44]]) {
+  for (const [slug, x, y] of [['dialog-surface', 106, 42], ['drawer', 90, 44],
+    ['combobox', 240, 135], ['select', 140, 44], ['select-trigger', 260, 103],
+    ['multi-select', 260, 175], ['tooltip', 90, 42], ['tooltip-layer', 90, 42]]) {
     await navigate(`/preview/?component=${slug}`);
     for (let count = 0; count < 300; count++) {
       if (await evaluate('Boolean(window.previewReady || window.previewError)')) break;
@@ -132,9 +132,11 @@ try {
     }
     assert(await evaluate('Boolean(window.previewReady && !window.previewError)'), `${slug}: open-state startup`);
     await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y });
-    await call('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, x, y });
-    await call('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, x, y });
-    await pause(500);
+    if (!slug.startsWith('tooltip')) {
+      await call('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, x, y });
+      await call('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, x, y });
+    }
+    await pause(750);
     const canvas = await evaluate('document.querySelector("canvas").getBoundingClientRect().toJSON()');
     const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true,
       clip: { x: canvas.x, y: canvas.y, width: canvas.width, height: canvas.height, scale: 1 } });
