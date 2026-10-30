@@ -99,6 +99,13 @@ export struct IconRecipe { size: length, color: color, disabled-color: color, st
 // A severity's tint, edge and mark, so alerts stay distinguishable without
 // relying on their titles.
 export struct AlertRecipe { fill: color, border: color, mark: color, radius: length, border-width: length, inset: length, gap: length }
+// A tooltip bubble: inverted ink, its own inline and block padding, and a
+// reading width it never exceeds. `gap` separates it from its anchor and from
+// the window edges.
+export struct TooltipRecipe {
+    fill: color, foreground: color, radius: length, padding-inline: length, padding-block: length,
+    max-width: length, font-size: length, gap: length,
+}
 // A scroll bar overlays its viewport edge. `thickness` is its footprint; the
 // thumb grows from `thumb-thickness` to `active-thumb-thickness` under the pointer.
 export struct ScrollBarRecipe {
@@ -387,6 +394,16 @@ export global KitThemes {
                 : severity == AlertSeverity.success ? theme.success : theme.information,
             radius: theme.shape.radius-container, border-width: theme.shape.border-width,
             inset: theme.spacing.unit * 4, gap: theme.spacing.unit * 3,
+        };
+    }
+    // Tailwind's px-3 py-1.5 text-xs bubble, capped at max-w-xs (80 units),
+    // which grows with text-scale so a scaled line still fits.
+    public pure function tooltip-recipe(theme: KitTheme) -> TooltipRecipe {
+        return {
+            fill: theme.text-primary, foreground: theme.surface, radius: theme.shape.radius-control,
+            padding-inline: theme.spacing.unit * 3, padding-block: theme.spacing.unit * 1.5,
+            max-width: theme.spacing.unit * 80 * theme.text-scale,
+            font-size: KitMetrics.font-size(theme, TypographyRole.caption), gap: theme.spacing.unit * 2,
         };
     }
     public pure function scroll-bar-recipe(theme: KitTheme) -> ScrollBarRecipe {

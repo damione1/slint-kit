@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe } from "theme.slint";
+import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 
@@ -153,21 +153,28 @@ export component KitTooltipLayer inherits Rectangle {
     in property <length> viewport-height: root.height;
     public function dismiss() { KitTooltipState.dismiss(); }
     changed enabled => { KitTooltipState.dismiss(); }
-    // The tip's inset, and its distance from the anchor and the window edges.
-    private property <length> gap: KitTooltipState.theme.spacing.unit * 2;
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(KitTooltipState.theme);
+    // The tip's distance from the anchor and the window edges.
+    private property <length> gap: root.tip-recipe.gap;
     if root.enabled && KitTooltipState.owner != 0: Rectangle {
         x: max(root.gap,min(KitTooltipState.anchor.x,root.viewport-width - self.width - root.gap));
         y: max(root.gap,min(root.viewport-height - self.height - root.gap,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + root.gap > root.viewport-height ? KitTooltipState.anchor.y - self.height - root.gap : KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap));
-        width: min(300px * KitTooltipState.theme.text-scale,max(0px,root.viewport-width - 2 * root.gap));
-        height: min(tip.preferred-height + 2 * root.gap,max(0px,root.viewport-height - 2 * root.gap));
-        background: KitTooltipState.theme.text-primary; border-radius: KitTooltipState.theme.shape.radius-control;
+        // As wide as one line of its text, up to the recipe's reading width.
+        width: min(min(root.tip-recipe.max-width,line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.gap));
+        height: min(tip.preferred-height + 2 * root.tip-recipe.padding-block,max(0px,root.viewport-height - 2 * root.gap));
+        background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
         drop-shadow-offset-y: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).offset-y;
         drop-shadow-blur: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).blur;
         drop-shadow-color: KitThemes.shadow(KitTooltipState.theme, KitTooltipState.theme.elevation.popover).color;
+        line := Text {
+            visible: false; accessible-role: none; text: KitTooltipState.text;
+            font-family: KitTooltipState.theme.typography.family; font-size: root.tip-recipe.font-size;
+        }
         tip := Text {
-            x: root.gap; y: root.gap; width: max(0px,parent.width - 2 * root.gap); height: max(0px,parent.height - 2 * root.gap);
-            text: KitTooltipState.text; color: KitTooltipState.theme.surface;
-            font-family: KitTooltipState.theme.typography.family; font-size: KitMetrics.font-size(KitTooltipState.theme, TypographyRole.caption); wrap: word-wrap; overflow: elide;
+            x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block;
+            width: max(0px,parent.width - 2 * root.tip-recipe.padding-inline); height: max(0px,parent.height - 2 * root.tip-recipe.padding-block);
+            text: KitTooltipState.text; color: root.tip-recipe.foreground;
+            font-family: KitTooltipState.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; overflow: elide;
         }
     }
 }
@@ -207,12 +214,13 @@ export component KitTooltip inherits Rectangle {
         key-pressed(event) => { if (event.text == Key.Escape && root.keyboard-visible) { root.dismiss(); return accept; } return reject; }
         content := VerticalLayout { @children }
     }
-    private property <length> tip-gap: root.theme.spacing.unit * 2;
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(root.theme);
     if !root.suppressed && root.text != "": Tooltip {
-        Rectangle { background: root.theme.text-primary; border-radius: root.theme.shape.radius-control;
-            width: min(300px * root.theme.text-scale,max(80px,root.viewport-width - 2 * root.tip-gap));
-            height: hover-tip.preferred-height + 2 * root.tip-gap;
-            hover-tip := Text { x: root.tip-gap; y: root.tip-gap; width: parent.width - 2 * root.tip-gap; text: root.text; color: root.theme.surface; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        Rectangle { background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
+            width: min(min(root.tip-recipe.max-width,hover-line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.tip-recipe.gap));
+            height: hover-tip.preferred-height + 2 * root.tip-recipe.padding-block;
+            hover-line := Text { visible: false; accessible-role: none; text: root.text; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; }
+            hover-tip := Text { x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block; width: parent.width - 2 * root.tip-recipe.padding-inline; text: root.text; color: root.tip-recipe.foreground; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; }
         }
     }
 }

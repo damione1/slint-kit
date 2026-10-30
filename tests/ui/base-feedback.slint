@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth, TooltipRecipe } from "@kit/kit.slint";
 
 export component BaseFeedbackFixture inherits Window {
     width: 640px; height: 480px;
@@ -7,6 +7,8 @@ export component BaseFeedbackFixture inherits Window {
     in property <length> viewport-width: root.width;
     in property <length> viewport-height: root.height;
     in property <bool> layer-enabled: true;
+    in property <string> help: "Keyboard help";
+    public pure function tooltip(theme: KitTheme) -> TooltipRecipe { return KitThemes.tooltip-recipe(theme); }
     in-out property <bool> alert-visible: true;
     out property <bool> target-focused: target.has-focus;
     out property <bool> tooltip-visible: tooltip.keyboard-visible;
@@ -19,7 +21,7 @@ export component BaseFeedbackFixture inherits Window {
     Rectangle {
         x: 600px; y: 440px; width: 30px; height: 24px; clip: true;
         tooltip := KitTooltip {
-            theme: root.theme; target-focused: target.has-focus; text: "Keyboard help";
+            theme: root.theme; target-focused: target.has-focus; text: root.help;
             target := KitButton { theme: root.theme; text: "Tooltip target"; }
         }
     }

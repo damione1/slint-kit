@@ -18,6 +18,7 @@
 - **`ButtonIntent.outline`** is added between `secondary` and `quiet`: a transparent fill with the strong border. Rust code matching `ButtonIntent` exhaustively must handle it.
 - `SurfaceLevel` (now with `overlay` and `popover`) and `AlertSeverity` are declared in `theme.slint`. They are still re-exported from their former files.
 - Every component family reads recipes from `KitThemes` (button, field, trigger, choice, option, surface, alert, table row, scroll bar, icon) instead of literals. `KitDialogPanel` and `KitSelectSurface` paint a stacked shadow under a transparent host, so a `background` set on the instance is now hidden; `border-radius` still applies.
+- **`TooltipRecipe`** and **`KitThemes.tooltip-recipe(theme)`** are new. A tooltip is now as wide as one line of its text, up to `max-width` (80 spacing units, 320 px at 100% text, scaled with `text-scale`), with `padding-inline` and `padding-block` of 3 and 1.5 spacing units. It used to take a fixed 300 px width (600 px at 200% text) with 8 px padding on every side.
 - New opt-in **`TailwindThemes`** (`light`, `dark`) in `@kit/themes/tailwind.slint`, with Inter 4.1 embedded in four static weights (about 1.6 MB). Nothing is embedded unless the file is imported.
 
 ### Icons
