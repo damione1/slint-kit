@@ -73,7 +73,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     if (frame) {
       clearTimeout(timeout); frame.remove(); frame = null; host.hidden = true;
       preview.querySelector('figure').hidden = false;
-      button.textContent = french ? 'Lancer l’aperçu' : 'Run preview'; status.textContent = ''; return;
+      button.textContent = french ? 'Lancer l’aperçu Slint' : 'Run Slint preview'; status.textContent = ''; return;
     }
     start();
   });
@@ -83,7 +83,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     if (event.data.state !== 'ready') return;
     clearTimeout(timeout); width = Number(event.data.width) || width; height = Number(event.data.height) || height;
     host.classList.remove('preview-loading'); preview.querySelector('figure').hidden = true; resize();
-    button.disabled = false; button.textContent = french ? 'Arrêter l’aperçu' : 'Stop preview';
+    button.disabled = false; button.textContent = french ? 'Arrêter l’aperçu Slint' : 'Stop Slint preview';
     status.textContent = french ? 'Interactif — composants Slint en WebAssembly' : 'Interactive — Slint components in WebAssembly';
   });
   new ResizeObserver(resize).observe(host);
