@@ -1,15 +1,16 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-import { KitCombobox, KitThemes, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SearchPresentation } from "@kit/kit.slint";
+import { KitCombobox, KitTheme, KitThemes, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SearchPresentation } from "@kit/kit.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability }
 
 export component Example inherits Window {
+    in-out property <KitTheme> theme: KitThemes.light;
     default-font-family: InterFont.family;
     title: "Slint combobox";
     preferred-width: 480px;
     preferred-height: 480px;
     max-width: 100000px;
     max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in property <[OptionRow]> rows: [{ token: 11, generation: 1, label: "Personnel", description: "", disabled: false }, { token: 25, generation: 1, label: "Partagé", description: "", disabled: false }, { token: 39, generation: 1, label: "Archives", description: "", disabled: false }, { token: 53, generation: 1, label: "Studio de design", description: "", disabled: false }, { token: 67, generation: 1, label: "Ingénierie", description: "", disabled: false }, { token: 81, generation: 1, label: "Marketing", description: "", disabled: false }, { token: 95, generation: 1, label: "Labo de recherche", description: "", disabled: false }, { token: 109, generation: 1, label: "Communauté", description: "", disabled: false }];
     in property <SelectState> select-state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available };
     in property <string> selected-label: "Personnel";
@@ -24,8 +25,8 @@ export component Example inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        Text { text: "Trouvez votre espace"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
-        Text { text: "Recherchez parmi huit espaces ou parcourez-les avec les flèches."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
+        Text { text: "Trouvez votre espace"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Recherchez parmi huit espaces ou parcourez-les avec les flèches."; color: root.theme.text-secondary; wrap: word-wrap; }
         workspace := KitCombobox {
             label: "Espace de travail";
             rows: root.rows;
@@ -41,6 +42,6 @@ export component Example inherits Window {
             typeahead(text) => { root.select-typeahead(text); }
             tab-navigation(reverse) => { return reject; }
         }
-        selected-label-view := Text { text: "Espace accepté : " + root.selected-label; color: KitThemes.light.text-primary; }
+        selected-label-view := Text { text: "Espace accepté : " + root.selected-label; color: root.theme.text-primary; }
     }
 }
