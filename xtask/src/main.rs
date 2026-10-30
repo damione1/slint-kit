@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use std::process::{Command, ExitCode};
 
+mod docs;
 mod icons;
 mod lint_tokens;
 
@@ -10,6 +11,7 @@ enum Task {
     GenerateIcons,
     LintTokens,
     Check,
+    CompileDocs(std::path::PathBuf),
 }
 impl Task {
     fn parse(value: Option<String>) -> Result<Self, String> {
@@ -19,6 +21,9 @@ impl Task {
             Some("generate-icons") => Ok(Self::GenerateIcons),
             Some("lint-tokens") => Ok(Self::LintTokens),
             Some("check") => Ok(Self::Check),
+            Some("compile-docs") => std::env::args().nth(2)
+                .map(|path| Self::CompileDocs(path.into()))
+                .ok_or_else(|| "compile-docs requires a JSON request file".into()),
             _ => Err(
                 "usage: cargo run -p xtask -- [contracts|generate-contracts|generate-icons|lint-tokens|check]"
                     .into(),
@@ -27,6 +32,7 @@ impl Task {
     }
     fn run(self) -> Result<(), String> {
         match self {
+            Self::CompileDocs(request) => docs::compile(&request),
             Self::VerifyContracts => verify_generated(),
             Self::GenerateContracts => std::fs::write(
                 kit_build::ui_directory().join("shared-contracts.slint"),

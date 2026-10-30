@@ -7,7 +7,10 @@ import { scanComponents, componentLabel } from './scripts/inventory.mjs';
 import { localePrefix, localeUrl, siteOrigin } from './scripts/routes.mjs';
 import { structuredData, scriptJson } from './scripts/metadata.mjs';
 import { loadStarters, starterFiles } from './scripts/starters.mjs';
+import { familyIllustration } from './scripts/family-illustrations.mjs';
 export default function (eleventyConfig) {
+  const outputDirectory = process.env.DOCS_SITE_STAGE || '_site';
+  eleventyConfig.addFilter('familyIllustration', familyIllustration);
   eleventyConfig.addPassthroughCopy('src/assets');
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
@@ -15,14 +18,16 @@ export default function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ '.generated/starters': 'quickstart/projects' });
   const webPreviews = JSON.parse(fs.readFileSync('.generated/web/manifest.json', 'utf8'));
   eleventyConfig.addGlobalData('webPreviews', webPreviews);
-  eleventyConfig.addPassthroughCopy({ [`.generated/web/${path.basename(webPreviews.base)}`]: webPreviews.base.slice(1) });
+  for (const base of new Set(Object.values(webPreviews.entries).flatMap(themes => Object.values(themes).flatMap(entry => [entry.base, ...Object.values(entry.sources)])))) {
+    eleventyConfig.addPassthroughCopy({ [`.generated/web/${base.slice(1)}`]: base.slice(1) });
+  }
   for (const slug of Object.keys(quickstarts)) {
     for (const file of starterFiles) {
-      eleventyConfig.addPassthroughCopy({ [`quickstart/${slug}/${file}`]: `quickstart/${slug}/${file}` });
+      eleventyConfig.addPassthroughCopy({ [`${file.endsWith('.png') ? 'quickstart' : '.generated/consumers'}/${slug}/${file}`]: `quickstart/${slug}/${file}` });
     }
   }
   eleventyConfig.addFilter('componentLabel', componentLabel);
-  eleventyConfig.addFilter('quickstartSource', (file, slug) => fs.readFileSync(path.join('quickstart', slug, file), 'utf8'));
+  eleventyConfig.addFilter('quickstartSource', (file, slug) => fs.readFileSync(path.join('.generated/consumers', slug, file), 'utf8'));
   eleventyConfig.addGlobalData('quickstarts', quickstarts);
   const versionedAssets = new Map();
   eleventyConfig.on('eleventy.before', () => versionedAssets.clear());
@@ -37,18 +42,18 @@ export default function (eleventyConfig) {
     }
     return versionedAssets.get(sourceUrl).url;
   });
-  eleventyConfig.addFilter('starterPoster', slug => {
-    const key = `starter:${slug}`;
+  eleventyConfig.addFilter('starterPoster', (slug, density = 2) => {
+    const key = `starter:${slug}:${density}`;
     if (!versionedAssets.has(key)) {
-      const content = fs.readFileSync(path.join('quickstart', slug, 'preview@2x.png'));
+      const content = fs.readFileSync(path.join('quickstart', slug, density === 2 ? 'preview@2x.png' : 'preview.png'));
       const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
-      versionedAssets.set(key, { url: `/assets/versioned/${slug}.${hash}.png`, content });
+      versionedAssets.set(key, { url: `/assets/versioned/${slug}.${hash}${density === 2 ? "@2x" : ""}.png`, content });
     }
     return versionedAssets.get(key).url;
   });
   eleventyConfig.on('eleventy.after', () => {
     for (const { url, content } of versionedAssets.values()) {
-      const target = path.join('_site', url.slice(1));
+      const target = path.join(outputDirectory, url.slice(1));
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, content);
     }
@@ -104,5 +109,5 @@ export default function (eleventyConfig) {
   eleventyConfig.addFilter('whereFamily', (components, family) => components.filter(c => c.family === family));
   eleventyConfig.addFilter('mdEscape', text => String(text).replaceAll('|', '\\|').replaceAll('\n', ' '));
   eleventyConfig.addFilter('localeComponent', (component, locale) => component[locale]);
-  return { dir: { input: 'src', output: '_site' }, markdownTemplateEngine: 'njk', htmlTemplateEngine: 'njk' };
+  return { dir: { input: 'src', output: outputDirectory }, markdownTemplateEngine: 'njk', htmlTemplateEngine: 'njk' };
 }

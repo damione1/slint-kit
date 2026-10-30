@@ -1,6 +1,7 @@
 name: Check
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -9,101 +10,19 @@ jobs:
   desktop:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.99.1
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo run -p xtask --locked -- check
-      - name: Check the published-crate component starters
+      - name: Check component starters against the local kit
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/target
-        run: |
-          for manifest in docs/quickstart/*/Cargo.toml; do
-            cargo check --manifest-path "$manifest" --locked
-          done
+        run: python3 docs/scripts/check-starters.py --mode local
+      - name: Test release and documentation publication safeguards
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
   documentation:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
-      - uses: dtolnay/rust-toolchain@1.99.1
-        with:
-          targets: wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: docs/preview -> ../../target/doc-previews
-      - run: cargo install wasm-bindgen-cli --version 0.2.129 --locked
-      - run: npm ci --prefix docs
-      - uses: actions/cache@v4
-        with:
-          path: docs/.cache/previews
-          key: ${{ runner.os }}-docs-previews-v1-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-docs-previews-v1-
-      - run: python3 -m unittest discover -s docs/scripts -p 'test_web_cache.py'
-      - run: npm --prefix docs run build
-      - name: Record the built source revision
-        run: git rev-parse HEAD > docs/_site/deployment-revision.txt
-      - uses: actions/upload-artifact@v7
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        with:
-          name: slint-kit-site-${{ github.sha }}
-          path: docs/_site/
-          include-hidden-files: true
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 7
-  deploy:
-    name: Deploy documentation
-    needs: [desktop, documentation]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: slint-kit-production
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v6
-      - name: Check that this revision is still current
-        id: current
-        shell: bash
-        run: |
-          latest_main_sha=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [ "$latest_main_sha" = "$GITHUB_SHA" ]; then
-            echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping an outdated revision; a newer main revision will deploy."
-          fi
-      - uses: actions/download-artifact@v8
-        if: steps.current.outputs.deploy == 'true'
-        with:
-          name: slint-kit-site-${{ github.sha }}
-          path: docs/_site/
-      - name: Verify the artifact revision
-        if: steps.current.outputs.deploy == 'true'
-        shell: bash
-        run: test "$(cat docs/_site/deployment-revision.txt)" = "$GITHUB_SHA"
-      - uses: actions/setup-node@v6
-        if: steps.current.outputs.deploy == 'true'
-        with:
-          node-version: '22'
-      - name: Deploy the tested artifact to Cloudflare
-        if: steps.current.outputs.deploy == 'true'
-        env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        shell: bash
-        run: |
-          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Set the repository variable CLOUDFLARE_ACCOUNT_ID before deploying."
-            exit 1
-          fi
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error::Set the repository secret CLOUDFLARE_API_TOKEN before deploying."
-            exit 1
-          fi
-          npx --yes wrangler@4.154.0 deploy --config docs/wrangler.toml --message "GitHub Actions $GITHUB_SHA"
+    uses: ./.github/workflows/documentation-build.yml
+    with:
+      mode: local

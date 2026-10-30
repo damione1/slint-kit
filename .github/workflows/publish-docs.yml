@@ -1,0 +1,32 @@
+name: Publish documentation correction
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Published stable crate version, such as 0.4.0'
+        type: string
+        required: true
+      source-ref:
+        description: 'Committed documentation revision with library sources identical to this release'
+        type: string
+        required: true
+        default: main
+permissions:
+  contents: read
+jobs:
+  documentation:
+    uses: ./.github/workflows/documentation-build.yml
+    with:
+      mode: release
+      version: ${{ inputs.version }}
+      source-ref: ${{ inputs.source-ref }}
+      check-workspace: true
+  deploy:
+    needs: documentation
+    uses: ./.github/workflows/documentation-deploy.yml
+    with:
+      version: ${{ inputs.version }}
+      source: ${{ needs.documentation.outputs.source }}
+      artifact: ${{ needs.documentation.outputs.artifact }}
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

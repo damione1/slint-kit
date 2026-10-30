@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { scanComponents } from './inventory.mjs';
 import { localeUrl, siteOrigin } from './routes.mjs';
@@ -17,14 +18,12 @@ const decode = text => text.replaceAll('&quot;', '"').replaceAll('&#39;', "'").r
 const capturesPath = path.join(docs, 'content/captures.json');
 const provenance = fs.existsSync(capturesPath) ? JSON.parse(fs.readFileSync(capturesPath, 'utf8')) : { components: {} };
 check(provenance.environment?.backend === 'winit' && provenance.environment?.renderer === 'skia', 'Capture manifest must identify its native backend and renderer');
-const kitUi = path.join(docs, '../crates/kit-slint/ui');
-const kitHash = crypto.createHash('sha256');
-for (const file of fs.readdirSync(kitUi).filter(file => file.endsWith('.slint')).sort()) {
-  kitHash.update(file + '\0');
-  kitHash.update(fs.readFileSync(path.join(kitUi, file)));
-  kitHash.update('\0');
+for (const arguments_ of [['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check']]) {
+  const result = spawnSync('python3', arguments_, {cwd:docs,stdio:'inherit'});
+  check(result.status === 0, `Individual documentation artifacts are stale: ${arguments_[0]}`);
 }
-check(provenance.environment?.kitUiSha256 === kitHash.digest('hex'), 'Kit UI sources changed: regenerate native screenshots and provenance');
+const renderCaptures = JSON.parse(fs.readFileSync(path.join(docs, 'content/render-captures.json'),'utf8'));
+check(renderCaptures.schema === 2, 'Individual capture provenance is required');
 const components = scanComponents();
 const starters = loadStarters();
 const starterCaptures = JSON.parse(fs.readFileSync(path.join(docs, 'content/starter-captures.json'), 'utf8'));
@@ -37,7 +36,7 @@ function pngDetails(buffer) {
   if (buffer.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a') throw Error('Invalid PNG signature');
   const width = buffer.readUInt32BE(16), height = buffer.readUInt32BE(20);
   const depth = buffer[24], color = buffer[25], interlace = buffer[28];
-  if (depth !== 8 || ![2, 6].includes(color) || interlace !== 0) throw Error('Expected noninterlaced RGB(A)8 native PNG');
+  if (depth !== 8 || ![2, 6].includes(color) || interlace !== 0) throw Error('Expected noninterlaced RGB(A)8 PNG');
   const bpp = color === 6 ? 4 : 3, chunks = [];
   for (let cursor = 8; cursor < buffer.length;) {
     const length = buffer.readUInt32BE(cursor), type = buffer.toString('ascii', cursor + 4, cursor + 8);
@@ -68,7 +67,7 @@ for (const component of components) {
     const imageFilename = `${slug}${locale === 'fr' ? '-fr' : ''}.png`;
     const imagePath = path.join(docs, 'src/assets/components', imageFilename);
     check(fs.existsSync(examplePath), `${name}/${locale}: missing standalone example`);
-    check(fs.existsSync(imagePath), `${name}/${locale}: missing native capture`);
+    check(fs.existsSync(imagePath), `${name}/${locale}: missing capture`);
     if (!fs.existsSync(examplePath) || !fs.existsSync(imagePath)) continue;
     const example = fs.readFileSync(examplePath, 'utf8'), image = fs.readFileSync(imagePath);
     check(/from\s+"@kit\//.test(example), `${name}/${locale}: example must consume public @kit imports`);
@@ -77,15 +76,15 @@ for (const component of components) {
     const record = locale === 'fr' ? provenance.components[slug]?.locales?.fr : provenance.components[slug];
     check(record, `${name}/${locale}: missing capture provenance`);
     if (record) {
-      check(record.exampleSha256 === sha(example), `${name}/${locale}: regenerate screenshot after example changes`);
+      // Semantic identities above allow non-rendering source edits without recapturing.
       check(record.screenshotSha256 === sha(image), `${name}/${locale}: screenshot differs from the capture manifest`);
       for (const variant of record.variants || []) {
         const variantPath = path.join(docs, 'src/assets/components', variant.file);
-        check(fs.existsSync(variantPath), `${name}/${locale}: missing native variant ${variant.file}`);
+        check(fs.existsSync(variantPath), `${name}/${locale}: missing capture variant ${variant.file}`);
         if (fs.existsSync(variantPath)) {
           const pixels = fs.readFileSync(variantPath);
-          check(sha(pixels) === variant.sha256, `${name}/${locale}: native variant changed ${variant.file}`);
-          check(pixels.length >= 24 && pixels.readUInt32BE(16) === variant.width && pixels.readUInt32BE(20) === variant.height, `${name}/${locale}: invalid native variant dimensions ${variant.file}`);
+          check(sha(pixels) === variant.sha256, `${name}/${locale}: capture variant changed ${variant.file}`);
+          check(pixels.length >= 24 && pixels.readUInt32BE(16) === variant.width && pixels.readUInt32BE(20) === variant.height, `${name}/${locale}: invalid capture variant dimensions ${variant.file}`);
         }
       }
     }
@@ -95,7 +94,7 @@ for (const component of components) {
       if (record) check(info.width === record.width && info.height === record.height, `${name}/${locale}: incorrect capture dimensions`);
     } catch (error) { errors.push(`${name}/${locale}: ${error.message}`); }
     const retinaPath = imagePath.replace(/\.png$/, '@2x.png');
-    check(fs.existsSync(retinaPath), `${name}/${locale}: missing native Retina capture`);
+    check(fs.existsSync(retinaPath), `${name}/${locale}: missing Retina capture`);
     if (fs.existsSync(retinaPath)) {
       const retina = fs.readFileSync(retinaPath);
       check(retina.readUInt32BE(16) === image.readUInt32BE(16) * 2 && retina.readUInt32BE(20) === image.readUInt32BE(20) * 2, `${name}/${locale}: 2x capture must retain the logical viewport`);
@@ -112,16 +111,15 @@ for (const component of components) {
     check(html.includes(`href="${localeUrl(`components/${slug}/`, alternate)}"`), `${name}/${locale}: language link must retain the current component`);
     check(/<h1>[^<]*Slint<\/h1>/.test(html) && html.includes(`<code>${name}</code>`), `${name}/${locale}: heading must describe the Slint component and retain its API name`);
     const code = [...html.matchAll(/<pre><code class="language-slint">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
-    check(code.includes(example.trim()), `${name}/${locale}: displayed code differs from the native capture source`);
+    check(code.includes(example.trim()), `${name}/${locale}: displayed code differs from the capture source`);
     if (starters[slug]) {
-      const starter = path.join(docs, 'quickstart', slug);
+      const starter = path.join(docs, '.generated/consumers', slug);
       const capture = starterCaptures[slug];
       check(starters[slug].component === name, `${name}: starter must match its component`);
-      check(capture.environment?.backend === 'winit' && capture.environment?.renderer === 'skia', `${name}: starter must identify its native capture backend`);
-      for (const [file, checksum] of Object.entries(capture.source_sha256)) {
-        check(sha(fs.readFileSync(path.join(starter, file))) === checksum, `${name}: starter source changed; recapture the working app after ${file}`);
-      }
-      check(sha(fs.readFileSync(path.join(starter, capture.image.file))) === capture.image.sha256, `${name}: starter screenshot differs from its native proof`);
+      check(['winit','browser'].includes(capture.environment?.backend) && ['skia','femtovg'].includes(capture.environment?.renderer), `${name}: starter must identify its actual capture backend`);
+      // Package locks and README changes do not invalidate a rendered scene.
+      // The individual render key above covers UI, host and resolved runtime.
+      check(sha(fs.readFileSync(path.join(docs, 'quickstart', slug, capture.image.file))) === capture.image.sha256, `${name}: starter screenshot differs from its capture proof`);
       const blocks = [...html.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
       for (const file of ['Cargo.toml', 'build.rs', 'ui/app.slint', 'src/main.rs']) {
         const source = fs.readFileSync(path.join(docs, 'quickstart', slug, file), 'utf8');
@@ -141,14 +139,22 @@ const htmlFiles = fs.existsSync(output) ? walk(output).filter(file => file.endsW
 const browserPreview = fs.readFileSync(path.join(output, 'preview/index.html'), 'utf8');
 check(browserPreview.includes('<meta name="robots" content="noindex">'), 'Interactive preview shell must stay out of search results');
 const webPreviews = JSON.parse(fs.readFileSync(path.join(docs, '.generated/web/manifest.json'), 'utf8'));
-for (const [file, checksum] of Object.entries(webPreviews.source_sha256 || {})) {
-  check(sha(fs.readFileSync(path.join(docs, '..', file))) === checksum, `Browser preview source changed: rebuild after ${file}`);
-}
-check(Object.keys(webPreviews.source_sha256 || {}).length > components.length * 5, 'Browser preview build must record corresponding source hashes');
-check(/\/assets\/previews\/[a-f0-9]{20}$/.test(webPreviews.base), 'Browser assets must have a content-addressed URL');
+check(webPreviews.schema === 2 && webPreviews.defaultTheme === 'tailwind', 'Browser previews need individual theme variants with Tailwind as default');
 check(webPreviews.components.length === components.length && components.every(c => webPreviews.components.includes(c.slug)), 'Browser preview must cover every public component');
-for (const file of ['slint_kit_previews.js', 'slint_kit_previews_bg.wasm', 'source.tar.gz', 'NOTICE.txt', 'THIRD_PARTY_NOTICES.txt']) {
-  check(fs.existsSync(path.join(output, webPreviews.base, file)), `Browser preview missing ${file}`);
+for (const component of components) {
+  for (const theme of ['kit', 'tailwind']) {
+    const entry = webPreviews.entries[component.slug]?.[theme];
+    check(entry && new RegExp(`/assets/previews/${component.slug}/${theme}/[a-f0-9]{20}$`).test(entry.base), `Missing independent preview ${component.slug}/${theme}`);
+    if (!entry) continue;
+    for (const [name,checksum] of Object.entries(entry.assets)) {
+      const file=path.join(output,entry.base,name);
+      check(fs.existsSync(file) && sha(fs.readFileSync(file))===checksum, `Preview integrity mismatch: ${component.slug}/${theme}/${name}`);
+    }
+    for (const [name,checksum] of Object.entries(entry.sourceAssets)) {
+      const file=path.join(output,entry.sources[name]);
+      check(fs.existsSync(file) && sha(fs.readFileSync(file))===checksum, `Preview source integrity mismatch: ${component.slug}/${theme}/${name}`);
+    }
+  }
 }
 const origin = siteOrigin();
 check(!fs.existsSync(path.join(output, 'en')), 'Legacy /en pages must redirect, not remain duplicate HTML output');
@@ -206,9 +212,9 @@ for (const file of htmlFiles) {
       check(Number(image[0].match(/\bwidth="(\d+)"/)?.[1]) === pixels.readUInt32BE(16) && Number(image[0].match(/\bheight="(\d+)"/)?.[1]) === pixels.readUInt32BE(20), `${route}: declared PNG dimensions must match the actual capture`);
       if (src.startsWith('/assets/components/')) {
         const retinaSrc = src.replace(/\.png$/, '@2x.png');
-        check(image[0].includes(`srcset="${retinaSrc} 2x"`), `${route}: native preview needs a 2x source`);
+        check(image[0].includes(`srcset="${retinaSrc} 2x"`), `${route}: preview needs a 2x source`);
         const retinaPath = path.join(output, retinaSrc.slice(1));
-        check(fs.existsSync(retinaPath), `${route}: missing native Retina preview`);
+        check(fs.existsSync(retinaPath), `${route}: missing Retina preview`);
         if (fs.existsSync(retinaPath)) {
           const retina = fs.readFileSync(retinaPath);
           check(retina.readUInt32BE(16) === pixels.readUInt32BE(16) * 2 && retina.readUInt32BE(20) === pixels.readUInt32BE(20) * 2, `${route}: Retina image must preserve the logical preview size`);
@@ -351,4 +357,4 @@ check(robots.split('\n').filter(line => line.startsWith('Sitemap:')).join('\n') 
 
 check(htmlFiles.length === expectedPageCount, 'Incomplete or duplicated site output');
 if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
-else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized native screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);
+else console.log(`Documentation checks passed: ${components.length} public components, ${components.length * 2} localized references, ${components.length * 2} localized screenshots, verbatim examples, ${htmlFiles.length} canonical HTML pages and sitemap URLs, English root/French routes, legacy redirects, standalone consumer, local links and image provenance.`);
