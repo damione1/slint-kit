@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -5,18 +7,19 @@ import { KitField, KitFieldError, KitTextField, KitTheme, KitThemes, ValidationP
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitFieldError example";
     preferred-width: 420px;
     preferred-height: 220px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "alex@";
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Field Error"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitField {
+        KitField { theme: root.theme;
             KitTextField { theme: root.theme; label: "Email"; text <=> root.draft-0; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }
         }
     }

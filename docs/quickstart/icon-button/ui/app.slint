@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -7,13 +9,14 @@ export enum DemoAction { create-project }
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitIconButton example";
     preferred-width: 320px;
     preferred-height: 150px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in property <string> status: "Choose an action.";
     callback action-requested(DemoAction);
     VerticalLayout {

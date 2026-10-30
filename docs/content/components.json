@@ -193,9 +193,9 @@
   },
   "KitCalendar": {
     "fr": {
-      "summary": "Grille mensuelle pour choisir une date civile.",
-      "usage": "Construisez le modèle des jours avec CalendarController puis connectez sélection et navigation CalendarNavigation.",
-      "behavior": "L’exemple reconstruit la grille lors de la navigation et affiche le CivilDate sélectionné. La semaine commence le lundi.",
+      "summary": "Calendrier grégorien navigable au clavier, avec sélection, disponibilités et libellés localisés gérés par l’hôte.",
+      "usage": "Construisez les CalendarDay avec CalendarController::with_constraints. Reliez choose et CalendarNavigation, puis can_navigate à previous-enabled/next-enabled. Les sept valeurs WeekStart sont disponibles.",
+      "behavior": "L’exemple de réservation bloque les week-ends et les 13–15 octobre, affiche des mois et dates lisibles, puis permet de commencer la semaine lundi ou dimanche. Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule reste navigable sans accepter de date. DateSetController gère plusieurs dates et grid_for_month compose plusieurs mois avec les mêmes règles hôtes.",
       "label": "Calendrier",
       "seoTitle": "Calendrier pour Slint",
       "related": [
@@ -204,9 +204,9 @@
       ]
     },
     "en": {
-      "summary": "Month grid for choosing a civil date.",
-      "usage": "Build the day model with CalendarController, then connect date selection and CalendarNavigation callbacks.",
-      "behavior": "The example rebuilds the grid when you navigate and displays the selected CivilDate. Week start is Monday.",
+      "summary": "Keyboard-friendly Gregorian calendar with host-owned selection, availability and localized labels.",
+      "usage": "Build CalendarDay projections with CalendarController::with_constraints. Wire choose and CalendarNavigation, and bind can_navigate to previous-enabled/next-enabled. All seven WeekStart values are supported.",
+      "behavior": "The executable booking example blocks weekends and October 13–15, shows readable month and full date labels, and switches Monday/Sunday week starts. Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only calendars remain browsable but never accept a date. Use DateSetController for multiple dates or grid_for_month to compose more than one month; keep all projections under the same host rules.",
       "label": "Calendar",
       "seoTitle": "Calendar for Slint",
       "related": [
@@ -601,9 +601,9 @@
     "fr": {
       "label": "Sélecteur de date",
       "seoTitle": "Sélecteur de date pour Slint",
-      "summary": "Saisie de date avec calendrier contextuel.",
-      "usage": "Liez le texte de date, fournissez les jours de CalendarController et connectez validation texte et sélection du calendrier.",
-      "behavior": "L’exemple analyse AAAA-MM-JJ. Choisir un jour accepte cette date ; Annuler restaure la date acceptée.",
+      "summary": "Champ de date ISO éditable, avec calendrier déroulant et règles de réservation communes.",
+      "usage": "Conservez text au format YYYY-MM-DD, projetez les jours de CalendarController et validez saisie et clics avec les mêmes DateConstraints. Reliez previous-enabled/next-enabled à can_navigate.",
+      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -613,9 +613,9 @@
     "en": {
       "label": "Date Picker",
       "seoTitle": "Date Picker for Slint",
-      "summary": "Date text input with a popup calendar.",
-      "usage": "Bind the date text, supply a CalendarController day model and connect both typed commits and calendar selections.",
-      "behavior": "The example parses YYYY-MM-DD. Picking a day accepts that date; cancel restores the accepted date.",
+      "summary": "Editable ISO date field with a calendar popover and consistent booking constraints.",
+      "usage": "Keep text in YYYY-MM-DD, project CalendarController days, and validate both typed commits and calendar choices against the same DateConstraints. Bind previous-enabled/next-enabled from can_navigate.",
+      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -625,9 +625,9 @@
   },
   "KitDateRangePicker": {
     "fr": {
-      "summary": "Calendrier pour sélectionner une date de début et une date de fin.",
-      "usage": "Reliez les jours à DateRangeController et publiez sa phase de sélection. Appliquer valide une plage complète ; Annuler la restaure.",
-      "behavior": "L’exemple marque les deux extrémités et les dates intermédiaires. La fin doit suivre le début.",
+      "summary": "Sélection provisoire d’une période, avec confirmation, annulation et durée de séjour validée par l’hôte.",
+      "usage": "Utilisez DateRangeController::with_rules avec DateRangeRules et DateConstraints. Projetez extrémités et intérieur, traitez choose/apply-requested/cancelled et traduisez les invitations et boutons.",
+      "behavior": "L’exemple commence du 19 au 23 octobre et accepte 2 à 14 nuits. Les week-ends et les 13–15 octobre sont indisponibles, même à l’intérieur d’une période dont les extrémités sont valides. Une fin refusée conserve le début ; Cancel restaure la période acceptée. Une période d’un seul jour vaut zéro nuit. La lecture seule permet le parcours sans changer la période ; les contrôles désactivés ne confirment ni n’annulent.",
       "label": "Sélecteur de plage de dates",
       "seoTitle": "Sélecteur de plage de dates pour Slint",
       "related": [
@@ -636,9 +636,9 @@
       ]
     },
     "en": {
-      "summary": "Calendar for selecting a start date and an end date.",
-      "usage": "Connect day requests to DateRangeController and publish its selection phase. Apply commits a complete range; Cancel restores it.",
-      "behavior": "The example highlights both endpoints and the dates between them. The end must follow the start.",
+      "summary": "Staged date-range selection with explicit Apply/Cancel actions and host-validated stay lengths.",
+      "usage": "Use DateRangeController::with_rules with DateRangeRules and DateConstraints. Project range endpoints and interior cells, handle choose/apply-requested/cancelled, and localize the range prompts and action labels.",
+      "behavior": "The example starts with October 19–23 selected and accepts stays of 2–14 nights. Weekends and October 13–15 are unavailable, including when they lie between otherwise valid endpoints. A failed end selection preserves the start; Cancel restores the accepted range. A same-day range is zero nights. Read-only calendars browse without changing the range; disabled controls cannot apply or cancel.",
       "label": "Date Range Picker",
       "seoTitle": "Date Range Picker for Slint",
       "related": [

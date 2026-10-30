@@ -1,14 +1,18 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitDataTable, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit/kit.slint";
 export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep }
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Slint data table";
     preferred-width: 620px; preferred-height: 520px;
     max-width: 100000px; max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in property <[TableRow]> rows;
     in property <[TableColumn]> columns;
     in property <int> generation;
@@ -19,15 +23,15 @@ export component App inherits Window {
     callback move(NavigationStep);
     VerticalLayout {
         padding: 24px; spacing: 16px;
-        Text { text: "The people behind the work"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
-        Text { text: "8 teammates · sort by name or select a row to see its accepted identity."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
-        table := KitDataTable {
+        Text { text: "The people behind the work"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "8 teammates · sort by name or select a row to see its accepted identity."; color: root.theme.text-secondary; wrap: word-wrap; }
+        table := KitDataTable { theme: root.theme;
             height: 350px; rows: root.rows; columns: root.columns;
             generation: root.generation; active-index: root.active-index;
             sort-requested(token) => { root.sort(token); }
             activate(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }
         }
-        Text { text: root.selected-label; color: KitThemes.light.text-primary; }
+        Text { text: root.selected-label; color: root.theme.text-primary; }
     }
 }

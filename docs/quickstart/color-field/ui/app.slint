@@ -1,14 +1,18 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import {KitColorField,KitThemes,SrgbColorView,ColorChannel,NavigationStep} from "@kit/kit.slint";
 export {SrgbColorView,ColorChannel,NavigationStep}
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
- title:"color-field";preferred-width:540px;preferred-height:700px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+ title:"color-field";preferred-width:540px;preferred-height:700px;max-width:100000px;max-height:100000px;background:root.theme.canvas;
  in-out property <string> hex;in property <string> error;in property <string> accepted;in property <SrgbColorView> color-value;in property <color> swatch;
  callback commit(string);callback edit();callback choose(SrgbColorView);callback cancel();
  VerticalLayout{padding:24px;spacing:16px;alignment:start;
- control:=KitColorField{label:"Accent color";accepted-color:root.color-value;swatch:root.swatch;color-requested(value)=>{root.choose(value);}text<=>root.hex;error:root.error;edited(value)=>{root.edit();}commit-requested(value)=>{root.commit(value);}cancelled=>{root.cancel();}}
- Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ control:=KitColorField{ theme: root.theme;label:"Accent color";accepted-color:root.color-value;swatch:root.swatch;color-requested(value)=>{root.choose(value);}text<=>root.hex;error:root.error;edited(value)=>{root.edit();}commit-requested(value)=>{root.commit(value);}cancelled=>{root.cancel();}}
+ Text{text:"Accepted: "+root.accepted;color:root.theme.text-primary;wrap:word-wrap;}
  }
 }

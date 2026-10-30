@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -5,13 +7,14 @@ import { KitInputGroup, KitInputGroupStart, KitInputGroupText, KitTheme, KitThem
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitInputGroupStart example";
     preferred-width: 420px;
     preferred-height: 180px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "129.95";
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
@@ -20,7 +23,7 @@ export component App inherits Window {
             theme: root.theme; focused: editor.has-focus;
             HorizontalLayout {
                 spacing: 8px;
-                KitInputGroupStart { KitInputGroupText { theme: root.theme; text: "USD"; } }
+                KitInputGroupStart { theme: root.theme; KitInputGroupText { theme: root.theme; text: "USD"; } }
                 Rectangle {
                     horizontal-stretch: 1; min-width: 0px; clip: true;
                     viewport := Flickable {

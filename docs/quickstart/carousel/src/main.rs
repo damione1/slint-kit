@@ -2,10 +2,10 @@
 use slint::ComponentHandle;
 use slint_kit::{Ownership, SelectOption, SelectionIntent};
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-enum Destination { Overview, Activity, Settings }
+enum Destination { Alpine, Desert, Coast }
 impl Destination {
     fn label(self) -> &'static str {
-        match self { Self::Overview => "Alpine morning", Self::Activity => "Desert light", Self::Settings => "Coastal calm" }
+        match self { Self::Alpine => "Alpine morning", Self::Desert => "Desert light", Self::Coast => "Coastal calm" }
     }
 }
 
@@ -17,10 +17,10 @@ fn main() -> Result<(), slint::PlatformError> {
     app.set_desert(landscape(Landscape::Desert));
     app.set_coast(landscape(Landscape::Coast));
     let selection = slint_kit::bind_select!(ui, app, vec![
-        SelectOption { key: Destination::Overview, label: "Alpine morning".into(), description: "A quiet trail, an open sky, and a little room to think.".into(), disabled: false },
-        SelectOption { key: Destination::Activity, label: "Desert light".into(), description: "Find fresh perspective in the warm light of the desert.".into(), disabled: false },
-        SelectOption { key: Destination::Settings, label: "Coastal calm".into(), description: "Slow down by the water and make space for your next idea.".into(), disabled: false },
-    ], Some(Destination::Overview), Ownership::Local);
+        SelectOption { key: Destination::Alpine, label: "Alpine morning".into(), description: "A quiet trail, an open sky, and a little room to think.".into(), disabled: false },
+        SelectOption { key: Destination::Desert, label: "Desert light".into(), description: "Find fresh perspective in the warm light of the desert.".into(), disabled: false },
+        SelectOption { key: Destination::Coast, label: "Coastal calm".into(), description: "Slow down by the water and make space for your next idea.".into(), disabled: false },
+    ], Some(Destination::Alpine), Ownership::Local);
     let weak = app.as_weak();
     selection.on_intent(move |intent| {
         if let Some(app) = weak.upgrade() {

@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -7,13 +9,14 @@ export enum DemoAction { save-project }
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitScrollArea example";
     preferred-width: 480px;
     preferred-height: 290px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "Field notes";
     in-out property <string> draft-1: "alex@example.com";
     in-out property <string> draft-2: "https://example.com";
@@ -23,7 +26,7 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Scroll Area"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitScrollArea { height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; } KitTextField { theme: root.theme; label: "Email address"; text <=> root.draft-1; } KitTextField { theme: root.theme; label: "Website"; text <=> root.draft-2; } KitTextField { theme: root.theme; label: "Phone"; text <=> root.draft-3; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        KitScrollArea { theme: root.theme; height: 190px; inset: LayoutSpace.compact; gap: LayoutSpace.regular; KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; } KitTextField { theme: root.theme; label: "Email address"; text <=> root.draft-1; } KitTextField { theme: root.theme; label: "Website"; text <=> root.draft-2; } KitTextField { theme: root.theme; label: "Phone"; text <=> root.draft-3; } KitTextArea { theme: root.theme; label: "Notes"; text: "Keep observations and decisions together."; } KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

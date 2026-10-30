@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -5,13 +7,14 @@ import { KitSteps, KitTheme, KitThemes, StepState } from "@kit/kit.slint";
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitSteps example";
     preferred-width: 420px;
     preferred-height: 280px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Steps"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }

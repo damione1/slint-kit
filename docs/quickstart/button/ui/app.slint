@@ -1,22 +1,26 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import { KitButton, KitThemes } from "@kit/kit.slint";
 
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Slint button";
     preferred-width: 420px;
     preferred-height: 220px;
     max-width: 100000px;
     max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in property <int> count;
     callback increment();
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        button := KitButton { text: "Count in Rust"; activated => { root.increment(); } }
-        count-label := Text { text: "Rust callback count: " + root.count; color: KitThemes.light.text-primary; }
+        button := KitButton { theme: root.theme; text: "Count in Rust"; activated => { root.increment(); } }
+        count-label := Text { text: "Rust callback count: " + root.count; color: root.theme.text-primary; }
     }
 }

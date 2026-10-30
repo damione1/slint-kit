@@ -1,13 +1,17 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import {KitFileList,KitThemes,FileViewEntry} from "@kit/kit.slint";
 export {FileViewEntry}
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
- title:"File list";preferred-width:540px;preferred-height:360px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+ title:"File list";preferred-width:540px;preferred-height:360px;max-width:100000px;max-height:100000px;background:root.theme.canvas;
  in property <[FileViewEntry]> entries;in property <string> status;callback remove(int,int);
  VerticalLayout{padding:24px;spacing:16px;alignment:start;
- control:=KitFileList{entries:root.entries;remove-requested(token,generation)=>{root.remove(token,generation);}}
- Text{text:root.status;color:KitThemes.light.text-primary;}
+ control:=KitFileList{ theme: root.theme;entries:root.entries;remove-requested(token,generation)=>{root.remove(token,generation);}}
+ Text{text:root.status;color:root.theme.text-primary;}
  }
 }

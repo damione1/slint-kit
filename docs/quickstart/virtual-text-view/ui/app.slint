@@ -1,14 +1,18 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitVirtualTextView, KitThemes, TextLine, TextViewAccess, NavigationStep } from "@kit/kit.slint";
 export { TextLine, NavigationStep }
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Slint virtual text view";
     preferred-width: 640px; preferred-height: 620px;
     max-width: 100000px; max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in property <[TextLine]> lines;
     in property <int> active-index: -1;
     in-out property <string> draft;
@@ -20,10 +24,10 @@ export component App inherits Window {
     callback copied(int, int);
     VerticalLayout {
         padding: 24px; spacing: 16px;
-        Text { text: "Project notebook"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; }
-        Text { text: "15 lines · choose a line to edit, save, or copy it."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
-        Rectangle { border-width: 1px; border-color: KitThemes.light.border-subtle; border-radius: 12px; background: KitThemes.light.surface;
-        document := KitVirtualTextView { height: 420px; lines: root.lines; generation: 1;
+        Text { text: "Project notebook"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; }
+        Text { text: "15 lines · choose a line to edit, save, or copy it."; color: root.theme.text-secondary; wrap: word-wrap; }
+        Rectangle { border-width: 1px; border-color: root.theme.border-subtle; border-radius: 12px; background: root.theme.surface;
+        document := KitVirtualTextView { theme: root.theme; height: 420px; lines: root.lines; generation: 1;
             active-index: root.active-index; access: TextViewAccess.edit-line;
             line-draft <=> root.draft; error: root.error;
             select-line(token, generation) => { root.choose(token, generation); }
@@ -32,6 +36,6 @@ export component App inherits Window {
             copy-requested(token, generation) => { root.copied(token, generation); }
         }
         }
-        Text { text: root.status; color: KitThemes.light.text-primary; }
+        Text { text: root.status; color: root.theme.text-primary; }
     }
 }

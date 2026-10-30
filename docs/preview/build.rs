@@ -60,14 +60,40 @@ fn main() {
                    app.run()\n}}"
             )
         } else {
-            fs::read_to_string(host)
+            let host = fs::read_to_string(host)
                 .expect("starter Rust source")
                 .replace(
                     "slint::include_modules!();",
                     &format!("include!(concat!(env!(\"OUT_DIR\"), \"/{name}.rs\"));"),
                 )
                 .replace("pub fn main()", "fn main()")
-                .replace("fn main()", "pub fn run()")
+                .replace("fn main()", "pub fn run()");
+            let (creation, prefix) = if host.contains("let app = ui::App::new()?;") {
+                ("let app = ui::App::new()?;", "ui::")
+            } else {
+                assert!(
+                    host.contains("let app = App::new()?;"),
+                    "known starter entry point"
+                );
+                ("let app = App::new()?;", "")
+            };
+            let setup = format!(
+                r#"
+                let theme_window = app.as_weak();
+                crate::register_theme(move |mode| {{
+                    if let Some(app) = theme_window.upgrade() {{
+                        let palettes = app.global::<{prefix}KitThemes>();
+                        let theme = match mode {{
+                            crate::PreviewTheme::Light => palettes.get_light(),
+                            crate::PreviewTheme::Dark => palettes.get_dark(),
+                        }};
+                        app.global::<{prefix}KitThemeContext>().set_current(theme.clone());
+                        app.set_theme(theme);
+                    }}
+                }});
+            "#
+            );
+            host.replacen(creation, &format!("{creation}\n{setup}"), 1)
         };
         assert!(source.contains("pub fn run()"), "starter main entry point");
         let module = name.replace('-', "_");

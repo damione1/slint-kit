@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -5,17 +7,18 @@ import { KitCard, KitCardBody, KitTextField, KitTheme, KitThemes } from "@kit/ki
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitCardBody example";
     preferred-width: 440px;
     preferred-height: 260px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "Field notes";
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Card Body"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitCard { theme: root.theme; KitCardBody { Text { text: "A card body groups the primary content."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; } } }
+        KitCard { theme: root.theme; KitCardBody { theme: root.theme; Text { text: "A card body groups the primary content."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; } } }
     }
 }

@@ -13,6 +13,15 @@
 - Choice groups track keyboard versus pointer focus, removing stale rings after clicks while retaining keyboard indicators. Tooltip examples use `focus-visible`; hover and keyboard help no longer draw simultaneously. Dialog examples open on their heading and preserve normal Tab navigation.
 - Progress examples start at 65%, offer an explicit Animate/Pause action and respect reduced motion. Radial progress uses a continuous rounded arc. Reset buttons default to a visible secondary surface.
 - Expand catalogue examples with meaningful collections, original images, native multiline text, clear multi-selection and composed public Kit controls. Selected multi-select choices leave the available list until their chip is removed.
+- Component previews support light and dark presentation without losing the current draft or controller selection. Downloadable examples expose the same per-window `KitThemeContext` and explicit child theme bindings.
+
+### Calendar formats and availability
+
+- Add validated `DatePattern` for explicit Gregorian date formats, including compact, ordinal and ISO week dates, plus `DateNames` for host-localized month/weekday names and a French preset. Ambiguous adjacent variable-width numbers, two-digit years and time/time-zone directives are rejected. HTML date fields retain their canonical ISO value.
+- Add `DateConstraints` for inclusive bounds, unavailable weekdays and blackout ranges; `DateRangeRules` validates the entire period and optional night bounds. `DateSetController` manages multiple dates by `CivilDate`, and `grid_for_month` supports composing several visible months.
+- **Breaking for exhaustive matches:** `WeekStart` gains Tuesday through Saturday. `CalendarController::new` clears an initial selection outside its bounds and displays the clamped focused month; `show_month` keeps focus visible. Month/year navigation buttons now report whether the displayed month can actually change.
+- Calendar wrappers expose localized weekday/navigation/range labels and previous/next availability. Read-only calendars remain browsable without accepting a date. Picker popovers reserve seven full columns at 200% text.
+- Booking examples share their availability rules between typing and calendar choice, preserve rejected range drafts, and demonstrate Apply/Cancel, localized formats, Lucide icons and composed public cards.
 
 ### Built-in presentation and product composition
 

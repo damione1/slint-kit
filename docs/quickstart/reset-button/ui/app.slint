@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { LucideArrows } from "@kit/icons/lucide/arrows.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
@@ -5,20 +7,22 @@ export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraint
 import { KitResetButton, KitTextField, KitThemes, FormAction } from "@kit/kit.slint";
 export { FormAction }
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitResetButton";
     preferred-width: 460px;
     preferred-height: 260px;
     max-width: 100000px;
     max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in-out property <string> draft: "Field notes";
     in property <string> result: "Edit the draft, then use the action.";
     callback form-action(FormAction, string);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
-        KitTextField { label: "Project name"; text <=> root.draft; }
-        action := KitResetButton { leading-icon: LucideArrows.rotate-ccw(); text: "Reset draft"; form-action(action) => { root.form-action(action, root.draft); } }
-        Text { text: root.result; color: KitThemes.light.text-primary; wrap: word-wrap; }
+        KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft; }
+        action := KitResetButton { theme: root.theme; leading-icon: LucideArrows.rotate-ccw(); text: "Reset draft"; form-action(action) => { root.form-action(action, root.draft); } }
+        Text { text: root.result; color: root.theme.text-primary; wrap: word-wrap; }
     }
 }

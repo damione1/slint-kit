@@ -1,10 +1,14 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import {KitDirectoryPicker,KitThemes,HostRequestPresentation} from "@kit/kit.slint";
 export {HostRequestPresentation}
 export component App inherits Window{
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
- title:"Directory picker";preferred-width:540px;preferred-height:320px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+ title:"Directory picker";preferred-width:540px;preferred-height:320px;max-width:100000px;max-height:100000px;background:root.theme.canvas;
  in property <string> selected;in property <string> error;in property <HostRequestPresentation> request-state;callback browse();callback clear();
- VerticalLayout{padding:24px;spacing:16px;alignment:start;control:=KitDirectoryPicker{label:"Project folder";selected-name:root.selected;error:root.error;request-state:root.request-state;browse-requested=>{root.browse();}clear-requested=>{root.clear();}}}
+ VerticalLayout{padding:24px;spacing:16px;alignment:start;control:=KitDirectoryPicker{ theme: root.theme;label:"Project folder";selected-name:root.selected;error:root.error;request-state:root.request-state;browse-requested=>{root.browse();}clear-requested=>{root.clear();}}}
 }

@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -7,20 +9,21 @@ export enum DemoAction { save-project }
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitContainer example";
     preferred-width: 480px;
     preferred-height: 290px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "Field notes";
     in property <string> status: "Choose an action.";
     callback action-requested(DemoAction);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Container"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitContainer { min-height: self.preferred-height; Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        KitContainer { theme: root.theme; min-height: self.preferred-height; Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

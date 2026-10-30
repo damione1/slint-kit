@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -5,18 +7,19 @@ import { KitFieldGroup, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitFieldGroup example";
     preferred-width: 420px;
     preferred-height: 280px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in-out property <string> draft-0: "Alex";
     in-out property <string> draft-1: "Morgan";
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Field Group"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitFieldGroup { KitTextField { theme: root.theme; label: "First name"; text <=> root.draft-0; } KitTextField { theme: root.theme; label: "Last name"; text <=> root.draft-1; } }
+        KitFieldGroup { theme: root.theme; KitTextField { theme: root.theme; label: "First name"; text <=> root.draft-0; } KitTextField { theme: root.theme; label: "Last name"; text <=> root.draft-1; } }
     }
 }

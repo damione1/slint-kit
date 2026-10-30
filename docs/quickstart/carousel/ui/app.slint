@@ -1,16 +1,19 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitCarousel, KitBadge, Tone, KitProgress, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitCarousel example";
     preferred-width: 600px;
     preferred-height: 610px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in property <[OptionRow]> rows;
     in property <SelectState> select-state;
     in property <string> selected-label: "Alpine morning";
@@ -32,7 +35,7 @@ export component App inherits Window {
             theme: root.theme; rows: root.rows; state: root.select-state; action-label: "Open";
             KitBadge { theme: root.theme; tone: Tone.accent; leading-icon: root.theme.icons.article; text: "CURATED DESTINATIONS"; }
             Rectangle { height: 200px; border-radius: root.theme.shape.radius-container; clip: true;
-                Image { width: parent.width; height: parent.height; source: root.select-state.active-index == 1 ? root.desert : root.select-state.active-index == 2 ? root.coast : root.alpine; image-fit: cover; accessible-role: image; accessible-label: root.select-state.active-index == 1 ? "Original illustration of terracotta desert dunes at sunset" : root.select-state.active-index == 2 ? "Original illustration of blue coastal hills" : "Original illustration of alpine peaks under a pale sky"; }
+                Image { width: parent.width; height: parent.height; source: root.select-state.active.present && root.select-state.active.token == 1 ? root.desert : root.select-state.active.present && root.select-state.active.token == 2 ? root.coast : root.alpine; image-fit: cover; accessible-role: image; accessible-label: root.select-state.active.present && root.select-state.active.token == 1 ? "Original illustration of terracotta desert dunes at sunset" : root.select-state.active.present && root.select-state.active.token == 2 ? "Original illustration of blue coastal hills" : "Original illustration of alpine peaks under a pale sky"; }
             }
             KitProgress { theme: root.theme; label: "Explore the collection"; value: (root.select-state.active-index + 1) / max(1,root.rows.length); }
             navigate(step) => { root.select-navigate(step); }

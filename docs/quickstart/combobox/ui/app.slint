@@ -1,16 +1,20 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import { KitCombobox, KitThemes, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SearchPresentation } from "@kit/kit.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability }
 
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Slint combobox";
     preferred-width: 480px;
     preferred-height: 480px;
     max-width: 100000px;
     max-height: 100000px;
-    background: KitThemes.light.canvas;
+    background: root.theme.canvas;
     in property <[OptionRow]> rows;
     in property <SelectState> select-state;
     in property <string> selected-label: "Personal";
@@ -25,9 +29,9 @@ export component App inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        Text { text: "Find your workspace"; color: KitThemes.light.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
-        Text { text: "Search eight workspaces by name, or browse with the arrow keys."; color: KitThemes.light.text-secondary; wrap: word-wrap; }
-        workspace := KitCombobox {
+        Text { text: "Find your workspace"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Search eight workspaces by name, or browse with the arrow keys."; color: root.theme.text-secondary; wrap: word-wrap; }
+        workspace := KitCombobox { theme: root.theme;
             label: "Workspace";
             rows: root.rows;
             state: root.select-state;
@@ -42,6 +46,6 @@ export component App inherits Window {
             typeahead(text) => { root.select-typeahead(text); }
             tab-navigation(reverse) => { return reject; }
         }
-        selected-label-view := Text { text: "Accepted workspace: " + root.selected-label; color: KitThemes.light.text-primary; }
+        selected-label-view := Text { text: "Accepted workspace: " + root.selected-label; color: root.theme.text-primary; }
     }
 }

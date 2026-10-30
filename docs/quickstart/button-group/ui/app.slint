@@ -1,3 +1,5 @@
+export { KitThemeContext, KitThemes } from "@kit/kit.slint";
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -7,19 +9,20 @@ export enum DemoAction { back, next }
 
 export component App inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitButtonGroup example";
     preferred-width: 360px;
     preferred-height: 160px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     in property <string> status: "Choose an action.";
     callback action-requested(DemoAction);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Button Group"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitButtonGroup { KitButton { theme: root.theme; text: "Back"; activated => { root.action-requested(DemoAction.back); } }KitButton { theme: root.theme; text: "Next"; activated => { root.action-requested(DemoAction.next); } } }
+        KitButtonGroup { theme: root.theme; KitButton { theme: root.theme; text: "Back"; activated => { root.action-requested(DemoAction.back); } }KitButton { theme: root.theme; text: "Next"; activated => { root.action-requested(DemoAction.next); } } }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }
