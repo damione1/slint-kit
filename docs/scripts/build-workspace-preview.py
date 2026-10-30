@@ -5,10 +5,9 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tempfile
-from doc_inputs import ROOT, DOCS, compiler_environment, write_changed, write_json
+from doc_inputs import ROOT, DOCS, compiler_environment, source_hashes, write_changed, write_json
 
 
 def build():
@@ -24,7 +23,8 @@ def build():
         identity=hashlib.sha256(b''.join((temporary/name).read_bytes() for name in names)).hexdigest()[:20]
         for name in names: write_changed(output/identity/name,(temporary/name).read_bytes())
         sources=[DOCS/'src/assets/examples/workspace.slint',DOCS/'src/assets/examples/workspace.rs',DOCS/'workspace-preview/build.rs',DOCS/'workspace-preview/src/lib.rs',DOCS/'workspace-preview/Cargo.toml',DOCS/'workspace-preview/Cargo.lock']
-        record={'schema':1,'module':f'/assets/workspace-preview/{identity}/workspace.js','revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'sources':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sources},'bytes':{name:(temporary/name).stat().st_size for name in names}}
+        kit_sources=[path for path in (ROOT/'crates').rglob('*') if path.is_file() and path.suffix in ('.rs','.slint','.toml','.ttf')]
+        record={'kitSourceHashes':source_hashes(kit_sources),'schema':1,'module':f'/assets/workspace-preview/{identity}/workspace.js','revision':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'sources':{str(path.relative_to(ROOT)):hashlib.sha256(path.read_bytes()).hexdigest() for path in sources},'bytes':{name:(temporary/name).stat().st_size for name in names}}
         write_json(output/'manifest.json',record)
         print(json.dumps(record,indent=2))
 

@@ -51,7 +51,7 @@ fn valid_text(text: &str, minimum: usize) -> bool {
         min_length: Some(minimum),
         ..Default::default()
     }
-    .validate(text, HtmlInputState::default())
+    .validate(text, HtmlInputState { user_edited: true, ..Default::default() })
     .valid()
 }
 

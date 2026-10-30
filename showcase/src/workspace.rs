@@ -50,7 +50,13 @@ fn valid_text(text: &str, minimum: usize) -> bool {
         min_length: Some(minimum),
         ..Default::default()
     }
-    .validate(text, HtmlInputState::default())
+    .validate(
+        text,
+        HtmlInputState {
+            user_edited: true,
+            ..Default::default()
+        },
+    )
     .valid()
 }
 
@@ -279,5 +285,41 @@ mod tests {
             window.get_workspace_projects().row_data(0).unwrap().name,
             "Design system"
         );
+    }
+}
+
+#[cfg(test)]
+mod collection_scale_tests {
+    use super::*;
+    use i_slint_backend_testing::ElementQuery;
+    #[test]
+    fn the_collection_virtualizes_a_host_model_larger_than_the_sample() {
+        i_slint_backend_testing::init_no_event_loop();
+        let app = Showcase::new().unwrap();
+        let rows = (1..=10000)
+            .map(|key| WorkspaceProject {
+                key,
+                name: format!("Project {key}").into(),
+                description: "Host-provided model".into(),
+                ..Default::default()
+            })
+            .collect::<Vec<_>>();
+        app.set_workspace_projects(slint::ModelRc::new(slint::VecModel::from(rows)));
+        app.set_product_workspace(true);
+        app.set_workspace_page(crate::ui::WorkspacePage::Projects);
+        install(&app);
+        app.show().unwrap();
+        assert_eq!(app.get_workspace_projects().row_count(), 10000);
+        let materialized = ElementQuery::from_root(&app)
+            .match_id("ProductWorkspace::row")
+            .find_all()
+            .len();
+        assert!(
+            materialized > 0 && materialized < 100,
+            "finite viewport, materialized {materialized} of10000rows"
+        );
+        app.invoke_workspace_query_changed("Project 10000".into(), ProjectFilter::All);
+        assert_eq!(app.get_workspace_projects().row_count(), 1);
+        assert_eq!(app.get_workspace_projects().row_data(0).unwrap().key, 10000);
     }
 }

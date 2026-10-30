@@ -23,5 +23,20 @@ pub fn start() -> Result<(), JsValue> {
     let scene = parameters.get("scene");
     if matches!(scene.as_deref(),Some("projects" | "dialog")) { app.set_page(consumer::ui::WorkspacePage::Projects); }
     if scene.as_deref() == Some("dialog") { app.set_editor_status(consumer::ui::EditorStatus::Editing); }
+    APP.with(|stored| *stored.borrow_mut()=Some(app.as_weak()));
     app.run().map_err(|error|JsValue::from_str(&error.to_string()))
+}
+
+thread_local! {
+    static APP: std::cell::RefCell<Option<slint::Weak<consumer::ui::App>>> = const { std::cell::RefCell::new(None) };
+}
+
+#[wasm_bindgen]
+pub fn project_count() -> Result<u32, JsValue> {
+    use slint::Model;
+    APP.with(|stored| stored.borrow().as_ref().and_then(slint::Weak::upgrade).map(|app|u32::try_from(app.get_projects().row_count()).expect("browser model capacity")).ok_or_else(||JsValue::from_str("Workspace not running")))
+}
+#[wasm_bindgen]
+pub fn editor_state() -> Result<String, JsValue> {
+    APP.with(|stored| stored.borrow().as_ref().and_then(slint::Weak::upgrade).map(|app|match app.get_editor_status(){consumer::ui::EditorStatus::Closed=>"closed",consumer::ui::EditorStatus::Editing=>"editing",consumer::ui::EditorStatus::Saving=>"saving",consumer::ui::EditorStatus::Saved=>"saved"}.to_string()).ok_or_else(||JsValue::from_str("Workspace not running")))
 }
