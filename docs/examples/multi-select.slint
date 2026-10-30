@@ -1,21 +1,45 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMultiSelect, KitTheme, KitThemes, SelectionAvailability } from "@kit/kit.slint";
-
+import { KitMultiSelect, OptionRow, ChoiceRow, ChipRow, SelectState, NavigationStep, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitMultiSelect example";
-    preferred-width: 420px;
-    preferred-height: 220px;
+    preferred-width: 520px;
+    preferred-height: 540px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
+    in property <[OptionRow]> rows: [{ token: 11, generation: 1, label: "SMS", description: "", disabled: false }, { token: 25, generation: 1, label: "Desktop", description: "", disabled: false }, { token: 39, generation: 1, label: "In-app inbox", description: "", disabled: false }, { token: 53, generation: 1, label: "Weekly digest", description: "", disabled: false }, { token: 67, generation: 1, label: "Webhook", description: "", disabled: false }, { token: 81, generation: 1, label: "Calendar", description: "", disabled: false }];
+    in property <[ChoiceRow]> choices;
+    in property <[ChipRow]> chips: [{ token: 211, label: "Email", removable: true }, { token: 223, label: "Push", removable: true }];
+    in property <SelectState> select-state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: false, token: 11 }, selection-availability: SelectionAvailability.available };
+    in property <string> result: "2 channels selected: Email, Push";
+    callback toggle(int, int);
+    callback navigate(NavigationStep);
+    callback open();
+    callback close();
+    callback remove(int);
+    callback query(string);
+    callback typeahead(string);
     VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Multi Select"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitMultiSelect { width: 372px; theme: root.theme; rows: [{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]; chips: [{ token: 11, label: "Design", removable: true }]; state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        Text { text: "Keep in the loop"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Choose your notification channels. Selected channels appear above. Remove a chip to make it available again."; color: root.theme.text-secondary; wrap: word-wrap; }
+        control := KitMultiSelect {
+            theme: root.theme; rows: root.rows; chips: root.chips; state: root.select-state; placeholder: "Add another channel";
+            open-requested => { root.open(); }
+            navigate(step) => { root.navigate(step); }
+            activate(token, generation) => { root.toggle(token, generation); }
+            dismiss(reason) => { root.close(); }
+            tab-navigation(reverse) => { return reject; }
+            query-edited(text) => { root.query(text); }
+            typeahead(text) => { root.typeahead(text); }
+            remove-requested(token) => { root.remove(token); }
+        }
+        result := Text { text: root.result; color: root.theme.text-secondary; wrap: word-wrap; }
     }
+
 }

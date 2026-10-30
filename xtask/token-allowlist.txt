@@ -21,8 +21,7 @@ choice.slint | 40px | preferred-height: 40px | layout bound: slider natural heig
 choice.slint | 120px | min-width: 120px | layout bound: slider minimum track width
 color.slint | 48px | min-width: 48px * root.theme.text-scale | layout bound: channel label column
 color.slint | 26px | min-width: 26px * root.theme.text-scale | layout bound: channel value column
-color.slint | 340px | width: max(340px,260px * root.theme.text-scale) | layout bound: color picker popup width
-color.slint | 260px | width: max(340px,260px * root.theme.text-scale) | layout bound: color picker popup width at scaled text
+color.slint | 340px | width: max(340px,340px * root.theme.text-scale) | layout bound: color picker popup width
 color.slint | 48px | height: 48px | layout bound: draft color preview height
 data.slint | 140px | in property <length> minimum-column-width: 140px * root.theme.text-scale | layout bound: default table column width
 data.slint | 700px | preferred-width: 700px | layout bound: data table natural width
@@ -38,7 +37,6 @@ data.slint | 84px | max(84px,64px * root.theme.text-scale) | layout bound: line 
 data.slint | 64px | max(84px,64px * root.theme.text-scale) | layout bound: line editor band at scaled text
 datetime.slint | 72px | min-width: 72px * root.theme.text-scale | layout bound: time segment label column
 display.slint | 40px | in property <length> size: 40px | layout bound: default avatar size, a caller choice
-display.slint | 24px | width: max(root.size, 24px * root.theme.text-scale) | layout bound: avatar minimum at scaled text
 files.slint | 100px | min-height: max(100px, 64px * root.theme.text-scale) | layout bound: drop zone minimum height
 files.slint | 64px | min-height: max(100px, 64px * root.theme.text-scale) | layout bound: drop zone minimum height at scaled text
 layout.slint | 720px | ContentWidth.reading ? 720px | layout bound: reading content width
@@ -114,9 +112,6 @@ feedback.slint | 3px | (root.width / 2 - 3px) | intrinsic geometry: spinner dot 
 feedback.slint | 3px | (root.height / 2 - 3px) | intrinsic geometry: spinner dot orbit
 feedback.slint | 88px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress
 feedback.slint | 64px | preferred-width: max(88px, 64px * root.theme.text-scale) | intrinsic geometry: radial progress at scaled text
-feedback.slint | 4px | (root.width / 2 - 4px) | intrinsic geometry: radial progress dot orbit
-feedback.slint | 4px | (root.height / 2 - 4px) | intrinsic geometry: radial progress dot orbit
-input.slint | 10px | text-letter-spacing: 10px | intrinsic geometry: one-time code digit spacing
 
 # Behaviour constants, not motion tokens.
 display.slint | 650ms | interval: 650ms | behaviour: skeleton pulse period, longer than the slow fade it toggles
@@ -137,11 +132,11 @@ color.slint | #ffffff | #ffffff] | application data: default picker palette
 choice.slint | 1px | max(1px,root.width | guard: a measuring width never reaches zero
 choice.slint | 1px | max(1px, root.width - 2 * root.edge) | guard: no division by a zero-width track
 choice.slint | 1px | max(1px,root.width - 2 * root.edge) | guard: no division by a zero-width track
-input.slint | 2px | formatted-measure.preferred-width) + 2px) | text slack: room for the caret after the last glyph
+input.slint | 2px | formatted-measure.preferred-width) + 2px + root.text-inset) | text slack: room for the caret after the last glyph
 input.slint | 2px | formatted-measure.preferred-width + 2px) | text slack: room for the caret after the last glyph
 input.slint | 2px | self.preferred-width + 2px) | text slack: room for the caret after the last glyph
-input.slint | 2px | position.x + 2px | text slack: room for the caret after the last glyph
-input.slint | 2px | position.x - 2px | text slack: room for the caret after the last glyph
+input.slint | 2px | position.x + root.text-inset + 2px | text slack: room for the caret after the last glyph
+input.slint | 2px | position.x - root.text-inset - 2px | text slack: room for the caret after the last glyph
 select.slint | 2px | search.preferred-width + 2px) | text slack: room for the caret after the last glyph
 select.slint | 2px | position.x + 2px | text slack: room for the caret after the last glyph
 select.slint | 2px | position.x - 2px | text slack: room for the caret after the last glyph

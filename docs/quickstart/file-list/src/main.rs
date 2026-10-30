@@ -8,6 +8,7 @@ struct FileId(i32);
 struct Entry {
     id: FileId,
     name: &'static str,
+    detail: &'static str,
 }
 struct Files {
     generation: i32,
@@ -22,7 +23,7 @@ fn publish(app: &ui::App, state: &Files) {
                 token: entry.id.0,
                 generation: state.generation,
                 name: entry.name.into(),
-                detail: "Sample resource".into(),
+                detail: entry.detail.into(),
                 removable: true,
             })
             .collect::<Vec<_>>(),
@@ -37,15 +38,18 @@ fn main() -> Result<(), slint::PlatformError> {
         entries: vec![
             Entry {
                 id: FileId(11),
-                name: "brief.txt",
+                name: "Project brief.pdf",
+                detail: "PDF document · 248 KB",
             },
             Entry {
                 id: FileId(23),
-                name: "notes.md",
+                name: "Research notes.md",
+                detail: "Markdown · 12 KB",
             },
             Entry {
                 id: FileId(37),
-                name: "interface-preview.png",
+                name: "Interface preview.png",
+                detail: "PNG image · 1.4 MB",
             },
         ],
     }));

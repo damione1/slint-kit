@@ -4,6 +4,16 @@
 
 0.4.0 changes the theme and icon contracts. The Slint compiler reports every site that must change, so upgrade by following its errors. This list names each break.
 
+### Component polish and representative examples
+
+- Add `AvatarInteraction.static`/`.action`, `KitAvatar.activated`, `disabled`, `has-focus` and `take-focus()`. Portraits now scale to their actual bounds; initial avatars have a contrasted surface and action states. The example bundles an original fictional portrait and demonstrates image, initials and shape variants.
+- Add `FieldDecoration.boxed`/`.underlined` and `underline-segments` to native text fields and `KitInputGroup`; `KitOtpField.slots` controls its visual six-slot layout while Rust remains responsible for accepted length. Native editing stays in one `TextInput`; `text-font-family`, `text-inset` and measured `text-cell-width` let the OTP align partial native drafts with their first slot. **Theme contract:** `KitTypography.family-monospace` supplies the code font in both shipped themes.
+- Add optional decorative `leading-icon` to badges and stats, and semantic `tone` to stats. Improve semantic badge fills, steps, file rows and loading placeholders; skeletons remain visible on the light canvas.
+- Center checkbox indicators beside wrapped labels and content-list thumbnails beside copy. Color-picker popup actions fit the intrinsically measured content at enlarged text sizes.
+- Choice groups track keyboard versus pointer focus, removing stale rings after clicks while retaining keyboard indicators. Tooltip examples use `focus-visible`; hover and keyboard help no longer draw simultaneously. Dialog examples open on their heading and preserve normal Tab navigation.
+- Progress examples start at 65%, offer an explicit Animate/Pause action and respect reduced motion. Radial progress uses a continuous rounded arc. Reset buttons default to a visible secondary surface.
+- Expand catalogue examples with meaningful collections, original images, native multiline text, clear multi-selection and composed public Kit controls. Selected multi-select choices leave the available list until their chip is removed.
+
 ### Built-in presentation and product composition
 
 - **Breaking:** Tailwind is the single built-in presentation through `KitThemes.light` and `.dark`. Components use it by default through the existing `@kit` imports and `slint-kit-build` integration; the separate theme package and Base/Tailwind selectors are removed.

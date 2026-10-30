@@ -1,21 +1,30 @@
-import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitHero, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitButton, KitHero, KitTheme, KitThemes, KitBadge, Tone, ButtonIntent, LayoutSpace } from "@kit/kit.slint";
+export enum DemoAction { create-workspace }
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitHero example";
-    preferred-width: 520px;
-    preferred-height: 300px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    title: "Hero";
+    preferred-width: 640px; preferred-height: 530px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Hero"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitHero { theme: root.theme; title: "Make room for ideas."; description: "A shared workspace for your next project."; KitButton { theme: root.theme; text: "Create workspace"; activated => { root.status = "Action requested"; } } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    background: root.theme.canvas;
+    in property <string> status: "A new workspace is ready when you are."; callback action-requested(DemoAction);
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        KitBadge { theme: root.theme; leading-icon: root.theme.icons.check; text: "YOUR NEXT GREAT IDEA STARTS HERE"; tone: Tone.accent; }
+        KitHero { theme: root.theme; inset: LayoutSpace.section;
+            title: "Make room for\nsomething great.";
+            description: "Bring your notes, plans, and people together. One calm workspace to turn a spark of inspiration into your next finished project.";
+            FlexboxLayout { spacing: 12px; flex-wrap: wrap; alignment: start;
+                KitButton { theme: root.theme; intent: ButtonIntent.primary; leading-icon: root.theme.icons.plus; text: "Create workspace"; activated => { root.action-requested(DemoAction.create-workspace); } }
+                KitBadge { theme: root.theme; text: "A fresh start, in seconds"; tone: Tone.success; }
+            }
+        }
+        HorizontalLayout { spacing: 20px;
+            Text { text: "01  Collect your ideas"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+            Text { text: "02  Make a plan"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+            Text { text: "03  Build together"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

@@ -46,7 +46,7 @@ export component KitPressable inherits Rectangle {
     private property <bool> space-held;
     private property <bool> enter-held;
     private property <bool> pointer-armed;
-    private property <bool> keyboard-focus: true;
+    private property <bool> keyboard-focus;
     public function cancel-press() {
         root.space-held = false;
         root.enter-held = false;
@@ -106,7 +106,8 @@ export component KitPressable inherits Rectangle {
         focus-on-tab-navigation: root.tab-stop;
         focus-on-click: false;
         focus-gained(reason) => {
-            root.keyboard-focus = reason != FocusReason.pointer-click;
+            if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
+            else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
             root.focus-observed(true);
         }
         focus-lost(reason) => {
@@ -212,7 +213,7 @@ export component KitSubmitButton inherits KitFormButton {
 }
 export component KitResetButton inherits KitFormButton {
     action: FormAction.reset;
-    intent: ButtonIntent.quiet;
+    intent: ButtonIntent.secondary;
 }
 export component KitIconButton inherits KitPressable {
     // The action's glyph, e.g. `root.theme.icons.close` or `LucideIcons.trash()`.

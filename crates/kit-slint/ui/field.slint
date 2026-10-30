@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext } from "theme.slint";
+import { KitIcon } from "icons.slint";
 import { FocusOutline } from "focus.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent, ControlWidth } from "theme.slint";
 import { FocusRequest } from "contracts.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 export { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
+
+export enum FieldDecoration { boxed, underlined }
 
 export component KitField inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -82,6 +85,8 @@ export component KitInputGroup inherits Rectangle {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <bool> focused;
+    in property <FieldDecoration> decoration: FieldDecoration.boxed;
+    in property <int> underline-segments: 1;
     out property <bool> hovered: hover.has-hover;
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     in property <length> corner-radius: root.recipe.radius;
@@ -90,9 +95,9 @@ export component KitInputGroup inherits Rectangle {
     min-height: root.recipe.height;
     preferred-height: self.min-height;
     vertical-stretch: 0;
-    background: root.recipe.fill;
+    background: root.decoration == FieldDecoration.boxed ? root.recipe.fill : transparent;
     border-radius: root.corner-radius;
-    border-width: root.recipe.border-width;
+    border-width: root.decoration == FieldDecoration.boxed ? root.recipe.border-width : 0px;
     border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
     // A parent TouchArea observes hover before its children see the event,
     // so the native editor and actions keep every press, caret and selection.
@@ -104,7 +109,19 @@ export component KitInputGroup inherits Rectangle {
             @children
         }
     }
-    if root.focused: FocusOutline {
+    if root.decoration == FieldDecoration.underlined: Rectangle {
+        x: root.padding-inline; y: root.height - root.theme.shape.border-width-strong;
+        width: max(0px, root.width - 2 * root.padding-inline);
+        height: root.theme.shape.border-width-strong;
+        for index in max(1, root.underline-segments): Rectangle {
+            private property <length> cell-width: parent.width / max(1, root.underline-segments);
+            private property <length> gap: root.underline-segments > 1 ? root.theme.spacing.unit * 2 : 0px;
+            x: index * self.cell-width + self.gap / 2; y: 0px;
+            width: max(0px,self.cell-width - self.gap); height: parent.height;
+            background: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.focused ? root.theme.focus.color : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        }
+    }
+    if root.focused && root.decoration == FieldDecoration.boxed: FocusOutline {
         ring: root.recipe.focus; radius: root.corner-radius;
         host-width: root.width; host-height: root.height;
     }
@@ -146,23 +163,39 @@ export component KitFormErrorSummary inherits KitFieldGroup {
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
     spacing: KitMetrics.help-gap(root.theme);
-    if root.errors.length > 0: KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
-    for error in root.errors: error-action := KitPressable {
-        theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
-        accessible-name: error.message;
-        preferred-height: max(KitMetrics.density(root.theme, ControlSize.compact).height, message.preferred-height + 2 * error-action.recipe.padding-block);
-        min-height: self.preferred-height;
-        activated => { root.error-activated(error.target); }
-        message := Text {
-            x: 0px; y: 0px;
-            width: max(0px, error-action.width - 2 * error-action.recipe.padding-inline);
-            height: max(0px, error-action.height - 2 * error-action.recipe.padding-block);
-            text: error.message;
-            color: root.theme.danger;
-            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-            wrap: word-wrap;
-            horizontal-alignment: left;
-            vertical-alignment: center;
+    if root.errors.length > 0: Rectangle {
+        background: root.theme.danger-subtle;
+        border-width: root.theme.shape.border-width;
+        border-color: root.theme.danger;
+        border-radius: root.theme.shape.radius-container;
+        preferred-height: content.preferred-height; min-height: self.preferred-height;
+        accessible-role: groupbox; accessible-label: root.title;
+        content := VerticalLayout {
+            width: parent.width; height: self.preferred-height;
+            padding: root.theme.spacing.unit * 4;
+            spacing: KitMetrics.help-gap(root.theme); alignment: start;
+            HorizontalLayout { spacing: root.theme.spacing.unit * 2;
+                Rectangle { width: KitMetrics.icon-size(root.theme, ControlSize.medium); horizontal-stretch: 0;
+                    KitIcon { theme: root.theme; glyph: root.theme.icons.warning; ink: root.theme.danger; y: (parent.height - self.height) / 2; }
+                }
+                KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
+            }
+            for error in root.errors: error-action := KitPressable {
+                theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
+                accessible-name: error.message;
+                padding-inline: root.theme.spacing.unit * 2;
+                preferred-height: max(KitMetrics.density(root.theme, ControlSize.compact).height, message.preferred-height + 2 * self.padding-block);
+                min-height: self.preferred-height;
+                activated => { root.error-activated(error.target); }
+                message := Text {
+                    x: 0px; y: 0px;
+                    width: max(0px,error-action.width - 2 * error-action.padding-inline);
+                    height: max(0px,error-action.height - 2 * error-action.padding-block);
+                    text: error.message; color: root.theme.danger;
+                    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                    wrap: word-wrap; horizontal-alignment: left; vertical-alignment: center;
+                }
+            }
         }
     }
 }

@@ -1,12 +1,12 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTabs, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitCard, KitBadge, Tone, KitTabs, KitProgress, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
     title: "KitTabs example";
     preferred-width: 520px;
-    preferred-height: 300px;
+    preferred-height: 490px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -25,6 +25,7 @@ export component App inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
+        Text { text: "Studio workspace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         control := KitTabs {
             theme: root.theme; rows: root.rows; state: root.select-state;
             navigate(step) => { root.select-navigate(step); }
@@ -32,7 +33,14 @@ export component App inherits Window {
             dismiss(reason) => { root.select-dismiss(reason); }
             typeahead(text) => { root.select-typeahead(text); }
         }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+        KitCard { theme: root.theme;
+            KitBadge { theme: root.theme; leading-icon: root.theme.icons.check; text: root.selected-label == "Overview" ? "PROJECT SNAPSHOT" : root.selected-label == "Activity" ? "LATEST UPDATES" : "PREFERENCES"; tone: Tone.accent; }
+            Text { text: root.selected-label == "Overview" ? "A clearer view of what’s next" : root.selected-label == "Activity" ? "Good work is happening" : "A workspace that fits you"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+            Text { text: root.selected-label == "Overview" ? "The autumn collection is taking shape. Research is complete, prototypes are ready, and the team is preparing its next design review." : root.selected-label == "Activity" ? "Today · Alex shared the updated prototypes.\nYesterday · Jamie completed the accessibility review.\nMonday · Taylor added three research notes." : "Notifications · Email and desktop enabled\nVisibility · Shared with your team\nLanguage · English"; color: root.theme.text-secondary; wrap: word-wrap; }
+            Text { text: root.selected-label == "Overview" ? "8 tasks completed    ·    3 people collaborating" : root.selected-label == "Activity" ? "All changes are saved in your workspace." : "Your choices stay with this workspace."; color: root.theme.accent; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+            if root.selected-label == "Overview": KitProgress { theme: root.theme; label: "Milestone progress"; value: 0.65; }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-secondary; }
     }
 
 }

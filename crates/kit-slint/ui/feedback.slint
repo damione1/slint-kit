@@ -90,8 +90,8 @@ export component KitProgress inherits VerticalLayout {
     accessible-value: Math.round(root.bounded-value * 100) + "%";
     accessible-value-minimum: 0; accessible-value-maximum: 100;
     if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.disabled-fill;
-        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; }
+    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle;
+        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; animate width { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; } }
     }
 }
 export component KitRadialProgress inherits Rectangle {
@@ -105,10 +105,29 @@ export component KitRadialProgress inherits Rectangle {
     accessible-role: progress-indicator; accessible-label: root.label;
     accessible-value: Math.round(root.bounded-value * 100) + "%";
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    for index in 60: Rectangle { width: 4px; height: 4px; border-radius: self.width / 2;
-        x: (root.width - self.width) / 2 + (root.width / 2 - 4px) * Math.cos(index * 6deg - 90deg);
-        y: (root.height - self.height) / 2 + (root.height / 2 - 4px) * Math.sin(index * 6deg - 90deg);
-        background: index / 60 < root.bounded-value ? root.theme.accent : root.theme.disabled-fill;
+    private property <float> visual-value: root.bounded-value;
+    animate visual-value { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+    Path {
+        width: root.width; height: root.height;
+        viewbox-width: 100; viewbox-height: 100;
+        fill: transparent; stroke: root.theme.border-subtle;
+        stroke-width: root.theme.spacing.unit * 1.5;
+        MoveTo { x: 50; y: 6; }
+        ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 94; }
+        ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 6; }
+    }
+    if root.visual-value > 0: Path {
+        width: root.width; height: root.height;
+        viewbox-width: 100; viewbox-height: 100;
+        fill: transparent; stroke: root.theme.accent;
+        stroke-width: root.theme.spacing.unit * 1.5; stroke-line-cap: round;
+        MoveTo { x: 50; y: 6; }
+        ArcTo {
+            radius-x: 44; radius-y: 44; sweep: true;
+            large-arc: root.visual-value > 0.5;
+            x: 50 + 44 * Math.cos(min(0.99999,root.visual-value) * 360deg - 90deg);
+            y: 50 + 44 * Math.sin(min(0.99999,root.visual-value) * 360deg - 90deg);
+        }
     }
     Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
@@ -216,7 +235,7 @@ export component KitTooltip inherits Rectangle {
         content := VerticalLayout { @children }
     }
     private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(root.theme);
-    if !root.suppressed && root.text != "": Tooltip {
+    if !root.suppressed && !root.keyboard-visible && KitTooltipState.suppressed-owner != root.owner && root.text != "": Tooltip {
         Rectangle { background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
             width: min(min(root.tip-recipe.max-width,hover-line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.tip-recipe.gap));
             height: hover-tip.preferred-height + 2 * root.tip-recipe.padding-block;

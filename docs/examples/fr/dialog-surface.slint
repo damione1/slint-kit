@@ -1,17 +1,52 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { DialogTabPolicy, KitButton, KitDialogPanel, KitDialogSurface, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { KitDialogSurface, KitDialogPanel, KitBadge, Tone, KitDivider, ButtonIntent, KitButton, DialogTabPolicy, CloseReason, KitTheme, KitThemes } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitDialogSurface — exemple";
-    preferred-width: 560px;
-    preferred-height: 360px;
+    title: "KitDialogSurface example";
+    preferred-width: 520px;
+    preferred-height: 520px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    KitDialogSurface { tab-policy: DialogTabPolicy.native; theme: root.theme; width: parent.width; height: parent.height; state: { open: true, topmost: true, busy: false }; KitDialogPanel { theme: root.theme; width: 420px; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; height: dialog-content.preferred-height; horizontal-stretch: 0; vertical-stretch: 0; accessible-name: "Archiver le projet"; dialog-content := VerticalLayout { padding: 24px; spacing: 16px; alignment: start; Text { text: "Archiver ce projet ?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; vertical-stretch: 0; }Text { text: "Vous pourrez le restaurer plus tard depuis les archives."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; }KitButton { theme: root.theme; text: "Archiver le projet"; activated => { root.status = "Action demandée"; } }if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; } } } }
+    in property <bool> showing: true;
+    in property <string> result: "Project active";
+    callback open();
+    callback close(CloseReason);
+    callback archive();
+    public function focus-opener() { opener.take-focus(); }
+    public function focus-dialog() { dialog-heading.focus(); }
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        opener := KitButton { theme: root.theme; text: "Open project details"; disabled: root.showing; activated => { root.open(); } }
+        Text { text: root.result; color: root.theme.text-primary; }
+
+    }
+    modal := KitDialogSurface {
+        theme: root.theme; width: root.width; height: root.height;
+        state: { open: root.showing, topmost: root.showing, busy: false };
+        tab-policy: DialogTabPolicy.native;
+        dismiss(reason) => { root.close(reason); }
+        KitDialogPanel {
+            theme: root.theme; accessible-name: "Archive project";
+            width: min(460px * root.theme.text-scale, parent.width - 40px); height: dialog-content.preferred-height;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            dialog-content := VerticalLayout { width: parent.width; height: self.preferred-height; padding: 24px; spacing: 16px; alignment: start;
+                KitBadge { theme: root.theme; tone: Tone.warning; leading-icon: root.theme.icons.article; text: "Paramètres du projet"; }
+                dialog-heading := FocusScope { focus-on-tab-navigation: false; preferred-height: heading.preferred-height;
+                    heading := Text { width: parent.width; horizontal-alignment: left; text: "Archiver ce projet ?"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; accessible-label: "Archiver ce projet ?"; }
+                }
+                Text { text: "Field notes sera déplacé dans vos archives. Les documents, l’activité et l’historique resteront disponibles. Vous pourrez restaurer le projet à tout moment."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                KitDivider { theme: root.theme; }
+                HorizontalLayout { alignment: end; spacing: 12px;
+                    KitButton { theme: root.theme; text: "Conserver le projet"; activated => { root.close(CloseReason.programmatic); } }
+                    archive-button := KitButton { theme: root.theme; intent: ButtonIntent.primary; text: "Archive project"; leading-icon: root.theme.icons.article; activated => { root.archive(); } }
+                }
+            }
+        }
+    }
 }

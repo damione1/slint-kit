@@ -3,25 +3,25 @@ export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraint
 import { KitTextArea, KitButton, KitThemes, ValidationPresentation } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
-    title: "Notes"; preferred-width: 520px; preferred-height: 320px;
+    title: "Notes"; preferred-width: 520px; preferred-height: 520px;
     max-width: 100000px; max-height: 100000px; background: KitThemes.light.canvas;
     in-out property <string> draft; in property <string> error; in property <string> accepted;
     callback edited(string); callback commit(); callback blurred(); callback cancel();
-    
+
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         control := KitTextArea {
             required: true;
-            label: "Notes"; text <=> root.draft; error: root.error;
+            label: "Project notes"; description: "Capture ideas, context, and next steps. Your draft stays editable until accepted."; text <=> root.draft; error: root.error;
             validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-            
+
             edited(value) => { root.edited(value); }
             commit-requested(value) => { root.commit(); }
             cancelled => { root.cancel(); }
             focus-observed(focused) => { if (!focused) { root.blurred(); } }
-            
+
         }
         KitButton { text: "Accept"; activated => { root.commit(); } }
-        Text { text: "Accepted: " + root.accepted; color: KitThemes.light.text-primary; wrap: word-wrap; }
+        Text { text: root.error == "" ? "Draft ready · edit freely, then choose Accept" : root.error; color: KitThemes.light.text-primary; wrap: word-wrap; }
     }
 }

@@ -10,6 +10,11 @@ enum Workspace {
     Personal,
     Shared,
     Archive,
+    Design,
+    Engineering,
+    Marketing,
+    Research,
+    Community,
 }
 
 impl Workspace {
@@ -18,6 +23,11 @@ impl Workspace {
             Self::Personal => "Personal",
             Self::Shared => "Shared",
             Self::Archive => "Archive",
+            Self::Design => "Design studio",
+            Self::Engineering => "Engineering",
+            Self::Marketing => "Marketing",
+            Self::Research => "Research lab",
+            Self::Community => "Community",
         }
     }
 }
@@ -32,6 +42,11 @@ fn main() -> Result<(), slint::PlatformError> {
             SelectOption::new(Workspace::Personal, "Personal"),
             SelectOption::new(Workspace::Shared, "Shared"),
             SelectOption::new(Workspace::Archive, "Archive"),
+            SelectOption::new(Workspace::Design, "Design studio"),
+            SelectOption::new(Workspace::Engineering, "Engineering"),
+            SelectOption::new(Workspace::Marketing, "Marketing"),
+            SelectOption::new(Workspace::Research, "Research lab"),
+            SelectOption::new(Workspace::Community, "Community"),
         ],
         Some(Workspace::Personal),
         Ownership::Local

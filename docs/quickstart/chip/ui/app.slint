@@ -1,26 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-// SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChip, KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitChip, KitButton, KitTheme, KitThemes, ChipRow } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
-    title: "KitChip example";
-    preferred-width: 520px;
-    preferred-height: 280px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    title: "Chip";
+    preferred-width: 560px; preferred-height: 300px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in property <bool> showing: true;
-    callback remove(int);
-    callback reset();
-    VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        if root.showing: control := KitChip { theme: root.theme; chip: { token: 11, label: "Design", removable: true }; remove-requested(token) => { root.remove(token); } }
-        KitButton { theme: root.theme; text: "Restore tag"; activated => { root.reset(); } }
-        result := Text { text: root.showing ? "Design selected" : "No tags selected"; color: root.theme.text-primary; }
+    background: root.theme.canvas;
+    in property <[ChipRow]> chips; callback remove(int); callback reset();
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Make it your own"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Tags keep a project easy to find. Remove a tag or restore the set."; color: root.theme.text-secondary; wrap: word-wrap; }
+        FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+            for chip in root.chips: KitChip { theme: root.theme; chip: chip; remove-requested(token) => { root.remove(token); } }
+        }
+        KitButton { theme: root.theme; text: "Restore tags"; activated => { root.reset(); } }
+        result := Text { text: root.chips.length + " tags selected"; color: root.theme.text-secondary; }
     }
-
 }

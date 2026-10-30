@@ -11,15 +11,19 @@ export component App inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in property <int> percent;
+    in property <int> percent: 65;
+    in-out property <bool> playing;
     callback advance();
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
         control := KitRadialProgress { theme: root.theme; label: "Upload"; value: root.percent / 100; }
-        KitButton { theme: root.theme; text: "Advance upload"; activated => { root.advance(); } }
+        HorizontalLayout { alignment: start; spacing: 12px;
+            KitButton { theme: root.theme; text: "Advance upload"; activated => { root.advance(); } }
+            KitButton { theme: root.theme; text: root.playing ? "Pause" : "Animate"; activated => { root.playing = !root.playing; } }
+        }
         result := Text { text: root.percent + "% uploaded"; color: root.theme.text-primary; }
     }
-
+    Timer { interval: 850ms; running: root.playing && !root.theme.reduced-motion; triggered => { root.advance(); } }
 }

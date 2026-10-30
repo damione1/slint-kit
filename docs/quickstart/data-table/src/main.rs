@@ -21,6 +21,11 @@ enum Person {
     Zoe,
     Ada,
     Lina,
+    Noah,
+    Maya,
+    Theo,
+    Ines,
+    Leon,
 }
 impl Person {
     fn token(self) -> i32 {
@@ -28,6 +33,11 @@ impl Person {
             Self::Zoe => 11,
             Self::Ada => 23,
             Self::Lina => 37,
+            Self::Noah => 51,
+            Self::Maya => 66,
+            Self::Theo => 80,
+            Self::Ines => 95,
+            Self::Leon => 109,
         }
     }
     fn label(self) -> &'static str {
@@ -35,6 +45,11 @@ impl Person {
             Self::Zoe => "Zoe",
             Self::Ada => "Ada",
             Self::Lina => "Lina",
+            Self::Noah => "Noah",
+            Self::Maya => "Maya",
+            Self::Theo => "Theo",
+            Self::Ines => "Ines",
+            Self::Leon => "Leon",
         }
     }
 }
@@ -54,7 +69,7 @@ fn publish(state: &RefCell<State>, app: &ui::App) {
         .iter()
         .map(|person| ui::TableRow {
             token: person.token(),
-            cells: ModelRc::new(VecModel::from(vec![person.label().into()])),
+            cells: ModelRc::new(VecModel::from(vec![person.label().into(), match person { Person::Zoe | Person::Maya | Person::Leon => "Design", Person::Ada | Person::Noah | Person::Ines => "Engineering", Person::Lina | Person::Theo => "Research" }.into(), match person { Person::Zoe | Person::Ada | Person::Lina | Person::Noah | Person::Maya | Person::Ines => "Active", Person::Theo | Person::Leon => "Invited" }.into()])),
             selected: state.selected == Some(*person),
             disabled: false,
         })
@@ -65,7 +80,7 @@ fn publish(state: &RefCell<State>, app: &ui::App) {
         sortable: true,
         sort: state.direction,
         alignment: ui::DataAlignment::Leading,
-    }];
+    }, ui::TableColumn { token: 2, label: "Team".into(), sortable: false, sort: ui::DataSortDirection::Unsorted, alignment: ui::DataAlignment::Leading }, ui::TableColumn { token: 3, label: "Status".into(), sortable: false, sort: ui::DataSortDirection::Unsorted, alignment: ui::DataAlignment::Leading }];
     let active = state
         .order
         .iter()
@@ -86,7 +101,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
     slint_kit::init_form_validation!(ui, app);
     let state = Rc::new(RefCell::new(State {
-        order: vec![Person::Zoe, Person::Ada, Person::Lina],
+        order: vec![Person::Zoe, Person::Ada, Person::Lina, Person::Noah, Person::Maya, Person::Theo, Person::Ines, Person::Leon],
         selected: None,
         active: None,
         direction: ui::DataSortDirection::Unsorted,

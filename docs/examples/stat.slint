@@ -1,21 +1,34 @@
-import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitStat, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitStat, KitProgress, KitCard, KitTheme, KitThemes, KitBadge, Tone } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitStat example";
-    preferred-width: 360px;
-    preferred-height: 210px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    title: "Stat";
+    preferred-width: 660px; preferred-height: 480px;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Stat"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitStat { theme: root.theme; label: "Active projects"; value: "24"; description: "4 added this month"; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    background: root.theme.canvas;
+
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Your workspace, in numbers"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "A snapshot of this month’s activity."; color: root.theme.text-secondary; wrap: word-wrap; }
+        HorizontalLayout { spacing: 16px;
+            KitCard { theme: root.theme;
+                KitBadge { theme: root.theme; leading-icon: root.theme.icons.check; text: "PROJECTS"; tone: Tone.accent; }
+                KitStat { theme: root.theme; leading-icon: root.theme.icons.article; label: "Active projects"; value: "24"; description: "4 added this month"; }
+                KitProgress { theme: root.theme; value: 0.72; }
+            }
+            KitCard { theme: root.theme;
+                KitBadge { theme: root.theme; text: "TEAM"; tone: Tone.success; }
+                KitStat { theme: root.theme; label: "Tasks completed"; value: "148"; description: "32 more than last month"; }
+                KitProgress { theme: root.theme; value: 0.88; }
+            }
+        }
+        KitCard { theme: root.theme;
+            HorizontalLayout { spacing: 20px;
+                KitStat { theme: root.theme; label: "Storage used"; value: "6.2 GB"; description: "Of your 10 GB workspace allowance"; }
+                KitBadge { theme: root.theme; text: "62% used"; tone: Tone.warning; }
+            }
+        }
     }
 }

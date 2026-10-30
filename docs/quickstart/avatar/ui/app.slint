@@ -1,20 +1,33 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { AvatarShape, KitAvatar, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { AvatarShape, AvatarInteraction, KitAvatar, KitSurface, KitBadge, Tone, KitTheme, KitThemes } from "@kit/kit.slint";
 export component App inherits Window {
     default-font-family: InterFont.family;
-    title: "KitAvatar example";
-    preferred-width: 360px;
-    preferred-height: 160px;
-    max-width: 100000px;
-    max-height: 100000px;
+    title: "People and profiles"; preferred-width: 580px; preferred-height: 380px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Avatar"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        HorizontalLayout { alignment: start; spacing: 16px; KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Alex Morgan"; size: 56px; } KitAvatar { theme: root.theme; initials: "JS"; accessible-name: "Jamie Smith"; shape: AvatarShape.rounded; size: 56px; } }
+    in property <string> status: "Select Alex’s portrait to open the profile.";
+    callback profile-requested();
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "A familiar face for every profile"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        KitSurface { theme: root.theme;
+            HorizontalLayout { spacing: 16px;
+                KitAvatar { theme: root.theme; size: 72px; source: @image-url("assets/profile-portrait.jpg"); accessible-name: "Open Alex Morgan’s profile"; interaction: AvatarInteraction.action; activated => { root.profile-requested(); } }
+                VerticalLayout { horizontal-stretch: 1; min-width: 0px; alignment: center; spacing: 6px;
+                    Text { text: "Alex Morgan"; color: root.theme.text-primary; font-size: 18px * root.theme.text-scale; font-weight: 600; }
+                    Text { text: "Product designer · Montréal"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    KitBadge { theme: root.theme; tone: Tone.success; leading-icon: root.theme.icons.check; text: "Available for collaboration"; }
+                }
+            }
+        }
+        HorizontalLayout { alignment: start; spacing: 16px;
+            KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Alex Morgan initials"; size: 56px; }
+            KitAvatar { theme: root.theme; initials: "JS"; accessible-name: "Jamie Smith initials"; shape: AvatarShape.rounded; size: 56px; }
+            KitAvatar { theme: root.theme; source: @image-url("assets/profile-portrait.jpg"); accessible-name: "Alex Morgan portrait"; shape: AvatarShape.rounded; size: 56px; }
+            KitAvatar { theme: root.theme; initials: "RK"; accessible-name: "Riley Kim initials"; shape: AvatarShape.square; size: 56px; }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
     }
 }

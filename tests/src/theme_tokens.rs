@@ -222,6 +222,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
 
     let KitTypography {
         family,
+        family_monospace,
         weight_regular,
         weight_medium,
         weight_semibold,
@@ -234,6 +235,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         line_height_control,
     } = typography;
     tokens.push(("typography.family".into(), Token::Text(family)));
+    tokens.push((
+        "typography.family-monospace".into(),
+        Token::Text(family_monospace),
+    ));
     for (name, weight) in [
         ("typography.weight-regular", weight_regular),
         ("typography.weight-medium", weight_medium),

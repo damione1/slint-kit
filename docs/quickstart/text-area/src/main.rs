@@ -16,7 +16,7 @@ fn format(value: &Value) -> String {
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::init_form_validation!(self, app);
-    let initial = Value("First line".into());
+    let initial = Value("A quiet space to collect the details.\n\nStart with the problem you want to solve, then describe who it helps and what a good outcome looks like. Include links, open questions, and the small observations that are easy to forget.\n\nNext steps: share this draft with the team, gather feedback, and turn the strongest ideas into a clear plan.".into());
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
     let field = FieldBinding::<Value, ()>::new(

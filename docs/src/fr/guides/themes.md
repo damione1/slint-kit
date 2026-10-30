@@ -77,7 +77,7 @@ Utilisez le thème pour l’identité partagée, `control-size` pour la densité
 | Composant | Présentation locale |
 | --- | --- |
 | `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
-| `KitTextField` et ses types dérivés | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
+| `KitTextField` et ses types dérivés | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon`, `decoration`, `underline-segments` |
 | `KitCard`, `KitSurface` | `corner-radius`, `elevation` ; propriétés existantes d’inset et de gap |
 | `KitCheckbox`, `KitSwitch`, `KitOption`, `KitNavigationAction` | réglages hérités de Pressable sur le libellé et la surface ; géométrie de l’indicateur issue de la recette de famille |
 | `KitAlert` | `corner-radius`, `inset` (longueur) ; couleurs toujours résolues par la sévérité |
@@ -181,3 +181,7 @@ Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Pour r
 Examinez les thèmes clair et sombre, le texte à 200 %, la navigation clavier, le focus visible et les actions désactivées dans l’application réelle. Préservez l’éditeur natif pour curseur, sélection, annulation et IME. Donnez un nom accessible pertinent aux boutons d’icône, surfaces pressables et cibles de focus.
 
 Ce site propose des previews navigateur et des captures natives ; leurs légendes indiquent l’environnement de rendu. Un exemple rendu ne qualifie ni lecteur d’écran, ni IME, ni dépôt de fichiers externe, ni autre backend. La qualification des périphériques et technologies d’assistance relève des plateformes ciblées par l’application. La [documentation d’accessibilité de Slint](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) décrit les propriétés et les outils d’inspection native.
+
+Utilisez `KitAvatar` avec `AvatarInteraction.action` pour accéder à un profil : fournissez un nom d’action et traitez `activated`. Les avatars statiques restent des images. `KitBadge` et `KitStat` acceptent des glyphes `leading-icon` optionnels ; gardez le statut et la valeur lisibles. Les champs OTP soulignés utilisent toujours un seul éditeur natif. Alignez les `slots` visuels sur la longueur de code acceptée par l’hôte. Pour les infobulles des boutons Kit, liez `target-focused` à `focus-visible` afin de garder l’aide au survol sans ouvrir une projection clavier après un clic.
+
+Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, utilisé pour la saisie de codes. Les thèmes fournis utilisent la famille à chasse fixe de la plateforme. `KitTextField.text-cell-width` mesure le glyphe zéro réel pour aligner les emplacements de code.

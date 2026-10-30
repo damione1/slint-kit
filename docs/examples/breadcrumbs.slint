@@ -1,21 +1,36 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitBreadcrumbs, KitTheme, KitThemes } from "@kit/kit.slint";
-
+import { KitCard, KitBadge, Tone, KitBreadcrumbs, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitBreadcrumbs example";
-    preferred-width: 480px;
-    preferred-height: 160px;
+    preferred-width: 520px;
+    preferred-height: 310px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
+    in property <[OptionRow]> rows: [{ token: 11, generation: 1, label: "Overview", description: "", disabled: false }, { token: 25, generation: 1, label: "Activity", description: "", disabled: false }, { token: 39, generation: 1, label: "Settings", description: "", disabled: false }];
+    in property <SelectState> select-state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available };
+    in property <string> selected-label: "Overview";
+    in-out property <string> query;
+    callback select-open();
+    callback select-navigate(NavigationStep);
+    callback select-activate(int, int);
+    callback select-dismiss(CloseReason);
+    callback select-query(string);
+    callback select-typeahead(string);
     VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Breadcrumbs"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitBreadcrumbs { theme: root.theme; rows: [{ token: 11, generation: 1, label: "Workspace", disabled: false }, { token: 23, generation: 1, label: "Projects", disabled: false }, { token: 38, generation: 1, label: "Field notes", disabled: false }]; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        control := KitBreadcrumbs { theme: root.theme; rows: root.rows; activate(token, generation) => { root.select-activate(token, generation); } }
+        KitCard { theme: root.theme;
+            KitBadge { theme: root.theme; text: "PROJECT WORKSPACE"; tone: Tone.accent; }
+            Text { text: "Everything has its place"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+            Text { text: "Follow the trail to revisit a parent section without losing your bearings."; color: root.theme.text-secondary; wrap: word-wrap; }
+        }
+        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-secondary; }
     }
+
 }

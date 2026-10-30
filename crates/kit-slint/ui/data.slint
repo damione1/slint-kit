@@ -169,9 +169,11 @@ export component KitContentList inherits Rectangle {
             background:item.selected ? root.theme.hover : root.theme.surface;
             requested(token,generation)=>{keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
-                Rectangle {width:72px;height:72px;border-radius:root.theme.shape.radius-container;background:root.theme.hover;
+                Rectangle {width:72px; horizontal-stretch:0;
+                    Rectangle {y:(parent.height - self.height) / 2;width:72px;height:72px;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
                     if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
                     if item.thumbnail == @image-url(""): KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
+                }
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
                     Text {text:item.title;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}
@@ -209,12 +211,12 @@ export component KitVirtualTextView inherits Rectangle {
         height:max(0px,root.height - root.edit-height);content-width:self.visible-width;
         for line[index] in root.lines: DataAction {
             width:list.visible-width;height:root.line-height;min-height:root.line-height;preferred-height:root.line-height;token:line.token;generation:root.generation;theme:root.theme;intent:ButtonIntent.quiet;
-            background:line.selected?root.theme.hover:transparent;
+            background:line.selected?root.theme.accent-subtle:root.theme.surface;
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             accessible-name:line.number + ": " + line.text;
             requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 3;
-                Text {width:64px;text:line.number;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
+                Text {width:64px;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
                 Text {text:line.text;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;}
             }
         }

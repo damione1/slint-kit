@@ -6,6 +6,6 @@ fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
     slint_kit::init_form_validation!(ui, app);
     let weak = app.as_weak();
-    app.on_advance(move || { if let Some(app) = weak.upgrade() { app.set_percent((app.get_percent() + 25).min(100)); } });
+    app.on_advance(move || { if let Some(app) = weak.upgrade() { app.set_percent(if app.get_percent() >= 100 { 10 } else { (app.get_percent() + 10).min(100) }); } });
     app.run()
 }

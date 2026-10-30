@@ -74,8 +74,8 @@
   "KitAvatar": {
     "fr": {
       "summary": "Représentation d’une personne ou entité par image ou initiales.",
-      "usage": "Fournissez `source`, `initials` de repli et un `accessible-name` décrivant l’entité. Choisissez `AvatarShape.circle`, `.rounded` ou `.square` et la taille souhaitée.",
-      "behavior": "Une image disponible recouvre la surface ; sinon les initiales sont centrées. La taille minimale suit l’échelle typographique et le contenu est découpé selon la forme.",
+      "usage": "Fournissez `source`, `initials` de repli et un `accessible-name` décrivant l’entité. Choisissez `AvatarShape.circle`, `.rounded` ou `.square` et la taille souhaitée. Définissez `interaction: AvatarInteraction.action` pour une action de profil et traitez `activated` ; gardez la valeur statique par défaut pour identifier une personne. `disabled` bloque l’action et atténue le portrait. `take-focus()` et `has-focus` permettent de restaurer le focus depuis l’hôte.",
+      "behavior": "Une image disponible recouvre la surface ; sinon les initiales sont centrées. La taille minimale suit l’échelle typographique et le contenu est découpé selon la forme. L’exemple combine un portrait original embarqué, des initiales et trois formes. L’avatar interactif est un bouton nommé avec états de survol, pression et focus clavier ; l’avatar statique est annoncé comme une image.",
       "label": "Avatar",
       "seoTitle": "Avatar pour Slint",
       "related": [
@@ -85,8 +85,8 @@
     },
     "en": {
       "summary": "Representation of a person or entity through an image or initials.",
-      "usage": "Supply `source`, fallback `initials` and an `accessible-name` describing the entity. Choose `AvatarShape.circle`, `.rounded` or `.square` and the desired size.",
-      "behavior": "An available image covers the surface; otherwise initials are centered. Minimum size follows text scale and content is clipped to the shape.",
+      "usage": "Supply `source`, fallback `initials` and an `accessible-name` describing the entity. Choose `AvatarShape.circle`, `.rounded` or `.square` and the desired size. Set `interaction: AvatarInteraction.action` for a profile action and handle `activated`; keep the static default for decorative identity. `disabled` blocks the action and dims the portrait. `take-focus()` and `has-focus` support host focus restoration.",
+      "behavior": "An available image covers the surface; otherwise initials are centered. Minimum size follows text scale and content is clipped to the shape. The example combines a bundled original portrait, initials and three shapes. The actionable avatar is a named button with hover, press and keyboard focus feedback; the static avatar is announced as an image.",
       "label": "Avatar",
       "seoTitle": "Avatar for Slint",
       "related": [
@@ -98,7 +98,7 @@
   "KitBadge": {
     "fr": {
       "summary": "Étiquette non interactive pour une catégorie, un compte ou un état.",
-      "usage": "Définissez `text` et choisissez `Tone.neutral`, `.accent`, `.success`, `.warning` ou `.danger`. Gardez un libellé explicite pour que la signification ne repose pas uniquement sur la couleur.",
+      "usage": "Définissez `text` et choisissez `Tone.neutral`, `.accent`, `.success`, `.warning` ou `.danger`. Gardez un libellé explicite pour que la signification ne repose pas uniquement sur la couleur. La propriété optionnelle `leading-icon: IconGlyph` ajoute une icône décorative à côté du texte sans remplacer son libellé accessible.",
       "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton.",
       "label": "Badge",
       "seoTitle": "Badge pour Slint",
@@ -109,7 +109,7 @@
     },
     "en": {
       "summary": "Non-interactive label for a category, count or status.",
-      "usage": "Set `text` and choose `Tone.neutral`, `.accent`, `.success`, `.warning` or `.danger`. Keep an explicit label so meaning does not depend on color alone.",
+      "usage": "Set `text` and choose `Tone.neutral`, `.accent`, `.success`, `.warning` or `.danger`. Keep an explicit label so meaning does not depend on color alone. Optional `leading-icon: IconGlyph` adds a decorative icon beside the text without replacing its accessible label.",
       "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior.",
       "label": "Badge",
       "seoTitle": "Badge for Slint",
@@ -218,7 +218,7 @@
   "KitCard": {
     "fr": {
       "summary": "Surface de carte pour regrouper une unité de contenu.",
-      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas.",
+      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
       "behavior": "La carte possède une bordure, un fond et une hauteur mesurée à partir du contenu. Elle ne capture pas les clics et ne devient pas une action implicitement.",
       "related": [
         "KitCardHeader",
@@ -230,7 +230,7 @@
     },
     "en": {
       "summary": "Card surface for grouping a unit of content.",
-      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade.",
+      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
       "behavior": "The card owns a border, background and content-measured height. It does not capture clicks or implicitly become an action.",
       "related": [
         "KitCardHeader",
@@ -318,7 +318,7 @@
   "KitCarousel": {
     "fr": {
       "summary": "Carrousel manuel présentant l’élément actif et ses actions.",
-      "usage": "Fournissez `rows` et `state` depuis le contrôleur et traitez `navigate` pour changer de diapositive. Définissez `action-label` lorsqu’un élément possède une action principale.",
+      "usage": "Fournissez `rows` et `state` depuis le contrôleur et traitez `navigate` pour changer de diapositive. Définissez `action-label` lorsqu’un élément possède une action principale. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
       "behavior": "Le titre et la description viennent de l’option active ; les commandes sont désactivées aux extrémités. Une action transmet le token et la génération de l’élément affiché, sans rotation automatique.",
       "label": "Carrousel",
       "seoTitle": "Carrousel pour Slint",
@@ -328,7 +328,7 @@
     },
     "en": {
       "summary": "Manual carousel presenting the active item and its actions.",
-      "usage": "Supply `rows` and `state` from the controller and handle `navigate` to change slides. Set `action-label` when an item has a primary action.",
+      "usage": "Supply `rows` and `state` from the controller and handle `navigate` to change slides. Set `action-label` when an item has a primary action. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
       "behavior": "The heading and description come from the active option; controls disable at the ends. An action carries the displayed item’s token and generation, with no automatic rotation.",
       "label": "Carousel",
       "seoTitle": "Carousel for Slint",
@@ -798,7 +798,7 @@
   "KitDialogSurface": {
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
-      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
       "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé.",
       "related": [
         "KitDialogPanel",
@@ -810,7 +810,7 @@
     },
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
-      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
       "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled.",
       "related": [
         "KitDialogPanel",
@@ -1291,7 +1291,7 @@
     "fr": {
       "summary": "Liste d’erreurs permettant d’atteindre les champs concernés.",
       "usage": "Fournissez les erreurs avec leurs cibles `FocusRequest` stables. Traitez `error-activated` en demandant le focus sur le champ concerné ; l’exemple montre un seul champ.",
-      "behavior": "Le titre affiche le nombre d’erreurs et chaque message devient une action clavier. La cible conserve son token et sa génération, indépendamment de la position du message.",
+      "behavior": "Le titre affiche le nombre d’erreurs et chaque message devient une action clavier. La cible conserve son token et sa génération, indépendamment de la position du message. Un panneau teinté, une icône d’avertissement et le nombre d’erreurs identifient le résumé ; chaque erreur reste une action clavier nommée vers une cible de champ stable.",
       "related": [
         "KitFieldError",
         "KitFocusTarget"
@@ -1302,7 +1302,7 @@
     "en": {
       "summary": "Error list that lets users reach affected fields.",
       "usage": "Supply errors with their stable `FocusRequest` targets. Handle `error-activated` by requesting focus on the affected editor; the example demonstrates one field.",
-      "behavior": "The heading shows the error count and each message becomes a keyboard action. Its target keeps its token and generation regardless of message position.",
+      "behavior": "The heading shows the error count and each message becomes a keyboard action. Its target keeps its token and generation regardless of message position. A tinted semantic panel, warning icon and error count distinguish the summary; every error remains a named keyboard action with a stable field target.",
       "related": [
         "KitFieldError",
         "KitFocusTarget"
@@ -1338,7 +1338,7 @@
   "KitHero": {
     "fr": {
       "summary": "Bloc d’introduction visuelle avec titre, description et contenu libre.",
-      "usage": "Définissez `title`, `description`, puis ajoutez une action ou un contenu complémentaire comme enfants. Réglez `inset` et `gap` avec `LayoutSpace`.",
+      "usage": "Définissez `title`, `description`, puis ajoutez une action ou un contenu complémentaire comme enfants. Réglez `inset` et `gap` avec `LayoutSpace`. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
       "behavior": "Le titre utilise une typographie plus grande et les textes reviennent à la ligne. Le fond et les coins arrondis appartiennent au composant, qui garde une hauteur naturelle.",
       "label": "Bloc d’introduction",
       "seoTitle": "Bloc d’introduction pour Slint",
@@ -1349,7 +1349,7 @@
     },
     "en": {
       "summary": "Prominent introduction block with heading, description and free content.",
-      "usage": "Set `title` and `description`, then add an action or supporting content as children. Adjust `inset` and `gap` with `LayoutSpace`.",
+      "usage": "Set `title` and `description`, then add an action or supporting content as children. Adjust `inset` and `gap` with `LayoutSpace`. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
       "behavior": "The heading uses larger typography and text wraps. The component owns its background and rounded corners while retaining natural height.",
       "label": "Hero",
       "seoTitle": "Hero for Slint",
@@ -1434,7 +1434,7 @@
   "KitInputGroup": {
     "fr": {
       "summary": "Surface de saisie commune aux éditeurs et à leurs éléments adjacents.",
-      "usage": "Placez un éditeur natif et ses préfixes ou actions dans une mise en page enfant unique. Projetez `access`, `validation` et `focused` depuis le contrôle composé.",
+      "usage": "Placez un éditeur natif et ses préfixes ou actions dans une mise en page enfant unique. Projetez `access`, `validation` et `focused` depuis le contrôle composé. `decoration: FieldDecoration.underlined` remplace le cadre rempli par un soulignement sensible au focus ; `underline-segments` le divise en emplacements visibles, avec un minimum de un. Le style encadré par défaut conserve la surface habituelle du champ.",
       "behavior": "La surface possède le fond, la bordure, l’inset et l’anneau de focus, sans créer d’éditeur ni de cible clavier. `ValidationPresentation.invalid` colore la bordure en erreur.",
       "related": [
         "KitInputGroupStart",
@@ -1446,7 +1446,7 @@
     },
     "en": {
       "summary": "Shared input surface for editors and their adjoining content.",
-      "usage": "Place a native editor and its prefixes or actions in one child layout. Project `access`, `validation` and `focused` from the composed control.",
+      "usage": "Place a native editor and its prefixes or actions in one child layout. Project `access`, `validation` and `focused` from the composed control. `decoration: FieldDecoration.underlined` removes the filled frame and draws a focus-aware underline; `underline-segments` divides it into visible slots, clamped to at least one. The boxed default keeps the normal field surface.",
       "behavior": "The surface owns the background, border, inset and focus ring without creating an editor or keyboard target. `ValidationPresentation.invalid` colors the border as an error.",
       "related": [
         "KitInputGroupStart",
@@ -1701,7 +1701,7 @@
     "fr": {
       "summary": "Sélecteur multiple avec des étiquettes amovibles pour les valeurs retenues.",
       "usage": "Projetez les options de `MultiSelectController`, les étiquettes retenues et `SelectState`. Traitez séparément `activate` et `remove-requested` ; reliez `query-edited` et `typeahead` au filtrage sans remplacer la sélection.",
-      "behavior": "La requête ne remplace pas l’ensemble des choix acceptés. En lecture seule, les valeurs sont présentées dans des champs natifs sélectionnables et les modifications sont bloquées.",
+      "behavior": "La requête ne remplace pas l’ensemble des choix acceptés. En lecture seule, les valeurs sont présentées dans des champs natifs sélectionnables et les modifications sont bloquées. L’exemple retire les canaux sélectionnés de la liste disponible pour que chaque choix apparaisse une seule fois. Retirez son étiquette pour le proposer à nouveau ; la recherche conserve la sélection acceptée.",
       "related": [
         "KitCombobox",
         "KitTagInput",
@@ -1713,7 +1713,7 @@
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
       "usage": "Project `MultiSelectController` options, accepted chips and `SelectState`. Handle `activate` and `remove-requested` separately; connect `query-edited` and `typeahead` to filtering without replacing the accepted set.",
-      "behavior": "The query does not replace the accepted choice set. In read-only mode values appear in selectable native fields and changes are blocked.",
+      "behavior": "The query does not replace the accepted choice set. In read-only mode values appear in selectable native fields and changes are blocked. The example removes selected channels from the available dropdown so each choice appears once. Remove its chip to offer it again; typed search keeps the accepted set intact.",
       "related": [
         "KitCombobox",
         "KitTagInput",
@@ -1844,8 +1844,8 @@
   "KitOtpField": {
     "fr": {
       "summary": "Saisie native d’un code à usage unique de longueur fixe.",
-      "usage": "Définissez la longueur attendue et utilisez OtpValue. L’exemple exige six chiffres ASCII.",
-      "behavior": "La saisie modifie le brouillon ; seul un code complet remplace la valeur acceptée. La vérification auprès d’un serveur relève de l’application.",
+      "usage": "Définissez la longueur attendue et utilisez OtpValue. L’exemple exige six chiffres ASCII. Choisissez `FieldDecoration.boxed` (défaut) ou `.underlined`, puis `slots` pour la longueur visuelle attendue (six par défaut). Configurez la même longueur dans `OtpValue` et les contraintes hôtes : `slots` règle la présentation, pas l’acceptation. `text-font-family` et `text-inset` conservent l’éditeur natif tout en personnalisant sa présentation. Le code OTP utilise une cellule à chasse fixe et commence les brouillons partiels au premier emplacement.",
+      "behavior": "La saisie modifie le brouillon ; seul un code complet remplace la valeur acceptée. La vérification auprès d’un serveur relève de l’application. Les deux présentations conservent un éditeur natif pour le code complet, collage, sélection, curseur et annulation compris. L’exemple les lie au même brouillon Rust. `text-cell-width` mesure le glyphe zéro dans la police réelle de l’éditeur ; le champ OTP lit `theme.typography.family-monospace` pour une cellule prévisible sans approximation des métriques natives.",
       "related": [
         "KitPasswordField",
         "KitMaskedField"
@@ -1855,8 +1855,8 @@
     },
     "en": {
       "summary": "Native text input for a fixed-length one-time code.",
-      "usage": "Set the expected length and parse with OtpValue. The example requires six ASCII digits.",
-      "behavior": "Typing updates the draft; only a complete code replaces the accepted value. Verification with a server belongs to the application.",
+      "usage": "Set the expected length and parse with OtpValue. The example requires six ASCII digits. Choose `FieldDecoration.boxed` (default) or `.underlined`, and set `slots` to the expected visual length (six by default). Configure the same length in `OtpValue` and the host constraints: `slots` controls presentation, not acceptance. `text-font-family` and `text-inset` preserve the native editor while positioning a custom text skin. OTP uses a monospace cell and starts partial drafts in the first slot.",
+      "behavior": "Typing updates the draft; only a complete code replaces the accepted value. Verification with a server belongs to the application. Both presentations retain one native editor for the whole code, including paste, selection, caret and undo. The example binds both to the same Rust draft. `text-cell-width` measures the zero glyph in the actual editor font; the OTP reads `theme.typography.family-monospace` for a predictable cell without approximating native metrics.",
       "related": [
         "KitPasswordField",
         "KitMaskedField"
@@ -1963,7 +1963,7 @@
     "fr": {
       "summary": "Barre de progression déterminée exprimée par une fraction.",
       "usage": "Projetez l’avancement dans `value` entre 0 et 1 et fournissez un `label` contextualisé. Conservez les compteurs exacts et le calcul de la fraction dans le contrôleur.",
-      "behavior": "`bounded-value` borne le rendu à l’intervalle et le pourcentage accessible est arrondi. Le composant n’anime pas une progression fictive et ne gère pas la tâche.",
+      "behavior": "`bounded-value` borne le rendu à l’intervalle et le pourcentage accessible est arrondi. Le composant n’anime pas une progression fictive et ne gère pas la tâche. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible.",
       "related": [
         "KitRadialProgress",
         "KitSpinner"
@@ -1974,7 +1974,7 @@
     "en": {
       "summary": "Determinate progress bar expressed as a fraction.",
       "usage": "Project progress through `value` from 0 to 1 and supply a contextual `label`. Keep exact counters and fraction calculation in the controller.",
-      "behavior": "`bounded-value` clamps rendering to the interval and the accessible percentage is rounded. The component neither animates invented progress nor manages the task.",
+      "behavior": "`bounded-value` clamps rendering to the interval and the accessible percentage is rounded. The component neither animates invented progress nor manages the task. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools.",
       "related": [
         "KitRadialProgress",
         "KitSpinner"
@@ -2011,7 +2011,7 @@
     "fr": {
       "summary": "Indicateur circulaire de progression avec pourcentage central.",
       "usage": "Fournissez `value` entre 0 et 1 et un `label` décrivant la tâche suivie. Utilisez-le lorsque la présentation circulaire convient mieux qu’une barre.",
-      "behavior": "Comme `KitProgress`, il expose `bounded-value` et un rôle de progression de 0 à 100. Le pourcentage affiché est une projection arrondie de l’état fourni.",
+      "behavior": "Comme `KitProgress`, il expose `bounded-value` et un rôle de progression de 0 à 100. Le pourcentage affiché est une projection arrondie de l’état fourni. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible.",
       "label": "Progression circulaire",
       "seoTitle": "Progression circulaire pour Slint",
       "related": [
@@ -2022,7 +2022,7 @@
     "en": {
       "summary": "Circular progress indicator with a central percentage.",
       "usage": "Supply `value` from 0 to 1 and a `label` describing the tracked task. Use it when a circular presentation suits the layout better than a bar.",
-      "behavior": "Like `KitProgress`, it exposes `bounded-value` and a progress role from 0 to 100. The displayed percentage is a rounded projection of supplied state.",
+      "behavior": "Like `KitProgress`, it exposes `bounded-value` and a progress role from 0 to 100. The displayed percentage is a rounded projection of supplied state. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools.",
       "label": "Radial Progress",
       "seoTitle": "Radial Progress for Slint",
       "related": [
@@ -2327,7 +2327,7 @@
     "fr": {
       "summary": "Forme d’attente pour réserver la place d’un contenu en chargement.",
       "usage": "Donnez-lui les dimensions du contenu attendu et utilisez plusieurs instances pour suggérer sa structure. Réglez `running` selon l’activité de chargement.",
-      "behavior": "L’opacité pulse lorsque l’animation est active et que `theme.reduced-motion` est faux. Ce placeholder ne fournit pas d’état de progression ni de message de chargement.",
+      "behavior": "L’opacité pulse lorsque l’animation est active et que `theme.reduced-motion` est faux. Ce placeholder ne fournit pas d’état de progression ni de message de chargement. La couleur de bordure subtile du thème garde les espaces réservés visibles sur le fond. La pulsation respecte `reduced-motion` ; elle ne signale jamais à tort que le contenu est chargé.",
       "label": "Squelette de chargement",
       "seoTitle": "Squelette de chargement pour Slint",
       "related": [
@@ -2338,7 +2338,7 @@
     "en": {
       "summary": "Loading shape that reserves space for pending content.",
       "usage": "Size it to the expected content and use multiple instances to suggest its structure. Set `running` from loading activity.",
-      "behavior": "Opacity pulses when animation is active and `theme.reduced-motion` is false. This placeholder supplies neither progress state nor a loading message.",
+      "behavior": "Opacity pulses when animation is active and `theme.reduced-motion` is false. This placeholder supplies neither progress state nor a loading message. The theme’s subtle border color keeps placeholders visible on the canvas. Its pulse respects `reduced-motion`; it never claims that content has finished loading.",
       "label": "Skeleton",
       "seoTitle": "Skeleton for Slint",
       "related": [
@@ -2422,7 +2422,7 @@
   "KitStat": {
     "fr": {
       "summary": "Indicateur synthétique composé d’un libellé, d’une valeur et d’un contexte.",
-      "usage": "Formatez la valeur métier dans le contrôleur et fournissez-la comme `value: string`. Utilisez `description` pour l’unité, la période ou une précision utile.",
+      "usage": "Formatez la valeur métier dans le contrôleur et fournissez-la comme `value: string`. Utilisez `description` pour l’unité, la période ou une précision utile. La propriété optionnelle `leading-icon: IconGlyph` ajoute une icône décorative à côté du texte sans remplacer son libellé accessible. `tone: Tone.accent` ou `.danger` met la valeur en évidence ; gardez une description explicite pour indiquer une tendance.",
       "behavior": "La valeur reçoit la typographie principale et les textes reviennent à la ligne. Le composant n’effectue ni calcul ni conversion numérique.",
       "label": "Indicateur",
       "seoTitle": "Indicateur pour Slint",
@@ -2433,7 +2433,7 @@
     },
     "en": {
       "summary": "Compact metric comprising a label, value and context.",
-      "usage": "Format the domain value in the controller and provide it as `value: string`. Use `description` for a unit, period or useful clarification.",
+      "usage": "Format the domain value in the controller and provide it as `value: string`. Use `description` for a unit, period or useful clarification. Optional `leading-icon: IconGlyph` adds a decorative icon beside the text without replacing its accessible label. `tone: Tone.accent` or `.danger` emphasizes the value; keep descriptions explicit when indicating a trend.",
       "behavior": "The value gets prominent typography and text wraps. The component performs no arithmetic or numeric conversion.",
       "label": "Stat",
       "seoTitle": "Stat for Slint",
@@ -2494,7 +2494,7 @@
   "KitSurface": {
     "fr": {
       "summary": "Surface visuelle unique pour un contenu composé.",
-      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas.",
+      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
       "behavior": "Elle possède le fond et le padding, sans intercepter le pointeur ni le focus. Composez une action avec `KitPressable` lorsqu’une surface doit être interactive.",
       "related": [
         "KitCard",
@@ -2505,7 +2505,7 @@
     },
     "en": {
       "summary": "Single painted surface for composed content.",
-      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade.",
+      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
       "behavior": "It owns the background and padding without intercepting pointer or focus events. Compose an action with `KitPressable` when a surface should be interactive.",
       "related": [
         "KitCard",
@@ -2540,7 +2540,7 @@
   "KitTabs": {
     "fr": {
       "summary": "Barre d’onglets contrôlée séparant le focus de la destination sélectionnée.",
-      "usage": "Fournissez les onglets dans `rows` et la projection de sélection dans `state`. Traitez `activate(token, generation)` pour changer le contenu détenu par l’application.",
+      "usage": "Fournissez les onglets dans `rows` et la projection de sélection dans `state`. Traitez `activate(token, generation)` pour changer le contenu détenu par l’application. KitTabs fournit la barre d’onglets ; composez le panneau sélectionné comme contenu voisin à partir de sa clé stable. L’exemple associe KitCard, KitBadge et KitProgress au contenu géré par l’hôte. Passez explicitement le même `theme` à ces composants.",
       "behavior": "Les onglets exposent le rôle accessible `tab` et se révèlent horizontalement au changement d’élément actif. Les flèches naviguent ; la vue ne crée ni ne remplace les panneaux de contenu. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé.",
       "related": [
         "KitMenuBar",
@@ -2551,7 +2551,7 @@
     },
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
-      "usage": "Provide tabs in `rows` and the selection projection in `state`. Handle `activate(token, generation)` to change application-owned content.",
+      "usage": "Provide tabs in `rows` and the selection projection in `state`. Handle `activate(token, generation)` to change application-owned content. KitTabs provides the tab strip; compose the selected content as a sibling panel, using its stable selected key. The example combines KitCard, KitBadge and KitProgress with host-owned content. Pass the same `theme` explicitly to those components.",
       "behavior": "Tabs expose the accessible `tab` role and reveal themselves horizontally when the active item changes. Arrows navigate; the view does not create or replace content panels. With `SelectBinding`, reopen the persistent control after a committed choice.",
       "related": [
         "KitMenuBar",
@@ -2636,8 +2636,8 @@
   "KitTextField": {
     "fr": {
       "summary": "Saisie native sur une ligne avec libellé et message de validation.",
-      "usage": "Liez `text` au brouillon et gérez `edited`, `commit-requested` et `cancelled`. FieldBinding conserve la dernière valeur acceptée. Ajoutez `leading-icon` et `trailing-icon` comme valeurs typées `IconGlyph` ; les glyphes vides ne réservent aucun espace. Les icônes sont décoratives et le contrôle conserve son nom accessible textuel. `corner-radius`, `padding-inline`, `padding-block` et `text-size` conservent la validation, le style en lecture seule et l’éditeur natif.",
-      "behavior": "L’exemple accepte le texte non vide à la perte de focus ou avec Accepter. L’édition native conserve curseur, sélection et annulation.",
+      "usage": "Liez `text` au brouillon et gérez `edited`, `commit-requested` et `cancelled`. FieldBinding conserve la dernière valeur acceptée. Ajoutez `leading-icon` et `trailing-icon` comme valeurs typées `IconGlyph` ; les glyphes vides ne réservent aucun espace. Les icônes sont décoratives et le contrôle conserve son nom accessible textuel. `corner-radius`, `padding-inline`, `padding-block` et `text-size` conservent la validation, le style en lecture seule et l’éditeur natif. `decoration: FieldDecoration.underlined` remplace le cadre rempli par un soulignement sensible au focus ; `underline-segments` le divise en emplacements visibles, avec un minimum de un. Le style encadré par défaut conserve la surface habituelle du champ. `text-font-family` et `text-inset` conservent l’éditeur natif tout en personnalisant sa présentation. Le code OTP utilise une cellule à chasse fixe et commence les brouillons partiels au premier emplacement.",
+      "behavior": "L’exemple accepte le texte non vide à la perte de focus ou avec Accepter. L’édition native conserve curseur, sélection et annulation. `text-cell-width` mesure le glyphe zéro dans la police réelle de l’éditeur ; le champ OTP lit `theme.typography.family-monospace` pour une cellule prévisible sans approximation des métriques natives.",
       "related": [
         "KitTextArea",
         "KitPasswordField",
@@ -2648,8 +2648,8 @@
     },
     "en": {
       "summary": "Single-line native text input with a label and validation feedback.",
-      "usage": "Bind `text` to a draft and handle `edited`, `commit-requested` and `cancelled`. Use FieldBinding to retain the last accepted value. Add `leading-icon` and `trailing-icon` as typed `IconGlyph` values; empty glyphs reserve no space. Icons are decorative and the control keeps its text accessible name. `corner-radius`, `padding-inline`, `padding-block` and `text-size` retain validation, read-only styling and the native editor.",
-      "behavior": "The example accepts nonempty text on blur or Accept. Native editing keeps caret, selection and undo.",
+      "usage": "Bind `text` to a draft and handle `edited`, `commit-requested` and `cancelled`. Use FieldBinding to retain the last accepted value. Add `leading-icon` and `trailing-icon` as typed `IconGlyph` values; empty glyphs reserve no space. Icons are decorative and the control keeps its text accessible name. `corner-radius`, `padding-inline`, `padding-block` and `text-size` retain validation, read-only styling and the native editor. `decoration: FieldDecoration.underlined` removes the filled frame and draws a focus-aware underline; `underline-segments` divides it into visible slots, clamped to at least one. The boxed default keeps the normal field surface. `text-font-family` and `text-inset` preserve the native editor while positioning a custom text skin. OTP uses a monospace cell and starts partial drafts in the first slot.",
+      "behavior": "The example accepts nonempty text on blur or Accept. Native editing keeps caret, selection and undo. `text-cell-width` measures the zero glyph in the actual editor font; the OTP reads `theme.typography.family-monospace` for a predictable cell without approximating native metrics.",
       "related": [
         "KitTextArea",
         "KitPasswordField",
@@ -2804,8 +2804,8 @@
   "KitTooltip": {
     "fr": {
       "summary": "Aide courte associée au survol et au focus d’un contrôle.",
-      "usage": "Enveloppez le contrôle comme enfant, définissez `text` et liez `target-focused` à son `has-focus`. Montez un `KitTooltipLayer` à la racine de la fenêtre pour l’aide au clavier.",
-      "behavior": "Le survol utilise une infobulle native transparente aux interactions ; le focus publie une projection dans la couche de fenêtre. Échap ou `dismiss()` masque l’aide jusqu’au prochain cycle de focus. La bulle prend la largeur d’une ligne de son texte, jusqu’à la largeur de lecture du thème (`KitThemes.tooltip-recipe`), et renvoie à la ligne une aide plus longue.",
+      "usage": "Enveloppez le contrôle comme enfant, définissez `text` et liez `target-focused` à son `focus-visible` pour KitButton/KitPressable. Montez un `KitTooltipLayer` à la racine de la fenêtre pour l’aide au clavier.",
+      "behavior": "Le survol utilise une infobulle native transparente aux interactions ; le focus publie une projection dans la couche de fenêtre. Échap ou `dismiss()` masque l’aide jusqu’au prochain cycle de focus. La bulle prend la largeur d’une ligne de son texte, jusqu’à la largeur de lecture du thème (`KitThemes.tooltip-recipe`), et renvoie à la ligne une aide plus longue. Un clic de souris n’ouvre pas la couche clavier. Les projections de survol et de focus ne s’affichent pas en double. Gardez l’aide essentielle visible : l’infobulle complète seulement le libellé de l’action.",
       "related": [
         "KitTooltipLayer"
       ],
@@ -2814,8 +2814,8 @@
     },
     "en": {
       "summary": "Short help associated with a control’s hover and focus.",
-      "usage": "Wrap the control as a child, set `text` and bind `target-focused` to its `has-focus`. Mount a `KitTooltipLayer` at the window root for keyboard help.",
-      "behavior": "Hover uses a native tooltip that does not intercept input; focus publishes a projection in the window layer. Escape or `dismiss()` hides help until the next focus cycle. The bubble is as wide as one line of its text, up to the theme's reading width (`KitThemes.tooltip-recipe`), and wraps longer help.",
+      "usage": "Wrap the control as a child, set `text` and bind `target-focused` to its `focus-visible` for a KitButton/KitPressable. Mount a `KitTooltipLayer` at the window root for keyboard help.",
+      "behavior": "Hover uses a native tooltip that does not intercept input; focus publishes a projection in the window layer. Escape or `dismiss()` hides help until the next focus cycle. The bubble is as wide as one line of its text, up to the theme's reading width (`KitThemes.tooltip-recipe`), and wraps longer help. A pointer click does not open the keyboard layer. Hover and keyboard projections do not appear twice. Keep essential help in visible text; a tooltip only supplements the action label.",
       "related": [
         "KitTooltipLayer"
       ],
@@ -2827,7 +2827,7 @@
     "fr": {
       "summary": "Couche de fenêtre affichant l’infobulle de la cible ayant le focus.",
       "usage": "Montez une seule instance en dernier à la racine de chaque fenêtre et fournissez `viewport-width` et `viewport-height`. Désactivez `enabled` lorsqu’une modale ou un écran cache les déclencheurs.",
-      "behavior": "Le placement utilise les coordonnées de fenêtre pour éviter le découpage des ancêtres défilants. La couche ne contient aucune cible de focus et `dismiss()` masque le propriétaire courant.",
+      "behavior": "Le placement utilise les coordonnées de fenêtre pour éviter le découpage des ancêtres défilants. La couche ne contient aucune cible de focus et `dismiss()` masque le propriétaire courant. Un clic de souris n’ouvre pas la couche clavier. Les projections de survol et de focus ne s’affichent pas en double. Gardez l’aide essentielle visible : l’infobulle complète seulement le libellé de l’action.",
       "related": [
         "KitTooltip"
       ],
@@ -2837,7 +2837,7 @@
     "en": {
       "summary": "Window layer displaying the focused target’s tooltip.",
       "usage": "Mount one instance last at each window root and supply `viewport-width` and `viewport-height`. Disable `enabled` when a modal or another screen hides triggers.",
-      "behavior": "Placement uses window coordinates to avoid clipping by scrolling ancestors. The layer contains no focus targets, and `dismiss()` hides the current owner.",
+      "behavior": "Placement uses window coordinates to avoid clipping by scrolling ancestors. The layer contains no focus targets, and `dismiss()` hides the current owner. A pointer click does not open the keyboard layer. Hover and keyboard projections do not appear twice. Keep essential help in visible text; a tooltip only supplements the action label.",
       "related": [
         "KitTooltip"
       ],
