@@ -70,7 +70,7 @@ fn main() -> Result<()> {
     }
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures all 123 examples; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter capture: python3 docs/capture/provenance.py"
+            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT] [--output-dir PATH]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures every example; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--output-dir writes qualification images separately from public posters.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter public capture: python3 docs/capture/provenance.py"
         );
         return Ok(());
     }
@@ -80,6 +80,11 @@ fn main() -> Result<()> {
     let enlarged = args.iter().any(|a| a == "--text-200");
     let exercise = args.iter().any(|a| a == "--exercise");
     let show = args.iter().any(|a| a == "--show");
+    let output_directory = if let Some(index) = args.iter().position(|arg| arg == "--output-dir") {
+        PathBuf::from(args.get(index + 1).ok_or("--output-dir requires a path")?)
+    } else {
+        root().join("docs/src/assets/components")
+    };
     let size = if let Some(index) = args.iter().position(|arg| arg == "--size") {
         let value = args.get(index + 1).ok_or("--size requires WIDTHxHEIGHT")?;
         let (width, height) = value
@@ -112,7 +117,11 @@ fn main() -> Result<()> {
         .enumerate()
         .filter(|(index, arg)| {
             !arg.starts_with("--")
-                && (*index == 0 || !matches!(args[*index - 1].as_str(), "--locale" | "--size"))
+                && (*index == 0
+                    || !matches!(
+                        args[*index - 1].as_str(),
+                        "--locale" | "--size" | "--output-dir"
+                    ))
         })
         .map(|(_, arg)| arg)
         .collect();
@@ -156,6 +165,7 @@ fn main() -> Result<()> {
             if let Some(index) = args.iter().position(|arg| arg == "--size") {
                 command.args(["--size", &args[index + 1]]);
             }
+            command.arg("--output-dir").arg(&output_directory);
             if !command.status()?.success() {
                 return Err(format!("Capture failed: {}", path.display()).into());
             }
@@ -202,9 +212,7 @@ fn main() -> Result<()> {
         if enlarged { "-text-200" } else { "" },
         if exercise { "-interaction" } else { "" }
     );
-    let output = root()
-        .join("docs/src/assets/components")
-        .join(format!("{slug}{suffix}.png"));
+    let output = output_directory.join(format!("{slug}{suffix}.png"));
     instance.show()?;
     let weak = instance.as_weak();
     slint::Timer::single_shot(Duration::from_millis(300), move || {
