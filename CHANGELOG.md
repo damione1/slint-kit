@@ -4,6 +4,10 @@
 
 0.4.0 changes the theme and icon contracts. The Slint compiler reports every site that must change, so upgrade by following its errors. This list names each break.
 
+### Portable code typography
+
+- The default themes register the original JetBrains Mono 2.304 Regular font (SIL OFL 1.1) for `typography.family-monospace`, replacing the generic system family. Wide OTP letters and password mask glyphs retain the same advance in native and WebAssembly builds. Inter remains optional. Custom code fonts must be registered, monospaced and cover the code alphabet and mask glyphs.
+
 ### OTP patterns and native masking
 
 - Add `OtpRules` for fixed-length code acceptance with the shared `HtmlPattern` engine. It uses complete-draft patterns and UTF-16 length units. `OtpValue::parse` and `OtpAlphabet` remain available.

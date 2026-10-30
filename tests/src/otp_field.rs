@@ -127,3 +127,27 @@ fn otp_grouped_display_keeps_the_raw_value_and_native_edit_history() {
     shortcut(&app, "z");
     assert_eq!(app.get_text(), "FG76657");
 }
+
+#[test]
+fn otp_shipped_monospace_font_has_equal_real_advances_for_digits_letters_and_masks() {
+    let app = fixture();
+    assert_eq!(
+        app.get_theme().typography.family_monospace,
+        "JetBrains Mono"
+    );
+    assert_eq!(app.get_dark().typography.family_monospace, "JetBrains Mono");
+    let bytes = include_bytes!("../../crates/kit-slint/ui/fonts/JetBrainsMono-Regular.ttf");
+    let font = ttf_parser::Face::parse(bytes, 0).expect("valid bundled original font");
+    assert!(font.is_monospaced());
+    let advance = |character| {
+        font.glyph_hor_advance(font.glyph_index(character).expect("glyph present"))
+            .expect("advance present")
+    };
+    for character in ['W', 'i', 'A', 'z', '•', '●'] {
+        assert_eq!(
+            advance(character),
+            advance('0'),
+            "{character} must occupy one native code cell"
+        );
+    }
+}

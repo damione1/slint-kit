@@ -1230,6 +1230,11 @@ fn third_party_notices_ship_unchanged_with_the_published_crates() {
         license,
         std::fs::read_to_string(root.join("assets/branding/Inter-OFL.txt")).unwrap()
     );
+    let monospace_license =
+        std::fs::read_to_string(root.join("crates/kit-slint/ui/fonts/JetBrainsMono-OFL.txt"))
+            .unwrap();
+    assert!(notices.contains(&monospace_license));
+    assert!(monospace_license.contains("SIL OPEN FONT LICENSE Version 1.1"));
     // Lucide's ISC notice and Feather's MIT notice are quoted verbatim from
     // the vendored snapshot the icon globals are generated from.
     let snapshot = std::fs::read_dir(root.join("vendor/lucide"))
