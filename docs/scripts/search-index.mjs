@@ -3,6 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const entities = {amp:'&',lt:'<',gt:'>',quot:'"',apos:"'",nbsp:' ',rsquo:'’',lsquo:'‘',rdquo:'”',ldquo:'“',ndash:'–',mdash:'—',hellip:'…'};
+export function codeIdentifiers(source) {
+  return [...new Set(source.match(/\b[A-Z][a-z\d]+(?:[A-Z][A-Za-z\d]*)+\b|\b[a-z][a-z\d]*(?:_[a-z\d]+)+\b/g)||[])];
+}
 function text(html) {
   return html.replace(/<[^>]*>/g,' ').replace(/&(#x[\da-f]+|#\d+|\w+);/gi, (match, entity) => {
     if (entity.startsWith('#')) {
@@ -24,7 +27,10 @@ export function searchDocument(html, url) {
   const prose = main.replace(/<section\b[^>]*class=["']live-preview["'][^>]*>[\s\S]*?<\/section>/gi,' ').replace(/<p\b[^>]*class=["'](?:component-identifier|eyebrow)["'][^>]*>[\s\S]*?<\/p>/gi,' ').replace(/<(pre|script|style|nav)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i,' ');
   const description = html.match(/<meta\b[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i)?.[1] || '';
   const api = main.match(/<p\b[^>]*class=["']component-identifier["'][^>]*>\s*<code>([^<]+)<\/code>/i)?.[1] || '';
-  return {locale,url,title:text(title),api:text(api),summary:text(description),text:text(prose)};
+  // Keep searchable API names from examples without copying whole downloaded
+  // programs into the index or using their repeated boilerplate as prose.
+  const symbols = [...new Set([...main.matchAll(/<pre\b[^>]*>([\s\S]*?)<\/pre>/gi)].flatMap(match=>codeIdentifiers(text(match[1]))))];
+  return {locale,url,title:text(title),api:text(api),summary:text(description),text:text(prose),symbols};
 }
 
 export function writeSearchIndexes(directory) {

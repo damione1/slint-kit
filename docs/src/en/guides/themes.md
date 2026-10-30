@@ -163,7 +163,6 @@ Icon size follows `control-size` (14, 16 or 20 px) multiplied by the theme's `te
 
 Built-in control icons read semantic roles from `theme.icons`, a `KitIconSet`. The built-in theme supplies Lucide glyphs for those roles. Override a role in a copied theme to change its consumers, or use a control’s explicit glyph property where available. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
 
-Moving from 0.3: `IconKind` no longer exists. Replace `KitIcon { kind: IconKind.close; }` with `KitIcon { glyph: KitGlyphs.close(); }`, and `KitIconButton { icon: IconKind.close; }` with `KitIconButton { glyph: KitGlyphs.close(); }`. The [changelog](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) lists every 0.4.0 change.
 
 The Lucide files are generated from a vendored release and never edited by hand. Lucide is under the ISC license, and the icons it derives from Feather are also under the MIT license; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate.
 

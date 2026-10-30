@@ -30,19 +30,28 @@ function wordScore(query,word) {
   return 0;
 }
 export function prepareSearch(entries) {
-  return entries.map(entry=>({...entry,apiIdentity:normalizeSearch(entry.api||'').replaceAll(' ',''),fields:[{weight:6,words:[...words(entry.api||''),normalizeSearch(entry.api||'').replaceAll(' ','')].filter(Boolean)},{weight:4,words:words(entry.title)},{weight:2,words:words(entry.summary)},{weight:1,words:words(entry.text)}]}));
+  return entries.map(entry=>{
+    const symbols=[...new Set([...(entry.symbols||[]),...(String(entry.text).match(/\b[A-Z][a-z\d]+(?:[A-Z][A-Za-z\d]*)+\b/g)||[])])];
+    return {...entry,symbols,apiIdentity:normalizeSearch(entry.api||'').replaceAll(' ',''),fields:[{weight:6,words:[...words(entry.api||''),normalizeSearch(entry.api||'').replaceAll(' ','')].filter(Boolean)},{weight:4,words:words(entry.title)},{weight:2,words:words(entry.summary)},{weight:1,words:words(entry.text)},{weight:1,words:words(symbols.join(' '))}]};
+  });
 }
 export function searchDocuments(entries,query,limit=8) {
-  const tokens=words(query).slice(0,8);if(!tokens.length)return [];
+  let tokens=words(query).slice(0,8);if(!tokens.length)return [];
+  // Recover word boundaries for a known API entered entirely in lowercase.
+  if(tokens.length===1){
+    const symbol=entries.flatMap(entry=>entry.symbols).find(name=>normalizeSearch(name).replaceAll(' ','')===tokens[0]);
+    if(symbol)tokens=words(symbol);
+  }
+  const identity=tokens.join('');
+  const terms=tokens.length>1?tokens.filter(token=>token!=='kit'):tokens;
   return entries.map(entry=>{
     let score=0;
-    for(const token of tokens){
+    for(const token of terms){
       let best=0;
-      for(const field of entry.fields)for(const word of field.words)best=Math.max(best,wordScore(token,word)*field.weight);
+      for(const field of entry.fields)for(const word of field.words)best=Math.max(best,wordScore(token,word)*(token==='kit'?Math.min(1,field.weight):field.weight));
       if(!best)return null;
       score+=best;
     }
-    const identity=tokens.join('');
     if(entry.apiIdentity&&(entry.apiIdentity===identity||entry.apiIdentity.replace(/^kit/,'')===identity))score+=10000;
     return {entry,score};
   }).filter(Boolean).sort((a,b)=>b.score-a.score||a.entry.title.localeCompare(b.entry.title)).slice(0,limit).map(({entry})=>entry);

@@ -163,7 +163,6 @@ La taille d’une icône suit `control-size` (14, 16 ou 20 px) multiplié par le
 
 Les icônes intégrées aux contrôles lisent les rôles sémantiques de `theme.icons`, un `KitIconSet`. Le thème intégré fournit des glyphes Lucide pour ces rôles. Surchargez un rôle dans une copie du thème pour modifier ses consommateurs, ou utilisez la propriété de glyphe explicite du contrôle lorsqu’elle existe. Les listes déroulantes, les combobox, les lignes dépliables et les en-têtes de tableau triés font tourner leur chevron quand ils s’ouvrent, se ferment ou changent de sens, pendant la durée `motion.fast` du thème, ou immédiatement avec `reduced-motion`. Au repos, le chevron est dessiné sans rotation : il pointe donc dans le bon sens avec tous les moteurs de rendu. Les puces signalent leur retrait par le glyphe de fermeture.
 
-Depuis la 0.3 : `IconKind` n’existe plus. Remplacez `KitIcon { kind: IconKind.close; }` par `KitIcon { glyph: KitGlyphs.close(); }`, et `KitIconButton { icon: IconKind.close; }` par `KitIconButton { glyph: KitGlyphs.close(); }`. Le [journal des modifications](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) liste chaque changement de la 0.4.0.
 
 Les fichiers Lucide sont générés à partir d’une version recopiée dans le dépôt et ne sont jamais modifiés à la main. Lucide est sous licence ISC, et les icônes dérivées de Feather sont aussi sous licence MIT ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate.
 

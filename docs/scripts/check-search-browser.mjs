@@ -16,6 +16,7 @@ for(const locale of ['en','fr']){
  assert(apis.length>=100,'The real index includes the component API catalogue');
  assert(entries.every(entry=>!entry.url.includes('/migration-0-4/')&&!entry.url.includes('/examples/')&&!entry.url.includes('/preview/')),'Removed and noindex pages stay out of global search');
  for(const entry of apis)for(const query of [entry.api,entry.api.toLowerCase()])assert.equal(searchDocuments(entries,query)[0]?.url,entry.url,`${locale}: ${query} must rank its own API reference first`);
+ for(const [name,guide] of [['KitThemeContext','themes'],['KitFormValidation','forms']])for(const query of [name,name.toLowerCase()])assert.equal(searchDocuments(entries,query)[0]?.url,`${locale==='fr'?'/fr':''}/guides/${guide}/`,`${locale}: ${query} must find its explanatory guide, including identifiers used only in snippets`);
 }
 const output=path.join(docs,'.verification/search');await fs.mkdir(output,{recursive:true});
 const mime={'.html':'text/html','.js':'text/javascript','.json':'application/json','.css':'text/css','.svg':'image/svg+xml'};
@@ -45,6 +46,7 @@ try{
  await key('Escape','Escape',27);await waitFor('!document.querySelector("#doc-search").open');assert.equal(await evaluate('document.activeElement.className'),'doc-search-trigger');
  await key('k','KeyK',75,4);await waitFor('document.querySelector("#doc-search").open');assert.equal(await evaluate('document.activeElement.id'),'doc-search-query');
  await key('Enter','Enter',13);await waitFor('location.pathname==="/guides/forms/"');
+ await waitFor('Boolean(document.querySelector(".doc-search-trigger:not([hidden])"))');await click('.doc-search-trigger');await call('Input.insertText',{text:'kitthemecontext'});await waitFor('document.querySelector(".doc-search-results a")?.getAttribute("href")==="/guides/themes/"');await capture('desktop-global-api');await key('Escape','Escape',27);
  await call('Emulation.setDeviceMetricsOverride',{width:375,height:850,deviceScaleFactor:2,mobile:false});await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});
  await navigate('/fr/');assert(await evaluate('document.documentElement.scrollWidth<=375'),'Mobile header stays within the viewport');await click('.doc-search-trigger');await call('Input.insertText',{text:'kit txt field'});
  await waitFor('document.querySelector(".doc-search-results a")?.getAttribute("href")==="/fr/components/text-field/"');
