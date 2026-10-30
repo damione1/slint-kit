@@ -9,12 +9,12 @@ eleventyExcludeFromCollections: true
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Slint Kit interactive preview</title>
-<style>html,body{margin:0;padding:0;overflow:hidden;background:#f7f9fb}canvas{display:block;touch-action:none;outline:none}#error{font:14px system-ui;padding:16px;color:#9b1c1c}footer{box-sizing:border-box;font:11px/1.5 system-ui;padding:8px;overflow-wrap:anywhere}a{color:#4736bd}</style>
+<style>:root{color-scheme:light;--preview-bg:#f1f5f9;--preview-text:#0f172a;--preview-link:#4338ca;--preview-border:#94a3b8;--preview-focus:#6366f1;--preview-error:#b91c1c}:root[data-preview-theme="dark"]{color-scheme:dark;--preview-bg:#020617;--preview-text:#f8fafc;--preview-link:#a5b4fc;--preview-border:#475569;--preview-focus:#818cf8;--preview-error:#f87171}html,body{margin:0;padding:0;overflow:hidden;background:var(--preview-bg);color:var(--preview-text)}canvas{display:block;touch-action:none;outline:none}#error{font:14px system-ui;padding:16px;color:var(--preview-error)}footer{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;font:11px/1.5 system-ui;padding:8px;overflow-wrap:anywhere}footer label{display:inline-flex;align-items:center;gap:6px}footer select{font:inherit;min-height:28px;border:1px solid var(--preview-border);border-radius:5px;padding:3px 7px;color:var(--preview-text);background:var(--preview-bg)}a{color:var(--preview-link)}a:focus-visible,select:focus-visible{outline:2px solid var(--preview-focus);outline-offset:2px}</style>
 </head>
 <body>
 <canvas id="canvas" tabindex="0" aria-label="Interactive Slint component"></canvas>
 <p id="error" hidden></p>
-<footer><a id="license" target="_blank" rel="noopener">Licenses</a> · <a id="third-party" target="_blank" rel="noopener">Third-party notices</a> · <a id="source" download>Source</a></footer>
+<footer><label for="preview-theme"><span id="theme-label">Demo theme</span><select id="preview-theme"><option value="light">Light</option><option value="dark">Dark</option></select></label><span><a id="license" target="_blank" rel="noopener">Licenses</a> · <a id="third-party" target="_blank" rel="noopener">Third-party notices</a> · <a id="source" download>Source</a></span></footer>
 <script type="module">
 const allowed = {{ webPreviews.components | scriptJson | safe }};
 const previews = {{ webPreviews.entries | scriptJson | safe }};
@@ -22,11 +22,49 @@ const parameters = new URLSearchParams(location.search);
 const french = parameters.get('lang') === 'fr';
 document.documentElement.lang = french ? 'fr' : 'en';
 const canvas = document.querySelector('canvas');
+const themeChoice = document.querySelector('#preview-theme');
+const themeStorageKey = 'slint-kit-preview-theme';
+const isTheme = value => value === 'light' || value === 'dark';
+let runtime;
+let currentTheme = parameters.get('theme');
+if (!isTheme(currentTheme)) {
+  try { currentTheme = localStorage.getItem(themeStorageKey); } catch {}
+}
+if (!isTheme(currentTheme)) currentTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+function applyTheme(theme, announce = true, persist = true) {
+  if (!isTheme(theme)) return;
+  currentTheme = theme;
+  themeChoice.value = theme;
+  document.documentElement.dataset.previewTheme = theme;
+  parameters.set('theme', theme);
+  history.replaceState(null, '', location.pathname + '?' + parameters);
+  if (persist) { try { localStorage.setItem(themeStorageKey, theme); } catch {} }
+  // Rust updates the existing weak window; drafts and accepted values survive.
+  if (window.previewReady) runtime.set_theme(theme);
+  window.previewTheme = theme;
+  if (announce) message('theme');
+}
+applyTheme(currentTheme, false, false);
+themeChoice.addEventListener('change', () => applyTheme(themeChoice.value));
+window.addEventListener('message', event => {
+  if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'slint-kit-theme') return;
+  applyTheme(event.data.theme);
+});
+window.addEventListener('storage', event => {
+  if (event.key === themeStorageKey && isTheme(event.newValue)) applyTheme(event.newValue, true, false);
+});
+if (french) {
+  document.getElementById('theme-label').textContent = 'Thème de la démo';
+  themeChoice.options[0].textContent = 'Clair'; themeChoice.options[1].textContent = 'Sombre';
+  document.getElementById('license').textContent = 'Licences';
+  document.getElementById('third-party').textContent = 'Avis de tiers';
+  document.getElementById('source').textContent = 'Sources';
+}
 canvas.setAttribute('aria-label', french ? 'Composant Slint interactif' : 'Interactive Slint component');
 function message(state, error) {
   const rectangle = canvas.getBoundingClientRect();
   parent.postMessage({type:'slint-kit-preview', component:parameters.get('component'), state,
-    width:rectangle.width, height:Math.ceil(document.querySelector('footer').getBoundingClientRect().bottom), error}, location.origin);
+    width:rectangle.width, height:Math.ceil(document.querySelector('footer').getBoundingClientRect().bottom), theme:currentTheme, error}, location.origin);
 }
 try {
   if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
@@ -34,13 +72,14 @@ try {
   for (const [id, file] of [['license','NOTICE.txt'],['third-party','THIRD_PARTY_NOTICES.txt'],['source','source.tar.gz']]) {
     document.getElementById(id).href = entry.sources[file];
   }
-  const {default:init} = await import(entry.base + '/slint_kit_previews.js');
-  try { await init(); }
+  runtime = await import(entry.base + '/slint_kit_previews.js');
+  try { await runtime.default(); }
   catch(error) {
     // winit hands control to the browser event loop by throwing this sentinel.
     if (!String(error).includes("Using exceptions for control flow, don't mind me.")) throw error;
   }
   window.previewReady = true;
+  applyTheme(currentTheme, false);
   requestAnimationFrame(() => message('ready'));
   new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(canvas);
   new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(document.querySelector('footer'));
