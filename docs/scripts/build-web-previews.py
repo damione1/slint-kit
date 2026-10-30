@@ -70,7 +70,7 @@ def corresponding_sources(slug):
     return sorted(set(files))
 
 
-def archive_sources(directory, slug, family):
+def archive_sources(directory, slug):
     files = corresponding_sources(slug)
     with (directory / 'source.tar.gz').open('wb') as compressed, gzip.GzipFile(fileobj=compressed, mode='wb', mtime=0, filename='') as gzip_stream, tarfile.open(fileobj=gzip_stream, mode='w') as archive:
         for path in files:
@@ -79,7 +79,7 @@ def archive_sources(directory, slug, family):
                 # Keep the exact library workspace while removing absent apps.
                 content = content.replace(b', "showcase", "tests", "xtask", "docs/capture", "docs/integration"', b'')
             if path == DOCS / 'quickstart' / slug / 'ui/app.slint':
-                content = themed_source(content.decode(), family).encode()
+                content = themed_source(content.decode(), ThemeFamily.TAILWIND.value).encode()
             info = tarfile.TarInfo('slint-kit/' + str(path.relative_to(ROOT)))
             info.mode, info.size, info.mtime = 0o644, len(content), 0
             archive.addfile(info, io.BytesIO(content))
@@ -186,7 +186,7 @@ def build_fixture(task, inputs):
                             '--target', 'wasm32-unknown-unknown'], cwd=ROOT, env=env, check=True)
             subprocess.run([bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name', 'slint_kit_previews',
                             str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm')], cwd=ROOT, check=True)
-            hashes = archive_sources(temporary, slug, 'kit')
+            hashes = archive_sources(temporary, slug)
             # Fixtures are an internal screenshot tool; record their exact UI too.
             write_json(temporary / 'component.json', {'key': key, 'slug': slug, 'scene': task['sceneKey'],
                        'source_sha256': hashes, 'fixtureSource': text,
@@ -258,7 +258,7 @@ def build():
                         raise RuntimeError(f'{slug}/{family.value} compilation failed; see {log_path}')
                     subprocess.run([bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name', 'slint_kit_previews',
                                     str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm')], cwd=ROOT, check=True)
-                    hashes = archive_sources(temporary, slug, family.value)
+                    hashes = archive_sources(temporary, slug)
                     if notices is None:
                         notices = third_party_notices()
                     write_changed(temporary / 'NOTICE.txt', (DOCS / 'preview/NOTICE.txt').read_bytes())
