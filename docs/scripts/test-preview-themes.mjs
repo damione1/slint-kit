@@ -24,12 +24,13 @@ function environment({saved = null, search = '', dark = false, french = false, b
   const values = new Map(saved === null ? [] : [[storageKey, saved]]);
   const location = {origin:'https://slint-kit.test', pathname:'/preview/', search};
   const window = new Element();
+  const media = new Map();
   const context = {
     window, location, URLSearchParams, console,
     navigator:{}, ResizeObserver:class {observe() {}},
     setTimeout() {return 1;}, clearTimeout() {},
     requestAnimationFrame(callback) {callback();},
-    matchMedia() {return {matches:dark};},
+    matchMedia(query) {if(!media.has(query)){const result=new Element();result.matches=query.includes('color-scheme')?dark:false;media.set(query,result);}return media.get(query);},
     localStorage:{
       getItem(key) {if (blockedStorage) throw Error('Storage unavailable'); return values.get(key) ?? null;},
       setItem(key, value) {if (blockedStorage) throw Error('Storage unavailable'); values.set(key, value);},
@@ -38,7 +39,7 @@ function environment({saved = null, search = '', dark = false, french = false, b
   };
   window.matchMedia = context.matchMedia;
   context.document = {documentElement:{lang:french ? 'fr' : 'en', dataset:{}}};
-  return {context, values, window};
+  return {context, values, window, media};
 }
 function page(options) {
   const state = environment(options);
@@ -128,4 +129,14 @@ test('direct shell initializes the requested theme and changes it in place', asy
   assert.equal(choice.value, 'dark');
   assert.equal(state.calls.at(-1)[1], 'dark');
   assert.equal(state.starts(), 1);
+});
+
+test('motion preference changes update the existing Slint window', async () => {
+  const state=await shell({search:'?component=button&theme=dark'});
+  const preference=state.media.get('(prefers-reduced-motion: reduce)');
+  preference.matches=true;
+  preference.emit('change');
+  assert.deepEqual(state.calls.at(-1),['theme','dark']);
+  assert.equal(state.starts(),1);
+  assert.equal(state.context.window.previewTheme,'dark');
 });
