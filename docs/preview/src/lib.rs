@@ -29,6 +29,17 @@ fn register_theme(update: impl Fn(PreviewTheme) + 'static) {
     THEME_UPDATE.with(|slot| *slot.borrow_mut() = Some(Box::new(update)));
 }
 
+fn prefers_reduced_motion() -> bool {
+    web_sys::window()
+        .and_then(|window| {
+            window
+                .match_media("(prefers-reduced-motion: reduce)")
+                .ok()
+                .flatten()
+        })
+        .is_some_and(|query| query.matches())
+}
+
 /// Change presentation on the existing Slint window, preserving native drafts,
 /// selection and host-controller state.
 #[wasm_bindgen]

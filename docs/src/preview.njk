@@ -46,6 +46,7 @@ function applyTheme(theme, announce = true, persist = true) {
 }
 applyTheme(currentTheme, false, false);
 themeChoice.addEventListener('change', () => applyTheme(themeChoice.value));
+matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => applyTheme(currentTheme, false, false));
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'slint-kit-theme') return;
   applyTheme(event.data.theme);

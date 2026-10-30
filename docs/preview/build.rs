@@ -83,10 +83,11 @@ fn main() {
                 crate::register_theme(move |mode| {{
                     if let Some(app) = theme_window.upgrade() {{
                         let palettes = app.global::<{prefix}KitThemes>();
-                        let theme = match mode {{
+                        let mut theme = match mode {{
                             crate::PreviewTheme::Light => palettes.get_light(),
                             crate::PreviewTheme::Dark => palettes.get_dark(),
                         }};
+                        theme.reduced_motion = crate::prefers_reduced_motion();
                         app.global::<{prefix}KitThemeContext>().set_current(theme.clone());
                         app.set_theme(theme);
                     }}
