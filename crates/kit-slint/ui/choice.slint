@@ -56,7 +56,9 @@ component RadioMark inherits Rectangle {
     width: root.choice.box-size; height: root.choice.box-size;
     border-radius: min(root.theme.shape.radius-pill, self.width / 2);
     border-width: root.theme.shape.border-width;
-    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    // A disabled mark keeps its edge in the dimmed ink of its label: the
+    // disabled row fill can equal border-subtle, which would erase the ring.
+    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
     if root.selected: Rectangle {
         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
         width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
@@ -110,7 +112,7 @@ export component KitCheckbox inherits KitPressable {
             width: root.choice.box-size; height: root.choice.box-size;
             border-radius: root.choice.box-radius;
             border-width: root.theme.shape.border-width;
-            border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.border-subtle : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
+            border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
             background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
                 : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
             if root.state == CheckState.checked: Path {
@@ -172,6 +174,9 @@ export component KitSwitch inherits KitPressable {
         Rectangle {
             width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
             background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-strong;
+            // The disabled track matches the disabled row fill; its edge keeps it visible.
+            border-width: root.disabled ? root.theme.shape.border-width : 0px;
+            border-color: root.theme.disabled-text;
             Rectangle {
                 x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
                 y: root.choice.thumb-inset;
@@ -365,7 +370,7 @@ export component KitSegmentedControl inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
@@ -430,7 +435,7 @@ export component KitToggleGroup inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-token == row.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(token,generation); } }
-                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }

@@ -2,7 +2,7 @@
 // State renderings of fields, buttons, pickers and choice groups: field action
 // icons at scaled text, control elevation inside a layout, and states that
 // have no other observable output than their marks, labels and edges.
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
 import { TailwindThemes } from "@kit/themes/tailwind.slint";
 // Internal: the mark each alert severity draws.
 import { KitAlertMarks } from "@kit/feedback.slint";
@@ -98,4 +98,31 @@ export component ControlStateRenderFixture inherits Window {
     segmented := KitSegmentedControl { x: 20px; y: 100px; width: 300px; height: self.preferred-height; required: true; label: "Range"; rows: root.choices; generation: 1; }
     toggles := KitToggleGroup { x: 20px; y: 170px; width: 300px; height: self.preferred-height; required: true; label: "Days"; rows: root.choices; generation: 1; }
     KitFileDropZone { x: 20px; y: 240px; width: 300px; height: 100px; access: FieldAccess.disabled; capability: DropCapability.available; label: "Drop disabled"; }
+}
+
+// Selected segments and toggles, and disabled radio, checkbox and switch
+// marks, rendered in a chosen theme for the legibility and indicator checks.
+// The disabled checkbox and switch carry no label, so only their marks ink.
+export component SelectedChoiceRenderFixture inherits Window {
+    width: 400px; height: 360px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
+    background: root.theme.canvas;
+    KitSegmentedControl {
+        theme: root.theme; x: 20px; y: 20px; width: 300px; height: self.preferred-height; label: "Layout"; generation: 1;
+        rows: [{ token: 1, label: "List" }, { token: 2, label: "Board", selected: true }, { token: 3, label: "Calendar" }];
+    }
+    KitToggleGroup {
+        theme: root.theme; x: 20px; y: 90px; width: 300px; height: self.preferred-height; label: "Formats"; generation: 1;
+        rows: [{ token: 1, label: "PDF", selected: true }, { token: 2, label: "CSV" }, { token: 3, label: "JSON" }];
+    }
+    KitRadioGroup {
+        theme: root.theme; x: 20px; y: 160px; width: 300px; height: self.preferred-height; label: "Plan"; generation: 1;
+        rows: [{ token: 1, label: "Team", selected: true }, { token: 2, label: "Enterprise", disabled: true }];
+    }
+    KitCheckbox { theme: root.theme; x: 20px; y: 260px; width: 80px; height: self.preferred-height; access: FieldAccess.disabled; }
+    KitSwitch { theme: root.theme; x: 120px; y: 260px; width: 100px; height: self.preferred-height; access: FieldAccess.disabled; }
 }

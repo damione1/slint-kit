@@ -315,3 +315,147 @@ fn invalid_choice_groups_and_composites_draw_a_danger_edge() {
         assert_pixel(&snapshot, x, y, theme.danger, &format!("invalid {what}"));
     }
 }
+
+fn software_rendering() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+}
+fn pixel_at(
+    snapshot: &slint::SharedPixelBuffer<slint::Rgba8Pixel>,
+    x: f32,
+    y: f32,
+) -> slint::Color {
+    let pixel =
+        snapshot.as_slice()[y.floor() as usize * snapshot.width() as usize + x.floor() as usize];
+    slint::Color::from_rgb_u8(pixel.r, pixel.g, pixel.b)
+}
+/// Every pixel inside an element's bounds, `inset` from its edges.
+fn pixels_in(
+    snapshot: &slint::SharedPixelBuffer<slint::Rgba8Pixel>,
+    element: &ElementHandle,
+    inset: f32,
+) -> Vec<slint::Color> {
+    let (origin, size) = (element.absolute_position(), element.size());
+    let (left, top) = (
+        (origin.x + inset).ceil() as usize,
+        (origin.y + inset).ceil() as usize,
+    );
+    let (right, bottom) = (
+        (origin.x + size.width - inset).floor() as usize,
+        (origin.y + size.height - inset).floor() as usize,
+    );
+    (top..bottom)
+        .flat_map(|y| (left..right).map(move |x| (x, y)))
+        .map(|(x, y)| pixel_at(snapshot, x as f32, y as f32))
+        .collect()
+}
+fn near(a: slint::Color, b: slint::Color) -> bool {
+    a.red().abs_diff(b.red()) <= 3
+        && a.green().abs_diff(b.green()) <= 3
+        && a.blue().abs_diff(b.blue()) <= 3
+}
+fn selected_choice_themes(window: &SelectedChoiceRenderFixture) -> [(&'static str, KitTheme); 4] {
+    [
+        ("light", window.get_light()),
+        ("dark", window.get_dark()),
+        ("tailwind light", window.get_tailwind_light()),
+        ("tailwind dark", window.get_tailwind_dark()),
+    ]
+}
+
+#[test]
+fn selected_segments_and_toggles_draw_legible_on_accent_labels_in_every_theme() {
+    software_rendering();
+    let window = show(SelectedChoiceRenderFixture::new().unwrap());
+    for (name, theme) in selected_choice_themes(&window) {
+        window.set_theme(theme.clone());
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        for label in ["Board", "PDF"] {
+            // The option is the largest element carrying the label; its text
+            // carries it too.
+            let option = ElementHandle::find_by_accessible_label(&window, label)
+                .max_by(|a, b| a.size().width.total_cmp(&b.size().width))
+                .unwrap_or_else(|| panic!("missing {label}"));
+            // Inside its rounded corners, so the surrounding canvas is excluded.
+            let pixels = pixels_in(&snapshot, &option, theme.shape.radius_control);
+            let fill = pixel_at(
+                &snapshot,
+                option.absolute_position().x + option.size().width / 2.,
+                option.absolute_position().y + theme.spacing.unit,
+            );
+            assert!(near(fill, theme.accent), "{name} {label}: fill {fill:?}");
+            // The label's ink is the pixel that differs most from the fill.
+            let ink = pixels
+                .iter()
+                .copied()
+                .max_by(|a, b| {
+                    crate::theme_tokens::contrast(*a, fill)
+                        .total_cmp(&crate::theme_tokens::contrast(*b, fill))
+                })
+                .expect("option pixels");
+            assert!(
+                near(ink, theme.on_accent),
+                "{name} {label}: label ink {ink:?}, expected on-accent {:?}",
+                theme.on_accent
+            );
+            let ratio = crate::theme_tokens::contrast(ink, fill);
+            assert!(ratio >= 4.5, "{name} {label}: label contrast {ratio:.2}");
+        }
+    }
+}
+
+#[test]
+fn disabled_choice_marks_stay_visible_on_their_disabled_rows_in_every_theme() {
+    software_rendering();
+    let window = show(SelectedChoiceRenderFixture::new().unwrap());
+    for (name, theme) in selected_choice_themes(&window) {
+        window.set_theme(theme.clone());
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        // The disabled radio: its ring's top edge, on the disabled row fill.
+        let marks: Vec<ElementHandle> = ElementQuery::from_root(&window)
+            .match_inherits("RadioMark")
+            .find_all();
+        let row = ElementHandle::find_by_accessible_label(&window, "Enterprise")
+            .max_by(|a, b| a.size().width.total_cmp(&b.size().width))
+            .expect("disabled row");
+        let disabled = marks
+            .iter()
+            .find(|mark| contains(&row, mark))
+            .expect("the disabled row draws a radio mark");
+        assert!(
+            pixels_in(&snapshot, disabled, 0.)
+                .iter()
+                .any(|pixel| near(*pixel, theme.disabled_text)),
+            "{name}: the disabled radio ring takes the disabled ink"
+        );
+        let y = disabled.absolute_position().y + disabled.size().height / 2.;
+        let row = pixel_at(&snapshot, disabled.absolute_position().x - 2., y);
+        assert!(
+            near(row, theme.disabled_fill),
+            "{name}: disabled row fill {row:?}"
+        );
+        assert!(
+            crate::theme_tokens::contrast(theme.disabled_text, theme.disabled_fill) >= 2.,
+            "{name}: disabled mark against its row"
+        );
+        // Unlabelled disabled checkbox and switch: only their marks ink.
+        for kind in ["KitCheckbox", "KitSwitch"] {
+            let control = ElementQuery::from_root(&window)
+                .match_inherits(kind)
+                .find_first()
+                .unwrap_or_else(|| panic!("missing {kind}"));
+            assert!(
+                pixels_in(&snapshot, &control, 0.)
+                    .iter()
+                    .any(|pixel| near(*pixel, theme.disabled_text)),
+                "{name}: disabled {kind} draws no visible mark"
+            );
+        }
+    }
+}

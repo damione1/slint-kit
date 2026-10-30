@@ -888,7 +888,7 @@ fn read_only_select_keeps_focus_but_never_opens() {
     }
 }
 
-fn contrast(a: slint::Color, b: slint::Color) -> f64 {
+pub(crate) fn contrast(a: slint::Color, b: slint::Color) -> f64 {
     fn luminance(color: slint::Color) -> f64 {
         let linear = |c: u8| {
             let s = f64::from(c) / 255.;
