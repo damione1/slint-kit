@@ -1,21 +1,22 @@
 import { LucideTime } from "@kit/icons/lucide/time.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-import { KitDatePicker,KitThemes,KitThemeContext,KitIcon,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
+import { KitDatePicker,KitThemes,KitTheme,KitThemeContext,KitIcon,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
 export {CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase}
 export component App inherits Window {
     default-font-family: InterFont.family;
- title:"date-picker";preferred-width:520px;preferred-height:480px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+ title:"date-picker";preferred-width:520px;preferred-height:480px;max-width:100000px;max-height:100000px;background:root.theme.canvas;
  in property <bool> previous-enabled;in property <bool> next-enabled;in property <[CalendarDay]> days;in property <int> active;in property <string> calendar-title;in property <string> accepted;
  callback navigate(CalendarNavigation);callback choose(CalendarDay);callback cancel();in-out property <string> draft;in property <string> error;in property <CivilDateView> accepted-date;callback commit(string);
  VerticalLayout {padding:24px;spacing:16px;alignment:start;
- KitCard {
- HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-days();ink:KitThemes.light.accent;} KitBadge {text:"Weekday appointments";tone:Tone.accent;}}
- KitCardHeader{title:"Book a working day";description:"Choose dates that work for your schedule.";}
- KitCardBody {
- control:=KitDatePicker{min:"2026-10-01";max:"2027-12-31";previous-enabled:root.previous-enabled;next-enabled:root.next-enabled;days:root.days;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}label:"Event date";text<=>root.draft;error:root.error;accepted-date:root.accepted-date;commit-requested(text)=>{root.commit(text);}}
- KitFieldDescription{text:"Choose an available weekday. Weekends and October 13–15 are unavailable.";}
- HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-check();ink:KitThemes.light.success;} Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}}
+ KitCard {theme:root.theme;
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{theme:root.theme;glyph:LucideTime.calendar-days();ink:root.theme.accent;} KitBadge {theme:root.theme;text:"Weekday appointments";tone:Tone.accent;}}
+ KitCardHeader{theme:root.theme;title:"Book a working day";description:"Choose dates that work for your schedule.";}
+ KitCardBody {theme:root.theme;
+ control:=KitDatePicker{theme:root.theme;min:"2026-10-01";max:"2027-12-31";previous-enabled:root.previous-enabled;next-enabled:root.next-enabled;days:root.days;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}label:"Event date";text<=>root.draft;error:root.error;accepted-date:root.accepted-date;commit-requested(text)=>{root.commit(text);}}
+ KitFieldDescription{theme:root.theme;text:"Choose an available weekday. Weekends and October 13–15 are unavailable.";}
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{theme:root.theme;glyph:LucideTime.calendar-check();ink:root.theme.success;} Text{text:"Accepted: "+root.accepted;color:root.theme.text-primary;wrap:word-wrap;}}
  }
  }
  }

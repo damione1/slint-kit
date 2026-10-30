@@ -1,23 +1,24 @@
 import { LucideTime } from "@kit/icons/lucide/time.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-import { KitCalendar,KitThemes,KitThemeContext,KitIcon,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
+import { KitCalendar,KitThemes,KitTheme,KitThemeContext,KitIcon,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
 export {CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase}
 export component App inherits Window {
     default-font-family: InterFont.family;
- title:"calendar";preferred-width:520px;preferred-height:720px;max-width:100000px;max-height:100000px;background:KitThemes.light.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+ title:"calendar";preferred-width:520px;preferred-height:720px;max-width:100000px;max-height:100000px;background:root.theme.canvas;
  in property <bool> previous-enabled;in property <bool> next-enabled;in property <[CalendarDay]> days;in property <int> active;in property <string> calendar-title;in property <string> accepted;
  in property <bool> sunday-first;callback toggle-week-start();
  callback navigate(CalendarNavigation);callback choose(CalendarDay);callback cancel();
  VerticalLayout {padding:24px;spacing:16px;alignment:start;
- KitCard {
- HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-days();ink:KitThemes.light.accent;} KitBadge {text:"Weekday appointments";tone:Tone.accent;}}
- KitCardHeader{title:"Book a working day";description:"Choose dates that work for your schedule.";}
- KitCardBody {
- control:=KitCalendar{previous-enabled:root.previous-enabled;next-enabled:root.next-enabled;days:root.days;weekdays:root.sunday-first ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}}
- KitFieldDescription{text:"Choose an available weekday. Weekends and October 13–15 are unavailable.";}
- KitButton{leading-icon:LucideTime.calendar-sync();text:root.sunday-first ? "Start week on Monday" : "Start week on Sunday";intent:ButtonIntent.outline;activated=>{root.toggle-week-start();}}
- HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-check();ink:KitThemes.light.success;} Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}}
+ KitCard {theme:root.theme;
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{theme:root.theme;glyph:LucideTime.calendar-days();ink:root.theme.accent;} KitBadge {theme:root.theme;text:"Weekday appointments";tone:Tone.accent;}}
+ KitCardHeader{theme:root.theme;title:"Book a working day";description:"Choose dates that work for your schedule.";}
+ KitCardBody {theme:root.theme;
+ control:=KitCalendar{theme:root.theme;previous-enabled:root.previous-enabled;next-enabled:root.next-enabled;days:root.days;weekdays:root.sunday-first ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}}
+ KitFieldDescription{theme:root.theme;text:"Choose an available weekday. Weekends and October 13–15 are unavailable.";}
+ KitButton{theme:root.theme;leading-icon:LucideTime.calendar-sync();text:root.sunday-first ? "Start week on Monday" : "Start week on Sunday";intent:ButtonIntent.outline;activated=>{root.toggle-week-start();}}
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{theme:root.theme;glyph:LucideTime.calendar-check();ink:root.theme.success;} Text{text:"Accepted: "+root.accepted;color:root.theme.text-primary;wrap:word-wrap;}}
  }
  }
  }
