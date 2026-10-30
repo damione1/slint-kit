@@ -188,10 +188,11 @@ def migrate_catalogue(work, manifest):
         # Preserve genuine legacy ×1 variants until their scene changes.
         # Never upscale them or reclassify them as native ×2.
         available = [path for path in task['outputs'] if path.name in verified]
-        if not available or not all(path.exists() and digest(path.read_bytes()) == verified[path.name]['sha256'] for path in available):
+        if (not available or any(verified[path.name].get('kind') == ImageOrigin.BROWSER for path in available)
+                or not all(path.exists() and digest(path.read_bytes()) == verified[path.name]['sha256'] for path in available)):
             continue
         outputs = {str(path.relative_to(ROOT)): {**output_record(path, True),
-                    'density': verified[path.name]['pixelDensity'], 'kind': ImageOrigin.NATIVE} for path in available}
+                    'density': verified[path.name]['pixelDensity'], 'kind': verified[path.name].get('kind', ImageOrigin.NATIVE)} for path in available}
         profile = {'backend': 'winit', 'renderer': 'skia', 'slint': old['environment']['slintVersion']}
         manifest['entries'][task['id']] = {'key': digest({'scene': task['sceneKey'], 'profile': profile}),
                     'sceneKey': task['sceneKey'], 'renderProfile': profile, 'legacyNative': True, 'outputs': outputs,
