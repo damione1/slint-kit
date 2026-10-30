@@ -472,6 +472,13 @@ mod tests {
                 contrast(theme.focus.color, theme.surface) >= 3.,
                 "{name} focus ring"
             );
+            for surface in [theme.surface, theme.canvas, theme.surface_raised] {
+                assert!(
+                    contrast(theme.border_strong, surface) >= 3.,
+                    "{name} active control boundary: {}",
+                    contrast(theme.border_strong, surface)
+                );
+            }
             for intent in [
                 ButtonIntent::Primary,
                 ButtonIntent::Secondary,
