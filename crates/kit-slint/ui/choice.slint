@@ -40,7 +40,7 @@ component ChoiceOption inherits KitPressable {
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
     measure := Text {
         visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.content-reserve);
-        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap;
+        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap;
     }
     @children
 }
@@ -100,7 +100,7 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checked: root.state == CheckState.checked;
@@ -127,7 +127,7 @@ export component KitCheckbox inherits KitPressable {
                 background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -162,7 +162,7 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; }
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checked: root.checked;
@@ -185,7 +185,7 @@ export component KitSwitch inherits KitPressable {
                 animate x { duration: root.choice.transition; easing: ease-in-out; }
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
