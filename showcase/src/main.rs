@@ -466,20 +466,19 @@ fn person_label(PersonId(id): PersonId) -> String {
         return "Elliot Alderson".into();
     }
     if id % 137 == 0 {
-        return "Alex Morgan".into();
+        return "Elliot Alderson".into();
     }
-    let first = [
-        "Amara", "Noah", "Élodie", "Sora", "Maya", "Luca", "Mika", "Ren",
+    let names = [
+        "Elliot Alderson",
+        "Darlene Alderson",
+        "Angela Moss",
+        "Tyrell Wellick",
+        "Dom DiPierro",
+        "Leon",
+        "Trenton",
+        "Romero",
     ];
-    let last = [
-        "Chen", "Laurent", "Patel", "Rivera", "Kim", "Martin", "Okafor", "Silva",
-    ];
-    format!(
-        "{} {} · {:04}",
-        first[id as usize % first.len()],
-        last[(id as usize / first.len()) % last.len()],
-        id
-    )
+    format!("{} · {:04}", names[id as usize % names.len()], id)
 }
 fn dataset() -> Vec<SelectOption<PersonId>> {
     (0..10_000)

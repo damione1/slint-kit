@@ -7,7 +7,7 @@ fn main() -> Result<(), slint::PlatformError> {
     slint_kit::init_form_validation!(self, app);
     let weak = app.as_weak();
     app.on_profile_requested(move || {
-        if let Some(app) = weak.upgrade() { app.set_status("Alex Morgan’s profile opened by Rust.".into()); }
+        if let Some(app) = weak.upgrade() { app.set_status("Elliot Alderson’s profile opened by Rust.".into()); }
     });
     app.run()
 }

@@ -762,10 +762,10 @@ fn members() -> Vec<SelectOption<MemberId>> {
                 format!(
                     "{} · {id:04}",
                     match id % 4 {
-                        0 => "Alex Martin",
-                        1 => "Noah Patel",
-                        2 => "Sam Chen",
-                        3 => "Camille Roy",
+                        0 => "Elliot Alderson",
+                        1 => "Darlene Alderson",
+                        2 => "Trenton",
+                        3 => "Mobley",
                         _ => unreachable!("modulo four"),
                     }
                 ),

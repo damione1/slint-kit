@@ -14,9 +14,9 @@ export struct WorkspaceProject { key: int, name: string, description: string, ow
 
 export global WorkspaceSamples {
     out property <[WorkspaceProject]> projects: [
-        { key: 101, name: "Design system", description: "A shared foundation for thoughtful interfaces.\n\nKeep decisions, components and accessibility guidance together so everyone can move with confidence.", owner: "Alex Morgan", updated: "2 hours ago", archived: false },
-        { key: 205, name: "Customer portal", description: "A calmer place for everyday work", owner: "Sam Rivera", updated: "Yesterday", archived: false },
-        { key: 309, name: "Mobile research", description: "Interview notes and field observations", owner: "Alex Morgan", updated: "Oct 24", archived: false },
+        { key: 101, name: "Design system", description: "A shared foundation for thoughtful interfaces.\n\nKeep decisions, components and accessibility guidance together so everyone can move with confidence.", owner: "Elliot Alderson", updated: "2 hours ago", archived: false },
+        { key: 205, name: "Customer portal", description: "A calmer place for everyday work", owner: "Tyrell Wellick", updated: "Yesterday", archived: false },
+        { key: 309, name: "Mobile research", description: "Interview notes and field observations", owner: "Elliot Alderson", updated: "Oct 24", archived: false },
         { key: 412, name: "Summer campaign", description: "Launch assets and retrospective", owner: "Jo Chen", updated: "Sep 12", archived: true }
     ];
 
@@ -54,7 +54,7 @@ export component ProductWorkspace inherits Rectangle {
     in-out property <ProjectFilter> filter: ProjectFilter.all;
     in property <[WorkspaceProject]> projects: WorkspaceSamples.projects;
     in-out property <SelectionRef> selection: {present:true,token:101};
-    in property <string> accepted-name: "Alex Morgan";
+    in property <string> accepted-name: "Elliot Alderson";
     in property <string> accepted-email: "alex@studio.example";
     in property <bool> accepted-notifications: true;
     in-out property <string> account-name: root.accepted-name;
@@ -129,7 +129,7 @@ export component ProductWorkspace inherits Rectangle {
                 NavAction { theme: root.theme; selected: root.page == WorkspacePage.account; leading-icon: LucideIcons.settings(); accessible-name: root.french ? "Paramètres" : "Settings"; text: root.narrow ? "" : root.french ? "Paramètres" : "Settings"; disabled: root.editor-open; activated => { root.page = WorkspacePage.account; } }
                 Rectangle { vertical-stretch: 1; }
                 KitDivider { theme: root.theme; }
-                if !root.narrow: Copy { theme: root.theme; text: "Alex Morgan"; color: root.theme.text-primary; font-weight: root.theme.typography.weight-medium; }
+                if !root.narrow: Copy { theme: root.theme; text: "Elliot Alderson"; color: root.theme.text-primary; font-weight: root.theme.typography.weight-medium; }
                 if !root.narrow: Copy { theme: root.theme; text: "Studio · Pro"; role: TypographyRole.caption; }
             }
         }
@@ -302,7 +302,7 @@ export component App inherits Window {
     in-out property <WorkspacePage> page: WorkspacePage.account;
     in-out property <EditorStatus> editor-status: EditorStatus.closed;
     in property <bool> french;
-    in-out property <string> accepted-name: "Alex Morgan";
+    in-out property <string> accepted-name: "Elliot Alderson";
     in-out property <string> accepted-email: "alex@studio.example";
     in-out property <bool> accepted-notifications: true;
     in-out property <[WorkspaceProject]> projects: WorkspaceSamples.projects;

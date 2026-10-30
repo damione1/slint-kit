@@ -16,7 +16,7 @@ fn format(value: &Value) -> String {
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::init_form_validation!(self, app);
-    let initial = Value("Alex Morgan".into());
+    let initial = Value("Elliot Alderson".into());
     app.set_accepted(format(&initial).into());
     let weak = app.as_weak();
     let field = FieldBinding::<Value, ()>::new(

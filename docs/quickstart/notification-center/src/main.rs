@@ -22,7 +22,7 @@ impl Notice {
         match self {
             Self::SharedDocument => "Document shared",
             Self::ExportReady => "Export ready",
-            Self::JoinedWorkspace => "Taylor joined the workspace",
+            Self::JoinedWorkspace => "Angela joined the workspace",
         }
     }
 }

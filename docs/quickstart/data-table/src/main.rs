@@ -18,38 +18,38 @@ fn next_index(current: Option<usize>, length: usize, step: ui::NavigationStep) -
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Person {
-    Zoe,
-    Ada,
-    Lina,
-    Noah,
-    Maya,
-    Theo,
-    Ines,
+    Elliot,
+    Darlene,
+    Angela,
+    Tyrell,
+    Dom,
     Leon,
+    Trenton,
+    Romero,
 }
 impl Person {
     fn token(self) -> i32 {
         match self {
-            Self::Zoe => 11,
-            Self::Ada => 23,
-            Self::Lina => 37,
-            Self::Noah => 51,
-            Self::Maya => 66,
-            Self::Theo => 80,
-            Self::Ines => 95,
-            Self::Leon => 109,
+            Self::Elliot => 11,
+            Self::Darlene => 23,
+            Self::Angela => 37,
+            Self::Tyrell => 51,
+            Self::Dom => 66,
+            Self::Leon => 80,
+            Self::Trenton => 95,
+            Self::Romero => 109,
         }
     }
     fn label(self) -> &'static str {
         match self {
-            Self::Zoe => "Zoe",
-            Self::Ada => "Ada",
-            Self::Lina => "Lina",
-            Self::Noah => "Noah",
-            Self::Maya => "Maya",
-            Self::Theo => "Theo",
-            Self::Ines => "Ines",
+            Self::Elliot => "Elliot",
+            Self::Darlene => "Darlene",
+            Self::Angela => "Angela",
+            Self::Tyrell => "Tyrell",
+            Self::Dom => "Dom",
             Self::Leon => "Leon",
+            Self::Trenton => "Trenton",
+            Self::Romero => "Romero",
         }
     }
 }
@@ -69,7 +69,7 @@ fn publish(state: &RefCell<State>, app: &ui::App) {
         .iter()
         .map(|person| ui::TableRow {
             token: person.token(),
-            cells: ModelRc::new(VecModel::from(vec![person.label().into(), match person { Person::Zoe | Person::Maya | Person::Leon => "Design", Person::Ada | Person::Noah | Person::Ines => "Engineering", Person::Lina | Person::Theo => "Research" }.into(), match person { Person::Zoe | Person::Ada | Person::Lina | Person::Noah | Person::Maya | Person::Ines => "Active", Person::Theo | Person::Leon => "Invited" }.into()])),
+            cells: ModelRc::new(VecModel::from(vec![person.label().into(), match person { Person::Elliot | Person::Dom | Person::Romero => "Design", Person::Darlene | Person::Tyrell | Person::Trenton => "Engineering", Person::Angela | Person::Leon => "Research" }.into(), match person { Person::Elliot | Person::Darlene | Person::Angela | Person::Tyrell | Person::Dom | Person::Trenton => "Active", Person::Leon | Person::Romero => "Invited" }.into()])),
             selected: state.selected == Some(*person),
             disabled: false,
         })
@@ -101,7 +101,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
     slint_kit::init_form_validation!(ui, app);
     let state = Rc::new(RefCell::new(State {
-        order: vec![Person::Zoe, Person::Ada, Person::Lina, Person::Noah, Person::Maya, Person::Theo, Person::Ines, Person::Leon],
+        order: vec![Person::Elliot, Person::Darlene, Person::Angela, Person::Tyrell, Person::Dom, Person::Leon, Person::Trenton, Person::Romero],
         selected: None,
         active: None,
         direction: ui::DataSortDirection::Unsorted,

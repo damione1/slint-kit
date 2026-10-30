@@ -246,7 +246,7 @@ pub fn install(window: &Showcase) {
                         id,
                         name: name.clone(),
                         description: description.clone(),
-                        owner: "Alex Morgan".into(),
+                        owner: "Elliot Alderson".into(),
                         updated: "Just now".into(),
                         archived: false,
                     });
@@ -318,7 +318,7 @@ mod tests {
             412
         );
         click(&window, "All projects");
-        click(&window, "Customer portal, Sam Rivera");
+        click(&window, "Customer portal, Tyrell Wellick");
         assert_eq!(window.get_workspace_selection().token, 205);
         window.invoke_workspace_query_changed("missing".into(), ProjectFilter::All);
         assert_eq!(window.get_workspace_projects().row_count(), 0);
@@ -377,12 +377,12 @@ mod tests {
     fn rust_submission_rejects_invalid_name_and_email() {
         let window = setup();
         assert!(!window.invoke_workspace_save_account(
-            "Alex".into(),
+            "Elliot".into(),
             "arbitrary nonempty".into(),
             true
         ));
         assert!(window.invoke_workspace_save_account(
-            "Alex".into(),
+            "Elliot".into(),
             "alex@example.com".into(),
             true
         ));

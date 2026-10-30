@@ -11,25 +11,25 @@ export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <string> status: "Select Alex’s portrait to open the profile.";
+    in property <string> status: "Select Elliot’s avatar to open the profile.";
     callback profile-requested();
     VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
         Text { text: "A familiar face for every profile"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         KitSurface { theme: root.theme;
             HorizontalLayout { spacing: 16px;
-                KitAvatar { theme: root.theme; size: 72px; source: @image-url("assets/profile-portrait.jpg"); accessible-name: "Open Alex Morgan’s profile"; interaction: AvatarInteraction.action; activated => { root.profile-requested(); } }
+                KitAvatar { theme: root.theme; size: 72px; source: @image-url("assets/fsociety-mask.jpg"); accessible-name: "Open Elliot Alderson’s profile"; interaction: AvatarInteraction.action; activated => { root.profile-requested(); } }
                 VerticalLayout { horizontal-stretch: 1; min-width: 0px; alignment: center; spacing: 6px;
-                    Text { text: "Alex Morgan"; color: root.theme.text-primary; font-size: 18px * root.theme.text-scale; font-weight: 600; }
-                    Text { text: "Product designer · Montréal"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-                    KitBadge { theme: root.theme; tone: Tone.success; leading-icon: root.theme.icons.check; text: "Available for collaboration"; }
+                    Text { text: "Elliot Alderson"; color: root.theme.text-primary; font-size: 18px * root.theme.text-scale; font-weight: 600; }
+                    Text { text: "Security engineer · Allsafe"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    KitBadge { theme: root.theme; tone: Tone.success; leading-icon: root.theme.icons.check; text: "fsociety"; }
                 }
             }
         }
         HorizontalLayout { alignment: start; spacing: 16px;
-            KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Alex Morgan initials"; size: 56px; }
-            KitAvatar { theme: root.theme; initials: "JS"; accessible-name: "Jamie Smith initials"; shape: AvatarShape.rounded; size: 56px; }
-            KitAvatar { theme: root.theme; source: @image-url("assets/profile-portrait.jpg"); accessible-name: "Alex Morgan portrait"; shape: AvatarShape.rounded; size: 56px; }
-            KitAvatar { theme: root.theme; initials: "RK"; accessible-name: "Riley Kim initials"; shape: AvatarShape.square; size: 56px; }
+            KitAvatar { theme: root.theme; initials: "EA"; accessible-name: "Elliot Alderson initials"; size: 56px; }
+            KitAvatar { theme: root.theme; initials: "DA"; accessible-name: "Darlene Alderson initials"; shape: AvatarShape.rounded; size: 56px; }
+            KitAvatar { theme: root.theme; source: @image-url("assets/fsociety-mask.jpg"); accessible-name: "Elliot Alderson, fsociety mask"; shape: AvatarShape.rounded; size: 56px; }
+            KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Angela Moss initials"; shape: AvatarShape.square; size: 56px; }
         }
         Text { text: root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
     }

@@ -247,7 +247,7 @@ pub fn install(window: &App) {
                         id,
                         name: name.clone(),
                         description: description.clone(),
-                        owner: "Alex Morgan".into(),
+                        owner: "Elliot Alderson".into(),
                         updated: "Just now".into(),
                         archived: false,
                     });
