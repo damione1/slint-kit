@@ -8,14 +8,10 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// Files that define tokens or are generated, relative to the UI directory.
-const EXEMPT_FILES: [(&str, &str); 3] = [
+const EXEMPT_FILES: [(&str, &str); 2] = [
     (
         "theme.slint",
         "the token source: themes, metrics and recipes",
-    ),
-    (
-        "themes/tailwind.slint",
-        "an opt-in theme: complete literal token values",
     ),
     (
         "shared-contracts.slint",

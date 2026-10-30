@@ -1,29 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// An opt-in theme inspired by Tailwind CSS: import this file and assign
-// `TailwindThemes.light` or `.dark` to KitThemeContext.current or to a
-// subtree's `theme`. Components never import it, and nothing here is compiled
-// or embedded until an application imports it.
-//
-// Palette: about thirty semantic colors taken from the Tailwind CSS v3 sRGB
-// palette (Copyright (c) Tailwind Labs, Inc., MIT License; see
-// THIRD-PARTY-NOTICES.md). Each value names its source shade, for example
-// `slate-50` or `indigo-600`. Radii, the ring and the shadows follow the
-// Tailwind v4.3 scales. Slint has no shadow spread and one shadow per element,
-// so a surface paints the `key` layer of its level; dialogs and popovers stack
-// both layers (see KitShadow).
-//
-// Font: Inter 4.1 by The Inter Project Authors, SIL Open Font License 1.1
-// (fonts/Inter-OFL.txt). Importing this file embeds the four static weights
-// below, about 1.6 MB of font data.
-import "fonts/Inter-Regular.ttf";
-import "fonts/Inter-Medium.ttf";
-import "fonts/Inter-SemiBold.ttf";
-import "fonts/Inter-Bold.ttf";
-import { KitTheme, ElevationLevel, FocusRingStyle } from "../theme.slint";
+// Font-independent Tailwind presentation. Import fonts/inter.slint separately.
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { KitTheme, ElevationLevel, FocusRingStyle } from "@kit/theme.slint";
 
 export global TailwindThemes {
     out property <KitTheme> light: {
-        canvas: #f8fafc /* slate-50 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */,
+        canvas: #f1f5f9 /* slate-100 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */,
         text-primary: #0f172a /* slate-900 */, text-secondary: #475569 /* slate-600 */, placeholder: #64748b /* slate-500 */,
         accent: #4f46e5 /* indigo-600 */, on-accent: #ffffff /* white */,
         accent-hover: #4338ca /* indigo-700 */, accent-pressed: #3730a3 /* indigo-800 */, accent-subtle: #eef2ff /* indigo-50 */,
@@ -53,20 +35,21 @@ export global TailwindThemes {
         // ring-2 ring-offset-2 in indigo-500; invalid fields ring in red-600.
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #6366f1 /* indigo-500 */, invalid-color: #dc2626 /* red-600 */ },
         typography: {
-            family: "Inter", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
+            family: "", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
             // text-xs, text-sm, text-base, text-xl and text-3xl; text-sm line height.
-            size-caption: 12px, size-control: 14px, size-body: 16px, size-subtitle: 20px, size-title: 30px,
+            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px,
             line-height-control: 20px,
         },
         // --spacing: 0.25rem. Heights h-8, h-9 and h-10; paddings px-3/px-4/px-6, py-1.5/py-2.
         spacing: {
             unit: 4px,
             compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
-            medium: { height: 36px, padding-inline: 16px, padding-block: 8px },
+            medium: { height: 36px, padding-inline: 14px, padding-block: 6px },
             comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
         },
         // duration-150, duration-200 and duration-300.
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text() },
         reduced-motion: false, text-scale: 1,
     };
     out property <KitTheme> dark: {
@@ -99,17 +82,18 @@ export global TailwindThemes {
         },
         focus: { style: FocusRingStyle.outside, width: 2px, offset: 2px, color: #818cf8 /* indigo-400 */, invalid-color: #f87171 /* red-400 */ },
         typography: {
-            family: "Inter", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
-            size-caption: 12px, size-control: 14px, size-body: 16px, size-subtitle: 20px, size-title: 30px,
+            family: "", weight-regular: 400, weight-medium: 500, weight-semibold: 600, weight-bold: 700,
+            size-caption: 12px, size-control: 14px, size-body: 14px, size-subtitle: 18px, size-title: 30px,
             line-height-control: 20px,
         },
         spacing: {
             unit: 4px,
             compact: { height: 32px, padding-inline: 12px, padding-block: 6px },
-            medium: { height: 36px, padding-inline: 16px, padding-block: 8px },
+            medium: { height: 36px, padding-inline: 14px, padding-block: 6px },
             comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
         },
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text() },
         reduced-motion: false, text-scale: 1,
     };
 }

@@ -16,11 +16,11 @@ fn main() {
         ("ui/invalid-enum.slint", "unknown-domain-value"),
     ] {
         let error =
-            kit_build::compile(path).expect_err("invalid public contract must fail compilation");
+            kit_tailwind::compile(path).expect_err("invalid public contract must fail compilation");
         assert!(
             format!("{error:?}").contains(diagnostic),
             "unexpected failure for {path}: {error:?}"
         );
     }
-    kit_build::compile("ui/fixture.slint").expect("public component fixture compiles");
+    kit_tailwind::compile("ui/fixture.slint").expect("public component fixture compiles");
 }

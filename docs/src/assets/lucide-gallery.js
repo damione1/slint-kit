@@ -12,6 +12,10 @@ export function iconSnippet(name, mode, french = false) {
       imports='KitIconButton';
       content=`KitIconButton {\n        glyph: LucideIcons.${name}();\n        accessible-name: "${label}";\n        activated => { root.action-requested(); }\n    }`;
       break;
+    case 'text-button':
+      imports='KitButton, ButtonIntent';
+      content=`KitButton {\n        text: "${label}";\n        intent: ButtonIntent.primary;\n        leading-icon: LucideIcons.${name}();\n        activated => { root.action-requested(); }\n    }`;
+      break;
     case 'pressable':
       imports='KitPressable, KitIcon, KitMetrics';
       content=`action := KitPressable {\n        accessible-name: "${label}";\n        preferred-width: 160px;\n        activated => { root.action-requested(); }\n        HorizontalLayout {\n            spacing: KitMetrics.inline-gap(action.theme);\n            alignment: center;\n            KitIcon {\n                theme: action.theme;\n                glyph: LucideIcons.${name}();\n                ink: action.disabled ? action.recipe.disabled-foreground : action.recipe.foreground;\n            }\n            Text {\n                text: "${label}";\n                color: action.disabled ? action.recipe.disabled-foreground : action.recipe.foreground;\n                font-family: action.theme.typography.family;\n                font-size: action.recipe.font-size;\n                font-weight: action.recipe.font-weight;\n                vertical-alignment: center;\n            }\n        }\n    }`;

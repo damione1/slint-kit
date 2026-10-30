@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitNavigationAction, KitDivider, KitIconButton, KitTextField, KitCheckbox, KitCard, KitThemes, KitTheme, KitThemeContext, ButtonIntent, IconGlyph, FieldAccess, ValidationPresentation, CheckState, KitIconSet } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit-tailwind/theme.slint";
+export component ProductStyleFixture inherits Window {
+    width: 800px; height: 700px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> busy;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <length> local-padding: 20px;
+    in property <length> local-size: 18px;
+    in property <length> local-radius: 3px;
+    in property <IconGlyph> leading-icon: root.theme.icons.plus;
+    in property <IconGlyph> trailing-icon: root.theme.icons.chevron-right;
+    out property <length> button-width: action.width;
+    out property <length> button-height: action.height;
+    out property <length> button-radius: action.border-radius;
+    out property <length> sibling-radius: sibling.border-radius;
+    out property <length> navigation-height: navigation.preferred-height;
+    out property <length> choice-height: choice.preferred-height;
+    out property <bool> field-invalid: field.validation-visible;
+    out property <KitTheme> nested-theme: nested.theme;
+    out property <KitTheme> explicit-child-theme: explicit-child.theme;
+    out property <KitTheme> implicit-child-theme: implicit-child.theme;
+    out property <KitTheme> sister-theme: sister.theme;
+    out property <brush> icon-button-fill: icon-action.background;
+    public function focus-action() { action.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        action := KitButton { theme: root.theme; text: "A long, meaningful action label"; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon; padding-inline: root.local-padding; padding-block: root.local-padding; text-size: root.local-size; corner-radius: root.local-radius; busy: root.busy; }
+        sibling := KitButton { theme: root.theme; text: "Default sibling"; }
+        icon-action := KitIconButton { theme: root.theme; glyph: root.theme.icons.plus; intent: ButtonIntent.destructive; accessible-name: "Delete"; }
+        field := KitTextField { theme: root.theme; label: "Local field"; text: "Native editing"; prefix: "https://"; suffix: ".example"; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon; corner-radius: root.local-radius; padding-inline: root.local-padding; padding-block: root.local-padding; text-size: root.local-size; access: root.access; validation: root.validation; error: "Please check this field"; }
+        navigation := KitNavigationAction { theme: root.theme; option-data: {token:1,generation:1,label:"Local navigation",description:"",disabled:false}; padding-block: root.local-padding; text-size: root.local-size; text-weight: 700; }
+        choice := KitCheckbox { theme: root.theme; label: "Local choice"; padding-block: root.local-padding; text-size: root.local-size; state: CheckState.checked; }
+        divider := KitDivider { theme: root.theme; }
+        nested := KitCard {
+            theme: KitThemes.dark;
+            explicit-child := KitButton { theme: nested.theme; text: "Explicit dark child"; }
+            implicit-child := KitButton { text: "Global child"; }
+        }
+        sister := KitButton { text: "Global sister"; }
+    }
+}

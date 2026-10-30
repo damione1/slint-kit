@@ -36,19 +36,32 @@ export component Example inherits Window {
 
 Custom themes provide canvas, surface and raised surface; primary, secondary and placeholder text; accent, on-accent, accent hover and pressed, subtle accent and text selection; danger with its hover and pressed tones, success, warning and information with their subtle backgrounds; subtle and strong borders, hover, pressed and disabled colors; scrim; `reduced-motion` and `text-scale`. Beyond colors, a theme carries typed token groups: `shape` (radii by role for controls, containers, overlays and pills, plus border widths), `elevation` (a level per role, and a key and an ambient shadow layer per level), `focus` (ring style, width, offset and colors), `typography` (family, weights, sizes), `spacing` (a base unit and the height and paddings of each `ControlSize`) and `motion` (fast, base and slow durations). Slint has no spread syntax and an omitted struct field silently becomes zero or transparent, so write a custom theme as a complete literal, or copy a shipped theme and change fields from Rust. The [public theme declarations](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) define the complete contract.
 
-Every component's `theme` defaults to `KitThemeContext.current`, which starts as `KitThemes.light`. Assign it once to theme a whole window, including components that were not passed a theme; a component's own `theme` property still overrides it for that subtree. To switch it from Rust, re-export the global from the application's main file with `export { KitThemeContext } from "@kit/kit.slint";`, then call `KitThemeContext::get(&window).set_current(theme)`.
+Each component defaults to `KitThemeContext.current`, initially `KitThemes.light`. Assign it once for the window's default presentation. An explicit `theme` overrides that component and its internal controls. Children supplied by the application through `@children` keep their own defaults: pass the parent theme explicitly when composing a themed region. To switch the window default from Rust, re-export `KitThemeContext` from the main Slint file, then call `KitThemeContext::get(&window).set_current(theme)`.
 
 `ButtonIntent` has `primary`, `secondary`, `outline`, `quiet` and `destructive` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
 
 Each `AlertSeverity` takes its own subtle background, border and mark from the `information`, `success`, `warning` and `danger` tokens and their `*-subtle` backgrounds, so alerts stay distinguishable without reading their titles. Kit scroll containers, lists and tables draw their bars with [KitScrollBar](/components/scroll-bar/), which follows the theme. A std-widgets `ScrollView` or `ListView` in application code keeps the Slint style and `Palette.color-scheme`.
 
-## Tailwind-inspired theme
+## Optional Tailwind presentation pack
 
-`@kit/themes/tailwind.slint` is an opt-in theme with the look of Tailwind CSS: a reduced slate, indigo, red, green, amber and sky palette, `rounded-md` controls, `rounded-lg` containers and `rounded-xl` overlays, Tailwind shadows, a two-pixel ring with a two-pixel offset, the 36 px default control height and the [Inter](https://rsms.me/inter/) typeface. Import it and assign one of its values; components never import it, so an application that does not import it compiles and embeds nothing from it. There is no Cargo feature to enable.
+`slint-kit-tailwind` supplies the Tailwind-inspired presentation without duplicating component behavior. The base kit stays independent. Add the pack as a **build dependency**, using the same version as the kit:
+
+```toml
+[build-dependencies]
+slint-kit-tailwind = "0.4"
+```
+
+Compile through the pack to register both `@kit` and `@kit-tailwind`:
+
+```rust
+fn main() {
+    slint_kit_tailwind::compile("ui/app.slint").expect("compile UI");
+}
+```
 
 ```slint
-import { KitThemeContext, KitButton } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit/themes/tailwind.slint";
+import { KitThemeContext, KitButton, ButtonIntent } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit-tailwind/theme.slint";
 
 export component Example inherits Window {
     preferred-width: 420px;
@@ -60,14 +73,76 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px;
         alignment: start;
-        KitButton { text: "Continue"; }
+        KitButton { text: "Continue"; intent: ButtonIntent.primary; }
     }
 }
 ```
 
-`TailwindThemes.light` and `TailwindThemes.dark` are complete `KitTheme` values, so the usual rules apply: change fields from Rust, set `text-scale` for 200% text, or pass a value to one subtree's `theme`. Importing the file embeds Inter 4.1 in four static weights (400, 500, 600 and 700), about 1.6 MB of font data in the application binary; its `typography.family` is `"Inter"`. Kit text reads `typography.family`, while the application's own text keeps the window's `default-font-family`.
+The theme supplies slate surfaces, indigo actions, semantic feedback colors, typography and spacing scales, focus rings, elevation and Lucide glyphs for built-in icon roles. It leaves the renderer and component behavior unchanged. Control height remains intrinsic: the content and padding can require more room than the nominal size.
 
-The palette values come from the Tailwind CSS palette under the MIT license, and Inter is under the SIL Open Font License 1.1; both notices are in [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) and ship with the crate. Slint draws one shadow per element and has no shadow spread: cards and toasts paint the dominant layer of their Tailwind shadow, while dialogs and popovers stack both layers on rectangles inset by each layer's spread. Filled buttons (primary, secondary, destructive) carry `shadow-xs` through `elevation.control`, painted by a child layer so it never changes their measured height; outline and quiet buttons stay flat. In the dark theme, raised surfaces keep the card tone, as shadcn's dark popover does, so hover, pressed and border tones stay visible on every surface; border, shadow and scrim set raised surfaces apart. Under the software renderer, which draws no shadows, surfaces keep their border.
+**Inter is a separate opt-in.** The theme file embeds no fonts and keeps `typography.family` empty, so text uses the window's font. To use Inter, add `import { InterFont } from "@kit-tailwind/fonts/inter.slint";` and `default-font-family: InterFont.family;` to the window. This registers four static weights; their source files total about 1.6 MB. An embedded application can use the same theme with a font appropriate to its device.
+
+When registering application libraries, use `slint_kit_tailwind::config_with_libraries(...)` with a map of their aliases, then `slint_build::compile_with_config` (add the matching `slint-build` build dependency when calling it directly). The helper preserves those aliases and registers the reserved `kit` and `kit-tailwind` names. Runtime and build package versions must match. [Migration from the previous imports](/guides/migration-0-4/).
+
+The palette derives from Tailwind CSS under MIT, Inter is under the SIL Open Font License and Lucide carries ISC/MIT notices. Keep the [third-party notices](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Shadow support depends on the renderer; borders preserve surface boundaries when shadows are unavailable.
+
+## Local changes and composed regions
+
+Use the theme for shared identity, `control-size` for density, and local properties for an intentional exception. Their defaults remain bound to the active recipe; changing the corner radius or padding keeps hover, focus, disabled and validation behavior.
+
+| Component | Local presentation |
+| --- | --- |
+| `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
+| `KitTextField` and its derived field types | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
+| `KitCard`, `KitSurface` | `corner-radius`, `elevation`; existing inset and gap properties |
+
+```slint
+import { KitButton, ButtonIntent, KitThemeContext } from "@kit/kit.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+
+component ExportAction inherits KitButton {
+    text: "Export";
+    intent: ButtonIntent.primary;
+    leading-icon: LucideIcons.download();
+    corner-radius: 10px;
+    padding-inline: KitThemeContext.current.spacing.unit * 5;
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        ExportAction { }
+    }
+}
+```
+
+`text-size` is a rendered length. Its default includes the theme's text scale; bind a custom text size to `theme.text-scale` too when it must follow that preference. A full `recipe` replacement is an advanced override: preserve every field and the state logic it owns instead of constructing a partial struct literal.
+
+A local region needs explicit bindings for application-supplied children:
+
+```slint
+import { KitCard, KitButton, KitThemes } from "@kit/kit.slint";
+
+component DarkPanel inherits KitCard {
+    theme: KitThemes.dark;
+    KitButton { theme: root.theme; text: "Continue"; }
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        DarkPanel { }
+    }
+}
+```
+
+A neighboring control without an explicit theme still uses the window context. This is an explicit composition contract, not a CSS ancestor cascade.
 
 ## Icons
 
@@ -79,16 +154,26 @@ The palette values come from the Tailwind CSS palette under the MIT license, and
 import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 
-export component Toolbar inherits HorizontalLayout {
+component Toolbar inherits HorizontalLayout {
     spacing: 8px;
     KitIconButton { glyph: LucideIcons.trash(); accessible-name: "Delete"; }
     KitIcon { glyph: LucideIcons.cloud-check(); purpose: IconPurpose.informative; label: "Saved"; }
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        Toolbar { }
+    }
 }
 ```
 
 Icon size follows `control-size` (14, 16 or 20 px) multiplied by the theme's `text-scale`. Icons inside controls use their host's size: `KitIconButton`, field actions, select and combobox chevrons and check marks, and number stepper buttons; a field's clear or reveal button grows with its icon at 200% text. The stroke width comes from the theme's `shape.icon-stroke` token, 2 in every shipped theme. With the default `stroke-mode: IconStroke.scaled` the token is in grid units and scales with the icon, as in SVG: Lucide's 2 units on 24 draw 1.33 px at 16 px and 2.67 px at 200% text. With `IconStroke.absolute` the stroke stays 2 px at every size. An `IconGlyph` has a `stroke` layer and a `fill` layer (empty for most icons): a few Lucide icons, such as `tag` or `palette`, have filled dots, painted with the same `ink`. Pass `ink` from the surrounding recipe. An icon is decorative by default and stays out of the accessibility tree; when it carries meaning that no nearby text gives, set `purpose: IconPurpose.informative` and a `label`, and it is announced as an image.
 
-The kit's components use the same glyphs. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
+Built-in control icons read semantic roles from `theme.icons`, a `KitIconSet`. The minimal theme uses `KitGlyphs`; the Tailwind pack supplies Lucide equivalents. Override a role in a copied theme to change its consumers, or use a control’s explicit glyph property where available. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
 
 Moving from 0.3: `IconKind` no longer exists. Replace `KitIcon { kind: IconKind.close; }` with `KitIcon { glyph: KitGlyphs.close(); }`, and `KitIconButton { icon: IconKind.close; }` with `KitIconButton { glyph: KitGlyphs.close(); }`. The [changelog](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) lists every 0.4.0 change.
 
@@ -108,4 +193,4 @@ For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced m
 
 Check light and dark themes, 200% text, keyboard navigation, focus visibility and disabled actions in the actual application. Preserve the native text editor for caret, selection, undo and IME. Provide meaningful accessible names, particularly for icon buttons, custom pressables and focus targets.
 
-The component captures in this site are native Slint renders using **winit and Skia on macOS**. They show the declared example state with labels adapted to the page’s language. They do not certify a screen reader, IME behavior, external file dropping or another backend. Native device and assistive-technology qualification belongs to the consuming application's target platforms. [Slint accessibility documentation](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) describes accessibility properties and native inspection practices.
+The site includes browser previews and native captures; their captions identify the rendering environment. A rendered example does not certify a screen reader, IME behavior, external file dropping or another backend. Native device and assistive-technology qualification belongs to the consuming application's target platforms. [Slint accessibility documentation](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) describes accessibility properties and native inspection practices.

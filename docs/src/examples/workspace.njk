@@ -1,0 +1,15 @@
+---
+permalink: /examples/workspace/index.html
+eleventyExcludeFromCollections: true
+---
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Workspace · Slint Kit</title>
+<style>*{box-sizing:border-box}body{margin:0;font:14px system-ui;background:#f1f5f9;color:#0f172a}header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 20px;background:white;border-bottom:1px solid #cbd5e1}label{display:flex;gap:6px;align-items:center}select{font:inherit;padding:6px;border:1px solid #94a3b8;border-radius:6px;background:white}a{color:#4338ca}main{position:relative;height:calc(100dvh - 66px);min-height:480px}canvas{display:block;width:100%!important;height:100%!important;outline:none}#loading{position:absolute;inset:32px;pointer-events:none}</style></head>
+<body><header><strong>Slint Kit · Workspace</strong><label>Theme <select name="theme"><option value="kit">Base</option><option value="tailwind">Tailwind + Inter</option></select></label><label>Mode <select name="mode"><option value="light">Light</option><option value="dark">Dark</option></select></label><label>Text <select name="scale"><option value="1">100%</option><option value="2">200%</option></select></label><label>Screen <select name="scene"><option value="account">Account</option><option value="projects">Projects</option><option value="dialog">Edit dialog</option></select></label><label>Language <select name="lang"><option value="en">English</option><option value="fr">Français</option></select></label><a href="/guides/workspace/">Use this example</a></header>
+<main><div id="loading" role="status">Loading native Slint components…</div><canvas id="canvas" tabindex="0" aria-label="Interactive workspace"></canvas></main>
+<script type="module">
+document.documentElement.lang=new URLSearchParams(location.search).get('lang')==='fr'?'fr':'en';
+const defaults={theme:'tailwind',mode:'light',scale:'1',scene:'account',lang:'en'}, params=new URLSearchParams(location.search);
+for(const select of document.querySelectorAll('select')){select.value=params.get(select.name)||defaults[select.name];select.addEventListener('change',()=>{for(const input of document.querySelectorAll('select'))params.set(input.name,input.value);location.search=params.toString()})}
+try{const manifest=await fetch('/assets/workspace-preview/manifest.json').then(response=>{if(!response.ok)throw Error('Preview assets unavailable');return response.json()});const module=await import(manifest.module);try{await module.default()}catch(error){if(!String(error).includes("Using exceptions for control flow, don't mind me."))throw error}document.querySelector('#loading').remove();document.querySelector('canvas').dataset.ready='true'}catch(error){document.querySelector('#loading').textContent='Preview unavailable: '+error.message;console.error(error)}
+</script></body></html>

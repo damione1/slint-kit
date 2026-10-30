@@ -36,7 +36,7 @@ fn main() {
         println!("cargo:rerun-if-changed={}", host.display());
         let compiled_input = out.join(format!("{name}.slint"));
         fs::copy(input, &compiled_input).expect("copy exact starter UI");
-        slint_build::compile_with_config(&compiled_input, slint_kit_build::config())
+        slint_build::compile_with_config(&compiled_input, slint_kit_tailwind::config())
             .expect("compile public component");
         let source = if env::var_os("SLINT_PREVIEW_FIXTURE").is_some() {
             let scale = match env::var("SLINT_PREVIEW_TEXT_SCALE").as_deref() {

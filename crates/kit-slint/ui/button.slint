@@ -4,6 +4,17 @@ import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonR
 import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
+component BusyMark inherits Rectangle {
+    in property <ButtonRecipe> recipe;
+        Path {
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: root.recipe.busy-mark-size; height: root.recipe.busy-mark-size;
+            viewbox-width: 16; viewbox-height: 16;
+            commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
+            stroke: root.recipe.foreground; stroke-width: root.recipe.busy-mark-stroke; fill: transparent;
+        }
+    }
+
 // Content must be non-interactive; the primitive owns hit testing and activation.
 export component KitPressable inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -11,6 +22,11 @@ export component KitPressable inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <ControlWidth> control-width: ControlWidth.intrinsic;
     in property <ButtonRecipe> recipe: KitThemes.button-recipe(root.theme, root.intent, root.control-size);
+    in property <length> corner-radius: root.recipe.radius;
+    in property <length> padding-inline: root.recipe.padding-inline;
+    in property <length> padding-block: root.recipe.padding-block;
+    in property <length> text-size: root.recipe.font-size;
+    in property <int> text-weight: root.recipe.font-weight;
     in property <string> accessible-name;
     in property <bool> disabled;
     in property <bool> busy;
@@ -43,14 +59,14 @@ export component KitPressable inherits Rectangle {
     }
     changed disabled => { root.cancel-press(); }
     changed busy => { root.cancel-press(); }
-    min-height: max(root.recipe.height, root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block);
+    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block);
     preferred-height: root.min-height;
     max-height: root.preferred-height;
     vertical-stretch: 0;
     horizontal-stretch: root.control-width == ControlWidth.fill ? 1 : 0;
     preferred-width: 120px;
     max-width: root.control-width == ControlWidth.fill ? 100000px : root.preferred-width;
-    border-radius: root.recipe.radius;
+    border-radius: root.corner-radius;
     border-width: root.recipe.border-width;
     border-color: root.recipe.border;
     background: root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
@@ -72,10 +88,10 @@ export component KitPressable inherits Rectangle {
         drop-shadow-color: root.recipe.shadow.color;
     }
     Rectangle {
-        x: root.recipe.padding-inline;
-        y: root.recipe.padding-block;
-        width: max(0px, parent.width - 2 * root.recipe.padding-inline);
-        height: max(0px, parent.height - 2 * root.recipe.padding-block);
+        x: root.padding-inline;
+        y: root.padding-block;
+        width: max(0px, parent.width - 2 * root.padding-inline);
+        height: max(0px, parent.height - 2 * root.padding-block);
         @children
     }
     keys := FocusScope {
@@ -137,40 +153,42 @@ export component KitPressable inherits Rectangle {
         }
     }
     if root.focus-visible || root.focus-indicated: FocusOutline {
-        ring: root.focus-ring; radius: root.recipe.radius;
+        ring: root.focus-ring; radius: root.corner-radius;
         host-width: root.width; host-height: root.height;
     }
 }
 
 export component KitButton inherits KitPressable {
     in property <string> text;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon;
+    private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <bool> has-leading: root.leading-icon.stroke != "" || root.leading-icon.fill != "";
+    private property <bool> has-trailing: root.trailing-icon.stroke != "" || root.trailing-icon.fill != "";
+    private property <length> icon-gap: KitMetrics.inline-gap(root.theme);
+    private property <length> leading-width: root.has-leading ? root.icon-size + root.icon-gap : 0px;
+    private property <length> trailing-width: root.has-trailing ? root.icon-size + root.icon-gap : 0px;
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    private property <length> natural-width: max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.leading-width + root.trailing-width + 2 * root.padding-inline);
     min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
     preferred-width: root.natural-width;
+    if root.has-leading: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; x: 0px; y: (parent.height - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
+    if root.has-trailing: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; x: parent.width - self.width; y: (parent.height - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
     label := Text {
-        x: 0px; y: 0px;
-        width: max(0px, root.width - 2 * root.recipe.padding-inline);
-        height: max(0px, root.height - 2 * root.recipe.padding-block);
+        x: root.leading-width; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - root.leading-width - root.trailing-width);
+        height: max(0px, root.height - 2 * root.padding-block);
         opacity: root.busy ? 0 : 1;
         text: root.text;
         color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-        font-family: root.theme.typography.family; font-size: root.recipe.font-size; font-weight: root.recipe.font-weight;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         horizontal-alignment: center;
         vertical-alignment: center;
         overflow: elide;
     }
     // The label stays in layout while a centered progress mark replaces it.
     // Busy therefore changes neither intrinsic width nor the content center.
-    if root.busy: Rectangle {
-        Path {
-            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-            width: root.recipe.busy-mark-size; height: root.recipe.busy-mark-size;
-            viewbox-width: 16; viewbox-height: 16;
-            commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
-            stroke: root.recipe.foreground; stroke-width: root.recipe.busy-mark-stroke; fill: transparent;
-        }
-    }
+    if root.busy: BusyMark { recipe: root.recipe; }
 }
 
 // View actions carry intent only; the application provides the typed payload.
@@ -194,10 +212,11 @@ export component KitResetButton inherits KitFormButton {
     intent: ButtonIntent.quiet;
 }
 export component KitIconButton inherits KitPressable {
-    // The action's glyph, e.g. `KitGlyphs.close()` or `LucideIcons.trash()`.
+    // The action's glyph, e.g. `root.theme.icons.close` or `LucideIcons.trash()`.
     in property <IconGlyph> glyph;
     intent: ButtonIntent.quiet;
-    recipe: KitThemes.icon-button-recipe(root.theme, root.control-size);
+    recipe: KitThemes.button-recipe(root.theme, root.intent, root.control-size);
+    padding-inline: 0px; padding-block: 0px;
     preferred-width: root.preferred-height;
     min-width: self.preferred-width;
     Rectangle {
@@ -205,9 +224,11 @@ export component KitIconButton inherits KitPressable {
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
             theme: root.theme; control-size: root.control-size;
             glyph: root.glyph;
+            opacity: root.busy ? 0 : 1;
             ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         }
     }
+    if root.busy: BusyMark { recipe: root.recipe; }
 }
 export component KitButtonGroup inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;

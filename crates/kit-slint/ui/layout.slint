@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ScrollFrame } from "scroll.slint";
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
 
 // Presentation-only contracts: Rust consumers use the generated Slint enums.
@@ -123,11 +123,16 @@ export component KitSurface inherits Rectangle {
     in property <SurfaceBorder> border: SurfaceBorder.subtle;
     in property <LayoutSpace> inset: LayoutSpace.regular;
     in property <LayoutSpace> gap: LayoutSpace.regular;
+    in property <length> corner-radius: root.recipe.radius;
+    in property <ElevationLevel> elevation: root.recipe.elevation;
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
-    border-radius: root.recipe.radius;
+    border-radius: root.corner-radius;
     border-width: root.border == SurfaceBorder.subtle ? root.recipe.border-width : 0px;
     border-color: root.recipe.border;
     background: root.recipe.fill;
+    drop-shadow-offset-y: KitThemes.shadow(root.theme, root.elevation).offset-y;
+    drop-shadow-blur: KitThemes.shadow(root.theme, root.elevation).blur;
+    drop-shadow-color: KitThemes.shadow(root.theme, root.elevation).color;
     vertical-stretch: 0;
     VerticalLayout {
         padding: KitLayoutMetrics.space(root.theme, root.inset);

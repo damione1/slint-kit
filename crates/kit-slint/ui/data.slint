@@ -104,7 +104,7 @@ export component KitDataTable inherits Rectangle {
                     Text {horizontal-stretch: 0; max-width: self.preferred-width; text:column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-medium;overflow:elide;vertical-alignment:center;}
                     if column.sort != DataSortDirection.unsorted: Rectangle {
                         width: KitMetrics.icon-size(root.theme, root.control-size); height: parent.height;
-                        TurningIcon {theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: column.sort == DataSortDirection.descending; rest-glyph: KitGlyphs.chevron-up(); turned-glyph: KitGlyphs.chevron-down();ink:root.theme.text-secondary;}
+                        TurningIcon {theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: column.sort == DataSortDirection.descending; rest-glyph: root.theme.icons.chevron-up; turned-glyph: root.theme.icons.chevron-down;ink:root.theme.text-secondary;}
                     }
                 }
             }
@@ -171,7 +171,7 @@ export component KitContentList inherits Rectangle {
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
                 Rectangle {width:72px;height:72px;border-radius:root.theme.shape.radius-container;background:root.theme.hover;
                     if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
-                    if item.thumbnail == @image-url(""): KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:KitGlyphs.article();ink:root.theme.accent;}
+                    if item.thumbnail == @image-url(""): KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
                     Text {text:item.title;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}

@@ -18,7 +18,7 @@ pub fn compile(path: &Path) -> Result<(), String> {
             .map_err(|error| error.to_string())?;
     kit_build::verify_contracts().map_err(|error| error.to_string())?;
     for request in requests {
-        let mut config = kit_build::config()
+        let mut config = kit_tailwind::config()
             .with_style("fluent".into())
             .with_debug_info(false)
             .embed_resources(slint_build::EmbedResourcesKind::EmbedFiles);

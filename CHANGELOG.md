@@ -4,6 +4,16 @@
 
 0.4.0 changes the theme and icon contracts. The Slint compiler reports every site that must change, so upgrade by following its errors. This list names each break.
 
+### Product composition and presentation pack
+
+- **Breaking:** Tailwind assets move from `@kit/themes/tailwind.slint` to the optional `slint-kit-tailwind` build dependency and `@kit-tailwind/theme.slint`. The core package no longer carries Tailwind or Inter. Use the pack's `compile` or `config_with_libraries` helper with matching versions; application aliases are preserved and reserved aliases rejected.
+- **Breaking:** `KitTheme.icons: KitIconSet` is required in complete themes. Built-in controls use original base roles and Lucide pack roles. Inter is separately registered by `InterFont` from `@kit-tailwind/fonts/inter.slint`; set the Window's `default-font-family: InterFont.family`.
+- Buttons gain typed leading/trailing icons and recipe-derived local radius, padding and typography. Icon buttons honor all intents and reserve their geometry while busy. Fields gain icon affixes and local geometry/typography while preserving native editors, validation and access states. Cards and surfaces gain local radius/elevation; alerts gain local radius/inset.
+- Tailwind medium controls now actually fit a 36 px line at normal text scale; body/subtitle hierarchy uses 14/18 px. The pack supplies distinct semantic icons, subtle selected rows, a slate workspace canvas, light borders, elevation and optional Inter.
+- Correct theme scope documentation: the global is per window/component tree; supplied children require explicit theme bindings. There is no implicit ancestor cascade.
+- The showcase adds reusable account, project collection and editing dialog compositions, with filtered host models, stable identity, in-memory persistence, guarded submissions and cancellation/focus restoration. Download the same Slint/Rust sources and run the WASM comparison at `/examples/workspace/`.
+- Fix a visible gap at the center of an unlabelled divider.
+
 ### Theme
 
 - **`KitTheme`** grows typed token groups: `shape` (`KitShape`: radii by role, border width, icon stroke), `elevation` (`KitElevation` of `KitShadow { key, ambient }`), `focus` (`KitFocusRing`), `typography` (`KitTypography`), `spacing` (`KitSpacing` with per-`ControlSize` `KitControlDensity`) and `motion` (`KitMotion`). It also gains these colors: `placeholder`, `accent-hover`, `accent-pressed`, `accent-subtle`, `selection`, `on-selection`, `danger-hover`, `danger-pressed`, `danger-subtle`, `success-subtle`, `warning-subtle`, `information`, `information-subtle` and `border-strong`. Write a custom theme as a complete literal: Slint sets an omitted field to zero or transparent, without a warning.

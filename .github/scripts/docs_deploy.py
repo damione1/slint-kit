@@ -80,7 +80,7 @@ def verify_registry(identity):
             path = ROOT / directory / original
             if not path.is_file() or path.read_bytes() != content:
                 raise ValueError(f'{name}: published source differs at {relative}')
-    print(f'Verified all five published {version} crates against v{version}', flush=True)
+    print(f'Verified all six published {version} crates against v{version}', flush=True)
 
 
 def files(directory):

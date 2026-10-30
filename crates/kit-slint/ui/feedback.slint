@@ -28,7 +28,8 @@ export component KitAlert inherits Rectangle {
     // lives inside a conditional layout. An unconstrained row's preferred height
     // measures its copy at minimum width and leaves unused space below the alert.
     private property <AlertRecipe> recipe: KitThemes.alert-recipe(root.theme, root.severity);
-    private property <length> inset: root.recipe.inset;
+    in property <length> inset: root.recipe.inset;
+    in property <length> corner-radius: root.recipe.radius;
     private property <length> gap: root.recipe.gap;
     private property <length> trailing-space: root.dismissible ? dismiss.width + root.gap : 0px;
     preferred-height: 2 * root.inset + max(copy.preferred-height, icon.height, root.dismissible ? dismiss.height : 0px);
@@ -36,12 +37,12 @@ export component KitAlert inherits Rectangle {
     min-width: 2 * root.inset + icon.width + root.gap + root.trailing-space;
     background: root.recipe.fill;
     border-width: root.recipe.border-width; border-color: root.recipe.border;
-    border-radius: root.recipe.radius; vertical-stretch: 0;
+    border-radius: root.corner-radius; vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {
         theme: root.theme;
         x: root.inset; y: root.inset;
-        glyph: KitAlertMarks.glyph(root.severity);
+        glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
         ink: root.recipe.mark;
     }
     copy := VerticalLayout {
@@ -57,7 +58,7 @@ export component KitAlert inherits Rectangle {
         x: root.width - self.width - root.inset; y: root.inset;
         visible: root.dismissible; disabled: !root.dismissible;
         theme: root.theme; control-size: ControlSize.compact;
-        glyph: KitGlyphs.close(); accessible-name: "Dismiss " + root.title;
+        glyph: root.theme.icons.close; accessible-name: "Dismiss " + root.title;
         activated => { root.dismissed(); }
     }
 }

@@ -1,3 +1,4 @@
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitButton, KitTheme, KitThemes } from "@kit/kit.slint";
 
@@ -12,7 +13,7 @@ export component Example inherits Window {
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Button"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        Text { leading-icon: LucideIcons.check(); text: "Button"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         KitButton { theme: root.theme; text: "Save changes"; activated => { root.status = "Action requested"; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }

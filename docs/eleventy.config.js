@@ -16,6 +16,7 @@ export default function (eleventyConfig) {
   eleventyConfig.addGlobalData('lucide', lucide);
   eleventyConfig.addFilter('iconSnippet', (name, mode, locale) => iconSnippet(name, mode, locale === 'fr'));
   eleventyConfig.addPassthroughCopy('src/assets');
+  if (fs.existsSync('.generated/workspace-preview/manifest.json')) { eleventyConfig.addPassthroughCopy({ '.generated/workspace-preview': 'assets/workspace-preview' }); }
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
   const quickstarts = loadStarters();

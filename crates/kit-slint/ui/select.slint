@@ -356,8 +356,8 @@ export component KitSelect inherits Rectangle {
                     theme: root.theme; control-size: root.control-size;
                     y: (parent.height - self.height) / 2;
                     turned: root.state.open;
-                    rest-glyph: KitGlyphs.chevron-down();
-                    turned-glyph: KitGlyphs.chevron-up();
+                    rest-glyph: root.theme.icons.chevron-down;
+                    turned-glyph: root.theme.icons.chevron-up;
                     ink: trigger.disabled ? root.icon.disabled-color : root.icon.color;
                 }
             }
@@ -399,7 +399,7 @@ export component KitSelect inherits Rectangle {
                             if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }

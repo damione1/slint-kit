@@ -777,3 +777,5 @@ mod select_geometry;
 mod html_validation;
 
 mod phone;
+
+mod product_style;

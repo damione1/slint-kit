@@ -26,7 +26,10 @@ fn root() -> PathBuf {
 fn compile(path: &Path, dark: bool) -> Result<slint_interpreter::ComponentDefinition> {
     kit_build::verify_contracts()?;
     let mut compiler = Compiler::default();
-    compiler.set_library_paths(HashMap::from([("kit".into(), kit_build::ui_directory())]));
+    compiler.set_library_paths(HashMap::from([
+        ("kit".into(), kit_build::ui_directory()),
+        ("kit-tailwind".into(), kit_tailwind::ui_directory()),
+    ]));
     compiler.set_style("fluent".into());
     let source = std::fs::read_to_string(path)?;
     let source = if dark {

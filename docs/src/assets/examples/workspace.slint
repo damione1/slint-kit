@@ -1,0 +1,283 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// A complete public-API consumer: application state uses stable project keys.
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, KitButton, KitPressable, KitIconButton, ButtonIntent, ControlWidth, KitIcon, IconGlyph, KitCard, KitCardHeader, KitCardBody, KitCardFooter, KitDivider, KitBadge, Tone, KitTextField, KitEmailField, KitSearchField, KitTextArea, KitSwitch, FieldAccess, KitAlert, AlertSeverity, KitScrollArea, LayoutSpace, KitDialogSurface, KitDialogPanel, DialogTabPolicy, TextPurpose, ValidationPresentation, KitSelect, KitMenu, NavigationStep, SelectionAvailability, SelectionRef } from "@kit/kit.slint";
+import { ListView } from "@kit/scroll.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+
+export enum WorkspacePage { account, projects }
+export enum ProjectFilter { all, active, archived }
+export enum EditorOpener { create, edit }
+export enum EditorStatus { closed, editing, saving, saved }
+export struct WorkspaceProject { key: int, name: string, description: string, owner: string, updated: string, archived: bool }
+
+export global WorkspaceSamples {
+    out property <[WorkspaceProject]> projects: [
+        { key: 101, name: "Design system", description: "Components, patterns and accessibility", owner: "Alex Morgan", updated: "2 hours ago", archived: false },
+        { key: 205, name: "Customer portal", description: "A calmer place for everyday work", owner: "Sam Rivera", updated: "Yesterday", archived: false },
+        { key: 309, name: "Mobile research", description: "Interview notes and field observations", owner: "Alex Morgan", updated: "Oct 24", archived: false },
+        { key: 412, name: "Summer campaign", description: "Launch assets and retrospective", owner: "Jo Chen", updated: "Sep 12", archived: true }
+    ];
+
+}
+
+component Copy inherits Text {
+    in property <KitTheme> theme;
+    in property <TypographyRole> role: TypographyRole.control;
+    color: root.theme.text-secondary;
+    font-family: root.theme.typography.family;
+    font-size: KitMetrics.font-size(root.theme, root.role);
+    wrap: word-wrap;
+    vertical-stretch: 0;
+}
+component NavAction inherits KitButton {
+    in property <bool> selected;
+    in property <int> focus-request;
+    changed focus-request => { if (root.focus-request > 0) { root.take-focus(); } }
+    control-width: ControlWidth.fill;
+    intent: root.selected ? ButtonIntent.secondary : ButtonIntent.quiet;
+    background: root.selected ? root.theme.accent-subtle : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
+}
+
+// Theme is explicit and passed to every child, including the overlay.
+// This is an example composite, not an implicit theme provider.
+export component ProductWorkspace inherits Rectangle {
+    min-width: 0px; min-height: 0px;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <bool> french;
+    in property <bool> invalid-preview;
+    in-out property <WorkspacePage> page: WorkspacePage.account;
+    in-out property <EditorStatus> editor-status: EditorStatus.closed;
+    in-out property <ProjectFilter> filter: ProjectFilter.all;
+    in property <[WorkspaceProject]> projects: WorkspaceSamples.projects;
+    in-out property <int> selected-key: 101;
+    in property <string> accepted-name: "Alex Morgan";
+    in property <string> accepted-email: "alex@studio.example";
+    in property <bool> accepted-notifications: true;
+    in-out property <string> account-name: root.accepted-name;
+    in-out property <string> account-email: root.accepted-email;
+    in-out property <bool> notifications: root.accepted-notifications;
+    in-out property <string> search;
+    in-out property <string> edit-name: "Design system";
+    in-out property <string> edit-description: "A shared foundation for thoughtful interfaces.\n\nKeep decisions, components and accessibility guidance together so everyone can move with confidence.";
+    in-out property <bool> account-saved;
+    changed editor-status => { if (root.editor-status == EditorStatus.saved) { root.focus-return += 1; } }
+    private property <bool> menu-open;
+    private property <int> menu-active: 1;
+    private property <bool> region-open;
+    private property <int> region-token: 1;
+    private property <int> region-active: 1;
+    callback modal-changed(bool);
+    changed editor-open => { root.modal-changed(root.editor-open); if (root.editor-open) { project-name.take-focus(); } }
+    private property <int> focus-return;
+    private property <EditorOpener> opener: EditorOpener.edit;
+    private property <bool> editor-open: root.editor-status == EditorStatus.editing || root.editor-status == EditorStatus.saving;
+    private property <bool> editor-busy: root.editor-status == EditorStatus.saving;
+    out property <bool> editing: root.editor-open;
+    out property <int> visible-count: root.projects.length;
+    callback save-account(string, string, bool) -> bool;
+    callback save-project(SelectionRef, string, string);
+    callback query-changed(string, ProjectFilter);
+    changed search => { root.query-changed(root.search,root.filter); }
+    changed filter => { root.query-changed(root.search,root.filter); }
+    callback cancelled();
+    // Host completion is explicit: an application persists then calls this.
+    public function show-empty() { root.search = "no matching project"; }
+    public function finish-save() { root.editor-status = EditorStatus.saved; }
+    public function open-editor() { root.menu-open = false; root.editor-status = EditorStatus.editing; project-name.take-focus(); }
+    public function close-editor() { if (!root.editor-busy) { root.editor-status = EditorStatus.closed; root.cancelled(); root.focus-return += 1; } }
+    background: root.theme.canvas;
+    HorizontalLayout {
+        spacing: 0px;
+        Rectangle {
+            width: 154px * root.theme.text-scale;
+            background: root.theme.surface;
+            VerticalLayout {
+                padding: root.theme.spacing.unit * 5; spacing: root.theme.spacing.unit * 3;
+                HorizontalLayout {
+                    spacing: root.theme.spacing.unit * 2;
+                    KitIcon { theme: root.theme; glyph: LucideIcons.layers(); ink: root.theme.accent; }
+                    Copy { theme: root.theme; text: "Forma"; role: TypographyRole.subtitle; color: root.theme.text-primary; font-weight: root.theme.typography.weight-bold; }
+                }
+                Copy { theme: root.theme; text: root.french ? "ESPACE DE TRAVAIL" : "WORKSPACE"; role: TypographyRole.caption; }
+                NavAction { theme: root.theme; selected: root.page == WorkspacePage.projects; leading-icon: LucideIcons.folder(); text: root.french ? "Projets" : "Projects"; disabled: root.editor-open; activated => { root.page = WorkspacePage.projects; } }
+                NavAction { theme: root.theme; selected: root.page == WorkspacePage.account; leading-icon: LucideIcons.settings(); text: root.french ? "Paramètres" : "Settings"; disabled: root.editor-open; activated => { root.page = WorkspacePage.account; } }
+                Rectangle { vertical-stretch: 1; }
+                KitDivider { theme: root.theme; }
+                Copy { theme: root.theme; text: "Alex Morgan"; color: root.theme.text-primary; font-weight: root.theme.typography.weight-medium; }
+                Copy { theme: root.theme; text: "Studio workspace · Pro"; role: TypographyRole.caption; }
+            }
+        }
+        KitScrollArea {
+            theme: root.theme; inset: LayoutSpace.section; gap: LayoutSpace.roomy;
+            VerticalLayout {
+                spacing: root.theme.spacing.unit * 6; alignment: start;
+                HorizontalLayout {
+                    VerticalLayout {
+                        spacing: root.theme.spacing.unit * 2;
+                        Copy { theme: root.theme; role: TypographyRole.title; color: root.theme.text-primary; font-weight: root.theme.typography.weight-bold; text: root.page == WorkspacePage.account ? (root.french ? "Votre compte" : "Account settings") : (root.french ? "Projets" : "Projects"); }
+                        Copy { theme: root.theme; text: root.page == WorkspacePage.account ? (root.french ? "Gérez votre profil et vos préférences de travail." : "Manage your profile and workspace preferences.") : (root.french ? "Tous vos documents, au même endroit." : "Good work starts with a clear space."); }
+                    }
+                    if root.page == WorkspacePage.projects: NavAction { control-width: ControlWidth.intrinsic; focus-request: root.opener == EditorOpener.create ? root.focus-return : 0; theme: root.theme; intent: ButtonIntent.primary; leading-icon: root.theme.icons.plus; text: root.french ? "Nouveau projet" : "New project"; disabled: root.editor-open; activated => { root.opener = EditorOpener.create; root.edit-name = ""; root.edit-description = ""; root.open-editor(); } }
+                }
+                if root.page == WorkspacePage.account: VerticalLayout {
+                    spacing: root.theme.spacing.unit * 6;
+                    KitCard {
+                        theme: root.theme;
+                        KitCardHeader { theme: root.theme; title: root.french ? "Informations personnelles" : "Personal information"; description: root.french ? "Ces informations sont visibles par votre équipe." : "Your team will see this information on your profile."; }
+                        KitCardBody {
+                            theme: root.theme;
+                            name-field := KitTextField { theme: root.theme; label: root.french ? "Nom complet" : "Full name"; text <=> root.account-name; required: true; access: root.editor-open ? FieldAccess.disabled : FieldAccess.editable; }
+                            email-field := KitEmailField { theme: root.theme; validation: root.invalid-preview ? ValidationPresentation.invalid : ValidationPresentation.pristine; error: root.french ? "Saisissez une adresse courriel valide." : "Enter a valid email address."; label: root.french ? "Adresse courriel" : "Email address"; leading-icon: LucideIcons.mail(); text <=> root.account-email; required: true; description: root.french ? "Utilisée pour la connexion et les notifications importantes." : "Used for sign-in and important account updates."; access: root.editor-open ? FieldAccess.disabled : FieldAccess.editable; }
+                        }
+                        KitDivider { theme: root.theme; }
+                        KitCardFooter {
+                            theme: root.theme;
+                            KitButton { theme: root.theme; text: root.french ? "Annuler" : "Cancel"; intent: ButtonIntent.outline; disabled: root.editor-open; activated => { root.account-name = root.accepted-name; root.account-email = root.accepted-email; root.notifications = root.accepted-notifications; name-field.reset-validation(); email-field.reset-validation(); } }
+                            KitButton { theme: root.theme; leading-icon: root.theme.icons.check; text: root.french ? "Enregistrer les modifications" : "Save changes"; intent: ButtonIntent.primary; disabled: root.editor-open; activated => { if (name-field.report-validity() && email-field.report-validity()) { root.account-saved = root.save-account(root.account-name, root.account-email, root.notifications); } } }
+                        }
+                    }
+                    KitCard {
+                        theme: root.theme;
+                        KitCardHeader { theme: root.theme; title: root.french ? "Notifications" : "Notifications"; description: root.french ? "Choisissez ce qui mérite votre attention." : "Choose what deserves your attention."; }
+                        KitSelect {
+                            theme: root.theme; placeholder: root.region-token == 1 ? "English · Canada" : "Français · Canada"; access: root.editor-open ? FieldAccess.disabled : FieldAccess.editable;
+                            rows: [{token:1,generation:1,label:"English · Canada",description:"",disabled:false},{token:2,generation:1,label:"Français · Canada",description:"",disabled:false}];
+                            state: {selection-availability:SelectionAvailability.available,selected:{present:true,token:root.region-token},active:{present:true,token:root.region-active},open:root.region-open,active-index:root.region-active - 1,generation:1};
+                            open-requested => { root.region-open = true; }
+                            navigate(step) => { root.region-active = step == NavigationStep.first || step == NavigationStep.page-previous ? 1 : step == NavigationStep.last || step == NavigationStep.page-next ? 2 : root.region-active == 1 ? 2 : 1; }
+                            activate(token,generation) => { root.region-token = token; root.region-open = false; }
+                            dismiss(reason) => { root.region-open = false; }
+                        }
+                        KitSwitch { theme: root.theme; label: root.french ? "Recevoir le récapitulatif hebdomadaire" : "Email me a weekly activity digest"; checked: root.notifications; access: root.editor-open ? FieldAccess.disabled : FieldAccess.editable; toggled(value) => { root.notifications = value; } }
+                    }
+                    KitAlert { theme: root.theme; severity: root.account-saved ? AlertSeverity.success : AlertSeverity.information; title: root.account-saved ? (root.french ? "Modifications enregistrées" : "Changes saved") : (root.french ? "Votre profil reste privé" : "You're in control"); message: root.french ? "Votre adresse courriel n’est jamais affichée publiquement." : "Your email address is never shown on your public profile."; }
+                }
+                if root.page == WorkspacePage.projects: VerticalLayout {
+                    spacing: root.theme.spacing.unit * 4;
+                    HorizontalLayout {
+                        spacing: root.theme.spacing.unit * 3;
+                        KitSearchField { theme: root.theme; accessible-name: root.french ? "Rechercher des projets" : "Search projects"; placeholder: root.french ? "Rechercher des projets…" : "Search projects…"; text <=> root.search; access: root.editor-open ? FieldAccess.disabled : FieldAccess.editable; }
+                        edit-opener := NavAction { intent: ButtonIntent.outline; control-width: ControlWidth.intrinsic; focus-request: root.opener == EditorOpener.edit ? root.focus-return : 0; theme: root.theme; leading-icon: LucideIcons.pencil(); text: root.french ? "Modifier" : "Edit project"; disabled: root.editor-open || root.selected-key == 0; activated => { root.opener = EditorOpener.edit; root.open-editor(); } }
+                    }
+                    HorizontalLayout {
+                        spacing: root.theme.spacing.unit * 2; alignment: start;
+                        for item in [ProjectFilter.all, ProjectFilter.active, ProjectFilter.archived]: KitButton { theme: root.theme; intent: root.filter == item ? ButtonIntent.secondary : ButtonIntent.quiet; corner-radius: root.theme.shape.radius-pill; text: item == ProjectFilter.all ? (root.french ? "Tous les projets" : "All projects") : item == ProjectFilter.active ? (root.french ? "Actifs" : "Active") : (root.french ? "Archivés" : "Archived"); disabled: root.editor-open; activated => { root.filter = item; } }
+                    }
+                    KitCard {
+                        theme: root.theme; inset: LayoutSpace.none; gap: LayoutSpace.none;
+                        ListView {
+                            height: root.projects.length == 0 ? 0px : min(440px, root.projects.length * 72px * root.theme.text-scale);
+                            for project in root.projects: VerticalLayout {
+                            VerticalLayout {
+                            spacing: 0px;
+                            row := KitPressable {
+                                theme: root.theme; control-width: ControlWidth.fill;
+                                intent: ButtonIntent.quiet; corner-radius: 0px;
+                                padding-inline: root.theme.spacing.unit * 5; padding-block: root.theme.spacing.unit * 4;
+                                background: root.selected-key == project.key ? root.theme.accent-subtle : row.pressed ? root.theme.pressed : row.hovered ? root.theme.hover : root.theme.surface;
+                                min-height: row-content.preferred-height + 2 * row.padding-block;
+                                preferred-height: self.min-height; max-height: self.preferred-height;
+                                accessible-name: project.name + ", " + project.owner;
+                                disabled: root.editor-open;
+                                activated => { root.selected-key = project.key; root.edit-name = project.name; root.edit-description = project.description; }
+                                row-content := HorizontalLayout {
+                                    spacing: root.theme.spacing.unit * 4;
+                                    KitIcon { theme: root.theme; glyph: LucideIcons.folder(); ink: root.selected-key == project.key ? root.theme.accent : root.theme.text-secondary; }
+                                    VerticalLayout { spacing: root.theme.spacing.unit; horizontal-stretch: 1;
+                                        Copy { theme: root.theme; text: project.name; color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; }
+                                        Copy { theme: root.theme; text: project.description; role: TypographyRole.caption; }
+                                    }
+                                    if root.width > 920px: VerticalLayout { spacing: root.theme.spacing.unit;
+                                        Copy { theme: root.theme; text: project.owner; }
+                                        Copy { theme: root.theme; text: project.updated; role: TypographyRole.caption; }
+                                    }
+                                    KitBadge { theme: root.theme; text: project.archived ? (root.french ? "Archivé" : "Archived") : (root.french ? "Actif" : "Active"); tone: project.archived ? Tone.neutral : Tone.success; }
+                                    if root.selected-key == project.key: KitIcon { theme: root.theme; glyph: root.theme.icons.check; ink: root.theme.accent; }
+                                }
+                            }
+                            KitDivider { theme: root.theme; }
+                        }
+                        }
+                        }
+                        if root.visible-count == 0: VerticalLayout { padding: root.theme.spacing.unit * 8; spacing: root.theme.spacing.unit * 3;
+                            KitIcon { theme: root.theme; glyph: root.theme.icons.search; }
+                            Copy { theme: root.theme; text: root.french ? "Aucun projet trouvé" : "No projects found"; role: TypographyRole.subtitle; color: root.theme.text-primary; }
+                            Copy { theme: root.theme; text: root.french ? "Essayez une autre recherche ou un autre filtre." : "Try another search or change your filters."; }
+                            KitButton { theme: root.theme; text: root.french ? "Effacer les filtres" : "Clear filters"; disabled: root.editor-open; activated => { root.search = ""; root.filter = ProjectFilter.all; } }
+                        }
+                    }
+                    KitButton { theme: root.theme; leading-icon: LucideIcons.ellipsis(); text: root.french ? "Autres actions" : "More actions"; intent: ButtonIntent.quiet; disabled: root.editor-open; activated => { root.menu-open = !root.menu-open; } }
+                    if root.menu-open: KitMenu {
+                        theme: root.theme; interactive: !root.editor-open;
+                        rows: [{token:1,generation:1,label:root.french ? "Modifier le projet" : "Edit project",description:"",disabled:false},{token:2,generation:1,label:root.french ? "Afficher les archives" : "Show archived projects",description:"",disabled:false}];
+                        state: {selection-availability:SelectionAvailability.available,selected:{present:false,token:0},active:{present:true,token:root.menu-active},open:true,active-index:root.menu-active - 1,generation:1};
+                        navigate(step) => { root.menu-active = step == NavigationStep.first || step == NavigationStep.page-previous ? 1 : step == NavigationStep.last || step == NavigationStep.page-next ? 2 : root.menu-active == 1 ? 2 : 1; }
+                        activate(token,generation) => { root.menu-open = false; if (token == 1) { root.opener = EditorOpener.edit; root.open-editor(); } else { root.filter = ProjectFilter.archived; } }
+                        dismiss(reason) => { root.menu-open = false; }
+                    }
+                    Copy { theme: root.theme; text: root.french ? "Sélectionnez un projet, puis choisissez Modifier." : "Select a project, then choose Edit project. Choose one to update its details."; role: TypographyRole.caption; }
+                }
+            }
+        }
+    }
+    // Modal children remain mounted so focus restoration has an exact target.
+    dialog := KitDialogSurface {
+        theme: root.theme; state: { open: root.editor-open, topmost: root.editor-open, busy: root.editor-busy }; tab-policy: DialogTabPolicy.native;
+        dismiss(reason) => { root.close-editor(); }
+        KitDialogPanel {
+            theme: root.theme; accessible-name: root.french ? "Modifier le projet" : "Edit project";
+            x: (root.width - self.width) / 2; y: (root.height - self.height) / 2;
+            width: min(600px, root.width - root.theme.spacing.unit * 8); height: min(680px, root.height - root.theme.spacing.unit * 16);
+            VerticalLayout {
+                padding: root.theme.spacing.unit * 6; spacing: root.theme.spacing.unit * 5;
+                HorizontalLayout {
+                    VerticalLayout { spacing: root.theme.spacing.unit * 2;
+                        Copy { theme: root.theme; role: TypographyRole.subtitle; color: root.theme.text-primary; font-weight: root.theme.typography.weight-semibold; text: root.french ? "Modifier le projet" : "Edit project"; }
+                        Copy { theme: root.theme; text: root.french ? "Donnez à votre équipe un contexte clair." : "Give your team a clear starting point."; }
+                    }
+                    KitIconButton { theme: root.theme; glyph: root.theme.icons.close; accessible-name: root.french ? "Fermer" : "Close editor"; disabled: !root.editor-open || root.editor-busy; activated => { root.close-editor(); } }
+                }
+                KitDivider { theme: root.theme; }
+                KitScrollArea {
+                    theme: root.theme;
+                    project-name := KitTextField { theme: root.theme; validation: root.invalid-preview ? ValidationPresentation.invalid : ValidationPresentation.pristine; error: root.french ? "Le nom doit contenir au moins trois caractères." : "Use at least three characters for the project name."; label: root.french ? "Nom du projet" : "Project name"; text <=> root.edit-name; required: true; min-length: 3; required-message: root.french ? "Donnez un nom au projet." : "Give this project a name."; access: !root.editor-open || root.editor-busy ? FieldAccess.disabled : FieldAccess.editable; }
+                    KitTextArea { theme: root.theme; label: root.french ? "Description" : "Description"; text <=> root.edit-description; min-lines: 5; description: root.french ? "Objectifs, décisions et liens utiles pour votre équipe." : "Goals, decisions and helpful context for your team."; access: !root.editor-open || root.editor-busy ? FieldAccess.disabled : FieldAccess.editable; }
+                    KitAlert { theme: root.theme; severity: AlertSeverity.information; title: root.french ? "Visible par votre équipe" : "Shared with your team"; message: root.french ? "Les membres du projet verront ces modifications. Vos modifications seront visibles par les personnes qui y ont accès." : "Project members will see these changes. Your changes will be visible to everyone with access to this project."; }
+                }
+                KitDivider { theme: root.theme; }
+                HorizontalLayout { alignment: end; spacing: root.theme.spacing.unit * 3;
+                    KitButton { theme: root.theme; text: root.french ? "Annuler" : "Cancel"; intent: ButtonIntent.outline; disabled: !root.editor-open || root.editor-busy; activated => { root.close-editor(); } }
+                    KitButton { theme: root.theme; leading-icon: root.theme.icons.check; text: root.french ? "Enregistrer" : "Save project"; intent: ButtonIntent.primary; busy: root.editor-busy; disabled: !root.editor-open; activated => { if (project-name.report-validity()) { root.editor-status = EditorStatus.saving; root.save-project({present:root.opener == EditorOpener.edit,token:root.selected-key}, root.edit-name, root.edit-description); } } }
+                }
+            }
+        }
+    }
+}
+
+// Complete entry point. Initialize form validation once in the Rust host.
+import { KitThemes, KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState }
+export component App inherits Window {
+    title: "Forma workspace";
+    preferred-width: 1080px;
+    preferred-height: 840px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <WorkspacePage> page: WorkspacePage.account;
+    in-out property <EditorStatus> editor-status: EditorStatus.closed;
+    in property <bool> french;
+    in-out property <string> accepted-name: "Alex Morgan";
+    in-out property <string> accepted-email: "alex@studio.example";
+    in-out property <bool> accepted-notifications: true;
+    in-out property <[WorkspaceProject]> projects: WorkspaceSamples.projects;
+    in-out property <int> selected-key: 101;
+    callback query-changed(string,ProjectFilter);
+    callback save-account(string, string, bool) -> bool;
+    callback save-project(SelectionRef, string, string);
+    ProductWorkspace {
+        width: root.width; height: root.height;
+        theme: root.theme; accepted-name: root.accepted-name; accepted-email: root.accepted-email; accepted-notifications: root.accepted-notifications; projects: root.projects; selected-key <=> root.selected-key; page <=> root.page; editor-status <=> root.editor-status; french: root.french;
+        save-account(name,email,notifications) => { return root.save-account(name,email,notifications); }
+        query-changed(query,filter) => { root.query-changed(query,filter); }
+        save-project(key,name,description) => { root.save-project(key,name,description); }
+    }
+}

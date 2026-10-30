@@ -1,3 +1,4 @@
+mod workspace;
 // SPDX-License-Identifier: GPL-3.0-or-later
 use kit::{
     CloseResult, DismissReason, FocusDirection, FocusHandle, FocusId, FocusRegistry, FocusScopeId,
@@ -213,6 +214,9 @@ struct Preview {
     scene: Option<PreviewScene>,
     dark: bool,
     tailwind: bool,
+    workspace: Option<WorkspacePage>,
+    workspace_dialog: bool,
+    workspace_busy: bool,
     enlarged: bool,
     dialog: Option<ShowcaseSkin>,
     select: Option<ShowcaseSkin>,
@@ -251,6 +255,7 @@ impl Preview {
                     if !(480..=4096).contains(&value) { return Err("size must be between 480 and 4096 pixels".into()); }
                     if argument == "--width" {result.width=Some(value);} else {result.height=Some(value);}
                 }
+                "--workspace" => { result.workspace = Some(match args.next().as_deref() { Some("account") => WorkspacePage::Account, Some("projects") => WorkspacePage::Projects, Some("busy") => { result.workspace_dialog = true; result.workspace_busy = true; WorkspacePage::Projects }, Some("dialog") => { result.workspace_dialog = true; WorkspacePage::Projects }, _ => return Err("--workspace needs account, projects, or dialog".into()) }); }
                 "--invalid" => result.invalid = true,
                 "--dark" => result.dark = true,
                 "--tailwind" => result.tailwind = true,
@@ -878,7 +883,14 @@ fn main() -> Result<(), slint::PlatformError> {
                     session.focus.set_eligible(handle, true);
                 }
             }
-            if name.trim().chars().count() < 3 {
+            if !(kit::HtmlConstraints {
+                required: true,
+                min_length: Some(3),
+                ..Default::default()
+            })
+            .validate(&name, kit::HtmlInputState::default())
+            .valid()
+            {
                 session.validation = ValidationState::Failed;
                 window.set_validation_message(
                     "Use at least 3 characters. Your edits were kept.".into(),
@@ -933,11 +945,24 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         });
     }
+    workspace::install(&window);
     if preview.dark {
         window.set_theme_mode(ThemeMode::Dark);
     }
     if preview.tailwind {
         window.set_theme_family(ThemeFamily::Tailwind);
+    }
+    if let Some(page) = preview.workspace {
+        window.set_product_workspace(true);
+        window.set_workspace_page(page);
+        window.set_workspace_invalid(preview.invalid);
+        if preview.workspace_dialog {
+            window.set_workspace_editor(if preview.workspace_busy {
+                EditorStatus::Saving
+            } else {
+                EditorStatus::Editing
+            });
+        }
     }
     window.set_enlarged(preview.enlarged);
     if let Some(density) = preview.density {
@@ -1160,7 +1185,7 @@ mod preview_tests {
                         .query_descendants()
                         .match_inherits("KitButton")
                         .find_all();
-                    assert_eq!(controls.len(), 6);
+                    assert_eq!(controls.len(), 7);
                     let brand = header
                         .query_descendants()
                         .match_id("Showcase::brand-label")
@@ -1218,7 +1243,7 @@ mod preview_tests {
         for mode in [ThemeMode::Light, ThemeMode::Dark] {
             window.set_theme_mode(mode);
             let theme = window.get_theme();
-            assert_eq!(theme.typography.family, "Inter");
+            assert_eq!(theme.typography.family, "");
             assert_eq!(theme.shape.radius_control, 6.);
             assert_ne!(theme.elevation.overlay, ElevationLevel::None);
         }

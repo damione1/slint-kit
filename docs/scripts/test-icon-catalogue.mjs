@@ -16,12 +16,13 @@ test('the gallery covers every generated Slint glyph, including fill layers and 
   assert(tag.fill.length>0);
   assert(catalogue.sprite.includes(`<path d="${tag.fill}" fill="currentColor"/>`));
   assert(catalogue.icons.every(icon=>icon.stroke&&icon.categories.length));
-  for(const icon of catalogue.icons)for(const mode of ['standalone','button','pressable']) {
+  for(const icon of catalogue.icons)for(const mode of ['standalone','button','text-button','pressable']) {
     const snippet=iconSnippet(icon.name,mode);
     assert(snippet.includes(`LucideIcons.${icon.name}()`));
     if(mode!=='standalone')assert(snippet.includes('callback action-requested();'));
   }
   assert.throws(()=>iconSnippet('search','unknown'));
+  assert(iconSnippet('download','text-button').includes('leading-icon: LucideIcons.download()'));
 });
 
 test('every public component has a distinct explicit drawing with finite coordinates', () => {

@@ -1,8 +1,10 @@
+import { InterFont } from "@kit-tailwind/fonts/inter.slint";
+import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
 import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
-import { TailwindThemes } from "@kit/themes/tailwind.slint";
-import { OptionRow, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
+import { TailwindThemes } from "@kit-tailwind/theme.slint";
+import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
 import { FieldAccess } from "@kit/contracts.slint";
@@ -75,14 +77,10 @@ component Avatar inherits Rectangle {
 component ProjectTile inherits KitPressable {
     in property <string> title;
     in property <string> subtitle;
-    private property <ButtonRecipe> base-recipe: KitThemes.button-recipe(root.theme, ButtonIntent.primary, root.control-size);
-    recipe: {
-        fill: base-recipe.fill, hover-fill: base-recipe.hover-fill,
-        pressed-fill: base-recipe.pressed-fill, disabled-fill: base-recipe.disabled-fill,
-        foreground: base-recipe.foreground, disabled-foreground: base-recipe.disabled-foreground,
-        border: transparent, border-width: 0px, radius: 20px, padding-inline: 0px, padding-block: 0px, height: 166px,
-        font-size: base-recipe.font-size, focus: base-recipe.focus,
-    };
+    intent: ButtonIntent.primary;
+    corner-radius: 20px;
+    padding-inline: 0px;
+    padding-block: 0px;
     control-width: ControlWidth.fill;
     border-width: 0px;
     min-height: max(166px, tile-content.preferred-height);
@@ -107,6 +105,7 @@ component ProjectTile inherits KitPressable {
 }
 
 export component Showcase inherits Window {
+    default-font-family: root.theme-family == ThemeFamily.tailwind ? InterFont.family : "";
     title: "Slint Kit · Component catalogue";
     icon: @image-url("../../assets/branding/slint-kit-icon.svg");
     preferred-width: 1180px;
@@ -114,7 +113,7 @@ export component Showcase inherits Window {
     min-width: 960px;
     min-height: 740px;
     background: theme.canvas;
-    default-font-family: "sans-serif";
+
     default-font-size: 14px;
 
     in-out property <ShowcasePage> page: ShowcasePage.gallery;
@@ -128,6 +127,19 @@ export component Showcase inherits Window {
     in-out property <TextSample> text-sample: TextSample.standard;
     private property <string> sample-label: text-sample == TextSample.standard ? "Run action" : text-sample == TextSample.long-french ? "Partager ce nouveau projet avec toutes les personnes de votre équipe et conserver les modifications" : "مشاركة هذا المشروع الجديد مع أعضاء الفريق";
     in-out property <bool> enlarged: false;
+    in-out property <bool> product-workspace;
+    in property <bool> workspace-invalid;
+    in-out property <string> workspace-accepted-name: "Alex Morgan";
+    in-out property <string> workspace-accepted-email: "alex@studio.example";
+    in-out property <bool> workspace-accepted-notifications: true;
+    in-out property <[WorkspaceProject]> workspace-projects: WorkspaceSamples.projects;
+    in-out property <int> workspace-selected-key: 101;
+    callback workspace-query-changed(string,ProjectFilter);
+    callback workspace-save-account(string,string,bool) -> bool;
+    callback workspace-save-project(SelectionRef,string,string);
+    in-out property <WorkspacePage> workspace-page;
+    in-out property <EditorStatus> workspace-editor;
+    private property <bool> product-modal;
     in-out property <bool> reduced-motion: false;
     private property <KitTheme> base-theme: theme-family == ThemeFamily.tailwind
         ? (theme-mode == ThemeMode.dark ? TailwindThemes.dark : TailwindThemes.light)
@@ -156,7 +168,7 @@ export component Showcase inherits Window {
             color: teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus.color,
             invalid-color: base-theme.focus.invalid-color,
         },
-        typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
+        icons: base-theme.icons, typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
         reduced-motion: root.reduced-motion, text-scale: enlarged ? 2 : 1,
     };
     in property <[OptionRow]> rows;
@@ -223,7 +235,8 @@ export component Showcase inherits Window {
     private property <length> header-height: preview-header.preferred-height + 32px;
     private property <string> page-title: root.page == ShowcasePage.gallery ? "Buttons & dialogs" : root.page == ShowcasePage.profile ? "Text fields" : root.page == ShowcasePage.billing ? "Numbers & money" : root.page == ShowcasePage.choices ? "Selection" : root.page == ShowcasePage.schedule ? "Dates & time" : root.page == ShowcasePage.files ? "Files & color" : root.page == ShowcasePage.display ? "Display & feedback" : root.page == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
     Rectangle { x: 0px; y: 0px; width: root.width; height: root.header-height; background: root.theme.surface;
-        preview-header := FlexboxLayout { x: 24px; y: 16px; width: parent.width - 48px; height: self.preferred-height; spacing: 8px; alignment: start; cross-axis-alignment: center;
+        preview-header := FlexboxLayout {
+ x: 24px; y: 16px; width: parent.width - 48px; height: self.preferred-height; spacing: 8px; alignment: start; cross-axis-alignment: center;
             brand-label := Image {
                 width: 144px * root.theme.text-scale;
                 height: 40px * root.theme.text-scale;
@@ -231,15 +244,16 @@ export component Showcase inherits Window {
                 image-fit: contain;
                 accessible-label: "Slint Kit";
             }
-            KitButton { theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
-            KitButton { theme: root.theme; control-size: root.density; text: root.theme-family == ThemeFamily.tailwind ? "Tailwind" : "Kit"; activated => { root.theme-family = root.theme-family == ThemeFamily.tailwind ? ThemeFamily.kit : ThemeFamily.tailwind; } }
-            KitButton { theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
-            KitButton { theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
-            KitButton { theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
-            KitButton { theme: root.theme; control-size: root.density; text: root.reduced-motion ? "Motion off" : "Motion on"; intent: ButtonIntent.quiet; activated => { root.reduced-motion = !root.reduced-motion; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-family == ThemeFamily.tailwind ? "Tailwind" : "Kit"; activated => { root.theme-family = root.theme-family == ThemeFamily.tailwind ? ThemeFamily.kit : ThemeFamily.tailwind; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.reduced-motion ? "Motion off" : "Motion on"; intent: ButtonIntent.quiet; activated => { root.reduced-motion = !root.reduced-motion; } }
         }
     }
-    ScrollView { x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
+    ScrollView { visible: !root.product-workspace; x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
         VerticalLayout { x: 0px; y: 0px; width: 200px; height: self.preferred-height; padding: 12px; spacing: 8px; alignment: start;
             for section in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: nav := KitPressable {
                 theme: root.theme; control-size: root.density; control-width: ControlWidth.fill;
@@ -255,6 +269,7 @@ export component Showcase inherits Window {
         }
     }
     page-scroll := ScrollView {
+        visible: !root.product-workspace;
         x: 220px; y: root.header-height; width: root.width - 220px; height: root.height - root.header-height;
         content-width: self.visible-width;
         content-height: max(self.visible-height,catalogue-footer.y + catalogue-footer.height + 24px);
@@ -267,9 +282,9 @@ export component Showcase inherits Window {
                 Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
                 ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit/button.slint · Activate an action with the pointer, Space or Enter.";
                     FlexboxLayout { spacing: 8px; alignment: start;
-                        for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
+                        for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Disabled"; disabled: true; }
-                        KitButton { theme: root.theme; control-size: root.density; text: "Working…"; busy: true; }
+                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Working…"; busy: true; }
                     }
                     Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; accessible-live-region: polite; }
                 }
@@ -289,9 +304,9 @@ export component Showcase inherits Window {
 
                     Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
                     FlexboxLayout { spacing: 8px; alignment: start;
-                        KitButton { theme: root.theme; control-size: root.density; text: "Reverse rows"; activated => { root.reverse-options(); } }
+                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reverse rows"; activated => { root.reverse-options(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Remove selected"; disabled: !root.select-state.selected.present; activated => { root.remove-selected(); } }
-                        KitButton { theme: root.theme; control-size: root.density; text: "Reset data"; intent: ButtonIntent.quiet; activated => { root.restore-options(); } }
+                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reset data"; intent: ButtonIntent.quiet; activated => { root.restore-options(); } }
                     }
                     Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
                 }
@@ -332,8 +347,8 @@ export component Showcase inherits Window {
 
                     RegisteredButton { theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-                    KitButton { theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
-                    KitButton { theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
+                    KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
+                    KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
                 }
             }
             if root.page == ShowcasePage.profile || root.page == ShowcasePage.billing || root.page == ShowcasePage.choices || root.page == ShowcasePage.schedule || root.page == ShowcasePage.files: FormGallery { theme: root.theme; control-size: root.density; page: root.page; }
@@ -531,6 +546,15 @@ export component Showcase inherits Window {
         }
     }
     KitTooltipLayer {viewport-width:root.width;viewport-height:root.height;enabled:!root.dialog-state.open && root.page==ShowcasePage.display && !NavigationExamples.drawer-state.open;}
+
+    if root.product-workspace: ProductWorkspace {
+        x: 0px; y: root.header-height; width: root.width; height: root.height - root.header-height;
+        theme: root.theme; accepted-name: root.workspace-accepted-name; accepted-email: root.workspace-accepted-email; accepted-notifications: root.workspace-accepted-notifications; projects: root.workspace-projects; selected-key <=> root.workspace-selected-key; french: root.text-sample == TextSample.long-french; invalid-preview: root.workspace-invalid; page <=> root.workspace-page; editor-status <=> root.workspace-editor;
+        modal-changed(open) => { root.product-modal = open; }
+        query-changed(query,filter) => { root.workspace-query-changed(query,filter); }
+        save-account(name,email,notifications) => { return root.workspace-save-account(name,email,notifications); }
+        save-project(key, name, description) => { root.workspace-save-project(key,name,description); }
+    }
 
 }
 

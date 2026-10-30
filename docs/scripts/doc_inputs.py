@@ -83,7 +83,7 @@ def consumer_identity(slug):
     manifest = tomllib.loads((folder / 'Cargo.toml').read_text())
     for section in ['dependencies', 'build-dependencies']:
         for name, value in manifest.get(section, {}).items():
-            if name in ('slint-kit', 'slint-kit-build'):
+            if name in ('slint-kit', 'slint-kit-build', 'slint-kit-tailwind'):
                 manifest[section][name] = {**value, 'version': '<resolved-kit-sources>'} if isinstance(value, dict) else '<resolved-kit-sources>'
     packages = tomllib.loads((folder / 'Cargo.lock').read_text())['package']
     packages = [package for package in packages if package.get('source') and not package['name'].startswith('slint-kit')]
@@ -137,7 +137,7 @@ def build_inputs():
     requests = collect_requests()
     # A coarse frontend cache is safe: a hit skips parsing; a miss only reruns
     # the Slint frontend. Render/link keys below remain individual.
-    files = list((ROOT / 'crates/kit-slint/ui').rglob('*'))
+    files = list((ROOT / 'crates/kit-slint/ui').rglob('*')) + list((ROOT / 'crates/kit-tailwind/ui').rglob('*'))
     files = [path for path in files if path.is_file()]
     files += [path for path, _ in requests.values()]
     files += [ROOT / 'xtask/src/docs.rs', ROOT / 'Cargo.lock']

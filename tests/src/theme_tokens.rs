@@ -118,6 +118,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         typography,
         spacing,
         motion,
+        icons: _,
         reduced_motion,
         text_scale,
     } = theme;
@@ -308,7 +309,10 @@ const KIT_ZERO_ALLOWED: &[(&str, &str)] = &[
     ("elevation.popover", "the default themes draw flat popovers"),
 ];
 /// Tokens only the Tailwind themes may leave at the zero value.
-const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[];
+const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[(
+    "typography.family",
+    "font-independent pack preserves the host font",
+)];
 
 fn zero_allowed(
     family: ThemeFamily,
@@ -1118,7 +1122,7 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
 fn tailwind_themes_use_role_radii_density_inter_and_shadows() {
     let window = fixture();
     for mut theme in [window.get_tailwind_light(), window.get_tailwind_dark()] {
-        assert_eq!(theme.typography.family, "Inter");
+        assert_eq!(theme.typography.family, "");
         let button =
             window.invoke_button(theme.clone(), ButtonIntent::Outline, ControlSize::Medium);
         assert_eq!(button.radius, 6.);
@@ -1246,8 +1250,7 @@ fn third_party_notices_ship_unchanged_with_the_published_crates() {
     }
     // The font license travels with the fonts and is quoted verbatim.
     let license =
-        std::fs::read_to_string(root.join("crates/kit-slint/ui/themes/fonts/Inter-OFL.txt"))
-            .unwrap();
+        std::fs::read_to_string(root.join("crates/kit-tailwind/ui/fonts/Inter-OFL.txt")).unwrap();
     assert!(notices.contains(&license));
     assert!(license.contains("SIL Open Font License, Version 1.1"));
     assert_eq!(

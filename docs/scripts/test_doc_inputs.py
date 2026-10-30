@@ -41,7 +41,7 @@ class DocumentationIdentityTests(unittest.TestCase):
         source = 'import { KitThemes } from "@kit/kit.slint"; export component App inherits Window { background: KitThemes.light.canvas; }'
         self.assertEqual(themed_source(source, 'kit'), source)
         tailwind = themed_source(source, 'tailwind')
-        self.assertIn('@kit/themes/tailwind.slint', tailwind)
+        self.assertIn('@kit-tailwind/theme.slint', tailwind)
         self.assertIn('KitThemeContext.current = TailwindThemes.light', tailwind)
         self.assertNotIn('KitThemes.light', tailwind)
         self.assertNotIn('tailwind.slint', themed_source(source, 'kit'))

@@ -3,7 +3,7 @@ import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonInt
 import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup } from "field.slint";
 import { KitPressable } from "button.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
@@ -90,6 +90,12 @@ export component KitTextField inherits KitField {
     in property <string> placeholder;
     in property <length> text-letter-spacing: 0px;
     in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.left;
+    in property <IconGlyph> leading-icon: root.purpose == TextPurpose.search ? root.theme.icons.search : { stroke: "", fill: "", viewbox: 24 };
+    in property <IconGlyph> trailing-icon;
+    in property <length> corner-radius: root.recipe.radius;
+    in property <length> padding-inline: root.recipe.padding-inline;
+    in property <length> padding-block: root.recipe.padding-block;
+    in property <length> text-size: root.recipe.font-size;
     in property <string> prefix;
     in property <string> suffix;
     in-out property <string> text;
@@ -136,10 +142,10 @@ export component KitTextField inherits KitField {
     // 1.5 spacing units on each side, so a scaled icon always fits. The row
     // clamps it to one line of text, which is never shorter than the icon.
     private property <length> action-extent: root.icon.size + root.theme.spacing.unit * 3;
-    private property <length> line-height: root.theme.typography.line-height-control * root.theme.text-scale;
+    private property <length> line-height: Math.max(root.theme.typography.line-height-control * root.theme.text-scale, root.text-size * 1.4);
     private property <bool> multiline: root.line-mode == TextLineMode.multiline;
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
-    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : KitMetrics.control-height(root.theme, root.control-size) - 2 * root.recipe.padding-block;
+    private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : Math.max(root.line-height, KitMetrics.control-height(root.theme, root.control-size) - 2 * root.padding-block);
     if root.label != "": KitFieldLabel {
         theme: root.theme; text: root.label; access: root.access;
         focus-requested => { root.take-focus(); }
@@ -147,7 +153,8 @@ export component KitTextField inherits KitField {
     surface := KitInputGroup {
         theme: root.theme; control-size: root.control-size; access: root.access; validation: root.effective-validation;
         focused: root.has-focus;
-        preferred-height: root.editor-height + 2 * root.recipe.padding-block;
+        corner-radius: root.corner-radius; padding-inline: root.padding-inline; padding-block: root.padding-block;
+        preferred-height: root.editor-height + 2 * root.padding-block;
         max-height: self.preferred-height;
         checks := FormConstraintState {
             kind: root.input-kind; twelve-hour: root.validation-twelve-hour; number-format: root.number-format; access: root.access; required: root.required; multiple: root.multiple;
@@ -182,9 +189,10 @@ export component KitTextField inherits KitField {
         }
         HorizontalLayout {
             spacing: KitMetrics.inline-gap(root.theme);
+            if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.recipe.foreground; y: (parent.height - self.height) / 2; }
             if root.prefix != "": Text {
                 text: root.prefix; color: root.theme.text-secondary;
-                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-family: root.theme.typography.family; font-size: root.text-size;
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             Rectangle {
@@ -197,22 +205,22 @@ export component KitTextField inherits KitField {
                         visible: false;
                         width: viewport.width;
                         text: root.text == "" ? " " : root.text;
-                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.text-size;
                         wrap: word-wrap;
                     }
                     if root.text == "": Text {
                         width: viewport.width; height: root.multiline ? self.preferred-height : viewport.height;
                         text: root.placeholder;
                         color: root.recipe.placeholder;
-                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.text-size;
                         vertical-alignment: root.multiline ? top : center;
                         wrap: root.multiline ? word-wrap : no-wrap;
                         overflow: elide;
                     }
-                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-family: root.theme.typography.family; font-size: root.recipe.font-size; }
+                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-family: root.theme.typography.family; font-size: root.text-size; }
                     if root.formatted-at-rest: Text {
                         text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
-                        font-family: root.theme.typography.family; font-size: root.recipe.font-size; vertical-alignment: center;
+                        font-family: root.theme.typography.family; font-size: root.text-size; vertical-alignment: center;
                         horizontal-alignment: root.text-alignment;
                         color: root.recipe.foreground;
                     }
@@ -229,7 +237,7 @@ export component KitTextField inherits KitField {
                         color: root.formatted-at-rest ? transparent : root.recipe.foreground;
                         selection-background-color: root.formatted-at-rest ? transparent : root.recipe.selection;
                         selection-foreground-color: root.formatted-at-rest ? transparent : root.recipe.on-selection;
-                        font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+                        font-family: root.theme.typography.family; font-size: root.text-size;
                         letter-spacing: root.text-letter-spacing;
                         horizontal-alignment: root.text-alignment;
                         vertical-alignment: root.multiline ? top : center;
@@ -276,9 +284,10 @@ export component KitTextField inherits KitField {
                     }
                 }
             }
+            if root.trailing-icon.stroke != "" || root.trailing-icon.fill != "": KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; ink: root.recipe.foreground; y: (parent.height - self.height) / 2; }
             if root.suffix != "": Text {
                 text: root.suffix; color: root.theme.text-secondary;
-                font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-family: root.theme.typography.family; font-size: root.text-size;
                 vertical-alignment: center; horizontal-stretch: 0;
             }
             // The pending check also has a text description below the field;
@@ -309,7 +318,7 @@ export component KitTextField inherits KitField {
                     KitIcon {
                         theme: root.theme; control-size: root.control-size;
                         x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                        glyph: root.purpose == TextPurpose.search ? KitGlyphs.close() : root.secret-visibility == SecretVisibility.hidden ? KitGlyphs.eye() : KitGlyphs.eye-hidden();
+                        glyph: root.purpose == TextPurpose.search ? root.theme.icons.close : root.secret-visibility == SecretVisibility.hidden ? root.theme.icons.eye : root.theme.icons.eye-hidden;
                         ink: action.disabled ? root.icon.disabled-color : root.icon.color;
                     }
                 }

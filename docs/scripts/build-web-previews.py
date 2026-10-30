@@ -38,7 +38,7 @@ def code_key(slug, family, inputs, rustc, bindgen, environment):
     manifest = tomllib.loads((DOCS / 'preview/Cargo.toml').read_text())
     for section in ['dependencies', 'build-dependencies']:
         for name, value in manifest.get(section, {}).items():
-            if name in ('slint-kit', 'slint-kit-build'):
+            if name in ('slint-kit', 'slint-kit-build', 'slint-kit-tailwind'):
                 if isinstance(value, dict):
                     value['version'] = '<resolved-kit-sources>'
                 else:

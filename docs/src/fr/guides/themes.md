@@ -36,19 +36,32 @@ export component Example inherits Window {
 
 Un thème personnalisé fournit canevas, surfaces normale et élevée ; textes primaire, secondaire et indicatif ; accent, texte sur accent, accent survolé et pressé, accent atténué et sélection de texte ; danger avec ses tons survolé et pressé, succès, avertissement et information avec leurs fonds atténués ; bordures légère et marquée, survol, pression et désactivation ; voile modal ; `reduced-motion` et `text-scale`. Au-delà des couleurs, un thème porte des groupes de jetons typés : `shape` (rayons par rôle pour les contrôles, conteneurs, surcouches et pastilles, et épaisseurs de bordure), `elevation` (un niveau par rôle, et une couche d’ombre principale et une couche ambiante par niveau), `focus` (style, épaisseur, décalage et couleurs de l’anneau), `typography` (famille, graisses, tailles), `spacing` (une unité de base, et la hauteur et les marges de chaque `ControlSize`) et `motion` (durées rapide, de base et lente). Slint n’a pas de syntaxe de décomposition et un champ de struct omis vaut silencieusement zéro ou transparent : écrivez donc un thème personnalisé en littéral complet, ou copiez un thème livré et modifiez ses champs depuis Rust. Les [déclarations publiques du thème](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/ui/theme.slint) définissent ce contrat.
 
-Le `theme` de chaque composant vaut par défaut `KitThemeContext.current`, initialisé à `KitThemes.light`. Affectez-le une fois pour thémer toute une fenêtre, y compris les composants qui n’ont pas reçu de thème ; la propriété `theme` d’un composant le remplace toujours pour son sous-arbre. Pour le changer depuis Rust, réexportez le global depuis le fichier principal de l’application avec `export { KitThemeContext } from "@kit/kit.slint";`, puis appelez `KitThemeContext::get(&window).set_current(theme)`.
+Chaque composant prend par défaut `KitThemeContext.current`, initialisé à `KitThemes.light`. Affectez-le une fois pour définir la présentation de la fenêtre. Un `theme` explicite remplace celui du composant et de ses contrôles internes. Les enfants fournis par l’application via `@children` gardent leurs propres valeurs par défaut : transmettez le thème du parent lors de leur composition. Pour changer le défaut depuis Rust, réexportez `KitThemeContext` du fichier Slint principal, puis appelez `KitThemeContext::get(&window).set_current(theme)`.
 
 `ButtonIntent` propose `primary`, `secondary`, `outline`, `quiet` et `destructive`. `secondary` est une surface neutre remplie, `outline` un contrôle transparent bordé et `quiet` un contrôle sans bordure. Le retour utilisateur utilise des enums de sévérité et de ton. Choisissez l’état selon son sens, puis laissez le thème fournir la couleur. Accompagnez une bordure d’erreur d’un message et d’un libellé accessibles.
 
 Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marque à partir des jetons `information`, `success`, `warning` et `danger` et de leurs fonds `*-subtle` : les alertes restent distinctes sans lire leur titre. Les conteneurs défilants, listes et tableaux du kit dessinent leurs barres avec [KitScrollBar](/fr/components/scroll-bar/), qui suit le thème. Un `ScrollView` ou un `ListView` std-widgets dans le code de l’application conserve le style Slint et `Palette.color-scheme`.
 
-## Thème inspiré de Tailwind
+## Pack de présentation Tailwind optionnel
 
-`@kit/themes/tailwind.slint` est un thème optionnel à l’allure de Tailwind CSS : une palette réduite de teintes slate, indigo, red, green, amber et sky, des contrôles `rounded-md`, des conteneurs `rounded-lg` et des surfaces superposées `rounded-xl`, les ombres de Tailwind, un anneau de deux pixels décalé de deux pixels, une hauteur de contrôle par défaut de 36 px et la police [Inter](https://rsms.me/inter/). Importez-le et affectez l’une de ses valeurs ; les composants ne l’importent jamais, donc une application qui ne l’importe pas n’en compile ni n’en embarque rien. Il n’y a aucune feature Cargo à activer.
+`slint-kit-tailwind` fournit la présentation inspirée de Tailwind sans dupliquer le comportement des contrôles. Le kit de base reste indépendant. Ajoutez le pack en **dépendance de build**, à la même version que le kit :
+
+```toml
+[build-dependencies]
+slint-kit-tailwind = "0.4"
+```
+
+Compilez avec le pack pour enregistrer `@kit` et `@kit-tailwind` :
+
+```rust
+fn main() {
+    slint_kit_tailwind::compile("ui/app.slint").expect("compile UI");
+}
+```
 
 ```slint
-import { KitThemeContext, KitButton } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit/themes/tailwind.slint";
+import { KitThemeContext, KitButton, ButtonIntent } from "@kit/kit.slint";
+import { TailwindThemes } from "@kit-tailwind/theme.slint";
 
 export component Example inherits Window {
     preferred-width: 420px;
@@ -60,14 +73,76 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px;
         alignment: start;
-        KitButton { text: "Continuer"; }
+        KitButton { text: "Continuer"; intent: ButtonIntent.primary; }
     }
 }
 ```
 
-`TailwindThemes.light` et `TailwindThemes.dark` sont des valeurs `KitTheme` complètes ; les règles habituelles s’appliquent donc : modifiez des champs depuis Rust, réglez `text-scale` pour un texte à 200 %, ou transmettez une valeur au `theme` d’un seul sous-arbre. Importer le fichier embarque Inter 4.1 en quatre graisses statiques (400, 500, 600 et 700), soit environ 1,6 Mo de données de police dans le binaire de l’application ; son `typography.family` vaut `"Inter"`. Le texte du kit lit `typography.family`, tandis que le texte propre à l’application garde le `default-font-family` de la fenêtre.
+Le thème définit les surfaces ardoise, les actions indigo, les couleurs de retour sémantique, les échelles typographiques et d’espacement, les anneaux de focus, les élévations et les glyphes Lucide des rôles d’icône intégrés. Le moteur de rendu et le comportement des composants restent ceux de l’application. La hauteur reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
 
-Les couleurs proviennent de la palette de Tailwind CSS, sous licence MIT, et Inter est sous SIL Open Font License 1.1 ; les deux notices figurent dans [THIRD-PARTY-NOTICES.md](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md) et sont livrées avec la crate. Slint dessine une seule ombre par élément et ne gère pas l’étalement (spread) : les cartes et les toasts peignent la couche dominante de leur ombre Tailwind, tandis que les dialogues et les popovers empilent les deux couches sur des rectangles rétrécis de l’étalement de chaque couche. Les boutons pleins (primaire, secondaire, destructif) portent `shadow-xs` par `elevation.control`, peinte par une couche enfant qui ne change jamais leur hauteur mesurée ; les boutons outline et discrets restent plats. Dans le thème sombre, les surfaces élevées gardent le ton des cartes, comme le popover sombre de shadcn, pour que survol, pression et bordure restent visibles sur toutes les surfaces ; bordure, ombre et voile distinguent les surfaces élevées. Avec le moteur de rendu logiciel, qui ne dessine pas d’ombre, les surfaces gardent leur bordure.
+**Inter est un choix séparé.** Le fichier de thème n’embarque aucune police et garde `typography.family` vide : le texte utilise la police de la fenêtre. Pour utiliser Inter, ajoutez `import { InterFont } from "@kit-tailwind/fonts/inter.slint";` et `default-font-family: InterFont.family;` à la fenêtre. Cela enregistre quatre graisses statiques ; leurs fichiers sources totalisent environ 1,6 Mo. Une application embarquée peut conserver le thème et choisir une police adaptée au périphérique.
+
+Pour ajouter des bibliothèques applicatives, transmettez leurs alias à `slint_kit_tailwind::config_with_libraries(...)`, puis utilisez `slint_build::compile_with_config` (ajoutez la dépendance de build `slint-build` correspondante si vous l’appelez directement). Le helper préserve ces alias et enregistre les noms réservés `kit` et `kit-tailwind`. Les versions runtime et build doivent correspondre. [Migration depuis les anciens imports](/fr/guides/migration-0-4/).
+
+La palette dérive de Tailwind CSS sous MIT, Inter est sous SIL Open Font License et Lucide porte des notices ISC/MIT. Conservez les [notices de dépendances](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Le support des ombres dépend du moteur ; les bordures gardent les limites des surfaces visibles quand les ombres sont indisponibles.
+
+## Réglages locaux et régions composées
+
+Utilisez le thème pour l’identité partagée, `control-size` pour la densité et les propriétés locales pour une exception voulue. Leurs défauts suivent la recette active ; modifier le rayon ou le padding conserve hover, focus, désactivation et validation.
+
+| Composant | Présentation locale |
+| --- | --- |
+| `KitButton`, `KitIconButton`, `KitPressable` | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `text-weight` |
+| `KitTextField` et ses types dérivés | `corner-radius`, `padding-inline`, `padding-block`, `text-size`, `leading-icon`, `trailing-icon` |
+| `KitCard`, `KitSurface` | `corner-radius`, `elevation` ; propriétés existantes d’inset et de gap |
+
+```slint
+import { KitButton, ButtonIntent, KitThemeContext } from "@kit/kit.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+
+component ExportAction inherits KitButton {
+    text: "Exporter";
+    intent: ButtonIntent.primary;
+    leading-icon: LucideIcons.download();
+    corner-radius: 10px;
+    padding-inline: KitThemeContext.current.spacing.unit * 5;
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        ExportAction { }
+    }
+}
+```
+
+`text-size` est une longueur de rendu. Son défaut inclut l’échelle du texte ; reliez aussi une taille personnalisée à `theme.text-scale` si elle doit suivre cette préférence. Remplacer entièrement une `recipe` est une surcharge avancée : préservez tous ses champs et les états qu’elle résout, plutôt qu’un littéral partiel.
+
+Une région locale nécessite une transmission explicite aux enfants applicatifs :
+
+```slint
+import { KitCard, KitButton, KitThemes } from "@kit/kit.slint";
+
+component DarkPanel inherits KitCard {
+    theme: KitThemes.dark;
+    KitButton { theme: root.theme; text: "Continuer"; }
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        DarkPanel { }
+    }
+}
+```
+
+Un contrôle voisin sans thème explicite continue d’utiliser le contexte de la fenêtre. Ce contrat de composition n’est pas une cascade CSS d’ancêtres.
 
 ## Icônes
 
@@ -79,16 +154,26 @@ Les couleurs proviennent de la palette de Tailwind CSS, sous licence MIT, et Int
 import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 
-export component Toolbar inherits HorizontalLayout {
+component Toolbar inherits HorizontalLayout {
     spacing: 8px;
     KitIconButton { glyph: LucideIcons.trash(); accessible-name: "Supprimer"; }
     KitIcon { glyph: LucideIcons.cloud-check(); purpose: IconPurpose.informative; label: "Enregistré"; }
+}
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        Toolbar { }
+    }
 }
 ```
 
 La taille d’une icône suit `control-size` (14, 16 ou 20 px) multiplié par le `text-scale` du thème. Les icônes dans les contrôles prennent la taille de leur hôte : `KitIconButton`, actions des champs, chevrons et coches des sélecteurs et combobox, boutons du champ numérique ; le bouton d’effacement ou d’affichage d’un champ grandit avec son icône à 200 %. L’épaisseur du trait vient du jeton `shape.icon-stroke` du thème, 2 dans tous les thèmes fournis. Avec `stroke-mode: IconStroke.scaled`, la valeur par défaut, le jeton est en unités de grille et suit la taille de l’icône, comme en SVG : les 2 unités sur 24 de Lucide font 1,33 px à 16 px et 2,67 px avec un texte à 200 %. Avec `IconStroke.absolute`, le trait reste à 2 px quelle que soit la taille. Un `IconGlyph` a une couche `stroke` (tracée) et une couche `fill` (remplie, vide pour la plupart des icônes) : quelques icônes Lucide, comme `tag` ou `palette`, ont des points pleins, peints avec le même `ink`. Transmettez `ink` depuis la recette du composant qui l’entoure. Une icône est décorative par défaut et reste hors de l’arbre d’accessibilité ; quand elle porte un sens qu’aucun texte voisin ne donne, réglez `purpose: IconPurpose.informative` et un `label` : elle est alors annoncée comme une image.
 
-Les composants du kit utilisent les mêmes glyphes. Les listes déroulantes, les combobox, les lignes dépliables et les en-têtes de tableau triés font tourner leur chevron quand ils s’ouvrent, se ferment ou changent de sens, pendant la durée `motion.fast` du thème, ou immédiatement avec `reduced-motion`. Au repos, le chevron est dessiné sans rotation : il pointe donc dans le bon sens avec tous les moteurs de rendu. Les puces signalent leur retrait par le glyphe de fermeture.
+Les icônes intégrées aux contrôles lisent les rôles sémantiques de `theme.icons`, un `KitIconSet`. Le thème minimal utilise `KitGlyphs`, le pack Tailwind fournit leurs équivalents Lucide. Surchargez un rôle dans une copie du thème pour modifier ses consommateurs, ou utilisez la propriété de glyphe explicite du contrôle lorsqu’elle existe. Les listes déroulantes, les combobox, les lignes dépliables et les en-têtes de tableau triés font tourner leur chevron quand ils s’ouvrent, se ferment ou changent de sens, pendant la durée `motion.fast` du thème, ou immédiatement avec `reduced-motion`. Au repos, le chevron est dessiné sans rotation : il pointe donc dans le bon sens avec tous les moteurs de rendu. Les puces signalent leur retrait par le glyphe de fermeture.
 
 Depuis la 0.3 : `IconKind` n’existe plus. Remplacez `KitIcon { kind: IconKind.close; }` par `KitIcon { glyph: KitGlyphs.close(); }`, et `KitIconButton { icon: IconKind.close; }` par `KitIconButton { glyph: KitGlyphs.close(); }`. Le [journal des modifications](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) liste chaque changement de la 0.4.0.
 
@@ -108,4 +193,4 @@ Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Pour r
 
 Examinez les thèmes clair et sombre, le texte à 200 %, la navigation clavier, le focus visible et les actions désactivées dans l’application réelle. Préservez l’éditeur natif pour curseur, sélection, annulation et IME. Donnez un nom accessible pertinent aux boutons d’icône, surfaces pressables et cibles de focus.
 
-Les captures de ce site sont des rendus Slint natifs utilisant **winit et Skia sur macOS**. Elles montrent l’état déclaré par l’exemple avec des libellés adaptés à la langue de la page. Elles ne qualifient ni lecteur d’écran, ni IME, ni dépôt de fichiers externe, ni autre backend. La qualification des périphériques et technologies d’assistance relève des plateformes ciblées par l’application. La [documentation d’accessibilité de Slint](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) décrit les propriétés et les outils d’inspection native.
+Ce site propose des previews navigateur et des captures natives ; leurs légendes indiquent l’environnement de rendu. Un exemple rendu ne qualifie ni lecteur d’écran, ni IME, ni dépôt de fichiers externe, ni autre backend. La qualification des périphériques et technologies d’assistance relève des plateformes ciblées par l’application. La [documentation d’accessibilité de Slint](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) décrit les propriétés et les outils d’inspection native.

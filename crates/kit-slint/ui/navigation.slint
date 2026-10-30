@@ -18,16 +18,16 @@ export component KitNavigationAction inherits KitOption {
     in property <length> trailing-space;
     private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: list-item;
-    min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.recipe.padding-inline);
+    min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.padding-inline);
     preferred-width: self.min-width;
     label := Text {
         x: 0px; y: 0px;
-        width: max(0px,root.width - 2 * root.recipe.padding-inline - root.trailing-space);
-        height: max(0px,root.height - 2 * root.recipe.padding-block);
+        width: max(0px,root.width - 2 * root.padding-inline - root.trailing-space);
+        height: max(0px,root.height - 2 * root.padding-block);
         horizontal-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
         text: root.option-data.label;
         color: root.disabled ? root.label-recipe.disabled-foreground : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
-        font-family: root.theme.typography.family; font-size: root.label-recipe.font-size;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         vertical-alignment: center;
         overflow: elide;
     }
@@ -283,7 +283,7 @@ export component KitCollapse inherits VerticalLayout {
             spacing: root.theme.spacing.unit * 2;
             Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: KitGlyphs.chevron-right(); turned-glyph: KitGlyphs.chevron-down(); turn: 90deg; ink: root.theme.text-secondary; }
+                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.theme.text-secondary; }
             }
         }
     }
@@ -339,7 +339,7 @@ export component KitAccordion inherits VerticalLayout {
             activate(token, generation) => { root.expansion-requested(token, generation, !row.expanded, root.mode); }
             // Children of a pressable sit in its padded content box, while
             // `parent` names the pressable itself: place from its own metrics.
-            TurningIcon { theme: root.theme; control-size: root.control-size; x: max(0px,trigger.width - self.width - 2 * root.inset-x); y: (trigger.height - 2 * trigger.recipe.padding-block - self.height) / 2; turned: row.expanded; rest-glyph: KitGlyphs.chevron-right(); turned-glyph: KitGlyphs.chevron-down(); turn: 90deg; ink: root.theme.text-secondary; }
+            TurningIcon { theme: root.theme; control-size: root.control-size; x: max(0px,trigger.width - self.width - 2 * root.inset-x); y: (trigger.height - 2 * trigger.recipe.padding-block - self.height) / 2; turned: row.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.theme.text-secondary; }
         }
         Rectangle {
             height: row.expanded ? answer.preferred-height + 2 * root.inset-y : 0px;
@@ -428,7 +428,7 @@ export component KitBreadcrumbs inherits Rectangle {
             for row[index] in root.rows: HorizontalLayout {
                 spacing: root.theme.spacing.unit;
                 if index > 0: Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                    KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: KitGlyphs.chevron-right(); ink: root.theme.text-secondary; }
+                    KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.theme.icons.chevron-right; ink: root.theme.text-secondary; }
                 }
                 if index < root.rows.length - 1: KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
@@ -474,17 +474,17 @@ export component KitNotificationButton inherits KitPressable {
     out property <string> text: root.label + (root.unread-count > 0 ? " (" + root.unread-count + ")" : "");
     accessible-name: root.text;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
-    min-width: label-text.preferred-width + root.icon-size + KitMetrics.inline-gap(root.theme) + 2 * root.recipe.padding-inline;
+    min-width: label-text.preferred-width + root.icon-size + KitMetrics.inline-gap(root.theme) + 2 * root.padding-inline;
     preferred-width: self.min-width;
     HorizontalLayout {
         spacing: KitMetrics.inline-gap(root.theme);
         Rectangle { width: root.icon-size; horizontal-stretch: 0;
-            KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: KitGlyphs.bell(); ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
+            KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.theme.icons.bell; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
         }
         label-text := Text {
             text: root.text;
             color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-            font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+            font-family: root.theme.typography.family; font-size: root.text-size;
             vertical-alignment: center;
             overflow: elide;
         }
@@ -501,17 +501,17 @@ component NotificationAction inherits KitOption {
     control-width: ControlWidth.intrinsic;
     tab-stop: true;
     accessible-role: button;
-    min-width: max(label.preferred-width,alternate.preferred-width) + 2 * root.recipe.padding-inline;
+    min-width: max(label.preferred-width,alternate.preferred-width) + 2 * root.padding-inline;
     preferred-width: self.min-width;
     background: root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     border-width: root.recipe.border-width;
     border-color: root.recipe.border;
     label := Text {
-        x: 0px; y: 0px; width: max(0px,root.width - 2 * root.recipe.padding-inline); height: max(0px,root.height - 2 * root.recipe.padding-block);
+        x: 0px; y: 0px; width: max(0px,root.width - 2 * root.padding-inline); height: max(0px,root.height - 2 * root.padding-block);
         text: root.option-data.label; color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-        font-family: root.theme.typography.family; font-size: root.recipe.font-size; font-weight: root.recipe.font-weight; horizontal-alignment: center; vertical-alignment: center;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; horizontal-alignment: center; vertical-alignment: center;
     }
-    alternate := Text { visible: false; text: root.alternate-label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; font-weight: root.recipe.font-weight; }
+    alternate := Text { visible: false; text: root.alternate-label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; }
 }
 enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
@@ -665,7 +665,7 @@ export component KitDrawer inherits KitDialogSurface {
                 spacing: root.theme.spacing.unit * 3;
                 Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
                 close-button := KitIconButton {
-                    theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.close();
+                    theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close;
                     accessible-name: root.close-label;
                     disabled: root.state.busy || !root.state.topmost;
                     focus-observed(focused) => { root.close-focus-observed(focused); }

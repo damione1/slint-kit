@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { IconGlyph, IconStroke } from "icons/glyph.slint";
+import { KitGlyphs } from "icons/kit-glyphs.slint";
+export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph }
 export enum ControlSize { compact, medium, comfortable }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
@@ -57,7 +59,7 @@ export struct KitTheme {
     border-subtle: color, border-strong: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
-    spacing: KitSpacing, motion: KitMotion,
+    spacing: KitSpacing, motion: KitMotion, icons: KitIconSet,
     reduced-motion: bool, text-scale: float,
 }
 
@@ -181,6 +183,7 @@ export global KitThemes {
             comfortable: { height: 48px, padding-inline: 16px, padding-block: 6px },
         },
         motion: { fast: 150ms, base: 180ms, slow: 600ms },
+        icons: { close: KitGlyphs.close(), check: KitGlyphs.check(), minus: KitGlyphs.minus(), plus: KitGlyphs.plus(), chevron-down: KitGlyphs.chevron-down(), chevron-up: KitGlyphs.chevron-up(), chevron-left: KitGlyphs.chevron-left(), chevron-right: KitGlyphs.chevron-right(), eye: KitGlyphs.eye(), eye-hidden: KitGlyphs.eye-hidden(), search: KitGlyphs.search(), information: KitGlyphs.information(), warning: KitGlyphs.warning(), bell: KitGlyphs.bell(), article: KitGlyphs.article() },
         reduced-motion: false, text-scale: 1,
     };
     out property <KitTheme> dark: {
@@ -214,6 +217,7 @@ export global KitThemes {
             comfortable: { height: 48px, padding-inline: 16px, padding-block: 6px },
         },
         motion: { fast: 150ms, base: 180ms, slow: 600ms },
+        icons: { close: KitGlyphs.close(), check: KitGlyphs.check(), minus: KitGlyphs.minus(), plus: KitGlyphs.plus(), chevron-down: KitGlyphs.chevron-down(), chevron-up: KitGlyphs.chevron-up(), chevron-left: KitGlyphs.chevron-left(), chevron-right: KitGlyphs.chevron-right(), eye: KitGlyphs.eye(), eye-hidden: KitGlyphs.eye-hidden(), search: KitGlyphs.search(), information: KitGlyphs.information(), warning: KitGlyphs.warning(), bell: KitGlyphs.bell(), article: KitGlyphs.article() },
         reduced-motion: false, text-scale: 1,
     };
     // How far an outline extends beyond its host; inside rings extend nowhere.
@@ -431,7 +435,8 @@ export global KitThemes {
 
 // The default theme of every component. Assign `current` once, from Slint or
 // from Rust after re-exporting this global from the application's main file;
-// a component's `theme` property still overrides it for a subtree.
+// each control may override `theme`. Caller-provided @children require explicit
+// bindings; this global does not implement an ancestor cascade.
 export global KitThemeContext {
     in-out property <KitTheme> current: KitThemes.light;
 }

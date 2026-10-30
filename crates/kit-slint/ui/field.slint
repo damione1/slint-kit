@@ -84,13 +84,14 @@ export component KitInputGroup inherits Rectangle {
     in property <bool> focused;
     out property <bool> hovered: hover.has-hover;
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
+    in property <length> corner-radius: root.recipe.radius;
     in property <length> padding-inline: root.recipe.padding-inline;
     in property <length> padding-block: root.recipe.padding-block;
     min-height: root.recipe.height;
     preferred-height: self.min-height;
     vertical-stretch: 0;
     background: root.recipe.fill;
-    border-radius: root.recipe.radius;
+    border-radius: root.corner-radius;
     border-width: root.recipe.border-width;
     border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
     // A parent TouchArea observes hover before its children see the event,
@@ -104,7 +105,7 @@ export component KitInputGroup inherits Rectangle {
         }
     }
     if root.focused: FocusOutline {
-        ring: root.recipe.focus; radius: root.recipe.radius;
+        ring: root.recipe.focus; radius: root.corner-radius;
         host-width: root.width; host-height: root.height;
     }
 }

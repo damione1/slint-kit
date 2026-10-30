@@ -148,7 +148,7 @@
       "label": "Bouton",
       "seoTitle": "Bouton Slint avec callback Rust",
       "summary": "Bouton Slint avec libellé, état occupé et callback d’activation.",
-      "usage": "Définissez `text`, puis traitez `activated` pour lancer votre action. Activez `busy` pendant son exécution ; utilisez `control-width: ControlWidth.fill` pour remplir une cellule du layout.",
+      "usage": "Définissez `text`, puis traitez `activated` pour lancer votre action. Activez `busy` pendant son exécution ; utilisez `control-width: ControlWidth.fill` pour remplir une cellule du layout. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus. Ajoutez `leading-icon` et `trailing-icon` comme valeurs typées `IconGlyph` ; les glyphes vides ne réservent aucun espace. Les icônes sont décoratives et le contrôle conserve son nom accessible textuel.",
       "behavior": "Entrée active le bouton à l’appui ; Espace l’active au relâchement. `busy` et `disabled` bloquent l’activation. Le libellé conserve sa largeur mesurée sous l’indicateur d’activité et fournit le nom accessible si `accessible-name` est vide.",
       "related": [
         "KitIconButton",
@@ -159,7 +159,7 @@
       "label": "Button",
       "seoTitle": "Slint button with a Rust callback",
       "summary": "Slint button with a text label, busy state and activation callback.",
-      "usage": "Set `text`, then handle `activated` to run your action. Set `busy` while the action is pending; use `control-width: ControlWidth.fill` to fill a layout cell.",
+      "usage": "Set `text`, then handle `activated` to run your action. Set `busy` while the action is pending; use `control-width: ControlWidth.fill` to fill a layout cell. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control. Add `leading-icon` and `trailing-icon` as typed `IconGlyph` values; empty glyphs reserve no space. Icons are decorative and the control keeps its text accessible name.",
       "behavior": "Enter activates on press; Space activates on release. `busy` and `disabled` block activation. The label keeps its measured width while the busy indicator is shown, and supplies the accessible name unless `accessible-name` is set.",
       "related": [
         "KitIconButton",
@@ -218,7 +218,7 @@
   "KitCard": {
     "fr": {
       "summary": "Surface de carte pour regrouper une unité de contenu.",
-      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding.",
+      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas.",
       "behavior": "La carte possède une bordure, un fond et une hauteur mesurée à partir du contenu. Elle ne capture pas les clics et ne devient pas une action implicitement.",
       "related": [
         "KitCardHeader",
@@ -230,7 +230,7 @@
     },
     "en": {
       "summary": "Card surface for grouping a unit of content.",
-      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer.",
+      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade.",
       "behavior": "The card owns a border, background and content-measured height. It does not capture clicks or implicitly become an action.",
       "related": [
         "KitCardHeader",
@@ -364,7 +364,7 @@
   "KitCheckbox": {
     "fr": {
       "summary": "Case à cocher contrôlée avec un véritable état mixte.",
-      "usage": "Projetez `CheckState.unchecked`, `.checked` ou `.mixed` et acceptez la demande `toggled(CheckState)` dans le contrôleur. Fournissez `label` et `FieldAccess`.",
+      "usage": "Projetez `CheckState.unchecked`, `.checked` ou `.mixed` et acceptez la demande `toggled(CheckState)` dans le contrôleur. Fournissez `label` et `FieldAccess`. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
       "behavior": "Une activation demande l’état coché sauf depuis `.checked`, qui demande l’état décoché. L’état mixte reste distinct et la lecture seule permet le focus sans modification.",
       "related": [
         "KitSwitch",
@@ -375,7 +375,7 @@
     },
     "en": {
       "summary": "Controlled checkbox with a genuine mixed state.",
-      "usage": "Project `CheckState.unchecked`, `.checked` or `.mixed` and accept `toggled(CheckState)` requests in the controller. Supply `label` and `FieldAccess`.",
+      "usage": "Project `CheckState.unchecked`, `.checked` or `.mixed` and accept `toggled(CheckState)` requests in the controller. Supply `label` and `FieldAccess`. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
       "behavior": "Activation requests checked unless currently `.checked`, which requests unchecked. Mixed remains distinct, and read-only access allows focus without modification.",
       "related": [
         "KitSwitch",
@@ -1386,8 +1386,8 @@
   "KitIconButton": {
     "fr": {
       "summary": "Bouton carré présentant une icône pour une action compacte.",
-      "usage": "Choisissez `glyph: KitGlyphs.check()` ou un glyphe Lucide, et fournissez toujours un `accessible-name` décrivant l’action. Traitez `activated` comme pour `KitPressable`.",
-      "behavior": "La recette adapte les dimensions à `control-size` et conserve les états de focus, de survol et de désactivation hérités. L’icône n’ajoute pas de cible clavier distincte.",
+      "usage": "Choisissez `glyph: KitGlyphs.check()` ou un glyphe Lucide, et fournissez toujours un `accessible-name` décrivant l’action. Traitez `activated` comme pour `KitPressable`. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
+      "behavior": "La recette adapte les dimensions à `control-size` et conserve les états de focus, de survol et de désactivation hérités. L’icône n’ajoute pas de cible clavier distincte. `intent` utilise les cinq mêmes recettes que KitButton ; sa valeur par défaut est quiet.",
       "related": [
         "KitButton",
         "KitIcon"
@@ -1397,8 +1397,8 @@
     },
     "en": {
       "summary": "Square icon button for a compact action.",
-      "usage": "Choose `glyph: KitGlyphs.check()` or a Lucide glyph, and always supply an `accessible-name` describing the action. Handle `activated` as with `KitPressable`.",
-      "behavior": "Its recipe sizes the button from `control-size` and preserves inherited focus, hover and disabled states. The icon adds no separate keyboard target.",
+      "usage": "Choose `glyph: KitGlyphs.check()` or a Lucide glyph, and always supply an `accessible-name` describing the action. Handle `activated` as with `KitPressable`. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
+      "behavior": "Its recipe sizes the button from `control-size` and preserves inherited focus, hover and disabled states. The icon adds no separate keyboard target. `intent` uses the same five intent recipes as KitButton; its default is quiet.",
       "related": [
         "KitButton",
         "KitIcon"
@@ -1726,7 +1726,7 @@
   "KitNavigationAction": {
     "fr": {
       "summary": "Action de navigation libellée fondée sur une option à identité stable.",
-      "usage": "Fournissez `option-data`, `active` et `selected`, puis traitez le callback hérité `activate(token, generation)`. Réservez `trailing-space` lorsqu’un indicateur accompagne le libellé.",
+      "usage": "Fournissez `option-data`, `active` et `selected`, puis traitez le callback hérité `activate(token, generation)`. Réservez `trailing-space` lorsqu’un indicateur accompagne le libellé. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
       "behavior": "La ligne hérite de la capture d’identité et de l’annulation des appuis de `KitOption`. Le texte s’aligne selon `control-width` et tronque les libellés trop longs.",
       "related": [
         "KitOption"
@@ -1736,7 +1736,7 @@
     },
     "en": {
       "summary": "Labeled navigation action built on a stable-identity option.",
-      "usage": "Supply `option-data`, `active` and `selected`, then handle inherited `activate(token, generation)`. Reserve `trailing-space` when an indicator accompanies the label.",
+      "usage": "Supply `option-data`, `active` and `selected`, then handle inherited `activate(token, generation)`. Reserve `trailing-space` when an indicator accompanies the label. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
       "behavior": "The row inherits `KitOption` identity capture and press cancellation. Text alignment follows `control-width`, and overlong labels are elided.",
       "related": [
         "KitOption"
@@ -1820,7 +1820,7 @@
   "KitOption": {
     "fr": {
       "summary": "Ligne d’option personnalisable avec capture de l’identité au début de l’appui.",
-      "usage": "Fournissez `option-data: OptionRow`, puis `active` et `selected` depuis le contrôleur. Ajoutez un contenu visuel et traitez `activate(token, generation)`.",
+      "usage": "Fournissez `option-data: OptionRow`, puis `active` et `selected` depuis le contrôleur. Ajoutez un contenu visuel et traitez `activate(token, generation)`. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
       "behavior": "L’option garde `tab-stop: false` pour laisser le composite gérer le clavier. Changer `option-data` annule l’appui afin qu’une ligne recyclée ne déclenche pas une autre identité.",
       "related": [
         "KitSelectSurface",
@@ -1831,7 +1831,7 @@
     },
     "en": {
       "summary": "Customizable option row that captures identity when pressing begins.",
-      "usage": "Supply `option-data: OptionRow`, then `active` and `selected` from the controller. Add visual content and handle `activate(token, generation)`.",
+      "usage": "Supply `option-data: OptionRow`, then `active` and `selected` from the controller. Add visual content and handle `activate(token, generation)`. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
       "behavior": "The option keeps `tab-stop: false` so the composite can manage keyboard focus. Changing `option-data` cancels the press so a recycled row cannot activate another identity.",
       "related": [
         "KitSelectSurface",
@@ -1938,7 +1938,7 @@
   "KitPressable": {
     "fr": {
       "summary": "Primitive d’action qui centralise le pointeur, le clavier et le focus pour vos boutons personnalisés.",
-      "usage": "Placez du contenu non interactif à l’intérieur, fournissez un `accessible-name` et calculez `preferred-width` depuis ce contenu. Choisissez `ControlWidth.fill` pour remplir la ligne.",
+      "usage": "Placez du contenu non interactif à l’intérieur, fournissez un `accessible-name` et calculez `preferred-width` depuis ce contenu. Choisissez `ControlWidth.fill` pour remplir la ligne. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
       "behavior": "`activated` signale une action acceptée ; `disabled` et `busy` empêchent son déclenchement. Entrée agit à l’appui, Espace au relâchement et `cancel-press()` annule un appui en cours.",
       "related": [
         "KitButton",
@@ -1949,7 +1949,7 @@
     },
     "en": {
       "summary": "Action primitive that coordinates pointer, keyboard and focus for custom buttons.",
-      "usage": "Place non-interactive content inside, supply an `accessible-name`, and size `preferred-width` from that content. Choose `ControlWidth.fill` when the action should fill its row.",
+      "usage": "Place non-interactive content inside, supply an `accessible-name`, and size `preferred-width` from that content. Choose `ControlWidth.fill` when the action should fill its row. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
       "behavior": "`activated` reports an accepted action; `disabled` and `busy` prevent activation. Enter activates on press, Space on release, and `cancel-press()` cancels an armed interaction.",
       "related": [
         "KitButton",
@@ -2494,7 +2494,7 @@
   "KitSurface": {
     "fr": {
       "summary": "Surface visuelle unique pour un contenu composé.",
-      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants.",
+      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas.",
       "behavior": "Elle possède le fond et le padding, sans intercepter le pointeur ni le focus. Composez une action avec `KitPressable` lorsqu’une surface doit être interactive.",
       "related": [
         "KitCard",
@@ -2505,7 +2505,7 @@
     },
     "en": {
       "summary": "Single painted surface for composed content.",
-      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children.",
+      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade.",
       "behavior": "It owns the background and padding without intercepting pointer or focus events. Compose an action with `KitPressable` when a surface should be interactive.",
       "related": [
         "KitCard",
@@ -2518,7 +2518,7 @@
   "KitSwitch": {
     "fr": {
       "summary": "Interrupteur contrôlé pour une préférence booléenne.",
-      "usage": "Projetez `checked` et traitez `toggled(bool)` pour accepter le nouvel état. Utilisez un `label` décrivant la préférence activée.",
+      "usage": "Projetez `checked` et traitez `toggled(bool)` pour accepter le nouvel état. Utilisez un `label` décrivant la préférence activée. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
       "behavior": "L’activation propose l’inverse de la valeur actuelle sans la modifier localement. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions.",
       "related": [
         "KitPressable"
@@ -2528,7 +2528,7 @@
     },
     "en": {
       "summary": "Controlled switch for a boolean preference.",
-      "usage": "Project `checked` and handle `toggled(bool)` to accept the new state. Use a `label` describing the enabled preference.",
+      "usage": "Project `checked` and handle `toggled(bool)` to accept the new state. Use a `label` describing the enabled preference. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
       "behavior": "Activation proposes the inverse of the current value without changing it locally. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction.",
       "related": [
         "KitPressable"
@@ -2636,7 +2636,7 @@
   "KitTextField": {
     "fr": {
       "summary": "Saisie native sur une ligne avec libellé et message de validation.",
-      "usage": "Liez `text` au brouillon et gérez `edited`, `commit-requested` et `cancelled`. FieldBinding conserve la dernière valeur acceptée.",
+      "usage": "Liez `text` au brouillon et gérez `edited`, `commit-requested` et `cancelled`. FieldBinding conserve la dernière valeur acceptée. Ajoutez `leading-icon` et `trailing-icon` comme valeurs typées `IconGlyph` ; les glyphes vides ne réservent aucun espace. Les icônes sont décoratives et le contrôle conserve son nom accessible textuel. `corner-radius`, `padding-inline`, `padding-block` et `text-size` conservent la validation, le style en lecture seule et l’éditeur natif.",
       "behavior": "L’exemple accepte le texte non vide à la perte de focus ou avec Accepter. L’édition native conserve curseur, sélection et annulation.",
       "related": [
         "KitTextArea",
@@ -2648,7 +2648,7 @@
     },
     "en": {
       "summary": "Single-line native text input with a label and validation feedback.",
-      "usage": "Bind `text` to a draft and handle `edited`, `commit-requested` and `cancelled`. Use FieldBinding to retain the last accepted value.",
+      "usage": "Bind `text` to a draft and handle `edited`, `commit-requested` and `cancelled`. Use FieldBinding to retain the last accepted value. Add `leading-icon` and `trailing-icon` as typed `IconGlyph` values; empty glyphs reserve no space. Icons are decorative and the control keeps its text accessible name. `corner-radius`, `padding-inline`, `padding-block` and `text-size` retain validation, read-only styling and the native editor.",
       "behavior": "The example accepts nonempty text on blur or Accept. Native editing keeps caret, selection and undo.",
       "related": [
         "KitTextArea",

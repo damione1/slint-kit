@@ -126,21 +126,28 @@ HTML's unopinionated telephone state is still available with
 `KitTextField { input-kind: HtmlInputKind.telephone; }`. Its HTML validation rules
 have not been narrowed globally.
 
-## Optional Tailwind-inspired theme
+## Optional Tailwind presentation
 
-`@kit/themes/tailwind.slint` exports `TailwindThemes.light` and
-`TailwindThemes.dark`, complete `KitTheme` values with a reduced Tailwind CSS
-palette, role radii, Tailwind shadows and the Inter typeface. Components never
-import it: an application opts in by importing the file and assigning a value to
-`KitThemeContext.current` or to a subtree's `theme`. Importing it embeds Inter 4.1
-in four weights, about 1.6 MB. The palette values (MIT) and Inter (SIL Open Font
-License 1.1) keep their own licenses; see `THIRD-PARTY-NOTICES.md` and
-`ui/themes/fonts/Inter-OFL.txt`.
+The separate `slint-kit-tailwind` build dependency registers both `@kit` and
+`@kit-tailwind` through `slint_kit_tailwind::compile("ui/app.slint")`.
+`@kit-tailwind/theme.slint` exports complete `TailwindThemes.light` and `.dark`
+values, including semantic colors, spacing, elevation and Lucide icon roles.
+The base kit contains no Tailwind assets and does not depend on the pack.
+
+The theme embeds no font. Import `{ InterFont }` from
+`@kit-tailwind/fonts/inter.slint` separately and set the Window's
+`default-font-family: InterFont.family` to use Inter. Its four static font files
+are about 1.6 MB. Keep the third-party notices supplied with the pack.
+
+Assign a theme to `KitThemeContext.current` for the window default, or pass it
+explicitly to a component. Application-supplied children do not inherit a
+container's theme automatically: bind their `theme` to the container's theme.
+See the themes guide for local radius, padding, typography and elevation.
 
 ## Icons
 
 `KitIcon` and `KitIconButton` paint an `IconGlyph`: one of the kit's own
-`KitGlyphs`, or a Lucide icon. `@kit/icons/lucide/all.slint` exports
+`KitGlyphs`, or a Lucide icon. Buttons and text fields accept `leading-icon` and `trailing-icon`; built-in action glyphs read semantic roles from `theme.icons`. `@kit/icons/lucide/all.slint` exports
 `LucideIcons` with every icon of the vendored Lucide release as a named pure
 function (`LucideIcons.arrow-up()`), and each Lucide category has a file holding
 the same glyphs (`LucideArrows` in `@kit/icons/lucide/arrows.slint`). The files

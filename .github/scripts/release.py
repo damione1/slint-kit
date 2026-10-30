@@ -22,6 +22,7 @@ PACKAGES = {
     'slint-kit-slint': 'crates/kit-slint',
     'slint-kit-native': 'crates/kit-native',
     'slint-kit-build': 'crates/kit-build',
+    'slint-kit-tailwind': 'crates/kit-tailwind',
     'slint-kit': 'crates/kit',
 }
 SEMVER = r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
@@ -49,7 +50,7 @@ def validate(tag):
         raise ValueError('Checkout does not match the triggering commit')
     if run('git', 'status', '--porcelain'):
         raise ValueError('Release source must be committed and clean')
-    print(f'Validated {tag}: five libraries at commit {commit}', flush=True)
+    print(f'Validated {tag}: six libraries at commit {commit}', flush=True)
     return version, commit
 
 
@@ -139,7 +140,7 @@ def publish(version, commit):
                 time.sleep(5)
         else:
             raise ValueError(f'{name}: upload exit {result.returncode}; registry version unavailable. Rerun this same tag after resolving the failure; verified libraries will be skipped.')
-    print(f'Published and verified all five Slint Kit {version} libraries', flush=True)
+    print(f'Published and verified all six Slint Kit {version} libraries', flush=True)
 
 
 def main():

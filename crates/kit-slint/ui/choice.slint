@@ -37,10 +37,10 @@ component ChoiceOption inherits KitPressable {
     // Read-only keeps the value legible and focusable without press affordance.
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     min-width: 0px;
-    min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
+    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
     measure := Text {
-        visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.content-reserve);
-        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap;
+        visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.content-reserve);
+        text: root.option-data.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap;
     }
     @children
 }
@@ -99,8 +99,8 @@ export component KitCheckbox inherits KitPressable {
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
+    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checked: root.state == CheckState.checked;
@@ -115,12 +115,11 @@ export component KitCheckbox inherits KitPressable {
             border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
             background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
                 : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
-            if root.state == CheckState.checked: Path {
+            if root.state == CheckState.checked: KitIcon {
+                theme: root.theme; glyph: root.theme.icons.check;
                 x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                width: root.choice.check-size; height: root.choice.check-size;
-                commands: "M 2 7 L 5 10 L 12 3";
-                stroke: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
-                stroke-width: root.choice.mark-stroke; fill: transparent;
+                width: root.choice.box-size; height: root.choice.box-size;
+                ink: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
             }
             if root.state == CheckState.mixed: Rectangle {
                 x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
@@ -128,7 +127,7 @@ export component KitCheckbox inherits KitPressable {
                 background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -162,8 +161,8 @@ export component KitSwitch inherits KitPressable {
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.recipe.font-size * 1.4 + 2 * root.recipe.padding-block),measure.preferred-height + 2 * root.recipe.padding-block);
-    measure := Text { visible: false; width: max(1px,root.width - 2 * root.recipe.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; }
+    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
+    measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checked: root.checked;
@@ -186,7 +185,7 @@ export component KitSwitch inherits KitPressable {
                 animate x { duration: root.choice.transition; easing: ease-in-out; }
             }
         }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.recipe.font-size; wrap: word-wrap; vertical-alignment: center; }
+        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; wrap: word-wrap; vertical-alignment: center; }
     }
 }
 
@@ -448,7 +447,7 @@ export component KitChip inherits KitPressable {
     private property <int> press-token;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
     private property <length> gap: root.theme.spacing.unit;
-    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.gap + root.icon-size + 2 * root.recipe.padding-inline);
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.gap + root.icon-size + 2 * root.padding-inline);
     min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
     preferred-width: root.natural-width;
     control-size: ControlSize.compact;
@@ -457,7 +456,7 @@ export component KitChip inherits KitPressable {
         label := Text {
             text: root.chip.label;
             color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-            font-family: root.theme.typography.family; font-size: root.recipe.font-size;
+            font-family: root.theme.typography.family; font-size: root.text-size;
             vertical-alignment: center;
             overflow: elide;
         }
@@ -466,7 +465,7 @@ export component KitChip inherits KitPressable {
             KitIcon {
                 theme: root.theme; control-size: root.control-size;
                 y: (parent.height - self.height) / 2;
-                glyph: KitGlyphs.close();
+                glyph: root.theme.icons.close;
                 ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
             }
         }
@@ -682,7 +681,7 @@ export component KitCombobox inherits Rectangle {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-label == "" ? root.label : root.selected-label; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; overflow: elide; vertical-alignment: center; }
             // Points up while the list is presented below the trigger.
-            TurningIcon { theme: root.theme; control-size: root.control-size; turned: root.state.open; rest-glyph: KitGlyphs.chevron-down(); turned-glyph: KitGlyphs.chevron-up(); ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
+            TurningIcon { theme: root.theme; control-size: root.control-size; turned: root.state.open; rest-glyph: root.theme.icons.chevron-down; turned-glyph: root.theme.icons.chevron-up; ink: trigger.disabled ? root.icon.disabled-color : root.icon.color; }
         }
     }
     popup := PopupWindow {
@@ -714,7 +713,7 @@ export component KitCombobox inherits Rectangle {
                         Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
                         // The selected identity, independent of the active row.
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: KitGlyphs.check(); ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }
