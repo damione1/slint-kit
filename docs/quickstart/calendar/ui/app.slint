@@ -1,6 +1,7 @@
+import { LucideTime } from "@kit/icons/lucide/time.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-import { KitCalendar,KitThemes,KitThemeContext,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
+import { KitCalendar,KitThemes,KitThemeContext,KitIcon,KitCard,KitCardHeader,KitCardBody,KitBadge,Tone,KitFieldDescription,KitButton,ButtonIntent,CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase } from "@kit/kit.slint";
 export {CalendarDay,CalendarNavigation,CivilDateView,DateRangePhase}
 export component App inherits Window {
     default-font-family: InterFont.family;
@@ -10,13 +11,13 @@ export component App inherits Window {
  callback navigate(CalendarNavigation);callback choose(CalendarDay);callback cancel();
  VerticalLayout {padding:24px;spacing:16px;alignment:start;
  KitCard {
- KitBadge {text:"Weekday appointments";tone:Tone.accent;}
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-days();ink:KitThemes.light.accent;} KitBadge {text:"Weekday appointments";tone:Tone.accent;}}
  KitCardHeader{title:"Book a working day";description:"Choose dates that work for your schedule.";}
  KitCardBody {
  control:=KitCalendar{previous-enabled:root.previous-enabled;next-enabled:root.next-enabled;days:root.days;weekdays:root.sunday-first ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];active-index:root.active;title:root.calendar-title;navigate(step)=>{root.navigate(step);}choose(day)=>{root.choose(day);}cancelled=>{root.cancel();}}
  KitFieldDescription{text:"Choose an available weekday. Weekends and October 13–15 are unavailable.";}
- KitButton{text:root.sunday-first ? "Start week on Monday" : "Start week on Sunday";intent:ButtonIntent.outline;activated=>{root.toggle-week-start();}}
- Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}
+ KitButton{leading-icon:LucideTime.calendar-sync();text:root.sunday-first ? "Start week on Monday" : "Start week on Sunday";intent:ButtonIntent.outline;activated=>{root.toggle-week-start();}}
+ HorizontalLayout{spacing:8px;alignment:start;KitIcon{glyph:LucideTime.calendar-check();ink:KitThemes.light.success;} Text{text:"Accepted: "+root.accepted;color:KitThemes.light.text-primary;wrap:word-wrap;}}
  }
  }
  }
