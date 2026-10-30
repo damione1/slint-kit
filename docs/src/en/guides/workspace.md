@@ -8,13 +8,13 @@ permalink: "{{ 'guides/workspace/' | localeUrl(locale) }}index.html"
 
 # Compose a workspace application
 
-The workspace example assembles account settings, a project list and an edit dialog using public Slint Kit components. A single composition works with the minimal theme or the optional Tailwind presentation. The Rust host owns the project data, filtering and in-memory updates.
+The workspace example assembles account settings, a project list and an edit dialog using public Slint Kit components. The composition uses the built-in Tailwind presentation in light and dark modes. The Rust host owns the project data, filtering and in-memory updates.
 
 ## Try the complete composition
 
-- [Account settings](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=account&lang=en): edit the profile, choose a language and toggle notifications.
-- [Projects](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=projects&lang=en): search, filter, select a project and create or edit one.
-- [Edit dialog](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=dialog&lang=en): inspect the fields, validation, save state and focus return.
+- [Account settings](/examples/workspace/?mode=light&scale=1&scene=account&lang=en): edit the profile, choose a language and toggle notifications.
+- [Projects](/examples/workspace/?mode=light&scale=1&scene=projects&lang=en): search, filter, select a project and create or edit one.
+- [Edit dialog](/examples/workspace/?mode=light&scale=1&scene=dialog&lang=en): inspect the fields, validation, save state and focus return.
 
 The demo controls switch theme, light/dark presentation and text scale. Compare the same data and layout, including a local customization, rather than maintaining a second set of components. Changes in the demo are held in memory.
 
@@ -46,9 +46,9 @@ fn main() {
 }
 ```
 
-Run `cargo run` from the project directory. The source includes the main entry point, form-validation initialization, a model keyed by project identity, filtering and save callbacks. The initial application uses the base theme.
+Run `cargo run` from the project directory. The source includes the main entry point, form-validation initialization, a model keyed by project identity, filtering and save callbacks. The application uses the built-in Tailwind presentation with Inter.
 
-For Tailwind, add `slint-kit-tailwind = "=0.4.0"` to build-dependencies and call `slint_kit_tailwind::compile` in `build.rs`. Import `TailwindThemes` from `@kit-tailwind/theme.slint` in `ui/app.slint`, then set `App.theme` to `TailwindThemes.light` or `.dark`. To choose Inter, also import `{ InterFont }` from `@kit-tailwind/fonts/inter.slint` and set `default-font-family: InterFont.family` on `App`. [Theme setup and local styling](/guides/themes/).
+Choose `KitThemes.light` or `.dark` to switch modes. The source imports `{ InterFont }` from `@kit/fonts/inter.slint` and selects it with `default-font-family: InterFont.family`. [Theme setup and local styling](/guides/themes/).
 
 ## Keep application ownership clear
 

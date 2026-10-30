@@ -42,47 +42,31 @@ Each component defaults to `KitThemeContext.current`, initially `KitThemes.light
 
 Each `AlertSeverity` takes its own subtle background, border and mark from the `information`, `success`, `warning` and `danger` tokens and their `*-subtle` backgrounds, so alerts stay distinguishable without reading their titles. Kit scroll containers, lists and tables draw their bars with [KitScrollBar](/components/scroll-bar/), which follows the theme. A std-widgets `ScrollView` or `ListView` in application code keeps the Slint style and `Palette.color-scheme`.
 
-## Optional Tailwind presentation pack
+## Built-in Tailwind presentation
 
-`slint-kit-tailwind` supplies the Tailwind-inspired presentation without duplicating component behavior. The base kit stays independent. Add the pack as a **build dependency**, using the same version as the kit:
-
-```toml
-[build-dependencies]
-slint-kit-tailwind = "0.4"
-```
-
-Compile through the pack to register both `@kit` and `@kit-tailwind`:
-
-```rust
-fn main() {
-    slint_kit_tailwind::compile("ui/app.slint").expect("compile UI");
-}
-```
+The kit ships one Tailwind-inspired visual system, with light and dark modes. `KitThemes.light` and `.dark` supply its slate surfaces, indigo actions, semantic feedback colors, typography, spacing, focus rings, elevation and Lucide icons. The standard `slint_kit_build::compile("ui/app.slint")` integration registers everything needed for the components.
 
 ```slint
-import { KitThemeContext, KitButton, ButtonIntent } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit-tailwind/theme.slint";
+import { KitThemes, KitThemeContext, KitButton } from "@kit/kit.slint";
 
 export component Example inherits Window {
     preferred-width: 420px;
     preferred-height: 180px;
     in property <bool> dark;
-    init => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
-    changed dark => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
+    init => { KitThemeContext.current = root.dark ? KitThemes.dark : KitThemes.light; }
+    changed dark => { KitThemeContext.current = root.dark ? KitThemes.dark : KitThemes.light; }
     background: KitThemeContext.current.canvas;
     VerticalLayout {
         padding: 24px;
         alignment: start;
-        KitButton { text: "Continue"; intent: ButtonIntent.primary; }
+        KitButton { text: "Continue"; }
     }
 }
 ```
 
-The theme supplies slate surfaces, indigo actions, semantic feedback colors, typography and spacing scales, focus rings, elevation and Lucide glyphs for built-in icon roles. It leaves the renderer and component behavior unchanged. Control height remains intrinsic: the content and padding can require more room than the nominal size.
+**Inter is an optional font.** Import `{ InterFont } from "@kit/fonts/inter.slint"` and set `default-font-family: InterFont.family` on the window to use it, as the documentation examples do. Without this import, the theme uses the application's font. The four static weights total about 1.6 MB of source files; embedded applications can choose a font appropriate to the device.
 
-**Inter is a separate opt-in.** The theme file embeds no fonts and keeps `typography.family` empty, so text uses the window's font. To use Inter, add `import { InterFont } from "@kit-tailwind/fonts/inter.slint";` and `default-font-family: InterFont.family;` to the window. This registers four static weights; their source files total about 1.6 MB. An embedded application can use the same theme with a font appropriate to its device.
-
-When registering application libraries, use `slint_kit_tailwind::config_with_libraries(...)` with a map of their aliases, then `slint_build::compile_with_config` (add the matching `slint-build` build dependency when calling it directly). The helper preserves those aliases and registers the reserved `kit` and `kit-tailwind` names. Runtime and build package versions must match. [Migration from the previous imports](/guides/migration-0-4/).
+For application library aliases, start with `slint_kit_build::config_with_libraries(...)`, then use `slint_build::compile_with_config`. The helper preserves application aliases and reserves `kit`. Component height stays intrinsic: content and padding can require more room than the nominal size.
 
 The palette derives from Tailwind CSS under MIT, Inter is under the SIL Open Font License and Lucide carries ISC/MIT notices. Keep the [third-party notices](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Shadow support depends on the renderer; borders preserve surface boundaries when shadows are unavailable.
 
@@ -177,7 +161,7 @@ export component Example inherits Window {
 
 Icon size follows `control-size` (14, 16 or 20 px) multiplied by the theme's `text-scale`. Icons inside controls use their host's size: `KitIconButton`, field actions, select and combobox chevrons and check marks, and number stepper buttons; a field's clear or reveal button grows with its icon at 200% text. The stroke width comes from the theme's `shape.icon-stroke` token, 2 in every shipped theme. With the default `stroke-mode: IconStroke.scaled` the token is in grid units and scales with the icon, as in SVG: Lucide's 2 units on 24 draw 1.33 px at 16 px and 2.67 px at 200% text. With `IconStroke.absolute` the stroke stays 2 px at every size. An `IconGlyph` has a `stroke` layer and a `fill` layer (empty for most icons): a few Lucide icons, such as `tag` or `palette`, have filled dots, painted with the same `ink`. Pass `ink` from the surrounding recipe. An icon is decorative by default and stays out of the accessibility tree; when it carries meaning that no nearby text gives, set `purpose: IconPurpose.informative` and a `label`, and it is announced as an image.
 
-Built-in control icons read semantic roles from `theme.icons`, a `KitIconSet`. The minimal theme uses `KitGlyphs`; the Tailwind pack supplies Lucide equivalents. Override a role in a copied theme to change its consumers, or use a control’s explicit glyph property where available. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
+Built-in control icons read semantic roles from `theme.icons`, a `KitIconSet`. The built-in theme supplies Lucide glyphs for those roles. Override a role in a copied theme to change its consumers, or use a control’s explicit glyph property where available. Selects, comboboxes, disclosure rows and sorted table headers turn their chevron when they open, close or change direction, over the theme's `motion.fast` duration or at once with `reduced-motion`. At rest the chevron is drawn unrotated, so it points the right way under every renderer. Chips mark removal with the close glyph.
 
 Moving from 0.3: `IconKind` no longer exists. Replace `KitIcon { kind: IconKind.close; }` with `KitIcon { glyph: KitGlyphs.close(); }`, and `KitIconButton { icon: IconKind.close; }` with `KitIconButton { glyph: KitGlyphs.close(); }`. The [changelog](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) lists every 0.4.0 change.
 

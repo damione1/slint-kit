@@ -22,7 +22,6 @@ PACKAGES = {
     'slint-kit-slint': 'crates/kit-slint',
     'slint-kit-native': 'crates/kit-native',
     'slint-kit-build': 'crates/kit-build',
-    'slint-kit-tailwind': 'crates/kit-tailwind',
     'slint-kit': 'crates/kit',
 }
 SEMVER = r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'

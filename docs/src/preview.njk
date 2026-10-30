@@ -30,9 +30,7 @@ function message(state, error) {
 }
 try {
   if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
-  const theme = parameters.get('theme') || 'tailwind';
-  if (!['tailwind', 'kit'].includes(theme)) throw new Error('Unknown theme');
-  const entry = previews[parameters.get('component')][theme];
+  const entry = previews[parameters.get('component')].tailwind;
   for (const [id, file] of [['license','NOTICE.txt'],['third-party','THIRD_PARTY_NOTICES.txt'],['source','source.tar.gz']]) {
     document.getElementById(id).href = entry.sources[file];
   }

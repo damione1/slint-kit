@@ -1,10 +1,12 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitContentList, KitThemes, ContentItem, NavigationStep } from "@kit/kit.slint";
 export { ContentItem, NavigationStep }
 export component App inherits Window {
+    default-font-family: InterFont.family;
     title: "Slint content list";
-    preferred-width: 580px; preferred-height: 390px;
+    preferred-width: 580px; preferred-height: 540px;
     max-width: 100000px; max-height: 100000px;
     background: KitThemes.light.canvas;
     in property <[ContentItem]> items;
@@ -14,7 +16,7 @@ export component App inherits Window {
     callback move(NavigationStep);
     VerticalLayout {
         padding: 24px; spacing: 16px;
-        list := KitContentList { height: 280px; items: root.items; generation: 1;
+        list := KitContentList { height: 420px; items: root.items; generation: 1;
             active-index: root.active-index;
             activate(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }

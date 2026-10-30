@@ -38,7 +38,7 @@ def code_key(slug, family, inputs, rustc, bindgen, environment):
     manifest = tomllib.loads((DOCS / 'preview/Cargo.toml').read_text())
     for section in ['dependencies', 'build-dependencies']:
         for name, value in manifest.get(section, {}).items():
-            if name in ('slint-kit', 'slint-kit-build', 'slint-kit-tailwind'):
+            if name in ('slint-kit', 'slint-kit-build'):
                 if isinstance(value, dict):
                     value['version'] = '<resolved-kit-sources>'
                 else:
@@ -222,14 +222,14 @@ def build():
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / 'manifest.json'
     old = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-    previews = old.get('entries', {}) if old.get('schema') == 2 else {}
+    previews = {slug: {'tailwind': entry['tailwind']} for slug, entry in old.get('entries', {}).items() if 'tailwind' in entry} if old.get('schema') == 2 else {}
     if args.check:
         for slug in slugs:
             for family in ThemeFamily:
                 expected = code_key(slug, family.value, inputs, rustc, version, environment)
                 if previews.get(slug, {}).get(family.value, {}).get('key') != expected:
                     raise SystemExit(f'Stale browser preview: {slug}/{family.value}; rebuild it')
-        print(f'Browser preview keys verified: {len(slugs) * 2}')
+        print(f'Browser preview keys verified: {len(slugs) * len(ThemeFamily)}')
         return
     cache = DOCS / '.cache/previews'
     notices = None
@@ -280,7 +280,7 @@ def build():
                 write_json(manifest_path, {'schema': 2, 'defaultTheme': 'tailwind', 'bindgen': BINDGEN_VERSION,
                                           'components': sorted(previews), 'entries': previews})
     prune_generated(output, previews)
-    print(f'Browser previews: {hits} reused, {len(slugs) * 2 - hits} built', flush=True)
+    print(f'Browser previews: {hits} reused, {len(slugs) * len(ThemeFamily) - hits} built', flush=True)
 
 
 if __name__ == '__main__':

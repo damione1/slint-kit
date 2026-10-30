@@ -20,28 +20,32 @@ fn next_index(current: Option<usize>, length: usize, step: ui::NavigationStep) -
 enum Article {
     Setup,
     State,
+    Accessibility,
 }
 impl Article {
     fn token(self) -> i32 {
         match self {
             Self::Setup => 11,
             Self::State => 23,
+            Self::Accessibility => 37,
         }
     }
     fn title(self) -> &'static str {
         match self {
             Self::Setup => "Install Slint Kit",
             Self::State => "Keep selection stable",
+            Self::Accessibility => "Accessible controls",
         }
     }
     fn excerpt(self) -> &'static str {
         match self {
             Self::Setup => "Import a component and connect its Rust callback.",
             Self::State => "Use an application key when the display order changes.",
+            Self::Accessibility => "Preserve keyboard navigation and clear focus states.",
         }
     }
 }
-const ARTICLES: [Article; 2] = [Article::Setup, Article::State];
+const ARTICLES: [Article; 3] = [Article::Setup, Article::State, Article::Accessibility];
 #[derive(Default)]
 struct State {
     selected: Option<Article>,

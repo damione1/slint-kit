@@ -165,16 +165,23 @@ fn comfortable_editor_actions_use_the_full_touch_height_and_preserve_editor_focu
         let reveal = element(&window, "Show password");
         for action in [&clear, &reveal] {
             assert!(
-                action.size().width >= 48. && action.size().height >= 48.,
+                action.size().width >= window.get_theme().spacing.comfortable.height
+                    && action.size().height >= window.get_theme().spacing.comfortable.height,
                 "scale {scale}, action {:?}: {:?}",
                 action.accessible_label(),
                 action.size()
             );
         }
-        assert!(clear.absolute_position().y >= native_editor.absolute_position().y - 6.);
+        assert!(
+            clear.absolute_position().y
+                >= native_editor.absolute_position().y
+                    - window.get_theme().spacing.comfortable.padding_block
+        );
         assert!(
             clear.absolute_position().y + clear.size().height
-                <= native_editor.absolute_position().y + native_editor.size().height + 6.
+                <= native_editor.absolute_position().y
+                    + native_editor.size().height
+                    + window.get_theme().spacing.comfortable.padding_block
         );
         click(
             &window,
@@ -366,8 +373,8 @@ fn control_geometry_is_intrinsic_across_window_heights_and_scales() {
     let window = fixture();
     for (size, expected) in [
         (ControlSize::Compact, 32.),
-        (ControlSize::Medium, 40.),
-        (ControlSize::Comfortable, 48.),
+        (ControlSize::Medium, 36.),
+        (ControlSize::Comfortable, 40.),
     ] {
         window.set_control_size(size);
         let before = (

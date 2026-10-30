@@ -3,7 +3,6 @@
 // icons at scaled text, control elevation inside a layout, and states that
 // have no other observable output than their marks, labels and edges.
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitDataTable, DataSortDirection, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit-tailwind/theme.slint";
 // Internal: the mark each alert severity draws.
 import { KitAlertMarks } from "@kit/feedback.slint";
 
@@ -11,7 +10,6 @@ import { KitAlertMarks } from "@kit/feedback.slint";
 export component FieldActionFixture inherits Window {
     width: 520px; height: 420px;
     in-out property <KitTheme> theme: KitThemes.light;
-    out property <KitTheme> tailwind: TailwindThemes.light;
     public pure function icon-size(theme: KitTheme, size: ControlSize) -> length { return KitThemes.icon-recipe(theme, size).size; }
     VerticalLayout {
         alignment: start; spacing: 8px; padding: 8px;
@@ -28,7 +26,6 @@ export component FieldActionFixture inherits Window {
 export component ControlElevationFixture inherits Window {
     width: 320px; height: 320px;
     in-out property <KitTheme> theme: KitThemes.light;
-    out property <KitTheme> tailwind: TailwindThemes.light;
     out property <KitTheme> light: KitThemes.light;
     out property <length> stack-height: stack.preferred-height;
     out property <length> stack-spacing: 8px;
@@ -108,8 +105,6 @@ export component SelectedChoiceRenderFixture inherits Window {
     in-out property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
-    out property <KitTheme> tailwind-light: TailwindThemes.light;
-    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
     background: root.theme.canvas;
     KitSegmentedControl {
         theme: root.theme; x: 20px; y: 20px; width: 300px; height: self.preferred-height; label: "Layout"; generation: 1;
@@ -134,8 +129,6 @@ export component DataTableHeaderRenderFixture inherits Window {
     in-out property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
-    out property <KitTheme> tailwind-light: TailwindThemes.light;
-    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
     background: root.theme.canvas;
     KitDataTable {
         theme: root.theme; x: 20px; y: 20px; width: 440px; height: 180px; generation: 1;

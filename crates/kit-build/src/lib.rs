@@ -10,7 +10,7 @@ pub fn ui_directory() -> PathBuf {
     PathBuf::from(kit_slint::UI_DIRECTORY)
 }
 
-/// Resolved build package version, checked by optional presentation packs.
+/// Resolved build package version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Register the kit while preserving application-specific libraries.
@@ -63,8 +63,39 @@ pub fn verify_contracts() -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn generated_contracts_match_source() {
         super::verify_contracts().unwrap();
+    }
+
+    #[test]
+    fn application_libraries_compile_with_the_default_theme() {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "kit-default-consumer-{}-{stamp}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(directory.join("adornment.slint"),"export component Adornment inherits Rectangle { preferred-width: 16px; preferred-height: 16px; }").unwrap();
+        let input = directory.join("app.slint");
+        std::fs::write(
+            &input,
+            r#"import { KitButton } from "@kit/kit.slint";
+            import { Adornment } from "@app/adornment.slint";
+            export component App inherits Window {
+                HorizontalLayout { Adornment {} KitButton { text: "Consumer"; } }
+            }"#,
+        )
+        .unwrap();
+        let config = config_with_libraries(HashMap::from([("app".into(), directory.clone())]));
+        let result =
+            slint_build::compile_with_output_path(&input, directory.join("app.rs"), config);
+        std::fs::remove_dir_all(directory).unwrap();
+        result.expect("kit and application aliases compile together");
     }
 }

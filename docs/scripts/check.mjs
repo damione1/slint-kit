@@ -164,10 +164,10 @@ if (fs.existsSync(workspaceManifest)) {
   }
 }
 const webPreviews = JSON.parse(fs.readFileSync(path.join(docs, '.generated/web/manifest.json'), 'utf8'));
-check(webPreviews.schema === 2 && webPreviews.defaultTheme === 'tailwind', 'Browser previews need individual theme variants with Tailwind as default');
+check(webPreviews.schema === 2 && webPreviews.defaultTheme === 'tailwind', 'Browser previews need the single built-in Tailwind presentation');
 check(webPreviews.components.length === components.length && components.every(c => webPreviews.components.includes(c.slug)), 'Browser preview must cover every public component');
 for (const component of components) {
-  for (const theme of ['kit', 'tailwind']) {
+  for (const theme of ['tailwind']) {
     const entry = webPreviews.entries[component.slug]?.[theme];
     check(entry && new RegExp(`/assets/previews/${component.slug}/${theme}/[a-f0-9]{20}$`).test(entry.base), `Missing independent preview ${component.slug}/${theme}`);
     if (!entry) continue;

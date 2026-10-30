@@ -37,16 +37,16 @@ class DocumentationIdentityTests(unittest.TestCase):
         self.assertNotEqual(radio, key_for('radio', inputs, {'theme': 'tailwind'}))
         self.assertNotEqual(radio, key_for('radio', inputs, {'theme': 'kit'}, {'runtime': 'new renderer'}))
 
-    def test_optional_theme_does_not_embed_tailwind_or_inter_in_the_kit_variant(self):
+    def test_single_presentation_uses_public_font_import_and_is_idempotent(self):
         source = 'import { KitThemes } from "@kit/kit.slint"; export component App inherits Window { background: KitThemes.light.canvas; }'
-        self.assertEqual(themed_source(source, 'kit'), source)
-        tailwind = themed_source(source, 'tailwind')
-        self.assertIn('@kit-tailwind/theme.slint', tailwind)
-        self.assertIn('KitThemeContext.current = TailwindThemes.light', tailwind)
-        self.assertNotIn('KitThemes.light', tailwind)
-        self.assertNotIn('tailwind.slint', themed_source(source, 'kit'))
+        presented = themed_source(source, 'tailwind')
+        self.assertIn('@kit/fonts/inter.slint', presented)
+        self.assertIn('default-font-family: InterFont.family', presented)
+        self.assertIn('KitThemes.light', presented)
+        self.assertEqual(presented, themed_source(presented, 'tailwind'))
+        self.assertNotIn('@kit-tailwind', presented)
         with self.assertRaises(ValueError):
-            themed_source(source, 'arbitrary-theme')
+            themed_source(source, 'kit')
 
     def test_native_debug_and_custom_style_do_not_leak_into_browser_compilation(self):
         environment = compiler_environment({'SLINT_EMIT_DEBUG_INFO': '1', 'SLINT_STYLE': 'native',

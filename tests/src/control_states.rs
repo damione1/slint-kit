@@ -30,7 +30,7 @@ fn contains(outer: &ElementHandle, inner: &ElementHandle) -> bool {
 fn field_action_icons_fit_their_buttons_at_scaled_text() {
     i_slint_backend_testing::init_no_event_loop();
     let window = show(FieldActionFixture::new().unwrap());
-    for base in [window.get_theme(), window.get_tailwind()] {
+    for base in [window.get_theme()] {
         for scale in [1., 2.] {
             let mut theme = base.clone();
             theme.text_scale = scale;
@@ -98,7 +98,7 @@ fn control_elevation_lifts_filled_buttons_without_moving_the_layout() {
             .collect();
         (heights, window.get_stack_height())
     };
-    let tailwind = window.get_tailwind();
+    let tailwind = window.get_light();
     assert_eq!(tailwind.elevation.control, ElevationLevel::Xs);
     let mut flat = tailwind.clone();
     flat.elevation.control = ElevationLevel::None;
@@ -114,12 +114,13 @@ fn control_elevation_lifts_filled_buttons_without_moving_the_layout() {
         let button = labelled(&window, label).unwrap();
         assert_eq!(shadow_layer(&button).is_some(), lifted, "{label}");
     }
-    // The default themes are flat: no button paints a shadow layer.
+    // The shipped default follows the same filled/flat intent policy.
     window.set_theme(window.get_light());
     slint::platform::update_timers_and_animations();
-    for (label, _) in labels {
-        assert!(
-            shadow_layer(&labelled(&window, label).unwrap()).is_none(),
+    for (label, lifted) in labels {
+        assert_eq!(
+            shadow_layer(&labelled(&window, label).unwrap()).is_some(),
+            lifted,
             "{label}"
         );
     }
@@ -358,13 +359,8 @@ fn near(a: slint::Color, b: slint::Color) -> bool {
         && a.green().abs_diff(b.green()) <= 3
         && a.blue().abs_diff(b.blue()) <= 3
 }
-fn selected_choice_themes(window: &SelectedChoiceRenderFixture) -> [(&'static str, KitTheme); 4] {
-    [
-        ("light", window.get_light()),
-        ("dark", window.get_dark()),
-        ("tailwind light", window.get_tailwind_light()),
-        ("tailwind dark", window.get_tailwind_dark()),
-    ]
+fn selected_choice_themes(window: &SelectedChoiceRenderFixture) -> [(&'static str, KitTheme); 2] {
+    [("light", window.get_light()), ("dark", window.get_dark())]
 }
 
 #[test]
@@ -464,12 +460,7 @@ fn disabled_choice_marks_stay_visible_on_their_disabled_rows_in_every_theme() {
 fn a_header_that_cannot_sort_keeps_the_header_tone_and_square_cells() {
     software_rendering();
     let window = show(DataTableHeaderRenderFixture::new().unwrap());
-    for (name, theme) in [
-        ("light", window.get_light()),
-        ("dark", window.get_dark()),
-        ("tailwind light", window.get_tailwind_light()),
-        ("tailwind dark", window.get_tailwind_dark()),
-    ] {
+    for (name, theme) in [("light", window.get_light()), ("dark", window.get_dark())] {
         window.set_theme(theme.clone());
         slint::platform::update_timers_and_animations();
         let snapshot = window.window().take_snapshot().unwrap();

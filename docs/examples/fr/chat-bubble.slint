@@ -1,11 +1,13 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChatBubble, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
+    default-font-family: InterFont.family;
     title: "KitChatBubble — exemple";
-    preferred-width: 440px;
-    preferred-height: 230px;
+    preferred-width: 520px;
+    preferred-height: 460px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -14,7 +16,9 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Bulle de conversation"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitChatBubble { theme: root.theme; author: "Alex Morgan"; text: "Le nouvel espace de travail est prêt à recevoir vos commentaires."; metadata: "Aujourd’hui, 09:30"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Alex Morgan"; text: "L’espace de travail est prêt à être relu."; metadata: "Aujourd’hui, 09:30"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Alex Morgan"; text: "Pouvez-vous vérifier les paramètres du projet ?"; metadata: "Aujourd’hui, 09:31"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.end; author: "Vous"; text: "Oui, je les vérifie cet après-midi."; metadata: "Aujourd’hui, 09:32 · Distribué"; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

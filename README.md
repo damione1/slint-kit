@@ -6,7 +6,7 @@
 
 <p><strong>Native components. Your visual language.</strong></p>
 
-<p>A composable Rust and Slint toolkit with typed behavior, native text editing,<br>and themes you can shape around your application.</p>
+<p>A composable Rust and Slint toolkit with typed behavior, native text editing,<br>and a Tailwind-inspired presentation you can shape around your application.</p>
 
 <p>
   <a href="https://github.com/damione1/slint-kit/actions/workflows/check.yml"><img alt="Check" src="https://github.com/damione1/slint-kit/actions/workflows/check.yml/badge.svg"></a>
@@ -19,7 +19,7 @@
 
 </div>
 
-Buttons, fields, selections, dialogs, calendars and composable display, navigation and layout primitives. Rust owns validated values and identity; Slint owns their presentation and native interaction.
+Buttons, fields, selections, dialogs, calendars and composable display, navigation and layout primitives. Rust owns validated values and identity; Slint owns their presentation and native interaction. The built-in visual system includes light/dark modes and Lucide icons. Inter is an optional font import; local styles and custom theme values remain supported.
 
 [Website](https://slint-kit.dev/) · [Documentation](https://slint-kit.dev/guides/getting-started/) · [Components](https://slint-kit.dev/components/)
 

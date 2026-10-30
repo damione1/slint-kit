@@ -1,10 +1,12 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitNotificationCenter, NotificationRow, KitTheme, KitThemes } from "@kit/kit.slint";
 export component App inherits Window {
+    default-font-family: InterFont.family;
     title: "KitNotificationCenter example";
     preferred-width: 520px;
-    preferred-height: 420px;
+    preferred-height: 520px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -19,7 +21,7 @@ export component App inherits Window {
         spacing: 16px;
         alignment: start;
         control := KitNotificationCenter {
-            theme: root.theme; rows: root.notices; height: 320px;
+            theme: root.theme; rows: root.notices; height: 420px;
             activate(token, generation) => { root.open-notice(token, generation); }
             mark-read(token, generation) => { root.mark-read(token, generation); }
             dismiss-row(token, generation) => { root.dismiss-notice(token, generation); }

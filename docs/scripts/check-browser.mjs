@@ -269,7 +269,7 @@ try {
     const start = requests.length;
     await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
     assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
-    assert.equal(await evaluate('document.querySelector(".preview-theme").value'), 'tailwind');
+    assert.equal(await evaluate('document.querySelector(".preview-theme")'), null, 'There is only one built-in presentation');
     await click('.run-preview');
     for (let count = 0; count < 300; count++) {
       if (await evaluate('document.querySelector(".component-preview").hidden')) break;
@@ -288,17 +288,6 @@ try {
     await fs.writeFile(path.join(output, `${locale}-live-button.png`), Buffer.from(capture.data, 'base64'));
     await click('.run-preview');
     assert(await evaluate('!document.querySelector("iframe") && !document.querySelector(".component-preview").hidden'), 'Stop preview must release the browser app and restore its poster');
-    const themeRequests = requests.length;
-    await evaluate('(()=>{const select=document.querySelector(".preview-theme");select.value="kit";select.dispatchEvent(new Event("change",{bubbles:true}))})()');
-    for(let count=0;count<300;count++) {
-      if(await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled'))break;
-      await pause(100);
-    }
-    assert(await evaluate('document.querySelector("iframe").src.includes("theme=kit")'), 'Theme selector must open the independent Kit variant');
-    const variantRequests=requests.slice(themeRequests).filter(url=>url.includes('/assets/previews/'));
-    assert(variantRequests.some(url=>url.includes('/button/kit/')), 'Kit variant must load its own module');
-    assert(!variantRequests.some(url=>url.includes('/button/tailwind/')), 'Kit selection must not fetch the Tailwind module');
-    await click('.run-preview');
     results.push({ name:'on-demand-mobile-preview', locale, loaded:true, stopped:true });
   }
   // An iframe can fit the page while its canvas/credits still overflow inside.

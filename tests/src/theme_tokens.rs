@@ -274,13 +274,6 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     tokens
 }
 
-/// The shipped theme families. Each allows its own zero tokens.
-#[derive(Clone, Copy, Debug)]
-enum ThemeFamily {
-    Kit,
-    Tailwind,
-}
-
 /// Tokens every shipped theme may leave at the zero value, with the reason.
 const ZERO_ALLOWED: &[(&str, &str)] = &[
     (
@@ -294,57 +287,21 @@ const ZERO_ALLOWED: &[(&str, &str)] = &[
         "motion is on until the host reports the preference",
     ),
 ];
-/// Tokens only the Kit themes may leave at the zero value.
-const KIT_ZERO_ALLOWED: &[(&str, &str)] = &[
-    (
+fn zero_allowed() -> impl Iterator<Item = &'static (&'static str, &'static str)> {
+    ZERO_ALLOWED.iter().chain(std::iter::once(&(
         "typography.family",
         "empty keeps the window's default font family",
-    ),
-    ("elevation.control", "the default themes draw flat controls"),
-    (
-        "elevation.container",
-        "the default themes draw flat containers",
-    ),
-    ("elevation.overlay", "the default themes draw flat overlays"),
-    ("elevation.popover", "the default themes draw flat popovers"),
-];
-/// Tokens only the Tailwind themes may leave at the zero value.
-const TAILWIND_ZERO_ALLOWED: &[(&str, &str)] = &[(
-    "typography.family",
-    "font-independent pack preserves the host font",
-)];
-
-fn zero_allowed(
-    family: ThemeFamily,
-) -> impl Iterator<Item = &'static (&'static str, &'static str)> {
-    let own = match family {
-        ThemeFamily::Kit => KIT_ZERO_ALLOWED,
-        ThemeFamily::Tailwind => TAILWIND_ZERO_ALLOWED,
-    };
-    ZERO_ALLOWED.iter().chain(own)
+    )))
 }
 
-fn shipped_themes(window: &ThemeTokenFixture) -> [(&'static str, ThemeFamily, KitTheme); 4] {
-    [
-        ("light", ThemeFamily::Kit, window.get_light()),
-        ("dark", ThemeFamily::Kit, window.get_dark()),
-        (
-            "tailwind-light",
-            ThemeFamily::Tailwind,
-            window.get_tailwind_light(),
-        ),
-        (
-            "tailwind-dark",
-            ThemeFamily::Tailwind,
-            window.get_tailwind_dark(),
-        ),
-    ]
+fn shipped_themes(window: &ThemeTokenFixture) -> [(&'static str, KitTheme); 2] {
+    [("light", window.get_light()), ("dark", window.get_dark())]
 }
 
 #[test]
 fn every_shipped_theme_sets_every_token() {
     let window = fixture();
-    for (name, family, theme) in shipped_themes(&window) {
+    for (name, theme) in shipped_themes(&window) {
         let tokens = tokens(theme);
         let zero: Vec<&str> = tokens
             .iter()
@@ -353,14 +310,14 @@ fn every_shipped_theme_sets_every_token() {
             .collect();
         let unexpected: Vec<&&str> = zero
             .iter()
-            .filter(|path| !zero_allowed(family).any(|(allowed, _)| allowed == *path))
+            .filter(|path| !zero_allowed().any(|(allowed, _)| allowed == *path))
             .collect();
         assert!(
             unexpected.is_empty(),
             "{name} theme leaves tokens at their zero value: {unexpected:?}"
         );
         // An allowlist entry that no longer applies hides nothing; drop it.
-        for (allowed, reason) in zero_allowed(family) {
+        for (allowed, reason) in zero_allowed() {
             assert!(
                 zero.contains(allowed),
                 "allowlisted token {allowed} ({reason}) is set in {name}; drop the entry"
@@ -409,11 +366,16 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
             for size in control_sizes() {
                 let height = match size {
                     ControlSize::Compact => 32.,
-                    ControlSize::Medium => 40.,
-                    ControlSize::Comfortable => 48.,
+                    ControlSize::Medium => 36.,
+                    ControlSize::Comfortable => 40.,
                 };
-                // One scaled 20px line plus 6px block padding on each side.
-                let expected = f32::max(height, 20. * scale + 12.);
+                // One scaled line plus the chosen density's block padding.
+                let padding_block = if size == ControlSize::Comfortable {
+                    8.
+                } else {
+                    6.
+                };
+                let expected = f32::max(height, 20. * scale + 2. * padding_block);
                 assert_eq!(window.invoke_control_height(theme.clone(), size), expected);
                 let field = window.invoke_field(
                     theme.clone(),
@@ -426,22 +388,15 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
                 assert_eq!(button.height, height);
                 assert_eq!(
                     button.padding_inline,
-                    if size == ControlSize::Compact {
-                        12.
-                    } else {
-                        16.
+                    match size {
+                        ControlSize::Compact => 12.,
+                        ControlSize::Medium => 14.,
+                        ControlSize::Comfortable => 24.,
                     }
                 );
                 assert_eq!(field.padding_inline, button.padding_inline);
-                assert_eq!(button.padding_block, 6.);
-                assert_eq!(
-                    button.font_size,
-                    if size == ControlSize::Comfortable {
-                        16.
-                    } else {
-                        14.
-                    } * scale
-                );
+                assert_eq!(button.padding_block, padding_block);
+                assert_eq!(button.font_size, 14. * scale);
                 assert_eq!(
                     window.invoke_icon_button(theme.clone(), size).height,
                     expected
@@ -451,9 +406,9 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
                 let size = match role {
                     TypographyRole::Caption => 12.,
                     TypographyRole::Control => 14.,
-                    TypographyRole::Body => 16.,
-                    TypographyRole::Subtitle => 20.,
-                    TypographyRole::Title => 28.,
+                    TypographyRole::Body => 14.,
+                    TypographyRole::Subtitle => 18.,
+                    TypographyRole::Title => 30.,
                 };
                 assert_eq!(window.invoke_font_size(theme.clone(), role), size * scale);
             }
@@ -467,11 +422,21 @@ fn recipes_reproduce_the_default_geometry() {
     for theme in [window.get_light(), window.get_dark()] {
         for intent in button_intents() {
             let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
-            assert_eq!(recipe.radius, 8.);
-            // Button labels are medium weight; the default themes draw flat controls.
+            assert_eq!(recipe.radius, 6.);
             assert_eq!(recipe.font_weight, theme.typography.weight_medium);
-            assert_eq!(recipe.elevation, ElevationLevel::None);
-            assert_eq!(recipe.shadow.color.alpha(), 0);
+            let lifted = match intent {
+                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
+                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+            };
+            assert_eq!(
+                recipe.elevation,
+                if lifted {
+                    ElevationLevel::Xs
+                } else {
+                    ElevationLevel::None
+                }
+            );
+            assert_eq!(recipe.shadow.color.alpha() > 0, lifted);
             let (border_width, hover, pressed) = match intent {
                 ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
                 ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
@@ -500,7 +465,7 @@ fn recipes_reproduce_the_default_geometry() {
         );
         assert_eq!(field.fill.color(), theme.surface);
         assert_eq!(field.border, theme.border_subtle);
-        assert_eq!((field.radius, field.border_width), (8., 1.));
+        assert_eq!((field.radius, field.border_width), (6., 1.));
         assert_eq!(field.focus.color, theme.focus.color);
         let invalid = window.invoke_field(
             theme.clone(),
@@ -520,15 +485,18 @@ fn recipes_reproduce_the_default_geometry() {
                     theme.surface_raised
                 }
             };
-            let radius = 12.;
+            let (radius, elevation) = match level {
+                SurfaceLevel::Flat | SurfaceLevel::Raised => (8., ElevationLevel::Sm),
+                SurfaceLevel::Overlay => (12., ElevationLevel::Lg),
+                SurfaceLevel::Popover => (12., ElevationLevel::Md),
+            };
             let surface = window.invoke_surface(theme.clone(), level);
             assert_eq!(surface.fill.color(), fill, "{level:?}");
             assert_eq!(surface.radius, radius, "{level:?}");
             assert_eq!(surface.border, theme.border_subtle);
             assert_eq!(surface.border_width, 1.);
-            // The default themes are flat: no shadow is painted.
-            assert_eq!(surface.elevation, ElevationLevel::None);
-            assert_eq!(surface.shadow.color.alpha(), 0);
+            assert_eq!(surface.elevation, elevation);
+            assert!(surface.shadow.color.alpha() > 0);
         }
 
         let choice = window.invoke_choice(theme.clone(), ControlSize::Medium);
@@ -914,7 +882,7 @@ pub(crate) fn contrast(a: slint::Color, b: slint::Color) -> f64 {
 fn every_alert_severity_has_its_own_legible_tint_edge_and_mark() {
     let window = fixture();
     let severities = alert_severities();
-    for (_, _, theme) in shipped_themes(&window) {
+    for (_, theme) in shipped_themes(&window) {
         let recipes: Vec<AlertRecipe> = severities
             .iter()
             .map(|severity| window.invoke_alert(theme.clone(), *severity))
@@ -983,7 +951,7 @@ fn the_selected_tab_carries_an_underline_and_no_outline() {
 #[test]
 fn scroll_bar_recipe_reads_theme_tokens() {
     let window = fixture();
-    for (_, _, theme) in shipped_themes(&window) {
+    for (_, theme) in shipped_themes(&window) {
         let recipe = window.invoke_scroll_bar(theme.clone());
         assert_eq!(recipe.thumb, theme.border_strong);
         assert_eq!(recipe.active_thumb, theme.text_secondary);
@@ -1004,7 +972,7 @@ fn scroll_bar_recipe_reads_theme_tokens() {
 #[test]
 fn every_shipped_theme_keeps_text_rings_and_states_legible() {
     let window = fixture();
-    for (name, _, theme) in shipped_themes(&window) {
+    for (name, theme) in shipped_themes(&window) {
         let pairs = [
             ("text-primary/canvas", theme.text_primary, theme.canvas, 4.5),
             (
@@ -1119,9 +1087,9 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
 }
 
 #[test]
-fn tailwind_themes_use_role_radii_density_inter_and_shadows() {
+fn default_themes_use_tailwind_role_radii_density_and_shadows() {
     let window = fixture();
-    for mut theme in [window.get_tailwind_light(), window.get_tailwind_dark()] {
+    for mut theme in [window.get_light(), window.get_dark()] {
         assert_eq!(theme.typography.family, "");
         let button =
             window.invoke_button(theme.clone(), ButtonIntent::Outline, ControlSize::Medium);
@@ -1211,7 +1179,7 @@ fn dialogs_stack_both_shadow_layers_under_their_surface() {
         .expect("the panel paints an elevated surface");
     assert_eq!(surface.size(), panel.size());
     assert_eq!(surface.absolute_position(), panel.absolute_position());
-    let theme = window.get_tailwind_light();
+    let theme = window.get_light();
     let lg = theme.elevation.lg;
     let origin = panel.absolute_position();
     let size = panel.size();
@@ -1250,7 +1218,7 @@ fn third_party_notices_ship_unchanged_with_the_published_crates() {
     }
     // The font license travels with the fonts and is quoted verbatim.
     let license =
-        std::fs::read_to_string(root.join("crates/kit-tailwind/ui/fonts/Inter-OFL.txt")).unwrap();
+        std::fs::read_to_string(root.join("crates/kit-slint/ui/fonts/Inter-OFL.txt")).unwrap();
     assert!(notices.contains(&license));
     assert!(license.contains("SIL Open Font License, Version 1.1"));
     assert_eq!(
@@ -1276,7 +1244,7 @@ fn every_shipped_theme_draws_lucide_weight_icon_strokes() {
     let window = fixture();
     // Lucide draws 2 units on its 24-unit grid; every shipped theme keeps it,
     // so a scaled stroke is 1.33px at 16px and an absolute one 2px.
-    for (name, _, theme) in shipped_themes(&window) {
+    for (name, theme) in shipped_themes(&window) {
         assert_eq!(theme.shape.icon_stroke, 2., "{name}");
     }
 }
@@ -1284,7 +1252,7 @@ fn every_shipped_theme_draws_lucide_weight_icon_strokes() {
 #[test]
 fn every_elevation_level_maps_to_its_own_shadow() {
     let window = fixture();
-    for (name, _, theme) in shipped_themes(&window) {
+    for (name, theme) in shipped_themes(&window) {
         for level in elevation_levels() {
             let expected = match level {
                 ElevationLevel::None => None,
@@ -1312,7 +1280,7 @@ fn every_shipped_theme_sets_state_tones_apart_from_their_surfaces() {
     // A hovered option in a popover, a pressed button in a dialog and a
     // popover's own edge must each read against the surface they sit on.
     const VISIBLE: f64 = 1.05;
-    for (name, _, theme) in shipped_themes(&window) {
+    for (name, theme) in shipped_themes(&window) {
         let surfaces = [
             ("surface", theme.surface),
             ("surface-raised", theme.surface_raised),

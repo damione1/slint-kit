@@ -1,9 +1,8 @@
-import { InterFont } from "@kit-tailwind/fonts/inter.slint";
+import { InterFont } from "@kit/fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
 import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
-import { TailwindThemes } from "@kit-tailwind/theme.slint";
 import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
@@ -51,7 +50,6 @@ export enum ThemeMode { light, dark }
 export enum ShowcaseSkin { mineral, expressive }
 export enum AccentStyle { indigo, teal }
 // The shipped theme family the catalogue starts from.
-export enum ThemeFamily { kit, tailwind }
 export enum TabDisposition { host-handled, native-navigation }
 export enum ValidationPhase { idle, pending, failed, succeeded }
 export struct PopupRect { x: length, y: length, width: length, height: length }
@@ -105,7 +103,7 @@ component ProjectTile inherits KitPressable {
 }
 
 export component Showcase inherits Window {
-    default-font-family: root.theme-family == ThemeFamily.tailwind ? InterFont.family : "";
+    default-font-family: InterFont.family;
     title: "Slint Kit · Component catalogue";
     icon: @image-url("../../assets/branding/slint-kit-icon.svg");
     preferred-width: 1180px;
@@ -122,7 +120,6 @@ export component Showcase inherits Window {
     init => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
     changed theme-mode => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
     in-out property <AccentStyle> accent-style: AccentStyle.indigo;
-    in-out property <ThemeFamily> theme-family: ThemeFamily.kit;
     in-out property <ControlSize> density: ControlSize.medium;
     in-out property <TextSample> text-sample: TextSample.standard;
     private property <string> sample-label: text-sample == TextSample.standard ? "Run action" : text-sample == TextSample.long-french ? "Partager ce nouveau projet avec toutes les personnes de votre équipe et conserver les modifications" : "مشاركة هذا المشروع الجديد مع أعضاء الفريق";
@@ -142,9 +139,7 @@ export component Showcase inherits Window {
     in-out property <EditorStatus> workspace-editor;
     private property <bool> product-modal;
     in-out property <bool> reduced-motion: false;
-    private property <KitTheme> base-theme: theme-family == ThemeFamily.tailwind
-        ? (theme-mode == ThemeMode.dark ? TailwindThemes.dark : TailwindThemes.light)
-        : (theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light);
+    private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
     private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
     private property <color> teal-hover: theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1;
     private property <bool> teal: accent-style == AccentStyle.teal;
@@ -247,7 +242,6 @@ export component Showcase inherits Window {
             }
             KitButton { disabled: root.product-modal; theme: root.theme; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-family == ThemeFamily.tailwind ? "Tailwind" : "Kit"; activated => { root.theme-family = root.theme-family == ThemeFamily.tailwind ? ThemeFamily.kit : ThemeFamily.tailwind; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }

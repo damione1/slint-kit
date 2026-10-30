@@ -126,18 +126,17 @@ HTML's unopinionated telephone state is still available with
 `KitTextField { input-kind: HtmlInputKind.telephone; }`. Its HTML validation rules
 have not been narrowed globally.
 
-## Optional Tailwind presentation
+## Tailwind presentation
 
-The separate `slint-kit-tailwind` build dependency registers both `@kit` and
-`@kit-tailwind` through `slint_kit_tailwind::compile("ui/app.slint")`.
-`@kit-tailwind/theme.slint` exports complete `TailwindThemes.light` and `.dark`
-values, including semantic colors, spacing, elevation and Lucide icon roles.
-The base kit contains no Tailwind assets and does not depend on the pack.
+Every component uses the shipped Tailwind presentation by default. Compile
+through `slint_kit_build::compile("ui/app.slint")` and import the public
+`@kit/kit.slint` library. `KitThemes.light` and `.dark` provide complete themes,
+including semantic colors, spacing, elevation and Lucide icon roles.
 
 The theme embeds no font. Import `{ InterFont }` from
-`@kit-tailwind/fonts/inter.slint` separately and set the Window's
+`@kit/fonts/inter.slint` separately and set the Window's
 `default-font-family: InterFont.family` to use Inter. Its four static font files
-are about 1.6 MB. Keep the third-party notices supplied with the pack.
+are about 1.6 MB. Keep the third-party notices supplied with the kit.
 
 Assign a theme to `KitThemeContext.current` for the window default, or pass it
 explicitly to a component. Application-supplied children do not inherit a

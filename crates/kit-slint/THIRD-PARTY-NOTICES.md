@@ -1,19 +1,19 @@
 # Third-party notices
 
 Slint Kit's own code and artwork are licensed `GPL-3.0-or-later` (see `LICENSE`).
-The optional presentation pack in `crates/kit-tailwind/ui/` and the generated
+The built-in presentation in `crates/kit-slint/ui/theme.slint` and generated
 icon globals in `crates/kit-slint/ui/icons/lucide/` contain material from the
-projects below, which remain under their own licenses. Tailwind presentation
-is imported from `@kit-tailwind/theme.slint`; Inter is registered separately
-through `InterFont` in `@kit-tailwind/fonts/inter.slint`. The base kit has no
-Tailwind assets or fonts. The kit's own glyphs (`KitGlyphs`) are original.
+projects below, which remain under their own licenses. Inter is registered
+separately through `InterFont` in `@kit/fonts/inter.slint`; importing the
+components alone does not embed the fonts. The kit's own glyphs (`KitGlyphs`)
+are original.
 
 ## Tailwind CSS color palette and scales
 
-`TailwindThemes` reuses about thirty sRGB color values from the Tailwind CSS v3
+`KitThemes` reuses about thirty sRGB color values from the Tailwind CSS v3
 palette (`slate`, `indigo`, `red`, `green`, `amber` and `sky` shades) and the
 radius, shadow and spacing scales of Tailwind CSS v4.3. Each color in
-`crates/kit-tailwind/ui/theme.slint` names its source shade. No Tailwind CSS code, documentation or
+`crates/kit-slint/ui/theme.slint` names its source shade. No Tailwind CSS code, documentation or
 asset is included.
 
 Source: https://github.com/tailwindlabs/tailwindcss
@@ -44,7 +44,7 @@ SOFTWARE.
 
 ## Inter typeface
 
-`crates/kit-tailwind/ui/fonts/` contains the unmodified static fonts
+`crates/kit-slint/ui/fonts/` contains the unmodified static fonts
 `Inter-Regular.ttf`, `Inter-Medium.ttf`, `Inter-SemiBold.ttf` and
 `Inter-Bold.ttf` (Inter 4.1, font version 4.001), taken from the official
 release archive `Inter-4.1.zip` (SHA-256

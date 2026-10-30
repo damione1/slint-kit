@@ -10,13 +10,11 @@ pub fn start() -> Result<(), JsValue> {
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No browser window"))?;
     let parameters = web_sys::UrlSearchParams::new_with_str(&window.location().search()?)?;
     let app = consumer::create().map_err(|error| JsValue::from_str(&error.to_string()))?;
-    let tailwind = parameters.get("theme").as_deref() != Some("kit");
     let dark = parameters.get("mode").as_deref() == Some("dark");
-    let mut theme = match (tailwind, dark) {
-        (false, false) => app.get_kit_light(),
-        (false, true) => app.get_kit_dark(),
-        (true, false) => app.get_tailwind_light(),
-        (true, true) => app.get_tailwind_dark(),
+    let mut theme = if dark {
+        app.get_dark_theme()
+    } else {
+        app.get_light_theme()
     };
     theme.text_scale = if parameters.get("scale").as_deref() == Some("2") {
         2.
@@ -44,7 +42,6 @@ pub fn start() -> Result<(), JsValue> {
         theme.focus.color = theme.accent;
     }
     app.set_theme(theme);
-    app.set_use_inter(tailwind);
     app.set_french(parameters.get("lang").as_deref() == Some("fr"));
     let scene = parameters.get("scene");
     if matches!(scene.as_deref(), Some("projects" | "dialog")) {

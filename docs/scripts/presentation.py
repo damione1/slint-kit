@@ -1,26 +1,22 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Presentation variants of the same runnable starter, without changing its host."""
+"""The single built-in presentation used by documentation consumers."""
 from enum import Enum
 import re
 
 
 class ThemeFamily(Enum):
-    KIT = 'kit'
     TAILWIND = 'tailwind'
 
 
 def themed_source(source, family):
-    family = ThemeFamily(family)
-    if family is ThemeFamily.KIT:
-        return source
-    # Keep the downloadable application independent of this optional theme.
-    # All theme literals and implicit component defaults agree in this window.
-    imports = 'import { TailwindThemes } from "@kit-tailwind/theme.slint";\nimport { InterFont } from "@kit-tailwind/fonts/inter.slint";\n'
-    if not re.search(r'\bKitThemeContext\b', source):
-        imports += 'import { KitThemeContext } from "@kit/kit.slint";\n'
-    source = source.replace('KitThemes.light', 'TailwindThemes.light')
-    source, count = re.subn(r'(export\s+component\s+\w+\s+inherits\s+Window\s*\{)',
-                           r'\1\n    default-font-family: InterFont.family;\n    init => { KitThemeContext.current = TailwindThemes.light; }', source, count=1)
-    if count != 1:
-        raise ValueError('A preview must expose a Window')
-    return imports + source
+    ThemeFamily(family)
+    # Downloaded examples already choose Inter. Keep this compatibility helper
+    # idempotent for legacy consumer sources while using the built-in theme.
+    if 'InterFont' not in source:
+        source = 'import { InterFont } from "@kit/fonts/inter.slint";\n' + source
+    if 'default-font-family:' not in source:
+        source, count = re.subn(r'(export\s+component\s+\w+\s+inherits\s+Window\s*\{)',
+                               r'\1\n    default-font-family: InterFont.family;', source, count=1)
+        if count != 1:
+            raise ValueError('A preview must expose a Window')
+    return source

@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 FILES = ('Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint')
 KIT_PACKAGES = {'slint-kit-core': 'crates/kit-core', 'slint-kit-slint': 'crates/kit-slint',
                 'slint-kit-native': 'crates/kit-native', 'slint-kit-build': 'crates/kit-build',
-                'slint-kit': 'crates/kit', 'slint-kit-tailwind': 'crates/kit-tailwind'}
+                'slint-kit': 'crates/kit'}
 LOCK_PACKAGE = 'slint-kit-consumer-lock'
 _prepared = {}
 

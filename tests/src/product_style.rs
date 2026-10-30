@@ -4,6 +4,55 @@ use i_slint_backend_testing::{ElementHandle, ElementQuery};
 use slint::ComponentHandle;
 
 #[test]
+fn button_icons_share_the_label_center_and_stay_inside_the_padded_content() {
+    i_slint_backend_testing::init_no_event_loop();
+    let app = ProductStyleFixture::new().unwrap();
+    app.show().unwrap();
+    for mut theme in [app.get_theme(), app.get_nested_theme()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            app.set_theme(theme.clone());
+            app.set_local_size(18. * scale);
+            for size in crate::variants::control_sizes() {
+                app.set_control_size(size);
+                for padding in [6., 20.] {
+                    app.set_local_padding(padding);
+                    let action = ElementQuery::from_root(&app)
+                        .match_id("ProductStyleFixture::action")
+                        .find_first()
+                        .unwrap();
+                    let label = action
+                        .query_descendants()
+                        .match_type_name("Text")
+                        .find_first()
+                        .unwrap();
+                    let center = label.absolute_position().y + label.size().height / 2.;
+                    let left = action.absolute_position().x + padding;
+                    let right = action.absolute_position().x + action.size().width - padding;
+                    let icons = action
+                        .query_descendants()
+                        .match_inherits("KitIcon")
+                        .find_all();
+                    assert_eq!(icons.len(), 2);
+                    for icon in icons {
+                        let actual = icon.absolute_position().y + icon.size().height / 2.;
+                        assert!(
+                            (actual - center).abs() < 0.01,
+                            "icon/label center at scale={scale}, size={size:?}, padding={padding}: {actual} != {center}"
+                        );
+                        assert!(icon.absolute_position().x >= left - 0.01);
+                        assert!(
+                            icon.absolute_position().x + icon.size().width <= right + 0.01,
+                            "trailing icon must fit the padded content, size={size:?}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn local_presentation_keeps_state_resolution_and_siblings_independent() {
     i_slint_backend_testing::init_no_event_loop();
     let app = ProductStyleFixture::new().unwrap();
@@ -19,6 +68,9 @@ fn local_presentation_keeps_state_resolution_and_siblings_independent() {
         "busy reserves both icon and label geometry"
     );
     assert_eq!(app.get_button_height(), height);
+    let icon_height = app.get_icon_button_height();
+    app.set_icon_padding(24.);
+    assert!(app.get_icon_button_height() > icon_height);
     app.set_local_padding(30.);
     assert!(app.get_button_height() > height);
     assert_eq!(app.get_sibling_radius(), sibling);
@@ -84,7 +136,7 @@ fn icons_and_explicit_theme_regions_follow_their_own_context() {
 }
 
 #[test]
-fn shipped_icon_sets_are_complete_and_the_optional_pack_replaces_semantic_roles() {
+fn shipped_icon_sets_are_complete_and_use_lucide_semantic_roles() {
     i_slint_backend_testing::init_no_event_loop();
     let app = ThemeTokenFixture::new().unwrap();
     fn roles(set: KitIconSet) -> [IconGlyph; 15] {
@@ -123,30 +175,15 @@ fn shipped_icon_sets_are_complete_and_the_optional_pack_replaces_semantic_roles(
             article,
         ]
     }
-    for theme in [
-        app.get_light(),
-        app.get_dark(),
-        app.get_tailwind_light(),
-        app.get_tailwind_dark(),
-    ] {
+    for theme in [app.get_light(), app.get_dark()] {
         for glyph in roles(theme.icons) {
             assert!(glyph.viewbox > 0.);
             assert!(!glyph.stroke.is_empty() || !glyph.fill.is_empty());
         }
     }
     assert_eq!(roles(app.get_light().icons), roles(app.get_dark().icons));
-    assert_eq!(
-        roles(app.get_tailwind_light().icons),
-        roles(app.get_tailwind_dark().icons)
-    );
-    assert_ne!(
-        app.get_light().icons.search,
-        app.get_tailwind_light().icons.search
-    );
-    assert_ne!(
-        app.get_light().icons.close,
-        app.get_tailwind_light().icons.close
-    );
+    assert_eq!(app.get_light().icons.search, app.get_lucide_search());
+    assert_eq!(app.get_light().icons.close, app.get_lucide_close());
 }
 
 #[test]

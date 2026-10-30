@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit-tailwind/theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption, IconGlyph } from "@kit/kit.slint";
 import { ElevationLevel, KitShadow } from "@kit/theme.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
 export { KitThemeContext } from "@kit/kit.slint";
 
 export component ThemeTokenFixture inherits Window {
     width: 480px; height: 360px;
+    out property <IconGlyph> lucide-search: LucideIcons.search();
+    out property <IconGlyph> lucide-close: LucideIcons.x();
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
-    out property <KitTheme> tailwind-light: TailwindThemes.light;
-    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
     in property <KitTheme> local-theme: KitThemes.light;
     in property <bool> field-focused;
     in property <ValidationPresentation> field-validation: ValidationPresentation.pristine;
@@ -93,7 +93,7 @@ export component TabsIndicatorFixture inherits Window {
 // the layer's spread.
 export component ElevationFixture inherits Window {
     width: 320px; height: 240px;
-    in property <KitTheme> theme: TailwindThemes.light;
-    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
     KitDialogPanel { x: 40px; y: 40px; width: 200px; height: 120px; theme: root.theme; accessible-name: "Elevated panel"; }
 }

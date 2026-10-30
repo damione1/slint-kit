@@ -1,11 +1,13 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitContentList, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
+    default-font-family: InterFont.family;
     title: "KitContentList — exemple";
     preferred-width: 620px;
-    preferred-height: 410px;
+    preferred-height: 580px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -14,7 +16,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Liste de contenus"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitContentList { empty-label: "Aucun article trouvé"; label: "Articles"; theme: root.theme; height: 260px; generation: 1; items: [{ token: 101, title: "Guide du design natif", excerpt: "Créez des interfaces qui trouvent naturellement leur place sur le bureau.", metadata: "Design · 5 min de lecture", link-label: "Lire l’article", selected: false, disabled: false }, { token: 205, title: "Préserver l’exactitude des valeurs métier", excerpt: "Utilisez des valeurs validées et des identités stables dans l’application.", metadata: "Ingénierie · 8 min de lecture", link-label: "Lire l’article", selected: false, disabled: false }]; }
+        KitContentList { empty-label: "Aucun article trouvé"; label: "Articles"; theme: root.theme; height: 420px * root.theme.text-scale; generation: 1; items: [{ token: 101, title: "Guide du design natif", excerpt: "Créez des interfaces qui trouvent naturellement leur place sur le bureau.", metadata: "Design · 5 min de lecture", link-label: "Lire l’article", selected: false, disabled: false }, { token: 205, title: "Préserver l’exactitude des valeurs métier", excerpt: "Utilisez des valeurs validées et des identités stables dans l’application.", metadata: "Ingénierie · 8 min de lecture", link-label: "Lire l’article", selected: false, disabled: false }, { token: 309, title: "Des contrôles accessibles", excerpt: "Préservez la navigation au clavier et un focus bien visible.", metadata: "Accessibilité · 6 min de lecture", link-label: "Lire l’article", selected: false, disabled: false }]; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

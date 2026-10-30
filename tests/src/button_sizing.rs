@@ -57,7 +57,7 @@ fn filled_button_accepts_its_bounded_viewport_with_a_long_label_and_double_text(
             "fill width must follow its 160px viewport, scale {scale}: {:?}",
             button.size()
         );
-        assert!(button.size().height >= 48.);
+        assert!(button.size().height >= window.get_theme().spacing.comfortable.height);
         let label = button
             .query_descendants()
             .match_type_name("Text")

@@ -367,7 +367,7 @@ fn table_header_and_document_viewport_start_at_their_top_edge() {
             (header.absolute_position().y - table.absolute_position().y).abs() < 1.,
             "table header must not be implicitly centered behind rows"
         );
-        assert!(header.size().height >= 48.);
+        assert!(header.size().height >= window.get_theme().spacing.medium.height);
         let label = header
             .query_descendants()
             .match_type_name("Text")

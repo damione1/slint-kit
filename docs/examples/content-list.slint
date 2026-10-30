@@ -1,10 +1,12 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitContentList, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
+    default-font-family: InterFont.family;
     title: "KitContentList example";
     preferred-width: 620px;
-    preferred-height: 410px;
+    preferred-height: 580px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -13,7 +15,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Content List"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitContentList { theme: root.theme; height: 260px; generation: 1; items: [{ token: 101, title: "A guide to native design", excerpt: "Build interfaces that feel at home on the desktop.", metadata: "Design · 5 min read", link-label: "Read article", selected: false, disabled: false }, { token: 205, title: "Keep domain values exact", excerpt: "Use validated values and stable application identity.", metadata: "Engineering · 8 min read", link-label: "Read article", selected: false, disabled: false }]; }
+        KitContentList { theme: root.theme; height: 420px * root.theme.text-scale; generation: 1; items: [{ token: 101, title: "A guide to native design", excerpt: "Build interfaces that feel at home on the desktop.", metadata: "Design · 5 min read", link-label: "Read article", selected: false, disabled: false }, { token: 205, title: "Keep domain values exact", excerpt: "Use validated values and stable application identity.", metadata: "Engineering · 8 min read", link-label: "Read article", selected: false, disabled: false }, { token: 309, title: "Accessible controls", excerpt: "Preserve keyboard navigation and clear focus states.", metadata: "Accessibility · 6 min read", link-label: "Read article", selected: false, disabled: false }]; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

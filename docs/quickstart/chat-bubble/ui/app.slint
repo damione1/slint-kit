@@ -1,11 +1,13 @@
+import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChatBubble, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component App inherits Window {
+    default-font-family: InterFont.family;
     title: "KitChatBubble example";
-    preferred-width: 440px;
-    preferred-height: 230px;
+    preferred-width: 520px;
+    preferred-height: 460px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -13,6 +15,8 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Chat Bubble"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitChatBubble { theme: root.theme; author: "Alex Morgan"; text: "The new workspace is ready for your feedback."; metadata: "Today, 09:30"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Alex Morgan"; text: "The workspace is ready for review."; metadata: "Today, 09:30"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Alex Morgan"; text: "Could you check the project settings?"; metadata: "Today, 09:31"; }
+        KitChatBubble { theme: root.theme; side: ChatSide.end; author: "You"; text: "Yes, I’ll review them this afternoon."; metadata: "Today, 09:32 · Delivered"; }
     }
 }

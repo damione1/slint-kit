@@ -8,13 +8,13 @@ permalink: "{{ 'guides/workspace/' | localeUrl(locale) }}index.html"
 
 # Composer une application de travail
 
-L’exemple assemble des paramètres de compte, une liste de projets et un dialogue d’édition avec les composants publics de Slint Kit. Une même composition fonctionne avec le thème minimal ou le pack Tailwind optionnel. L’hôte Rust possède les données, leur filtrage et les modifications en mémoire.
+L’exemple assemble des paramètres de compte, une liste de projets et un dialogue d’édition avec les composants publics de Slint Kit. La composition utilise la présentation Tailwind intégrée en modes clair et sombre. L’hôte Rust possède les données, leur filtrage et les modifications en mémoire.
 
 ## Essayer la composition complète
 
-- [Paramètres du compte](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=account&lang=fr) : modifiez le profil, choisissez une langue et activez les notifications.
-- [Projets](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=projects&lang=fr) : recherchez, filtrez, sélectionnez un projet, créez-en un ou modifiez-le.
-- [Dialogue d’édition](/examples/workspace/?theme=tailwind&mode=light&scale=1&scene=dialog&lang=fr) : examinez les champs, la validation, l’état d’enregistrement et le retour du focus.
+- [Paramètres du compte](/examples/workspace/?mode=light&scale=1&scene=account&lang=fr) : modifiez le profil, choisissez une langue et activez les notifications.
+- [Projets](/examples/workspace/?mode=light&scale=1&scene=projects&lang=fr) : recherchez, filtrez, sélectionnez un projet, créez-en un ou modifiez-le.
+- [Dialogue d’édition](/examples/workspace/?mode=light&scale=1&scene=dialog&lang=fr) : examinez les champs, la validation, l’état d’enregistrement et le retour du focus.
 
 Les contrôles de la démo permettent de changer de thème, de présentation claire/sombre et d’échelle du texte. Comparez les mêmes données et la même structure, avec une personnalisation locale, plutôt que deux jeux de composants. Les modifications de la démo sont conservées en mémoire.
 
@@ -46,9 +46,9 @@ fn main() {
 }
 ```
 
-Lancez `cargo run` dans le dossier du projet. Les sources incluent le point d’entrée, l’initialisation de la validation, le modèle à clés stables, le filtrage et les callbacks d’enregistrement. L’application démarre avec le thème de base.
+Lancez `cargo run` dans le dossier du projet. Les sources incluent le point d’entrée, l’initialisation de la validation, le modèle à clés stables, le filtrage et les callbacks d’enregistrement. L’application utilise la présentation Tailwind intégrée avec Inter.
 
-Pour Tailwind, ajoutez `slint-kit-tailwind = "=0.4.0"` aux dépendances de build et appelez `slint_kit_tailwind::compile` dans `build.rs`. Importez `TailwindThemes` depuis `@kit-tailwind/theme.slint` dans `ui/app.slint`, puis réglez `App.theme` sur `TailwindThemes.light` ou `.dark`. Pour Inter, importez aussi `{ InterFont }` depuis `@kit-tailwind/fonts/inter.slint` et réglez `default-font-family: InterFont.family` sur `App`. [Configurer les thèmes et réglages locaux](/fr/guides/themes/).
+Choisissez `KitThemes.light` ou `.dark` pour changer de mode. Les sources importent `{ InterFont }` depuis `@kit/fonts/inter.slint` et choisissent cette police avec `default-font-family: InterFont.family`. [Configurer le thème et les réglages locaux](/fr/guides/themes/).
 
 ## Garder la responsabilité des données dans l’application
 

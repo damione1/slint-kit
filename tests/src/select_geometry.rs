@@ -100,7 +100,10 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
         .find_first()
         .unwrap();
     assert!(text.size().width > row.size().width * 0.7);
-    assert!((text.absolute_position().x - row.absolute_position().x - 16.0).abs() < 1.0);
+    assert!(
+        (text.absolute_position().x - row.absolute_position().x - window.get_row_padding()).abs()
+            < 1.0
+    );
     let placeholder = ElementQuery::from_root(&window)
         .match_type_name("Text")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Workspace"))

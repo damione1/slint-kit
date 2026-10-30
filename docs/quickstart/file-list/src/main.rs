@@ -43,6 +43,10 @@ fn main() -> Result<(), slint::PlatformError> {
                 id: FileId(23),
                 name: "notes.md",
             },
+            Entry {
+                id: FileId(37),
+                name: "interface-preview.png",
+            },
         ],
     }));
     publish(&app, &state.borrow());

@@ -19,20 +19,19 @@ def capture():
     environment = {**os.environ, 'SLINT_BACKEND': 'winit-skia'}
     frames = []
     for scene in ('account', 'projects', 'dialog'):
-        for family in ('kit', 'tailwind'):
+        for family in ('tailwind',):
             for mode in ('light', 'dark'):
                 for scale in (1, 2):
                     name = f'{scene}-{family}-{mode}-{scale}x.png'
                     arguments = ['--workspace', scene, '--width', '1100', '--height', '850']
-                    if family == 'tailwind': arguments += ['--tailwind']
                     if mode == 'dark': arguments += ['--dark']
                     if scale == 2: arguments += ['--text-200']
                     frames.append((name, arguments))
     frames += [
-        ('account-error.png', ['--workspace', 'account', '--tailwind', '--invalid']),
-        ('dialog-error.png', ['--workspace', 'dialog', '--tailwind', '--invalid']),
-        ('dialog-busy.png', ['--workspace', 'busy', '--tailwind']),
-        ('dialog-narrow-fr-200.png', ['--workspace', 'dialog', '--tailwind', '--width', '760', '--height', '700', '--text-200', '--text-sample', 'french']),
+        ('account-error.png', ['--workspace', 'account', '--invalid']),
+        ('dialog-error.png', ['--workspace', 'dialog', '--invalid']),
+        ('dialog-busy.png', ['--workspace', 'busy']),
+        ('dialog-narrow-fr-200.png', ['--workspace', 'dialog', '--width', '760', '--height', '700', '--text-200', '--text-sample', 'french']),
     ]
     records = []
     for name, arguments in frames:

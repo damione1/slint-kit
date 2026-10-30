@@ -42,49 +42,33 @@ Chaque composant prend par défaut `KitThemeContext.current`, initialisé à `Ki
 
 Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marque à partir des jetons `information`, `success`, `warning` et `danger` et de leurs fonds `*-subtle` : les alertes restent distinctes sans lire leur titre. Les conteneurs défilants, listes et tableaux du kit dessinent leurs barres avec [KitScrollBar](/fr/components/scroll-bar/), qui suit le thème. Un `ScrollView` ou un `ListView` std-widgets dans le code de l’application conserve le style Slint et `Palette.color-scheme`.
 
-## Pack de présentation Tailwind optionnel
+## Présentation Tailwind intégrée
 
-`slint-kit-tailwind` fournit la présentation inspirée de Tailwind sans dupliquer le comportement des contrôles. Le kit de base reste indépendant. Ajoutez le pack en **dépendance de build**, à la même version que le kit :
-
-```toml
-[build-dependencies]
-slint-kit-tailwind = "0.4"
-```
-
-Compilez avec le pack pour enregistrer `@kit` et `@kit-tailwind` :
-
-```rust
-fn main() {
-    slint_kit_tailwind::compile("ui/app.slint").expect("compile UI");
-}
-```
+Le kit fournit un seul système visuel inspiré de Tailwind, en modes clair et sombre. `KitThemes.light` et `.dark` définissent les surfaces ardoise, les actions indigo, les couleurs sémantiques, la typographie, les espacements, le focus, les élévations et les icônes Lucide. L’intégration standard `slint_kit_build::compile("ui/app.slint")` enregistre tout le nécessaire aux composants.
 
 ```slint
-import { KitThemeContext, KitButton, ButtonIntent } from "@kit/kit.slint";
-import { TailwindThemes } from "@kit-tailwind/theme.slint";
+import { KitThemes, KitThemeContext, KitButton } from "@kit/kit.slint";
 
 export component Example inherits Window {
     preferred-width: 420px;
     preferred-height: 180px;
     in property <bool> dark;
-    init => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
-    changed dark => { KitThemeContext.current = root.dark ? TailwindThemes.dark : TailwindThemes.light; }
+    init => { KitThemeContext.current = root.dark ? KitThemes.dark : KitThemes.light; }
+    changed dark => { KitThemeContext.current = root.dark ? KitThemes.dark : KitThemes.light; }
     background: KitThemeContext.current.canvas;
     VerticalLayout {
         padding: 24px;
         alignment: start;
-        KitButton { text: "Continuer"; intent: ButtonIntent.primary; }
+        KitButton { text: "Continuer"; }
     }
 }
 ```
 
-Le thème définit les surfaces ardoise, les actions indigo, les couleurs de retour sémantique, les échelles typographiques et d’espacement, les anneaux de focus, les élévations et les glyphes Lucide des rôles d’icône intégrés. Le moteur de rendu et le comportement des composants restent ceux de l’application. La hauteur reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
+**Inter est une police optionnelle.** Importez `{ InterFont } from "@kit/fonts/inter.slint"`, puis réglez `default-font-family: InterFont.family` sur la fenêtre, comme les exemples documentaires. Sans cet import, le thème utilise la police de l’application. Les quatre graisses statiques totalisent environ 1,6 Mo de fichiers sources ; une application embarquée peut choisir une police adaptée à son périphérique.
 
-**Inter est un choix séparé.** Le fichier de thème n’embarque aucune police et garde `typography.family` vide : le texte utilise la police de la fenêtre. Pour utiliser Inter, ajoutez `import { InterFont } from "@kit-tailwind/fonts/inter.slint";` et `default-font-family: InterFont.family;` à la fenêtre. Cela enregistre quatre graisses statiques ; leurs fichiers sources totalisent environ 1,6 Mo. Une application embarquée peut conserver le thème et choisir une police adaptée au périphérique.
+Pour ajouter des alias de bibliothèques applicatives, partez de `slint_kit_build::config_with_libraries(...)`, puis utilisez `slint_build::compile_with_config`. Le helper préserve les alias de l’application et réserve `kit`. La hauteur des composants reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
 
-Pour ajouter des bibliothèques applicatives, transmettez leurs alias à `slint_kit_tailwind::config_with_libraries(...)`, puis utilisez `slint_build::compile_with_config` (ajoutez la dépendance de build `slint-build` correspondante si vous l’appelez directement). Le helper préserve ces alias et enregistre les noms réservés `kit` et `kit-tailwind`. Les versions runtime et build doivent correspondre. [Migration depuis les anciens imports](/fr/guides/migration-0-4/).
-
-La palette dérive de Tailwind CSS sous MIT, Inter est sous SIL Open Font License et Lucide porte des notices ISC/MIT. Conservez les [notices de dépendances](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Le support des ombres dépend du moteur ; les bordures gardent les limites des surfaces visibles quand les ombres sont indisponibles.
+La palette dérive de Tailwind CSS sous MIT, Inter est sous SIL Open Font License et Lucide conserve les notices ISC/MIT. Préservez les [notices tierces](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Le rendu des ombres dépend du renderer ; les bordures conservent les limites des surfaces lorsqu’elles sont indisponibles.
 
 ## Réglages locaux et régions composées
 
@@ -177,7 +161,7 @@ export component Example inherits Window {
 
 La taille d’une icône suit `control-size` (14, 16 ou 20 px) multiplié par le `text-scale` du thème. Les icônes dans les contrôles prennent la taille de leur hôte : `KitIconButton`, actions des champs, chevrons et coches des sélecteurs et combobox, boutons du champ numérique ; le bouton d’effacement ou d’affichage d’un champ grandit avec son icône à 200 %. L’épaisseur du trait vient du jeton `shape.icon-stroke` du thème, 2 dans tous les thèmes fournis. Avec `stroke-mode: IconStroke.scaled`, la valeur par défaut, le jeton est en unités de grille et suit la taille de l’icône, comme en SVG : les 2 unités sur 24 de Lucide font 1,33 px à 16 px et 2,67 px avec un texte à 200 %. Avec `IconStroke.absolute`, le trait reste à 2 px quelle que soit la taille. Un `IconGlyph` a une couche `stroke` (tracée) et une couche `fill` (remplie, vide pour la plupart des icônes) : quelques icônes Lucide, comme `tag` ou `palette`, ont des points pleins, peints avec le même `ink`. Transmettez `ink` depuis la recette du composant qui l’entoure. Une icône est décorative par défaut et reste hors de l’arbre d’accessibilité ; quand elle porte un sens qu’aucun texte voisin ne donne, réglez `purpose: IconPurpose.informative` et un `label` : elle est alors annoncée comme une image.
 
-Les icônes intégrées aux contrôles lisent les rôles sémantiques de `theme.icons`, un `KitIconSet`. Le thème minimal utilise `KitGlyphs`, le pack Tailwind fournit leurs équivalents Lucide. Surchargez un rôle dans une copie du thème pour modifier ses consommateurs, ou utilisez la propriété de glyphe explicite du contrôle lorsqu’elle existe. Les listes déroulantes, les combobox, les lignes dépliables et les en-têtes de tableau triés font tourner leur chevron quand ils s’ouvrent, se ferment ou changent de sens, pendant la durée `motion.fast` du thème, ou immédiatement avec `reduced-motion`. Au repos, le chevron est dessiné sans rotation : il pointe donc dans le bon sens avec tous les moteurs de rendu. Les puces signalent leur retrait par le glyphe de fermeture.
+Les icônes intégrées aux contrôles lisent les rôles sémantiques de `theme.icons`, un `KitIconSet`. Le thème intégré fournit des glyphes Lucide pour ces rôles. Surchargez un rôle dans une copie du thème pour modifier ses consommateurs, ou utilisez la propriété de glyphe explicite du contrôle lorsqu’elle existe. Les listes déroulantes, les combobox, les lignes dépliables et les en-têtes de tableau triés font tourner leur chevron quand ils s’ouvrent, se ferment ou changent de sens, pendant la durée `motion.fast` du thème, ou immédiatement avec `reduced-motion`. Au repos, le chevron est dessiné sans rotation : il pointe donc dans le bon sens avec tous les moteurs de rendu. Les puces signalent leur retrait par le glyphe de fermeture.
 
 Depuis la 0.3 : `IconKind` n’existe plus. Remplacez `KitIcon { kind: IconKind.close; }` par `KitIcon { glyph: KitGlyphs.close(); }`, et `KitIconButton { icon: IconKind.close; }` par `KitIconButton { glyph: KitGlyphs.close(); }`. Le [journal des modifications](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md) liste chaque changement de la 0.4.0.
 
