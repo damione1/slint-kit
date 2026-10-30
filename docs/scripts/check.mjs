@@ -283,7 +283,8 @@ for (const file of htmlFiles) {
       href = url.pathname + url.hash;
     }
     check(!/^\/en(?:\/|$)/.test(href), `${route}: public links must use canonical English root routes, not ${href}`);
-    const [destination, fragment] = href.split('#');
+    const [location, fragment] = href.split('#');
+    const destination = location.split('?')[0];
     let target = destination ? (destination.startsWith('/') ? path.join(output, decodeURIComponent(destination)) : path.resolve(path.dirname(file), decodeURIComponent(destination))) : file;
     if (fs.existsSync(target) && fs.statSync(target).isDirectory()) target = path.join(target, 'index.html');
     check(fs.existsSync(target), `${path.relative(output, file)}: broken local URL ${href}`);
