@@ -25,10 +25,13 @@ async function key(key,code,virtual,text){await call('Input.dispatchKeyEvent',{t
 async function clearDraft(){
   assert((await evaluate('window.workspacePreview.editor_draft()')).length>0,'Selection test starts with a nonempty draft');
   await key('ArrowRight','ArrowRight',39);
-  await call('Input.dispatchKeyEvent',{type:'keyDown',key:'Meta',code:'MetaLeft',windowsVirtualKeyCode:91,modifiers:4});
-  await call('Input.dispatchKeyEvent',{type:'keyDown',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:4});
-  await call('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:4});
-  await call('Input.dispatchKeyEvent',{type:'keyUp',key:'Meta',code:'MetaLeft',windowsVirtualKeyCode:91,modifiers:0});
+  const apple=await evaluate('/Mac|iPhone|iPad/.test(navigator.platform)');
+  const modifier=apple?{key:'Meta',code:'MetaLeft',windowsVirtualKeyCode:91}:{key:'Control',code:'ControlLeft',windowsVirtualKeyCode:17};
+  const mask=apple?4:2;
+  await call('Input.dispatchKeyEvent',{type:'keyDown',...modifier,modifiers:mask});
+  await call('Input.dispatchKeyEvent',{type:'keyDown',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:mask});
+  await call('Input.dispatchKeyEvent',{type:'keyUp',key:'a',code:'KeyA',windowsVirtualKeyCode:65,modifiers:mask});
+  await call('Input.dispatchKeyEvent',{type:'keyUp',...modifier,modifiers:0});
   await key('Backspace','Backspace',8);
   await waitFor('window.workspacePreview.editor_draft()===""');
 }

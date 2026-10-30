@@ -30,6 +30,7 @@
   <link rel="alternate" hreflang="en" href="{{ site.url }}{{ translationKey | localeUrl('en') }}">
   <link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ translationKey | localeUrl('en') }}">
   <script src="{{ '/assets/site.js' | versionedAsset }}" defer></script>
+  <script type="module" src="{{ '/assets/search.js' | versionedAsset }}"></script>
 </head>
 <body>
 <a class="skip" href="#main">{{ ui[locale].skip }}</a>
@@ -38,12 +39,26 @@
     <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
   </a>
   <span class="site-label">{{ ui[locale].documentation }}</span>
+  <button class="doc-search-trigger" type="button" data-index="/assets/search-index-{{ locale }}.json" aria-haspopup="dialog" aria-controls="doc-search" hidden>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>
+    <span>{% if locale == 'fr' %}Rechercher dans la doc{% else %}Search documentation{% endif %}</span><kbd aria-hidden="true">⌘ / Ctrl K</kbd>
+  </button>
   <nav class="toplinks" aria-label="{% if locale == 'fr' %}Navigation principale{% else %}Main navigation{% endif %}">
     <a href="{{ 'components/' | localeUrl(locale) }}"{% if translationKey == 'components/' %} aria-current="page"{% endif %}>{{ ui[locale].components }}</a>
     <a href="{{ site.repository }}">GitHub<span class="sr-only"> ({{ ui[locale].source }})</span></a>
     {% if locale == 'fr' %}<a class="language" href="{{ translationKey | localeUrl('en') }}" lang="en" hreflang="en" aria-label="This page in English">EN</a>{% else %}<a class="language" href="{{ translationKey | localeUrl('fr') }}" lang="fr" hreflang="fr" aria-label="Cette page en français">FR</a>{% endif %}
   </nav>
 </header>
+<dialog id="doc-search" class="doc-search" aria-labelledby="doc-search-title">
+  <form role="search" method="dialog">
+    <div class="doc-search-heading"><h2 id="doc-search-title">{% if locale == 'fr' %}Rechercher dans la documentation{% else %}Search the documentation{% endif %}</h2><button type="button" class="doc-search-close" aria-label="{% if locale == 'fr' %}Fermer la recherche{% else %}Close search{% endif %}">×</button></div>
+    <label class="sr-only" for="doc-search-query">{% if locale == 'fr' %}Composant, propriété ou guide{% else %}Component, property or guide{% endif %}</label>
+    <input id="doc-search-query" name="q" type="search" autocomplete="off" spellcheck="false" aria-controls="doc-search-results" aria-describedby="doc-search-help doc-search-status" placeholder="{% if locale == 'fr' %}Composant, propriété, guide…{% else %}Component, property, guide…{% endif %}">
+    <p id="doc-search-status" role="status" aria-live="polite"></p>
+    <ol id="doc-search-results" class="doc-search-results"></ol>
+    <p id="doc-search-help" class="doc-search-help">{% if locale == 'fr' %}↑ ↓ pour parcourir · Entrée pour ouvrir · Échap pour fermer{% else %}↑ ↓ to browse · Enter to open · Escape to close{% endif %}</p>
+  </form>
+</dialog>
 <div class="page-shell{% if home %} home-shell{% endif %}">
 {% if not home %}
 <aside class="sidebar">

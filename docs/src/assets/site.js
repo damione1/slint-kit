@@ -43,7 +43,6 @@ for (const preview of document.querySelectorAll('.live-preview')) {
   const button = preview.querySelector('.run-preview');
   const status = preview.querySelector('.preview-status');
   const host = preview.querySelector('.preview-frame');
-  const theme = preview.querySelector('.preview-theme');
   const french = document.documentElement.lang === 'fr';
   let frame, timeout;
   let width = Number(preview.dataset.width), height = Number(preview.dataset.height) + 30;
@@ -65,7 +64,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     button.disabled = true; status.textContent = french ? 'Chargement…' : 'Loading…';
     frame = document.createElement('iframe');
     frame.title = french ? 'Aperçu interactif du composant' : 'Interactive component preview';
-    frame.src = `/preview/?component=${encodeURIComponent(preview.dataset.component)}&theme=${theme.value}&lang=${french ? 'fr' : 'en'}`;
+    frame.src = `/preview/?component=${encodeURIComponent(preview.dataset.component)}&lang=${french ? 'fr' : 'en'}`;
     frame.setAttribute('allow', 'clipboard-write');
     host.hidden = false; host.classList.add('preview-loading'); host.append(frame); resize();
     timeout = setTimeout(failed, 60000);
@@ -78,7 +77,6 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     }
     start();
   });
-  theme.addEventListener('change', start);
   window.addEventListener('message', event => {
     if (event.origin !== location.origin || !frame || event.source !== frame.contentWindow || event.data?.type !== 'slint-kit-preview') return;
     if (event.data.state === 'error') { failed(); return; }
@@ -86,7 +84,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     clearTimeout(timeout); width = Number(event.data.width) || width; height = Number(event.data.height) || height;
     host.classList.remove('preview-loading'); preview.querySelector('figure').hidden = true; resize();
     button.disabled = false; button.textContent = french ? 'Arrêter l’aperçu' : 'Stop preview';
-    status.textContent = french ? 'Interactif — thème ' + theme.selectedOptions[0].textContent : 'Interactive — ' + theme.selectedOptions[0].textContent + ' theme';
+    status.textContent = french ? 'Interactif — composants Slint en WebAssembly' : 'Interactive — Slint components in WebAssembly';
   });
   new ResizeObserver(resize).observe(host);
 }

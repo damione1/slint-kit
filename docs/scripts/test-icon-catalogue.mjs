@@ -39,3 +39,26 @@ test('every public component has a distinct explicit drawing with finite coordin
   }
   assert.throws(()=>drawMockup({},'unknown',{}));
 });
+
+test('catalogue indicators are circular, stepper arrows mirror, and the card action fits its surface', () => {
+  const recipe = slug => {
+    const calls=[];
+    mockups[slug](new Proxy({}, {get:(_,name)=>(...args)=>calls.push({name,args})}));
+    return calls;
+  };
+  for (const slug of ['radial-progress','spinner']) {
+    const arcs=recipe(slug).filter(call=>call.name==='arc');
+    assert.equal(arcs.length,2,`${slug} needs a circular track and circular foreground`);
+    const [track,foreground]=arcs.map(call=>call.args);
+    assert.deepEqual(foreground.slice(0,3),track.slice(0,3),'Foreground must share the track center and radius');
+    assert.equal(track[4]-track[3],Math.PI*2);
+    if(slug==='radial-progress')assert(Math.abs((foreground[4]-foreground[3])/(Math.PI*2)-.65)<1e-9,'The arc must represent its 65% label');
+  }
+  const arrows=recipe('number-stepper').filter(call=>call.name==='path').map(call=>call.args[0]);
+  assert.equal(arrows.length,2);
+  const middle=(arrows[0][1][1]+arrows[1][1][1])/2;
+  assert.deepEqual(arrows[1],arrows[0].map(([x,y])=>[x,2*middle-y]),'Use the same chevron geometry reflected vertically');
+  const card=recipe('card'),surface=card.find(call=>call.name==='rect').args,button=card.find(call=>call.name==='button').args;
+  assert(button[0]>surface[0]&&button[0]+button[2]<surface[0]+surface[2]);
+  assert(button[1]>surface[1]&&button[1]+34<surface[1]+surface[3],'Keep the entire action and bottom spacing inside the card');
+});

@@ -10,6 +10,7 @@ import { loadStarters, starterFiles } from './scripts/starters.mjs';
 import { lucideCatalogue } from './scripts/lucide-catalogue.mjs';
 import { mockups } from './src/assets/component-mockups.js';
 import { iconSnippet } from './src/assets/lucide-gallery.js';
+import { writeSearchIndexes } from './scripts/search-index.mjs';
 export default function (eleventyConfig) {
   const outputDirectory = process.env.DOCS_SITE_STAGE || '_site';
   const lucide = lucideCatalogue();
@@ -65,6 +66,7 @@ export default function (eleventyConfig) {
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, content);
     }
+    writeSearchIndexes(outputDirectory);
   });
   eleventyConfig.addFilter('localePrefix', localePrefix);
   eleventyConfig.addFilter('localeUrl', localeUrl);
