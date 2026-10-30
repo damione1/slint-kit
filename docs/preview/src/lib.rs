@@ -35,12 +35,16 @@ fn register_theme(update: impl Fn(PreviewTheme) + 'static) {
 pub fn set_theme(value: &str) -> Result<(), JsValue> {
     let theme = PreviewTheme::parse(value)?;
     CURRENT_THEME.with(|current| current.set(theme));
-    THEME_UPDATE.with(|slot| {
-        let update = slot.borrow();
-        if let Some(update) = update.as_ref() {
-            update(theme);
-        }
-    });
+    if THEME_UPDATE.with(|slot| slot.borrow().is_some()) {
+        slint::invoke_from_event_loop(move || {
+            THEME_UPDATE.with(|slot| {
+                if let Some(update) = slot.borrow().as_ref() {
+                    update(theme);
+                }
+            });
+        })
+        .map_err(|error| JsValue::from_str(&error.to_string()))?;
+    }
     Ok(())
 }
 

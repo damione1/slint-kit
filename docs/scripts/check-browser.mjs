@@ -83,6 +83,20 @@ async function keyEnter() {
   await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13, text: '\r' });
   await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
 }
+async function changeLivePreviewTheme(theme) {
+  await evaluate(`new Promise((resolve,reject)=>{
+    const frame=document.querySelector('iframe');
+    const timer=setTimeout(()=>{window.removeEventListener('message',observe);reject(new Error('Theme acknowledgement timed out'))},10000);
+    function observe(event){if(event.origin===location.origin&&event.source===frame.contentWindow&&event.data?.type==='slint-kit-preview'&&event.data.state==='theme'&&event.data.theme===${JSON.stringify(theme)}){clearTimeout(timer);window.removeEventListener('message',observe);resolve(true)}}
+    window.addEventListener('message',observe);
+    const choice=document.querySelector('.preview-theme');choice.value=${JSON.stringify(theme)};choice.dispatchEvent(new Event('change'));
+  })`);
+  await pause(400);
+}
+async function liveCanvasCapture() {
+  const clip=await evaluate(`(()=>{const frame=document.querySelector('iframe'),r=frame.getBoundingClientRect(),c=frame.contentDocument.querySelector('canvas').getBoundingClientRect(),scale=r.width/frame.contentWindow.innerWidth;return{x:r.x+c.x*scale,y:r.y+c.y*scale,width:c.width*scale,height:c.height*scale,scale:1}})()`);
+  return (await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip})).data;
+}
 try {
   let port;
   for (let count = 0; count < 100; count++) {
@@ -270,6 +284,9 @@ try {
     await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
     assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
     assert.deepEqual(await evaluate('[...document.querySelector(".preview-theme").options].map(option=>option.value)'), ['light', 'dark'], 'The built-in presentation supports both color modes');
+    if(locale==='fr') assert.equal(await evaluate('document.querySelector(".preview-theme").value'),'dark','Theme preference follows the reader between languages');
+    await evaluate(`(()=>{const choice=document.querySelector('.preview-theme');choice.value='dark';choice.dispatchEvent(new Event('change'))})()`);
+    assert.equal(await evaluate('document.querySelector("iframe")'),null,'Choosing a theme does not start WASM');
     await click('.run-preview');
     for (let count = 0; count < 300; count++) {
       if (await evaluate('document.querySelector(".component-preview").hidden')) break;
@@ -277,6 +294,7 @@ try {
     }
     assert(await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled'), 'Run preview must replace the poster with a ready iframe');
     assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Live preview must fit mobile width');
+    assert.equal(await evaluate('new URL(document.querySelector("iframe").src).searchParams.get("theme")'),'dark','Preview starts in the requested dark mode');
     await evaluate('document.querySelector(".preview-frame").scrollIntoView({block:"center"})');
     const point = await evaluate('(()=>{const f=document.querySelector("iframe");const r=f.getBoundingClientRect();const c=f.contentDocument.querySelector("canvas");return {x:r.x+80*r.width/c.getBoundingClientRect().width,y:r.y+44*r.width/c.getBoundingClientRect().width}})()');
     for (let i = 0; i < 3; i++) {
@@ -284,6 +302,18 @@ try {
       await call('Input.dispatchMouseEvent', { type:'mouseReleased', button:'left', clickCount:1, ...point });
     }
     await pause(200);
+    await evaluate('window.qaThemeFrame=document.querySelector("iframe")');
+    await changeLivePreviewTheme('dark');
+    const darkBefore=await liveCanvasCapture();
+    await changeLivePreviewTheme('light');
+    const light=await liveCanvasCapture();
+    assert.notEqual(darkBefore,light,'The real Slint canvas changes its palette');
+    await changeLivePreviewTheme('dark');
+    const darkAfter=await liveCanvasCapture();
+    assert.equal(await evaluate('window.qaThemeFrame===document.querySelector("iframe")'),true,'Changing theme keeps the existing app frame');
+    assert.equal(darkBefore,darkAfter,'The Rust counter and rendered state survive a theme round trip');
+    for(const [name,data] of [['dark-before',darkBefore],['light',light],['dark-after',darkAfter]]) await fs.writeFile(path.join(output,`${locale}-theme-${name}.png`),Buffer.from(data,'base64'));
+    results.push({name:'live-theme-preserves-rust-state',locale,startedDark:true,roundTrip:true});
     const capture = await call('Page.captureScreenshot', { format:'png', captureBeyondViewport:false });
     await fs.writeFile(path.join(output, `${locale}-live-button.png`), Buffer.from(capture.data, 'base64'));
     await click('.run-preview');
