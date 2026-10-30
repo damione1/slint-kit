@@ -1172,7 +1172,7 @@ fn tailwind_themes_use_role_radii_density_inter_and_shadows() {
             theme.text_scale = scale;
             for (size, height, padding_inline, padding_block) in [
                 (ControlSize::Compact, 32., 12., 6.),
-                (ControlSize::Medium, 36., 16., 8.),
+                (ControlSize::Medium, 36., 14., 6.),
                 (ControlSize::Comfortable, 40., 24., 8.),
             ] {
                 let button = window.invoke_button(theme.clone(), ButtonIntent::Primary, size);
