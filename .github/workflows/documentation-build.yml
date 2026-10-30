@@ -111,6 +111,25 @@ jobs:
         run: |
           echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
           "$CHROME_PATH" --version
+      - name: Allow the pinned Chrome sandbox on Ubuntu
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        shell: bash
+        run: |
+          # The Ubuntu profile covers /opt/google/chrome, not setup-chrome's tool cache.
+          # Give only this executable access to user namespaces; retain Chrome's sandbox.
+          test -x "$CHROME_PATH"
+          cat > "$RUNNER_TEMP/slint-kit-docs-chrome" <<EOF
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile slint-kit-docs-chrome "$CHROME_PATH" flags=(unconfined) {
+            userns,
+          }
+          EOF
+          sudo install -m 644 "$RUNNER_TEMP/slint-kit-docs-chrome" /etc/apparmor.d/slint-kit-docs-chrome
+          sudo apparmor_parser -r /etc/apparmor.d/slint-kit-docs-chrome
+      - name: Verify Chrome and WebGL before compiling previews
+        run: node .github/scripts/check_chrome.mjs
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
