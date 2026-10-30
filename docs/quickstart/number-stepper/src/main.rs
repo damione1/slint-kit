@@ -18,7 +18,7 @@ fn format(value: &Value) -> String {
     value.to_string()
 }
 fn main() -> Result<(), slint::PlatformError> {
-    let app = App::new()?;
+    let app = ui::App::new()?;
     slint_kit::init_form_validation!(ui, app);
     let initial = DecimalValue::from_integer(12);
     app.set_accepted(format(&initial).into());
