@@ -157,10 +157,18 @@ class DocumentationIdentityTests(unittest.TestCase):
         task = {'id': 'starter:dialog', 'slug': 'dialog', 'outputs': [captures.ROOT / 'preview@2x.png'],
                 'sceneKey': 'scene', 'key': 'key', 'recipe': {'activation': [120, 80]}}
         scene = captures.browser_scene(task, {'base': '/assets/previews/dialog'})
-        self.assertEqual(scene['activation'], [120, 80])
+        self.assertEqual(scene['activation'], {'action': 'click', 'point': [120, 80]})
         self.assertEqual(scene['output'], 'preview@2x.png')
+        task['recipe']['activation'] = {'action': 'hover', 'point': [90, 42]}
+        self.assertEqual(captures.browser_scene(task, {'base': '/assets/previews/tooltip'})['activation'], task['recipe']['activation'])
         task['recipe']['activation'] = None
         self.assertNotIn('activation', captures.browser_scene(task, {'base': '/assets/previews/dialog'}))
+
+    def test_invalid_poster_actions_and_coordinates_fail_before_browser_work(self):
+        for value in [{'action': 'focus', 'point': [1, 2]}, {'action': 'click', 'point': [False, 2]},
+                      [-1, 2], [1], [float('nan'), 2], {'point': [1, 2]}]:
+            with self.assertRaises(ValueError):
+                captures.poster_activation(value)
 
 
 if __name__ == '__main__':

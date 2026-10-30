@@ -5,6 +5,7 @@ import argparse
 from enum import StrEnum
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -24,6 +25,27 @@ class ImageOrigin(StrEnum):
     NATIVE = 'native'
     BROWSER = 'browser'
     DERIVED = 'derived'
+
+
+class PosterAction(StrEnum):
+    CLICK = 'click'
+    HOVER = 'hover'
+
+
+def poster_activation(value):
+    if value is None:
+        return None
+    if isinstance(value, list):
+        value = {'action': PosterAction.CLICK.value, 'point': value}
+    if not isinstance(value, dict) or set(value) != {'action', 'point'}:
+        raise ValueError('Poster activation needs an action and point')
+    action = PosterAction(value['action'])
+    point = value['point']
+    if (not isinstance(point, list) or len(point) != 2
+            or any(isinstance(number, bool) or not isinstance(number, (int, float))
+                   or not math.isfinite(number) or number < 0 for number in point)):
+        raise ValueError('Poster activation needs two finite, nonnegative coordinates')
+    return {'action': action.value, 'point': point}
 
 
 MANIFEST = DOCS / 'content/render-captures.json'
@@ -125,7 +147,7 @@ def tasks(inputs):
     for slug in sorted(entries):
         source = DOCS / 'quickstart' / slug
         ui = (source / 'ui/app.slint').read_text()
-        activation = entries[slug].get('posterActivation')
+        activation = poster_activation(entries[slug].get('posterActivation'))
         recipe = {**PROFILE, 'reducedMotion': False, 'theme': 'tailwind', 'locale': 'en', 'textScale': 1,
                   'activation': activation, 'viewport': [int(re.search(r'preferred-width:\s*(\d+)px', ui)[1]),
                                                          int(re.search(r'preferred-height:\s*(\d+)px', ui)[1])]}
@@ -148,7 +170,7 @@ def browser_scene(task, entry):
     scene = {'id': task['id'], 'slug': task['slug'], 'base': entry['base'],
              'output': str(task['outputs'][0].relative_to(ROOT)),
              'sceneKey': task['sceneKey'], 'key': task['key']}
-    activation = task['recipe'].get('activation')
+    activation = poster_activation(task['recipe'].get('activation'))
     if activation is not None:
         scene['activation'] = activation
     return scene

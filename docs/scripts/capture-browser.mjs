@@ -71,10 +71,16 @@ try{
   if(scene.activation){
     // Overlay posters use a declared point inside their known opener. Regular
     // interaction qualification remains in check-browser.mjs.
-    const [x,y]=scene.activation;
-    await call('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
-    await call('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
-    await pause(200);
+    const activation=Array.isArray(scene.activation)?{action:'click',point:scene.activation}:scene.activation;
+    assert(['click','hover'].includes(activation.action),'Unknown poster action');
+    assert(Array.isArray(activation.point)&&activation.point.length===2&&activation.point.every(Number.isFinite),'Invalid poster point');
+    const [x,y]=activation.point;
+    await call('Input.dispatchMouseEvent',{type:'mouseMoved',x,y});
+    if(activation.action==='click'){
+      await call('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
+      await call('Input.dispatchMouseEvent',{type:'mouseReleased',x,y,button:'left',clickCount:1});
+    }
+    await pause(activation.action==='hover'?750:200);
   }
   const screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:rectangle.x,y:rectangle.y,width:rectangle.width,height:rectangle.height,scale:1}});
   const destination=path.resolve(root,scene.output);await fs.mkdir(path.dirname(destination),{recursive:true});
