@@ -52,6 +52,7 @@ try{
  await new Promise((resolve,reject)=>{socket.addEventListener('open',resolve,{once:true});socket.addEventListener('error',reject,{once:true})});
  socket.addEventListener('message',event=>{const message=JSON.parse(event.data),request=pending.get(message.id);if(!request)return;clearTimeout(request.timeout);pending.delete(message.id);message.error?request.reject(new Error(JSON.stringify(message.error))):request.resolve(message.result)});
  await call('Page.enable');await call('Runtime.enable');
+ await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
  await call('Emulation.setDeviceMetricsOverride',{width:1400,height:1200,deviceScaleFactor:2,mobile:false});
  const version=await call('Browser.getVersion');
  for(const scene of plan){
