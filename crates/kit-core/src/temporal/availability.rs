@@ -157,6 +157,47 @@ mod tests {
         assert!(calendar.can_navigate(CalendarMove::PreviousDay));
     }
     #[test]
+    fn bounded_month_navigation_and_initial_selection_have_consistent_availability() {
+        let bounds = NumericBounds::new(day(5), day(26)).unwrap();
+        let calendar = CalendarController::new(
+            Some(day(19)),
+            day(19).year_month(),
+            Some(bounds),
+            WeekStart::Monday,
+        );
+        assert!(!calendar.can_navigate(CalendarMove::PreviousMonth));
+        assert!(!calendar.can_navigate(CalendarMove::NextMonth));
+        assert!(!calendar.can_navigate(CalendarMove::PreviousYear));
+        assert!(!calendar.can_navigate(CalendarMove::NextYear));
+        assert!(calendar.can_navigate(CalendarMove::PreviousDay));
+        assert!(calendar.can_navigate(CalendarMove::NextWeek));
+        for invalid in [day(4), day(27)] {
+            let calendar = CalendarController::new(
+                Some(invalid),
+                invalid.year_month(),
+                Some(bounds),
+                WeekStart::Monday,
+            );
+            assert_eq!(calendar.selected(), None);
+            assert!(bounds.validate(calendar.focused()).is_ok());
+            assert!(!calendar.grid().iter().any(|cell| cell.selected));
+            assert!(
+                CalendarController::with_constraints(
+                    Some(invalid),
+                    invalid.year_month(),
+                    DateConstraints::new(Some(bounds)),
+                    WeekStart::Monday
+                )
+                .is_err()
+            );
+        }
+        let edge =
+            CalendarController::new(None, YearMonth::new(1, 1).unwrap(), None, WeekStart::Monday);
+        assert!(!edge.can_navigate(CalendarMove::PreviousDay));
+        assert!(!edge.can_navigate(CalendarMove::PreviousMonth));
+        assert!(edge.can_navigate(CalendarMove::NextMonth));
+    }
+    #[test]
     fn multiple_dates_preserve_identity_and_exclude_blocked_values() {
         let rules = DateConstraints::default().with_unavailable_weekdays(vec![WeekStart::Sunday]);
         let mut selected = DateSetController::new(rules);

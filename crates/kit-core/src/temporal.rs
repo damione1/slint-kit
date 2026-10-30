@@ -422,6 +422,9 @@ pub struct CalendarController {
     week_start: WeekStart,
 }
 impl CalendarController {
+    /// Create a bounds-only calendar. An out-of-bounds initial selection is
+    /// rejected to `None`; focus is clamped to the bounds. Use `with_constraints`
+    /// when the caller needs an explicit construction error instead.
     pub fn new(
         selected: Option<CivilDate>,
         displayed: YearMonth,
@@ -437,7 +440,8 @@ impl CalendarController {
             focus
         };
         Self {
-            selected,
+            selected: selected
+                .filter(|date| bounds.is_none_or(|bounds| bounds.validate(*date).is_ok())),
             displayed: focus.year_month(),
             focused: focus,
             constraints: DateConstraints::new(bounds),
@@ -472,10 +476,26 @@ impl CalendarController {
     pub fn constraints(&self) -> &DateConstraints {
         &self.constraints
     }
-    /// Whether navigation can move the roving target within the date bounds.
+    /// Paging must change the visible month; day/week actions must change focus.
+    /// A month button stays disabled at its bound even if a keyboard paging
+    /// action could still clamp the focused day inside the same month.
     pub fn can_navigate(&self, direction: CalendarMove) -> bool {
         let mut next = self.clone();
-        next.navigate(direction).is_ok() && next.focused != self.focused
+        if next.navigate(direction).is_err() {
+            return false;
+        }
+        match direction {
+            CalendarMove::PreviousMonth
+            | CalendarMove::NextMonth
+            | CalendarMove::PreviousYear
+            | CalendarMove::NextYear => next.displayed != self.displayed,
+            CalendarMove::PreviousDay
+            | CalendarMove::NextDay
+            | CalendarMove::PreviousWeek
+            | CalendarMove::NextWeek
+            | CalendarMove::WeekStart
+            | CalendarMove::WeekEnd => next.focused != self.focused,
+        }
     }
     pub fn selected(&self) -> Option<CivilDate> {
         self.selected
