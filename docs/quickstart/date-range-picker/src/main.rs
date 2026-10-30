@@ -1,12 +1,14 @@
 use slint::ComponentHandle;
 use slint_kit::{
-    CalendarController, CalendarMove, CivilDate, DateRangeController, RangeSelection, WeekStart,
+    CalendarController, CalendarMove, CivilDate, DateConstraints, DatePattern, DateRange,
+    DateRangeController, DateRangeRules, NumericBounds, RangeSelection, WeekStart,
 };
 use std::{cell::RefCell, rc::Rc};
 mod ui {
     slint::include_modules!();
 }
 struct State {
+    date_label: DatePattern,
     calendar: CalendarController,
     accepted: String,
     range: DateRangeController,
@@ -35,11 +37,11 @@ fn publish(app: &ui::App, state: &State) {
                 month: cell.date.month() as i32,
                 day: cell.date.day() as i32,
                 label: cell.date.day().to_string().into(),
-                accessible_label: cell.date.iso_string().into(),
+                accessible_label: state.date_label.format(cell.date).into(),
                 enabled: cell.enabled,
                 selected: cell.selected,
                 in_range: false,
-                today: false,
+                today: cell.date == CivilDate::new(2026, 10, 30).unwrap(),
             })
         })
         .collect::<Vec<_>>();
@@ -84,17 +86,70 @@ fn publish(app: &ui::App, state: &State) {
             .unwrap_or(0) as i32,
     );
     let month = state.calendar.displayed();
-    app.set_calendar_title(format!("{:04}-{:02}", month.year(), month.month()).into());
+    let months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ];
+    app.set_calendar_title(
+        format!(
+            "{} {}",
+            months[usize::try_from(month.month() - 1).unwrap()],
+            month.year()
+        )
+        .into(),
+    );
+    app.set_previous_enabled(state.calendar.can_navigate(CalendarMove::PreviousMonth));
+    app.set_next_enabled(state.calendar.can_navigate(CalendarMove::NextMonth));
     app.set_accepted(state.accepted.clone().into());
 }
 fn main() -> Result<(), slint::PlatformError> {
     let app = ui::App::new()?;
     slint_kit::init_form_validation!(ui, app);
-    let date = CivilDate::new(2026, 10, 17).unwrap();
+    let date = CivilDate::new(2026, 10, 19).unwrap();
+    let bounds = NumericBounds::new(
+        CivilDate::new(2026, 10, 1).unwrap(),
+        CivilDate::new(2027, 12, 31).unwrap(),
+    )
+    .unwrap();
+    let constraints = DateConstraints::new(Some(bounds))
+        .with_unavailable_weekdays(vec![WeekStart::Saturday, WeekStart::Sunday])
+        .with_unavailable_ranges(vec![
+            DateRange::new(
+                CivilDate::new(2026, 10, 13).unwrap(),
+                CivilDate::new(2026, 10, 15).unwrap(),
+            )
+            .unwrap(),
+        ]);
     let state = Rc::new(RefCell::new(State {
-        calendar: CalendarController::new(Some(date), date.year_month(), None, WeekStart::Monday),
-        accepted: "No range accepted".into(),
-        range: DateRangeController::new(None),
+        date_label: DatePattern::new("%A, %B %-d, %Y").unwrap(),
+        calendar: CalendarController::with_constraints(
+            Some(date),
+            date.year_month(),
+            constraints.clone(),
+            WeekStart::Monday,
+        )
+        .unwrap(),
+        accepted: "2026-10-19 → 2026-10-23".into(),
+        range: {
+            let accepted = DateRange::new(date, CivilDate::new(2026, 10, 23).unwrap()).unwrap();
+            let mut range = DateRangeController::with_rules(
+                Some(accepted),
+                DateRangeRules::new(constraints, Some(NumericBounds::new(2, 14).unwrap())),
+            )
+            .unwrap();
+            range.cancel();
+            range
+        },
     }));
     publish(&app, &state.borrow());
     let weak = app.as_weak();
@@ -122,7 +177,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 let error = if state.range.choose(date).is_ok() {
                     ""
                 } else {
-                    "End must follow start"
+                    "Choose 2–14 nights; weekends and October 13–15 are unavailable"
                 };
                 app.set_error(error.into());
                 publish(&app, &state);

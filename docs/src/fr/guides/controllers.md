@@ -53,3 +53,29 @@ Gardez `FocusRegistry` et l’ouvreur exact dans le contrôleur hôte. Les primi
 ## Tableau et identité des lignes
 
 L’[application complète de tableau triable](/fr/guides/table-example/) montre une sélection qui survit au tri, la navigation clavier et le rejet des événements d’une ancienne génération.
+
+## Dates de calendrier, formats et disponibilités
+
+`CivilDate` utilise le calendrier grégorien proleptique, pour les années 1 à 9999. `KitDateField` et `KitDatePicker` conservent leur contrat HTML date : brouillons, `min`, `max` et chaînes acceptées suivent `YYYY-MM-DD`. Le libellé d’affichage et le format de saisie sont deux choix distincts. Aucun ordre jour/mois ni fuseau horaire n’est deviné.
+
+Pour les champs texte et libellés gérés par l’application, validez un `DatePattern` une fois, puis conservez-le avec le contrôleur :
+
+```rust
+use slint_kit::{CivilDate, DateNames, DatePattern, DraftValue};
+let pattern = DatePattern::new("%d/%m/%Y").unwrap();
+let DraftValue::Parsed(date) = pattern.parse("29/02/2024") else { return };
+assert_eq!(date, CivilDate::new(2024, 2, 29).unwrap());
+assert_eq!(date.iso_string(), "2024-02-29");
+let spoken = DatePattern::new("%A %-d %B %Y").unwrap();
+assert_eq!(spoken.format_with_names(date, &DateNames::french()), "jeudi 29 février 2024");
+```
+
+Les directives acceptées sont `%Y`, `%m`, `%d`, `%e`, `%b`, `%B`, `%a`, `%A`, `%j`, `%G`, `%V`, `%u`, `%F` et `%%` ; les directives numériques acceptent le remplissage `-`, `_` ou `0`. Elles couvrent les ordres et séparateurs numériques, dates compactes, noms de mois anglais, dates ordinales et semaines ISO. `%y` est refusé : une année à deux chiffres exige une règle de siècle explicite. `parse`/`format` emploient les noms anglais. `parse_with_names`/`format_with_names` utilisent des `DateNames` validés fournis par l’hôte ; un jeu français est inclus. La comparaison des noms utilise les minuscules Unicode, conserve les accents et exige la ponctuation des abréviations configurées. Les autres systèmes calendaires et formes de chiffres nécessitent un adaptateur explicite de l’hôte.
+
+Gardez l’éditeur natif de `KitTextField` pour une saisie personnalisée. Analysez le brouillon avec le format choisi, puis validez le `CivilDate` avec les mêmes règles que les clics sur le calendrier. N’associez pas `HtmlInputKind.date` à un texte localisé : le moteur HTML commun attend ISO. Pour un formulaire, appliquez aussi les règles de présence et de validité personnalisée, puis protégez le chemin d’envoi Rust.
+
+`DateConstraints` combine des bornes inclusives `NumericBounds<CivilDate>` facultatives, des périodes `DateRange` indisponibles et des jours de semaine indisponibles. Transmettez-le à `CalendarController::with_constraints`. `choose` refuse les dates bloquées ; le focus clavier peut les parcourir. Les sept valeurs `WeekStart` sont disponibles ; `set_week_start` demande aussi de réordonner les noms de jours fournis à la vue. `can_navigate` pilote `previous-enabled` et `next-enabled`. `show_month` et `focus_date` déplacent la cible clavier visible sans accepter une valeur. `grid_for_month` permet de composer plusieurs `KitCalendar` avec une sélection et des règles communes.
+
+`DateRangeRules` ajoute un nombre minimal et maximal de nuits facultatif. Une période d’un seul jour vaut zéro nuit ; la période inclusive ne peut traverser une date indisponible. `DateRangeController::with_rules` préserve la période acceptée jusqu’à Apply et la restaure avec Cancel. Un choix de fin refusé conserve le début. `DateSetController` gère plusieurs dates identifiées par `CivilDate` : projetez `selected().contains(&date)` dans `CalendarDay.selected`, puis appelez `toggle` depuis l’action du calendrier. L’index visuel n’identifie aucune date.
+
+Le clavier utilise les flèches, Début/Fin et Page précédente/suivante ; Maj fait défiler les années. Un calendrier en lecture seule reste navigable et ne peut accepter une date. Fournissez titres de mois, noms de jours, libellés accessibles et actions de période traduits. Les exemples exécutables [calendrier](/fr/components/calendar/), [sélecteur de date](/fr/components/date-picker/) et [sélecteur de période](/fr/components/date-range-picker/) composent cartes, badges et aides du kit avec de vraies règles de disponibilité. Leur date de référence est fixe pour rendre les exemples reproductibles. Ces API ne qualifient pas, à elles seules, un lecteur d’écran ou l’IME sur un backend donné.
