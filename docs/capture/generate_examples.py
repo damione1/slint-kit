@@ -58,7 +58,7 @@ for name,(label,value) in values.items():
     suffix += ' step-requested(direction) => { root.status = "Step requested; validate in Rust"; };' if name == 'KitNumberStepper' else ''
     add(name, f'{name} {{ theme: root.theme; label: "{label}"; text: "{value}";{suffix} edited(value) => {{ root.status = "Draft: " + value; }} }}', 300 if name == 'KitTextArea' else 240)
 
-add('KitField', 'KitField { KitFieldLabel { theme: root.theme; text: "Display name"; } KitTextField { theme: root.theme; text: "Elliot Alderson"; } KitFieldDescription { theme: root.theme; text: "Visible to your team."; } }')
+add('KitField', 'KitField { KitFieldLabel { theme: root.theme; text: "Display name"; focus-requested => { editor.take-focus(); } } editor := KitTextField { theme: root.theme; accessible-name: "Display name"; text: "Elliot Alderson"; } KitFieldDescription { theme: root.theme; text: "Visible to your team."; } }')
 add('KitFieldLabel', 'KitFieldLabel { theme: root.theme; text: "Email address"; } KitTextField { theme: root.theme; placeholder: "you@example.com"; }')
 add('KitFieldDescription', 'KitTextField { theme: root.theme; label: "Username"; text: "elliot"; } KitFieldDescription { theme: root.theme; text: "Use 3–24 letters, numbers or underscores."; }')
 add('KitFieldError', 'KitTextField { theme: root.theme; label: "Email"; text: "elliot@"; validation: ValidationPresentation.invalid; } KitFieldError { theme: root.theme; text: "Enter a complete email address."; }')
