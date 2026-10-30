@@ -3,7 +3,7 @@ use super::CivilDate;
 use crate::{DraftValue, ParseIssue};
 use chrono::{
     Datelike, NaiveDate, Weekday,
-    format::{Fixed, Item, ParseErrorKind, Parsed, StrftimeItems, parse_and_remainder},
+    format::{Fixed, Item, Pad, ParseErrorKind, Parsed, StrftimeItems, parse_and_remainder},
 };
 
 /// A validated, date-only strftime pattern. Supported directives are `%Y`,
@@ -13,7 +13,9 @@ use chrono::{
 /// host-owned translations, including the supplied French names.
 ///
 /// A pattern must contain a complete calendar, ordinal, or ISO week date.
-/// Two-digit years, time zones and time-of-day directives are rejected.
+/// Two-digit year directives, time zones and time-of-day directives are rejected.
+/// Unpadded or space-padded numeric segments require nonnumeric separators;
+/// adjacent zero-padded segments such as `%Y%m%d` remain supported.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DatePattern(String);
 impl DatePattern {
@@ -52,6 +54,25 @@ impl DatePattern {
         }
         if !(year && (month && day || ordinal) || iso_year && week && weekday) {
             return Err(ParseIssue::InvalidSyntax);
+        }
+        let items = StrftimeItems::new(&pattern).collect::<Vec<_>>();
+        if items.contains(&Item::Error) {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        let variable_numeric =
+            |item: &Item<'_>| matches!(item, Item::Numeric(_, Pad::None | Pad::Space));
+        for pair in items.windows(2) {
+            let numeric_pair =
+                matches!(pair[0], Item::Numeric(..)) && matches!(pair[1], Item::Numeric(..));
+            let numeric_literal_boundary = matches!(&pair[1], Item::Literal(text) if text.starts_with(|ch: char| ch.is_ascii_digit()))
+                && variable_numeric(&pair[0])
+                || matches!(&pair[0], Item::Literal(text) if text.ends_with(|ch: char| ch.is_ascii_digit()))
+                    && variable_numeric(&pair[1]);
+            if numeric_pair && (variable_numeric(&pair[0]) || variable_numeric(&pair[1]))
+                || numeric_literal_boundary
+            {
+                return Err(ParseIssue::InvalidSyntax);
+            }
         }
         Ok(Self(pattern))
     }
@@ -97,6 +118,7 @@ impl DateNames {
         fn unique(names: &[String]) -> bool {
             names.iter().enumerate().all(|(index, name)| {
                 !name.is_empty()
+                    && name.trim() == name
                     && names[..index]
                         .iter()
                         .all(|other| other.to_lowercase() != name.to_lowercase())
@@ -204,13 +226,15 @@ impl DatePattern {
             // bytes consumed: Unicode case mappings can change UTF-8 length.
             fn name_prefix(text: &str, name: &str) -> Option<usize> {
                 let target = name.to_lowercase();
-                let mut folded = String::new();
                 for (offset, ch) in text.char_indices() {
-                    folded.extend(ch.to_lowercase());
+                    let end = offset + ch.len_utf8();
+                    // Whole-prefix lowercasing preserves contextual mappings,
+                    // such as the final Greek sigma, as well as byte-length changes.
+                    let folded = text[..end].to_lowercase();
                     if folded == target {
-                        return Some(offset + ch.len_utf8());
+                        return Some(end);
                     }
-                    if !target.starts_with(&folded) {
+                    if folded.chars().count() > target.chars().count() {
                         return None;
                     }
                 }
@@ -335,6 +359,55 @@ mod tests {
         assert_eq!(
             pattern.parse_with_names("29 ẞÉVRIER 2024", &names),
             DraftValue::Parsed(date)
+        );
+    }
+    #[test]
+    fn numeric_segments_require_unambiguous_boundaries() {
+        for ambiguous in ["%-Y%m%d", "%_Y%m%d", "%Y%-m%-d", "%Y%m%e", "%Y1%-m1%-d"] {
+            assert!(DatePattern::new(ambiguous).is_err(), "{ambiguous}");
+        }
+        for (year, month, day) in [(1, 1, 1), (999, 2, 28), (2024, 2, 29), (9999, 12, 31)] {
+            let date = CivilDate::new(year, month, day).unwrap();
+            for shape in ["%Y%m%d", "%-Y-%-m-%-d", "%_Y/%m/%d", "%Y-%j", "%G-W%V-%u"] {
+                let pattern = DatePattern::new(shape).unwrap();
+                assert_eq!(
+                    pattern.parse(&pattern.format(date)),
+                    DraftValue::Parsed(date),
+                    "{shape}"
+                );
+                let names = DateNames::french();
+                assert_eq!(
+                    pattern.parse_with_names(&pattern.format_with_names(date, &names), &names),
+                    DraftValue::Parsed(date),
+                    "{shape}"
+                );
+            }
+        }
+    }
+    #[test]
+    fn name_matching_preserves_contextual_unicode_lowercase() {
+        let mut names = DateNames::french();
+        names.months[1] = "ΟΣ".into();
+        let pattern = DatePattern::new("%d %B %Y").unwrap();
+        let date = CivilDate::new(2024, 2, 29).unwrap();
+        assert_eq!(
+            pattern.parse_with_names("29 ΟΣ 2024", &names),
+            DraftValue::Parsed(date)
+        );
+        assert_eq!(
+            pattern.parse_with_names("29 ος 2024", &names),
+            DraftValue::Parsed(date)
+        );
+        let mut months = names.months.clone();
+        months[1] = " ".into();
+        assert!(
+            DateNames::new(
+                months,
+                names.short_months,
+                names.weekdays,
+                names.short_weekdays
+            )
+            .is_err()
         );
     }
     #[test]
