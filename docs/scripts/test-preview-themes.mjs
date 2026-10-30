@@ -88,7 +88,7 @@ test('theme changes survive loading and update the existing frame without restar
   state.message({type:'slint-kit-preview', state:'ready', theme:'light', width:520, height:344});
   assert.equal(choice.value, 'dark', 'a late ready event must not undo the latest choice');
   assert.equal(state.frames.length, 1);
-  assert.deepEqual(JSON.parse(JSON.stringify(state.frames[0].messages.at(-1).data)), {type:'slint-kit-theme', theme:'dark'});
+  assert.deepEqual(JSON.parse(JSON.stringify(state.frames[0].messages.at(-1).data)), {type:'slint-kit-theme', theme:'dark', requestId:2});
   assert.equal(state.values.get(storageKey), 'dark');
   state.message({type:'slint-kit-preview', state:'theme', theme:'light'});
   assert.equal(choice.value, 'light', 'the child footer can change the same preference');
@@ -139,4 +139,17 @@ test('motion preference changes update the existing Slint window', async () => {
   assert.deepEqual(state.calls.at(-1),['theme','dark']);
   assert.equal(state.starts(),1);
   assert.equal(state.context.window.previewTheme,'dark');
+});
+
+test('a stale theme acknowledgement cannot replace the latest loading choice', () => {
+  const state=page({saved:'light'});
+  state.elements['.run-preview'].emit('click');
+  const choice=state.elements['.preview-theme'];
+  choice.value='dark';choice.emit('change');
+  const oldRequest=state.frames[0].messages.at(-1).data;
+  choice.value='light';choice.emit('change');
+  state.message({type:'slint-kit-preview',state:'theme',theme:'dark',requestId:oldRequest.requestId});
+  state.message({type:'slint-kit-preview',state:'ready',theme:'dark',width:520,height:344});
+  assert.equal(choice.value,'light');
+  assert.equal(state.frames[0].messages.at(-1).data.theme,'light');
 });

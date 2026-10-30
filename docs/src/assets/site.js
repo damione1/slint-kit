@@ -58,6 +58,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
   const themeChoice = preview.querySelector('.preview-theme');
   const french = document.documentElement.lang === 'fr';
   let frame, timeout, ready = false;
+  let themeRequest = 0;
   const themeLabel = theme => french ? (theme === 'dark' ? 'sombre' : 'clair') : (theme === 'dark' ? 'dark' : 'light');
   const interactiveStatus = () => {
     status.textContent = (french ? 'Interactif — composants Slint en WebAssembly' : 'Interactive — Slint components in WebAssembly') + ' · ' + themeLabel(themeChoice.value);
@@ -67,7 +68,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     themeChoice.value = theme;
     host.dataset.theme = theme;
     if (persist) savePreviewTheme(theme);
-    if (frame && send) frame.contentWindow.postMessage({type:'slint-kit-theme', theme}, location.origin);
+    if (frame && send) frame.contentWindow.postMessage({type:'slint-kit-theme', theme, requestId:++themeRequest}, location.origin);
     if (ready) interactiveStatus();
   };
   themeChoice.disabled = false;
@@ -111,7 +112,10 @@ for (const preview of document.querySelectorAll('.live-preview')) {
   window.addEventListener('message', event => {
     if (event.origin !== location.origin || !frame || event.source !== frame.contentWindow || event.data?.type !== 'slint-kit-preview') return;
     if (event.data.state === 'error') { failed(); return; }
-    if (event.data.state === 'theme') { applyTheme(event.data.theme, true, false); return; }
+    if (event.data.state === 'theme') {
+      if (Number.isSafeInteger(event.data.requestId) && event.data.requestId !== themeRequest) return;
+      applyTheme(event.data.theme, true, false); return;
+    }
     if (event.data.state !== 'ready') return;
     clearTimeout(timeout); width = Number(event.data.width) || width; height = Number(event.data.height) || height;
     host.classList.remove('preview-loading'); preview.querySelector('figure').hidden = true; resize();

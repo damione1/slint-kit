@@ -31,7 +31,7 @@ if (!isTheme(currentTheme)) {
   try { currentTheme = localStorage.getItem(themeStorageKey); } catch {}
 }
 if (!isTheme(currentTheme)) currentTheme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-function applyTheme(theme, announce = true, persist = true) {
+function applyTheme(theme, announce = true, persist = true, requestId) {
   if (!isTheme(theme)) return;
   currentTheme = theme;
   themeChoice.value = theme;
@@ -42,14 +42,15 @@ function applyTheme(theme, announce = true, persist = true) {
   // Rust updates the existing weak window; drafts and accepted values survive.
   if (window.previewReady) runtime.set_theme(theme);
   window.previewTheme = theme;
-  if (announce) message('theme');
+  if (announce) message('theme', undefined, requestId);
 }
 applyTheme(currentTheme, false, false);
 themeChoice.addEventListener('change', () => applyTheme(themeChoice.value));
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => applyTheme(currentTheme, false, false));
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'slint-kit-theme') return;
-  applyTheme(event.data.theme);
+  const requestId = Number.isSafeInteger(event.data.requestId) && event.data.requestId > 0 ? event.data.requestId : undefined;
+  applyTheme(event.data.theme, true, true, requestId);
 });
 window.addEventListener('storage', event => {
   if (event.key === themeStorageKey && isTheme(event.newValue)) applyTheme(event.newValue, true, false);
@@ -62,10 +63,10 @@ if (french) {
   document.getElementById('source').textContent = 'Sources';
 }
 canvas.setAttribute('aria-label', french ? 'Composant Slint interactif' : 'Interactive Slint component');
-function message(state, error) {
+function message(state, error, requestId) {
   const rectangle = canvas.getBoundingClientRect();
   parent.postMessage({type:'slint-kit-preview', component:parameters.get('component'), state,
-    width:rectangle.width, height:Math.ceil(document.querySelector('footer').getBoundingClientRect().bottom), theme:currentTheme, error}, location.origin);
+    width:rectangle.width, height:Math.ceil(document.querySelector('footer').getBoundingClientRect().bottom), theme:currentTheme, error, requestId}, location.origin);
 }
 try {
   if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
