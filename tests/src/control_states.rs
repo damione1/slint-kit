@@ -459,3 +459,51 @@ fn disabled_choice_marks_stay_visible_on_their_disabled_rows_in_every_theme() {
         }
     }
 }
+
+#[test]
+fn a_header_that_cannot_sort_keeps_the_header_tone_and_square_cells() {
+    software_rendering();
+    let window = show(DataTableHeaderRenderFixture::new().unwrap());
+    for (name, theme) in [
+        ("light", window.get_light()),
+        ("dark", window.get_dark()),
+        ("tailwind light", window.get_tailwind_light()),
+        ("tailwind dark", window.get_tailwind_dark()),
+    ] {
+        window.set_theme(theme.clone());
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        for label in ["Project, ascending", "Owner"] {
+            let cell = labelled(&window, label).unwrap_or_else(|| panic!("missing {label}"));
+            let (origin, size) = (cell.absolute_position(), cell.size());
+            // The cell's corners and middle edge all show the header tone:
+            // no disabled fill, and no rounded fill inside the table's clip.
+            for (x, y) in [
+                (origin.x + 2., origin.y + size.height - 2.),
+                (origin.x + size.width / 2., origin.y + size.height - 2.),
+                (origin.x + size.width - 2., origin.y + size.height - 2.),
+                (origin.x + 2., origin.y + size.height / 2.),
+            ] {
+                assert_pixel(
+                    &snapshot,
+                    x,
+                    y,
+                    theme.canvas,
+                    &format!("{name} {label} header"),
+                );
+            }
+        }
+        // Header labels start at the cell inset, aligned with the row text.
+        let header = labelled(&window, "Owner").unwrap();
+        let label = header
+            .query_descendants()
+            .match_predicate(|e| e.accessible_label().as_deref() == Some("Owner"))
+            .find_first()
+            .expect("header label");
+        let inset = label.absolute_position().x - header.absolute_position().x;
+        assert!(
+            (inset - theme.spacing.unit * 4.).abs() < 0.5,
+            "{name}: header label inset {inset}"
+        );
+    }
+}

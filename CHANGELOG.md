@@ -38,6 +38,7 @@
 - `KitPressable` gains `focus-indicated` and `focus-ring`, and `take-focus()` does nothing while it is disabled. `KitInputGroup` gains `out hovered`.
 - New: `theme` on `KitField`, `KitFieldGroup`, `KitInputGroupStart`/`End`, `KitContainer`, `KitStack`, `KitInline`, `KitWrap`, `KitGrid`, `KitScrollArea`, `KitButtonGroup`, `KitCardBody` and `KitCardFooter`; `palette` on `KitColorField`; `failed-label` on `KitFilePicker` and `KitDirectoryPicker`.
 - Segmented-control and toggle-group labels use the button recipe's `font-weight` (medium). Disabled checkboxes, radios and switches draw their mark's edge in `disabled-text`, so the mark stays visible on the disabled row fill; it used to vanish wherever `border-subtle` equalled `disabled-fill`, as in `TailwindThemes.dark`.
+- `KitDataTable` header cells use the flat, square table-row recipe and start their label at the same inset as the cells below. A column with `sortable: false` keeps the header tone; it used to paint the disabled fill with rounded corners.
 - States that used to render nothing now have a look: read-only, hover, checking (with a spinner) and invalid fields, distinct alert tones, the selected tab's underline, the selected palette swatch and a disabled drop zone.
 
 ### Build and notices

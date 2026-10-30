@@ -2,7 +2,7 @@
 // State renderings of fields, buttons, pickers and choice groups: field action
 // icons at scaled text, control elevation inside a layout, and states that
 // have no other observable output than their marks, labels and edges.
-import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitButton, KitSearchField, KitPasswordField, KitTextField, ValidationPresentation, KitFilePicker, KitDirectoryPicker, HostRequestPresentation, KitColorField, KitVirtualTextView, TextLine, KitSelect, SelectState, CloseReason, FieldAccess, KitMultiSelect, KitSegmentedControl, KitToggleGroup, KitRadioGroup, KitCheckbox, KitSwitch, KitDataTable, DataSortDirection, KitFileDropZone, DropCapability, ChoiceRow, AlertSeverity, IconGlyph, KitGlyphs } from "@kit/kit.slint";
 import { TailwindThemes } from "@kit/themes/tailwind.slint";
 // Internal: the mark each alert severity draws.
 import { KitAlertMarks } from "@kit/feedback.slint";
@@ -125,4 +125,24 @@ export component SelectedChoiceRenderFixture inherits Window {
     }
     KitCheckbox { theme: root.theme; x: 20px; y: 260px; width: 80px; height: self.preferred-height; access: FieldAccess.disabled; }
     KitSwitch { theme: root.theme; x: 120px; y: 260px; width: 100px; height: self.preferred-height; access: FieldAccess.disabled; }
+}
+
+// A table whose last column cannot sort, rendered in a chosen theme: its
+// header cell is static text on the header tone.
+export component DataTableHeaderRenderFixture inherits Window {
+    width: 480px; height: 220px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <KitTheme> tailwind-light: TailwindThemes.light;
+    out property <KitTheme> tailwind-dark: TailwindThemes.dark;
+    background: root.theme.canvas;
+    KitDataTable {
+        theme: root.theme; x: 20px; y: 20px; width: 440px; height: 180px; generation: 1;
+        columns: [
+            { token: 1, label: "Project", sortable: true, sort: DataSortDirection.ascending },
+            { token: 2, label: "Owner", sortable: false },
+        ];
+        rows: [{ token: 10, cells: ["Field notes", "Alex"] }];
+    }
 }
