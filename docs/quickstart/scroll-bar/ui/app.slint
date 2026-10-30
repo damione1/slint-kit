@@ -1,0 +1,40 @@
+export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitScrollBar, KitTheme, KitThemes } from "@kit/kit.slint";
+
+export component App inherits Window {
+    title: "KitScrollBar example";
+    preferred-width: 420px;
+    preferred-height: 280px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> status: "Drag the bar or click its track.";
+    // The distance scrolled and the scrollable distance.
+    callback notes-scrolled(length, length);
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Scroll Bar"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        // The viewport is shorter than its notes, so the bar shows and scrolls them.
+        HorizontalLayout {
+            height: 120px; spacing: 8px;
+            notes := Flickable {
+                content-height: column.preferred-height;
+                column := VerticalLayout {
+                    width: notes.width; spacing: 8px; alignment: start;
+                    for note in ["Team workspace", "Keep observations and decisions together.", "Monday: kickoff with the design team.", "Tuesday: review the onboarding flow.", "Wednesday: draft the release notes.", "Thursday: test the import on large files.", "Friday: publish the weekly summary.", "Ready to publish your changes?"]: Text {
+                        text: note; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap;
+                    }
+                }
+            }
+            KitScrollBar {
+                theme: root.theme;
+                maximum: notes.content-height - notes.height; page-size: notes.height;
+                value <=> notes.content-y;
+                scrolled => { root.notes-scrolled(-notes.content-y, notes.content-height - notes.height); }
+            }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}
