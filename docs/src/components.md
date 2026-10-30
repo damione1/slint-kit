@@ -29,14 +29,15 @@ eleventyComputed:
 {% set quickstart = quickstarts[component.slug] %}
 {% if quickstart %}
 <section class="live-preview" data-component="{{ component.slug }}" data-width="{{ quickstart.displayWidth }}" data-height="{{ quickstart.height / (quickstart.width / quickstart.displayWidth) }}" aria-label="{% if locale == 'fr' %}Aperçu interactif{% else %}Interactive preview{% endif %}">
-<div class="preview-actions"><button type="button" class="run-preview">{% if locale == 'fr' %}Lancer l’aperçu{% else %}Run preview{% endif %}</button><span class="preview-status" role="status"></span></div>
-<figure class="component-preview"><img src="{{ component.slug | starterPoster }}" alt="{{ text.summary }}" width="{{ quickstart.width }}" height="{{ quickstart.height }}" style="width:{{ quickstart.displayWidth }}px" loading="eager"><figcaption>{% if locale == 'fr' %}Application native de l’exemple ci-dessous.{% else %}Native app built from the example below.{% endif %}</figcaption></figure>
+<div class="preview-actions"><label for="preview-theme">{% if locale == 'fr' %}Thème{% else %}Theme{% endif %}</label><select id="preview-theme" class="preview-theme"><option value="tailwind" selected>Tailwind</option><option value="kit">Slint Kit</option></select><button type="button" class="run-preview">{% if locale == 'fr' %}Lancer l’aperçu{% else %}Run preview{% endif %}</button><span class="preview-status" role="status"></span></div>
+<figure class="component-preview"><img src="{{ component.slug | starterPoster(1) }}" srcset="{{ component.slug | starterPoster(2) }} 2x" alt="{{ text.summary }}" width="{{ quickstart.displayWidth }}" height="{{ quickstart.displayHeight }}" style="width:{{ quickstart.displayWidth }}px" loading="eager"><figcaption>{% if locale == 'fr' %}Exemple dans le navigateur avec le thème Tailwind.{% else %}Browser example with the Tailwind theme.{% endif %}</figcaption></figure>
 <div class="preview-frame" hidden></div>
+<p class="preview-theme-note">{% if locale == 'fr' %}Tailwind ajoute la police Inter. Slint Kit utilise le thème intégré et la police système ; sa preview ne charge pas Inter. Le projet téléchargeable utilise le thème intégré.{% else %}Tailwind adds the Inter font. Slint Kit uses the built-in theme and system font; its preview does not load Inter. The downloadable project uses the built-in theme.{% endif %}</p>
 <noscript><p>{% if locale == 'fr' %}Activez JavaScript pour utiliser l’aperçu interactif.{% else %}Enable JavaScript to run the interactive preview.{% endif %}</p></noscript>
 {% if quickstart.native_only %}<p class="preview-note">{% if locale == 'fr' %}Les dialogues de fichiers et le dépôt depuis le système nécessitent l’application native ci-dessous.{% else %}File dialogs and OS drag-and-drop require the native application below.{% endif %}</p>{% endif %}
 </section>
 {% else %}
-<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="eager"><figcaption>{% if screenshot.backend == 'browser' %}{% if locale == 'fr' %}Capture navigateur du même exemple Slint, moteur femtovg.{% else %}Browser capture of the same Slint example, femtovg renderer.{% endif %}{% else %}{{ ui[locale].snapshot }}{% endif %}</figcaption></figure>
 {% endif %}
 
 {% if quickstarts[component.slug] %}
@@ -51,7 +52,7 @@ eleventyComputed:
 
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
-<p class="source-link"><a href="https://docs.rs/crate/slint-kit-slint/{{ project.version }}/source/{{ component.source | replace("crates/kit-slint/", "") }}#{{ component.line }}">{{ ui[locale].source }} ↗</a></p>
+<p class="source-link"><a href="https://docs.rs/crate/slint-kit-slint/{{ project.version }}/source/{{ component.source | replace("crates/kit-slint/", "") }}">{{ ui[locale].source }} ↗</a></p>
 
 {% if component.optionConsumers.length %}
 ## {% if locale == 'fr' %}Option commune{% else %}Shared option{% endif %} `{{ component.sharedOption }}`
@@ -77,13 +78,13 @@ eleventyComputed:
 
 ## {% if locale == 'fr' %}Composition visuelle{% else %}Visual composition{% endif %}
 
-{% if locale == 'fr' %}Le fichier ci-dessous produit la capture. Pour les composants pilotés par un contrôleur, il montre l’état affiché sans fournir le branchement Rust. [Créer un projet](/fr/guides/getting-started/).{% else %}The file below produces the screenshot. For controller-driven components, it shows the displayed state without supplying the Rust wiring. [Create a project](/guides/getting-started/).{% endif %}
+{% if locale == 'fr' %}Le fichier ci-dessous décrit la scène de la capture. Pour les composants pilotés par un contrôleur, il montre l’état affiché sans fournir le branchement Rust. [Créer un projet](/fr/guides/getting-started/).{% else %}The file below describes the captured scene. For controller-driven components, it shows the displayed state without supplying the Rust wiring. [Create a project](/guides/getting-started/).{% endif %}
 
 <details class="visual-example">
 <summary>{% if locale == 'fr' %}Afficher le fichier de la capture{% else %}Show the screenshot source{% endif %}</summary>
 
 {% if quickstart %}
-<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="lazy"><figcaption>{{ ui[locale].snapshot }}</figcaption></figure>
+<figure class="component-preview"><img src="/assets/components/{{ screenshot.filename }}" srcset="/assets/components/{{ screenshot.retinaFilename }} 2x" alt="{{ text.summary }}" width="{{ screenshot.width }}" height="{{ screenshot.height }}" loading="lazy"><figcaption>{% if screenshot.backend == 'browser' %}{% if locale == 'fr' %}Capture navigateur du même exemple Slint, moteur femtovg.{% else %}Browser capture of the same Slint example, femtovg renderer.{% endif %}{% else %}{{ ui[locale].snapshot }}{% endif %}</figcaption></figure>
 {% endif %}
 
 ```slint

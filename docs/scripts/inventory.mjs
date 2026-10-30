@@ -36,6 +36,8 @@ export function scanComponents() {
   const dir = path.join(root, 'crates/kit-slint/ui');
   const metadataPath = path.join(root, 'docs/content/components.json');
   const metadata = fs.existsSync(metadataPath) ? JSON.parse(fs.readFileSync(metadataPath, 'utf8')) : {};
+  const renderProofPath = path.join(root,'docs/content/render-captures.json');
+  const renderProofs = fs.existsSync(renderProofPath) ? JSON.parse(fs.readFileSync(renderProofPath,'utf8')).entries : {};
   const types = new Map();
   for (const file of fs.readdirSync(dir).filter(x => x.endsWith('.slint'))) {
     const source = fs.readFileSync(path.join(dir, file), 'utf8');
@@ -83,7 +85,8 @@ export function scanComponents() {
         const filename = `${slugify(name)}${locale === 'fr' ? '-fr' : ''}.png`;
         const imagePath = path.join(root, 'docs/src/assets/components', filename);
         const image = fs.existsSync(imagePath) ? fs.readFileSync(imagePath) : undefined;
-        screenshots[locale] = { filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image?.length >= 24 ? image.readUInt32BE(16) : undefined, height: image?.length >= 24 ? image.readUInt32BE(20) : undefined };
+        const proof = renderProofs[`catalogue:${slugify(name)}:${locale}:light:1`];
+        screenshots[locale] = { backend: proof?.renderProfile?.backend || 'winit', filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image?.length >= 24 ? image.readUInt32BE(16) : undefined, height: image?.length >= 24 ? image.readUInt32BE(20) : undefined };
       }
       components.push({ screenshots, name, slug: slugify(name), base, family, familyLabel: families[family], types: publicTypes, source: `crates/kit-slint/ui/${file}`, line: source.slice(0, match.index).split('\n').length, properties, callbacks, functions, ...metadata[name] });
     }

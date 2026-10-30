@@ -133,6 +133,9 @@ try {
     const prefix = locale === 'fr' ? '/fr' : '';
     for (const [name, route, width, dark, text200, pixelDensity = 1] of [
       ['home-mobile', `${prefix}/`, 375, false, false],
+      ['catalogue-mobile', `${prefix}/components/`, 375, false, false],
+      ['catalogue-dark', `${prefix}/components/`, 1350, true, false],
+      ['catalogue-text200', `${prefix}/components/`, 375, false, true],
       ['button-mobile', `${prefix}/components/button/`, 375, false, false],
       ['button-dark', `${prefix}/components/button/`, 375, true, false],
       ['button-text200', `${prefix}/components/button/`, 375, false, true],
@@ -158,7 +161,7 @@ try {
       const imageSource = await evaluate('document.querySelector(".component-preview img")?.currentSrc || null');
       if (pixelDensity === 2) {
         if (route.includes('/components/')) {
-          assert(await evaluate('(()=>{const image=document.querySelector(".component-preview img");return image.naturalWidth === 2 * parseFloat(image.style.width)})()'), `${locale}/${name}: poster must retain native 2x pixels`);
+          assert(await evaluate('(()=>{const image=document.querySelector(".component-preview img");return image.currentSrc.endsWith("@2x.png") && Number(image.getAttribute("width")) === parseFloat(image.style.width)})()'), `${locale}/${name}: poster must retain native 2x pixels`);
         } else assert(imageSource?.endsWith('@2x.png'), `${locale}/${name}: browser must load the native 2x source`);
       }
       const capture = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
@@ -266,6 +269,7 @@ try {
     const start = requests.length;
     await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
     assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
+    assert.equal(await evaluate('document.querySelector(".preview-theme").value'), 'tailwind');
     await click('.run-preview');
     for (let count = 0; count < 300; count++) {
       if (await evaluate('document.querySelector(".component-preview").hidden')) break;
@@ -274,7 +278,7 @@ try {
     assert(await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled'), 'Run preview must replace the poster with a ready iframe');
     assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Live preview must fit mobile width');
     await evaluate('document.querySelector(".preview-frame").scrollIntoView({block:"center"})');
-    const point = await evaluate('(()=>{const f=document.querySelector("iframe");const r=f.getBoundingClientRect();const c=f.contentDocument.querySelector("canvas");return {x:r.x+80*r.width/c.width,y:r.y+44*r.width/c.width}})()');
+    const point = await evaluate('(()=>{const f=document.querySelector("iframe");const r=f.getBoundingClientRect();const c=f.contentDocument.querySelector("canvas");return {x:r.x+80*r.width/c.getBoundingClientRect().width,y:r.y+44*r.width/c.getBoundingClientRect().width}})()');
     for (let i = 0; i < 3; i++) {
       await call('Input.dispatchMouseEvent', { type:'mousePressed', button:'left', clickCount:1, ...point });
       await call('Input.dispatchMouseEvent', { type:'mouseReleased', button:'left', clickCount:1, ...point });
@@ -284,6 +288,17 @@ try {
     await fs.writeFile(path.join(output, `${locale}-live-button.png`), Buffer.from(capture.data, 'base64'));
     await click('.run-preview');
     assert(await evaluate('!document.querySelector("iframe") && !document.querySelector(".component-preview").hidden'), 'Stop preview must release the browser app and restore its poster');
+    const themeRequests = requests.length;
+    await evaluate('(()=>{const select=document.querySelector(".preview-theme");select.value="kit";select.dispatchEvent(new Event("change",{bubbles:true}))})()');
+    for(let count=0;count<300;count++) {
+      if(await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled'))break;
+      await pause(100);
+    }
+    assert(await evaluate('document.querySelector("iframe").src.includes("theme=kit")'), 'Theme selector must open the independent Kit variant');
+    const variantRequests=requests.slice(themeRequests).filter(url=>url.includes('/assets/previews/'));
+    assert(variantRequests.some(url=>url.includes('/button/kit/')), 'Kit variant must load its own module');
+    assert(!variantRequests.some(url=>url.includes('/button/tailwind/')), 'Kit selection must not fetch the Tailwind module');
+    await click('.run-preview');
     results.push({ name:'on-demand-mobile-preview', locale, loaded:true, stopped:true });
   }
   // An iframe can fit the page while its canvas/credits still overflow inside.

@@ -8,12 +8,17 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "npm run build:web && npm run build:pages",
-    "dev": "npm run build:web && python3 scripts/pack-starters.py && node scripts/clean.mjs && eleventy --serve",
+    "build": "npm run build:inputs && npm run build:web && npm run build:pages",
+    "dev": "npm run build:inputs && npm run build:web && python3 scripts/pack-starters.py && eleventy --serve",
     "check": "node scripts/check.mjs",
     "check:browser": "node scripts/check-browser.mjs",
     "build:web": "python3 scripts/build-web-previews.py",
-    "build:pages": "node scripts/check-migration.mjs && python3 scripts/pack-starters.py && node scripts/clean.mjs && eleventy --quiet && node scripts/check.mjs"
+    "build:pages": "node scripts/build-pages.mjs",
+    "build:inputs": "python3 scripts/doc_inputs.py",
+    "capture:plan": "python3 scripts/capture_pipeline.py plan",
+    "capture:update": "python3 scripts/capture_pipeline.py update",
+    "capture:check": "python3 scripts/capture_pipeline.py check",
+    "check:scripts": "python3 -m unittest discover -s scripts -p 'test_*.py' && node --test scripts/test-*.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "3.1.7",

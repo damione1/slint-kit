@@ -1,0 +1,161 @@
+name: Build documentation artifact
+on:
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        required: true
+      version:
+        type: string
+        default: ''
+      source-ref:
+        type: string
+        default: ''
+      check-workspace:
+        type: boolean
+        default: false
+    outputs:
+      artifact:
+        value: ${{ jobs.build.outputs.artifact }}
+      source:
+        value: ${{ jobs.build.outputs.source }}
+permissions:
+  contents: read
+jobs:
+  consumers:
+    name: Check published native consumers
+    if: inputs.mode == 'release'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    env:
+      DOCS_BUILD_MODE: release
+      DOCS_RELEASE_VERSION: ${{ inputs.version }}
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    outputs:
+      source: ${{ steps.revision.outputs.source }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source-ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Freeze the selected documentation revision
+        id: revision
+        run: echo "source=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/cache@v4
+        with:
+          path: docs/.cache/consumer-locks
+          key: ${{ runner.os }}-docs-consumer-locks-v1-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-docs-consumer-locks-v1-
+      - name: Verify the selected source and published version
+        run: python3 .github/scripts/docs_deploy.py verify-source --version "$DOCS_RELEASE_VERSION"
+      - name: Check the official workspace gate for a documentation correction
+        if: inputs.check-workspace
+        run: cargo run -p xtask --locked -- check
+      - name: Check native starters against the published registry
+        run: python3 docs/scripts/check-starters.py --mode release
+  build:
+    needs: consumers
+    if: ${{ always() && !cancelled() && needs.consumers.result != 'failure' && needs.consumers.result != 'cancelled' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      DOCS_BUILD_MODE: ${{ inputs.mode }}
+      DOCS_RELEASE_VERSION: ${{ inputs.version }}
+      DOCS_CHROME_VERSION: '156.0.8078.80'
+    outputs:
+      artifact: ${{ steps.identity.outputs.artifact }}
+      source: ${{ steps.identity.outputs.source }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.consumers.outputs.source || inputs.source-ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate build mode and record source identity
+        id: identity
+        shell: bash
+        run: |
+          case "$DOCS_BUILD_MODE" in local|release) ;; *) exit 1 ;; esac
+          source_sha=$(git rev-parse HEAD)
+          echo "source=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "artifact=slint-kit-site-$source_sha-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Set up the pinned headless browser
+        id: chrome
+        uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
+        with:
+          chrome-version: ${{ env.DOCS_CHROME_VERSION }}
+          install-dependencies: true
+      - name: Expose the exact browser used for captures
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: |
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          "$CHROME_PATH" --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            docs/preview -> ../../target/doc-previews
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wasm-bindgen*
+          key: ${{ runner.os }}-wasm-bindgen-0.2.129-rust-1.99.1
+      - name: Install the matching WebAssembly tooling
+        shell: bash
+        run: |
+          if ! wasm-bindgen --version 2>/dev/null | grep -qx 'wasm-bindgen 0.2.129'; then
+            cargo install wasm-bindgen-cli --version 0.2.129 --locked
+          fi
+      - uses: actions/cache@v4
+        with:
+          path: |
+            docs/.cache/previews
+            docs/.cache/captures
+            docs/.cache/consumer-locks
+            docs/.cache/native-source
+          key: ${{ runner.os }}-docs-browser-artifacts-v3-${{ env.DOCS_CHROME_VERSION }}-${{ steps.identity.outputs.source }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: ${{ runner.os }}-docs-browser-artifacts-v3-${{ env.DOCS_CHROME_VERSION }}-
+      - name: Verify the published source before the release build
+        if: inputs.mode == 'release'
+        run: python3 .github/scripts/docs_deploy.py verify-source --version "$DOCS_RELEASE_VERSION"
+      - run: npm ci --prefix docs
+      - name: Install deterministic image reduction support
+        run: python3 -m pip install -r docs/requirements-capture.txt
+      - name: Test documentation cache and publication safeguards
+        run: |
+          python3 -B -m unittest discover -s docs/scripts -p 'test_*.py'
+          python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+      - name: Refresh only invalidated browser captures
+        run: npm --prefix docs run capture:update
+      - name: Build and validate bilingual documentation
+        run: npm --prefix docs run build
+      - name: Stamp the verified release artifact
+        if: inputs.mode == 'release'
+        run: python3 .github/scripts/docs_deploy.py stamp --version "$DOCS_RELEASE_VERSION"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.identity.outputs.artifact }}
+          path: docs/_site/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

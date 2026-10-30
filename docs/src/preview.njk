@@ -14,9 +14,10 @@ eleventyExcludeFromCollections: true
 <body>
 <canvas id="canvas" tabindex="0" aria-label="Interactive Slint component"></canvas>
 <p id="error" hidden></p>
-<footer><a href="{{ webPreviews.base }}/NOTICE.txt" target="_blank" rel="noopener">Licenses</a> · <a href="{{ webPreviews.base }}/THIRD_PARTY_NOTICES.txt" target="_blank" rel="noopener">Third-party notices</a> · <a href="{{ webPreviews.base }}/source.tar.gz" download>Source</a></footer>
+<footer><a id="license" target="_blank" rel="noopener">Licenses</a> · <a id="third-party" target="_blank" rel="noopener">Third-party notices</a> · <a id="source" download>Source</a></footer>
 <script type="module">
 const allowed = {{ webPreviews.components | scriptJson | safe }};
+const previews = {{ webPreviews.entries | scriptJson | safe }};
 const parameters = new URLSearchParams(location.search);
 const french = parameters.get('lang') === 'fr';
 document.documentElement.lang = french ? 'fr' : 'en';
@@ -29,7 +30,13 @@ function message(state, error) {
 }
 try {
   if (!allowed.includes(parameters.get('component'))) throw new Error('Unknown component');
-  const {default:init} = await import('{{ webPreviews.base }}/slint_kit_previews.js');
+  const theme = parameters.get('theme') || 'tailwind';
+  if (!['tailwind', 'kit'].includes(theme)) throw new Error('Unknown theme');
+  const entry = previews[parameters.get('component')][theme];
+  for (const [id, file] of [['license','NOTICE.txt'],['third-party','THIRD_PARTY_NOTICES.txt'],['source','source.tar.gz']]) {
+    document.getElementById(id).href = entry.sources[file];
+  }
+  const {default:init} = await import(entry.base + '/slint_kit_previews.js');
   try { await init(); }
   catch(error) {
     // winit hands control to the browser event loop by throwing this sentinel.

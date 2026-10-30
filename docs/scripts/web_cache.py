@@ -14,7 +14,7 @@ ASSETS = ('slint_kit_previews.js', 'slint_kit_previews.d.ts',
 def compilation_key(root, files, rustc, bindgen, environment):
     flags = {name: value for name, value in environment.items()
              if name.startswith(('CARGO_PROFILE_RELEASE_', 'CARGO_TARGET_WASM32_', 'SLINT_'))
-             and name not in ('SLINT_WEB_TARGET_DIR', 'SLINT_PREVIEW_COMPONENTS')}
+             and name not in ('SLINT_WEB_TARGET_DIR', 'SLINT_PREVIEW_SOURCE_DIR')}
     flags.update({name: environment.get(name, '')
                   for name in ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS')})
     digest = hashlib.sha256(json.dumps({'format': 1, 'rustc': rustc, 'bindgen': bindgen,
@@ -27,15 +27,15 @@ def compilation_key(root, files, rustc, bindgen, environment):
     return digest.hexdigest()
 
 
-def restore(directory, key, destination):
+def restore(directory, key, destination, extra_assets=()):
     entry = directory / key
     try:
         manifest = json.loads((entry / 'manifest.json').read_text())
         if (not isinstance(manifest, dict) or manifest.get('key') != key
                 or not isinstance(manifest.get('assets'), dict)
-                or set(manifest['assets']) != set(ASSETS)):
+                or set(manifest['assets']) != set(ASSETS + tuple(extra_assets))):
             return False
-        contents = {name: (entry / name).read_bytes() for name in ASSETS}
+        contents = {name: (entry / name).read_bytes() for name in ASSETS + tuple(extra_assets)}
         if any(hashlib.sha256(data).hexdigest() != manifest['assets'][name]
                for name, data in contents.items()):
             return False
@@ -46,13 +46,13 @@ def restore(directory, key, destination):
     return True
 
 
-def save(directory, key, source):
+def save(directory, key, source, extra_assets=()):
     directory.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.writing-', dir=directory) as temporary:
         staging = Path(temporary) / key
         staging.mkdir()
         checksums = {}
-        for name in ASSETS:
+        for name in ASSETS + tuple(extra_assets):
             data = (source / name).read_bytes()
             (staging / name).write_bytes(data)
             checksums[name] = hashlib.sha256(data).hexdigest()

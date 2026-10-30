@@ -43,6 +43,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
   const button = preview.querySelector('.run-preview');
   const status = preview.querySelector('.preview-status');
   const host = preview.querySelector('.preview-frame');
+  const theme = preview.querySelector('.preview-theme');
   const french = document.documentElement.lang === 'fr';
   let frame, timeout;
   let width = Number(preview.dataset.width), height = Number(preview.dataset.height) + 30;
@@ -59,21 +60,25 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     button.textContent = french ? 'Réessayer' : 'Retry';
     status.textContent = french ? 'Aperçu indisponible. L’exemple natif reste utilisable ci-dessous.' : 'Preview unavailable. The native example below remains available.';
   };
-  button.addEventListener('click', () => {
-    if (frame) {
-      frame.remove(); frame = null; host.hidden = true;
-      preview.querySelector('figure').hidden = false;
-      button.textContent = french ? 'Lancer l’aperçu' : 'Run preview'; status.textContent = ''; return;
-    }
+  const start = () => {
+    clearTimeout(timeout); frame?.remove(); frame = null;
     button.disabled = true; status.textContent = french ? 'Chargement…' : 'Loading…';
     frame = document.createElement('iframe');
     frame.title = french ? 'Aperçu interactif du composant' : 'Interactive component preview';
-    frame.src = `/preview/?component=${encodeURIComponent(preview.dataset.component)}&lang=${french ? 'fr' : 'en'}`;
+    frame.src = `/preview/?component=${encodeURIComponent(preview.dataset.component)}&theme=${theme.value}&lang=${french ? 'fr' : 'en'}`;
     frame.setAttribute('allow', 'clipboard-write');
-    // Keep the canvas laid out while its code starts; the poster remains visible.
     host.hidden = false; host.classList.add('preview-loading'); host.append(frame); resize();
     timeout = setTimeout(failed, 60000);
+  };
+  button.addEventListener('click', () => {
+    if (frame) {
+      clearTimeout(timeout); frame.remove(); frame = null; host.hidden = true;
+      preview.querySelector('figure').hidden = false;
+      button.textContent = french ? 'Lancer l’aperçu' : 'Run preview'; status.textContent = ''; return;
+    }
+    start();
   });
+  theme.addEventListener('change', start);
   window.addEventListener('message', event => {
     if (event.origin !== location.origin || !frame || event.source !== frame.contentWindow || event.data?.type !== 'slint-kit-preview') return;
     if (event.data.state === 'error') { failed(); return; }
@@ -81,7 +86,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     clearTimeout(timeout); width = Number(event.data.width) || width; height = Number(event.data.height) || height;
     host.classList.remove('preview-loading'); preview.querySelector('figure').hidden = true; resize();
     button.disabled = false; button.textContent = french ? 'Arrêter l’aperçu' : 'Stop preview';
-    status.textContent = french ? 'Interactif — même code Rust que l’exemple.' : 'Interactive — same Rust code as the example.';
+    status.textContent = french ? 'Interactif — thème ' + theme.selectedOptions[0].textContent : 'Interactive — ' + theme.selectedOptions[0].textContent + ' theme';
   });
   new ResizeObserver(resize).observe(host);
 }
