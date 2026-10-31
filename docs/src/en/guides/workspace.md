@@ -31,11 +31,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-slint-kit = "=0.5.0"
+slint-kit = "=0.5.1"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "=0.5.0"
+slint-kit-build = "=0.5.1"
 ```
 
 ### build.rs

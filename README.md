@@ -38,6 +38,8 @@ slint-kit-build = "0.5"
 
 Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
+For `@kit` completion and diagnostics in VS Code or Zed, configure the language server separately with the project-relative paths in [Editor setup](https://slint-kit.dev/guides/editor/).
+
 
 ## Build the showcase
 

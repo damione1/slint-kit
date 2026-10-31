@@ -85,6 +85,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
 Lancez `cargo run` depuis `my-app`. Cette configuration utilise le **backend winit et le moteur Skia**. Conservez le backend compatible d’une application existante lors d’une intégration.
 
+Si l’éditeur affiche « Cannot find requested import » pour `@kit`, consultez [Configurer l’éditeur](/fr/guides/editor/) pour définir les chemins de bibliothèques relatifs dans VS Code ou Zed. La configuration de compilation Cargo et celle du serveur de langage sont distinctes.
+
 ## Utiliser un exemple documenté
 
 Pour une application fonctionnelle, commencez par le [bouton](/fr/components/button/) ou la [liste avec recherche](/fr/components/combobox/) : chaque fiche fournit les quatre fichiers et leurs callbacks Rust raccordés.

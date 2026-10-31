@@ -85,6 +85,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
 Run `cargo run` from `my-app`. This configuration uses the **winit backend and Skia renderer**. Preserve an existing compatible backend when integrating into another app.
 
+If your editor reports “Cannot find requested import” for `@kit`, follow [Editor setup](/guides/editor/) to configure VS Code or Zed with project-relative library paths. Cargo build configuration and language-server configuration are separate.
+
 ## Use a documented example
 
 For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page provides all four files with its Rust callbacks connected.

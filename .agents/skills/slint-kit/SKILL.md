@@ -5,19 +5,20 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.5.0`, including the component quality and modal interaction improvements in [CHANGELOG.md](../../../CHANGELOG.md). Verify that it is published before using its APIs from crates.io; use the matching documentation for an older resolved release. The compatible dependency range is `"0.5"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.5.1`, including the component quality and modal interaction improvements in [CHANGELOG.md](../../../CHANGELOG.md). Verify that it is published before using its APIs from crates.io; use the matching documentation for an older resolved release. The compatible dependency range is `"0.5"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
 
 ## Find documentation and examples
 
 The public documentation is [English at the site root](https://slint-kit.dev/) and [French under `/fr/`](https://slint-kit.dev/fr/). Start with the relevant guide:
 
 - [Getting started](https://slint-kit.dev/guides/getting-started/): a complete registry-based application and desktop prerequisites.
+- [Editor setup](https://slint-kit.dev/guides/editor/): resolve `@kit` in VS Code and Zed through project-relative library paths.
 - [Component catalogue](https://slint-kit.dev/components/): component screenshots and complete Slint examples.
 - [Complete workspace application](https://slint-kit.dev/guides/workspace/): reusable account, project list and edit dialog, sharing Rust/Slint sources with the native showcase and browser demonstration.
 - [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.dev/guides/controllers/), [themes and accessibility](https://slint-kit.dev/guides/themes/) and [native integration](https://slint-kit.dev/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.5.0/source/). Keep runtime and build dependencies on the same `"0.5"` compatibility range.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.5.1/source/). Keep runtime and build dependencies on the same `"0.5"` compatibility range.
 
 ## Wire the consumer
 
@@ -76,6 +77,8 @@ fn main() -> Result<(), slint::PlatformError> {
 Run `cargo run`. Initialize form validation once per window before showing it. Set intrinsic options such as `required`, `pattern`, `min`, `max` and `step` on the control. Guard Rust submission with matching `FieldBinding::set_html_constraints(HtmlConstraints { ... })` rules before accepting a domain value; the example callback only logs the draft. See the [forms guide](https://slint-kit.dev/guides/forms/). Ordinary fields already include `label`, help and error presentation. `KitFieldLabel` is a composition primitive for custom skins; it is not needed to set a field label. Component catalogue examples export `Example` instead of `App`: use the `Example` entry point from the getting-started guide and remove callbacks from the previous example. Screenshots show the declared state; use the typed application guide for a complete interactive controller.
 
 For local toolkit development, use `slint-kit = { path = "../slint-kit/crates/kit" }` and `slint-kit-build = { path = "../slint-kit/crates/kit-build" }` with paths adjusted to the checkout. The library files are bundled in the registry packages; consumers do not need a checkout.
+
+The Slint language server does not read `build.rs`. For registry consumers, run `cargo vendor --locked target/slint-editor/vendor` from the workspace root, then map `kit` to `target/slint-editor/vendor/slint-kit-slint/ui` in VS Code's `slint.libraryPaths`, or pass `-L kit=target/slint-editor/vendor/slint-kit-slint/ui` through Zed's `lsp.slint.binary.arguments`. Vendoring copies all remote dependencies; refresh after lockfile changes or `cargo clean`. Check the vendor directory name when several kit versions are resolved. Local path dependencies are not vendored: point the editor at the checkout's `crates/kit-slint/ui` using a workspace-relative path. Preserve existing editor settings and library aliases. See the editor setup guide for complete JSON examples.
 
 ## Choose and compose
 
