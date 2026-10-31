@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitButton, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+import { KitMenu, KitButton, KitDrawer, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
 
 export component MenuFocusFixture inherits Window {
     width: 400px; height: 300px;
@@ -22,5 +22,17 @@ export component MenuFocusFixture inherits Window {
             focus-observed(focused) => { root.observed(focused); }
         }
         outside := KitButton { text: "Outside menu"; }
+    }
+}
+
+export component DrawerContentFixture inherits Window {
+    width: 600px; height: 600px;
+    in property <KitTheme> theme: KitThemes.light;
+    KitDrawer {
+        theme: root.theme; width: root.width; height: root.height; panel-width: root.width;
+        title: "Project details"; state: { open: true, topmost: true };
+        Text { text: "Edit this project"; font-size: root.theme.typography.size-control * root.theme.text-scale; vertical-stretch: 0; }
+        KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; }
+        KitButton { theme: root.theme; text: "Save changes"; }
     }
 }

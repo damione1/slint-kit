@@ -5,6 +5,46 @@ use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, LogicalPosition, Model, ModelRc, VecModel};
 use std::{cell::RefCell, rc::Rc};
 
+#[test]
+fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = DrawerContentFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
+    window.show().unwrap();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme.clone());
+        let find = |label: &str| {
+            let label = label.to_owned();
+            ElementQuery::from_root(&window)
+                .match_predicate(move |element| {
+                    element.accessible_label().as_deref() == Some(label.as_str())
+                })
+                .find_first()
+                .unwrap()
+        };
+        let close = find("Close panel");
+        let caption = find("Edit this project");
+        let field = ElementQuery::from_root(&window)
+            .match_inherits("KitTextField")
+            .find_first()
+            .unwrap();
+        assert!(
+            caption.absolute_position().y - close.absolute_position().y - close.size().height
+                <= theme.spacing.unit * 4. + 1.,
+            "the header must not absorb the drawer's unused height"
+        );
+        assert!(
+            field.absolute_position().y - caption.absolute_position().y - caption.size().height
+                <= theme.spacing.unit * 4. + 1.,
+            "related drawer content must retain the same section gap"
+        );
+        let save = find("Save changes");
+        assert!(save.absolute_position().y + save.size().height <= 600. - theme.spacing.unit * 4.);
+    }
+}
+
 fn row(window: &MenuFocusFixture) -> ElementHandle {
     ElementQuery::from_root(window)
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Destination"))
