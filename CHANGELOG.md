@@ -8,6 +8,7 @@
 - Make the virtual-text editor footer intrinsic and responsive. Scale busy indicators with enlarged text, restore a stopped skeleton's opacity, and keep selected text legible in the teal demo theme.
 - Preserve all OTP placeholder cells at enlarged text sizes and hide text/select placeholders during native preedit. This visual correction does not qualify IME behavior.
 - Keep simple drawer content together below its heading and show a fallback icon for content items without a thumbnail. Clarify the AppShell and Section examples.
+- Keep complete fields at their natural height in stretching layouts, expose the catalogue's selected page to accessibility, and enlarge custom status badges with text.
 
 ## 0.4.0
 

@@ -1313,6 +1313,20 @@ mod preview_tests {
                         .match_id("Showcase::page-heading")
                         .find_first()
                         .unwrap();
+                    let navigation = ElementQuery::from_root(&window)
+                        .match_id("Showcase::nav")
+                        .find_all();
+                    assert_eq!(navigation.len(), 9);
+                    let selected: Vec<_> = navigation
+                        .iter()
+                        .filter(|item| item.accessible_item_selected() == Some(true))
+                        .collect();
+                    assert_eq!(selected.len(), 1);
+                    assert_eq!(
+                        selected[0].accessible_role(),
+                        Some(i_slint_backend_testing::AccessibleRole::ListItem)
+                    );
+                    assert_eq!(selected[0].accessible_label(), heading.accessible_label());
                     let viewport = ElementQuery::from_root(&window)
                         .match_id("Showcase::page-content")
                         .find_first()

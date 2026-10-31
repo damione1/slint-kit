@@ -92,9 +92,11 @@ component ProjectTile inherits KitPressable {
             KitIcon {glyph:KitGlyphs.arrow-up-right();ink:root.theme.on-accent;width:28px;height:28px;}
             Rectangle { horizontal-stretch: 1; background: transparent; }
             Rectangle {
-                width: 62px; height: 24px; border-radius: 12px;
+                width: root.theme.spacing.unit * 16 * root.theme.text-scale;
+                height: max(root.theme.spacing.unit * 6 * root.theme.text-scale, live-label.preferred-height + 2 * root.theme.spacing.unit);
+                border-radius: self.height / 2;
                 background: root.theme.on-accent.with-alpha(0.18);
-                Text { text: "LIVE"; color: root.theme.on-accent; font-size: 10px; font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
+                live-label := Text { text: "LIVE"; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
         Text { text: root.title; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
@@ -254,9 +256,14 @@ export component Showcase inherits Window {
     sidebar := ScrollView { visible: !root.product-workspace; x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
         accessible-role: navigation; accessible-label: "Component families";
         VerticalLayout { x: 0px; y: 0px; width: sidebar.visible-width; height: self.preferred-height; padding: root.theme.spacing.unit * 3; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
-            for section in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: nav := KitPressable {
+            for section[index] in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: nav := KitPressable {
                 theme: root.theme; control-size: root.density; control-width: ControlWidth.fill;
                 accessible-name: nav-label.text;
+                // AccessKit's macOS bridge exposes AXSelected for item roles.
+                accessible-role: list-item;
+                accessible-item-selectable: true;
+                accessible-item-selected: root.page == section;
+                accessible-item-index: index; accessible-item-count: 9;
                 intent: ButtonIntent.quiet;
                 background: nav.pressed ? nav.recipe.pressed-fill : nav.hovered ? nav.recipe.hover-fill : root.page == section ? root.theme.accent-subtle : transparent;
                 preferred-height: max(KitMetrics.control-height(root.theme, root.density), nav-label.preferred-height + root.theme.spacing.unit * 4); min-height: self.preferred-height;
