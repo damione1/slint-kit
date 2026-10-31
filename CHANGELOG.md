@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.0
+
 - Review all 124 public components against shared design, UX, accessibility and alignment criteria; unify showcase typography, spacing, navigation and control density.
 - Center switches and radio marks beside enlarged labels, align labelled dividers and timeline markers, restore data-row hover/press feedback, and draw the toast dismiss icon.
 - Match segmented-control visual order to RTL keyboard navigation. Search clearing emits the semantic value edit; RGB channel fields use the shared numeric constraints.

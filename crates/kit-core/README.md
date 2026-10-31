@@ -4,7 +4,7 @@ Strict domain values and state machines for [Slint Kit](https://github.com/damio
 
 ```toml
 [dependencies]
-slint-kit-core = "0.4"
+slint-kit-core = "0.5"
 ```
 
 For applications, start with the [`slint-kit` facade](https://crates.io/crates/slint-kit) and [`slint-kit-build`](https://crates.io/crates/slint-kit-build). Rust 1.92 or later is required.

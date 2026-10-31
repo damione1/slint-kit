@@ -5,7 +5,7 @@ description: Build native Rust and Slint applications with Slint Kit, using its 
 
 # Consume Slint Kit
 
-Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.4.0`, which changes the theme and icon contracts (see [CHANGELOG.md](../../../CHANGELOG.md)); verify that it is published before using its APIs from crates.io, and stay on `"0.3"` with the 0.3 API until it is. The compatible dependency range is `"0.4"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
+Read the target application’s dependency and build configuration before integrating it. Use the published `slint-kit` and `slint-kit-build` packages for application integration; a toolkit checkout is optional. This checkout targets `0.5.0`, including the component quality and modal interaction improvements in [CHANGELOG.md](../../../CHANGELOG.md). Verify that it is published before using its APIs from crates.io; use the matching documentation for an older resolved release. The compatible dependency range is `"0.5"` below. Keep the runtime and build packages on matching releases and Slint pinned to their supported version.
 
 ## Find documentation and examples
 
@@ -17,7 +17,7 @@ The public documentation is [English at the site root](https://slint-kit.dev/) a
 - [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
 - [Controllers](https://slint-kit.dev/guides/controllers/), [themes and accessibility](https://slint-kit.dev/guides/themes/) and [native integration](https://slint-kit.dev/guides/native/): domain ownership, presentation and host services.
 
-For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.4.0/source/). Keep runtime and build dependencies on the same `"0.4"` compatibility range.
+For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.5.0/source/). Keep runtime and build dependencies on the same `"0.5"` compatibility range.
 
 ## Wire the consumer
 
@@ -25,11 +25,11 @@ Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
 [dependencies]
-slint-kit = "0.4"
+slint-kit = "0.5"
 slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
 
 [build-dependencies]
-slint-kit-build = "0.4"
+slint-kit-build = "0.5"
 ```
 
 Use edition 2024 and Rust 1.92 or later. Preserve the app's chosen backend and renderer when compatible; the manifest above is a desktop example. Add `features = ["native"]` to `slint-kit` only when host services are needed.
