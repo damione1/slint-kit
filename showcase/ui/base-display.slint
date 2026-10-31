@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ControlSize, ButtonIntent } from "@kit/theme.slint";
+import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, TypographyRole } from "@kit/theme.slint";
 import { PreviewAnchor, PreviewTarget, PreviewExamples } from "example-section.slint";
 import { KitButton } from "@kit/button.slint";
 import { KitBadge, KitAvatar, KitCard, KitCardHeader, KitCardBody, KitCardFooter, KitHero, KitFooter, KitDivider, KitStat, KitChatBubble, KitSkeleton, KitEmptyState, KitTimeline, KitSteps, StepState, Tone, ChatSide } from "@kit/display.slint";
@@ -37,35 +37,35 @@ component ContentStatePreview inherits Rectangle {
     min-height: self.preferred-height;
     vertical-stretch: 0;
     background: root.theme.canvas;
-    border-radius: 8px;
+    border-radius: root.theme.shape.radius-container;
     accessible-role: groupbox;
     accessible-label: "Content state preview";
     loading := VerticalLayout {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height;
-        padding: 24px; spacing: 12px; alignment: start;
+        padding: root.theme.spacing.unit * 6; spacing: root.theme.spacing.unit * 3; alignment: start;
         opacity: DisplayExamples.content-state == ContentDemoState.loading ? 1 : 0;
         visible: self.opacity > 0;
-        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
-        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: 180px; max-width: 180px; }
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: max(0px, min(parent.width - root.theme.spacing.unit * 12, root.theme.spacing.unit * 45)); max-width: self.preferred-width; }
         KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; }
-        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: 240px; max-width: 240px; }
+        KitSkeleton { theme: root.theme; running: DisplayExamples.content-state == ContentDemoState.loading; preferred-width: max(0px, min(parent.width - root.theme.spacing.unit * 12, root.theme.spacing.unit * 60)); max-width: self.preferred-width; }
     }
     empty := KitEmptyState {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height;
         theme: root.theme; title: "No collections yet"; description: "Create a demo collection to replace this empty state.";
         opacity: DisplayExamples.content-state == ContentDemoState.empty ? 1 : 0;
         visible: self.opacity > 0;
-        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
-        KitButton { theme: root.theme; control-size: root.control-size; text: "Create collection"; disabled: DisplayExamples.content-state != ContentDemoState.empty; activated => { DisplayExamples.content-state = ContentDemoState.loaded; } }
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+        KitButton { theme: root.theme; control-size: root.control-size; text: "Create Collection"; intent: ButtonIntent.primary; disabled: DisplayExamples.content-state != ContentDemoState.empty; activated => { DisplayExamples.content-state = ContentDemoState.loaded; } }
     }
     loaded := VerticalLayout {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height;
-        padding: 24px; spacing: 8px; alignment: start;
+        padding: root.theme.spacing.unit * 6; spacing: root.theme.spacing.unit * 2; alignment: start;
         opacity: DisplayExamples.content-state == ContentDemoState.loaded ? 1 : 0;
         visible: self.opacity > 0;
-        animate opacity { duration: root.theme.reduced-motion ? 0ms : 150ms; }
-        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: "Allsafe incident notes"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        Text { width: max(0px,root.width - 48px); height: self.preferred-height; text: "Private collection · Elliot Alderson · Ready for its first note"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+        animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
+        Text { width: max(0px,root.width - root.theme.spacing.unit * 12); height: self.preferred-height; text: "Allsafe incident notes"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        Text { width: max(0px,root.width - root.theme.spacing.unit * 12); height: self.preferred-height; text: "Private collection · Elliot Alderson · Ready for its first note"; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
 }
 
@@ -74,62 +74,62 @@ export component DisplayGallery inherits VerticalLayout {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <length> viewport-width: 1180px;
     in property <length> viewport-height: 900px;
-    spacing: 24px; alignment: start; vertical-stretch: 0;
+    spacing: root.theme.spacing.unit * 6; alignment: start; vertical-stretch: 0;
     KitCard { theme: root.theme;
         KitCardHeader { theme: root.theme; title: "Card, avatar & badges"; description: "KitCard · KitAvatar · KitBadge · Group content, metadata and actions."; }
-        KitCardBody {
-            HorizontalLayout { spacing: 12px; alignment: start;
+        KitCardBody { theme: root.theme;
+            HorizontalLayout { spacing: root.theme.spacing.unit * 3; alignment: start;
                 KitAvatar { theme: root.theme; initials: "EA"; accessible-name: "Elliot Alderson"; }
-                VerticalLayout { spacing: 4px;
-                    Text { text: "Elliot Alderson"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; }
-                    Text { text: "Hello, friend."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                VerticalLayout { spacing: root.theme.spacing.unit;
+                    Text { text: "Elliot Alderson"; wrap: word-wrap; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; }
+                    Text { text: "Hello, friend."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 }
             }
-            FlexboxLayout { spacing: 8px; flex-wrap: wrap;
+            FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap;
                 KitBadge { theme: root.theme; text: "Published"; tone: Tone.success; }
                 KitBadge { theme: root.theme; text: "Team workspace"; tone: Tone.accent; }
                 KitBadge { theme: root.theme; text: "Draft"; }
             }
             KitDivider { theme: root.theme; label: "This month"; }
-            FlexboxLayout { spacing: 24px; flex-direction: root.theme.text-scale > 1 ? column : row; flex-wrap: no-wrap; cross-axis-alignment: start;
-                KitStat { theme: root.theme; width: root.theme.text-scale > 1 ? root.width - 48px : (root.width - 72px) / 2; height: self.preferred-height; label: "Readers"; value: "12,480"; description: "Across 18 published stories"; }
-                KitStat { theme: root.theme; width: root.theme.text-scale > 1 ? root.width - 48px : (root.width - 72px) / 2; height: self.preferred-height; label: "Contributors"; value: "24"; description: "People making things together"; }
+            FlexboxLayout { spacing: root.theme.spacing.unit * 6; flex-direction: root.theme.text-scale > 1 ? column : row; flex-wrap: no-wrap; cross-axis-alignment: start;
+                KitStat { theme: root.theme; width: root.theme.text-scale > 1 ? root.width - root.theme.spacing.unit * 12 : (root.width - root.theme.spacing.unit * 18) / 2; height: self.preferred-height; label: "Readers"; value: "12,480"; description: "Across 18 published stories"; }
+                KitStat { theme: root.theme; width: root.theme.text-scale > 1 ? root.width - root.theme.spacing.unit * 12 : (root.width - root.theme.spacing.unit * 18) / 2; height: self.preferred-height; label: "Contributors"; value: "24"; description: "People making things together"; }
             }
         }
-        KitCardFooter {
-            KitTooltip { theme: root.theme; text: "Tooltips describe a control on hover or keyboard focus."; target-focused: publish.has-focus; viewport-width: root.viewport-width; viewport-height: root.viewport-height;
-                publish := KitButton { theme: root.theme; control-size: root.control-size; text: "Tooltip target"; }
+        KitCardFooter { theme: root.theme;
+            KitTooltip { theme: root.theme; text: "Publish this collection. You can undo from its notification."; target-focused: publish.has-focus; viewport-width: root.viewport-width; viewport-height: root.viewport-height;
+                publish := KitButton { theme: root.theme; control-size: root.control-size; text: "Publish Update"; intent: ButtonIntent.primary; activated => { DisplayExamples.add-toast(ToastExample.published); } }
             }
         }
     }
     KitCard { theme: root.theme;
         KitCardHeader { theme: root.theme; title: "Alert"; description: "KitAlert · Show feedback next to the action that needs it."; }
         if DisplayExamples.alert-visible: KitAlert { theme: root.theme; severity: AlertSeverity.information; title: "Workspace ready"; message: "Invite a teammate to start sharing."; dismissible: true; dismissed => { DisplayExamples.alert-visible = false; } }
-        if !DisplayExamples.alert-visible: KitButton { theme: root.theme; control-size: root.control-size; text: "Restore alert"; activated => { DisplayExamples.alert-visible = true; } }
-        KitButton { theme: root.theme; control-size: root.control-size; text: "Show an error"; activated => { DisplayExamples.error-visible = true; } }
+        if !DisplayExamples.alert-visible: KitButton { theme: root.theme; control-size: root.control-size; text: "Restore Alert"; intent: ButtonIntent.secondary; activated => { DisplayExamples.alert-visible = true; } }
+        KitButton { theme: root.theme; control-size: root.control-size; text: "Show Error"; intent: ButtonIntent.secondary; activated => { DisplayExamples.error-visible = true; } }
         if DisplayExamples.error-visible: KitAlert { theme: root.theme; severity: AlertSeverity.error; title: "Update could not be saved"; message: "Your draft is preserved. Dismiss this message to try again."; dismissible: true; dismissed => { DisplayExamples.error-visible = false; } }
     }
     KitCard { theme: root.theme;
         PreviewAnchor { height: 0px; target: PreviewTarget.progress; }
         KitCardHeader { theme: root.theme; title: "Progress"; description: "KitProgress · KitRadialProgress · Start, cancel or restart an operation."; }
-        KitProgress { theme: root.theme; value: DisplayExamples.progress; label: DisplayExamples.progress-state == ProgressDemoState.running ? "In progress" : DisplayExamples.progress-state == ProgressDemoState.completed ? "Complete" : DisplayExamples.progress-state == ProgressDemoState.cancelled ? "Cancelled" : "Ready to begin"; }
-        HorizontalLayout { spacing: 16px; alignment: start;
-            KitRadialProgress { theme: root.theme; value: DisplayExamples.progress; label: "Completion"; }
-            if DisplayExamples.progress-state == ProgressDemoState.running: KitSpinner { theme: root.theme; label: "In progress"; }
+        KitProgress { theme: root.theme; value: DisplayExamples.progress; label: DisplayExamples.progress-state == ProgressDemoState.running ? "Importing collection" : DisplayExamples.progress-state == ProgressDemoState.completed ? "Import complete" : DisplayExamples.progress-state == ProgressDemoState.cancelled ? "Import cancelled" : "Ready to begin"; }
+        HorizontalLayout { spacing: root.theme.spacing.unit * 4; alignment: start;
+            KitRadialProgress { theme: root.theme; value: DisplayExamples.progress; label: "Import progress"; }
+            if DisplayExamples.progress-state == ProgressDemoState.running: KitSpinner { theme: root.theme; label: "Importing collection"; }
         }
-        KitCardFooter {
-            KitButton { theme: root.theme; control-size: root.control-size; text: DisplayExamples.progress-state == ProgressDemoState.idle ? "Run progress demo" : "Restart"; activated => { DisplayExamples.progress-start(); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Cancel"; disabled: DisplayExamples.progress-state != ProgressDemoState.running; activated => { DisplayExamples.progress-cancel(); } }
+        KitCardFooter { theme: root.theme;
+            KitButton { theme: root.theme; control-size: root.control-size; text: DisplayExamples.progress-state == ProgressDemoState.idle ? "Start Import" : "Restart"; intent: ButtonIntent.primary; activated => { DisplayExamples.progress-start(); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Cancel"; intent: ButtonIntent.secondary; disabled: DisplayExamples.progress-state != ProgressDemoState.running; activated => { DisplayExamples.progress-cancel(); } }
         }
     }
     KitCard { theme: root.theme;
         PreviewAnchor { height: 0px; target: PreviewTarget.toast; }
         KitCardHeader { theme: root.theme; title: "Toast"; description: "KitToastHost · Window notifications stay in the bottom corner. Hover or focus pauses dismissal."; }
-        KitCardFooter {
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Success toast"; activated => { DisplayExamples.add-toast(ToastExample.published); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Error toast"; activated => { DisplayExamples.add-toast(ToastExample.failed); } }
+        KitCardFooter { theme: root.theme;
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Show Success"; intent: ButtonIntent.secondary; activated => { DisplayExamples.add-toast(ToastExample.published); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: "Show Error"; intent: ButtonIntent.secondary; activated => { DisplayExamples.add-toast(ToastExample.failed); } }
         }
-        Text { text: DisplayExamples.toast-status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+        Text { text: DisplayExamples.toast-status; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
     }
     KitCard { theme: root.theme;
         KitCardHeader { theme: root.theme; title: "Chat bubbles"; description: "KitChatBubble · Keep author, message and delivery context together."; }
@@ -144,14 +144,14 @@ export component DisplayGallery inherits VerticalLayout {
     }
     ContentStateCard { theme: root.theme;
         KitCardHeader { theme: root.theme; title: "Loading & empty states"; description: "KitSkeleton · KitEmptyState · Replace the placeholder when content is available."; }
-        KitCardFooter {
+        KitCardFooter { theme: root.theme;
             for state in [ContentDemoState.empty,ContentDemoState.loading,ContentDemoState.loaded]: KitButton { theme: root.theme; control-size: root.control-size; text: state == ContentDemoState.empty ? "Empty" : state == ContentDemoState.loading ? "Loading" : "Loaded"; intent: DisplayExamples.content-state == state ? ButtonIntent.primary : ButtonIntent.secondary; activated => { DisplayExamples.content-state = state; } }
         }
         ContentStatePreview { theme: root.theme; control-size: root.control-size; }
     }
-    KitHero { theme: root.theme; title: "Hero"; description: "KitHero · A configurable introductory surface for your content."; }
+    KitHero { theme: root.theme; title: "Make Room for Your Next Idea"; description: "KitHero · A quiet introduction that gives a page its purpose."; }
     KitFooter { theme: root.theme;
-        Text { text: "Slint Kit"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; font-weight: 600; }
-        Text { text: "KitFooter · Persistent information at the end of a page."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+        Text { text: "Slint Kit"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; }
+        Text { text: "KitFooter · Persistent information at the end of a page."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
 }

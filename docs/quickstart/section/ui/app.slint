@@ -23,7 +23,13 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Section"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSection { theme: root.theme; title: "Team workspace"; description: "Compose ordinary children with shared spacing.";Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } }
+        KitSection {
+            theme: root.theme;
+            title: "Team workspace";
+            description: "Compose ordinary children with shared spacing.";
+            KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }
+            KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } }
+        }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }

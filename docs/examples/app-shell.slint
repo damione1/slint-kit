@@ -1,6 +1,6 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitAppShell, KitButton, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitAppShell, LayoutSpace, KitButton, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -15,7 +15,13 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "App Shell"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitAppShell { theme: root.theme;Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; }KitButton { theme: root.theme; text: "Save project"; activated => { root.status = "Action requested"; } } }
+        KitAppShell {
+            theme: root.theme;
+            gap: LayoutSpace.regular;
+            Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+            KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; }
+            KitButton { theme: root.theme; text: "Save project"; activated => { root.status = "Action requested"; } }
+        }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

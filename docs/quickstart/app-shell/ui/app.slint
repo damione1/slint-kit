@@ -3,7 +3,7 @@ import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitAppShell, KitStack, KitButton, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitAppShell, LayoutSpace, KitButton, KitTextField, KitTheme, KitThemes } from "@kit/kit.slint";
 
 export enum DemoAction { save-project }
 
@@ -23,7 +23,13 @@ export component App inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "App Shell"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitAppShell { theme: root.theme; KitStack { theme: root.theme; Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } } } }
+        KitAppShell {
+            theme: root.theme;
+            gap: LayoutSpace.regular;
+            Text { text: "Team workspace"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+            KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft-0; }
+            KitButton { theme: root.theme; text: "Save project"; activated => { root.action-requested(DemoAction.save-project); } }
+        }
         Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
     }
 }
