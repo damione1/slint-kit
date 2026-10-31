@@ -1,6 +1,15 @@
 # Changelog
 
-## 0.4.0 — unreleased
+## Unreleased
+
+- Review all 124 public components against shared design, UX, accessibility and alignment criteria; unify showcase typography, spacing, navigation and control density.
+- Center switches and radio marks beside enlarged labels, align labelled dividers and timeline markers, restore data-row hover/press feedback, and draw the toast dismiss icon.
+- Match segmented-control visual order to RTL keyboard navigation. Search clearing emits the semantic value edit; RGB channel fields use the shared numeric constraints.
+- Make the virtual-text editor footer intrinsic and responsive. Scale busy indicators with enlarged text, restore a stopped skeleton's opacity, and keep selected text legible in the teal demo theme.
+- Preserve all OTP placeholder cells at enlarged text sizes and hide text/select placeholders during native preedit. This visual correction does not qualify IME behavior.
+- Keep simple drawer content together below its heading and show a fallback icon for content items without a thumbnail. Clarify the AppShell and Section examples.
+
+## 0.4.0
 
 0.4.0 changes the theme and icon contracts. The Slint compiler reports every site that must change, so upgrade by following its errors. This list names each break.
 

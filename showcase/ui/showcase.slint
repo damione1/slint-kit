@@ -2,7 +2,7 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
-import { KitTheme, KitThemes, ControlWidth } from "@kit/theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlWidth } from "@kit/theme.slint";
 import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
@@ -64,11 +64,11 @@ component Label inherits Text {
 component Avatar inherits Rectangle {
     in property <KitTheme> theme;
     in property <string> initials: "SK";
-    width: 42px;
-    height: 42px;
-    border-radius: 21px;
+    width: KitMetrics.control-height(root.theme, ControlSize.comfortable);
+    height: root.width;
+    border-radius: root.height / 2;
     background: theme.accent;
-    Text { text: root.initials; color: root.theme.on-accent; font-size: 14px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+    Text { text: root.initials; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 // The consumer supplies layout and a recipe; KitPressable owns activation.
@@ -94,11 +94,11 @@ component ProjectTile inherits KitPressable {
             Rectangle {
                 width: 62px; height: 24px; border-radius: 12px;
                 background: root.theme.on-accent.with-alpha(0.18);
-                Text { text: "LIVE"; color: root.theme.on-accent; font-size: 10px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                Text { text: "LIVE"; color: root.theme.on-accent; font-size: 10px; font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
-        Text { text: root.title; color: root.theme.on-accent; font-size: 23px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
-        Text { text: root.subtitle; color: root.theme.on-accent; font-size: 13px * root.theme.text-scale; wrap: word-wrap; }
+        Text { text: root.title; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+        Text { text: root.subtitle; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
     }
 }
 
@@ -150,7 +150,7 @@ export component Showcase inherits Window {
         accent-hover: teal ? teal-accent.darker(12%) : base-theme.accent-hover,
         accent-pressed: teal ? teal-accent.darker(24%) : base-theme.accent-pressed,
         accent-subtle: teal ? teal-hover : base-theme.accent-subtle,
-        selection: teal ? teal-accent : base-theme.selection, on-selection: base-theme.on-selection,
+        selection: teal ? teal-accent : base-theme.selection, on-selection: teal ? base-theme.on-accent : base-theme.on-selection,
         danger: base-theme.danger, danger-hover: base-theme.danger-hover, danger-pressed: base-theme.danger-pressed, danger-subtle: base-theme.danger-subtle,
         success: base-theme.success, success-subtle: base-theme.success-subtle,
         warning: base-theme.warning, warning-subtle: base-theme.warning-subtle,
@@ -231,16 +231,19 @@ export component Showcase inherits Window {
     private property <length> header-height: preview-header.preferred-height + 32px;
     private property <string> page-title: root.page == ShowcasePage.gallery ? "Buttons & dialogs" : root.page == ShowcasePage.profile ? "Text fields" : root.page == ShowcasePage.billing ? "Numbers & money" : root.page == ShowcasePage.choices ? "Selection" : root.page == ShowcasePage.schedule ? "Dates & time" : root.page == ShowcasePage.files ? "Files & color" : root.page == ShowcasePage.display ? "Display & feedback" : root.page == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
     Rectangle { x: 0px; y: 0px; width: root.width; height: root.header-height; background: root.theme.surface;
+        accessible-role: banner; accessible-label: "Preview settings";
         preview-header := FlexboxLayout {
  x: 24px; y: 16px; width: parent.width - 48px; height: self.preferred-height; spacing: 8px; alignment: start; cross-axis-alignment: center;
             brand-label := Image {
-                width: 144px * root.theme.text-scale;
-                height: 40px * root.theme.text-scale;
+                // Enlarging reading text must not turn the wordmark into a
+                // second toolbar row; it keeps an explicit accessible label.
+                width: 144px;
+                height: 40px;
                 source: root.theme-mode == ThemeMode.dark ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
                 image-fit: contain;
                 accessible-label: "Slint Kit";
             }
-            KitButton { disabled: root.product-modal; theme: root.theme; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
+            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
@@ -248,23 +251,26 @@ export component Showcase inherits Window {
             KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.reduced-motion ? "Motion off" : "Motion on"; intent: ButtonIntent.quiet; activated => { root.reduced-motion = !root.reduced-motion; } }
         }
     }
-    ScrollView { visible: !root.product-workspace; x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
-        VerticalLayout { x: 0px; y: 0px; width: 200px; height: self.preferred-height; padding: 12px; spacing: 8px; alignment: start;
+    sidebar := ScrollView { visible: !root.product-workspace; x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
+        accessible-role: navigation; accessible-label: "Component families";
+        VerticalLayout { x: 0px; y: 0px; width: sidebar.visible-width; height: self.preferred-height; padding: root.theme.spacing.unit * 3; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for section in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: nav := KitPressable {
                 theme: root.theme; control-size: root.density; control-width: ControlWidth.fill;
                 accessible-name: nav-label.text;
-                intent: root.page == section ? ButtonIntent.secondary : ButtonIntent.quiet;
-                preferred-height: nav-label.preferred-height + 20px; min-height: self.preferred-height;
+                intent: ButtonIntent.quiet;
+                background: nav.pressed ? nav.recipe.pressed-fill : nav.hovered ? nav.recipe.hover-fill : root.page == section ? root.theme.accent-subtle : transparent;
+                preferred-height: max(KitMetrics.control-height(root.theme, root.density), nav-label.preferred-height + root.theme.spacing.unit * 4); min-height: self.preferred-height;
                 activated => { root.page = section; }
                 nav-label := Text { x: 0px; y: 0px; width: max(0px,nav.width - 2 * nav.recipe.padding-inline); height: max(0px,nav.height - 2 * nav.recipe.padding-block); wrap: word-wrap; vertical-alignment: center;
                     text: section == ShowcasePage.gallery ? "Buttons & dialogs" : section == ShowcasePage.profile ? "Text fields" : section == ShowcasePage.billing ? "Numbers & money" : section == ShowcasePage.choices ? "Selection" : section == ShowcasePage.schedule ? "Dates & time" : section == ShowcasePage.files ? "Files & color" : section == ShowcasePage.display ? "Display & feedback" : section == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
-                    color: root.page == section ? root.theme.accent : root.theme.text-secondary; font-size: 14px * root.theme.text-scale; font-weight: root.page == section ? 600 : 400;
+                    color: root.page == section ? root.theme.accent : root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.page == section ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular;
                 }
             }
         }
     }
     page-scroll := ScrollView {
         visible: !root.product-workspace;
+        accessible-role: main; accessible-label: root.page-title;
         x: 220px; y: root.header-height; width: root.width - 220px; height: root.height - root.header-height;
         content-width: self.visible-width;
         content-height: max(self.visible-height,catalogue-footer.y + catalogue-footer.height + 24px);
@@ -272,16 +278,16 @@ export component Showcase inherits Window {
         page-content := VerticalLayout {
             x: 0px; y: 0px; width: page-scroll.visible-width; height: self.preferred-height;
             alignment: start; padding: 24px; spacing: 24px;
-            Text { text: root.page-title; color: root.theme.text-primary; font-size: 28px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
+            page-heading := Text { text: root.page-title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
             if root.page == ShowcasePage.gallery: VerticalLayout { spacing: 24px; alignment: start; vertical-stretch: 0;
-                Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit/button.slint · Activate an action with the pointer, Space or Enter.";
                     FlexboxLayout { spacing: 8px; alignment: start;
                         for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Disabled"; disabled: true; }
                         KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Working…"; busy: true; }
                     }
-                    Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; accessible-live-region: polite; }
+                    Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit/select.slint · Search 10,000 people. Selection follows identity when rows move.";
                             KitSelect {
@@ -297,21 +303,21 @@ export component Showcase inherits Window {
                                 tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
                             }
 
-                    Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     FlexboxLayout { spacing: 8px; alignment: start;
                         KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reverse rows"; activated => { root.reverse-options(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Remove selected"; disabled: !root.select-state.selected.present; activated => { root.remove-selected(); } }
                         KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reset data"; intent: ButtonIntent.quiet; activated => { root.restore-options(); } }
                     }
-                    Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+                    Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
                 ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit/dialog.slint · Create a demo project with validation and a nested select.";
                     RegisteredButton { theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
-                    Text { text: root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+                    Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Customize the same component"; description: "KitPressable · KitSelectTrigger · Compose a recipe and content around the same public behavior. Both selects share one selection.";
                     ProjectTile { theme: root.theme; title: "Run action"; subtitle: "Custom content and button recipe"; activated => { root.activated(); } }
-                    Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; }
+                    Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
                             KitFocusTarget {
                                 token: 3; generation: root.focus-generations[3]; request: root.focus-request;
                                 min-height: max(64px, 44px * root.theme.text-scale); preferred-height: self.min-height; max-height: self.preferred-height; vertical-stretch: 0;
@@ -332,8 +338,8 @@ export component Showcase inherits Window {
                                     HorizontalLayout { spacing: 12px;
                                         Avatar { theme: root.theme; initials: "P"; }
                                         VerticalLayout { spacing: 4px;
-                                            Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 600; overflow: elide; }
-                                            Text { text: root.selected-detail; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
+                                            Text { text: root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; overflow: elide; }
+                                            Text { text: root.selected-detail; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                                         }
                                         Rectangle { width: 16px; horizontal-stretch: 0; KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; y: (parent.height - self.height) / 2; } }
                                     }
@@ -341,7 +347,7 @@ export component Showcase inherits Window {
                             }
 
                     RegisteredButton { theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
-                    Text { text: root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
                     KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
                 }
@@ -350,7 +356,7 @@ export component Showcase inherits Window {
             if root.page == ShowcasePage.display: DisplayGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
             if root.page == ShowcasePage.navigation: NavigationGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
             if root.page == ShowcasePage.data: DataGallery {theme:root.theme;control-size:root.density;}
-            catalogue-footer := Text { accessible-role: text; accessible-label: self.text; text: "Slint Kit · GPL-3.0-or-later"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+            catalogue-footer := Text { accessible-role: text; accessible-label: self.text; text: "Slint Kit · GPL-3.0-or-later"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
         }
     }
 
@@ -393,15 +399,15 @@ export component Showcase inherits Window {
                         width:dialog-scroll.visible-width - 56px;
                         spacing: 12px;
                         if root.dialog-skin == ShowcaseSkin.expressive: Avatar { theme: root.theme; initials: "↗"; }
-                        Text { text: root.dialog-skin == ShowcaseSkin.expressive ? "Create a project" : "Create a project"; color: root.theme.text-primary; font-size: 28px * root.theme.text-scale; font-weight: 700; wrap: word-wrap; }
-                        Text { text: "Name the project and choose a collaborator."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+                        Text { text: root.dialog-skin == ShowcaseSkin.expressive ? "Create a project" : "Create a project"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+                        Text { text: "Name the project and choose a collaborator."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                     }
                 }
                 KitDialogBody {
                     vertical-stretch: 0;
                     VerticalLayout {
                         spacing: 12px;
-                        Label { theme: root.theme; text: "Project name"; font-weight: 650; }
+                        Label { theme: root.theme; text: "Project name"; font-weight: root.theme.typography.weight-semibold; }
                         KitFocusTarget {
                             token: 11; generation: root.focus-generations[11]; request: root.focus-request;
                             eligible: !root.dialog-state.busy;
@@ -418,14 +424,14 @@ export component Showcase inherits Window {
                                 x: 14px; y: 10px; width: parent.width - 28px; height: parent.height - 20px;
                                 text <=> root.project-name;
                                 color: root.theme.text-primary;
-                                font-size: 15px * root.theme.text-scale;
+                                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                                 single-line: true;
                                 enabled: !root.dialog-state.busy;
                                 accessible-label: "Project name";
                                 changed has-focus => { root.focus-changed(11, self.has-focus); }
                             }
                         }
-                        Label { theme: root.theme; text: "Invite a collaborator"; font-weight: 650; }
+                        Label { theme: root.theme; text: "Invite a collaborator"; font-weight: root.theme.typography.weight-semibold; }
                         KitFocusTarget {
                             token: 12; generation: root.focus-generations[12]; request: root.focus-request;
                             eligible: !root.dialog-state.busy;
@@ -445,10 +451,10 @@ export component Showcase inherits Window {
                             dismiss(reason) => { root.select-dismiss(reason); }
                             typeahead(text) => { root.select-typeahead(text); }
                             tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
-                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; vertical-alignment: center; overflow: elide; } KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; } }
+                                HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; } KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; } }
                             }
                         }
-                        Text { text: "Try accents, emoji, selection, undo and paste. Escape closes one layer at a time."; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+                        Text { text: "Try accents, emoji, selection, undo and paste. Escape closes one layer at a time."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                         RegisteredButton {
                             theme: root.theme; text: root.note-visible ? "Remove optional note" : "Add an optional note"; intent: ButtonIntent.quiet;
                             eligible: !root.dialog-state.busy;
@@ -468,7 +474,7 @@ export component Showcase inherits Window {
                         if root.validation-message != "": Text {
                             text: root.validation-message;
                             color: root.validation-phase == ValidationPhase.failed ? root.theme.danger : root.theme.text-secondary;
-                            font-size: 13px * root.theme.text-scale;
+                            font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
                             wrap: word-wrap;
                         }
                     }
@@ -479,7 +485,7 @@ export component Showcase inherits Window {
                     VerticalLayout {
                         width:dialog-scroll.visible-width - 56px;
                         spacing: 14px;
-                        if root.dialog-skin == ShowcaseSkin.expressive: Text { text: "Custom dialog presentation"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+                        if root.dialog-skin == ShowcaseSkin.expressive: Text { text: "Custom dialog presentation"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
                         FlexboxLayout {
                             spacing: 12px; alignment: start;
                             RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
@@ -515,7 +521,7 @@ export component Showcase inherits Window {
             VerticalLayout {
                 spacing: 4px;
                 HorizontalLayout {
-                    Text { text: "PEOPLE"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; vertical-alignment: center; }
+                    Text { text: "PEOPLE"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; }
                     KitButton { theme: root.theme; text: "Switch theme"; intent: ButtonIntent.quiet; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
                 }
             custom-list := ListView {
@@ -530,10 +536,10 @@ export component Showcase inherits Window {
                         Avatar { theme: root.theme; initials: "P"; }
                         VerticalLayout {
                             spacing: 5px;
-                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: 14px * root.theme.text-scale; font-weight: 650; }
-                            Text { text: row.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+                            Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; }
+                            Text { text: row.description; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
                         }
-                        Text { text: row.disabled ? "Unavailable" : (root.select-state.selected.token == row.token && root.select-state.selected.present ? "✓" : ""); color: root.theme.accent; font-size: 12px * root.theme.text-scale; vertical-alignment: center; }
+                        Text { text: row.disabled ? "Unavailable" : (root.select-state.selected.token == row.token && root.select-state.selected.present ? "✓" : ""); color: root.theme.accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; }
                     }
                 }
             }

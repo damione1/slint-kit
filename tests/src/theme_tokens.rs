@@ -402,6 +402,11 @@ fn metrics_derive_from_tokens_and_follow_text_scale() {
                 assert_eq!(field.padding_inline, button.padding_inline);
                 assert_eq!(button.padding_block, padding_block);
                 assert_eq!(button.font_size, 14. * scale);
+                assert_eq!(button.busy_mark_size, 14. * scale);
+                assert_eq!(
+                    button.busy_mark_stroke,
+                    theme.shape.border_width_strong * scale
+                );
                 assert_eq!(
                     window.invoke_icon_button(theme.clone(), size).height,
                     expected

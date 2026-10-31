@@ -1144,7 +1144,7 @@ mod preview_tests {
             preview.set_request(preview.get_request() + 1);
             settle(1);
             let before = card.absolute_position();
-            button(&window, "Create collection").mock_single_click(PointerEventButton::Left);
+            button(&window, "Create Collection").mock_single_click(PointerEventButton::Left);
             settle(160);
             assert_eq!(g.get_content_state(), ContentDemoState::Loaded);
             assert!((card.absolute_position().y - before.y).abs() <= 1.);
@@ -1185,6 +1185,13 @@ mod preview_tests {
                         .match_id("Showcase::brand-label")
                         .find_first()
                         .unwrap();
+                    assert_eq!(brand.size(), slint::LogicalSize::new(144., 40.));
+                    let control_height = controls[0].size().height;
+                    assert!(
+                        controls.iter().all(|control| {
+                            (control.size().height - control_height).abs() <= 1.
+                        })
+                    );
                     let mut children = controls;
                     children.push(brand);
                     let mut minimum_top = f32::MAX;
@@ -1249,6 +1256,100 @@ mod preview_tests {
                     Some("Kit" | "Tailwind")
                 ))
         );
+    }
+    #[test]
+    fn teal_editor_selection_keeps_its_text_legible_in_both_modes() {
+        fn luminance(color: slint::Color) -> f64 {
+            let linear = |channel: u8| {
+                let value = f64::from(channel) / 255.;
+                if value <= 0.04045 {
+                    value / 12.92
+                } else {
+                    ((value + 0.055) / 1.055).powf(2.4)
+                }
+            };
+            0.2126 * linear(color.red())
+                + 0.7152 * linear(color.green())
+                + 0.0722 * linear(color.blue())
+        }
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.set_accent_style(AccentStyle::Teal);
+        for mode in [ThemeMode::Light, ThemeMode::Dark] {
+            window.set_theme_mode(mode);
+            let theme = window.get_theme();
+            let (a, b) = (luminance(theme.selection), luminance(theme.on_selection));
+            let ratio = (a.max(b) + 0.05) / (a.min(b) + 0.05);
+            assert!(
+                ratio >= 4.5,
+                "{mode:?}: selected editor text contrast {ratio:.2}"
+            );
+        }
+    }
+    #[test]
+    fn catalogue_cards_share_the_page_heading_edge_at_both_text_scales() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.show().unwrap();
+        for width in [960., 1180.] {
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(width, 900.));
+            for enlarged in [false, true] {
+                window.set_enlarged(enlarged);
+                for page in [
+                    ShowcasePage::Gallery,
+                    ShowcasePage::Profile,
+                    ShowcasePage::Billing,
+                    ShowcasePage::Choices,
+                    ShowcasePage::Schedule,
+                    ShowcasePage::Files,
+                    ShowcasePage::Display,
+                    ShowcasePage::Navigation,
+                    ShowcasePage::Data,
+                ] {
+                    window.set_page(page);
+                    let heading = ElementQuery::from_root(&window)
+                        .match_id("Showcase::page-heading")
+                        .find_first()
+                        .unwrap();
+                    let viewport = ElementQuery::from_root(&window)
+                        .match_id("Showcase::page-content")
+                        .find_first()
+                        .unwrap();
+                    let margin = window.get_theme().spacing.unit * 6.;
+                    // Form examples intentionally cap their reading measure;
+                    // their leading edge still belongs to the page column.
+                    let form = ElementQuery::from_root(&window)
+                        .match_inherits("FormGallery")
+                        .find_first();
+                    let available = viewport.size().width - 2. * margin;
+                    let expected = form.map_or(available, |form| form.size().width);
+                    assert!(expected <= available + 1.);
+                    let cards = ElementQuery::from_root(&window)
+                        .match_inherits("KitCard")
+                        .find_all();
+                    let mut checked = 0;
+                    for card in cards {
+                        // Full-column example cards, rather than nested demo
+                        // cards whose deliberate inset belongs to their parent.
+                        if card.size().width >= expected - 1. {
+                            checked += 1;
+                            assert!(
+                                (card.absolute_position().x - heading.absolute_position().x).abs()
+                                    <= 1.,
+                                "{page:?}, width {width}, enlarged {enlarged}: card and heading edges"
+                            );
+                            assert!(
+                                (card.size().width - expected).abs() <= 1.,
+                                "{page:?}, width {width}, enlarged {enlarged}: card exceeds reading column"
+                            );
+                        }
+                    }
+                    assert!(checked > 0, "{page:?}: expected a full-column example card");
+                }
+            }
+        }
     }
     #[test]
     fn gallery_end_scroll_keeps_navigation_fixed_and_footer_inside_viewport() {
