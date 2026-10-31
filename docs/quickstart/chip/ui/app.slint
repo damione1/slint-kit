@@ -16,7 +16,7 @@ export component App inherits Window {
     VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
         Text { text: "Make it your own"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         Text { text: "Tags keep a project easy to find. Remove a tag or restore the set."; color: root.theme.text-secondary; wrap: word-wrap; }
-        FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+        FlexboxLayout { spacing: root.theme.spacing.unit * 3; flex-wrap: wrap; alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; remove-requested(token) => { root.remove(token); } }
         }
         KitButton { theme: root.theme; text: "Restore tags"; activated => { root.reset(); } }

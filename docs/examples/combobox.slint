@@ -1,3 +1,4 @@
+import { KitMetrics, TypographyRole } from "@kit/kit.slint";
 import { InterFont } from "@kit/fonts/inter.slint";
 import { KitCombobox, KitTheme, KitThemes, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SearchPresentation } from "@kit/kit.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability }
@@ -5,6 +6,7 @@ export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailabil
 export component Example inherits Window {
     in-out property <KitTheme> theme: KitThemes.light;
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Slint combobox";
     preferred-width: 480px;
     preferred-height: 480px;
@@ -25,9 +27,9 @@ export component Example inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        Text { text: "Find your workspace"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Find your workspace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Search eight workspaces by name, or browse with the arrow keys."; color: root.theme.text-secondary; wrap: word-wrap; }
-        workspace := KitCombobox {
+        workspace := KitCombobox { theme: root.theme;
             label: "Workspace";
             rows: root.rows;
             state: root.select-state;

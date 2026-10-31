@@ -1,8 +1,10 @@
+import { KitMetrics, TypographyRole } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { InterFont } from "@kit/fonts/inter.slint";
 import { KitChip, KitButton, KitTheme, KitThemes, ChipRow } from "@kit/kit.slint";
 export component Example inherits Window {
     default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "Chip";
     preferred-width: 560px; preferred-height: 300px;
     max-width: 100000px; max-height: 100000px;
@@ -12,7 +14,7 @@ export component Example inherits Window {
     VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
         Text { text: "Ajoutez votre touche"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         Text { text: "Les étiquettes facilitent la recherche. Retirez-en une ou rétablissez la liste."; color: root.theme.text-secondary; wrap: word-wrap; }
-        FlexboxLayout { spacing: 10px; flex-wrap: wrap; alignment: start;
+        FlexboxLayout { spacing: root.theme.spacing.unit * 3; flex-wrap: wrap; alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; remove-requested(token) => { root.remove(token); } }
         }
         KitButton { theme: root.theme; text: "Rétablir les étiquettes"; activated => { root.reset(); } }
