@@ -1464,4 +1464,56 @@ mod preview_tests {
             assert_eq!(button(&window, "Light").accessible_enabled(), Some(true));
         }
     }
+    #[test]
+    fn long_gallery_action_labels_fit_the_reading_column_and_keep_their_full_names() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        window.show().unwrap();
+        for width in [960., 1180.] {
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(width, 900.));
+            for enlarged in [false, true] {
+                window.set_enlarged(enlarged);
+                for (sample, suffix) in [
+                    (TextSample::LongFrench, "conserver les modifications"),
+                    (TextSample::RightToLeft, "الفريق"),
+                ] {
+                    window.set_text_sample(sample);
+                    window.invoke_scroll_page(1.);
+                    slint::platform::update_timers_and_animations();
+                    window.invoke_scroll_page(1.);
+                    let action = ElementQuery::from_root(&window)
+                        .match_inherits("KitPressable")
+                        .match_predicate(move |element| {
+                            element
+                                .accessible_label()
+                                .is_some_and(|label| label.ends_with(suffix))
+                        })
+                        .find_first()
+                        .unwrap_or_else(|| {
+                            let labels: Vec<_> = ElementQuery::from_root(&window)
+                                .match_inherits("KitPressable")
+                                .find_all()
+                                .into_iter()
+                                .map(|element| element.accessible_label())
+                                .collect();
+                            panic!("missing stress action for {sample:?}: {labels:?}")
+                        });
+                    let column = ElementQuery::from_root(&window)
+                        .match_id("Showcase::page-content")
+                        .find_first()
+                        .unwrap();
+                    let margin = window.get_theme().spacing.unit * 6.;
+                    let left = column.absolute_position().x + margin;
+                    let right = column.absolute_position().x + column.size().width - margin;
+                    assert!(action.absolute_position().x >= left - 1.);
+                    assert!(
+                        action.absolute_position().x + action.size().width <= right + 1.,
+                        "{sample:?} at {width}, enlarged {enlarged}: action exceeds reading column"
+                    );
+                }
+            }
+        }
+    }
 }

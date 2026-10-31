@@ -16,7 +16,7 @@ import { DataGallery, DataExamples, DataCollection } from "base-data.slint";
 export { DataExamples, DataCollection, ArticlePreviewState, ArticlePreview } from "base-data.slint";
 export { TableColumn, TableRow, ContentItem, TextLine, DataSortDirection, DataAlignment } from "@kit/data.slint";
 import { ExampleSection, PreviewExamples, PreviewTarget } from "example-section.slint";
-import { KitTooltipLayer, KitToastHost } from "@kit/feedback.slint";
+import { KitTooltip, KitTooltipLayer, KitToastHost } from "@kit/feedback.slint";
 import { FormGallery, FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 export { FormExamples, ShowcasePage, TextExample, NumericExample, LocaleExample, SubmissionPresentation } from "forms-gallery.slint";
 import { KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget } from "@kit/dialog.slint";
@@ -362,7 +362,18 @@ export component Showcase inherits Window {
                     RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
-                    KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
+                    KitTooltip {
+                        theme: root.theme;
+                        text: root.text-sample == TextSample.standard ? "" : root.sample-label;
+                        target-focused: sample-action.focus-visible;
+                        viewport-width: root.width; viewport-height: root.height;
+                        horizontal-stretch: 1;
+                        sample-action := KitButton {
+                            disabled: root.modal-open; theme: root.theme; control-size: root.density;
+                            control-width: root.text-sample == TextSample.standard ? ControlWidth.intrinsic : ControlWidth.fill;
+                            text: root.sample-label; activated => { root.activated(); }
+                        }
+                    }
                 }
             }
             if root.page == ShowcasePage.profile || root.page == ShowcasePage.billing || root.page == ShowcasePage.choices || root.page == ShowcasePage.schedule || root.page == ShowcasePage.files: FormGallery { theme: root.theme; control-size: root.density; page: root.page; }
@@ -560,7 +571,7 @@ export component Showcase inherits Window {
             }
         }
     }
-    KitTooltipLayer {viewport-width:root.width;viewport-height:root.height;enabled:!root.dialog-state.open && root.page==ShowcasePage.display && !NavigationExamples.drawer-state.open;}
+    KitTooltipLayer {viewport-width:root.width;viewport-height:root.height;enabled:!root.modal-open && !root.product-workspace && (root.page==ShowcasePage.display || root.page==ShowcasePage.gallery);}
 
     if root.product-workspace: ProductWorkspace {
         x: 0px; y: root.header-height; width: root.width; height: root.height - root.header-height;
