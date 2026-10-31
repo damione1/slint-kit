@@ -29,6 +29,27 @@ fn empty_content_uses_the_current_host_supplied_label() {
         );
     }
 }
+
+#[test]
+fn content_thumbnail_uses_an_icon_only_while_the_host_image_is_empty() {
+    let window = fixture();
+    let articles = Rc::new(VecModel::from(items(1)));
+    window.set_items(ModelRc::from(articles.clone()));
+    let row = labelled(&window, "Story 1, Design · 4 minutes");
+    let icons = || row.query_descendants().match_inherits("KitIcon").find_all();
+    assert_eq!(
+        icons().len(),
+        1,
+        "an absent thumbnail needs a visible fallback"
+    );
+    let mut article = articles.row_data(0).unwrap();
+    article.thumbnail = slint::Image::from_rgb8(slint::SharedPixelBuffer::new(1, 1));
+    articles.set_row_data(0, article.clone());
+    assert!(icons().is_empty(), "a real thumbnail replaces the fallback");
+    article.thumbnail = Default::default();
+    articles.set_row_data(0, article);
+    assert_eq!(icons().len(), 1, "removing an image restores the fallback");
+}
 fn labelled(window: &BaseDataFixture, label: &str) -> ElementHandle {
     let requested = label.to_owned();
     ElementQuery::from_root(window)
@@ -349,6 +370,93 @@ fn disabled_records_reject_keyboard_and_assistive_activation() {
     key(&window, Key::Space);
     labelled(&window, "Story 2, Design · 4 minutes").invoke_accessible_default_action();
     assert!(activated.borrow().is_empty());
+}
+
+#[test]
+fn virtual_collections_expose_selection_and_position_without_changing_identity() {
+    let window = fixture();
+    window.set_columns(columns());
+    let table_rows = Rc::new(VecModel::from(rows(41, 3)));
+    let articles = Rc::new(VecModel::from(items(3)));
+    let document = Rc::new(VecModel::from(lines(3)));
+    window.set_rows(ModelRc::from(table_rows.clone()));
+    window.set_items(ModelRc::from(articles.clone()));
+    window.set_lines(ModelRc::from(document.clone()));
+    for label in [
+        "Product 42",
+        "Story 2, Design · 4 minutes",
+        "2: Source line 00002",
+    ] {
+        let record = labelled(&window, label);
+        assert_eq!(record.accessible_item_selectable(), Some(true));
+        assert_eq!(record.accessible_item_selected(), Some(false));
+        assert_eq!(record.accessible_item_index(), Some(1));
+        assert_eq!(record.accessible_item_count(), Some(3));
+    }
+    let mut row = table_rows.row_data(1).unwrap();
+    row.selected = true;
+    table_rows.set_row_data(1, row);
+    let mut article = articles.row_data(1).unwrap();
+    article.selected = true;
+    articles.set_row_data(1, article);
+    let mut line = document.row_data(1).unwrap();
+    line.selected = true;
+    document.set_row_data(1, line);
+    for label in [
+        "Product 42",
+        "Story 2, Design · 4 minutes",
+        "2: Source line 00002",
+    ] {
+        assert_eq!(
+            labelled(&window, label).accessible_item_selected(),
+            Some(true)
+        );
+    }
+}
+
+#[test]
+fn enlarged_line_editor_keeps_actions_and_wrapped_errors_below_the_viewport() {
+    let window = fixture();
+    window.set_lines(ModelRc::new(VecModel::from(lines(10))));
+    window.set_line_active(0);
+    window.set_line_draft("A native editable draft".into());
+    window.set_line_error("Give the selected line a title before saving your changes.".into());
+    let editor = labelled(&window, "Edit selected line");
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        window
+            .window()
+            .set_size(slint::LogicalSize::new(480., 1200.));
+        let document = labelled(&window, "Document fixture");
+        let bounds = document.absolute_position();
+        let size = document.size();
+        let viewport = ElementHandle::find_by_element_id(&window, "KitVirtualTextView::list")
+            .next()
+            .unwrap();
+        assert!(viewport.size().height > 0.);
+        for label in [
+            "Edit selected line",
+            "Save line",
+            "Copy",
+            "Give the selected line a title before saving your changes.",
+        ] {
+            let control = labelled(&window, label);
+            let position = control.absolute_position();
+            let control_size = control.size();
+            assert!(position.y >= viewport.absolute_position().y + viewport.size().height - 1.);
+            assert!(
+                position.x >= bounds.x - 1.
+                    && position.x + control_size.width <= bounds.x + size.width + 1.
+            );
+            assert!(position.y + control_size.height <= bounds.y + size.height + 1.);
+        }
+        assert!(
+            editor.is_valid(),
+            "responsive layout must retain the native editor"
+        );
+    }
 }
 
 #[test]

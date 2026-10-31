@@ -17,6 +17,7 @@ export component BaseDataFixture inherits Window {
     in property <int> content-active: -1;
     in property <int> line-active: -1;
     in-out property <string> line-draft;
+    in property <string> line-error;
     in-out property <string> pasted;
     out property <length> table-scroll: table.scroll-y;
     out property <length> content-scroll: content.scroll-y;
@@ -51,7 +52,7 @@ export component BaseDataFixture inherits Window {
         }
         document := KitVirtualTextView {
             theme: root.theme; height: 320px; lines: root.lines; generation: root.line-generation; active-index: root.line-active;
-            access: TextViewAccess.edit-line; line-draft <=> root.line-draft;
+            access: TextViewAccess.edit-line; line-draft <=> root.line-draft; error: root.line-error;
             label: "Document fixture";
             navigate(step) => { root.navigate(DataFixtureCollection.document,step); }
             select-line(token,generation) => { root.line-selected(token,generation); }

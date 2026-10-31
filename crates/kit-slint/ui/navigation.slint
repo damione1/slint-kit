@@ -90,6 +90,7 @@ export component KitMenu inherits Rectangle {
                 option-data: row;
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
+                focus-indicated: root.has-focus && self.active;
                 height: root.row-height;
                 private property <OptionRow> focus-identity: row;
                 changed focus-identity => {
@@ -171,6 +172,7 @@ export component KitMenuBar inherits Rectangle {
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == row.token;
                     selected: root.state.selected.present && root.state.selected.token == row.token;
+                    focus-indicated: self.active && (keyboard.has-focus || self.has-focus);
                     changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
@@ -238,6 +240,7 @@ export component KitTabs inherits Rectangle {
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == row.token;
                     selected: root.state.selected.present && root.state.selected.token == row.token;
+                    focus-indicated: self.active && (keyboard.has-focus || self.has-focus);
                     // The selected tab carries an underline instead of a tint;
                     // the ring is left to the active (keyboard) tab only.
                     background: self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
@@ -274,6 +277,7 @@ export component KitCollapse inherits VerticalLayout {
     vertical-stretch: 0;
     trigger := KitPressable {
         theme: root.theme; control-size: root.control-size;
+        intent: ButtonIntent.quiet;
         disabled: root.disabled;
         control-width: ControlWidth.fill;
         accessible-name: root.title;
@@ -281,9 +285,9 @@ export component KitCollapse inherits VerticalLayout {
         activated => { root.expansion-requested(!root.expanded); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
-            Text { text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
+            Text { text: root.title; color: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.theme.text-secondary; }
+                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; }
             }
         }
     }
@@ -598,8 +602,8 @@ export component KitNotificationCenter inherits Rectangle {
     preferred-height: root.rows.length == 0 ? 100px : root.rows.length <= 32 ? min(600px,bounded-content.preferred-height) : 400px;
     if root.rows.length == 0: VerticalLayout {
         alignment: center; spacing: root.theme.spacing.unit * 2;
-        Text { text: root.empty-label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; }
-        Text { text: root.empty-description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; }
+        Text { text: root.empty-label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; wrap: word-wrap; }
+        Text { text: root.empty-description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; wrap: word-wrap; }
     }
     ScrollFrame {
         theme: root.theme;

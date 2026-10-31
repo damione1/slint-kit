@@ -43,6 +43,7 @@ export component ThemeTokenFixture inherits Window {
     public pure function elevation-shadow(theme: KitTheme, level: ElevationLevel) -> KitShadow { return KitThemes.elevation-shadow(theme, level); }
     public function focus-button() { focus-button.take-focus(); }
     public function focus-slider() { slider.take-focus(); }
+    public function focus-menu() { menu.take-focus(); }
     public function focus-select() { access-select.take-focus(); }
     context-probe := KitFieldSeparator { x: 0px; y: 0px; width: 40px; }
     local-probe := KitFieldSeparator { x: 0px; y: 8px; width: 40px; theme: root.local-theme; }
@@ -58,7 +59,7 @@ export component ThemeTokenFixture inherits Window {
         open-requested => { root.select-opens += 1; }
     }
     slider := KitSlider { x: 40px; y: 200px; width: 200px; label: "Slider outline"; position: 0.5; }
-    KitMenu {
+    menu := KitMenu {
         x: 260px; y: 100px; width: 180px; height: 120px;
         accessible-name: "Row menu";
         rows: [{ token: 1, generation: 1, label: "Menu first" }, { token: 2, generation: 1, label: "Menu second" }];

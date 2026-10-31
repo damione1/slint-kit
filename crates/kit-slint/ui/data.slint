@@ -119,15 +119,15 @@ export component KitDataTable inherits Rectangle {
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
             accessible-name:row.cells.length > 0 ? row.cells[0] : "Row";
-            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selected:row.selected;
-            background:row.selected ? root.theme.hover : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
+            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
+            background:self.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             recipe:root.row-recipe;
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:0px;
                 for cell[column-index] in row.cells: Rectangle {
                     width:root.grid-width / max(1,root.columns.length);
-                    Text {x:root.cell-inset;width:max(0px,parent.width - 2 * root.cell-inset);text:cell;color:row.disabled ? root.theme.disabled-text : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
+                    Text {x:root.cell-inset;width:max(0px,parent.width - 2 * root.cell-inset);text:cell;color:row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
                 }
             }
         }
@@ -165,21 +165,22 @@ export component KitContentList inherits Rectangle {
             width:list.visible-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             theme:root.theme;token:item.token;generation:root.generation;disabled:item.disabled;intent:ButtonIntent.quiet;
             accessible-name:item.title + ", " + item.metadata;accessible-role:AccessibleRole.list-item;
+            accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
             focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
-            background:item.selected ? root.theme.hover : root.theme.surface;
+            background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
             requested(token,generation)=>{keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
                 Rectangle {width:72px; horizontal-stretch:0;
                     Rectangle {y:(parent.height - self.height) / 2;width:72px;height:72px;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
-                    if item.thumbnail != @image-url(""): Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
-                    if item.thumbnail == @image-url(""): KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
+                    if item.thumbnail.width > 0 && item.thumbnail.height > 0: Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
+                    if item.thumbnail.width <= 0 || item.thumbnail.height <= 0: KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
                 }
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
-                    Text {text:item.title;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}
-                    Text {text:item.excerpt;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:2 * root.theme.typography.line-height-control * root.theme.text-scale;overflow:elide;}
-                    Text {text:item.metadata;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
-                    Text {text:item.link-label;color:root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                    Text {text:item.title;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}
+                    Text {text:item.excerpt;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:2 * root.theme.typography.line-height-control * root.theme.text-scale;overflow:elide;}
+                    Text {text:item.metadata;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                    Text {text:item.link-label;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
                 }
             }
         }
@@ -200,9 +201,10 @@ export component KitVirtualTextView inherits Rectangle {
     public function take-focus(){keys.focus();}
     out property <length> scroll-y:list.content-y;
     private property <length> line-height:max(32px,24px * root.theme.text-scale + 8px);
-    private property <length> edit-height:root.access==TextViewAccess.edit-line ? max(84px,64px * root.theme.text-scale) : 0px;
+    private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;
+    private property <bool> footer-stacked: root.width < KitMetrics.font-size(root.theme, TypographyRole.control) * 32;
     changed active-index=>{if(root.active-index>=0){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
-    min-width:0px;preferred-width:700px;min-height:180px;preferred-height:360px;background:root.theme.canvas;
+    min-width:0px;preferred-width:700px;min-height:max(180px,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
     keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}}
     list := ListView {
@@ -211,9 +213,11 @@ export component KitVirtualTextView inherits Rectangle {
         height:max(0px,root.height - root.edit-height);content-width:self.visible-width;
         for line[index] in root.lines: DataAction {
             width:list.visible-width;height:root.line-height;min-height:root.line-height;preferred-height:root.line-height;token:line.token;generation:root.generation;theme:root.theme;intent:ButtonIntent.quiet;
-            background:line.selected?root.theme.accent-subtle:root.theme.surface;
+            recipe:KitThemes.table-row-recipe(root.theme,ControlSize.medium);
+            background:line.selected?root.theme.accent-subtle:self.pressed?self.recipe.pressed-fill:self.hovered?self.recipe.hover-fill:root.theme.surface;
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             accessible-name:line.number + ": " + line.text;
+            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.lines.length;accessible-item-selectable:true;accessible-item-selected:line.selected;
             requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 3;
                 Text {width:64px;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
@@ -221,13 +225,28 @@ export component KitVirtualTextView inherits Rectangle {
             }
         }
     }
-    if root.access==TextViewAccess.edit-line: VerticalLayout {
-        y:root.height - root.edit-height;height:root.edit-height;spacing:root.theme.spacing.unit;
-        HorizontalLayout {spacing:root.theme.spacing.unit * 2;
-            line-editor:=KitTextField {theme:root.theme;text<=>root.line-draft;accessible-name:"Edit selected line";placeholder:"Select a line to edit";access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
-            KitButton {theme:root.theme;text:"Save line";disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
-            KitButton {theme:root.theme;text:"Copy";disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
+    editor-panel := Rectangle {
+        visible: root.access==TextViewAccess.edit-line;
+        x:0px;y:root.height - root.edit-height;width:root.width;height:root.edit-height;
+        preferred-height: editor-content.preferred-height;
+        editor-content := VerticalLayout {
+            x:0px;y:0px;width:root.width;height:self.preferred-height;vertical-stretch:0;spacing:root.theme.spacing.unit;
+            FlexboxLayout {
+                width: root.width;
+                flex-direction: root.footer-stacked ? column : row;
+                flex-wrap: no-wrap; cross-axis-alignment: stretch;
+                spacing:KitMetrics.inline-gap(root.theme);
+                // Resolve the editor width before measuring its wrapped label
+                // and help. Its height must not feed back into flexbox width.
+                line-editor:=KitTextField {width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:"Edit selected line";placeholder:"Select a line to edit";access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
+                HorizontalLayout {
+                    width:save-line.preferred-width + copy-line.preferred-width + KitMetrics.inline-gap(root.theme);
+                    spacing:KitMetrics.inline-gap(root.theme);alignment:start;vertical-stretch:0;
+                    save-line := KitButton {theme:root.theme;text:"Save line";disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
+                    copy-line := KitButton {theme:root.theme;text:"Copy";disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
+                }
+            }
+            if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}
         }
-        if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}
     }
 }

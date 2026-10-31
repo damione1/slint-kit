@@ -608,11 +608,14 @@ fn one_focus_outline_serves_buttons_fields_and_inset_hosts() {
         (thumb_y - (slider.absolute_position().y + (slider.size().height - 16.) / 2.)).abs() < 0.01
     );
 
-    // The active row of a menu, and a standalone option, paint the same inset
-    // ring over their own edge; the selected, inactive menu row paints none.
+    // A menu's active target is not keyboard focus: the focused slider and
+    // standalone option keep their rings until focus enters the menu.
     window.set_rows_active(true);
+    assert_eq!(outlines(&window).len(), 2);
+    window.invoke_focus_menu();
+    // The focused menu and the standalone option paint the same inset ring.
     let rings = outlines(&window);
-    assert_eq!(rings.len(), 3);
+    assert_eq!(rings.len(), 2);
     for label in ["Menu second", "Option row"] {
         let row = labelled(&window, label);
         let origin = row.absolute_position();
@@ -623,7 +626,19 @@ fn one_focus_outline_serves_buttons_fields_and_inset_hosts() {
         assert_ring(ring, &row, 0.);
     }
     window.set_rows_active(false);
-    assert_eq!(outlines(&window).len(), 1);
+    assert!(outlines(&window).is_empty());
+    window.set_rows_active(true);
+    assert_eq!(outlines(&window).len(), 2);
+    window.invoke_focus_button();
+    let rings = outlines(&window);
+    assert_eq!(rings.len(), 2);
+    let menu_row = labelled(&window, "Menu second");
+    assert!(
+        rings
+            .iter()
+            .all(|ring| ring.absolute_position() != menu_row.absolute_position()),
+        "leaving the menu hides its focus ring without changing the active target"
+    );
 }
 
 #[test]
