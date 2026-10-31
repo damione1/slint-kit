@@ -65,6 +65,12 @@ change bounds long localized labels in the showcase consumer.
   hashes, independently checked against the library freeze.
 - **108 baseline and 108 final native showcase images** cover all nine pages at
   top/middle/end in the same four appearance/text variants.
+- Public previews: **450 verified scenes**, including all 124 starters.
+  Documentation build/check pass for 248 localized references and 268 canonical
+  pages. The French dialog example now uses French action labels.
+- Browser checks pass at **DPR 1 and 2**: each covers 124 WASM startups,
+  28 page captures and 23 Workspace renders plus editing/validation/focus flows.
+  Search passes its fixed desktop-DPR-1/mobile-DPR-2 matrix without errors.
 - The [verification record](verification.json) records revisions, commands,
   manifest hashes, browser checks and representative evidence.
 
