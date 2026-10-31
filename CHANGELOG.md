@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.5.1
+
 - Document project-relative `@kit` library paths for VS Code and Zed, including locked Cargo vendoring for crates.io consumers, local checkout paths and refresh instructions.
 
 ## 0.5.0
