@@ -23,6 +23,7 @@ export component KitSelectKeyboard inherits FocusScope {
     private property <bool> activation-held;
     focus-on-tab-navigation: false;
     changed state => { if (!root.state.open) { root.activation-held = false; } }
+    changed enabled => { if (!root.enabled) { root.activation-held = false; } }
     public function handle-key(event: KeyEvent) -> EventResult {
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
             if (!root.state.open) { root.open-requested(); }

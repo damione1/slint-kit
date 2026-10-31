@@ -378,3 +378,42 @@ fn an_inactive_menu_rejects_keyboard_pointer_and_programmatic_focus_without_losi
     });
     assert_eq!(&*calls.borrow(), &[(17, 1)]);
 }
+
+#[test]
+fn reactivating_a_navigation_composite_does_not_retain_a_return_held_in_the_background() {
+    i_slint_backend_testing::init_no_event_loop();
+    for kind in [
+        NavigationInteractiveKind::MenuBar,
+        NavigationInteractiveKind::Tabs,
+    ] {
+        let window = NavigationInteractiveFixture::new().unwrap();
+        window.set_kind(kind);
+        let calls = Rc::new(Cell::new(0));
+        let output = calls.clone();
+        window.on_action(move || output.set(output.get() + 1));
+        window.show().unwrap();
+        window.set_focus_request(1);
+        window.window().dispatch_event(WindowEvent::KeyPressed {
+            text: Key::Return.into(),
+        });
+        assert_eq!(calls.get(), 1);
+        window.set_interactive(false);
+        window.invoke_focus_outside();
+        window.window().dispatch_event(WindowEvent::KeyReleased {
+            text: Key::Return.into(),
+        });
+        window.set_interactive(true);
+        window.set_focus_request(2);
+        window.window().dispatch_event(WindowEvent::KeyPressed {
+            text: Key::Return.into(),
+        });
+        assert_eq!(
+            calls.get(),
+            2,
+            "{kind:?}: the first fresh Return must activate after modal closure"
+        );
+        window.window().dispatch_event(WindowEvent::KeyReleased {
+            text: Key::Return.into(),
+        });
+    }
+}
