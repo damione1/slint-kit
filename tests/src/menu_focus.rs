@@ -30,6 +30,22 @@ fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
             .match_inherits("KitTextField")
             .find_first()
             .unwrap();
+        let editor = field
+            .query_descendants()
+            .match_type_name("TextInput")
+            .match_predicate(|element| {
+                element.accessible_label().as_deref() == Some("Project name")
+            })
+            .find_first()
+            .unwrap();
+        let label = field
+            .query_descendants()
+            .match_type_name("Text")
+            .match_predicate(|element| {
+                element.accessible_label().as_deref() == Some("Project name")
+            })
+            .find_first()
+            .unwrap();
         assert!(
             caption.absolute_position().y - close.absolute_position().y - close.size().height
                 <= theme.spacing.unit * 4. + 1.,
@@ -39,6 +55,15 @@ fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
             field.absolute_position().y - caption.absolute_position().y - caption.size().height
                 <= theme.spacing.unit * 4. + 1.,
             "related drawer content must retain the same section gap"
+        );
+        assert!(
+            field.size().height
+                <= label.size().height
+                    + editor.size().height
+                    + 2. * theme.spacing.medium.padding_block
+                    + theme.spacing.unit * 4.
+                    + 1.,
+            "the composed field must keep its intrinsic label/editor height"
         );
         let save = find("Save changes");
         assert!(save.absolute_position().y + save.size().height <= 600. - theme.spacing.unit * 4.);

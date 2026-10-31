@@ -15,6 +15,10 @@ export component KitField inherits VerticalLayout {
     spacing: KitMetrics.help-gap(root.theme);
     alignment: start;
     vertical-stretch: 0;
+    // Stretch layouts otherwise distribute spare space even when every child
+    // has a zero stretch factor. Keep the complete label/editor/help group
+    // intrinsic; multiline editors still grow through their preferred height.
+    max-height: self.preferred-height;
     @children
 }
 export component KitFieldLabel inherits Rectangle {
