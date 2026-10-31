@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent } from "@kit/theme.slint";
-import { ValidationPresentation } from "@kit/shared-contracts.slint";
+import { ValidationPresentation, FieldAccess } from "@kit/shared-contracts.slint";
 import { KitTextField } from "@kit/input.slint";
 import { KitSwitch } from "@kit/choice.slint";
 import { KitBadge } from "@kit/display.slint";
@@ -112,6 +112,8 @@ export component NavigationDrawer inherits KitDrawer {
 }
 
 export component NavigationGallery inherits VerticalLayout {
+    in property <bool> interactive: true;
+    private property <bool> background-interactive: root.interactive && !NavigationExamples.drawer-state.open;
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <length> viewport-width: 1180px;
@@ -167,18 +169,18 @@ export component NavigationGallery inherits VerticalLayout {
     }
     spacing: KitMetrics.section-gap(root.theme); alignment: start; vertical-stretch: 0;
     ExampleSection { theme: root.theme; title: "Breadcrumbs"; description: "KitBreadcrumbs · Return to a parent in a hierarchy.";
-        KitBreadcrumbs { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.breadcrumbs; activate(token,generation) => { NavigationExamples.breadcrumb-activate(token,generation); } }
+        KitBreadcrumbs { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; rows: NavigationExamples.breadcrumbs; activate(token,generation) => { NavigationExamples.breadcrumb-activate(token,generation); } }
         Text { text: NavigationExamples.breadcrumb-content; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
     ExampleSection { theme: root.theme; title: "Menu & tabs"; description: "KitMenu · KitTabs · Navigate the same workspace at two levels.";
         KitWrap { theme: root.theme; gap: LayoutSpace.roomy;
-            KitMenu { theme: root.theme; control-size: root.control-size; preferred-width: 180px; height: max(180px,180px * root.theme.text-scale); rows: NavigationExamples.menu-rows; state: NavigationExamples.menu-state;
+            KitMenu { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; preferred-width: 180px; height: max(180px,180px * root.theme.text-scale); rows: NavigationExamples.menu-rows; state: NavigationExamples.menu-state;
                 navigate(step) => { NavigationExamples.navigate(NavigationDemo.menu,step); }
                 activate(token,generation) => { NavigationExamples.activate(NavigationDemo.menu,token,generation); }
                 typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.menu,text); }
             }
             KitStack { theme: root.theme; min-width: 200px; preferred-width: max(220px,root.width - 280px); horizontal-stretch: 1;
-                KitTabs { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.tabs-rows; state: NavigationExamples.tabs-state;
+                KitTabs { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; rows: NavigationExamples.tabs-rows; state: NavigationExamples.tabs-state;
                     navigate(step) => { NavigationExamples.navigate(NavigationDemo.tabs,step); }
                     activate(token,generation) => { NavigationExamples.activate(NavigationDemo.tabs,token,generation); }
                     typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.tabs,text); }
@@ -189,7 +191,7 @@ export component NavigationGallery inherits VerticalLayout {
         }
     }
     ExampleSection { theme: root.theme; title: "Toolbar"; description: "KitMenuBar · Try actions on a demo collection.";
-        KitMenuBar { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.toolbar-rows; state: NavigationExamples.toolbar-state; accessible-name: "Collection actions";
+        KitMenuBar { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; rows: NavigationExamples.toolbar-rows; state: NavigationExamples.toolbar-state; accessible-name: "Collection actions";
             navigate(step) => { NavigationExamples.navigate(NavigationDemo.toolbar,step); }
             activate(token,generation) => { NavigationExamples.activate(NavigationDemo.toolbar,token,generation); }
             typeahead(text) => { NavigationExamples.typeahead(NavigationDemo.toolbar,text); }
@@ -198,16 +200,16 @@ export component NavigationGallery inherits VerticalLayout {
     }
     ExampleSection { theme: root.theme; title: "Notifications"; preview-target: PreviewTarget.notifications; description: "KitNotificationCenter · Read, preview and dismiss messages.";
         KitWrap { theme: root.theme;
-            notices := KitNotificationButton { theme: root.theme; control-size: root.control-size; unread-count: NavigationExamples.unread-count; activated => { NavigationExamples.notice-open(); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Reset messages"; intent: ButtonIntent.quiet; activated => { NavigationExamples.notice-reset(); } }
+            notices := KitNotificationButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; unread-count: NavigationExamples.unread-count; activated => { NavigationExamples.notice-open(); } }
+            KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Reset messages"; intent: ButtonIntent.quiet; activated => { NavigationExamples.notice-reset(); } }
         }
     }
     ExampleSection { theme: root.theme; title: "Drawer"; preview-target: PreviewTarget.drawer; description: "KitDrawer · Edit settings in a modal side panel.";
-        drawer-trigger := KitButton { theme: root.theme; control-size: root.control-size; text: "Collection settings"; activated => { NavigationExamples.drawer-open(DrawerFocus.trigger); } }
+        drawer-trigger := KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Collection settings"; activated => { NavigationExamples.drawer-open(DrawerFocus.trigger); } }
         Text { text: NavigationExamples.drawer-result; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     }
     ExampleSection { theme: root.theme; title: "Carousel"; preview-target: PreviewTarget.carousel; description: "KitCarousel · Browse three collections and open a local preview.";
-        KitCarousel { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.carousel-rows; state: NavigationExamples.carousel-state; action-label: "Open preview";
+        KitCarousel { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; rows: NavigationExamples.carousel-rows; state: NavigationExamples.carousel-state; action-label: "Open preview";
             navigate(step) => { NavigationExamples.navigate(NavigationDemo.carousel,step); }
             activate(token,generation) => { NavigationExamples.activate(NavigationDemo.carousel,token,generation); }
         }
@@ -215,31 +217,31 @@ export component NavigationGallery inherits VerticalLayout {
             Text { text: NavigationExamples.carousel-detail; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
             Text { text: "Collection preview · Allsafe"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
             Text { text: NavigationExamples.carousel-body; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Close preview"; activated => { NavigationExamples.carousel-preview-close(); } }
+            KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Close preview"; activated => { NavigationExamples.carousel-preview-close(); } }
         }
     }
     ExampleSection { theme: root.theme; title: "Pagination"; preview-target: PreviewTarget.pagination; description: "KitPagination · Each page shows three different collections.";
         for item in NavigationExamples.page-items: Text { text: item; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-        KitPagination { theme: root.theme; control-size: root.control-size; page-index: NavigationExamples.page-index; page-count: NavigationExamples.page-count; navigate(step) => { NavigationExamples.page-navigate(step); } }
+        KitPagination { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; page-index: NavigationExamples.page-index; page-count: NavigationExamples.page-count; navigate(step) => { NavigationExamples.page-navigate(step); } }
     }
     ExampleSection { theme: root.theme; title: "Accordion & collapse"; preview-target: PreviewTarget.accordion; description: "KitAccordion · Keep several answers open, or choose single expansion.";
         KitWrap { theme: root.theme;
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Single"; intent: NavigationExamples.expansion-mode == ExpansionMode.single ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.single); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: "Multiple"; intent: NavigationExamples.expansion-mode == ExpansionMode.multiple ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.multiple); } }
+            KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Single"; intent: NavigationExamples.expansion-mode == ExpansionMode.single ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.single); } }
+            KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Multiple"; intent: NavigationExamples.expansion-mode == ExpansionMode.multiple ? ButtonIntent.primary : ButtonIntent.secondary; activated => { NavigationExamples.mode-changed(ExpansionMode.multiple); } }
         }
-        KitAccordion { theme: root.theme; control-size: root.control-size; rows: NavigationExamples.accordion-rows; state: NavigationExamples.accordion-state; mode: NavigationExamples.expansion-mode;
+        KitAccordion { interactive: root.background-interactive; theme: root.theme; control-size: root.control-size; rows: NavigationExamples.accordion-rows; state: NavigationExamples.accordion-state; mode: NavigationExamples.expansion-mode;
             navigate(step) => { NavigationExamples.navigate(NavigationDemo.accordion,step); }
             expansion-requested(token,generation,expanded,mode) => { NavigationExamples.expand(token,generation,expanded,mode); }
         }
-        KitCollapse { theme: root.theme; control-size: root.control-size; title: "Collection settings shortcut"; expanded: NavigationExamples.collapse-open; expansion-requested(expanded) => { NavigationExamples.collapse-open = expanded; }
+        KitCollapse { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; title: "Collection settings shortcut"; expanded: NavigationExamples.collapse-open; expansion-requested(expanded) => { NavigationExamples.collapse-open = expanded; }
             Text { text: "The same drawer remembers which button opened it."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-            collapse-trigger := KitButton { theme: root.theme; control-size: root.control-size; text: "Open settings"; activated => { NavigationExamples.drawer-open(DrawerFocus.collapse-trigger); } }
+            collapse-trigger := KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Open settings"; activated => { NavigationExamples.drawer-open(DrawerFocus.collapse-trigger); } }
             Text { text: NavigationExamples.drawer-result; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         }
     }
     ExampleSection { theme: root.theme; title: "Layout primitives"; description: "KitStack · KitInline · KitWrap · KitGrid · KitContainer · KitAppShell · KitScrollArea";
         Text { text: "Stack: consistent field spacing"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; }
-        KitStack { theme: root.theme; KitTextField { theme: root.theme; control-size: root.control-size; label: "Collection"; text: "Allsafe notes"; } KitTextField { theme: root.theme; control-size: root.control-size; label: "Owner"; text: "Darlene"; } }
+        KitStack { theme: root.theme; KitTextField { access: root.background-interactive ? FieldAccess.editable : FieldAccess.disabled; theme: root.theme; control-size: root.control-size; label: "Collection"; text: "Allsafe notes"; } KitTextField { access: root.background-interactive ? FieldAccess.editable : FieldAccess.disabled; theme: root.theme; control-size: root.control-size; label: "Owner"; text: "Darlene"; } }
         Text { text: "Wrap: actions and tags adapt to the available width"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         KitWrap { theme: root.theme; for tag in ["Incident response", "Security", "Team notes", "Review", "Archive"]: KitBadge { theme: root.theme; text: tag; } }
         Text { text: "Grid: aligned labels and values"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; }
@@ -282,7 +284,7 @@ export component NavigationGallery inherits VerticalLayout {
                 preferred-height: header-row.preferred-height + 9px; min-height: self.preferred-height; vertical-stretch: 0;
                 header-row := HorizontalLayout { x: 0px; y: 0px; width: parent.width; height: self.preferred-height; spacing: root.theme.spacing.unit * 3;
                 Text { horizontal-stretch: 1; text: "Notifications"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; vertical-alignment: center; }
-                close-notice := KitButton { theme: root.theme; control-size: root.control-size; text: "Close"; private property <int> request: NavigationExamples.notice-focus-request; changed request => { if (NavigationExamples.notice-focus-token < 0) { self.take-focus(); } } activated => { NavigationExamples.notice-close(); } }
+                close-notice := KitButton { disabled: !root.background-interactive; theme: root.theme; control-size: root.control-size; text: "Close"; private property <int> request: NavigationExamples.notice-focus-request; changed request => { if (NavigationExamples.notice-focus-token < 0) { self.take-focus(); } } activated => { NavigationExamples.notice-close(); } }
                 }
                 Rectangle { x: 0px; y: parent.height - 1px; width: parent.width; height: 1px; background: root.theme.border-subtle; }
             }
@@ -292,7 +294,7 @@ export component NavigationGallery inherits VerticalLayout {
                     x: 0px; y: 0px; width: parent.width; height: parent.height;
                     opacity: NavigationExamples.notice-detail == "" ? 1 : 0;
                     visible: self.opacity > 0;
-                    disabled: NavigationExamples.notice-detail != "";
+                    disabled: !root.background-interactive || NavigationExamples.notice-detail != "";
                     animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
                     theme: root.theme; control-size: root.control-size; rows: NavigationExamples.notifications;
                     focus-token: NavigationExamples.notice-focus-token; focus-request: NavigationExamples.notice-focus-request;
@@ -309,7 +311,7 @@ export component NavigationGallery inherits VerticalLayout {
                     Text { text: root.displayed-notice-title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                     Text { text: "Message preview · Allsafe workspace"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                     Text { text: root.displayed-notice-body; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-                    KitButton { theme: root.theme; control-size: root.control-size; text: "Back to messages"; disabled: NavigationExamples.notice-detail == ""; activated => { NavigationExamples.notice-back(); } }
+                    KitButton { disabled: !root.background-interactive || NavigationExamples.notice-detail == ""; theme: root.theme; control-size: root.control-size; text: "Back to messages"; activated => { NavigationExamples.notice-back(); } }
                     }
                 }
             }
