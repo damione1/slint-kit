@@ -9,6 +9,8 @@
 - Preserve all OTP placeholder cells at enlarged text sizes and hide text/select placeholders during native preedit. This visual correction does not qualify IME behavior.
 - Keep simple drawer content together below its heading and show a fallback icon for content items without a thumbnail. Clarify the AppShell and Section examples.
 - Keep complete fields at their natural height in stretching layouts, expose the catalogue's selected page to accessibility, and enlarge custom status badges with text.
+- Keep numeric step actions square beside the editor at 200% text. Add `interactive` to navigation composites so modal hosts can disable background focus and actions while preserving selection and data.
+- Disabled and busy pressables reject semantic activation before emitting `activation-started`, matching their pointer and keyboard paths. Modal backdrops contain wheel events and the showcase disables its background navigation and actions.
 
 ## 0.4.0
 

@@ -75,6 +75,7 @@ component Avatar inherits Rectangle {
 component ProjectTile inherits KitPressable {
     in property <string> title;
     in property <string> subtitle;
+    private property <color> content-ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
     intent: ButtonIntent.primary;
     corner-radius: 20px;
     padding-inline: 0px;
@@ -89,18 +90,18 @@ component ProjectTile inherits KitPressable {
         padding: 24px;
         spacing: 12px;
         HorizontalLayout {
-            KitIcon {glyph:KitGlyphs.arrow-up-right();ink:root.theme.on-accent;width:28px;height:28px;}
+            KitIcon {glyph:KitGlyphs.arrow-up-right();ink:root.content-ink;width:28px;height:28px;}
             Rectangle { horizontal-stretch: 1; background: transparent; }
             Rectangle {
                 width: root.theme.spacing.unit * 16 * root.theme.text-scale;
                 height: max(root.theme.spacing.unit * 6 * root.theme.text-scale, live-label.preferred-height + 2 * root.theme.spacing.unit);
                 border-radius: self.height / 2;
-                background: root.theme.on-accent.with-alpha(0.18);
-                live-label := Text { text: "LIVE"; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
+                background: root.content-ink.with-alpha(0.18);
+                live-label := Text { text: "LIVE"; color: root.content-ink; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-bold; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
-        Text { text: root.title; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
-        Text { text: root.subtitle; color: root.theme.on-accent; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
+        Text { text: root.title; color: root.content-ink; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+        Text { text: root.subtitle; color: root.content-ink; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); wrap: word-wrap; }
     }
 }
 
@@ -140,6 +141,7 @@ export component Showcase inherits Window {
     in-out property <WorkspacePage> workspace-page;
     in-out property <EditorStatus> workspace-editor;
     private property <bool> product-modal;
+    private property <bool> modal-open: root.product-modal || root.dialog-state.open || NavigationExamples.drawer-state.open;
     in-out property <bool> reduced-motion: false;
     private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
     private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
@@ -245,12 +247,12 @@ export component Showcase inherits Window {
                 image-fit: contain;
                 accessible-label: "Slint Kit";
             }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
-            KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.reduced-motion ? "Motion off" : "Motion on"; intent: ButtonIntent.quiet; activated => { root.reduced-motion = !root.reduced-motion; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.reduced-motion ? "Motion off" : "Motion on"; intent: ButtonIntent.quiet; activated => { root.reduced-motion = !root.reduced-motion; } }
         }
     }
     sidebar := ScrollView { visible: !root.product-workspace; x: 0px; y: root.header-height; width: 220px; height: root.height - root.header-height; content-width: self.visible-width;
@@ -259,6 +261,7 @@ export component Showcase inherits Window {
             for section[index] in [ShowcasePage.gallery, ShowcasePage.profile, ShowcasePage.billing, ShowcasePage.choices, ShowcasePage.schedule, ShowcasePage.files, ShowcasePage.display, ShowcasePage.navigation, ShowcasePage.data]: nav := KitPressable {
                 theme: root.theme; control-size: root.density; control-width: ControlWidth.fill;
                 accessible-name: nav-label.text;
+                disabled: root.modal-open;
                 // AccessKit's macOS bridge exposes AXSelected for item roles.
                 accessible-role: list-item;
                 accessible-item-selectable: true;
@@ -270,7 +273,7 @@ export component Showcase inherits Window {
                 activated => { root.page = section; }
                 nav-label := Text { x: 0px; y: 0px; width: max(0px,nav.width - 2 * nav.recipe.padding-inline); height: max(0px,nav.height - 2 * nav.recipe.padding-block); wrap: word-wrap; vertical-alignment: center;
                     text: section == ShowcasePage.gallery ? "Buttons & dialogs" : section == ShowcasePage.profile ? "Text fields" : section == ShowcasePage.billing ? "Numbers & money" : section == ShowcasePage.choices ? "Selection" : section == ShowcasePage.schedule ? "Dates & time" : section == ShowcasePage.files ? "Files & color" : section == ShowcasePage.display ? "Display & feedback" : section == ShowcasePage.navigation ? "Navigation & layouts" : "Data views";
-                    color: root.page == section ? root.theme.accent : root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.page == section ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular;
+                    color: nav.disabled ? root.theme.disabled-text : root.page == section ? root.theme.accent : root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.page == section ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular;
                 }
             }
         }
@@ -290,15 +293,16 @@ export component Showcase inherits Window {
                 Text { text: "Native components for Rust and Slint. Try each interaction, then change its presentation."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                 ExampleSection { theme: root.theme; title: "Buttons"; preview-target: PreviewTarget.buttons; description: "KitButton · @kit/button.slint · Activate an action with the pointer, Space or Enter.";
                     FlexboxLayout { spacing: 8px; alignment: start;
-                        for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
+                        for intent in [ButtonIntent.primary,ButtonIntent.secondary,ButtonIntent.quiet,ButtonIntent.destructive]: KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; intent: intent; text: intent == ButtonIntent.primary ? "Run action" : intent == ButtonIntent.secondary ? "Secondary" : intent == ButtonIntent.quiet ? "Quiet" : "Destructive"; activated => { root.activated(); } }
                         KitButton { theme: root.theme; control-size: root.density; text: "Disabled"; disabled: true; }
-                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Working…"; busy: true; }
+                        KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: "Working…"; busy: true; }
                     }
                     Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit/select.slint · Search 10,000 people. Selection follows identity when rows move.";
                             KitSelect {
                                 theme: root.theme; control-size: root.density; rows: root.rows;
+                                access: root.modal-open ? FieldAccess.disabled : FieldAccess.editable;
                                 state: {selection-availability: root.select-state.selection-availability, selected: root.select-state.selected, active: root.select-state.active, open: root.select-state.open && root.popup-skin == ShowcaseSkin.mineral, active-index: root.select-state.active-index, generation: root.select-state.generation};
                                 placeholder: root.selected-label;
                                 open-requested => { root.popup-skin = ShowcaseSkin.mineral; root.select-open(); }
@@ -312,25 +316,27 @@ export component Showcase inherits Window {
 
                     Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     FlexboxLayout { spacing: 8px; alignment: start;
-                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reverse rows"; activated => { root.reverse-options(); } }
-                        KitButton { theme: root.theme; control-size: root.density; text: "Remove selected"; disabled: !root.select-state.selected.present; activated => { root.remove-selected(); } }
-                        KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: "Reset data"; intent: ButtonIntent.quiet; activated => { root.restore-options(); } }
+                        KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: "Reverse rows"; activated => { root.reverse-options(); } }
+                        KitButton { theme: root.theme; control-size: root.density; text: "Remove selected"; disabled: root.modal-open || !root.select-state.selected.present; activated => { root.remove-selected(); } }
+                        KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: "Reset data"; intent: ButtonIntent.quiet; activated => { root.restore-options(); } }
                     }
                     Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
                 ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit/dialog.slint · Create a demo project with validation and a nested select.";
-                    RegisteredButton { theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Customize the same component"; description: "KitPressable · KitSelectTrigger · Compose a recipe and content around the same public behavior. Both selects share one selection.";
-                    ProjectTile { theme: root.theme; title: "Run action"; subtitle: "Custom content and button recipe"; activated => { root.activated(); } }
+                    ProjectTile { disabled: root.modal-open; theme: root.theme; title: "Run action"; subtitle: "Custom content and button recipe"; activated => { root.activated(); } }
                     Text { text: "Actions completed: " + root.activation-count; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
                             KitFocusTarget {
                                 token: 3; generation: root.focus-generations[3]; request: root.focus-request;
+                                eligible: !root.modal-open;
                                 min-height: max(64px, 44px * root.theme.text-scale); preferred-height: self.min-height; max-height: self.preferred-height; vertical-stretch: 0;
                                 focus-requested => { rich-trigger.take-focus(); }
                                 rich-trigger := KitSelectTrigger {
                                     theme: root.theme; control-size: root.density; state: root.select-state;
+                                    access: root.modal-open ? FieldAccess.disabled : FieldAccess.editable;
                                     min-height: max(64px, 44px * root.theme.text-scale); preferred-height: self.min-height; max-height: self.preferred-height;
                                     accessible-name: "Choose collaborator";
                                     focus-observed(focused) => { root.focus-changed(3, focused); }
@@ -353,21 +359,22 @@ export component Showcase inherits Window {
                                 }
                             }
 
-                    RegisteredButton { theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-                    KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
-                    KitButton { disabled: root.product-modal; theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
+                    KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
+                    KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.sample-label; activated => { root.activated(); } }
                 }
             }
             if root.page == ShowcasePage.profile || root.page == ShowcasePage.billing || root.page == ShowcasePage.choices || root.page == ShowcasePage.schedule || root.page == ShowcasePage.files: FormGallery { theme: root.theme; control-size: root.density; page: root.page; }
             if root.page == ShowcasePage.display: DisplayGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
-            if root.page == ShowcasePage.navigation: NavigationGallery {theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
+            if root.page == ShowcasePage.navigation: NavigationGallery {interactive:!root.modal-open;theme:root.theme;control-size:root.density;viewport-width:root.width;viewport-height:root.height;}
             if root.page == ShowcasePage.data: DataGallery {theme:root.theme;control-size:root.density;}
             catalogue-footer := Text { accessible-role: text; accessible-label: self.text; text: "Slint Kit · GPL-3.0-or-later"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
         }
     }
 
     KitToastHost {
+        visible: !root.modal-open;
         x: max(24px,root.width - self.width - 24px); y: max(24px,root.height - self.height - 24px);
         width: min(root.width - 268px,560px); height: self.preferred-height;
         theme: root.theme; entries: DisplayExamples.toast-entries;

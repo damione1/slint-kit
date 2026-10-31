@@ -1398,4 +1398,70 @@ mod preview_tests {
             );
         }
     }
+    #[test]
+    fn modal_surfaces_disable_background_navigation_and_gallery_actions() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = Showcase::new().unwrap();
+        let actions = Rc::new(std::cell::Cell::new(0));
+        let observed = actions.clone();
+        window.on_activated(move || observed.set(observed.get() + 1));
+        window.show().unwrap();
+        for drawer in [false, true] {
+            let page = if drawer {
+                ShowcasePage::Navigation
+            } else {
+                ShowcasePage::Gallery
+            };
+            window.set_page(page);
+            let state = DialogState {
+                open: true,
+                topmost: true,
+                ..Default::default()
+            };
+            if drawer {
+                window
+                    .global::<NavigationExamples>()
+                    .set_drawer_state(state);
+            } else {
+                window.set_dialog_state(state);
+            }
+            for label in [
+                "Product examples",
+                "Light",
+                "Indigo",
+                "Text 100%",
+                "Standard",
+                "Motion on",
+            ] {
+                let control = button(&window, label);
+                assert_eq!(control.accessible_enabled(), Some(false), "{label}");
+                control.invoke_accessible_default_action();
+            }
+            assert_eq!(window.get_theme_mode(), ThemeMode::Light);
+            assert!(!window.get_product_workspace());
+            let navigation = ElementQuery::from_root(&window)
+                .match_id("Showcase::nav")
+                .find_all();
+            assert_eq!(navigation.len(), 9);
+            for item in navigation {
+                assert_eq!(item.accessible_enabled(), Some(false));
+                item.invoke_accessible_default_action();
+            }
+            assert_eq!(
+                window.get_page(),
+                page,
+                "assistive actions cannot leave a modal's page"
+            );
+            if !drawer {
+                button(&window, "Run action").invoke_accessible_default_action();
+                assert_eq!(actions.get(), 0, "background gallery actions remain inert");
+                window.set_dialog_state(DialogState::default());
+            } else {
+                window
+                    .global::<NavigationExamples>()
+                    .set_drawer_state(DialogState::default());
+            }
+            assert_eq!(button(&window, "Light").accessible_enabled(), Some(true));
+        }
+    }
 }
