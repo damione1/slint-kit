@@ -73,7 +73,9 @@ export component KitPressable inherits Rectangle {
     accessible-role: button;
     accessible-label: root.accessible-name;
     accessible-enabled: !root.disabled && !root.busy;
-    accessible-action-default => { root.activation-started(); root.activate-once(); }
+    accessible-action-default => {
+        if (!root.disabled && !root.busy) { root.activation-started(); root.activate-once(); }
+    }
     forward-focus: keys;
     // The recipe's elevation, painted by a child that repeats the host's own
     // fill and edge so only its shadow shows past them. A shadow on the host

@@ -4,12 +4,17 @@ export component ButtonSizingFixture inherits Window {
     width: 240px; height: 240px;
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlWidth> mode: ControlWidth.fill;
+    in property <bool> disabled;
+    in property <bool> busy;
+    callback activation-started();
     Rectangle {
         width: 160px; height: 100px;
         VerticalLayout {
             alignment: start;
             KitButton {
                 theme: root.theme; control-width: root.mode;
+                disabled: root.disabled; busy: root.busy;
+                activation-started => { root.activation-started(); }
                 control-size: ControlSize.comfortable;
                 accessible-name: "Bounded action";
                 text: "A long workspace name that must fit the available space";

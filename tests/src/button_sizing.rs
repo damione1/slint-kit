@@ -4,6 +4,35 @@ use i_slint_backend_testing::ElementQuery;
 use slint::ComponentHandle;
 
 #[test]
+fn disabled_and_busy_semantic_actions_do_not_begin_a_press() {
+    use std::{cell::Cell, rc::Rc};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ButtonSizingFixture::new().unwrap();
+    let starts = Rc::new(Cell::new(0));
+    let observed = starts.clone();
+    window.on_activation_started(move || observed.set(observed.get() + 1));
+    window.show().unwrap();
+    let button = ElementQuery::from_root(&window)
+        .match_inherits("KitButton")
+        .find_first()
+        .unwrap();
+    window.set_disabled(true);
+    button.invoke_accessible_default_action();
+    assert_eq!(
+        starts.get(),
+        0,
+        "disabled semantic action cannot begin a press"
+    );
+    window.set_disabled(false);
+    window.set_busy(true);
+    button.invoke_accessible_default_action();
+    assert_eq!(starts.get(), 0, "busy semantic action cannot begin a press");
+    window.set_busy(false);
+    button.invoke_accessible_default_action();
+    assert_eq!(starts.get(), 1, "an available action still begins once");
+}
+
+#[test]
 fn native_tab_reveals_the_entire_button_focus_outline_at_either_scroll_edge() {
     use slint::platform::{Key, WindowEvent};
     i_slint_backend_testing::init_no_event_loop();
