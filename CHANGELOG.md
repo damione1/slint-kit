@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Document project-relative `@kit` library paths for VS Code and Zed, including locked Cargo vendoring for crates.io consumers, local checkout paths and refresh instructions.
+
 ## 0.5.0
 
 - Review all 124 public components against shared design, UX, accessibility and alignment criteria; unify showcase typography, spacing, navigation and control density.
