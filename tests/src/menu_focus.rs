@@ -26,6 +26,10 @@ fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
         };
         let close = find("Close panel");
         let caption = find("Edit this project");
+        assert!(
+            caption.size().height <= theme.typography.line_height_control * scale + 1.,
+            "the native caption must keep its one-line intrinsic height"
+        );
         let field = ElementQuery::from_root(&window)
             .match_inherits("KitTextField")
             .find_first()
