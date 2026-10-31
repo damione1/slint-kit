@@ -131,9 +131,9 @@ export component KitDivider inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label;
     spacing: root.label == "" ? 0px : root.theme.spacing.unit * 3; vertical-stretch: 0;
-    Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
+    VerticalLayout { alignment: center; vertical-stretch: 1; leading-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
     if root.label != "": Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-stretch: 0; }
-    Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; }
+    VerticalLayout { alignment: center; vertical-stretch: 1; trailing-rule := Rectangle { background: root.theme.border-subtle; height: root.theme.shape.border-width; vertical-stretch: 0; } }
 }
 export component KitStat inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -182,7 +182,7 @@ export component KitSkeleton inherits Rectangle {
     // One line of control text, unscaled: a skeleton stands in for copy.
     preferred-height: root.theme.typography.line-height-control; min-height: root.theme.spacing.unit * 2; vertical-stretch: 0;
     background: root.theme.border-subtle; border-radius: root.theme.shape.radius-control;
-    opacity: root.pulse && !root.theme.reduced-motion ? 0.5 : 1;
+    opacity: root.running && root.pulse && !root.theme.reduced-motion ? 0.5 : 1;
     animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
     Timer { interval: 650ms; running: root.running && !root.theme.reduced-motion; triggered => { root.pulse = !root.pulse; } }
 }
@@ -204,10 +204,31 @@ export component KitTimeline inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[TimelineEntry]> entries;
     spacing: root.theme.spacing.unit * 4; vertical-stretch: 0;
-    for entry in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
-        Rectangle { width: 12px; horizontal-stretch: 0;
-            Rectangle { y: 5px; height: 10px; width: 10px; border-radius: 5px; background: root.theme.accent; }
-            Rectangle { x: 4px; y: 19px; width: 2px; height: max(0px,parent.height - 19px); background: root.theme.border-subtle; }
+    for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
+        rail := Rectangle {
+            width: root.theme.spacing.unit * 3 * root.theme.text-scale;
+            horizontal-stretch: 0;
+            // Measure one rendered line, even when the entry's title wraps.
+            first-line := Text {
+                visible: false; accessible-role: none; text: "Ag";
+                font-family: root.theme.typography.family;
+                font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                font-weight: root.theme.typography.weight-semibold;
+            }
+            marker := Rectangle {
+                x: (rail.width - self.width) / 2;
+                y: max(0px, (first-line.preferred-height - self.height) / 2);
+                width: root.theme.spacing.unit * 2 * root.theme.text-scale;
+                height: self.width; border-radius: self.width / 2;
+                background: root.theme.accent;
+            }
+            if index + 1 < root.entries.length: connector := Rectangle {
+                x: (rail.width - self.width) / 2;
+                y: marker.y + marker.height + root.theme.spacing.unit * root.theme.text-scale;
+                width: root.theme.shape.border-width-strong;
+                height: max(0px, rail.height + root.spacing + marker.y - root.theme.spacing.unit * root.theme.text-scale - self.y);
+                background: root.theme.border-subtle;
+            }
         }
         VerticalLayout { spacing: root.theme.spacing.unit;
             Text { text: entry.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }

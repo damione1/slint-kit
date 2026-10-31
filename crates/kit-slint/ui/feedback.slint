@@ -271,7 +271,7 @@ export component KitToast inherits Rectangle {
                 Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                 if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
-            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; accessible-name: "Dismiss " + root.entry.title; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
+            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: "Dismiss " + root.entry.title; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }
         if root.entry.action-label != "": KitButton { theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } focus-observed(focused) => { root.action-focused = focused; } }
     }

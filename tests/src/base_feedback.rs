@@ -535,3 +535,137 @@ fn a_repeated_card_measures_exactly_its_content() {
         below.absolute_position()
     );
 }
+
+#[test]
+fn timeline_markers_share_their_connectors_axis_at_each_text_scale() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseDisplayQualityFixture::new().unwrap();
+    window.show().unwrap();
+    for mut theme in [window.get_theme(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            let markers = ElementQuery::from_root(&window)
+                .match_id("KitTimeline::marker")
+                .find_all();
+            let connectors = ElementQuery::from_root(&window)
+                .match_id("KitTimeline::connector")
+                .find_all();
+            assert_eq!(markers.len(), 2);
+            assert_eq!(connectors.len(), 1, "no dangling rule after the last event");
+            let first = &markers[0];
+            let connector = &connectors[0];
+            let center_x =
+                |element: &ElementHandle| element.absolute_position().x + element.size().width / 2.;
+            assert!((center_x(first) - center_x(connector)).abs() < 0.1);
+            assert!((center_x(first) - center_x(&markers[1])).abs() < 0.1);
+            assert_eq!(first.size().width, theme.spacing.unit * 2. * scale);
+            assert!(
+                connector.absolute_position().y > first.absolute_position().y + first.size().height
+            );
+            assert!(
+                connector.absolute_position().y + connector.size().height
+                    < markers[1].absolute_position().y
+            );
+            // A one-line title uses the same metrics as the marker's first-line
+            // measurement, so their vertical centers agree in both themes.
+            let title = element(&window, "Project created");
+            assert!(
+                (first.absolute_position().y + first.size().height / 2.
+                    - title.absolute_position().y
+                    - title.size().height / 2.)
+                    .abs()
+                    < 0.5
+            );
+        }
+    }
+}
+
+#[test]
+fn stopping_a_skeleton_restores_a_solid_placeholder_after_either_pulse_phase() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseDisplayQualityFixture::new().unwrap();
+    window.show().unwrap();
+    let skeleton = ElementQuery::from_root(&window)
+        .match_inherits("KitSkeleton")
+        .find_first()
+        .unwrap();
+    for elapsed in [650, 1300] {
+        window.set_running(true);
+        settle(elapsed);
+        let _ = skeleton.computed_opacity();
+        settle(500);
+        window.set_running(false);
+        let _ = skeleton.computed_opacity();
+        settle(500);
+        assert_eq!(skeleton.computed_opacity(), 1.);
+        settle(1400);
+        assert_eq!(skeleton.computed_opacity(), 1.);
+    }
+}
+
+#[test]
+fn toast_dismissal_draws_the_themes_close_glyph_inside_its_named_button() {
+    let window = fixture();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        let dismiss = element(&window, "Dismiss Saved");
+        let icon = dismiss
+            .query_descendants()
+            .match_inherits("KitIcon")
+            .find_first()
+            .unwrap();
+        let path = icon
+            .query_descendants()
+            .match_type_name("Path")
+            .find_first()
+            .unwrap();
+        // An empty default glyph has no view box, hence zero stroke width.
+        // The theme's real close glyph has the fitted, stroked bounds used by
+        // all icon controls and remains centered when text is enlarged.
+        assert!(path.size().width > icon.size().width);
+        assert!(
+            (icon.absolute_position().x + icon.size().width / 2.
+                - dismiss.absolute_position().x
+                - dismiss.size().width / 2.)
+                .abs()
+                < 0.5
+        );
+        assert!(
+            (icon.absolute_position().y + icon.size().height / 2.
+                - dismiss.absolute_position().y
+                - dismiss.size().height / 2.)
+                .abs()
+                < 0.5
+        );
+    }
+}
+
+#[test]
+fn labelled_divider_rules_share_the_labels_vertical_center() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = BaseDisplayQualityFixture::new().unwrap();
+    window.show().unwrap();
+    for mut theme in [window.get_theme(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            let label = element(&window, "Activity");
+            let center_y =
+                |item: &ElementHandle| item.absolute_position().y + item.size().height / 2.;
+            for id in ["KitDivider::leading-rule", "KitDivider::trailing-rule"] {
+                let rule = ElementQuery::from_root(&window)
+                    .match_id(id)
+                    .find_first()
+                    .unwrap();
+                assert!(
+                    (center_y(&rule) - center_y(&label)).abs() < 0.5,
+                    "{id} scale={scale}"
+                );
+                assert_eq!(rule.size().height, theme.shape.border_width);
+            }
+        }
+    }
+}

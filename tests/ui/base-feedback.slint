@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth, TooltipRecipe } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth, TooltipRecipe, KitTimeline, TimelineEntry, KitDivider } from "@kit/kit.slint";
 
 export component BaseFeedbackFixture inherits Window {
     width: 640px; height: 480px;
@@ -126,3 +126,21 @@ export component ToastHostFixture inherits Window {
     }
 }
 
+
+// Timeline geometry and paused loading placeholders share the theme's scale.
+export component BaseDisplayQualityFixture inherits Window {
+    width: 420px; height: 600px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <KitTheme> dark: KitThemes.dark;
+    in property <bool> running: true;
+    in property <[TimelineEntry]> entries: [
+        {title:"Project created",description:"A draft is ready for review.",metadata:"Today · 09:10"},
+        {title:"First review completed",description:"The network findings are ready to share.",metadata:"Today · 10:05"}
+    ];
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        KitTimeline { theme: root.theme; entries: root.entries; }
+        KitDivider { theme: root.theme; label: "Activity"; }
+        KitSkeleton { theme: root.theme; running: root.running; }
+    }
+}
