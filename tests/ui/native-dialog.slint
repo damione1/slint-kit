@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDialogSurface, KitDialogPanel, DialogTabPolicy, KitButton, KitTextField, KitMenu, KitDataTable, FieldAccess, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+import { KitScrollArea, KitDialogSurface, KitDialogPanel, DialogTabPolicy, KitButton, KitTextField, KitMenu, KitDataTable, FieldAccess, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
 export component NativeDialogFixture inherits Window {
     width: 640px; height: 700px;
     in property <bool> opened: true;
@@ -44,6 +44,27 @@ export component NativeDialogFixture inherits Window {
                 editor := KitTextField { label:"Native draft"; text <=> root.draft; access:root.opened ? FieldAccess.editable : FieldAccess.disabled; }
                 KitButton { text:"Unavailable"; disabled:true; }
                 last := KitButton { text:"Last"; disabled:!root.opened; }
+            }
+        }
+    }
+}
+
+export component ModalWheelFixture inherits Window {
+    width: 640px; height: 480px;
+    in property <bool> opened: true;
+    out property <length> background-offset: background.content-y;
+    out property <length> inner-offset: inside.content-y;
+    background := KitScrollArea {
+        width: root.width; height: root.height;
+        Rectangle { height: 1600px; Text { text: "Background content"; } }
+    }
+    KitDialogSurface {
+        state: {open:root.opened,topmost:root.opened};
+        KitDialogPanel {
+            x:180px;y:80px;width:360px;height:300px;
+            inside := KitScrollArea {
+                x:16px;y:16px;width:328px;height:268px;
+                Rectangle { height:1200px; Text { text:"Dialog content"; } }
             }
         }
     }

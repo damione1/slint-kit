@@ -12,11 +12,12 @@ export component Example inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <bool> interactive: true;
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Accordéon"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitAccordion { theme: root.theme; rows: [{ item: { token: 11, generation: 1, label: "Autorisations du projet", description: "Les membres peuvent lire et modifier toutes les notes du projet.", disabled: false }, expanded: true }, { item: { token: 23, generation: 1, label: "Réglages des notifications", description: "Choisissez comment recevoir les nouveautés.", disabled: false }, expanded: false }]; state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; }
+        KitAccordion { interactive: root.interactive; theme: root.theme; rows: [{ item: { token: 11, generation: 1, label: "Autorisations du projet", description: "Les membres peuvent lire et modifier toutes les notes du projet.", disabled: false }, expanded: true }, { item: { token: 23, generation: 1, label: "Réglages des notifications", description: "Choisissez comment recevoir les nouveautés.", disabled: false }, expanded: false }]; state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: true, token: 11 }, selection-availability: SelectionAvailability.available }; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

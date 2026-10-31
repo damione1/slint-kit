@@ -19,6 +19,9 @@ export component KitDialogSurface inherits Rectangle {
     visible: root.state.open;
     background: root.theme.scrim;
     TouchArea {
+        // A modal consumes wheel events outside its panel. Scrollable panel
+        // descendants receive their own events first through normal hit testing.
+        scroll-event(event) => { return accept; }
         clicked => {
             if (root.state.topmost && !root.state.busy && root.dismiss-on-backdrop) { root.dismiss(CloseReason.outside-press); }
         }

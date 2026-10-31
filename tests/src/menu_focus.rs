@@ -3,7 +3,98 @@ use super::*;
 use i_slint_backend_testing::{ElementHandle, ElementQuery};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, LogicalPosition, Model, ModelRc, VecModel};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
+
+#[test]
+fn navigation_composites_cancel_armed_presses_and_reject_every_activation_while_ineligible() {
+    i_slint_backend_testing::init_no_event_loop();
+    for kind in [
+        NavigationInteractiveKind::MenuBar,
+        NavigationInteractiveKind::Tabs,
+        NavigationInteractiveKind::Accordion,
+        NavigationInteractiveKind::Carousel,
+        NavigationInteractiveKind::Breadcrumbs,
+        NavigationInteractiveKind::Pagination,
+    ] {
+        let window = NavigationInteractiveFixture::new().unwrap();
+        window.set_kind(kind);
+        let calls = Rc::new(Cell::new(0));
+        let output = calls.clone();
+        window.on_action(move || output.set(output.get() + 1));
+        window.show().unwrap();
+        let label = match kind {
+            NavigationInteractiveKind::MenuBar
+            | NavigationInteractiveKind::Tabs
+            | NavigationInteractiveKind::Accordion
+            | NavigationInteractiveKind::Breadcrumbs => "First",
+            NavigationInteractiveKind::Carousel => "Open first",
+            NavigationInteractiveKind::Pagination => "Next",
+        };
+        let action = ElementQuery::from_root(&window)
+            .match_inherits("KitPressable")
+            .match_predicate(move |element| element.accessible_label().as_deref() == Some(label))
+            .find_first()
+            .unwrap();
+        let origin = action.absolute_position();
+        let position = LogicalPosition::new(
+            origin.x + action.size().width / 2.,
+            origin.y + action.size().height / 2.,
+        );
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerMoved { position });
+        window.window().dispatch_event(WindowEvent::PointerPressed {
+            position,
+            button: PointerEventButton::Left,
+        });
+        window.set_interactive(false);
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerReleased {
+                position,
+                button: PointerEventButton::Left,
+            });
+        action.invoke_accessible_default_action();
+        action.mock_single_click(PointerEventButton::Left);
+        window.invoke_focus_outside();
+        window.set_focus_request(1);
+        assert!(
+            window.get_outside_focused(),
+            "{kind:?}: inactive composite cannot take programmatic focus"
+        );
+        for key in [Key::DownArrow, Key::RightArrow, Key::Home, Key::End] {
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+        }
+        assert_eq!(calls.get(), 0, "{kind:?}: modal background must be inert");
+        for control in ElementQuery::from_root(&window)
+            .match_inherits("KitPressable")
+            .find_all()
+        {
+            if control.accessible_label().as_deref() != Some("Outside") {
+                assert_eq!(
+                    control.accessible_enabled(),
+                    Some(false),
+                    "{kind:?}: every internal action is disabled"
+                );
+            }
+        }
+        window.set_interactive(true);
+        action.mock_single_click(PointerEventButton::Left);
+        assert_eq!(
+            calls.get(),
+            1,
+            "{kind:?}: closing the modal restores activation"
+        );
+    }
+}
 
 #[test]
 fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {

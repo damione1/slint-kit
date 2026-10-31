@@ -3,7 +3,7 @@
     "fr": {
       "summary": "Ensemble de sections dépliables pilotées par des identités stables.",
       "usage": "Fournissez des `DisclosureRow` et `state`, puis traitez `expansion-requested(token, generation, expanded, mode)`. Choisissez `ExpansionMode.single`, valeur par défaut, ou `.multiple`.",
-      "behavior": "Le contrôleur applique la politique d’expansion et la navigation entre en-têtes. Les réponses utilisent `row.item.description` et leurs transitions respectent la réduction des animations.",
+      "behavior": "Le contrôleur applique la politique d’expansion et la navigation entre en-têtes. Les réponses utilisent `row.item.description` et leurs transitions respectent la réduction des animations. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "related": [
         "KitCollapse"
       ],
@@ -13,7 +13,7 @@
     "en": {
       "summary": "Set of disclosure sections driven by stable identities.",
       "usage": "Supply `DisclosureRow` values and `state`, then handle `expansion-requested(token, generation, expanded, mode)`. Choose `ExpansionMode.single`, the default, or `.multiple`.",
-      "behavior": "The controller applies expansion policy and header navigation. Answers use `row.item.description`, and transitions respect reduced motion.",
+      "behavior": "The controller applies expansion policy and header navigation. Answers use `row.item.description`, and transitions respect reduced motion. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "related": [
         "KitCollapse"
       ],
@@ -123,7 +123,7 @@
     "fr": {
       "summary": "Fil d’Ariane reliant les niveaux parents à la position courante.",
       "usage": "Fournissez les `OptionRow` du niveau racine au niveau courant. Traitez `activate(token, generation)` pour ouvrir une destination parente.",
-      "behavior": "Le dernier élément est un texte courant, sans action ; les éléments précédents restent des boutons nommés. La barre peut défiler horizontalement lorsque le chemin est long.",
+      "behavior": "Le dernier élément est un texte courant, sans action ; les éléments précédents restent des boutons nommés. La barre peut défiler horizontalement lorsque le chemin est long. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "label": "Fil d’Ariane",
       "seoTitle": "Fil d’Ariane pour Slint",
       "related": [
@@ -134,7 +134,7 @@
     "en": {
       "summary": "Breadcrumb trail linking parent levels to the current location.",
       "usage": "Supply `OptionRow` values from the root level to the current level. Handle `activate(token, generation)` to open a parent destination.",
-      "behavior": "The final item is current-location text without an action; preceding items remain named buttons. The bar can scroll horizontally for long paths.",
+      "behavior": "The final item is current-location text without an action; preceding items remain named buttons. The bar can scroll horizontally for long paths. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "label": "Breadcrumbs",
       "seoTitle": "Breadcrumbs for Slint",
       "related": [
@@ -319,7 +319,7 @@
     "fr": {
       "summary": "Carrousel manuel présentant l’élément actif et ses actions.",
       "usage": "Fournissez `rows` et `state` depuis le contrôleur et traitez `navigate` pour changer de diapositive. Définissez `action-label` lorsqu’un élément possède une action principale. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
-      "behavior": "Le titre et la description viennent de l’option active ; les commandes sont désactivées aux extrémités. Une action transmet le token et la génération de l’élément affiché, sans rotation automatique.",
+      "behavior": "Le titre et la description viennent de l’option active ; les commandes sont désactivées aux extrémités. Une action transmet le token et la génération de l’élément affiché, sans rotation automatique. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "label": "Carrousel",
       "seoTitle": "Carrousel pour Slint",
       "related": [
@@ -329,7 +329,7 @@
     "en": {
       "summary": "Manual carousel presenting the active item and its actions.",
       "usage": "Supply `rows` and `state` from the controller and handle `navigate` to change slides. Set `action-label` when an item has a primary action. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
-      "behavior": "The heading and description come from the active option; controls disable at the ends. An action carries the displayed item’s token and generation, with no automatic rotation.",
+      "behavior": "The heading and description come from the active option; controls disable at the ends. An action carries the displayed item’s token and generation, with no automatic rotation. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "label": "Carousel",
       "seoTitle": "Carousel for Slint",
       "related": [
@@ -799,7 +799,7 @@
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
       "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
-      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé.",
+      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -811,7 +811,7 @@
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
       "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
-      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled.",
+      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -1631,7 +1631,7 @@
       "seoTitle": "Barre de menus pour Slint",
       "summary": "Barre de menus Slint pour les actions ou destinations d’une fenêtre.",
       "usage": "Reliez `rows` et `state` à `SelectBinding`. Transmettez la navigation et l’activation ; son intention de sélection typée identifie la destination à ouvrir.",
-      "behavior": "Gauche et Droite demandent l’élément actif précédent ou suivant. Projetez le nouvel état pour surligner l’action active et la rendre visible dans le défilement. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé.",
+      "behavior": "Gauche et Droite demandent l’élément actif précédent ou suivant. Projetez le nouvel état pour surligner l’action active et la rendre visible dans le défilement. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "related": [
         "KitMenu",
         "KitTabs"
@@ -1642,7 +1642,7 @@
       "seoTitle": "Menu Bar for Slint",
       "summary": "Horizontal Slint menu bar for actions or destinations inside a window.",
       "usage": "Bind `rows` and `state` from `SelectBinding`. Forward navigation and activation callbacks; its typed selection intent identifies the destination to open.",
-      "behavior": "Left and Right request the previous and next active items. Publish the resulting state so the active action is highlighted and scrolled into view. With `SelectBinding`, reopen the persistent control after a committed choice.",
+      "behavior": "Left and Right request the previous and next active items. Publish the resulting state so the active action is highlighted and scrolled into view. With `SelectBinding`, reopen the persistent control after a committed choice. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "related": [
         "KitMenu",
         "KitTabs"
@@ -1869,7 +1869,7 @@
     "fr": {
       "summary": "Commandes précédente et suivante pour une collection paginée.",
       "usage": "Projetez `page-index` à partir de zéro et `page-count` depuis un contrôleur validé. Traitez `navigate(NavigationStep.previous)` et `.next` pour charger ou afficher la page.",
-      "behavior": "Le compteur visible commence à un et affiche `0 / 0` pour une collection vide. Les boutons sont bloqués aux limites ; la vue ne charge pas elle-même les données distantes.",
+      "behavior": "Le compteur visible commence à un et affiche `0 / 0` pour une collection vide. Les boutons sont bloqués aux limites ; la vue ne charge pas elle-même les données distantes. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "label": "Pagination",
       "seoTitle": "Pagination pour Slint",
       "related": [
@@ -1879,7 +1879,7 @@
     "en": {
       "summary": "Previous and next controls for a paged collection.",
       "usage": "Project zero-based `page-index` and `page-count` from a validated controller. Handle `navigate(NavigationStep.previous)` and `.next` to load or display a page.",
-      "behavior": "The visible counter starts at one and shows `0 / 0` for an empty collection. Buttons disable at the limits; the view does not fetch remote data itself.",
+      "behavior": "The visible counter starts at one and shows `0 / 0` for an empty collection. Buttons disable at the limits; the view does not fetch remote data itself. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "label": "Pagination",
       "seoTitle": "Pagination for Slint",
       "related": [
@@ -2541,7 +2541,7 @@
     "fr": {
       "summary": "Barre d’onglets contrôlée séparant le focus de la destination sélectionnée.",
       "usage": "Fournissez les onglets dans `rows` et la projection de sélection dans `state`. Traitez `activate(token, generation)` pour changer le contenu détenu par l’application. KitTabs fournit la barre d’onglets ; composez le panneau sélectionné comme contenu voisin à partir de sa clé stable. L’exemple associe KitCard, KitBadge et KitProgress au contenu géré par l’hôte. Passez explicitement le même `theme` à ces composants.",
-      "behavior": "Les onglets exposent le rôle accessible `tab` et se révèlent horizontalement au changement d’élément actif. Les flèches naviguent ; la vue ne crée ni ne remplace les panneaux de contenu. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé.",
+      "behavior": "Les onglets exposent le rôle accessible `tab` et se révèlent horizontalement au changement d’élément actif. Les flèches naviguent ; la vue ne crée ni ne remplace les panneaux de contenu. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "related": [
         "KitMenuBar",
         "KitNavigationAction"
@@ -2552,7 +2552,7 @@
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
       "usage": "Provide tabs in `rows` and the selection projection in `state`. Handle `activate(token, generation)` to change application-owned content. KitTabs provides the tab strip; compose the selected content as a sibling panel, using its stable selected key. The example combines KitCard, KitBadge and KitProgress with host-owned content. Pass the same `theme` explicitly to those components.",
-      "behavior": "Tabs expose the accessible `tab` role and reveal themselves horizontally when the active item changes. Arrows navigate; the view does not create or replace content panels. With `SelectBinding`, reopen the persistent control after a committed choice.",
+      "behavior": "Tabs expose the accessible `tab` role and reveal themselves horizontally when the active item changes. Arrows navigate; the view does not create or replace content panels. With `SelectBinding`, reopen the persistent control after a committed choice. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "related": [
         "KitMenuBar",
         "KitNavigationAction"

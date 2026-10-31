@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitButton, KitDrawer, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+import { KitMenuBar, KitTabs, KitAccordion, KitCarousel, KitBreadcrumbs, KitPagination, KitMenu, KitButton, KitDrawer, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
 
 export component MenuFocusFixture inherits Window {
     width: 400px; height: 300px;
@@ -34,5 +34,51 @@ export component DrawerContentFixture inherits Window {
         Text { text: "Edit this project"; font-size: root.theme.typography.size-control * root.theme.text-scale; vertical-stretch: 0; max-height: self.preferred-height; }
         KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; }
         KitButton { theme: root.theme; text: "Save changes"; }
+    }
+}
+
+
+export enum NavigationInteractiveKind { menu-bar, tabs, accordion, carousel, breadcrumbs, pagination }
+export component NavigationInteractiveFixture inherits Window {
+    width: 600px; height: 420px;
+    in property <NavigationInteractiveKind> kind;
+    in property <bool> interactive: true;
+    in property <int> focus-request;
+    out property <bool> outside-focused: outside.has-focus;
+    callback action();
+    public function focus-outside() { outside.take-focus(); }
+    private property <[OptionRow]> rows: [{token:17,generation:1,label:"First"},{token:18,generation:1,label:"Second"}];
+    private property <SelectState> state: {open:true,generation:1,active:{present:true,token:17},active-index:0};
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        if root.kind == NavigationInteractiveKind.menu-bar: KitMenuBar {
+            interactive: root.interactive; rows: root.rows; state: root.state;
+            private property <int> request: root.focus-request;
+            changed request => { self.take-focus(); }
+            activate(token,generation) => { root.action(); } navigate(step) => { root.action(); }
+        }
+        if root.kind == NavigationInteractiveKind.tabs: KitTabs {
+            interactive: root.interactive; rows: root.rows; state: root.state;
+            private property <int> request: root.focus-request;
+            changed request => { self.take-focus(); }
+            activate(token,generation) => { root.action(); } navigate(step) => { root.action(); }
+        }
+        if root.kind == NavigationInteractiveKind.accordion: KitAccordion {
+            interactive: root.interactive; rows: [{item:{token:17,generation:1,label:"First",description:"An answer"}}]; state: root.state;
+            expansion-requested(token,generation,expanded,mode) => { root.action(); } navigate(step) => { root.action(); }
+        }
+        if root.kind == NavigationInteractiveKind.carousel: KitCarousel {
+            interactive: root.interactive; rows: root.rows; state: root.state; action-label: "Open first";
+            activate(token,generation) => { root.action(); } navigate(step) => { root.action(); }
+        }
+        if root.kind == NavigationInteractiveKind.breadcrumbs: KitBreadcrumbs {
+            interactive: root.interactive; rows: root.rows;
+            activate(token,generation) => { root.action(); }
+        }
+        if root.kind == NavigationInteractiveKind.pagination: KitPagination {
+            interactive: root.interactive; page-index: 0; page-count: 2;
+            navigate(step) => { root.action(); }
+        }
+        outside := KitButton { text: "Outside"; }
     }
 }

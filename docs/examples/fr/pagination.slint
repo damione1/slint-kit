@@ -12,11 +12,12 @@ export component Example inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <bool> interactive: true;
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Pagination"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitPagination { next-label: "Suivant"; previous-label: "Précédent"; theme: root.theme; page-index: 2; page-count: 12; }
+        KitPagination { interactive: root.interactive; next-label: "Suivant"; previous-label: "Précédent"; theme: root.theme; page-index: 2; page-count: 12; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

@@ -7,6 +7,40 @@ use slint::{
 };
 use std::{cell::Cell, rc::Rc};
 
+#[test]
+fn modal_backdrop_blocks_background_wheel_without_blocking_panel_scrolling() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ModalWheelFixture::new().unwrap();
+    window.show().unwrap();
+    let scroll = |x, y| {
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerScrolled {
+                position: slint::LogicalPosition::new(x, y),
+                delta_x: 0.,
+                delta_y: -120.,
+            });
+    };
+    scroll(48., 48.);
+    assert_eq!(
+        window.get_background_offset(),
+        0.,
+        "the scrim consumes wheel events"
+    );
+    scroll(300., 200.);
+    assert!(
+        window.get_inner_offset() < 0.,
+        "the actual panel viewport still scrolls"
+    );
+    assert_eq!(window.get_background_offset(), 0.);
+    window.set_opened(false);
+    scroll(48., 48.);
+    assert!(
+        window.get_background_offset() < 0.,
+        "closing the modal restores background scrolling"
+    );
+}
+
 fn key(window: &NativeDialogFixture, key: Key) {
     window
         .window()

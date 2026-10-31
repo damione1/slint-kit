@@ -120,6 +120,7 @@ export component KitMenu inherits Rectangle {
 }
 
 export component KitMenuBar inherits Rectangle {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
@@ -129,12 +130,13 @@ export component KitMenuBar inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    public function take-focus() { keyboard.focus(); }
+    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
     public function reveal(left: length, right: length) {
         if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
         else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
     }
     public function handle-key(event: KeyEvent) -> EventResult {
+        if (!root.interactive) { return reject; }
         if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
             root.navigate(event.text == Key.RightArrow ? NavigationStep.next : NavigationStep.previous);
             return accept;
@@ -148,6 +150,7 @@ export component KitMenuBar inherits Rectangle {
     vertical-stretch: 0;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
+        enabled: root.interactive;
         dismiss-on-system-back: false;
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
@@ -169,10 +172,11 @@ export component KitMenuBar inherits Rectangle {
                 for row in root.rows: KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
                     option-data: row;
+                    disabled: !root.interactive || row.disabled;
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == row.token;
                     selected: root.state.selected.present && root.state.selected.token == row.token;
-                    focus-indicated: self.active && (keyboard.has-focus || self.has-focus);
+                    focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
                     key-event(event) => {
                         if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
@@ -186,6 +190,7 @@ export component KitMenuBar inherits Rectangle {
 }
 
 export component KitTabs inherits Rectangle {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
@@ -195,12 +200,13 @@ export component KitTabs inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    public function take-focus() { keyboard.focus(); }
+    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
     public function reveal(left: length, right: length) {
         if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
         else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
     }
     public function handle-key(event: KeyEvent) -> EventResult {
+        if (!root.interactive) { return reject; }
         if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
             root.navigate(event.text == Key.RightArrow ? NavigationStep.next : NavigationStep.previous);
             return accept;
@@ -215,6 +221,7 @@ export component KitTabs inherits Rectangle {
     vertical-stretch: 0;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
+        enabled: root.interactive;
         dismiss-on-system-back: false;
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
@@ -236,11 +243,12 @@ export component KitTabs inherits Rectangle {
                 for row in root.rows: tab-action := KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
                     option-data: row;
+                    disabled: !root.interactive || row.disabled;
                     accessible-role: tab;
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == row.token;
                     selected: root.state.selected.present && root.state.selected.token == row.token;
-                    focus-indicated: self.active && (keyboard.has-focus || self.has-focus);
+                    focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     // The selected tab carries an underline instead of a tint;
                     // the ring is left to the active (keyboard) tab only.
                     background: self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
@@ -304,6 +312,7 @@ export component KitCollapse inherits VerticalLayout {
 }
 
 export component KitAccordion inherits VerticalLayout {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[DisclosureRow]> rows;
@@ -312,6 +321,7 @@ export component KitAccordion inherits VerticalLayout {
     callback expansion-requested(int, int, bool, ExpansionMode);
     callback navigate(NavigationStep);
     private property <bool> focus-requested;
+    changed interactive => { if (!root.interactive) { root.focus-requested = false; } }
     private property <length> inset-x: root.theme.spacing.unit * 4;
     private property <length> inset-y: root.theme.spacing.unit * 2;
     spacing: root.theme.spacing.unit * 2;
@@ -324,6 +334,7 @@ export component KitAccordion inherits VerticalLayout {
             trailing-space: KitMetrics.icon-size(root.theme, root.control-size) + root.theme.spacing.unit * 2;
             theme: root.theme; control-size: root.control-size;
             option-data: row.item;
+            disabled: !root.interactive || row.item.disabled;
             active: false;
             tab-stop: root.state.active.present ? root.state.active.token == row.item.token : true;
             accessible-role: button;
@@ -339,7 +350,7 @@ export component KitAccordion inherits VerticalLayout {
                 return reject;
             }
             private property <bool> active-row: root.state.active.present && root.state.active.token == row.item.token;
-            changed active-row => { if (self.active-row && root.focus-requested) { self.take-focus(); root.focus-requested = false; } }
+            changed active-row => { if (root.interactive && self.active-row && root.focus-requested) { self.take-focus(); root.focus-requested = false; } }
             activate(token, generation) => { root.expansion-requested(token, generation, !row.expanded, root.mode); }
             // Children of a pressable sit in its padded content box, while
             // `parent` names the pressable itself: place from its own metrics.
@@ -361,6 +372,7 @@ export component KitAccordion inherits VerticalLayout {
 
 // Manual carousel: application chooses the active slide through stable identity.
 export component KitCarousel inherits Rectangle {
+    in property <bool> interactive: true;
     in property <string> label: "Carousel";
     accessible-role: groupbox; accessible-label: root.label;
     in property <KitTheme> theme: KitThemeContext.current;
@@ -399,19 +411,20 @@ export component KitCarousel inherits Rectangle {
         @children
         if root.action-label != "" && root.state.active-index >= 0 && root.state.active-index < root.rows.length: KitNavigationAction {
             theme: root.theme; control-size: root.control-size; tab-stop: true; accessible-role: button;
-            option-data: {token: root.rows[root.state.active-index].token, generation: root.rows[root.state.active-index].generation, label: root.action-label, description: "", disabled: root.rows[root.state.active-index].disabled};
+            option-data: {token: root.rows[root.state.active-index].token, generation: root.rows[root.state.active-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.state.active-index].disabled};
             activate(token, generation) => { root.activate(token, generation); }
         }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2; alignment: space-between;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: root.state.active-index <= 0; activated => { root.navigate(NavigationStep.previous); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.state.active-index <= 0; activated => { root.navigate(NavigationStep.previous); } }
             Text { text: root.rows.length == 0 ? "0 / 0" : (root.state.active-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: root.rows.length == 0 || root.state.active-index >= root.rows.length - 1; activated => { root.navigate(NavigationStep.next); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.rows.length == 0 || root.state.active-index >= root.rows.length - 1; activated => { root.navigate(NavigationStep.next); } }
         }
     }
 }
 
 export component KitBreadcrumbs inherits Rectangle {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows;
@@ -437,6 +450,7 @@ export component KitBreadcrumbs inherits Rectangle {
                 if index < root.rows.length - 1: KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
                     option-data: row;
+                    disabled: !root.interactive || row.disabled;
                     control-width: ControlWidth.intrinsic;
                     tab-stop: true;
                     accessible-role: button;
@@ -455,6 +469,7 @@ export component KitBreadcrumbs inherits Rectangle {
 // Integers are a projection boundary; a Rust pagination controller validates
 // the page index/count. This view never mutates a remote collection itself.
 export component KitPagination inherits HorizontalLayout {
+    in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <int> page-index;
@@ -467,9 +482,9 @@ export component KitPagination inherits HorizontalLayout {
     vertical-stretch: 0;
     accessible-role: navigation;
     accessible-label: "Pagination";
-    KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: root.page-index <= 0 || root.page-count <= 0; activated => { root.navigate(NavigationStep.previous); } }
+    KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.page-index <= 0 || root.page-count <= 0; activated => { root.navigate(NavigationStep.previous); } }
     Text { text: root.page-count <= 0 ? "0 / 0" : (min(max(0, root.page-index), root.page-count - 1) + 1) + " / " + root.page-count; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
-    KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.navigate(NavigationStep.next); } }
+    KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.navigate(NavigationStep.next); } }
 }
 
 export component KitNotificationButton inherits KitPressable {
