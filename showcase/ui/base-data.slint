@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, ControlSize } from "@kit/theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize } from "@kit/theme.slint";
 import { KitSearchField } from "@kit/input.slint";
 import { PreviewAnchor, PreviewExamples, PreviewTarget } from "example-section.slint";
 import { KitButton } from "@kit/button.slint";
@@ -40,30 +40,33 @@ export global DataExamples {
 export component DataGallery inherits VerticalLayout {
     in property <KitTheme> theme:KitThemes.light;
     in property <ControlSize> control-size:ControlSize.medium;
-    spacing:24px;vertical-stretch:0;
+    spacing:KitMetrics.section-gap(root.theme);vertical-stretch:0;
     KitCard {theme:root.theme;
         PreviewAnchor { height: 0px; target: PreviewTarget.table; }
         KitCardHeader {theme:root.theme;title:"Data table";description:"Search and sort ten thousand records. Selection stays with the record when its position changes.";}
         KitSearchField {theme:root.theme;control-size:root.control-size;label:"Find a product";placeholder:"Search title or category";text<=>DataExamples.query;edited(query)=>{DataExamples.query-edited(query);}}
         KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step);}sort-requested(column)=>{DataExamples.sort(column);}}
-        Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
     KitCard {theme:root.theme;
         PreviewAnchor { height: 0px; target: PreviewTarget.articles; }
         KitCardHeader {theme:root.theme;title:"Content list";description:"A thumbnail, title, excerpt and context — one reusable, virtualized list for articles or products.";}
-        FlexboxLayout { flex-direction: root.theme.text-scale > 1 ? column : row; flex-wrap: no-wrap; spacing: 24px; cross-axis-alignment: start;
-            articles := KitContentList { theme: root.theme; items: DataExamples.articles; generation: 1; active-index: DataExamples.article-active; width: root.theme.text-scale > 1 ? root.width - 48px : (root.width - 72px) / 2; height: 440px; activate(token,generation) => { DataExamples.article-open(token,generation); } navigate(step) => { DataExamples.navigate(DataCollection.articles,step); } }
+        article-columns := FlexboxLayout {
+            private property <bool> stacked: root.theme.text-scale > 1 || self.width < root.theme.spacing.unit * 160;
+            private property <length> column-width: self.stacked ? self.width : max(0px,(self.width - KitMetrics.section-gap(root.theme)) / 2);
+            flex-direction: self.stacked ? column : row; flex-wrap: no-wrap; spacing: KitMetrics.section-gap(root.theme); cross-axis-alignment: start;
+            articles := KitContentList { theme: root.theme; items: DataExamples.articles; generation: 1; active-index: DataExamples.article-active; width: article-columns.column-width; height: 440px; activate(token,generation) => { DataExamples.article-open(token,generation); } navigate(step) => { DataExamples.navigate(DataCollection.articles,step); } }
             preview-panel := VerticalLayout {
                 private property <ArticlePreview> observed-preview: DataExamples.preview;
-                changed observed-preview => { if (root.theme.text-scale > 1 && DataExamples.preview-state == ArticlePreviewState.open) { PreviewExamples.reveal(self.absolute-position.y,0px); } }
-                width: root.theme.text-scale > 1 ? root.width - 48px : (root.width - 72px) / 2; height: self.preferred-height; vertical-stretch: 0; spacing: 12px; alignment: start;
-                if DataExamples.preview-state == ArticlePreviewState.closed: Text { text: "Select an article to open its preview here."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-                if DataExamples.preview-state == ArticlePreviewState.open: VerticalLayout { width: preview-panel.width; height: self.preferred-height; vertical-stretch: 0; spacing: 12px; alignment: start;
+                changed observed-preview => { if (article-columns.stacked && DataExamples.preview-state == ArticlePreviewState.open) { PreviewExamples.reveal(self.absolute-position.y,0px); } }
+                width: article-columns.column-width; height: self.preferred-height; vertical-stretch: 0; spacing: root.theme.spacing.unit * 3; alignment: start;
+                if DataExamples.preview-state == ArticlePreviewState.closed: Text { text: "Select an article to open its preview here."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                if DataExamples.preview-state == ArticlePreviewState.open: VerticalLayout { width: preview-panel.width; height: self.preferred-height; vertical-stretch: 0; spacing: root.theme.spacing.unit * 3; alignment: start;
                     Image { source: DataExamples.preview.thumbnail; height: 140px; image-fit: cover; }
-                    Text { text: DataExamples.preview.title; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-                    Text { text: DataExamples.preview.metadata; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-                    Text { text: DataExamples.preview.body; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-                    FlexboxLayout { spacing: 8px; alignment: start;
+                    Text { text: DataExamples.preview.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                    Text { text: DataExamples.preview.metadata; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+                    Text { text: DataExamples.preview.body; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+                    FlexboxLayout { spacing: KitMetrics.inline-gap(root.theme); alignment: start;
                         KitButton { theme: root.theme; control-size: root.control-size; text: "Close preview"; activated => { DataExamples.article-close(); articles.take-focus(); if (root.theme.text-scale > 1) { PreviewExamples.reveal(articles.absolute-position.y,articles.height); } } }
                         KitButton { theme: root.theme; control-size: root.control-size; text: DataExamples.preview-saved ? "Saved for later" : "Save for later"; disabled: DataExamples.preview-saved; activated => { DataExamples.preview-saved = true; } }
                     }
@@ -74,6 +77,6 @@ export component DataGallery inherits VerticalLayout {
     KitCard {theme:root.theme;
         KitCardHeader {theme:root.theme;title:"Virtual text view";description:"Browse fifty thousand lines in a virtualized view. Edit the selected line with the native editor; the rest of the document stays in the model.";}
         KitVirtualTextView {theme:root.theme;access:TextViewAccess.edit-line;lines:DataExamples.lines;generation:DataExamples.line-generation;active-index:DataExamples.line-active;line-draft<=>DataExamples.line-draft;error:DataExamples.line-error;preferred-height:420px;navigate(step)=>{DataExamples.navigate(DataCollection.document,step);}select-line(token,generation)=>{DataExamples.line-select(token,generation);}commit-line(token,generation,text)=>{DataExamples.line-commit(token,generation,text);}copy-requested(token,generation)=>{DataExamples.line-copy(token,generation);}}
-        Text {text:DataExamples.line-status;color:root.theme.text-secondary;font-size:14px * root.theme.text-scale;wrap:word-wrap;accessible-live-region:polite;}
+        Text {text:DataExamples.line-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
 }
