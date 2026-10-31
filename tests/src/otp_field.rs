@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use crate::*;
-use i_slint_backend_testing::ElementHandle;
+use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::{
     ComponentHandle,
     platform::{Key, WindowEvent},
@@ -149,5 +149,63 @@ fn otp_shipped_monospace_font_has_equal_real_advances_for_digits_letters_and_mas
             advance('0'),
             "{character} must occupy one native code cell"
         );
+    }
+}
+
+#[test]
+fn otp_placeholder_paints_a_complete_digit_in_every_slot_at_200_percent() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = OtpFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, app);
+    app.set_placeholder("888888".into());
+    app.show().unwrap();
+    app.invoke_blur_code();
+    for base in [app.get_theme(), app.get_dark()] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme.clone());
+            let surface = ElementQuery::from_root(&app)
+                .match_inherits("KitInputGroup")
+                .find_first()
+                .unwrap();
+            let image = app.window().take_snapshot().unwrap();
+            let origin = surface.absolute_position();
+            let size = surface.size();
+            // Six evenly spaced code slots are the public visual contract.
+            // Count actual ink inside each slot, excluding the underline and
+            // neighbouring glyphs, without relying on the placeholder Text's
+            // own reported width (which stays unchanged when it elides).
+            let inset = theme.spacing.medium.padding_inline;
+            let cell = (size.width - 2. * inset) / 6.;
+            for slot in 0..6 {
+                let left = (origin.x + inset + slot as f32 * cell + cell * 0.2).ceil() as u32;
+                let right = (origin.x + inset + slot as f32 * cell + cell * 0.8).floor() as u32;
+                let top = (origin.y + theme.spacing.medium.padding_block).ceil() as u32;
+                let bottom =
+                    (origin.y + size.height - theme.spacing.medium.padding_block).floor() as u32;
+                let mut ink = 0;
+                for y in top..bottom {
+                    for x in left..right {
+                        let pixel = image.as_slice()[(y * image.width() + x) as usize];
+                        if pixel.r.abs_diff(theme.placeholder.red()) <= 16
+                            && pixel.g.abs_diff(theme.placeholder.green()) <= 16
+                            && pixel.b.abs_diff(theme.placeholder.blue()) <= 16
+                        {
+                            ink += 1;
+                        }
+                    }
+                }
+                assert!(
+                    ink >= 8,
+                    "slot {slot} at scale {scale} has only {ink} placeholder pixels"
+                );
+            }
+        }
     }
 }

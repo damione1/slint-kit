@@ -53,17 +53,21 @@ component RadioMark inherits Rectangle {
     in property <bool> invalid;
     in property <bool> disabled;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
-    width: root.choice.box-size; height: root.choice.box-size;
-    border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-    border-width: root.theme.shape.border-width;
-    // A disabled mark keeps its edge in the dimmed ink of its label: the
-    // disabled row fill can equal border-subtle, which would erase the ring.
-    border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
-    if root.selected: Rectangle {
-        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-        width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
+    width: root.choice.box-size; preferred-height: root.choice.box-size; horizontal-stretch: 0;
+    Rectangle {
+        y: (parent.height - self.height) / 2;
+        width: root.choice.box-size; height: root.choice.box-size;
         border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-        background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+        border-width: root.theme.shape.border-width;
+        // A disabled mark keeps its edge in the dimmed ink of its label: the
+        // disabled row fill can equal border-subtle, which would erase the ring.
+        border-color: root.invalid ? root.theme.danger : root.selected && !root.disabled ? root.theme.accent : root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        if root.selected: Rectangle {
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            width: root.choice.radio-dot-size; height: root.choice.radio-dot-size;
+            border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+            background: root.disabled ? root.theme.disabled-text : root.theme.accent;
+        }
     }
 }
 
@@ -175,6 +179,9 @@ export component KitSwitch inherits KitPressable {
     HorizontalLayout {
         spacing: root.choice.label-gap;
         Rectangle {
+            width: root.choice.track-width; horizontal-stretch: 0;
+            Rectangle {
+            y: (parent.height - self.height) / 2;
             width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
             background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.checked ? root.theme.accent : root.theme.border-strong;
             // The disabled track matches the disabled row fill; its edge keeps it visible.
@@ -187,6 +194,7 @@ export component KitSwitch inherits KitPressable {
                 border-radius: min(root.theme.shape.radius-pill, self.width / 2);
                 background: root.checked ? root.theme.on-accent : root.theme.surface;
                 animate x { duration: root.choice.transition; easing: ease-in-out; }
+            }
             }
         }
         Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
@@ -369,19 +377,20 @@ export component KitSegmentedControl inherits Rectangle {
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
             padding: root.choice.group-padding; spacing: root.choice.group-padding;
-            for row in root.rows: option := ChoiceOption {
-                option-data: row; generation: root.generation; access: root.access;
+            for source-row[index] in root.rows: option := ChoiceOption {
+                private property <ChoiceRow> display-choice: root.flow == ChoiceFlow.right-to-left ? root.rows[root.rows.length - 1 - index] : source-row;
+                option-data: self.display-choice; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size;
                 control-width: ControlWidth.fill;
-                accessible-name: row.label;
-                disabled: row.disabled || root.access == FieldAccess.disabled;
-                intent: row.selected ? ButtonIntent.primary : ButtonIntent.quiet;
-                accessible-role: radio-button; accessible-checked: row.selected;
-                focus-indicated: keyboard.focus-visible && root.active-token == row.token;
+                accessible-name: self.display-choice.label;
+                disabled: self.display-choice.disabled || root.access == FieldAccess.disabled;
+                intent: self.display-choice.selected ? ButtonIntent.primary : ButtonIntent.quiet;
+                accessible-role: radio-button; accessible-checked: self.display-choice.selected;
+                focus-indicated: keyboard.focus-visible && root.active-token == self.display-choice.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                Text { text: row.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                Text { text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
@@ -769,7 +778,8 @@ export component KitSlider inherits Rectangle {
     callback committed();
     callback cancelled();
     private property <bool> gesture-active;
-    preferred-height: 40px; min-width: 120px; vertical-stretch: 0;
+    preferred-height: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    min-width: 120px; vertical-stretch: 0;
     accessible-role: slider; accessible-label: root.label;
     accessible-value: root.value-label;
     accessible-value-minimum: 0; accessible-value-maximum: 1;
@@ -824,7 +834,8 @@ export component KitRangeSlider inherits Rectangle {
     private property <RangeThumb> active-thumb: RangeThumb.lower;
     private property <bool> gesture-active;
     vertical-stretch: 0;
-    preferred-height: 40px; min-width: 120px;
+    preferred-height: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    min-width: 120px;
     accessible-role: groupbox; accessible-label: root.label;
     public function take-focus() { lower.focus(); }
     forward-focus: lower;

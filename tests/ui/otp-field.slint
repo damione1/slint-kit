@@ -9,6 +9,7 @@ export component OtpFixture inherits Window {
     in property <int> slots: 6;
     in property <string> pattern: "[0-9]*";
     in property <bool> masked;
+    in property <string> placeholder;
     in property <string> display-text: root.text;
     in property <FieldAccess> access: FieldAccess.editable;
     out property <KitValidityState> validity: otp.validity;
@@ -25,7 +26,7 @@ export component OtpFixture inherits Window {
         padding: 24px; alignment: start;
         otp := KitOtpField {
             theme: root.theme; label: "Verification code"; slots: root.slots; required: true;
-            text <=> root.text; pattern: root.pattern;
+            text <=> root.text; pattern: root.pattern; placeholder: root.placeholder;
             display-text: root.display-text;
             access: root.access;
             decoration: FieldDecoration.underlined;

@@ -4,7 +4,7 @@ import { KitCard } from "@kit/display.slint";
 import { KitButton } from "@kit/button.slint";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
-import { KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit/field.slint";
+import { KitField, KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldError, KitFormErrorSummary, FormErrorRow } from "@kit/field.slint";
 import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField, PhoneNumberMode } from "@kit/input.slint";
 import { NumberInputFormat } from "@kit/shared-contracts.slint";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
@@ -238,20 +238,22 @@ component ExamplePanel inherits KitCard { }
 component SectionTitle inherits Text {
     in property <KitTheme> theme;
     color: root.theme.text-primary;
-    font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap;
+    font-family: root.theme.typography.family;
+    font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap;
 }
 
 export component FormGallery inherits VerticalLayout {
     in property <KitTheme> theme: KitThemes.light;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <ShowcasePage> page;
-    spacing: 24px; alignment: start; vertical-stretch: 0; max-width: 760px;
+    spacing: KitMetrics.section-gap(root.theme); alignment: start; vertical-stretch: 0; max-width: 760px;
     if root.page == ShowcasePage.profile: ExamplePanel {
         theme: root.theme;
         SectionTitle {theme: root.theme; text: "Profile form";}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme: root.theme; text: "Native editing, clear labels, and validation that keeps your work intact.";}
-        FlexboxLayout {spacing: 8px; alignment: start;
-            KitButton {control-size:root.control-size;theme:root.theme; text: FormExamples.access == FieldAccess.editable ? "Editable" : FormExamples.access == FieldAccess.read-only ? "Read only" : "Disabled"; activated => {FormExamples.access = FormExamples.access == FieldAccess.editable ? FieldAccess.read-only : FormExamples.access == FieldAccess.read-only ? FieldAccess.disabled : FieldAccess.editable;}}
+        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme: root.theme; text: "Native editing, clear labels, and validation that keeps your work intact.";}
+        KitFieldDescription { theme: root.theme; text: "Field state: " + (FormExamples.access == FieldAccess.editable ? "editable" : FormExamples.access == FieldAccess.read-only ? "read-only" : "disabled"); }
+        FlexboxLayout {spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            KitButton {control-size:root.control-size;theme:root.theme; text: FormExamples.access == FieldAccess.editable ? "Make fields read-only" : FormExamples.access == FieldAccess.read-only ? "Disable fields" : "Enable editing"; activated => {FormExamples.access = FormExamples.access == FieldAccess.editable ? FieldAccess.read-only : FormExamples.access == FieldAccess.read-only ? FieldAccess.disabled : FieldAccess.editable;}}
         }
         KitTextField {
             theme: root.theme; control-size: root.control-size; access: FormExamples.access;
@@ -317,8 +319,8 @@ export component FormGallery inherits VerticalLayout {
         KitFormErrorSummary {theme:root.theme;errors:FormExamples.profile-errors;error-activated(target)=>{FormExamples.profile-error-activated(target);}}
         KitCheckbox {control-size:root.control-size;private property <int> focus-sequence:FormExamples.consent-focus-sequence;changed focus-sequence=>{self.take-focus(); FormExamples.reveal-field(self.absolute-position.y,self.height);}theme: root.theme; label: "I agree to the project terms"; state: FormExamples.consent; access: FormExamples.access; toggled(state)=>{FormExamples.consent = state; FormExamples.consent-toggled(state);}}
         KitSwitch {control-size:root.control-size;theme:root.theme; label:"Email notifications"; checked:FormExamples.notifications; access:FormExamples.access; toggled(value)=>{FormExamples.notifications = value; FormExamples.notifications-toggled(value);}}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.profile-status;}
-        FlexboxLayout {spacing:12px;alignment:start;
+        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme:root.theme;text:FormExamples.profile-status;}
+        FlexboxLayout {spacing:KitMetrics.inline-gap(root.theme);alignment:start;
             KitButton {control-size:root.control-size;theme:root.theme;text:"Save profile";intent:ButtonIntent.primary;busy:FormExamples.profile-submission == SubmissionPresentation.pending;disabled:FormExamples.access != FieldAccess.editable;activated=>{FormExamples.profile-submit();}}
             KitButton {control-size:root.control-size;theme:root.theme;text:"Reset";intent:ButtonIntent.quiet;activated=>{FormExamples.profile-reset();}}
         }
@@ -364,7 +366,7 @@ export component FormGallery inherits VerticalLayout {
     }
     if root.page == ShowcasePage.profile: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Search input"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Native search editing with a clear action. This sample does not query a dataset."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Native search editing with a clear action. This sample does not query a dataset."; }
         KitSearchField {
             theme: root.theme; control-size: root.control-size;
             label: "Search"; placeholder: "Type to test search editing";
@@ -381,7 +383,7 @@ export component FormGallery inherits VerticalLayout {
     if root.page == ShowcasePage.billing: ExamplePanel {
         theme:root.theme;
         SectionTitle {theme:root.theme;text:"Numeric fields";}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Localized drafts stay editable. Formatting happens when you accept a value.";}
+        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme:root.theme;text:"Localized drafts stay editable. Formatting happens when you accept a value.";}
         FlexboxLayout {spacing:8px;alignment:start;
             for locale in [LocaleExample.french-canada,LocaleExample.french-france,LocaleExample.english-canada,LocaleExample.english-us]:KitButton {control-size:root.control-size;
                 theme:root.theme; text:locale == LocaleExample.french-canada ? "French · Canada" : locale == LocaleExample.french-france ? "French · France" : locale == LocaleExample.english-canada ? "English · Canada" : "English · US";
@@ -414,7 +416,7 @@ export component FormGallery inherits VerticalLayout {
     }
     if root.page == ShowcasePage.billing: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Invoice example"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Enter an exact amount and create a local demo invoice."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Enter an exact amount and create a local demo invoice."; }
         KitMoneyField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;
             theme:root.theme;control-size:root.control-size;label:"Monthly budget"; suffix: FormExamples.money-suffix;
             text <=> FormExamples.money-text;
@@ -471,8 +473,8 @@ export component FormGallery inherits VerticalLayout {
             cancelled=>{FormExamples.numeric-cancel(NumericExample.stepper);}
         }
         KitFormErrorSummary {theme:root.theme;errors:FormExamples.billing-errors;error-activated(target)=>{FormExamples.billing-error-activated(target);}}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.billing-status;}
-        FlexboxLayout {spacing:12px;alignment:start;
+        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme:root.theme;text:FormExamples.billing-status;}
+        FlexboxLayout {spacing:KitMetrics.inline-gap(root.theme);alignment:start;
             KitButton {control-size:root.control-size;theme:root.theme;text:"Create invoice";intent:ButtonIntent.primary;busy:FormExamples.billing-submission == SubmissionPresentation.pending;activated=>{FormExamples.billing-submit();}}
             KitButton {control-size:root.control-size;theme:root.theme;text:"Reset values";intent:ButtonIntent.quiet;activated=>{FormExamples.billing-reset();}}
         }
@@ -485,46 +487,56 @@ export component FormGallery inherits VerticalLayout {
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Radio & segmented controls"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose one option or combine independent toggles."; }
-        KitFieldLabel {theme:root.theme;text:"Plan";}
-        KitRadioGroup {control-size:root.control-size;theme:root.theme;label:"Plan";rows:FormExamples.radio-options;active-token:FormExamples.radio-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.radio,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.radio,token,generation);}}
-        KitFieldLabel {theme:root.theme;text:"View mode";}
-        KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"View mode";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
-        KitFieldLabel {theme:root.theme;text:"Export formats";}
-        KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Choose one option or combine independent toggles."; }
+        KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"Plan";focus-requested => { plan-options.take-focus(); }}
+            plan-options := KitRadioGroup {control-size:root.control-size;theme:root.theme;label:"Plan";rows:FormExamples.radio-options;active-token:FormExamples.radio-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.radio,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.radio,token,generation);}}
+        }
+        KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"View mode";focus-requested => { view-options.take-focus(); }}
+            view-options := KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"View mode";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
+        }
+        KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"Export formats";focus-requested => { export-options.take-focus(); }}
+            export-options := KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
+        }
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Searchable selection"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Search a collaborator or select several reviewers."; }
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Search a collaborator";}
-        KitCombobox {control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:"Project reviewers";}
-        KitMultiSelect {control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Search a collaborator or select several reviewers."; }
+        KitField { theme: root.theme;
+            KitFieldLabel { theme: root.theme; text: "Collaborator"; focus-requested => { collaborator.take-focus(); } }
+            collaborator := KitCombobox {label:"Collaborator";control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
+        }
+        KitField { theme: root.theme;
+            KitFieldLabel { theme: root.theme; text: "Project reviewers"; focus-requested => { reviewers.take-focus(); } }
+            reviewers := KitMultiSelect {placeholder:"Add project reviewers";control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
+        }
         KitFieldError {theme:root.theme;text:FormExamples.multi-error;}
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Tags"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Add a tag with Enter, then remove it with its close button."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Add a tag with Enter, then remove it with its close button."; }
         KitTagInput {control-size:root.control-size;theme:root.theme;label:"Project tags";chips:FormExamples.tags;text <=> FormExamples.tag-text;error:FormExamples.tag-error;create-requested(text)=>{FormExamples.tag-create(text);}remove-requested(token)=>{FormExamples.tag-remove(token);}}
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Sliders"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
         KitFieldLabel { theme: root.theme; text: "Allocation · " + FormExamples.slider-label; }
-        KitSlider {theme:root.theme;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
+        KitSlider {theme:root.theme;control-size:root.control-size;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
         KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
         KitFieldLabel { theme: root.theme; text: "Preferred range · " + FormExamples.range-lower-label + " – " + FormExamples.range-upper-label; }
-        KitRangeSlider {theme:root.theme;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
+        KitRangeSlider {theme:root.theme;control-size:root.control-size;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
         KitFieldError { theme: root.theme; text: FormExamples.range-error; }
         KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Range start (0–100)";error:FormExamples.range-lower-error;validation:FormExamples.range-lower-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-lower-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.lower,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.lower,self.text);}}}
         KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Range end (0–100)";error:FormExamples.range-upper-error;validation:FormExamples.range-upper-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.range-upper-text;commit-requested(text)=>{FormExamples.range-text-commit(RangeThumb.upper,text);}focus-observed(focused)=>{if (!focused) {FormExamples.range-text-commit(RangeThumb.upper,self.text);}}}
     }
     if root.page == ShowcasePage.choices: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Rating"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a score, or clear it to return to no selection."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Choose a score, or clear it to return to no selection."; }
         KitFieldLabel {theme:root.theme;text:"Rating";}
-        KitRating {control-size:root.control-size;active-token:FormExamples.rating-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.rating,step);}theme:root.theme;label:"Rate this layout";scores:FormExamples.rating-options;generation:FormExamples.choice-generation;choose(token,generation)=>{FormExamples.choice-activate(ChoiceExample.rating,token,generation);}clear-requested=>{FormExamples.rating-clear();}}
-        KitFieldDescription {font-size:14px * root.theme.text-scale;theme:root.theme;text:FormExamples.rating-label;}
+        KitRating {control-size:root.control-size;active-token:FormExamples.rating-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.rating,step);}theme:root.theme;label:"Rating";scores:FormExamples.rating-options;generation:FormExamples.choice-generation;choose(token,generation)=>{FormExamples.choice-activate(ChoiceExample.rating,token,generation);}clear-requested=>{FormExamples.rating-clear();}}
+        KitFieldDescription {font-size:KitMetrics.font-size(root.theme, TypographyRole.body);theme:root.theme;text:FormExamples.rating-label;}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel {
         theme:root.theme;
@@ -533,30 +545,30 @@ export component FormGallery inherits VerticalLayout {
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Date range"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a draft range, then apply or cancel."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Choose a draft range, then apply or cancel."; }
         KitDateRangePicker {control-size:root.control-size;theme:root.theme;days:FormExamples.range-days;active-index:FormExamples.range-active;title:FormExamples.range-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];phase:FormExamples.range-phase;summary:FormExamples.date-range-summary;error:FormExamples.date-range-error;navigate(step)=>{FormExamples.date-range-navigate(step);}choose(day)=>{FormExamples.date-range-choose(day);}apply-requested=>{FormExamples.date-range-apply();}cancelled=>{FormExamples.date-range-cancel();}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Month, year & week"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Civil date values remain independent of a time zone."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Civil date values remain independent of a time zone."; }
         KitMonthField {control-size:root.control-size;theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;edited(text)=>{FormExamples.date-edited(DateExample.month,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.month,text);}}
         KitYearField {control-size:root.control-size;theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;edited(text)=>{FormExamples.date-edited(DateExample.year,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.year,text);}}
         KitIsoWeekField {control-size:root.control-size;theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;edited(text)=>{FormExamples.date-edited(DateExample.week,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.week,text);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Time picker"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Switch between 12-hour and 24-hour presentation."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Switch between 12-hour and 24-hour presentation."; }
         KitButton {control-size:root.control-size;theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
         KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;edited(text)=>{FormExamples.date-edited(DateExample.time,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.time,text);}adjust(segment,direction)=>{FormExamples.time-adjust(segment,direction);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Local date & time"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "A local meeting time needs a time zone before it is an instant."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "A local meeting time needs a time zone before it is an instant."; }
         KitDateTimeField {control-size:root.control-size;theme:root.theme;label:"Local meeting";date-text <=> FormExamples.local-date-text;time-text <=> FormExamples.local-time-text;date-error:FormExamples.local-error;commit-requested(draft)=>{FormExamples.local-commit(draft);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Time zone resolution"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Resolve a local time explicitly, including ambiguous and missing times."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Resolve a local time explicitly, including ambiguous and missing times."; }
         KitZonedDateTimeField {control-size:root.control-size;theme:root.theme;label:"Meeting in a time zone";date-text <=> FormExamples.zone-date-text;time-text <=> FormExamples.zone-time-text;zone-text <=> FormExamples.zone-text;resolution:FormExamples.zone-resolution;resolution-message:FormExamples.zone-message;edited(draft)=>{FormExamples.zone-edited();}resolve-requested(draft)=>{FormExamples.zone-resolve(draft);}ambiguity-chosen(choice)=>{FormExamples.ambiguity-chosen(choice);}}
         KitButton { theme: root.theme; control-size: root.control-size; text: "Resolve time"; intent: ButtonIntent.primary; activated => { FormExamples.zone-resolve({date:FormExamples.zone-date-text,time:FormExamples.zone-time-text,zone:FormExamples.zone-text}); } }
     }
@@ -568,13 +580,13 @@ export component FormGallery inherits VerticalLayout {
     }
     if root.page == ShowcasePage.files: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Folder selection"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Choose a local folder or clear the selection."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Choose a local folder or clear the selection."; }
         KitDirectoryPicker {control-size:root.control-size;theme:root.theme;request-state:FormExamples.folder-state;selected-name:FormExamples.folder-name;error:FormExamples.folder-error;browse-requested=>{FormExamples.folder-browse();}clear-requested=>{FormExamples.folder-clear();}}
 
     }
     if root.page == ShowcasePage.files: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Color picker"; }
-        KitFieldDescription { font-size:14px * root.theme.text-scale; theme: root.theme; text: "Edit an sRGB color with exact channels and optional alpha."; }
+        KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Edit an sRGB color with exact channels and optional alpha."; }
         KitColorPicker {color-requested(color)=>{FormExamples.color-picked(color);}control-size:root.control-size;theme:root.theme;alpha-mode:ColorAlphaMode.editable;accepted-color:FormExamples.accepted-color;swatch:FormExamples.color-swatch;hex-text <=> FormExamples.color-hex;red-text <=> FormExamples.color-red;green-text <=> FormExamples.color-green;blue-text <=> FormExamples.color-blue;alpha-text <=> FormExamples.color-alpha;hex-error:FormExamples.color-error;red-error:FormExamples.color-red-error;green-error:FormExamples.color-green-error;blue-error:FormExamples.color-blue-error;alpha-error:FormExamples.color-alpha-error;hex-edited(text)=>{FormExamples.color-hex-edited(text);}hex-commit-requested(text)=>{FormExamples.color-hex-commit(text);}channel-edited(channel,text)=>{FormExamples.color-channel-edited(channel,text);}channel-commit-requested(channel,text)=>{FormExamples.color-channel-commit(channel,text);}channel-position-requested(channel,value)=>{FormExamples.color-position(channel,value);}channel-navigate(channel,step)=>{FormExamples.color-navigate(channel,step);}gesture-started(channel)=>{FormExamples.color-gesture(channel,SliderGesture.started);}committed(channel)=>{FormExamples.color-gesture(channel,SliderGesture.committed);}cancelled(channel)=>{FormExamples.color-gesture(channel,SliderGesture.cancelled);}}
     }
 }

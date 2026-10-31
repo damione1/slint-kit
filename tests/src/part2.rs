@@ -673,3 +673,244 @@ fn multiselect_read_only_projection_does_not_reserve_hidden_editor_rows() {
         "read-only copy target replaces rather than duplicates the chip row"
     );
 }
+
+fn quality_fixture() -> FormQualityFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = FormQualityFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
+    window.show().unwrap();
+    window
+}
+
+fn quality_element(window: &FormQualityFixture, label: &str) -> ElementHandle {
+    ElementHandle::find_by_accessible_label(window, label)
+        .next()
+        .unwrap_or_else(|| panic!("missing quality control {label}"))
+}
+
+#[test]
+fn search_clear_reports_the_empty_semantic_value_once() {
+    let window = quality_fixture();
+    let values = Rc::new(RefCell::new(Vec::new()));
+    let observed = values.clone();
+    window.on_query_value_edited(move |value| observed.borrow_mut().push(value));
+    quality_element(&window, "Clear search").invoke_accessible_default_action();
+    assert_eq!(window.get_query(), "");
+    assert_eq!(&*values.borrow(), &[slint::SharedString::from("")]);
+    let native_editor = ElementQuery::from_root(&window)
+        .match_type_name("TextInput")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Find people"))
+        .find_first()
+        .unwrap();
+    text(&window, "Grace");
+    assert!(native_editor.is_valid());
+    assert_eq!(window.get_query(), "Grace");
+    assert_eq!(values.borrow().last().unwrap(), "Grace");
+}
+
+#[test]
+fn segmented_rtl_reverses_visual_order_without_changing_tokens_or_held_presses() {
+    let window = quality_fixture();
+    let actions = Rc::new(RefCell::new(Vec::new()));
+    let observed = actions.clone();
+    window.on_segment_activated(move |token, generation| {
+        observed.borrow_mut().push((token, generation));
+    });
+    let first = quality_element(&window, "First");
+    let last = quality_element(&window, "Last");
+    assert!(first.absolute_position().x < last.absolute_position().x);
+    let position = LogicalPosition::new(
+        first.absolute_position().x + first.size().width / 2.,
+        first.absolute_position().y + first.size().height / 2.,
+    );
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    window.set_flow(ChoiceFlow::RightToLeft);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+    assert!(
+        actions.borrow().is_empty(),
+        "a reordered held press is cancelled"
+    );
+    let first = quality_element(&window, "First");
+    let last = quality_element(&window, "Last");
+    assert!(last.absolute_position().x < first.absolute_position().x);
+    last.mock_single_click(PointerEventButton::Left);
+    assert_eq!(&*actions.borrow(), &[(99, 17)]);
+    quality_element(&window, "Middle").invoke_accessible_default_action();
+    assert_eq!(
+        &*actions.borrow(),
+        &[(99, 17)],
+        "disabled identity stays disabled"
+    );
+    let moves = Rc::new(RefCell::new(Vec::new()));
+    let observed = moves.clone();
+    window.on_segment_navigated(move |step| observed.borrow_mut().push(step));
+    window.invoke_focus_segments();
+    key(&window, Key::RightArrow);
+    assert_eq!(&*moves.borrow(), &[NavigationStep::Previous]);
+}
+
+#[test]
+fn sliders_and_nested_color_and_ambiguity_controls_follow_density_at_200_percent() {
+    let window = quality_fixture();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme.clone());
+        for size in [
+            ControlSize::Compact,
+            ControlSize::Medium,
+            ControlSize::Comfortable,
+        ] {
+            window.set_control_size(size);
+            let density = match size {
+                ControlSize::Compact => &theme.spacing.compact,
+                ControlSize::Medium => &theme.spacing.medium,
+                ControlSize::Comfortable => &theme.spacing.comfortable,
+            };
+            let control_height = density
+                .height
+                .max(theme.typography.line_height_control * scale + 2. * density.padding_block);
+            let sliders = ElementQuery::from_root(&window)
+                .match_inherits("KitSlider")
+                .find_all();
+            assert_eq!(sliders.len(), 5, "single value and four byte channels");
+            for slider in sliders {
+                assert!(
+                    slider.size().height >= control_height,
+                    "{size:?} at {scale}: slider height {} below {control_height}",
+                    slider.size().height
+                );
+            }
+            assert!(quality_element(&window, "Value range").size().height >= control_height);
+            let button_height = quality_element(&window, "Density reference").size().height;
+            for label in ["Use the earlier occurrence", "Use the later occurrence"] {
+                assert!(
+                    (quality_element(&window, label).size().height - button_height).abs() < 0.01,
+                    "{label} follows {size:?} at {scale}: actual {}, reference {button_height}",
+                    quality_element(&window, label).size().height
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn color_byte_editor_filters_letters_and_blocks_out_of_range_or_fractional_commit() {
+    let window = quality_fixture();
+    let commits = Rc::new(RefCell::new(Vec::new()));
+    let observed = commits.clone();
+    window.on_channel_committed(move |channel, value| observed.borrow_mut().push((channel, value)));
+    let red = ElementQuery::from_root(&window)
+        .match_type_name("TextInput")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Red"))
+        .find_first()
+        .unwrap();
+    red.mock_single_click(PointerEventButton::Left);
+    text(&window, "Ada");
+    assert_eq!(
+        window.get_red_text(),
+        "79",
+        "letters do not enter a channel draft"
+    );
+    for invalid in ["256", "-1", "12.5"] {
+        window.set_red_text(invalid.into());
+        key(&window, Key::Return);
+        assert!(
+            commits.borrow().is_empty(),
+            "invalid byte {invalid} cannot commit"
+        );
+        assert!(red.is_valid(), "the native editor is never remounted");
+    }
+    window.set_red_text("128".into());
+    key(&window, Key::Return);
+    assert_eq!(
+        &*commits.borrow(),
+        &[(ColorChannel::Red, slint::SharedString::from("128"))]
+    );
+}
+
+#[test]
+fn switch_track_and_radio_marks_stay_centered_beside_wrapped_or_enlarged_labels() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ChoiceRegressionFixture::new().unwrap();
+    window.show().unwrap();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for (size, box_side) in [
+            (ControlSize::Compact, 16.),
+            (ControlSize::Medium, 20.),
+            (ControlSize::Comfortable, 24.),
+        ] {
+            window.set_control_size(size);
+            for label in [
+                "Updates",
+                "Notify everyone participating in this project and the following stages",
+            ] {
+                window.set_long_label(label.into());
+                window.set_choices(ModelRc::new(VecModel::from(vec![ChoiceRow {
+                    token: 41,
+                    label: label.into(),
+                    disabled: false,
+                    selected: true,
+                }])));
+                let switch = ElementQuery::from_root(&window)
+                    .match_inherits("KitSwitch")
+                    .find_first()
+                    .unwrap();
+                let track = switch
+                    .query_descendants()
+                    .match_type_name("Rectangle")
+                    .match_predicate(move |element| {
+                        (element.size().width - box_side * 1.9).abs() < 0.01
+                            && (element.size().height - box_side - 2.).abs() < 0.01
+                    })
+                    .find_first()
+                    .expect("switch track");
+                assert!(
+                    ((track.absolute_position().y + track.size().height / 2.)
+                        - (switch.absolute_position().y + switch.size().height / 2.))
+                        .abs()
+                        < 0.01,
+                    "switch {size:?}, scale {scale}, label {label}"
+                );
+                let option = ElementQuery::from_root(&window)
+                    .match_inherits("KitRadioGroup")
+                    .find_first()
+                    .unwrap()
+                    .query_descendants()
+                    .match_inherits("ChoiceOption")
+                    .find_first()
+                    .unwrap();
+                let mark = option
+                    .query_descendants()
+                    .match_type_name("Rectangle")
+                    .match_predicate(move |element| {
+                        (element.size().width - box_side).abs() < 0.01
+                            && (element.size().height - box_side).abs() < 0.01
+                    })
+                    .find_first()
+                    .expect("radio indicator");
+                assert!(
+                    ((mark.absolute_position().y + mark.size().height / 2.)
+                        - (option.absolute_position().y + option.size().height / 2.))
+                        .abs()
+                        < 0.01,
+                    "radio {size:?}, scale {scale}, label {label}"
+                );
+            }
+        }
+    }
+}

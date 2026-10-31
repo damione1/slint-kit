@@ -217,8 +217,11 @@ export component KitTextField inherits KitField {
                         font-family: root.text-font-family; font-size: root.text-size;
                         wrap: word-wrap;
                     }
-                    if root.text == "": Text {
-                        x: root.text-inset; width: Math.max(0px,viewport.width - root.text-inset); height: root.multiline ? self.preferred-height : viewport.height;
+                    if root.text == "" && editor.preedit-text == "": Text {
+                        // Letter spacing includes an advance after the final
+                        // glyph. Reserve that advance for elision; the viewport
+                        // still clips the ink to the field's visible bounds.
+                        x: root.text-inset; width: Math.max(0px,viewport.width - root.text-inset + root.text-letter-spacing); height: root.multiline ? self.preferred-height : viewport.height;
                         letter-spacing: root.text-letter-spacing; horizontal-alignment: root.text-alignment;
                         text: root.placeholder;
                         color: root.recipe.placeholder;
@@ -322,7 +325,7 @@ export component KitTextField inherits KitField {
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {
-                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); }
+                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); root.value-edited(root.value); }
                         else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
                         root.take-focus();
                     }

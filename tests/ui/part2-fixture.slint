@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitTextField, KitPasswordField, KitSearchField, KitEmailField, KitUrlField, KitTelephoneField, KitTextArea, KitOtpField, KitMaskedField, KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper, KitButton, KitSelect, KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitFieldGroup, KitFieldSet, KitInputGroup, KitFieldSeparator, FieldAccess, ValidationPresentation, SecretVisibility, ControlSize, CheckState, KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, NavigationStep, KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CalendarNavigation, KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, KitFilePicker, KitDirectoryPicker, KitFileDropZone, KitColorField, KitColorPicker } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitTextField, KitPasswordField, KitSearchField, KitEmailField, KitUrlField, KitTelephoneField, KitTextArea, KitOtpField, KitMaskedField, KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper, KitButton, KitSelect, KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitFieldGroup, KitFieldSet, KitInputGroup, KitFieldSeparator, FieldAccess, ValidationPresentation, SecretVisibility, ControlSize, CheckState, KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, NavigationStep, KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CalendarNavigation, KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, KitFilePicker, KitDirectoryPicker, KitFileDropZone, KitColorField, KitColorPicker, ChoiceFlow, ColorAlphaMode, ColorChannel, ZonedTimePresentation } from "@kit/kit.slint";
 
 export component Part2Fixture inherits Window {
     width: 1100px; height: 1000px;
@@ -139,6 +139,7 @@ export component ChoiceRegressionFixture inherits Window {
     width: 780px; height: 1300px;
     in property <KitTheme> theme: KitThemes.light;
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <string> long-label: "Project notifications";
     in property <[ChoiceRow]> choices;
     in property <[CalendarDay]> days;
@@ -157,13 +158,53 @@ export component ChoiceRegressionFixture inherits Window {
     public function focus-combo() { combo.take-focus(); }
     public function focus-multi() { multi.take-focus(); }
     public function focus-paste() { paste.focus(); }
-    check := KitCheckbox { x:20px; y:20px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; label:root.long-label; toggled(state)=>{root.checkbox-activated();} }
-    toggle := KitSwitch { x:20px; y:check.y+check.height+16px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; label:root.long-label; toggled(state)=>{root.switch-activated();} }
-    radio := KitRadioGroup { x:20px; y:toggle.y+toggle.height+16px; width:220px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long radio"; activate(token,generation)=>{root.option-activated();} }
-    segmented := KitSegmentedControl { x:300px; y:20px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long segmented"; activate(token,generation)=>{root.option-activated();} }
-    toggles := KitToggleGroup { x:300px; y:segmented.y+segmented.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; rows:root.choices; label:"Long toggles"; toggled(token,generation)=>{root.option-activated();} }
-    combo := KitCombobox { x:300px; y:toggles.y+toggles.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; label:"Search collaborator"; selected-label:"Grace Hopper"; open-requested=>{root.combo-opened();} }
-    multi := KitMultiSelect { x:300px; y:combo.y+combo.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; placeholder:"Add reviewers"; chips:[{token:1,label:"Ada Lovelace",removable:true}]; open-requested=>{root.multi-opened();} }
+    check := KitCheckbox { x:20px; y:20px; width:220px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; label:root.long-label; toggled(state)=>{root.checkbox-activated();} }
+    toggle := KitSwitch { x:20px; y:check.y+check.height+16px; width:220px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; label:root.long-label; toggled(state)=>{root.switch-activated();} }
+    radio := KitRadioGroup { x:20px; y:toggle.y+toggle.height+16px; width:220px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; rows:root.choices; label:"Long radio"; activate(token,generation)=>{root.option-activated();} }
+    segmented := KitSegmentedControl { x:300px; y:20px; width:440px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; rows:root.choices; label:"Long segmented"; activate(token,generation)=>{root.option-activated();} }
+    toggles := KitToggleGroup { x:300px; y:segmented.y+segmented.height+16px; width:440px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; rows:root.choices; label:"Long toggles"; toggled(token,generation)=>{root.option-activated();} }
+    combo := KitCombobox { x:300px; y:toggles.y+toggles.height+16px; width:440px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; label:"Search collaborator"; selected-label:"Grace Hopper"; open-requested=>{root.combo-opened();} }
+    multi := KitMultiSelect { x:300px; y:combo.y+combo.height+16px; width:440px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; placeholder:"Add reviewers"; chips:[{token:1,label:"Ada Lovelace",removable:true}]; open-requested=>{root.multi-opened();} }
     paste := TextInput { x:300px; y:multi.y+multi.height+16px; width:440px; height:40px; text<=>root.pasted; accessible-label:"Paste target"; }
-    KitCalendar { x:300px; y:paste.y+paste.height+16px; width:440px; height:self.preferred-height; theme:root.theme; access:root.access; days:root.days; choose(day)=>{root.calendar-activated();} }
+    KitCalendar { x:300px; y:paste.y+paste.height+16px; width:440px; height:self.preferred-height; theme:root.theme; control-size:root.control-size; access:root.access; days:root.days; choose(day)=>{root.calendar-activated();} }
+}
+
+// Public consumer regression surface: semantic events, RTL identity and density.
+export component FormQualityFixture inherits Window {
+    width: 1040px; height: 1000px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <string> query: "Ada";
+    in-out property <string> red-text: "79";
+    callback query-value-edited(string);
+    callback segment-activated(int,int);
+    callback segment-navigated(NavigationStep);
+    callback channel-committed(ColorChannel,string);
+    public function focus-segments() { segments.take-focus(); }
+    segments := KitSegmentedControl {
+        x: 20px; y: 20px; width: 360px; height: self.preferred-height;
+        theme: root.theme; control-size: root.control-size; flow: root.flow; access: root.access;
+        label: "Presentation"; active-token: 41; generation: 17;
+        rows: [{token: 41,label: "First",selected: true,disabled: false}, {token: 73,label: "Middle",selected: false,disabled: true}, {token: 99,label: "Last",selected: false,disabled: false}];
+        activate(token,generation) => { root.segment-activated(token,generation); }
+        navigate(step) => { root.segment-navigated(step); }
+    }
+    KitSlider { x: 20px; y: 120px; width: 360px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; label: "Single value"; }
+    KitRangeSlider { x: 20px; y: 200px; width: 360px; height: self.preferred-height; theme: root.theme; control-size: root.control-size; label: "Value range"; }
+    KitSearchField { x: 20px; y: 280px; width: 360px; height: self.preferred-height; theme: root.theme; label: "Find people"; text <=> root.query; value-edited(value) => { root.query-value-edited(value); } }
+    KitButton { x: 20px; y: 360px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; control-size: root.control-size; text: "Reference"; accessible-name: "Density reference"; }
+    KitZonedDateTimeField {
+        x: 20px; y: 400px; width: 360px; height: self.preferred-height;
+        theme: root.theme; control-size: root.control-size; label: "Meeting";
+        resolution: ZonedTimePresentation.ambiguous; resolution-message: "Choose an occurrence.";
+    }
+    KitColorPicker {
+        x: 420px; y: 20px; width: 560px; height: self.preferred-height;
+        theme: root.theme; control-size: root.control-size; access: root.access;
+        label: "Palette"; alpha-mode: ColorAlphaMode.editable;
+        hex-text: "#4F46E5FF"; red-text <=> root.red-text; green-text: "70"; blue-text: "229"; alpha-text: "255";
+        channel-commit-requested(channel,value) => { root.channel-committed(channel,value); }
+    }
 }

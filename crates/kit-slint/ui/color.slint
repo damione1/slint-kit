@@ -16,6 +16,7 @@ export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
 
 component ColorDraftChannel inherits HorizontalLayout {
     in property <KitTheme> theme;
+    in property <ControlSize> control-size: ControlSize.medium;
     in property <string> label;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <int> value;
@@ -24,7 +25,7 @@ component ColorDraftChannel inherits HorizontalLayout {
     spacing: root.theme.spacing.unit * 3;
     Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
     KitSlider {
-        theme: root.theme; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
+        theme: root.theme; control-size: root.control-size; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
         cancelled => { root.cancelled(); }
         position-requested(position) => { root.requested(round(max(0,min(1,position)) * 255)); }
         navigate(step) => {
@@ -105,7 +106,7 @@ export component KitColorField inherits Rectangle {
                 border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
                 activated => { root.open-picker(); }
                 key-event(event) => { if (event.text == Key.Escape && root.picker-open) { root.cancel-picker(); return accept; } return reject; }
-                Rectangle {x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y;border-radius:5px;background:root.swatch;}
+                Rectangle {x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y;border-radius:max(0px,swatch-button.corner-radius - root.theme.spacing.unit);background:root.swatch;}
             }
         }
         KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
@@ -152,17 +153,17 @@ export component KitColorField inherits Rectangle {
                             key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
                             accessible-name: "Choose RGB " + choice.red + ", " + choice.green + ", " + choice.blue;
                             activated => { root.draft = {red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}; }
-                            Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: 4px; }
+                            Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: max(0px,parent.border-radius - root.theme.spacing.unit); }
                         }
                     }
-                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Red"; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.red = value; } }
-                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Green"; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.green = value; } }
-                    ColorDraftChannel { theme: root.theme; access: root.access; label: "Blue"; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.blue = value; } }
-                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; access: root.access; label: "Alpha"; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: "Red"; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.red = value; } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: "Green"; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.green = value; } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: "Blue"; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.blue = value; } }
+                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: "Alpha"; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
                     HorizontalLayout {
                         alignment: end; spacing: root.theme.spacing.unit * 2;
-                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } theme: root.theme; text: "Cancel"; activated => { root.cancel-picker(); } }
-                        KitButton { theme: root.theme; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
+                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } theme: root.theme; control-size: root.control-size; text: "Cancel"; activated => { root.cancel-picker(); } }
+                        KitButton { theme: root.theme; control-size: root.control-size; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
                     }
                 }
             }
@@ -189,11 +190,11 @@ component ColorChannelEditor inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit;
-        KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
+        KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
             edited(text) => { root.edited(root.channel,text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
         }
-        KitSlider { theme: root.theme; access: root.access; position: root.position; label: root.label; value-label: root.text;
+        KitSlider { theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value-label: root.text;
             position-requested(position) => { root.position-requested(root.channel,position); }
             navigate(step) => { root.navigate(root.channel,step); }
             gesture-started => { root.gesture-started(root.channel); }
