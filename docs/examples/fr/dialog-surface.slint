@@ -22,7 +22,7 @@ export component Example inherits Window {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        opener := KitButton { theme: root.theme; text: "Open project details"; disabled: root.showing; activated => { root.open(); } }
+        opener := KitButton { theme: root.theme; text: "Ouvrir les détails du projet"; disabled: root.showing; activated => { root.open(); } }
         Text { text: root.result; color: root.theme.text-primary; }
 
     }
@@ -32,7 +32,7 @@ export component Example inherits Window {
         tab-policy: DialogTabPolicy.native;
         dismiss(reason) => { root.close(reason); }
         KitDialogPanel {
-            theme: root.theme; accessible-name: "Archive project";
+            theme: root.theme; accessible-name: "Archiver le projet";
             width: min(460px * root.theme.text-scale, parent.width - 40px); height: dialog-content.preferred-height;
             x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
             dialog-content := VerticalLayout { width: parent.width; height: self.preferred-height; padding: 24px; spacing: 16px; alignment: start;
@@ -44,7 +44,7 @@ export component Example inherits Window {
                 KitDivider { theme: root.theme; }
                 HorizontalLayout { alignment: end; spacing: 12px;
                     KitButton { theme: root.theme; text: "Conserver le projet"; activated => { root.close(CloseReason.programmatic); } }
-                    archive-button := KitButton { theme: root.theme; intent: ButtonIntent.primary; text: "Archive project"; leading-icon: root.theme.icons.article; activated => { root.archive(); } }
+                    archive-button := KitButton { theme: root.theme; intent: ButtonIntent.primary; text: "Archiver le projet"; leading-icon: root.theme.icons.article; activated => { root.archive(); } }
                 }
             }
         }
