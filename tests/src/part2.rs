@@ -914,3 +914,49 @@ fn switch_track_and_radio_marks_stay_centered_beside_wrapped_or_enlarged_labels(
         }
     }
 }
+
+#[test]
+fn number_stepper_actions_stay_square_and_align_with_the_native_editor() {
+    let window = quality_fixture();
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        for size in [
+            ControlSize::Compact,
+            ControlSize::Medium,
+            ControlSize::Comfortable,
+        ] {
+            window.set_control_size(size);
+            let editor = ElementQuery::from_root(&window)
+                .match_inherits("KitNumberStepper")
+                .find_first()
+                .unwrap()
+                .query_descendants()
+                .match_inherits("KitInputGroup")
+                .find_first()
+                .unwrap();
+            for label in ["Decrease value", "Increase value"] {
+                let action = quality_element(&window, label);
+                assert!(
+                    (action.size().width - action.size().height).abs() < 0.01,
+                    "{label} at {size:?}/{scale}: action {:?}, editor {:?}",
+                    action.size(),
+                    editor.size()
+                );
+                assert!(
+                    (action.size().height - editor.size().height).abs() < 0.01,
+                    "{label} at {size:?}/{scale}: action {:?}, editor {:?}",
+                    action.size(),
+                    editor.size()
+                );
+                assert!(
+                    (action.absolute_position().y - editor.absolute_position().y).abs() < 0.01,
+                    "{label} at {size:?}/{scale}: action top {}, editor top {}",
+                    action.absolute_position().y,
+                    editor.absolute_position().y
+                );
+            }
+        }
+    }
+}

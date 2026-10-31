@@ -81,6 +81,7 @@ export component KitNumberStepper inherits KitField {
         }
         for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
             theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
+            min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
             preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;
             disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
