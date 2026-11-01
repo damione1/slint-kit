@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Ignore native keyboard events on a disabled `KitSelectKeyboard`, including when it held focus before being disabled. Preserve `handle-key` delegation from select triggers and custom controls.
+
 ## 0.5.0
 
 - Review all 124 public components against shared design, UX, accessibility and alignment criteria; unify showcase typography, spacing, navigation and control density.
