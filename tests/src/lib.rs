@@ -4,6 +4,7 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod keyboard_scope;
 mod wrapped_field;
 
 #[cfg(test)]

@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelectKeyboard, KitSelectTrigger, SelectState, NavigationStep, CloseReason } from "@kit/kit.slint";
+
+export component KeyboardScopeFixture inherits Window {
+    width: 360px; height: 160px;
+    in property <bool> keyboard-enabled: true;
+    in property <SelectState> state;
+    callback activate(int, int);
+    callback navigate(NavigationStep);
+    callback dismiss(CloseReason);
+    callback typeahead(string);
+    callback open-requested();
+    public function focus-keyboard() { keyboard.focus(); }
+    public function focus-trigger() { trigger.take-focus(); }
+    VerticalLayout {
+        keyboard := KitSelectKeyboard {
+            enabled: root.keyboard-enabled;
+            state: root.state;
+            activate(token, generation) => { root.activate(token, generation); }
+            navigate(step) => { root.navigate(step); }
+            dismiss(reason) => { root.dismiss(reason); }
+            typeahead(text) => { root.typeahead(text); }
+        }
+        trigger := KitSelectTrigger {
+            accessible-name: "Delegated select trigger";
+            state: root.state;
+            open-requested => { root.open-requested(); }
+            activate(token, generation) => { root.activate(token, generation); }
+        }
+    }
+}

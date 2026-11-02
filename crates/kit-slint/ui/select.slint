@@ -53,8 +53,12 @@ export component KitSelectKeyboard inherits FocusScope {
         }
         return reject;
     }
-    key-pressed(event) => { return root.handle-key(event); }
+    key-pressed(event) => {
+        if (!root.enabled) { return reject; }
+        return root.handle-key(event);
+    }
     key-released(event) => {
+        if (!root.enabled) { return reject; }
         if (event.text == Key.Return || event.text == Key.Space) { root.activation-held = false; return accept; }
         return reject;
     }
