@@ -92,11 +92,16 @@ export component KitScrollBar inherits Rectangle {
 }
 
 // Themed replacement for the std-widgets ScrollView: a Flickable with
-// KitScrollBar overlays on its trailing edges. Internal to the kit; public
+// KitScrollBar gutters on its trailing edges. Internal to the kit; public
 // containers forward the parts of this API they support.
 export component ScrollFrame {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <bool> enabled: true;
+    // Reserve stable space even while an as-needed bar is hidden. Opting into
+    // overlays is appropriate only when content already protects its edges.
+    in property <bool> overlay-scrollbars: false;
+    private property <length> vertical-gutter: root.overlay-scrollbars || root.vertical-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
+    private property <length> horizontal-gutter: root.overlay-scrollbars || root.horizontal-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
     out property <length> visible-width <=> flickable.width;
     out property <length> visible-height <=> flickable.height;
     in-out property <length> content-width <=> flickable.content-width;
@@ -115,21 +120,22 @@ export component ScrollFrame {
     preferred-height: 100%;
     preferred-width: 100%;
     flickable := Flickable {
+        x: 0px; y: 0px;
         mouse-drag-pan-enabled: false;
         content-y <=> vertical-bar.value;
         content-x <=> horizontal-bar.value;
-        width: parent.width;
-        height: parent.height;
+        width: max(0px, root.width - root.vertical-gutter);
+        height: max(0px, root.height - root.horizontal-gutter);
         @children
     }
     vertical-bar := KitScrollBar {
         theme: root.theme;
         enabled: root.enabled;
         orientation: Orientation.vertical;
-        x: flickable.width - self.width;
+        x: max(0px, root.width - self.width);
         y: 0px;
         width: KitThemes.scroll-bar-recipe(root.theme).thickness;
-        height: horizontal-bar.visible ? parent.height - horizontal-bar.height : parent.height;
+        height: max(0px, root.height - (root.overlay-scrollbars ? (horizontal-bar.visible ? horizontal-bar.height : 0px) : root.horizontal-gutter));
         maximum: flickable.content-height - flickable.height;
         page-size: flickable.height;
         scrolled => { root.scrolled(); }
@@ -139,8 +145,8 @@ export component ScrollFrame {
         enabled: root.enabled;
         orientation: Orientation.horizontal;
         x: 0px;
-        y: flickable.height - self.height;
-        width: vertical-bar.visible ? parent.width - vertical-bar.width : parent.width;
+        y: max(0px, root.height - self.height);
+        width: max(0px, root.width - (root.overlay-scrollbars ? (vertical-bar.visible ? vertical-bar.width : 0px) : root.vertical-gutter));
         height: KitThemes.scroll-bar-recipe(root.theme).thickness;
         maximum: flickable.content-width - flickable.width;
         page-size: flickable.width;

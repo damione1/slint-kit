@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Geometry change:** themed scroll viewports reserve stable scrollbar gutters by default, including hidden `as-needed` bars, so pointer surfaces cannot cover content controls. `visible-width` and `visible-height` exclude those gutters; fit content to these dimensions. `KitScrollArea.overlay-scrollbars: true` explicitly restores the previous overlay behavior.
+
+- Dismiss dialogs on the first backdrop click or tap without leaking the press to background controls; preserve panel clicks and modal dismissal guards.
+
 - Ignore native keyboard events on a disabled `KitSelectKeyboard`, including when it held focus before being disabled. Preserve `handle-key` delegation from select triggers and custom controls.
 
 ## 0.5.0
