@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.6.0
+
+0.6.0 adds home-automation primitives and changes the `Tone` and `KitIconSet` contracts; the compiler reports every site that must change.
+
 - **Breaking:** `Tone` gains `information`. `KitBadge` and the new `KitChipButton` map it to the `information-subtle` fill and `information` edge. Rust code that matches `Tone` exhaustively must add the `Tone::Information` arm; the compiler reports each site.
 - **Breaking:** `KitIconSet` gains `delete`, the backspace glyph of the keypad's delete key. The shipped themes fill it with Lucide `delete`; a hand-built theme must add it.
 - `KitCheckbox`, `KitSwitch`, `KitRadioGroup`, `KitSegmentedControl` and `KitToggleGroup` now set `accessible-checkable`, so native screen readers announce their checked state; before, the AccessKit adapter dropped it.
