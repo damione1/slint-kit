@@ -1,0 +1,343 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Vertical and filled sliders, vertical segmented controls, chip buttons and
+//! the information tone.
+use super::*;
+use i_slint_backend_testing::{ElementHandle, ElementQuery};
+use slint::platform::{Key, PointerEventButton, WindowEvent};
+use slint::{Brush, Color, ComponentHandle, LogicalPosition};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
+
+fn fixture() -> ChoicePresentationFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ChoicePresentationFixture::new().unwrap();
+    window.show().unwrap();
+    window
+}
+fn with_text_scale(window: &ChoicePresentationFixture, scale: f32) {
+    let mut theme = window.get_light();
+    theme.text_scale = scale;
+    window.set_theme(theme);
+}
+fn element(window: &ChoicePresentationFixture, label: &str) -> ElementHandle {
+    let requested = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+        })
+        .find_first()
+        .unwrap_or_else(|| panic!("missing element {label}"))
+}
+fn key(window: &ChoicePresentationFixture, key: Key) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+}
+fn click(window: &ChoicePresentationFixture, x: f32, y: f32) {
+    let position = LogicalPosition::new(x, y);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+}
+type Requests = Rc<RefCell<Vec<(String, f32)>>>;
+fn record_positions(window: &ChoicePresentationFixture) -> Requests {
+    let requests: Requests = Rc::default();
+    let observed = requests.clone();
+    window.on_position_requested(move |slider, value| {
+        observed.borrow_mut().push((slider.to_string(), value));
+    });
+    requests
+}
+fn last(requests: &Requests) -> (String, f32) {
+    requests
+        .borrow()
+        .last()
+        .cloned()
+        .expect("a position request")
+}
+fn solid(color: Color) -> Brush {
+    Brush::SolidColor(color)
+}
+
+#[test]
+fn vertical_sliders_map_the_bottom_to_zero_at_normal_and_doubled_text() {
+    let window = fixture();
+    let requests = record_positions(&window);
+    for scale in [1., 2.] {
+        with_text_scale(&window, scale);
+        for name in ["Vertical level", "Filled level"] {
+            let slider = element(&window, name);
+            let origin = slider.absolute_position();
+            let size = slider.size();
+            let middle_x = origin.x + size.width / 2.;
+            click(&window, middle_x, origin.y + size.height - 1.);
+            assert!(last(&requests).1 < 0.01, "{name} at {scale}: bottom");
+            click(&window, middle_x, origin.y + 1.);
+            assert!(last(&requests).1 > 0.99, "{name} at {scale}: top");
+            click(&window, middle_x, origin.y + size.height / 2.);
+            assert!(
+                (last(&requests).1 - 0.5).abs() < 0.001,
+                "{name} at {scale}: middle"
+            );
+        }
+        // A filled slider travels its whole length: a quarter from the top
+        // is three quarters of the value.
+        let filled = element(&window, "Filled level");
+        let origin = filled.absolute_position();
+        let size = filled.size();
+        click(
+            &window,
+            origin.x + size.width / 2.,
+            origin.y + size.height / 4.,
+        );
+        assert_eq!(last(&requests).0, "filled-vertical");
+        assert!((last(&requests).1 - 0.75).abs() < 0.001);
+        let horizontal = element(&window, "Filled width");
+        let origin = horizontal.absolute_position();
+        let size = horizontal.size();
+        click(
+            &window,
+            origin.x + size.width / 4.,
+            origin.y + size.height / 2.,
+        );
+        assert_eq!(last(&requests).0, "filled-horizontal");
+        assert!((last(&requests).1 - 0.25).abs() < 0.001);
+    }
+}
+
+#[test]
+fn vertical_slider_keys_step_up_and_right_forward() {
+    let window = fixture();
+    let steps = Rc::new(RefCell::new(Vec::new()));
+    let observed = steps.clone();
+    window.on_navigated(move |slider, step| {
+        assert_eq!(slider.as_str(), "line-vertical");
+        observed.borrow_mut().push(step);
+    });
+    window.invoke_focus_line_vertical();
+    for pressed in [
+        Key::UpArrow,
+        Key::DownArrow,
+        Key::RightArrow,
+        Key::LeftArrow,
+        Key::Home,
+        Key::End,
+    ] {
+        key(&window, pressed);
+    }
+    assert_eq!(
+        *steps.borrow(),
+        [
+            NavigationStep::Next,
+            NavigationStep::Previous,
+            NavigationStep::Next,
+            NavigationStep::Previous,
+            NavigationStep::First,
+            NavigationStep::Last,
+        ]
+    );
+    let slider = element(&window, "Vertical level");
+    assert_eq!(
+        slider.accessible_orientation(),
+        Some(i_slint_backend_testing::Orientation::Vertical)
+    );
+    assert_eq!(slider.accessible_value().as_deref(), Some("70 percent"));
+    // Read-only and disabled sliders ignore keys and pointer gestures.
+    let requests = record_positions(&window);
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        window.set_access(access);
+        key(&window, Key::UpArrow);
+        let origin = slider.absolute_position();
+        click(&window, origin.x + 4., origin.y + 4.);
+    }
+    assert_eq!(steps.borrow().len(), 6);
+    assert!(requests.borrow().is_empty());
+}
+
+#[test]
+fn sliders_keep_their_cross_extent_and_filled_sliders_are_touch_sized() {
+    let window = fixture();
+    for scale in [1., 2.] {
+        with_text_scale(&window, scale);
+        let theme = window.get_theme();
+        let unit = theme.spacing.unit;
+        assert!(window.get_line_cross() >= 10. * unit, "line at {scale}");
+        assert_eq!(window.get_line_travel_minimum(), 120.);
+        let filled = window.get_filled_cross();
+        assert!(filled >= 44., "filled slider {filled} at {scale}");
+        assert!(filled >= 12. * unit);
+        assert!(element(&window, "Filled width").size().height >= 44.);
+        assert!(element(&window, "Filled level").size().width >= 44.);
+    }
+    // The fill of a vertical filled slider grows from the bottom edge.
+    with_text_scale(&window, 1.);
+    window.set_level(0.25);
+    let slider = element(&window, "Filled level");
+    let origin = slider.absolute_position();
+    let size = slider.size();
+    let fill = slider
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .match_predicate(move |rectangle| {
+            (rectangle.size().width - size.width).abs() < 0.01
+                && (rectangle.size().height - size.height / 4.).abs() < 0.01
+        })
+        .find_first()
+        .expect("a fill a quarter of the track high");
+    assert!(
+        (fill.absolute_position().y - (origin.y + size.height * 0.75)).abs() < 0.01,
+        "the fill ends at the bottom edge"
+    );
+}
+
+#[test]
+fn vertical_segmented_control_stacks_segments_and_navigates_with_up_and_down() {
+    let window = fixture();
+    let low = element(&window, "Low");
+    let medium = element(&window, "Medium");
+    let high = element(&window, "High");
+    assert_eq!(low.absolute_position().x, medium.absolute_position().x);
+    assert_eq!(medium.absolute_position().x, high.absolute_position().x);
+    assert!(low.absolute_position().y + low.size().height <= medium.absolute_position().y);
+    assert!(medium.absolute_position().y + medium.size().height <= high.absolute_position().y);
+    assert_eq!(
+        element(&window, "Speed").accessible_orientation(),
+        Some(i_slint_backend_testing::Orientation::Vertical)
+    );
+    assert_eq!(low.accessible_checked(), Some(true));
+    let steps = Rc::new(RefCell::new(Vec::new()));
+    let observed = steps.clone();
+    window.on_speed_navigate(move |step| observed.borrow_mut().push(step));
+    window.invoke_focus_speeds();
+    key(&window, Key::DownArrow);
+    key(&window, Key::UpArrow);
+    // Horizontal arrows do not move a vertical group.
+    key(&window, Key::RightArrow);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        *steps.borrow(),
+        [NavigationStep::Next, NavigationStep::Previous]
+    );
+    let activated = Rc::new(Cell::new((0, 0)));
+    let observed = activated.clone();
+    window.on_speed_activate(move |token, generation| observed.set((token, generation)));
+    let origin = high.absolute_position();
+    click(
+        &window,
+        origin.x + high.size().width / 2.,
+        origin.y + high.size().height / 2.,
+    );
+    assert_eq!(activated.get(), (33, 3));
+}
+
+#[test]
+fn chip_button_activates_by_pointer_and_keyboard_unless_disabled() {
+    let window = fixture();
+    let activations = Rc::new(Cell::new(0));
+    let observed = activations.clone();
+    window.on_chip_activated(move || observed.set(observed.get() + 1));
+    let chip = element(&window, "Open orders");
+    assert_eq!(chip.accessible_checked(), Some(false));
+    let origin = chip.absolute_position();
+    let center = (
+        origin.x + chip.size().width / 2.,
+        origin.y + chip.size().height / 2.,
+    );
+    click(&window, center.0, center.1);
+    assert_eq!(activations.get(), 1);
+    window.invoke_focus_chip();
+    key(&window, Key::Space);
+    key(&window, Key::Return);
+    assert_eq!(activations.get(), 3);
+    window.set_chip_selected(true);
+    assert_eq!(chip.accessible_checked(), Some(true));
+    window.set_chip_disabled(true);
+    click(&window, center.0, center.1);
+    key(&window, Key::Space);
+    chip.invoke_accessible_default_action();
+    assert_eq!(activations.get(), 3);
+    assert_eq!(chip.accessible_enabled(), Some(false));
+}
+
+/// The selected fill and edge of each tone; every variant is listed.
+fn tone_paint(theme: &KitTheme, tone: Tone) -> (Color, Color) {
+    match tone {
+        Tone::Neutral => (theme.pressed, theme.border_strong),
+        Tone::Accent => (theme.accent_subtle, theme.accent),
+        Tone::Success => (theme.success_subtle, theme.success),
+        Tone::Warning => (theme.warning_subtle, theme.warning),
+        Tone::Danger => (theme.danger_subtle, theme.danger),
+        Tone::Information => (theme.information_subtle, theme.information),
+    }
+}
+
+#[test]
+fn chip_button_takes_its_tone_when_selected_in_both_themes() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        window.set_theme(theme.clone());
+        for tone in [
+            Tone::Neutral,
+            Tone::Accent,
+            Tone::Success,
+            Tone::Warning,
+            Tone::Danger,
+            Tone::Information,
+        ] {
+            window.set_chip_tone(tone);
+            window.set_chip_selected(false);
+            assert_eq!(window.get_chip_background(), solid(theme.surface));
+            assert_eq!(window.get_chip_border(), solid(theme.border_subtle));
+            window.set_chip_selected(true);
+            let (fill, edge) = tone_paint(&theme, tone);
+            assert_eq!(window.get_chip_background(), solid(fill), "{tone:?}");
+            assert_eq!(window.get_chip_border(), solid(edge), "{tone:?}");
+        }
+    }
+}
+
+#[test]
+fn chip_button_grows_with_its_size_and_text() {
+    let window = fixture();
+    for scale in [1., 2.] {
+        with_text_scale(&window, scale);
+        let theme = window.get_theme();
+        for (size, control) in [
+            (ControlSize::Compact, theme.spacing.compact.height),
+            (ControlSize::Comfortable, theme.spacing.comfortable.height),
+        ] {
+            window.set_chip_size(size);
+            assert!(window.get_chip_height() >= control, "{size:?} at {scale}");
+            assert_eq!(window.get_chip_height(), window.get_chip_min_height());
+        }
+    }
+}
+
+#[test]
+fn information_badge_uses_the_information_tokens() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        window.set_theme(theme.clone());
+        window.set_badge_tone(Tone::Information);
+        assert_eq!(
+            window.get_badge_background(),
+            solid(theme.information_subtle)
+        );
+        assert_eq!(window.get_badge_border(), solid(theme.information));
+    }
+}

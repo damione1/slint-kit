@@ -7,7 +7,8 @@ import { FocusOutline } from "focus.slint";
 import { KitFieldLabel, KitFieldError } from "field.slint";
 import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
-import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
+import { Tone } from "display.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
 import { ListView } from "scroll.slint";
 
@@ -355,6 +356,9 @@ export component KitSegmentedControl inherits Rectangle {
     in property <[ChoiceRow]> rows;
     in property <int> generation;
     in property <int> active-token;
+    // Vertical segments stack in source order and navigate with Up and Down.
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
+    // Horizontal reading direction; it does not reorder vertical segments.
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <string> label;
     callback navigate(NavigationStep);
@@ -363,6 +367,7 @@ export component KitSegmentedControl inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group; accessible-label: root.label;
+    accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     border-radius: root.choice.group-radius; background: root.theme.canvas;
     border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
@@ -371,26 +376,47 @@ export component KitSegmentedControl inherits Rectangle {
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
-        flow: root.flow; access: root.access;
+        direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { root.navigate(step); }
         activate => { root.activate(root.active-token, root.generation); }
-        choices := HorizontalLayout {
+        // Only the layout of the current direction exists, so each segment
+        // has one element in the accessibility tree.
+        choices := VerticalLayout {
             width: root.width; height: self.preferred-height;
-            padding: root.choice.group-padding; spacing: root.choice.group-padding;
-            for source-row[index] in root.rows: option := ChoiceOption {
-                private property <ChoiceRow> display-choice: root.flow == ChoiceFlow.right-to-left ? root.rows[root.rows.length - 1 - index] : source-row;
-                option-data: self.display-choice; generation: root.generation; access: root.access;
+            padding: root.choice.group-padding;
+            if root.direction == ChoiceDirection.horizontal: HorizontalLayout {
+                spacing: root.choice.group-padding;
+                for source-row[index] in root.rows: option := ChoiceOption {
+                    private property <ChoiceRow> display-choice: root.flow == ChoiceFlow.right-to-left ? root.rows[root.rows.length - 1 - index] : source-row;
+                    option-data: self.display-choice; generation: root.generation; access: root.access;
 
-                theme: root.theme; control-size: root.control-size;
-                control-width: ControlWidth.fill;
-                accessible-name: self.display-choice.label;
-                disabled: self.display-choice.disabled || root.access == FieldAccess.disabled;
-                intent: self.display-choice.selected ? ButtonIntent.primary : ButtonIntent.quiet;
-                accessible-role: radio-button; accessible-checked: self.display-choice.selected;
-                focus-indicated: keyboard.focus-visible && root.active-token == self.display-choice.token;
-                focus-ring: KitThemes.inset-focus(root.theme);
-                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
-                Text { text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                    theme: root.theme; control-size: root.control-size;
+                    control-width: ControlWidth.fill;
+                    accessible-name: self.display-choice.label;
+                    disabled: self.display-choice.disabled || root.access == FieldAccess.disabled;
+                    intent: self.display-choice.selected ? ButtonIntent.primary : ButtonIntent.quiet;
+                    accessible-role: radio-button; accessible-checked: self.display-choice.selected;
+                    focus-indicated: keyboard.focus-visible && root.active-token == self.display-choice.token;
+                    focus-ring: KitThemes.inset-focus(root.theme);
+                    activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
+                    Text { text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                }
+            }
+            if root.direction == ChoiceDirection.vertical: VerticalLayout {
+                spacing: root.choice.group-padding;
+                for row in root.rows: stacked := ChoiceOption {
+                    option-data: row; generation: root.generation; access: root.access;
+                    theme: root.theme; control-size: root.control-size;
+                    control-width: ControlWidth.fill;
+                    accessible-name: row.label;
+                    disabled: row.disabled || root.access == FieldAccess.disabled;
+                    intent: row.selected ? ButtonIntent.primary : ButtonIntent.quiet;
+                    accessible-role: radio-button; accessible-checked: row.selected;
+                    focus-indicated: keyboard.focus-visible && root.active-token == row.token;
+                    focus-ring: KitThemes.inset-focus(root.theme);
+                    activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.activate(token,generation); } }
+                    Text { text: row.label; color: stacked.disabled ? stacked.recipe.disabled-foreground : stacked.recipe.foreground; font-family: stacked.theme.typography.family; font-size: stacked.recipe.font-size; font-weight: stacked.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+                }
             }
         }
     }
@@ -496,6 +522,70 @@ export component KitChip inherits KitPressable {
     activation-started => { root.press-token = root.chip.token; }
     changed chip => { root.cancel-press(); }
     activated => { root.remove-requested(root.press-token); }
+}
+
+// A pressable status, filter or shortcut chip: an optional leading glyph and
+// its label on a pill. A selected chip takes its tone's subtle fill and edge.
+// The host owns what the chip means and whether activation changes `selected`.
+export component KitChipButton inherits KitPressable {
+    in property <string> label;
+    // An empty glyph shows no icon.
+    in property <IconGlyph> glyph;
+    in property <Tone> tone: Tone.neutral;
+    in property <bool> selected;
+    private property <bool> has-glyph: root.glyph.stroke != "" || root.glyph.fill != "";
+    private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> gap: root.theme.spacing.unit * 1.5;
+    private property <length> natural-width: max(root.preferred-height, text.preferred-width + (root.has-glyph ? root.gap + root.icon-size : 0px) + 2 * root.padding-inline);
+    private property <color> tone-fill: root.tone == Tone.accent ? root.theme.accent-subtle
+        : root.tone == Tone.success ? root.theme.success-subtle
+        : root.tone == Tone.warning ? root.theme.warning-subtle
+        : root.tone == Tone.danger ? root.theme.danger-subtle
+        : root.tone == Tone.information ? root.theme.information-subtle
+        : root.theme.pressed;
+    private property <color> tone-ink: root.tone == Tone.accent ? root.theme.accent
+        : root.tone == Tone.success ? root.theme.success
+        : root.tone == Tone.warning ? root.theme.warning
+        : root.tone == Tone.danger ? root.theme.danger
+        : root.tone == Tone.information ? root.theme.information
+        : root.theme.border-strong;
+    control-size: ControlSize.compact;
+    intent: ButtonIntent.quiet;
+    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    preferred-width: root.natural-width;
+    corner-radius: min(root.theme.shape.radius-pill, root.height / 2);
+    background: root.disabled ? root.recipe.disabled-fill
+        : root.selected ? root.tone-fill
+        : root.pressed ? root.theme.pressed
+        : root.hovered ? root.theme.hover
+        : root.theme.surface;
+    border-width: root.selected && root.pressed ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
+    border-color: root.disabled ? root.theme.border-subtle
+        : root.selected ? root.tone-ink
+        : root.hovered || root.pressed ? root.theme.border-strong
+        : root.theme.border-subtle;
+    accessible-name: root.label;
+    accessible-checked: root.selected;
+    HorizontalLayout {
+        spacing: root.gap;
+        alignment: center;
+        if root.has-glyph: Rectangle {
+            width: root.icon-size; horizontal-stretch: 0;
+            KitIcon {
+                theme: root.theme; control-size: root.control-size;
+                y: (parent.height - self.height) / 2;
+                glyph: root.glyph;
+                ink: root.disabled ? root.recipe.disabled-foreground : root.selected && root.tone != Tone.neutral ? root.tone-ink : root.recipe.foreground;
+            }
+        }
+        text := Text {
+            text: root.label;
+            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
 }
 
 export component KitMultiSelect inherits Rectangle {
@@ -764,11 +854,22 @@ component SliderKeyboard inherits FocusScope {
         return reject;
     }
 }
+// `line` draws a thin track with a round thumb; `filled` paints the whole
+// control as its track, the value as a fill and a bar as its handle.
+export enum SliderPresentation { line, filled }
 export component KitSlider inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     // Sizes the thumb with the checkbox and radio boxes of the same size.
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <ChoiceDirection> orientation: ChoiceDirection.horizontal;
+    in property <SliderPresentation> presentation: SliderPresentation.line;
+    // Track, value fill and thumb or handle paints. A host may inject a
+    // gradient track, such as a hue or color-temperature scale, and a
+    // transparent fill so the whole scale stays visible.
+    in property <brush> track-brush: root.presentation == SliderPresentation.filled ? root.theme.hover : root.theme.border-strong;
+    in property <brush> fill-brush: root.presentation == SliderPresentation.filled ? root.theme.accent-subtle : root.theme.accent;
+    in property <brush> handle-brush: root.theme.accent;
     in property <float> position;
     in property <string> label;
     in property <string> value-label;
@@ -778,27 +879,75 @@ export component KitSlider inherits Rectangle {
     callback committed();
     callback cancelled();
     private property <bool> gesture-active;
-    preferred-height: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
-    min-width: 120px; vertical-stretch: 0;
+    private property <bool> vertical: root.orientation == ChoiceDirection.vertical;
+    private property <bool> filled: root.presentation == SliderPresentation.filled;
+    private property <bool> disabled: root.access == FieldAccess.disabled;
+    // The extent across the travel axis. A filled slider is a touch target
+    // in its own right, so it is at least twelve spacing units thick.
+    private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    private property <length> travel-minimum: 120px;
+    preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
+    preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
+    min-width: root.vertical ? root.cross-extent : root.travel-minimum;
+    min-height: root.vertical ? root.travel-minimum : 0px;
+    horizontal-stretch: root.vertical ? 0 : 1;
+    vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: slider; accessible-label: root.label;
+    accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
     accessible-value: root.value-label;
     accessible-value-minimum: 0; accessible-value-maximum: 1;
     accessible-value-step: 0.01;
-    accessible-enabled: root.access != FieldAccess.disabled;
+    accessible-enabled: !root.disabled;
     accessible-action-increment => { if (root.access == FieldAccess.editable) { root.navigate(NavigationStep.next); } }
     accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.navigate(NavigationStep.previous); } }
     public function take-focus() { keyboard.focus(); }
     forward-focus: keyboard;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
-    // The track starts and ends at the thumb centre's travel limits.
-    private property <length> edge: root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
-    function update-position() { root.position-requested(clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1)); }
-    changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(); } }
-    Rectangle { x: root.edge; y: (parent.height - self.height) / 2; height: root.choice.slider-track-height; width: parent.width - 2 * root.edge; border-radius: self.height / 2; background: root.theme.border-strong;
-        Rectangle { x: 0px; height: parent.height; width: parent.width * clamp(root.position,0,1); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; border-radius: parent.border-radius; }
+    // The travel starts and ends at the thumb centre's limits; a filled
+    // slider travels its whole length.
+    private property <length> edge: root.filled ? 0px : root.choice.slider-thumb-size / 2 + root.choice.thumb-inset;
+    private property <float> fraction: clamp(root.position, 0, 1);
+    // A filled handle sits inside the fill, three spacing units from its edge.
+    private property <length> handle-gap: root.theme.spacing.unit * 3;
+    function update-position() {
+        root.position-requested(root.vertical
+            ? clamp(1 - (pointer.mouse-y - root.edge) / max(1px, root.height - 2 * root.edge), 0, 1)
+            : clamp((pointer.mouse-x - root.edge) / max(1px, root.width - 2 * root.edge), 0, 1));
     }
-    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
-        if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    changed access => { if (root.gesture-active) { root.gesture-active = false; root.cancelled(); } }
+    track := Rectangle {
+        x: root.filled ? 0px : root.vertical ? (root.width - self.width) / 2 : root.edge;
+        y: root.filled ? 0px : root.vertical ? root.edge : (root.height - self.height) / 2;
+        width: root.filled ? root.width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
+        height: root.filled ? root.height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
+        border-radius: root.filled ? min(root.theme.shape.radius-container, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
+        clip: root.filled;
+        background: root.filled && root.disabled ? root.theme.disabled-fill : root.track-brush;
+        Rectangle {
+            x: 0px;
+            y: root.vertical ? parent.height * (1 - root.fraction) : 0px;
+            width: root.vertical ? parent.width : parent.width * root.fraction;
+            height: root.vertical ? parent.height * root.fraction : parent.height;
+            border-radius: root.filled ? 0px : parent.border-radius;
+            background: root.disabled ? (root.filled ? root.theme.pressed : root.theme.disabled-text) : root.fill-brush;
+        }
+        if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
+    // A round thumb on a line; a bar across the fill's edge when filled.
+    handle := Rectangle {
+        private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.width : root.height) - root.theme.spacing.unit * 4));
+        private property <length> bar-thickness: root.theme.spacing.unit * 1.5;
+        width: root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
+        height: root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
+        x: root.vertical ? (root.width - self.width) / 2
+            : root.filled ? clamp(root.width * root.fraction - root.handle-gap, root.handle-gap, max(root.handle-gap, root.width - root.handle-gap)) - self.width / 2
+            : root.choice.thumb-inset + (root.width - 2 * root.edge) * root.fraction;
+        y: !root.vertical ? (root.height - self.height) / 2
+            : root.filled ? clamp(root.height * (1 - root.fraction) + root.handle-gap, root.handle-gap, max(root.handle-gap, root.height - root.handle-gap)) - self.height / 2
+            : root.choice.thumb-inset + (root.height - 2 * root.edge) * (1 - root.fraction);
+        border-radius: min(root.theme.shape.radius-pill, min(self.width, self.height) / 2);
+        background: root.disabled ? root.theme.disabled-text : root.handle-brush;
+        if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard {
         access: root.access;

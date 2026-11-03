@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitGlyphs, ChoiceRow, ChoiceDirection, SliderPresentation, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit/kit.slint";
+
+// Vertical and filled sliders, a vertical segmented control, a chip button
+// and an information badge, placed at fixed coordinates.
+export component ChoicePresentationFixture inherits Window {
+    width: 720px; height: 640px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <float> level: 0.7;
+    in property <Tone> chip-tone: Tone.information;
+    in property <bool> chip-selected;
+    in property <bool> chip-disabled;
+    in property <ControlSize> chip-size: ControlSize.compact;
+    in property <Tone> badge-tone: Tone.information;
+    in property <[ChoiceRow]> speeds: [
+        { token: 31, label: "Low", disabled: false, selected: true },
+        { token: 32, label: "Medium", disabled: false, selected: false },
+        { token: 33, label: "High", disabled: false, selected: false },
+    ];
+    in property <int> speed-active: 31;
+    out property <length> line-cross: line-vertical.preferred-width;
+    out property <length> line-travel-minimum: line-vertical.min-height;
+    out property <length> filled-cross: filled-horizontal.preferred-height;
+    out property <brush> chip-background: chip.background;
+    out property <brush> chip-border: chip.border-color;
+    out property <length> chip-height: chip.height;
+    out property <length> chip-min-height: chip.min-height;
+    out property <brush> badge-background: badge.background;
+    out property <brush> badge-border: badge.border-color;
+    callback position-requested(string, float);
+    callback navigated(string, NavigationStep);
+    callback speed-navigate(NavigationStep);
+    callback speed-activate(int, int);
+    callback chip-activated();
+    public function focus-line-vertical() { line-vertical.take-focus(); }
+    public function focus-speeds() { speeds.take-focus(); }
+    public function focus-chip() { chip.take-focus(); }
+
+    line-vertical := KitSlider {
+        x: 20px; y: 20px; width: self.preferred-width; height: 240px;
+        theme: root.theme; access: root.access;
+        orientation: ChoiceDirection.vertical;
+        label: "Vertical level"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("line-vertical", value); }
+        navigate(step) => { root.navigated("line-vertical", step); }
+    }
+    filled-vertical := KitSlider {
+        x: 120px; y: 20px; width: 120px; height: 240px;
+        theme: root.theme; access: root.access;
+        orientation: ChoiceDirection.vertical; presentation: SliderPresentation.filled;
+        label: "Filled level"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("filled-vertical", value); }
+        navigate(step) => { root.navigated("filled-vertical", step); }
+    }
+    filled-horizontal := KitSlider {
+        x: 20px; y: 300px; width: 320px; height: self.preferred-height;
+        theme: root.theme; access: root.access;
+        presentation: SliderPresentation.filled;
+        label: "Filled width"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("filled-horizontal", value); }
+        navigate(step) => { root.navigated("filled-horizontal", step); }
+    }
+    speeds := KitSegmentedControl {
+        x: 400px; y: 20px; width: 200px; height: self.preferred-height;
+        theme: root.theme; access: root.access;
+        direction: ChoiceDirection.vertical;
+        label: "Speed"; rows: root.speeds; active-token: root.speed-active; generation: 3;
+        navigate(step) => { root.speed-navigate(step); }
+        activate(token, generation) => { root.speed-activate(token, generation); }
+    }
+    chip := KitChipButton {
+        x: 400px; y: 300px; height: self.preferred-height;
+        theme: root.theme; control-size: root.chip-size;
+        label: "Open orders"; glyph: KitGlyphs.check();
+        tone: root.chip-tone; selected: root.chip-selected; disabled: root.chip-disabled;
+        activated => { root.chip-activated(); }
+    }
+    badge := KitBadge { x: 400px; y: 400px; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }
+}
