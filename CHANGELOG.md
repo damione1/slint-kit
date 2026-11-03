@@ -6,6 +6,8 @@
 - Add `KitChipButton`, a pressable status, filter or shortcut chip with a label, an optional `glyph: IconGlyph`, a `tone: Tone` and a host-owned `selected` state. A selected chip takes its tone's subtle fill and edge and exposes `accessible-checked`; `activated()` is inherited from `KitPressable`.
 - Add `orientation: ChoiceDirection` and `presentation: SliderPresentation` (`line`, `filled`) to `KitSlider`. A vertical slider puts the minimum at the bottom; Up and Right step forward, Down and Left step back. A filled slider paints the whole control as its track with a bar handle and is at least twelve spacing units thick. `track-brush`, `fill-brush` and `handle-brush` accept injected paints, such as a hue or color-temperature gradient. `accessible-orientation` follows the orientation.
 - Add `direction: ChoiceDirection` to `KitSegmentedControl`. Vertical segments stack in source order and navigate with Up and Down; `flow` applies only to the horizontal direction.
+- Add `KitKeypad`, a numeric keypad (1 to 9, then clear, 0 and confirm) that emits `digit(int)`, `clear()` and `confirm()` and never holds the entered digits. Typed 0 to 9, Backspace and Return reach the same callbacks while a key or the keypad has focus and `access` is editable; `can-confirm` gates confirm, and a held Return confirms once. Each key is at least twelve spacing units square and grows with enlarged text. `digit-labels`, `clear-label`, `clear-glyph`, `confirm-label`, `confirm-glyph` and `confirm-intent` customize the keys.
+- Add `KitCodeIndicator`, one mark per expected digit with the first `filled` marks filled and a host-supplied accessible `label`; it shows how many digits are entered, never which.
 
 ## 0.5.1
 

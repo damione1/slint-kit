@@ -13,6 +13,7 @@ import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthF
 import { KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedTimePresentation, AmbiguousTimeChoice, TimeSegment, TimeAdjustment, ClockFormat } from "@kit/datetime.slint";
 import { KitFilePicker, KitDirectoryPicker, KitFileDropZone, FileViewEntry, HostRequestPresentation, DropCapability } from "@kit/files.slint";
 import { KitColorPicker, ColorChannel, SrgbColorView } from "@kit/color.slint";
+import { KitKeypad, KitCodeIndicator } from "@kit/keypad.slint";
 
 export enum ShowcasePage { gallery, profile, billing, choices, schedule, files, display, navigation, data }
 export enum TextExample { name, email, website, phone, password, search, biography, otp, reference }
@@ -113,6 +114,8 @@ export global FormExamples {
     in-out property <string> duration-error;
     in-out property <int> duration-count;
     in-out property <string> stepper-text;
+    // The gallery counts PIN digits only; it never keeps the digits.
+    in-out property <int> pin-entered;
     in-out property <ValidationPresentation> stepper-validation: ValidationPresentation.pristine;
     in-out property <string> stepper-error;
     in-out property <int> stepper-count;
@@ -500,6 +503,13 @@ export component FormGallery inherits VerticalLayout {
             KitFieldLabel {theme:root.theme;text:"View mode chips";}
             FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
                 for row in FormExamples.segmented-options: KitChipButton {control-size:root.control-size;theme:root.theme;label:row.label;tone:Tone.information;selected:row.selected;disabled:row.disabled;activated=>{FormExamples.choice-activate(ChoiceExample.segmented,row.token,FormExamples.choice-generation);}}
+            }
+        }
+        KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"Approval PIN";focus-requested => { pin-keypad.take-focus(); }}
+            KitCodeIndicator {theme:root.theme;length:4;filled:FormExamples.pin-entered;label:FormExamples.pin-entered + " of 4 digits entered";}
+            HorizontalLayout { alignment: start;
+                pin-keypad := KitKeypad {theme:root.theme;access:FormExamples.access;label:"Approval PIN";confirm-label:"Approve";can-confirm:FormExamples.pin-entered == 4;digit(value)=>{FormExamples.pin-entered = min(4, FormExamples.pin-entered + 1);}clear=>{FormExamples.pin-entered = max(0, FormExamples.pin-entered - 1);}confirm=>{FormExamples.pin-entered = 0;}}
             }
         }
         KitField { theme: root.theme;

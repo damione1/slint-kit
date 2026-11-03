@@ -435,6 +435,30 @@
       "seoTitle": "Chip Button for Slint"
     }
   },
+  "KitCodeIndicator": {
+    "fr": {
+      "summary": "Progression d’une saisie de code : une marque par chiffre attendu, les premières remplies.",
+      "usage": "Fournissez `length`, le nombre de chiffres attendus, `filled`, le nombre déjà saisi, et un `label` accessible traduit, par exemple « 2 chiffres sur 4 ». Associez-le à `KitKeypad`.",
+      "behavior": "L’indicateur montre combien de chiffres l’hôte conserve, jamais lesquels. Une marque remplie prend la couleur du texte principal, une marque vide seulement un contour ; les marques grandissent avec le texte agrandi. Le rôle texte expose `label`.",
+      "related": [
+        "KitKeypad",
+        "KitOtpField"
+      ],
+      "label": "Indicateur de code",
+      "seoTitle": "Indicateur de code pour Slint"
+    },
+    "en": {
+      "summary": "Progress of a code entry: one mark per expected digit, the first ones filled.",
+      "usage": "Supply `length`, the number of expected digits, `filled`, the number already entered, and a localized accessible `label`, such as “2 of 4 digits”. Pair it with `KitKeypad`.",
+      "behavior": "The indicator shows how many digits the host holds, never which. A filled mark takes the primary text color, an empty one only an edge; the marks grow with enlarged text. The text role exposes `label`.",
+      "related": [
+        "KitKeypad",
+        "KitOtpField"
+      ],
+      "label": "Code Indicator",
+      "seoTitle": "Code Indicator for Slint"
+    }
+  },
   "KitCollapse": {
     "fr": {
       "summary": "Bloc dépliable pour un contenu arbitraire conservé dans l’arbre visuel.",
@@ -1605,6 +1629,32 @@
       "seoTitle": "ISO Week Field for Slint"
     }
   },
+  "KitKeypad": {
+    "fr": {
+      "summary": "Pavé numérique pour un code, un NIP ou une quantité : chiffres 1 à 9, puis effacer, 0 et confirmer.",
+      "usage": "Fournissez `label`, `confirm-label` et `can-confirm`, puis traitez `digit(int)`, `clear()` et `confirm()` dans le modèle propriétaire, qui conserve le code saisi. Traduisez `clear-label`, `confirm-label` et, au besoin, les dix `digit-labels` dans l’ordre du pavé. `clear-glyph`, `confirm-glyph` et `confirm-intent` personnalisent les deux touches d’action. Montrez la progression avec `KitCodeIndicator`.",
+      "behavior": "Le pavé n’émet que des intentions et ne conserve jamais les chiffres. 0 à 9, Retour arrière et Entrée atteignent les mêmes rappels lorsqu’une touche ou le pavé a le focus ; Entrée et Espace activent d’abord la touche qui a le focus, comme tout bouton. `take-focus()` donne le focus au pavé lui-même. Confirmer reste désactivé tant que `can-confirm` est faux, et un Entrée maintenu ne confirme qu’une fois. En lecture seule ou désactivé, rien n’est émis. Chaque touche mesure au moins douze unités d’espacement de côté et grandit avec le texte agrandi ; le groupe expose `label` et chaque touche son libellé.",
+      "related": [
+        "KitCodeIndicator",
+        "KitOtpField",
+        "KitNumberStepper"
+      ],
+      "label": "Pavé numérique",
+      "seoTitle": "Pavé numérique pour Slint"
+    },
+    "en": {
+      "summary": "Numeric keypad for a code, a PIN or a quantity: digits 1 to 9, then clear, 0 and confirm.",
+      "usage": "Supply `label`, `confirm-label` and `can-confirm`, and handle `digit(int)`, `clear()` and `confirm()` in the owning model, which keeps the entered code. Localize `clear-label`, `confirm-label` and, when needed, the ten `digit-labels` in keypad order. `clear-glyph`, `confirm-glyph` and `confirm-intent` customize the two action keys. Show progress with `KitCodeIndicator`.",
+      "behavior": "The keypad emits intentions only and never holds the digits. 0 to 9, Backspace and Return reach the same callbacks while a key or the keypad has focus; Return and Space first activate a focused key, as on any button. `take-focus()` focuses the keypad itself. Confirm stays disabled while `can-confirm` is false, and a held Return confirms once. A read-only or disabled keypad emits nothing. Each key is at least twelve spacing units square and grows with enlarged text; the group exposes `label` and each key its own label.",
+      "related": [
+        "KitCodeIndicator",
+        "KitOtpField",
+        "KitNumberStepper"
+      ],
+      "label": "Keypad",
+      "seoTitle": "Keypad for Slint"
+    }
+  },
   "KitMaskedField": {
     "fr": {
       "summary": "Champ texte validé selon un masque défini côté application.",
@@ -1827,7 +1877,8 @@
       "related": [
         "KitIntegerField",
         "KitDecimalField",
-        "KitSlider"
+        "KitSlider",
+        "KitKeypad"
       ],
       "label": "Compteur numérique",
       "seoTitle": "Compteur numérique pour Slint"
@@ -1839,7 +1890,8 @@
       "related": [
         "KitIntegerField",
         "KitDecimalField",
-        "KitSlider"
+        "KitSlider",
+        "KitKeypad"
       ],
       "label": "Number Stepper",
       "seoTitle": "Number Stepper for Slint"
@@ -1876,7 +1928,8 @@
       "behavior": "Un éditeur natif conserve le collage, le curseur, la sélection et l’historique. `validation-timing: ValidationTiming.on-submit` affiche les erreurs à l’acceptation plutôt que pendant la saisie d’un code incomplet. Seul un code complet valide remplace la valeur acceptée dans Rust. La vue masquée en lecture seule utilise `input-type: InputType.password` et `access: FieldAccess.read-only` ; elle suit le brouillon alphanumérique éditable sans publier le texte brut dans la valeur accessible redéfinie par le kit. Le masquage ne change que la présentation : Rust reçoit toujours le code. L’annulation d’un remplacement par un texte plus court peut provoquer un panic dans un éditeur de mot de passe Slint 1.18.1 ; l’exemple réserve donc le masquage à la lecture seule. Slint 1.18.1 ne fournit pas non plus de point de contrôle public avant insertion : `slots` et `max-length` valident les caractères excédentaires sans empêcher la frappe ni tronquer le collage. L’IME et les lecteurs d’écran nécessitent une qualification sur le backend cible.",
       "related": [
         "KitPasswordField",
-        "KitMaskedField"
+        "KitMaskedField",
+        "KitKeypad"
       ],
       "label": "Champ code à usage unique",
       "seoTitle": "Champ code à usage unique pour Slint"
@@ -1887,7 +1940,8 @@
       "behavior": "One native editor owns paste, caret, selection and undo. Use `validation-timing: ValidationTiming.on-submit` to show errors on acceptance rather than while entering a partial code. Only a complete valid code replaces the Rust accepted value. The read-only masked view uses `input-type: InputType.password` and `access: FieldAccess.read-only`; it follows the editable alphanumeric draft and does not publish its raw text through the kit accessibility value override. Masking changes presentation only: Rust still receives the code. Editable password undo can panic in Slint 1.18.1 after replacing a selection with shorter text, so the example intentionally offers masking only for the read-only view. Slint 1.18.1 also has no public before-insert constraint hook: `slots` and `max-length` validate excess characters but do not prevent typing or truncate paste. IME and screen-reader behavior require qualification on the target backend.",
       "related": [
         "KitPasswordField",
-        "KitMaskedField"
+        "KitMaskedField",
+        "KitKeypad"
       ],
       "label": "OTP Field",
       "seoTitle": "OTP Field for Slint"

@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitCodeIndicator, KitButton, KitTheme, KitThemes, KitMetrics, TypographyRole } from "@kit/kit.slint";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    title: "Indicateur de code";
+    preferred-width: 440px; preferred-height: 240px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in-out property <int> entered: 2;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Progression de la vérification"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Six marques pour un code à six chiffres ; elles montrent combien de chiffres sont saisis, jamais lesquels."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCodeIndicator { theme: root.theme; length: 6; filled: root.entered; label: root.entered + " chiffres sur 6 saisis"; }
+        HorizontalLayout { spacing: 12px; alignment: center;
+            KitButton { theme: root.theme; text: "Ajouter un chiffre"; activated => { root.entered = min(6, root.entered + 1); } }
+            KitButton { theme: root.theme; text: "Retirer un chiffre"; activated => { root.entered = max(0, root.entered - 1); } }
+        }
+    }
+}
