@@ -1,0 +1,263 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! The numeric keypad and the code indicator.
+use super::*;
+use i_slint_backend_testing::{ElementHandle, ElementQuery};
+use slint::platform::{Key, PointerEventButton, WindowEvent};
+use slint::{ComponentHandle, LogicalPosition, SharedString};
+use std::{cell::RefCell, rc::Rc};
+
+/// What the keypad asked the host to do, in order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Intention {
+    Digit(i32),
+    Clear,
+    Confirm,
+}
+
+fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = KeypadFixture::new().unwrap();
+    window.show().unwrap();
+    let intentions: Rc<RefCell<Vec<Intention>>> = Rc::default();
+    let observed = intentions.clone();
+    window.on_digit_entered(move |value| observed.borrow_mut().push(Intention::Digit(value)));
+    let observed = intentions.clone();
+    window.on_cleared(move || observed.borrow_mut().push(Intention::Clear));
+    let observed = intentions.clone();
+    window.on_confirmed(move || observed.borrow_mut().push(Intention::Confirm));
+    (window, intentions)
+}
+fn with_text_scale(window: &KeypadFixture, scale: f32) {
+    let mut theme = window.get_light();
+    theme.text_scale = scale;
+    window.set_theme(theme);
+}
+fn element(window: &KeypadFixture, label: &str) -> ElementHandle {
+    let requested = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+        })
+        .find_first()
+        .unwrap_or_else(|| panic!("missing element {label}"))
+}
+fn type_text(window: &KeypadFixture, text: impl Into<SharedString>) {
+    let text = text.into();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text });
+}
+fn key(window: &KeypadFixture, key: Key) {
+    type_text(window, key);
+}
+fn click(window: &KeypadFixture, element: &ElementHandle) {
+    let origin = element.absolute_position();
+    let size = element.size();
+    let position = LogicalPosition::new(origin.x + size.width / 2., origin.y + size.height / 2.);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+}
+const KEYS: [&str; 12] = [
+    "1", "2", "3", "4", "5", "6", "7", "8", "9", "Delete", "0", "Unlock",
+];
+
+#[test]
+fn keys_request_their_digit_clear_and_confirm_by_pointer() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    for label in KEYS {
+        click(&window, &element(&window, label));
+    }
+    let mut expected: Vec<Intention> = (1..=9).map(Intention::Digit).collect();
+    expected.extend([Intention::Clear, Intention::Digit(0), Intention::Confirm]);
+    assert_eq!(*intentions.borrow(), expected);
+}
+
+#[test]
+fn confirm_waits_for_the_host_to_allow_it() {
+    let (window, intentions) = fixture();
+    let confirm = element(&window, "Unlock");
+    assert_eq!(confirm.accessible_enabled(), Some(false));
+    click(&window, &confirm);
+    confirm.invoke_accessible_default_action();
+    window.invoke_focus_keypad();
+    key(&window, Key::Return);
+    assert!(intentions.borrow().is_empty());
+    window.set_can_confirm(true);
+    assert_eq!(confirm.accessible_enabled(), Some(true));
+    // A held Return confirms once.
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Return.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Return.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Return.into(),
+    });
+    assert_eq!(*intentions.borrow(), [Intention::Confirm]);
+}
+
+#[test]
+fn typed_digits_backspace_and_return_reach_the_keypad() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    for digit in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] {
+        type_text(&window, digit);
+    }
+    // Other characters and keys are not digits.
+    for other in ["a", "+", "-", ".", " "] {
+        type_text(&window, other);
+    }
+    key(&window, Key::Tab);
+    window.invoke_focus_keypad();
+    key(&window, Key::Backspace);
+    key(&window, Key::Return);
+    let mut expected: Vec<Intention> = (0..=9).map(Intention::Digit).collect();
+    expected.extend([Intention::Clear, Intention::Confirm]);
+    assert_eq!(*intentions.borrow(), expected);
+    // A shortcut is not a digit.
+    intentions.borrow_mut().clear();
+    window.invoke_focus_keypad();
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Control.into(),
+    });
+    type_text(&window, "4");
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Control.into(),
+    });
+    assert!(intentions.borrow().is_empty());
+}
+
+#[test]
+fn a_focused_key_activates_itself_and_passes_typed_digits_to_the_keypad() {
+    let (window, intentions) = fixture();
+    click(&window, &element(&window, "5"));
+    type_text(&window, "7");
+    key(&window, Key::Backspace);
+    // Return and Space activate the focused key, as on any button.
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    assert_eq!(
+        *intentions.borrow(),
+        [
+            Intention::Digit(5),
+            Intention::Digit(7),
+            Intention::Clear,
+            Intention::Digit(5),
+            Intention::Digit(5),
+        ]
+    );
+}
+
+#[test]
+fn read_only_and_disabled_keypads_emit_nothing() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        window.set_access(access);
+        for label in KEYS {
+            let key = element(&window, label);
+            assert_eq!(key.accessible_enabled(), Some(false), "{label} {access:?}");
+            click(&window, &key);
+            key.invoke_accessible_default_action();
+        }
+        window.invoke_focus_keypad();
+        type_text(&window, "3");
+        key(&window, Key::Backspace);
+        key(&window, Key::Return);
+    }
+    assert!(intentions.borrow().is_empty());
+    assert_eq!(
+        element(&window, "Access code").accessible_enabled(),
+        Some(false)
+    );
+    window.set_access(FieldAccess::Editable);
+    window.invoke_focus_keypad();
+    type_text(&window, "3");
+    assert_eq!(*intentions.borrow(), [Intention::Digit(3)]);
+}
+
+#[test]
+fn keys_are_touch_sized_and_laid_out_as_a_phone_keypad_at_normal_and_doubled_text() {
+    let (window, _) = fixture();
+    for scale in [1., 2.] {
+        with_text_scale(&window, scale);
+        let keys: Vec<ElementHandle> = KEYS.iter().map(|label| element(&window, label)).collect();
+        for (label, key) in KEYS.iter().zip(&keys) {
+            let size = key.size();
+            assert!(
+                size.height >= 48.,
+                "{label} height {} at {scale}",
+                size.height
+            );
+            assert!(size.width >= 48., "{label} width {} at {scale}", size.width);
+        }
+        // Three columns, four rows: 1 2 3 / 4 5 6 / 7 8 9 / Delete 0 Unlock.
+        for row in keys.chunks(3) {
+            let top = row[0].absolute_position().y;
+            for (left, right) in row.iter().zip(row.iter().skip(1)) {
+                assert_eq!(right.absolute_position().y, top);
+                assert!(
+                    left.absolute_position().x + left.size().width <= right.absolute_position().x
+                );
+            }
+        }
+        for (above, below) in keys.iter().zip(keys.iter().skip(3)) {
+            assert!(
+                above.absolute_position().y + above.size().height <= below.absolute_position().y
+            );
+            assert_eq!(above.absolute_position().x, below.absolute_position().x);
+        }
+        // The keypad measures exactly its grid of keys.
+        let last = &keys[11];
+        let first = &keys[0];
+        let right = last.absolute_position().x + last.size().width - first.absolute_position().x;
+        let bottom = last.absolute_position().y + last.size().height - first.absolute_position().y;
+        assert!(
+            (right - window.get_keypad_width()).abs() < 0.01,
+            "width at {scale}"
+        );
+        assert!(
+            (bottom - window.get_keypad_height()).abs() < 0.01,
+            "height at {scale}"
+        );
+    }
+}
+
+#[test]
+fn code_indicator_marks_how_many_digits_are_held_without_showing_them() {
+    let (window, _) = fixture();
+    let theme = window.get_light();
+    let indicator = element(&window, "2 of 4 digits entered");
+    let marks = |indicator: &ElementHandle| {
+        indicator
+            .query_descendants()
+            .match_type_name("Rectangle")
+            .match_predicate(|mark| {
+                mark.size().width > 0. && mark.size().width == mark.size().height
+            })
+            .find_all()
+    };
+    assert_eq!(marks(&indicator).len(), 4);
+    window.set_code_filled(3);
+    window.set_code_length(6);
+    let indicator = element(&window, "3 of 6 digits entered");
+    assert_eq!(marks(&indicator).len(), 6);
+    assert!(window.get_mark_row_height() >= 3. * theme.spacing.unit);
+}
