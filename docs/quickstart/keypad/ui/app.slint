@@ -17,7 +17,7 @@ export component App inherits Window {
     in property <bool> can-confirm;
     in property <string> status;
     callback digit(int);
-    callback clear();
+    callback delete-requested();
     callback confirm();
     VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Locker code"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
@@ -26,7 +26,7 @@ export component App inherits Window {
         HorizontalLayout { alignment: center;
             keypad := KitKeypad { theme: root.theme; label: "Locker code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
                 digit(value) => { root.digit(value); }
-                clear => { root.clear(); }
+                delete-requested => { root.delete-requested(); }
                 confirm => { root.confirm(); }
             }
         }

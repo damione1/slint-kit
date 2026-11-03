@@ -19,7 +19,7 @@ export component Example inherits Window {
         HorizontalLayout { alignment: center;
             KitKeypad { theme: root.theme; label: "Locker code"; confirm-label: "Open locker"; can-confirm: root.entered == 4;
                 digit(value) => { root.entered = min(4, root.entered + 1); }
-                clear => { root.entered = max(0, root.entered - 1); }
+                delete-requested => { root.entered = max(0, root.entered - 1); }
                 confirm => { root.status = "Code submitted for checking"; root.entered = 0; }
             }
         }

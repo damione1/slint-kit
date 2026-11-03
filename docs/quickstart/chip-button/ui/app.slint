@@ -4,6 +4,8 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 import { KitChipButton, KitTheme, KitThemeContext, KitMetrics, Tone, TypographyRole } from "@kit/kit.slint";
+// A closed set the code owns: Rust receives the generated OrderFilter enum.
+export enum OrderFilter { all, awaiting-shipment, in-transit, delayed, returned }
 export component App inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -12,18 +14,19 @@ export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemeContext.current;
     background: root.theme.canvas;
-    in property <int> active;
-    callback choose(int);
+    in property <OrderFilter> active;
+    in property <string> status;
+    callback choose(OrderFilter);
     VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
         Text { text: "Filter the queue"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         Text { text: "Each chip shows one slice of the orders. The selected chip takes its status tone."; color: root.theme.text-secondary; wrap: word-wrap; }
         FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
-            KitChipButton { theme: root.theme; label: "All orders"; glyph: LucideIcons.inbox(); tone: Tone.accent; selected: root.active == 1; activated => { root.choose(1); } }
-            KitChipButton { theme: root.theme; label: "Awaiting shipment"; glyph: LucideIcons.package(); tone: Tone.information; selected: root.active == 2; activated => { root.choose(2); } }
-            KitChipButton { theme: root.theme; label: "In transit"; glyph: LucideIcons.truck(); tone: Tone.success; selected: root.active == 3; activated => { root.choose(3); } }
-            KitChipButton { theme: root.theme; label: "Delayed"; glyph: LucideIcons.clock(); tone: Tone.warning; selected: root.active == 4; activated => { root.choose(4); } }
-            KitChipButton { theme: root.theme; label: "Returned"; tone: Tone.danger; selected: root.active == 5; activated => { root.choose(5); } }
+            KitChipButton { theme: root.theme; label: "All orders"; glyph: LucideIcons.inbox(); tone: Tone.accent; selected: root.active == OrderFilter.all; activated => { root.choose(OrderFilter.all); } }
+            KitChipButton { theme: root.theme; label: "Awaiting shipment"; glyph: LucideIcons.package(); tone: Tone.information; selected: root.active == OrderFilter.awaiting-shipment; activated => { root.choose(OrderFilter.awaiting-shipment); } }
+            KitChipButton { theme: root.theme; label: "In transit"; glyph: LucideIcons.truck(); tone: Tone.success; selected: root.active == OrderFilter.in-transit; activated => { root.choose(OrderFilter.in-transit); } }
+            KitChipButton { theme: root.theme; label: "Delayed"; glyph: LucideIcons.clock(); tone: Tone.warning; selected: root.active == OrderFilter.delayed; activated => { root.choose(OrderFilter.delayed); } }
+            KitChipButton { theme: root.theme; label: "Returned"; tone: Tone.danger; selected: root.active == OrderFilter.returned; activated => { root.choose(OrderFilter.returned); } }
         }
-        result := Text { text: "Filter " + root.active + " of 5"; color: root.theme.text-secondary; }
+        result := Text { text: root.status; color: root.theme.text-secondary; }
     }
 }

@@ -15,14 +15,14 @@ export component App inherits Window {
     in property <int> entered;
     in property <int> code-length;
     callback digit();
-    callback clear();
+    callback delete-requested();
     VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Verification progress"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         indicator := KitCodeIndicator { theme: root.theme; length: root.code-length; filled: root.entered; label: root.entered + " of " + root.code-length + " digits entered"; }
         HorizontalLayout { alignment: center;
             KitKeypad { theme: root.theme; label: "Verification code"; confirm-label: "Verify"; can-confirm: false;
                 digit(value) => { root.digit(); }
-                clear => { root.clear(); }
+                delete-requested => { root.delete-requested(); }
             }
         }
     }

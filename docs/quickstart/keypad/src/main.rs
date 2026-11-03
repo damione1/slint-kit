@@ -37,7 +37,7 @@ fn main() -> Result<(), slint::PlatformError> {
         show(&app, &code, "");
     });
     let (weak, entered) = (app.as_weak(), code.clone());
-    app.on_clear(move || {
+    app.on_delete_requested(move || {
         let Some(app) = weak.upgrade() else { return };
         let mut code = entered.borrow_mut();
         code.pop();

@@ -412,8 +412,8 @@
   "KitChipButton": {
     "fr": {
       "summary": "Pastille activable pour un statut, un filtre ou un raccourci, avec icône facultative et tonalité.",
-      "usage": "Fournissez `label`, une `glyph: IconGlyph` facultative, `tone: Tone` et `selected`. Traitez `activated()` dans le modèle propriétaire, qui décide de la sélection.",
-      "behavior": "Une pastille sélectionnée prend le remplissage atténué et le contour de sa tonalité ; sinon elle reste sur la surface. Le rôle bouton expose `accessible-checked`. Désactivée, elle n’émet rien ; la taille suit `control-size` et le texte agrandi.",
+      "usage": "Fournissez `label`, une `glyph: IconGlyph` facultative, `tone: Tone` et `selected`. Dans une liste répétée, liez `token` et `generation` à la ligne et traitez `activate(int, int)` dans le modèle propriétaire, qui décide de la sélection. Une pastille statique peut traiter `activated()` à la place, ce qui remplace ce rapport d’identité. Une pastille de raccourci qui ne fait qu’exécuter une action met `checkable` à faux.",
+      "behavior": "Une pastille sélectionnée prend le remplissage atténué et le contour de sa tonalité, un contour épais et un libellé semi-gras, pour que la sélection ne repose jamais sur la couleur seule ; sinon elle reste sur la surface. Une pression rapporte la ligne sur laquelle elle a commencé et s’annule si `token` ou `generation` change avant la fin. Une pastille `checkable` est annoncée enfoncée ou non par les lecteurs d’écran. Désactivée, elle n’émet rien ; la taille suit `control-size` et le texte agrandi, et un hôte tactile relève `min-height` à sa propre cible.",
       "related": [
         "KitChip",
         "KitBadge",
@@ -424,8 +424,8 @@
     },
     "en": {
       "summary": "Pressable chip for a status, filter or shortcut, with an optional icon and a tone.",
-      "usage": "Supply `label`, an optional `glyph: IconGlyph`, `tone: Tone` and `selected`. Handle `activated()` in the owning model, which decides the selection.",
-      "behavior": "A selected chip takes its tone’s subtle fill and edge; otherwise it stays on the surface. The button role exposes `accessible-checked`. A disabled chip emits nothing; its size follows `control-size` and enlarged text.",
+      "usage": "Supply `label`, an optional `glyph: IconGlyph`, `tone: Tone` and `selected`. In a repeated list, bind `token` and `generation` to the row and handle `activate(int, int)` in the owning model, which decides the selection. A static chip may handle `activated()` instead, which replaces that identity report. A shortcut chip that only runs an action sets `checkable` to false.",
+      "behavior": "A selected chip takes its tone’s subtle fill and edge, a strong edge and a semibold label, so selection never rests on colour alone; otherwise it stays on the surface. A press reports the row it started on and is cancelled when `token` or `generation` changes before it ends. Screen readers announce a `checkable` chip as pressed or not pressed. A disabled chip emits nothing; its size follows `control-size` and enlarged text, and a touch host raises `min-height` to its own target.",
       "related": [
         "KitChip",
         "KitBadge",
@@ -1631,9 +1631,9 @@
   },
   "KitKeypad": {
     "fr": {
-      "summary": "Pavé numérique pour un code, un NIP ou une quantité : chiffres 1 à 9, puis effacer, 0 et confirmer.",
-      "usage": "Fournissez `label`, `confirm-label` et `can-confirm`, puis traitez `digit(int)`, `clear()` et `confirm()` dans le modèle propriétaire, qui conserve le code saisi. Traduisez `clear-label`, `confirm-label` et, au besoin, les dix `digit-labels` dans l’ordre du pavé. `clear-glyph`, `confirm-glyph` et `confirm-intent` personnalisent les deux touches d’action. Montrez la progression avec `KitCodeIndicator`.",
-      "behavior": "Le pavé n’émet que des intentions et ne conserve jamais les chiffres. 0 à 9, Retour arrière et Entrée atteignent les mêmes rappels lorsqu’une touche ou le pavé a le focus ; Entrée et Espace activent d’abord la touche qui a le focus, comme tout bouton. `take-focus()` donne le focus au pavé lui-même. Confirmer reste désactivé tant que `can-confirm` est faux, et un Entrée maintenu ne confirme qu’une fois. En lecture seule ou désactivé, rien n’est émis. Chaque touche mesure au moins douze unités d’espacement de côté et grandit avec le texte agrandi ; le groupe expose `label` et chaque touche son libellé.",
+      "summary": "Pavé numérique pour un code, un NIP ou une quantité : chiffres 1 à 9, puis supprimer, 0 et confirmer.",
+      "usage": "Fournissez `label`, `confirm-label` et `can-confirm`, puis traitez `digit(int)`, `delete-requested()` (retirer le dernier chiffre) et `confirm()` dans le modèle propriétaire, qui conserve le code saisi. Traduisez `delete-label`, `confirm-label` et, au besoin, les dix `digit-labels` dans l’ordre du pavé. `delete-glyph` (par défaut l’icône `delete` du thème), `confirm-glyph` et `confirm-intent` personnalisent les deux touches d’action. Montrez la progression avec `KitCodeIndicator`.",
+      "behavior": "Le pavé n’émet que des intentions et ne conserve jamais les chiffres. 0 à 9 et Retour arrière atteignent les mêmes rappels lorsqu’une touche ou le pavé a le focus. Entrée confirme sur le pavé ; Entrée et Espace activent d’abord une touche qui montre le focus clavier, comme tout bouton. Une touche pressée au pointeur rend le focus au pavé sans anneau, donc Entrée après des chiffres touchés confirme. `take-focus()` donne le focus au pavé lui-même. Confirmer reste désactivé tant que `can-confirm` est faux, et un Entrée maintenu ne confirme qu’une fois. En lecture seule ou désactivé, rien n’est émis. Chaque touche mesure au moins douze unités d’espacement de côté et grandit avec le texte agrandi ; le groupe expose `label` et chaque touche son libellé.",
       "related": [
         "KitCodeIndicator",
         "KitOtpField",
@@ -1643,9 +1643,9 @@
       "seoTitle": "Pavé numérique pour Slint"
     },
     "en": {
-      "summary": "Numeric keypad for a code, a PIN or a quantity: digits 1 to 9, then clear, 0 and confirm.",
-      "usage": "Supply `label`, `confirm-label` and `can-confirm`, and handle `digit(int)`, `clear()` and `confirm()` in the owning model, which keeps the entered code. Localize `clear-label`, `confirm-label` and, when needed, the ten `digit-labels` in keypad order. `clear-glyph`, `confirm-glyph` and `confirm-intent` customize the two action keys. Show progress with `KitCodeIndicator`.",
-      "behavior": "The keypad emits intentions only and never holds the digits. 0 to 9, Backspace and Return reach the same callbacks while a key or the keypad has focus; Return and Space first activate a focused key, as on any button. `take-focus()` focuses the keypad itself. Confirm stays disabled while `can-confirm` is false, and a held Return confirms once. A read-only or disabled keypad emits nothing. Each key is at least twelve spacing units square and grows with enlarged text; the group exposes `label` and each key its own label.",
+      "summary": "Numeric keypad for a code, a PIN or a quantity: digits 1 to 9, then delete, 0 and confirm.",
+      "usage": "Supply `label`, `confirm-label` and `can-confirm`, and handle `digit(int)`, `delete-requested()` (remove the last digit) and `confirm()` in the owning model, which keeps the entered code. Localize `delete-label`, `confirm-label` and, when needed, the ten `digit-labels` in keypad order. `delete-glyph` (by default the theme’s `delete` icon), `confirm-glyph` and `confirm-intent` customize the two action keys. Show progress with `KitCodeIndicator`.",
+      "behavior": "The keypad emits intentions only and never holds the digits. 0 to 9 and Backspace reach the same callbacks while a key or the keypad has focus. Return confirms on the keypad; Return and Space first activate a key that shows keyboard focus, as on any button. A key pressed with the pointer hands focus back to the keypad without a ring, so Return after tapped digits confirms. `take-focus()` focuses the keypad itself. Confirm stays disabled while `can-confirm` is false, and a held Return confirms once. A read-only or disabled keypad emits nothing. Each key is at least twelve spacing units square and grows with enlarged text; the group exposes `label` and each key its own label.",
       "related": [
         "KitCodeIndicator",
         "KitOtpField",
@@ -2432,8 +2432,8 @@
   "KitSlider": {
     "fr": {
       "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
-      "usage": "Fournissez `position` entre 0 et 1 et un `value-label` lisible. Convertissez `position-requested(float)` et `navigate(NavigationStep)` en demandes sur votre type métier. `orientation: ChoiceDirection.vertical` place le minimum en bas ; `presentation: SliderPresentation.filled` peint tout le contrôle comme piste, la valeur comme remplissage et une barre comme poignée. `track-brush`, `fill-brush` et `handle-brush` acceptent un dégradé injecté, par exemple une échelle de teinte ou de température de couleur.",
-      "behavior": "`gesture-started`, `committed` et `cancelled` bornent une interaction réversible. La vue borne le rendu, mais les pas, arrondis et valeurs acceptées appartiennent au contrôleur. Haut et Droite avancent, Bas et Gauche reculent dans les deux orientations. Un curseur rempli mesure au moins douze unités d’espacement d’épaisseur, une cible tactile, et `accessible-orientation` suit l’orientation.",
+      "usage": "Fournissez `position` entre 0 et 1 et un `value-label` lisible. Convertissez `position-requested(float)` et `navigate(NavigationStep)` en demandes sur votre type métier. `direction: ChoiceDirection.vertical` place le minimum en bas ; `presentation: SliderPresentation.filled` peint tout le contrôle comme piste, la valeur comme remplissage et une barre comme poignée. `track-brush`, `fill-brush` et `handle-brush` acceptent un dégradé injecté, par exemple une échelle de teinte ou de température de couleur.",
+      "behavior": "`gesture-started`, `committed` et `cancelled` bornent une interaction réversible. La vue borne le rendu, mais les pas, arrondis et valeurs acceptées appartiennent au contrôleur. Haut et Droite avancent, Bas et Gauche reculent dans les deux orientations. Un curseur rempli mesure au moins douze unités d’espacement d’épaisseur dans les deux directions, une cible tactile ; ses peintures par défaut gardent le remplissage à au moins 3:1 de la piste et de la page, avec un contour marqué. `accessible-orientation` suit la direction.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -2443,8 +2443,8 @@
     },
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
-      "usage": "Supply `position` from 0 to 1 and a readable `value-label`. Convert `position-requested(float)` and `navigate(NavigationStep)` into requests on your domain type. `orientation: ChoiceDirection.vertical` puts the minimum at the bottom; `presentation: SliderPresentation.filled` paints the whole control as the track, the value as a fill and a bar as the handle. `track-brush`, `fill-brush` and `handle-brush` accept an injected gradient, such as a hue or color-temperature scale.",
-      "behavior": "`gesture-started`, `committed` and `cancelled` delimit a reversible interaction. The view bounds rendering, while steps, rounding and accepted values belong to the controller. Up and Right step forward, Down and Left step back in both orientations. A filled slider is at least twelve spacing units thick, a touch target, and `accessible-orientation` follows the orientation.",
+      "usage": "Supply `position` from 0 to 1 and a readable `value-label`. Convert `position-requested(float)` and `navigate(NavigationStep)` into requests on your domain type. `direction: ChoiceDirection.vertical` puts the minimum at the bottom; `presentation: SliderPresentation.filled` paints the whole control as the track, the value as a fill and a bar as the handle. `track-brush`, `fill-brush` and `handle-brush` accept an injected gradient, such as a hue or color-temperature scale.",
+      "behavior": "`gesture-started`, `committed` and `cancelled` delimit a reversible interaction. The view bounds rendering, while steps, rounding and accepted values belong to the controller. Up and Right step forward, Down and Left step back in both orientations. A filled slider is at least twelve spacing units thick in either direction, a touch target; its default paints keep the fill at least 3:1 against the track and the page, with a strong edge. `accessible-orientation` follows the direction.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"

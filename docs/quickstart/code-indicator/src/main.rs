@@ -16,7 +16,7 @@ fn main() -> Result<(), slint::PlatformError> {
         if let Some(app) = weak.upgrade() { count.set((count.get() + 1).min(CODE_LENGTH)); app.set_entered(count.get()); }
     });
     let (weak, count) = (app.as_weak(), entered);
-    app.on_clear(move || {
+    app.on_delete_requested(move || {
         if let Some(app) = weak.upgrade() { count.set((count.get() - 1).max(0)); app.set_entered(count.get()); }
     });
     app.run()
