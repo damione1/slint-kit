@@ -10,7 +10,7 @@ use std::{cell::RefCell, rc::Rc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Intention {
     Digit(i32),
-    Clear,
+    Delete,
     Confirm,
 }
 
@@ -22,7 +22,7 @@ fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
     let observed = intentions.clone();
     window.on_digit_entered(move |value| observed.borrow_mut().push(Intention::Digit(value)));
     let observed = intentions.clone();
-    window.on_cleared(move || observed.borrow_mut().push(Intention::Clear));
+    window.on_deleted(move || observed.borrow_mut().push(Intention::Delete));
     let observed = intentions.clone();
     window.on_confirmed(move || observed.borrow_mut().push(Intention::Confirm));
     (window, intentions)
@@ -76,14 +76,14 @@ const KEYS: [&str; 12] = [
 ];
 
 #[test]
-fn keys_request_their_digit_clear_and_confirm_by_pointer() {
+fn keys_request_their_digit_delete_and_confirm_by_pointer() {
     let (window, intentions) = fixture();
     window.set_can_confirm(true);
     for label in KEYS {
         click(&window, &element(&window, label));
     }
     let mut expected: Vec<Intention> = (1..=9).map(Intention::Digit).collect();
-    expected.extend([Intention::Clear, Intention::Digit(0), Intention::Confirm]);
+    expected.extend([Intention::Delete, Intention::Digit(0), Intention::Confirm]);
     assert_eq!(*intentions.borrow(), expected);
 }
 
@@ -129,7 +129,7 @@ fn typed_digits_backspace_and_return_reach_the_keypad() {
     key(&window, Key::Backspace);
     key(&window, Key::Return);
     let mut expected: Vec<Intention> = (0..=9).map(Intention::Digit).collect();
-    expected.extend([Intention::Clear, Intention::Confirm]);
+    expected.extend([Intention::Delete, Intention::Confirm]);
     assert_eq!(*intentions.borrow(), expected);
     // A shortcut is not a digit.
     intentions.borrow_mut().clear();
@@ -145,9 +145,51 @@ fn typed_digits_backspace_and_return_reach_the_keypad() {
 }
 
 #[test]
-fn a_focused_key_activates_itself_and_passes_typed_digits_to_the_keypad() {
+fn return_after_tapped_digits_confirms_instead_of_repeating_a_digit() {
     let (window, intentions) = fixture();
+    // A tapped key hands focus back to the keypad, so typed keys still
+    // arrive and Return confirms rather than pressing the tapped key again.
     click(&window, &element(&window, "5"));
+    type_text(&window, "7");
+    key(&window, Key::Backspace);
+    // Confirm is not allowed yet: Return and Space do nothing.
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    window.set_can_confirm(true);
+    key(&window, Key::Return);
+    assert_eq!(
+        *intentions.borrow(),
+        [
+            Intention::Digit(5),
+            Intention::Digit(7),
+            Intention::Delete,
+            Intention::Confirm,
+        ]
+    );
+    // The same holds after tapping Delete and after tapping Confirm.
+    intentions.borrow_mut().clear();
+    click(&window, &element(&window, "Delete"));
+    key(&window, Key::Return);
+    click(&window, &element(&window, "Unlock"));
+    key(&window, Key::Return);
+    assert_eq!(
+        *intentions.borrow(),
+        [
+            Intention::Delete,
+            Intention::Confirm,
+            Intention::Confirm,
+            Intention::Confirm,
+        ]
+    );
+}
+
+#[test]
+fn a_key_with_keyboard_focus_activates_itself_and_passes_typed_digits_on() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    // Tab moves keyboard focus from the keypad onto its first key.
+    key(&window, Key::Tab);
     type_text(&window, "7");
     key(&window, Key::Backspace);
     // Return and Space activate the focused key, as on any button.
@@ -156,11 +198,10 @@ fn a_focused_key_activates_itself_and_passes_typed_digits_to_the_keypad() {
     assert_eq!(
         *intentions.borrow(),
         [
-            Intention::Digit(5),
             Intention::Digit(7),
-            Intention::Clear,
-            Intention::Digit(5),
-            Intention::Digit(5),
+            Intention::Delete,
+            Intention::Digit(1),
+            Intention::Digit(1),
         ]
     );
 }
@@ -245,19 +286,73 @@ fn code_indicator_marks_how_many_digits_are_held_without_showing_them() {
     let (window, _) = fixture();
     let theme = window.get_light();
     let indicator = element(&window, "2 of 4 digits entered");
-    let marks = |indicator: &ElementHandle| {
-        indicator
-            .query_descendants()
-            .match_type_name("Rectangle")
-            .match_predicate(|mark| {
-                mark.size().width > 0. && mark.size().width == mark.size().height
-            })
-            .find_all()
-    };
     assert_eq!(marks(&indicator).len(), 4);
     window.set_code_filled(3);
     window.set_code_length(6);
     let indicator = element(&window, "3 of 6 digits entered");
     assert_eq!(marks(&indicator).len(), 6);
     assert!(window.get_mark_row_height() >= 3. * theme.spacing.unit);
+}
+
+/// The square marks of a code indicator, in reading order.
+fn marks(indicator: &ElementHandle) -> Vec<ElementHandle> {
+    let mut marks: Vec<ElementHandle> = indicator
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .match_predicate(|mark| mark.size().width > 0. && mark.size().width == mark.size().height)
+        .find_all();
+    marks.sort_by(|left, right| {
+        left.absolute_position()
+            .x
+            .total_cmp(&right.absolute_position().x)
+    });
+    marks
+}
+
+#[test]
+fn code_indicator_fills_exactly_the_first_marks_in_both_themes() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    // This test rasterizes headlessly to read each mark's paint.
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = KeypadFixture::new().unwrap();
+    window.show().unwrap();
+    for theme in [window.get_light(), window.get_dark()] {
+        window.set_theme(theme.clone());
+        let ink = [
+            theme.text_primary.red(),
+            theme.text_primary.green(),
+            theme.text_primary.blue(),
+        ];
+        // Nothing entered, a partial code, a complete code and a count past
+        // the length, which fills every mark.
+        for (length, filled) in [(4, 0), (4, 2), (4, 4), (4, 6), (6, 3)] {
+            window.set_code_length(length);
+            window.set_code_filled(filled);
+            let indicator = element(&window, &format!("{filled} of {length} digits entered"));
+            let marks = marks(&indicator);
+            assert_eq!(marks.len(), usize::try_from(length).unwrap());
+            let image = window.window().take_snapshot().unwrap();
+            let width = usize::try_from(image.width()).unwrap();
+            for (index, mark) in marks.iter().enumerate() {
+                let origin = mark.absolute_position();
+                let size = mark.size();
+                // Whole logical pixels: the testing window has a scale of 1.
+                let x = (origin.x + size.width / 2.) as usize;
+                let y = (origin.y + size.height / 2.) as usize;
+                let offset = (y * width + x) * 4;
+                let centre = &image.as_bytes()[offset..offset + 3];
+                let expected_filled = i32::try_from(index).unwrap() < filled;
+                assert_eq!(
+                    centre == ink,
+                    expected_filled,
+                    "mark {index} of {length} with {filled} filled"
+                );
+            }
+        }
+    }
 }

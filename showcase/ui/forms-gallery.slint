@@ -502,14 +502,14 @@ export component FormGallery inherits VerticalLayout {
         KitField { theme: root.theme;
             KitFieldLabel {theme:root.theme;text:"View mode chips";}
             FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
-                for row in FormExamples.segmented-options: KitChipButton {control-size:root.control-size;theme:root.theme;label:row.label;tone:Tone.information;selected:row.selected;disabled:row.disabled;activated=>{FormExamples.choice-activate(ChoiceExample.segmented,row.token,FormExamples.choice-generation);}}
+                for row in FormExamples.segmented-options: KitChipButton {control-size:root.control-size;theme:root.theme;label:row.label;tone:Tone.information;selected:row.selected;disabled:row.disabled;token:row.token;generation:FormExamples.choice-generation;activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
             }
         }
         KitField { theme: root.theme;
             KitFieldLabel {theme:root.theme;text:"Approval PIN";focus-requested => { pin-keypad.take-focus(); }}
             KitCodeIndicator {theme:root.theme;length:4;filled:FormExamples.pin-entered;label:FormExamples.pin-entered + " of 4 digits entered";}
             HorizontalLayout { alignment: start;
-                pin-keypad := KitKeypad {theme:root.theme;access:FormExamples.access;label:"Approval PIN";confirm-label:"Approve";can-confirm:FormExamples.pin-entered == 4;digit(value)=>{FormExamples.pin-entered = min(4, FormExamples.pin-entered + 1);}clear=>{FormExamples.pin-entered = max(0, FormExamples.pin-entered - 1);}confirm=>{FormExamples.pin-entered = 0;}}
+                pin-keypad := KitKeypad {theme:root.theme;access:FormExamples.access;label:"Approval PIN";confirm-label:"Approve";can-confirm:FormExamples.pin-entered == 4;digit(value)=>{FormExamples.pin-entered = min(4, FormExamples.pin-entered + 1);}delete-requested=>{FormExamples.pin-entered = max(0, FormExamples.pin-entered - 1);}confirm=>{FormExamples.pin-entered = 0;}}
             }
         }
         KitField { theme: root.theme;

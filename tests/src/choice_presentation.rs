@@ -80,12 +80,16 @@ fn vertical_sliders_map_the_bottom_to_zero_at_normal_and_doubled_text() {
     let requests = record_positions(&window);
     for scale in [1., 2.] {
         with_text_scale(&window, scale);
-        for name in ["Vertical level", "Filled level"] {
+        for (name, id) in [
+            ("Vertical level", "line-vertical"),
+            ("Filled level", "filled-vertical"),
+        ] {
             let slider = element(&window, name);
             let origin = slider.absolute_position();
             let size = slider.size();
             let middle_x = origin.x + size.width / 2.;
             click(&window, middle_x, origin.y + size.height - 1.);
+            assert_eq!(last(&requests).0, id, "{name} at {scale}");
             assert!(last(&requests).1 < 0.01, "{name} at {scale}: bottom");
             click(&window, middle_x, origin.y + 1.);
             assert!(last(&requests).1 > 0.99, "{name} at {scale}: top");
@@ -95,6 +99,36 @@ fn vertical_sliders_map_the_bottom_to_zero_at_normal_and_doubled_text() {
                 "{name} at {scale}: middle"
             );
         }
+        // A line slider travels between its thumb centre's limits: the band
+        // above the top limit is the maximum, and a quarter of the travel
+        // below that limit is three quarters of the value.
+        let edge = window.get_line_edge();
+        let line = element(&window, "Vertical level");
+        let origin = line.absolute_position();
+        let size = line.size();
+        let travel = size.height - 2. * edge;
+        click(&window, origin.x + size.width / 2., origin.y + edge / 2.);
+        assert_eq!(last(&requests).0, "line-vertical");
+        assert!(last(&requests).1 > 0.999, "line edge band at {scale}");
+        click(
+            &window,
+            origin.x + size.width / 2.,
+            origin.y + edge + travel / 4.,
+        );
+        assert!(
+            (last(&requests).1 - 0.75).abs() < 0.001,
+            "line quarter at {scale}"
+        );
+        // A filled slider has no edge band: the same offset is below the top.
+        let filled = element(&window, "Filled level");
+        let origin = filled.absolute_position();
+        let size = filled.size();
+        click(&window, origin.x + size.width / 2., origin.y + edge / 2.);
+        assert_eq!(last(&requests).0, "filled-vertical");
+        assert!(
+            (last(&requests).1 - (1. - edge / 2. / size.height)).abs() < 0.001,
+            "filled edge band at {scale}"
+        );
         // A filled slider travels its whole length: a quarter from the top
         // is three quarters of the value.
         let filled = element(&window, "Filled level");
@@ -117,6 +151,56 @@ fn vertical_sliders_map_the_bottom_to_zero_at_normal_and_doubled_text() {
         );
         assert_eq!(last(&requests).0, "filled-horizontal");
         assert!((last(&requests).1 - 0.25).abs() < 0.001);
+    }
+}
+
+#[test]
+fn vertical_handles_sit_at_the_value_measured_from_the_bottom() {
+    let window = fixture();
+    let unit = window.get_theme().spacing.unit;
+    let edge = window.get_line_edge();
+    for level in [0.25, 0.8] {
+        window.set_level(level);
+        // The round thumb's centre sits at the value along the travel.
+        let line = element(&window, "Vertical level");
+        let origin = line.absolute_position();
+        let size = line.size();
+        let thumb = line
+            .query_descendants()
+            .match_type_name("Rectangle")
+            .match_predicate(|rectangle| {
+                rectangle.size().width > 0. && rectangle.size().width == rectangle.size().height
+            })
+            .find_all()
+            .into_iter()
+            .max_by(|left, right| left.size().width.total_cmp(&right.size().width))
+            .expect("a round thumb");
+        let centre = thumb.absolute_position().y + thumb.size().height / 2.;
+        let expected = origin.y + edge + (1. - level) * (size.height - 2. * edge);
+        assert!(
+            (centre - expected).abs() < 0.01,
+            "line thumb at {level}: {centre} instead of {expected}"
+        );
+        // The filled handle bar sits inside the fill, below its top edge.
+        let filled = element(&window, "Filled level");
+        let origin = filled.absolute_position();
+        let size = filled.size();
+        let bar = filled
+            .query_descendants()
+            .match_type_name("Rectangle")
+            .match_predicate(move |rectangle| {
+                (rectangle.size().height - 1.5 * unit).abs() < 0.01
+                    && rectangle.size().width < size.width
+            })
+            .find_first()
+            .expect("a handle bar");
+        let fill_top = origin.y + (1. - level) * size.height;
+        let bar_top = bar.absolute_position().y;
+        assert!(
+            bar_top > fill_top,
+            "filled handle at {level}: {bar_top} above the fill top {fill_top}"
+        );
+        assert!(bar_top + bar.size().height < origin.y + size.height);
     }
 }
 
@@ -183,6 +267,15 @@ fn sliders_keep_their_cross_extent_and_filled_sliders_are_touch_sized() {
         assert!(filled >= 12. * unit);
         assert!(element(&window, "Filled width").size().height >= 44.);
         assert!(element(&window, "Filled level").size().width >= 44.);
+        // The thickness is a minimum, so a short layout cannot squeeze a
+        // horizontal filled slider below it.
+        let minimum = window.get_filled_min_cross();
+        assert!(
+            minimum >= 12. * unit && minimum >= 44.,
+            "minimum at {scale}"
+        );
+        let squeezed = window.get_squeezed_height();
+        assert!(squeezed >= 12. * unit, "squeezed {squeezed} at {scale}");
     }
     // The fill of a vertical filled slider grows from the bottom edge.
     with_text_scale(&window, 1.);
@@ -220,6 +313,10 @@ fn vertical_segmented_control_stacks_segments_and_navigates_with_up_and_down() {
         Some(i_slint_backend_testing::Orientation::Vertical)
     );
     assert_eq!(low.accessible_checked(), Some(true));
+    // Native screen readers read the state only from checkable elements.
+    for segment in [&low, &medium, &high] {
+        assert_eq!(segment.accessible_checkable(), Some(true));
+    }
     let steps = Rc::new(RefCell::new(Vec::new()));
     let observed = steps.clone();
     window.on_speed_navigate(move |step| observed.borrow_mut().push(step));
@@ -252,6 +349,7 @@ fn chip_button_activates_by_pointer_and_keyboard_unless_disabled() {
     let observed = activations.clone();
     window.on_chip_activated(move || observed.set(observed.get() + 1));
     let chip = element(&window, "Open orders");
+    assert_eq!(chip.accessible_checkable(), Some(true));
     assert_eq!(chip.accessible_checked(), Some(false));
     let origin = chip.absolute_position();
     let center = (
@@ -266,6 +364,11 @@ fn chip_button_activates_by_pointer_and_keyboard_unless_disabled() {
     assert_eq!(activations.get(), 3);
     window.set_chip_selected(true);
     assert_eq!(chip.accessible_checked(), Some(true));
+    // A shortcut chip is a plain button: no toggle state to announce.
+    window.set_chip_checkable(false);
+    assert_eq!(chip.accessible_checkable(), Some(false));
+    assert_eq!(chip.accessible_checked(), Some(false));
+    window.set_chip_checkable(true);
     window.set_chip_disabled(true);
     click(&window, center.0, center.1);
     key(&window, Key::Space);
@@ -277,7 +380,7 @@ fn chip_button_activates_by_pointer_and_keyboard_unless_disabled() {
 /// The selected fill and edge of each tone; every variant is listed.
 fn tone_paint(theme: &KitTheme, tone: Tone) -> (Color, Color) {
     match tone {
-        Tone::Neutral => (theme.pressed, theme.border_strong),
+        Tone::Neutral => (theme.pressed, theme.text_primary),
         Tone::Accent => (theme.accent_subtle, theme.accent),
         Tone::Success => (theme.success_subtle, theme.success),
         Tone::Warning => (theme.warning_subtle, theme.warning),
@@ -303,12 +406,72 @@ fn chip_button_takes_its_tone_when_selected_in_both_themes() {
             window.set_chip_selected(false);
             assert_eq!(window.get_chip_background(), solid(theme.surface));
             assert_eq!(window.get_chip_border(), solid(theme.border_subtle));
+            assert_eq!(window.get_chip_border_width(), theme.shape.border_width);
             window.set_chip_selected(true);
             let (fill, edge) = tone_paint(&theme, tone);
             assert_eq!(window.get_chip_background(), solid(fill), "{tone:?}");
             assert_eq!(window.get_chip_border(), solid(edge), "{tone:?}");
+            // Selection is also a strong edge, never colour alone.
+            assert_eq!(
+                window.get_chip_border_width(),
+                theme.shape.border_width_strong,
+                "{tone:?}"
+            );
+            // An unselected chip under the pointer takes the pressed fill
+            // and the border-strong edge; a selected chip's edge differs.
+            assert_ne!(edge, theme.border_strong, "{tone:?}");
         }
     }
+}
+
+/// Presses the pointer at `position` without releasing it.
+fn press(window: &ChoicePresentationFixture, x: f32, y: f32) {
+    let position = LogicalPosition::new(x, y);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+}
+fn release(window: &ChoicePresentationFixture, x: f32, y: f32) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: LogicalPosition::new(x, y),
+            button: PointerEventButton::Left,
+        });
+}
+
+#[test]
+fn chip_button_reports_the_row_its_press_started_on() {
+    let window = fixture();
+    let requests = Rc::new(RefCell::new(Vec::new()));
+    let observed = requests.clone();
+    window
+        .on_chip_activate(move |token, generation| observed.borrow_mut().push((token, generation)));
+    let chip = element(&window, "Open orders");
+    let origin = chip.absolute_position();
+    let (x, y) = (
+        origin.x + chip.size().width / 2.,
+        origin.y + chip.size().height / 2.,
+    );
+    click(&window, x, y);
+    assert_eq!(*requests.borrow(), [(7, 1)]);
+    // The chip is rebound to another row during a press: nothing fires.
+    press(&window, x, y);
+    window.set_chip_token(8);
+    release(&window, x, y);
+    // A new generation of the same row during a press cancels it too.
+    press(&window, x, y);
+    window.set_chip_generation(2);
+    release(&window, x, y);
+    assert_eq!(*requests.borrow(), [(7, 1)]);
+    click(&window, x, y);
+    window.invoke_focus_chip();
+    key(&window, Key::Return);
+    assert_eq!(*requests.borrow(), [(7, 1), (8, 2), (8, 2)]);
 }
 
 #[test]
@@ -324,6 +487,64 @@ fn chip_button_grows_with_its_size_and_text() {
             window.set_chip_size(size);
             assert!(window.get_chip_height() >= control, "{size:?} at {scale}");
             assert_eq!(window.get_chip_height(), window.get_chip_min_height());
+        }
+    }
+    // Doubled text makes the chip taller and wider at every size.
+    for size in [ControlSize::Compact, ControlSize::Comfortable] {
+        window.set_chip_size(size);
+        with_text_scale(&window, 1.);
+        let (height, width) = (window.get_chip_height(), window.get_chip_preferred_width());
+        with_text_scale(&window, 2.);
+        assert!(window.get_chip_height() > height, "{size:?} height");
+        assert!(window.get_chip_preferred_width() > width, "{size:?} width");
+    }
+}
+
+/// The WCAG relative luminance of a colour.
+fn luminance(color: Color) -> f32 {
+    let channel = |value: u8| {
+        let value = f32::from(value) / 255.;
+        if value <= 0.039_28 {
+            value / 12.92
+        } else {
+            ((value + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    0.2126 * channel(color.red()) + 0.7152 * channel(color.green()) + 0.0722 * channel(color.blue())
+}
+/// The WCAG contrast ratio of two colours.
+fn contrast(first: Color, second: Color) -> f32 {
+    let (first, second) = (luminance(first), luminance(second));
+    (first.max(second) + 0.05) / (first.min(second) + 0.05)
+}
+
+#[test]
+fn filled_slider_default_paints_contrast_in_both_themes() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        window.set_theme(theme.clone());
+        let track = window.get_filled_track().color();
+        let fill = window.get_filled_fill().color();
+        let handle = window.get_filled_handle().color();
+        assert_ne!(track, theme.canvas);
+        assert_ne!(track, fill);
+        // WCAG 1.4.11: the value fill stands out from its track and from
+        // the pages the slider sits on, and the handle from the fill.
+        for (what, ratio) in [
+            ("fill on track", contrast(fill, track)),
+            ("fill on canvas", contrast(fill, theme.canvas)),
+            ("fill on surface", contrast(fill, theme.surface)),
+            ("handle on fill", contrast(handle, fill)),
+            (
+                "edge on canvas",
+                contrast(theme.border_strong, theme.canvas),
+            ),
+            (
+                "edge on surface",
+                contrast(theme.border_strong, theme.surface),
+            ),
+        ] {
+            assert!(ratio >= 3., "{what}: {ratio}");
         }
     }
 }

@@ -7,6 +7,7 @@ export component KeypadFixture inherits Window {
     width: 520px; height: 720px;
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> can-confirm;
     in property <ControlSize> control-size: ControlSize.comfortable;
@@ -16,7 +17,7 @@ export component KeypadFixture inherits Window {
     out property <length> keypad-height: keypad.height;
     out property <length> mark-row-height: indicator.height;
     callback digit-entered(int);
-    callback cleared();
+    callback deleted();
     callback confirmed();
     public function focus-keypad() { keypad.take-focus(); }
 
@@ -31,7 +32,7 @@ export component KeypadFixture inherits Window {
         theme: root.theme; control-size: root.control-size; access: root.access;
         label: "Access code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
         digit(value) => { root.digit-entered(value); }
-        clear => { root.cleared(); }
+        delete-requested => { root.deleted(); }
         confirm => { root.confirmed(); }
     }
 }

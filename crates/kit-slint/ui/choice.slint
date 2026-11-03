@@ -29,6 +29,9 @@ component ChoiceOption inherits KitPressable {
     callback activate(int,int);
     private property <int> press-token;
     private property <int> press-generation;
+    // Every option is a radio button or a toggle whose state assistive
+    // technology reads from `accessible-checked`.
+    accessible-checkable: true;
     tab-stop: false;
     activation-started => { root.press-token = root.option-data.token; root.press-generation = root.generation; }
     changed option-data => { root.cancel-press(); }
@@ -108,6 +111,7 @@ export component KitCheckbox inherits KitPressable {
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
+    accessible-checkable: true;
     accessible-checked: root.state == CheckState.checked;
     accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? "Partially selected" : root.access == FieldAccess.read-only ? "Read only" : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked); } }
@@ -174,6 +178,7 @@ export component KitSwitch inherits KitPressable {
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
+    accessible-checkable: true;
     accessible-checked: root.checked;
     accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggled(!root.checked); } }
@@ -525,14 +530,36 @@ export component KitChip inherits KitPressable {
 }
 
 // A pressable status, filter or shortcut chip: an optional leading glyph and
-// its label on a pill. A selected chip takes its tone's subtle fill and edge.
-// The host owns what the chip means and whether activation changes `selected`.
+// its label on a pill. A selected chip takes its tone's subtle fill and edge,
+// a strong edge and a semibold label, so selection never rests on colour
+// alone. The host owns what the chip means and whether activation changes
+// `selected`.
+//
+// `token` and `generation` name the row the chip stands for. They are fenced
+// like a choice option's: `activate(int, int)` reports the identity the press
+// started on, and a press is cancelled when either changes before it ends, so
+// a repeated chip that is rebound to another row never activates the new row.
+// The chip reports from its own `activation-started` and `activated`
+// handlers; a static chip may handle `activated()` instead, which replaces
+// that report.
+//
+// Like the kit's other pressables, the chip follows `control-size`; a touch
+// host raises `min-height` to its own touch target.
 export component KitChipButton inherits KitPressable {
     in property <string> label;
     // An empty glyph shows no icon.
     in property <IconGlyph> glyph;
     in property <Tone> tone: Tone.neutral;
     in property <bool> selected;
+    // A filter chip toggles: assistive technology announces it as pressed or
+    // not pressed. A shortcut chip that only runs an action clears this, and
+    // `selected` then only paints.
+    in property <bool> checkable: true;
+    in property <int> token;
+    in property <int> generation;
+    callback activate(int, int);
+    private property <int> press-token;
+    private property <int> press-generation;
     private property <bool> has-glyph: root.glyph.stroke != "" || root.glyph.fill != "";
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
     private property <length> gap: root.theme.spacing.unit * 1.5;
@@ -543,12 +570,14 @@ export component KitChipButton inherits KitPressable {
         : root.tone == Tone.danger ? root.theme.danger-subtle
         : root.tone == Tone.information ? root.theme.information-subtle
         : root.theme.pressed;
+    // A neutral selected chip takes the text colour as its edge, so it stays
+    // distinct from an unselected chip under the pointer.
     private property <color> tone-ink: root.tone == Tone.accent ? root.theme.accent
         : root.tone == Tone.success ? root.theme.success
         : root.tone == Tone.warning ? root.theme.warning
         : root.tone == Tone.danger ? root.theme.danger
         : root.tone == Tone.information ? root.theme.information
-        : root.theme.border-strong;
+        : root.theme.text-primary;
     control-size: ControlSize.compact;
     intent: ButtonIntent.quiet;
     min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
@@ -559,13 +588,18 @@ export component KitChipButton inherits KitPressable {
         : root.pressed ? root.theme.pressed
         : root.hovered ? root.theme.hover
         : root.theme.surface;
-    border-width: root.selected && root.pressed ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
+    border-width: root.selected ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
     border-color: root.disabled ? root.theme.border-subtle
         : root.selected ? root.tone-ink
         : root.hovered || root.pressed ? root.theme.border-strong
         : root.theme.border-subtle;
     accessible-name: root.label;
-    accessible-checked: root.selected;
+    accessible-checkable: root.checkable;
+    accessible-checked: root.checkable && root.selected;
+    activation-started => { root.press-token = root.token; root.press-generation = root.generation; }
+    changed token => { root.cancel-press(); }
+    changed generation => { root.cancel-press(); }
+    activated => { root.activate(root.press-token, root.press-generation); }
     HorizontalLayout {
         spacing: root.gap;
         alignment: center;
@@ -581,7 +615,8 @@ export component KitChipButton inherits KitPressable {
         text := Text {
             text: root.label;
             color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-            font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+            font-family: root.theme.typography.family; font-size: root.text-size;
+            font-weight: root.selected ? max(root.text-weight, root.theme.typography.weight-semibold) : root.text-weight;
             vertical-alignment: center;
             overflow: elide;
         }
@@ -862,14 +897,17 @@ export component KitSlider inherits Rectangle {
     // Sizes the thumb with the checkbox and radio boxes of the same size.
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <ChoiceDirection> orientation: ChoiceDirection.horizontal;
+    // A vertical slider puts the minimum at the bottom.
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <SliderPresentation> presentation: SliderPresentation.line;
     // Track, value fill and thumb or handle paints. A host may inject a
     // gradient track, such as a hue or color-temperature scale, and a
-    // transparent fill so the whole scale stays visible.
-    in property <brush> track-brush: root.presentation == SliderPresentation.filled ? root.theme.hover : root.theme.border-strong;
-    in property <brush> fill-brush: root.presentation == SliderPresentation.filled ? root.theme.accent-subtle : root.theme.accent;
-    in property <brush> handle-brush: root.theme.accent;
+    // transparent fill so the whole scale stays visible. The filled defaults
+    // keep the value fill at least 3:1 against its track and the page, and a
+    // filled track always has a strong edge, in both shipped themes.
+    in property <brush> track-brush: root.presentation == SliderPresentation.filled ? root.theme.pressed : root.theme.border-strong;
+    in property <brush> fill-brush: root.theme.accent;
+    in property <brush> handle-brush: root.presentation == SliderPresentation.filled ? root.theme.on-accent : root.theme.accent;
     in property <float> position;
     in property <string> label;
     in property <string> value-label;
@@ -879,17 +917,19 @@ export component KitSlider inherits Rectangle {
     callback committed();
     callback cancelled();
     private property <bool> gesture-active;
-    private property <bool> vertical: root.orientation == ChoiceDirection.vertical;
+    private property <bool> vertical: root.direction == ChoiceDirection.vertical;
     private property <bool> filled: root.presentation == SliderPresentation.filled;
     private property <bool> disabled: root.access == FieldAccess.disabled;
     // The extent across the travel axis. A filled slider is a touch target
-    // in its own right, so it is at least twelve spacing units thick.
+    // in its own right, so it is at least twelve spacing units thick in
+    // either direction. A line slider keeps the kit's control height, like
+    // its other controls; a touch host widens it with its own minimum.
     private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
     private property <length> travel-minimum: 120px;
     preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
     preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
     min-width: root.vertical ? root.cross-extent : root.travel-minimum;
-    min-height: root.vertical ? root.travel-minimum : 0px;
+    min-height: root.vertical ? root.travel-minimum : root.filled ? root.cross-extent : 0px;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: slider; accessible-label: root.label;
@@ -930,6 +970,14 @@ export component KitSlider inherits Rectangle {
             height: root.vertical ? parent.height * root.fraction : parent.height;
             border-radius: root.filled ? 0px : parent.border-radius;
             background: root.disabled ? (root.filled ? root.theme.pressed : root.theme.disabled-text) : root.fill-brush;
+        }
+        // The filled track's edge, drawn over the fill so the control's
+        // boundary stays visible on any page and with any injected paint.
+        if root.filled: Rectangle {
+            width: parent.width; height: parent.height;
+            border-radius: parent.border-radius;
+            border-width: root.theme.shape.border-width;
+            border-color: root.disabled ? root.theme.border-subtle : root.theme.border-strong;
         }
         if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }

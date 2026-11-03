@@ -14,6 +14,9 @@ export component ChoicePresentationFixture inherits Window {
     in property <bool> chip-selected;
     in property <bool> chip-disabled;
     in property <ControlSize> chip-size: ControlSize.compact;
+    in property <bool> chip-checkable: true;
+    in property <int> chip-token: 7;
+    in property <int> chip-generation: 1;
     in property <Tone> badge-tone: Tone.information;
     in property <[ChoiceRow]> speeds: [
         { token: 31, label: "Low", disabled: false, selected: true },
@@ -24,8 +27,17 @@ export component ChoicePresentationFixture inherits Window {
     out property <length> line-cross: line-vertical.preferred-width;
     out property <length> line-travel-minimum: line-vertical.min-height;
     out property <length> filled-cross: filled-horizontal.preferred-height;
+    out property <length> filled-min-cross: filled-horizontal.min-height;
+    out property <length> squeezed-height: squeezed.height;
+    // Where a medium line slider's travel starts: the thumb centre's limit.
+    out property <length> line-edge: KitThemes.choice-recipe(root.theme, ControlSize.medium).slider-thumb-size / 2 + KitThemes.choice-recipe(root.theme, ControlSize.medium).thumb-inset;
+    out property <brush> filled-track: filled-horizontal.track-brush;
+    out property <brush> filled-fill: filled-horizontal.fill-brush;
+    out property <brush> filled-handle: filled-horizontal.handle-brush;
     out property <brush> chip-background: chip.background;
     out property <brush> chip-border: chip.border-color;
+    out property <length> chip-border-width: chip.border-width;
+    out property <length> chip-preferred-width: chip.preferred-width;
     out property <length> chip-height: chip.height;
     out property <length> chip-min-height: chip.min-height;
     out property <brush> badge-background: badge.background;
@@ -35,6 +47,7 @@ export component ChoicePresentationFixture inherits Window {
     callback speed-navigate(NavigationStep);
     callback speed-activate(int, int);
     callback chip-activated();
+    callback chip-activate(int, int);
     public function focus-line-vertical() { line-vertical.take-focus(); }
     public function focus-speeds() { speeds.take-focus(); }
     public function focus-chip() { chip.take-focus(); }
@@ -42,7 +55,7 @@ export component ChoicePresentationFixture inherits Window {
     line-vertical := KitSlider {
         x: 20px; y: 20px; width: self.preferred-width; height: 240px;
         theme: root.theme; access: root.access;
-        orientation: ChoiceDirection.vertical;
+        direction: ChoiceDirection.vertical;
         label: "Vertical level"; value-label: "70 percent"; position: root.level;
         position-requested(value) => { root.position-requested("line-vertical", value); }
         navigate(step) => { root.navigated("line-vertical", step); }
@@ -50,7 +63,7 @@ export component ChoicePresentationFixture inherits Window {
     filled-vertical := KitSlider {
         x: 120px; y: 20px; width: 120px; height: 240px;
         theme: root.theme; access: root.access;
-        orientation: ChoiceDirection.vertical; presentation: SliderPresentation.filled;
+        direction: ChoiceDirection.vertical; presentation: SliderPresentation.filled;
         label: "Filled level"; value-label: "70 percent"; position: root.level;
         position-requested(value) => { root.position-requested("filled-vertical", value); }
         navigate(step) => { root.navigated("filled-vertical", step); }
@@ -76,7 +89,17 @@ export component ChoicePresentationFixture inherits Window {
         theme: root.theme; control-size: root.chip-size;
         label: "Open orders"; glyph: KitGlyphs.check();
         tone: root.chip-tone; selected: root.chip-selected; disabled: root.chip-disabled;
-        activated => { root.chip-activated(); }
+        checkable: root.chip-checkable; token: root.chip-token; generation: root.chip-generation;
+        // Binding `activated` here would replace the chip's identity report.
+        activate(token, generation) => { root.chip-activated(); root.chip-activate(token, generation); }
+    }
+    // A horizontal filled slider squeezed by a layout far shorter than it.
+    VerticalLayout {
+        x: 20px; y: 400px; width: 320px; height: 8px;
+        squeezed := KitSlider {
+            theme: root.theme; presentation: SliderPresentation.filled;
+            label: "Squeezed width"; value-label: "70 percent"; position: root.level;
+        }
     }
     badge := KitBadge { x: 400px; y: 400px; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }
 }
