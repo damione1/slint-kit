@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Breaking:** `Tone` gains `information`. `KitBadge` and the new `KitChipButton` map it to the `information-subtle` fill and `information` edge. Rust code that matches `Tone` exhaustively must add the `Tone::Information` arm; the compiler reports each site.
+
 ## 0.5.1
 
 - Document project-relative `@kit` library paths for VS Code and Zed, including locked Cargo vendoring for crates.io consumers, local checkout paths and refresh instructions.
