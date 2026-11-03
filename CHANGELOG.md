@@ -3,6 +3,9 @@
 ## Unreleased
 
 - **Breaking:** `Tone` gains `information`. `KitBadge` and the new `KitChipButton` map it to the `information-subtle` fill and `information` edge. Rust code that matches `Tone` exhaustively must add the `Tone::Information` arm; the compiler reports each site.
+- Add `KitChipButton`, a pressable status, filter or shortcut chip with a label, an optional `glyph: IconGlyph`, a `tone: Tone` and a host-owned `selected` state. A selected chip takes its tone's subtle fill and edge and exposes `accessible-checked`; `activated()` is inherited from `KitPressable`.
+- Add `orientation: ChoiceDirection` and `presentation: SliderPresentation` (`line`, `filled`) to `KitSlider`. A vertical slider puts the minimum at the bottom; Up and Right step forward, Down and Left step back. A filled slider paints the whole control as its track with a bar handle and is at least twelve spacing units thick. `track-brush`, `fill-brush` and `handle-brush` accept injected paints, such as a hue or color-temperature gradient. `accessible-orientation` follows the orientation.
+- Add `direction: ChoiceDirection` to `KitSegmentedControl`. Vertical segments stack in source order and navigate with Up and Down; `flow` applies only to the horizontal direction.
 
 ## 0.5.1
 

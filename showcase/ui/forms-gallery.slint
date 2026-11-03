@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent } from "@kit/theme.slint";
-import { KitCard } from "@kit/display.slint";
+import { KitCard, Tone } from "@kit/display.slint";
 import { KitButton } from "@kit/button.slint";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
@@ -8,7 +8,7 @@ import { KitField, KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldErro
 import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField, PhoneNumberMode } from "@kit/input.slint";
 import { NumberInputFormat } from "@kit/shared-contracts.slint";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
-import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, ChipRow, SearchPresentation } from "@kit/choice.slint";
+import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, KitChipButton, ChoiceRow, ChipRow, SearchPresentation, SliderPresentation } from "@kit/choice.slint";
 import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CivilDateView, DateRangePhase } from "@kit/calendar.slint";
 import { KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedTimePresentation, AmbiguousTimeChoice, TimeSegment, TimeAdjustment, ClockFormat } from "@kit/datetime.slint";
 import { KitFilePicker, KitDirectoryPicker, KitFileDropZone, FileViewEntry, HostRequestPresentation, DropCapability } from "@kit/files.slint";
@@ -497,6 +497,12 @@ export component FormGallery inherits VerticalLayout {
             view-options := KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"View mode";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
         }
         KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"View mode chips";}
+            FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
+                for row in FormExamples.segmented-options: KitChipButton {control-size:root.control-size;theme:root.theme;label:row.label;tone:Tone.information;selected:row.selected;disabled:row.disabled;activated=>{FormExamples.choice-activate(ChoiceExample.segmented,row.token,FormExamples.choice-generation);}}
+            }
+        }
+        KitField { theme: root.theme;
             KitFieldLabel {theme:root.theme;text:"Export formats";focus-requested => { export-options.take-focus(); }}
             export-options := KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
         }
@@ -524,6 +530,7 @@ export component FormGallery inherits VerticalLayout {
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
         KitFieldLabel { theme: root.theme; text: "Allocation · " + FormExamples.slider-label; }
         KitSlider {theme:root.theme;control-size:root.control-size;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
+        KitSlider {theme:root.theme;control-size:root.control-size;presentation:SliderPresentation.filled;label:"Allocation, filled";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
         KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
         KitFieldLabel { theme: root.theme; text: "Preferred range · " + FormExamples.range-lower-label + " – " + FormExamples.range-upper-label; }
         KitRangeSlider {theme:root.theme;control-size:root.control-size;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}

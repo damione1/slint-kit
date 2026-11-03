@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { LucideIcons } from "@kit/icons/lucide/all.slint";
+import { KitChipButton, KitTheme, KitThemes, KitMetrics, Tone, TypographyRole } from "@kit/kit.slint";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    title: "Bouton pastille";
+    preferred-width: 560px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in-out property <int> active: 2;
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Filtrer la file"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Chaque pastille affiche une partie des commandes. La pastille sélectionnée prend la tonalité de son statut."; color: root.theme.text-secondary; wrap: word-wrap; }
+        FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
+            KitChipButton { theme: root.theme; label: "Toutes les commandes"; glyph: LucideIcons.inbox(); tone: Tone.accent; selected: root.active == 1; activated => { root.active = 1; } }
+            KitChipButton { theme: root.theme; label: "À expédier"; glyph: LucideIcons.package(); tone: Tone.information; selected: root.active == 2; activated => { root.active = 2; } }
+            KitChipButton { theme: root.theme; label: "En transit"; glyph: LucideIcons.truck(); tone: Tone.success; selected: root.active == 3; activated => { root.active = 3; } }
+            KitChipButton { theme: root.theme; label: "En retard"; glyph: LucideIcons.clock(); tone: Tone.warning; selected: root.active == 4; activated => { root.active = 4; } }
+            KitChipButton { theme: root.theme; label: "Retournées"; tone: Tone.danger; selected: root.active == 5; activated => { root.active = 5; } }
+        }
+    }
+}

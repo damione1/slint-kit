@@ -391,7 +391,8 @@
       "usage": "Fournissez `chip: ChipRow` et traitez `remove-requested(token)` dans le modèle propriétaire. Réglez `chip.removable` selon les droits de retrait.",
       "behavior": "Le token est capturé au début de l’appui et un changement de puce annule cet appui. Une puce non supprimable désactive l’action.",
       "related": [
-        "KitButton"
+        "KitButton",
+        "KitChipButton"
       ],
       "label": "Étiquette amovible",
       "seoTitle": "Étiquette amovible pour Slint"
@@ -401,10 +402,37 @@
       "usage": "Supply `chip: ChipRow` and handle `remove-requested(token)` in the owning model. Set `chip.removable` to match removal permissions.",
       "behavior": "The token is captured when pressing begins, and changing the chip cancels that press. A non-removable chip disables the action.",
       "related": [
-        "KitButton"
+        "KitButton",
+        "KitChipButton"
       ],
       "label": "Chip",
       "seoTitle": "Chip for Slint"
+    }
+  },
+  "KitChipButton": {
+    "fr": {
+      "summary": "Pastille activable pour un statut, un filtre ou un raccourci, avec icône facultative et tonalité.",
+      "usage": "Fournissez `label`, une `glyph: IconGlyph` facultative, `tone: Tone` et `selected`. Traitez `activated()` dans le modèle propriétaire, qui décide de la sélection.",
+      "behavior": "Une pastille sélectionnée prend le remplissage atténué et le contour de sa tonalité ; sinon elle reste sur la surface. Le rôle bouton expose `accessible-checked`. Désactivée, elle n’émet rien ; la taille suit `control-size` et le texte agrandi.",
+      "related": [
+        "KitChip",
+        "KitBadge",
+        "KitToggleGroup"
+      ],
+      "label": "Bouton pastille",
+      "seoTitle": "Bouton pastille pour Slint"
+    },
+    "en": {
+      "summary": "Pressable chip for a status, filter or shortcut, with an optional icon and a tone.",
+      "usage": "Supply `label`, an optional `glyph: IconGlyph`, `tone: Tone` and `selected`. Handle `activated()` in the owning model, which decides the selection.",
+      "behavior": "A selected chip takes its tone’s subtle fill and edge; otherwise it stays on the surface. The button role exposes `accessible-checked`. A disabled chip emits nothing; its size follows `control-size` and enlarged text.",
+      "related": [
+        "KitChip",
+        "KitBadge",
+        "KitToggleGroup"
+      ],
+      "label": "Chip Button",
+      "seoTitle": "Chip Button for Slint"
     }
   },
   "KitCollapse": {
@@ -2198,8 +2226,8 @@
   "KitSegmentedControl": {
     "fr": {
       "summary": "Choix exclusif compact présenté sous forme de segments.",
-      "usage": "Fournissez les `ChoiceRow`, `generation` et `active-token` du contrôleur. Relayez `navigate` et `activate` et choisissez `ChoiceFlow.left-to-right` ou `.right-to-left` pour la navigation.",
-      "behavior": "Les segments sélectionnés utilisent l’intention principale et exposent un rôle radio. Le focus commun et la sélection contrôlée restent distincts ; les libellés peuvent revenir à la ligne. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé.",
+      "usage": "Fournissez les `ChoiceRow`, `generation` et `active-token` du contrôleur. Relayez `navigate` et `activate` et choisissez `ChoiceFlow.left-to-right` ou `.right-to-left` pour la navigation. `direction: ChoiceDirection.vertical` empile les segments dans l’ordre source.",
+      "behavior": "Les segments sélectionnés utilisent l’intention principale et exposent un rôle radio. Le focus commun et la sélection contrôlée restent distincts ; les libellés peuvent revenir à la ligne. Avec `SelectBinding`, rouvrez le contrôle persistant après un choix validé. À la verticale, Haut et Bas naviguent ; `flow` ne s’applique qu’à l’horizontale.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -2210,8 +2238,8 @@
     },
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
-      "usage": "Supply the controller’s `ChoiceRow` values, `generation` and `active-token`. Forward `navigate` and `activate`, and choose `ChoiceFlow.left-to-right` or `.right-to-left` for navigation.",
-      "behavior": "Selected segments use primary intent and expose a radio role. Shared focus and controlled selection remain distinct; labels can wrap. With `SelectBinding`, reopen the persistent control after a committed choice.",
+      "usage": "Supply the controller’s `ChoiceRow` values, `generation` and `active-token`. Forward `navigate` and `activate`, and choose `ChoiceFlow.left-to-right` or `.right-to-left` for navigation. `direction: ChoiceDirection.vertical` stacks the segments in source order.",
+      "behavior": "Selected segments use primary intent and expose a radio role. Shared focus and controlled selection remain distinct; labels can wrap. With `SelectBinding`, reopen the persistent control after a committed choice. Vertically, Up and Down navigate; `flow` applies only horizontally.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -2350,8 +2378,8 @@
   "KitSlider": {
     "fr": {
       "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
-      "usage": "Fournissez `position` entre 0 et 1 et un `value-label` lisible. Convertissez `position-requested(float)` et `navigate(NavigationStep)` en demandes sur votre type métier.",
-      "behavior": "`gesture-started`, `committed` et `cancelled` bornent une interaction réversible. La vue borne le rendu, mais les pas, arrondis et valeurs acceptées appartiennent au contrôleur.",
+      "usage": "Fournissez `position` entre 0 et 1 et un `value-label` lisible. Convertissez `position-requested(float)` et `navigate(NavigationStep)` en demandes sur votre type métier. `orientation: ChoiceDirection.vertical` place le minimum en bas ; `presentation: SliderPresentation.filled` peint tout le contrôle comme piste, la valeur comme remplissage et une barre comme poignée. `track-brush`, `fill-brush` et `handle-brush` acceptent un dégradé injecté, par exemple une échelle de teinte ou de température de couleur.",
+      "behavior": "`gesture-started`, `committed` et `cancelled` bornent une interaction réversible. La vue borne le rendu, mais les pas, arrondis et valeurs acceptées appartiennent au contrôleur. Haut et Droite avancent, Bas et Gauche reculent dans les deux orientations. Un curseur rempli mesure au moins douze unités d’espacement d’épaisseur, une cible tactile, et `accessible-orientation` suit l’orientation.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -2361,8 +2389,8 @@
     },
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
-      "usage": "Supply `position` from 0 to 1 and a readable `value-label`. Convert `position-requested(float)` and `navigate(NavigationStep)` into requests on your domain type.",
-      "behavior": "`gesture-started`, `committed` and `cancelled` delimit a reversible interaction. The view bounds rendering, while steps, rounding and accepted values belong to the controller.",
+      "usage": "Supply `position` from 0 to 1 and a readable `value-label`. Convert `position-requested(float)` and `navigate(NavigationStep)` into requests on your domain type. `orientation: ChoiceDirection.vertical` puts the minimum at the bottom; `presentation: SliderPresentation.filled` paints the whole control as the track, the value as a fill and a bar as the handle. `track-brush`, `fill-brush` and `handle-brush` accept an injected gradient, such as a hue or color-temperature scale.",
+      "behavior": "`gesture-started`, `committed` and `cancelled` delimit a reversible interaction. The view bounds rendering, while steps, rounding and accepted values belong to the controller. Up and Right step forward, Down and Left step back in both orientations. A filled slider is at least twelve spacing units thick, a touch target, and `accessible-orientation` follows the orientation.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
