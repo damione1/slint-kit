@@ -282,9 +282,9 @@ def update_legacy(task, record):
         return
     path = DOCS / 'content/captures.json'
     old = json.loads(path.read_text())
-    capture = old['components'][task['slug']]
+    capture = old['components'].setdefault(task['slug'], {'variants': [], 'locales': {}})
     if task['locale'] == 'fr':
-        capture = capture['locales']['fr']
+        capture = capture.setdefault('locales', {}).setdefault('fr', {'variants': []})
     names = {path.name for path in task['outputs']}
     capture['variants'] = [variant for variant in capture['variants'] if variant['file'] not in names]
     for index, output in enumerate(task['outputs']):
