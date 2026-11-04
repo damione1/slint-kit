@@ -249,6 +249,7 @@ try {
   await call('Network.setCacheDisabled', { cacheDisabled: false });
   await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: browserDensity, mobile: false });
   const starters = JSON.parse(await fs.readFile(path.join(docs, 'content/starters.json'), 'utf8'));
+  const componentCount = Object.keys(starters).length;
   const previewSlugs = process.env.BROWSER_COMPONENTS?.split(',').filter(Boolean) || Object.keys(starters);
   assert(previewSlugs.length && previewSlugs.every(slug => Object.hasOwn(starters, slug)), 'BROWSER_COMPONENTS must list known component slugs');
   for (const slug of previewSlugs) {
@@ -387,7 +388,7 @@ try {
   for (const locale of ['en','fr']) {
     await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1050, deviceScaleFactor: browserDensity, mobile: false });
     await navigate(locale==='fr'?'/fr/components/':'/components/');
-    assert.equal(await evaluate('document.querySelectorAll("[data-component-mockup]").length'),124);
+    assert.equal(await evaluate('document.querySelectorAll("[data-component-mockup]").length'),componentCount);
     assert(await evaluate(`(()=>{const c=document.querySelector('[data-component-mockup="button"]');return c.getContext('2d').getImageData(10,10,1,1).data[3]>0})()`), 'Visible mockup must be painted');
     assert.equal(await evaluate('document.querySelectorAll(".family-illustration").length'),0);
     const catalogue = await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
@@ -419,7 +420,7 @@ try {
       const screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(output,`${locale}-lucide-${variant}.png`),Buffer.from(screenshot.data,'base64'));
     }
-    results.push({name:'visual-catalogues',locale,icons:1999,mockups:124,search:true,categories:true,copy:true});
+    results.push({name:'visual-catalogues',locale,icons:1999,mockups:componentCount,search:true,categories:true,copy:true});
     await evaluate("document.documentElement.style.fontSize=''");
   }
   passed = true;
