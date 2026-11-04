@@ -14,6 +14,7 @@ export { FieldDecoration } from "field.slint";
 
 export enum ResizePolicy { fixed, auto-grow }
 export enum TextLineMode { single-line, multiline }
+export enum TextLengthPolicy { validate, limit }
 
 // All variants retain this one native TextInput throughout theme, validation,
 // placeholder and reveal changes. Parsing and grapheme counting belong to Rust.
@@ -43,6 +44,22 @@ export component KitTextField inherits KitField {
     in property <bool> multiple;
     in property <int> min-length: -1;
     in property <int> max-length: -1;
+    // Strict edits need the shared UTF-16 bridge installed before input begins.
+    in property <TextLengthPolicy> length-policy: TextLengthPolicy.validate;
+    private property <string> previous-edit-text;
+    private property <bool> limiting-edit;
+    private property <bool> length-limit-ready: KitFormValidation.ready;
+    function synchronize-length-limit() {
+        if (root.length-policy == TextLengthPolicy.limit && root.max-length >= 0 && root.length-limit-ready) {
+            let limited = KitFormValidation.limit-text-edit(root.text, root.text, root.max-length);
+            if (limited.text != root.text) { root.text = limited.text; }
+        }
+        root.previous-edit-text = root.text;
+    }
+    changed text => { root.synchronize-length-limit(); }
+    changed max-length => { root.synchronize-length-limit(); }
+    changed length-policy => { root.synchronize-length-limit(); }
+    changed length-limit-ready => { root.synchronize-length-limit(); }
     in property <string> pattern;
     in property <bool> pattern-enabled: root.pattern != "";
     in property <string> min;
@@ -74,7 +91,7 @@ export component KitTextField inherits KitField {
     public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
-    public function reset-field() { root.text = root.default-value; checks.reset-validation(); root.edited(root.text); }
+    public function reset-field() { root.text = root.default-value; root.synchronize-length-limit(); checks.reset-validation(); root.edited(root.text); root.synchronize-length-limit(); }
     private property <ValidationPresentation> effective-validation: root.validation == ValidationPresentation.invalid || checks.show-error ? ValidationPresentation.invalid : root.validation;
     private property <string> effective-error: root.intrinsic-error != "" ? checks.validation-message : root.validation == ValidationPresentation.invalid && root.error != "" ? root.error : checks.validation-message;
     in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
@@ -243,7 +260,7 @@ export component KitTextField inherits KitField {
                         height: viewport.content-height;
                         text <=> root.text;
                         enabled: root.access != FieldAccess.disabled;
-                        read-only: root.access == FieldAccess.read-only;
+                        read-only: root.access == FieldAccess.read-only || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
                         single-line: !root.multiline;
                         wrap: root.multiline ? word-wrap : no-wrap;
                         input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
@@ -260,6 +277,7 @@ export component KitTextField inherits KitField {
                         accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
                         accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
+                            root.previous-edit-text = self.text;
                             if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
                                 if (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
                                     || (event.modifiers.shift && event.text == Key.Insert)) {
@@ -283,7 +301,50 @@ export component KitTextField inherits KitField {
                             }
                             return reject;
                         }
-                        edited => { checks.note-edit(); root.edited(self.text); root.value-edited(root.value); }
+                        edited => {
+                            if (root.limiting-edit) { return; }
+                            if (root.length-policy == TextLengthPolicy.limit && root.max-length >= 0 && root.length-limit-ready) {
+                                let limited = KitFormValidation.limit-text-edit(root.previous-edit-text, self.text, root.max-length);
+                                if (limited.text != self.text) {
+                                    root.limiting-edit = true;
+                                    self.undo();
+                                    // Remove the overflowing native undo entry before text
+                                    // assignment: coalesced changes can otherwise leave stale
+                                    // undo offsets. Undo may also group earlier keystrokes,
+                                    // so restore the accepted text and a safe caret position.
+                                    self.text = limited.text;
+                                    self.set-selection-offsets(limited.cursor-byte-offset, limited.cursor-byte-offset);
+                                    root.limiting-edit = false;
+                                    root.previous-edit-text = self.text;
+                                    return;
+                                }
+                            }
+                            root.previous-edit-text = self.text;
+                            checks.note-edit();
+                            let native-edit = self.text;
+                            let limited-at-start = root.length-policy == TextLengthPolicy.limit && root.length-limit-ready;
+                            root.edited(native-edit);
+                            // Bound the semantic payload after synchronous host updates.
+                            root.synchronize-length-limit();
+                            root.value-edited(root.value);
+                            // Both public callbacks belong to one native edit transaction.
+                            // Undo only once, after their final text/constraint updates.
+                            if (limited-at-start || (root.length-policy == TextLengthPolicy.limit && root.length-limit-ready)) {
+                                let maximum = root.length-policy == TextLengthPolicy.limit ? root.max-length : -1;
+                                let final-edit = KitFormValidation.limit-text-edit(self.text, self.text, maximum);
+                                if (final-edit.text != native-edit) {
+                                    root.limiting-edit = true;
+                                    // The host may have supplied text shorter than the native
+                                    // undo entry. Restore its matching snapshot before undo.
+                                    self.text = native-edit;
+                                    self.undo();
+                                    self.text = final-edit.text;
+                                    self.set-selection-offsets(final-edit.cursor-byte-offset, final-edit.cursor-byte-offset);
+                                    root.limiting-edit = false;
+                                }
+                            }
+                            root.previous-edit-text = self.text;
+                        }
                         accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
                         cursor-position-changed(position) => {
@@ -375,11 +436,13 @@ export component KitTextArea inherits KitTextField {
 
 // One real editor handles the whole code, including paste, selection and undo.
 // The shared HTML engine validates syntax/length; the Rust parser guards acceptance.
-// Slint 1.18.1 has no public before-insert constraint hook: bounds validate, not truncate.
+// Strict overflow rejection uses public undo/text/selection APIs. Rejected
+// edits can discard native history; ordinary edits retain the same editor.
 export component KitOtpField inherits KitTextField {
     in property <int> slots: 6;
     min-length: max(1, root.slots);
     max-length: max(1, root.slots);
+    length-policy: TextLengthPolicy.limit;
     pattern: "[0-9]*";
     private property <length> cell-width: KitMetrics.control-height(root.theme, root.control-size);
     preferred-width: max(1, root.slots) * root.cell-width + 2 * root.padding-inline;

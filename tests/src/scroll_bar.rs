@@ -216,7 +216,7 @@ fn scroll_area_uses_a_themed_bar_that_scrolls_its_content() {
     let right = vertical.absolute_position().x + vertical.size().width;
     assert!(
         (right - 200.).abs() < 0.01,
-        "the bar overlays the trailing edge"
+        "the bar occupies the trailing gutter"
     );
     assert!(window.get_area_content() > window.get_area_viewport());
     let thumb = thumb(vertical);
@@ -242,4 +242,299 @@ fn scroll_area_uses_a_themed_bar_that_scrolls_its_content() {
         window.get_area_offset() < 0.,
         "dragging the bar scrolls the area"
     );
+}
+
+fn two_axis_frame(window: &ScrollBarFixture) -> ElementHandle {
+    ElementQuery::from_root(window)
+        .match_inherits("ScrollFrame")
+        .match_predicate(|item| item.accessible_label().as_deref() == Some("Two axis viewport"))
+        .find_first()
+        .unwrap()
+}
+
+#[test]
+fn stable_gutters_protect_both_content_edges_and_do_not_depend_on_bar_visibility() {
+    let window = fixture();
+    for mut theme in [window.get_light(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            let thickness = window.invoke_recipe(theme.clone()).thickness;
+            window.set_wide_content(false);
+            window.set_tall_content(false);
+            slint::platform::update_timers_and_animations();
+            assert!((window.get_frame_visible_width() - (240. - thickness)).abs() < 0.01);
+            assert!((window.get_frame_visible_height() - (160. - thickness)).abs() < 0.01);
+            assert!(
+                two_axis_frame(&window)
+                    .query_descendants()
+                    .match_inherits("KitScrollBar")
+                    .find_all()
+                    .is_empty(),
+                "as-needed bars are hidden for viewport-bound content"
+            );
+            window.set_wide_content(true);
+            window.set_tall_content(true);
+            slint::platform::update_timers_and_animations();
+            let frame = two_axis_frame(&window);
+            let bars = frame
+                .query_descendants()
+                .match_inherits("KitScrollBar")
+                .find_all();
+            assert_eq!(bars.len(), 2);
+            let vertical = bars
+                .iter()
+                .find(|bar| bar.size().height > bar.size().width)
+                .unwrap();
+            let horizontal = bars
+                .iter()
+                .find(|bar| bar.size().width > bar.size().height)
+                .unwrap();
+            let origin = frame.absolute_position();
+            assert!(
+                (vertical.absolute_position().x - origin.x - window.get_frame_visible_width())
+                    .abs()
+                    < 0.01
+            );
+            assert!(
+                (horizontal.absolute_position().y - origin.y - window.get_frame_visible_height())
+                    .abs()
+                    < 0.01
+            );
+            assert!((vertical.size().height - window.get_frame_visible_height()).abs() < 0.01);
+            assert!((horizontal.size().width - window.get_frame_visible_width()).abs() < 0.01);
+            let before = window.get_edge_clicks();
+            // Native focus may reveal its outline on the first press. Re-query
+            // the current button geometry before testing each visible face.
+            for index in 0..2 {
+                let action = ElementQuery::from_root(&window)
+                    .match_inherits("KitButton")
+                    .match_predicate(|item| {
+                        item.accessible_label().as_deref() == Some("Edge action")
+                    })
+                    .find_first()
+                    .unwrap();
+                let position = action.absolute_position();
+                let size = action.size();
+                assert!(
+                    position.x + size.width <= vertical.absolute_position().x + 0.01,
+                    "scale={scale}, button={position:?}/{size:?}, vertical bar={:?}",
+                    vertical.absolute_position()
+                );
+                assert!(
+                    position.y + size.height <= horizontal.absolute_position().y + 0.01,
+                    "scale={scale}, button={position:?}/{size:?}, horizontal bar={:?}",
+                    horizontal.absolute_position()
+                );
+                let (x, y) = if index == 0 {
+                    (position.x + size.width - 1., position.y + size.height / 2.)
+                } else {
+                    (position.x + size.width / 2., position.y + size.height - 1.)
+                };
+                let previous_offset = (window.get_frame_offset_x(), window.get_frame_offset_y());
+                press(&window, x, y);
+                release(&window, x, y);
+                assert_eq!(
+                    window.get_edge_clicks(),
+                    before + index + 1,
+                    "scale={scale}, edge={index}, point=({x},{y}), scroll=({},{}), button={position:?}/{size:?}",
+                    window.get_frame_offset_x(),
+                    window.get_frame_offset_y()
+                );
+                if index == 1 {
+                    assert_eq!(
+                        (window.get_frame_offset_x(), window.get_frame_offset_y()),
+                        previous_offset,
+                        "an already focused button's edge must not scroll either gutter"
+                    );
+                }
+            }
+            assert_eq!(window.get_edge_clicks(), before + 2);
+            window.set_wide_content(false);
+            slint::platform::update_timers_and_animations();
+            assert_eq!(
+                two_axis_frame(&window)
+                    .query_descendants()
+                    .match_inherits("KitScrollBar")
+                    .find_all()
+                    .len(),
+                1,
+                "vertical overflow must not manufacture a horizontal scrollbar"
+            );
+        }
+    }
+}
+
+#[test]
+fn scrollbar_policies_and_explicit_overlay_mode_control_the_viewport_footprint() {
+    let window = fixture();
+    let thickness = window.invoke_recipe(window.get_light()).thickness;
+    window.set_vertical_off(true);
+    window.set_horizontal_off(true);
+    assert_eq!(window.get_frame_visible_width(), 240.);
+    assert_eq!(window.get_frame_visible_height(), 160.);
+    window.set_vertical_off(false);
+    assert!((window.get_frame_visible_width() - (240. - thickness)).abs() < 0.01);
+    assert_eq!(window.get_frame_visible_height(), 160.);
+    window.set_horizontal_off(false);
+    window.set_horizontal_always_on(true);
+    assert!((window.get_frame_visible_height() - (160. - thickness)).abs() < 0.01);
+    window.set_overlay_scrollbars(true);
+    assert_eq!(window.get_frame_visible_width(), 240.);
+    assert_eq!(window.get_frame_visible_height(), 160.);
+}
+
+#[test]
+fn gutter_bars_keep_native_wheel_and_thumb_drag_scrolling_on_both_axes() {
+    let window = fixture();
+    let position = LogicalPosition::new(240., 240.);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerScrolled {
+            position,
+            delta_x: -40.,
+            delta_y: -30.,
+        });
+    assert!(window.get_frame_offset_x() < 0.);
+    assert!(window.get_frame_offset_y() < 0.);
+    let frame = two_axis_frame(&window);
+    for vertical in [true, false] {
+        let bar = frame
+            .query_descendants()
+            .match_inherits("KitScrollBar")
+            .find_all()
+            .into_iter()
+            .find(|bar| (bar.size().height > bar.size().width) == vertical)
+            .unwrap();
+        let thumb = thumb(&bar);
+        let origin = thumb.absolute_position();
+        let size = thumb.size();
+        let x = origin.x + size.width / 2.;
+        let y = origin.y + size.height / 2.;
+        let before = if vertical {
+            window.get_frame_offset_y()
+        } else {
+            window.get_frame_offset_x()
+        };
+        press(&window, x, y);
+        let moved = LogicalPosition::new(
+            x + if vertical { 0. } else { 20. },
+            y + if vertical { 20. } else { 0. },
+        );
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerMoved { position: moved });
+        release(&window, moved.x, moved.y);
+        let after = if vertical {
+            window.get_frame_offset_y()
+        } else {
+            window.get_frame_offset_x()
+        };
+        assert!(after < before, "a gutter thumb still controls its axis");
+    }
+}
+
+fn priority_fixture(policy: ScrollPanPolicy) -> PanPriorityFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = PanPriorityFixture::new().unwrap();
+    window.set_pan_policy(policy);
+    window.show().unwrap();
+    window
+}
+fn priority_drag(window: &PanPriorityFixture, from: (f32, f32), to: (f32, f32)) {
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position: LogicalPosition::new(from.0, from.1),
+        button: PointerEventButton::Left,
+    });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(110));
+    slint::platform::update_timers_and_animations();
+    window.window().dispatch_event(WindowEvent::PointerMoved {
+        position: LogicalPosition::new(to.0, to.1),
+    });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: LogicalPosition::new(to.0, to.1),
+            button: PointerEventButton::Left,
+        });
+}
+#[test]
+fn children_first_preserves_both_control_directions_and_single_commit() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    for (from, to) in [((120., 40.), (120., 170.)), ((120., 170.), (120., 40.))] {
+        let before = window.get_commits();
+        priority_drag(&window, from, to);
+        assert_eq!(window.get_commits(), before + 1);
+        assert_eq!(window.get_offset(), 0.);
+        assert!(!window.get_adjusting());
+    }
+}
+#[test]
+fn children_first_background_pan_crossing_control_keeps_original_scroll_owner() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    priority_drag(&window, (20., 200.), (120., 80.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+    window.invoke_reveal_end();
+    assert!(window.get_offset() <= -500.);
+    window.invoke_reset_scroll();
+    assert_eq!(window.get_offset(), 0.);
+}
+#[test]
+fn native_policy_keeps_existing_flickable_arbitration() {
+    let window = priority_fixture(ScrollPanPolicy::Native);
+    priority_drag(&window, (120., 170.), (120., 40.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+}
+#[test]
+fn children_first_disabling_control_cancels_without_commit_and_unclaimed_pan_still_works() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position: LogicalPosition::new(120., 40.),
+        button: PointerEventButton::Left,
+    });
+    assert!(window.get_adjusting());
+    window.set_control_enabled(false);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: LogicalPosition::new(120., 170.),
+            button: PointerEventButton::Left,
+        });
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+    priority_drag(&window, (120., 170.), (120., 40.));
+    assert!(window.get_offset() < -50.);
+}
+
+#[test]
+fn children_first_keeps_wheel_and_scrollbar_input_available() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerScrolled {
+            position: LogicalPosition::new(20., 100.),
+            delta_x: 0.,
+            delta_y: -100.,
+        });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(250));
+    slint::platform::update_timers_and_animations();
+    assert!(window.get_offset() <= -90.);
+    window.invoke_reset_scroll();
+    let vertical = ElementQuery::from_root(&window)
+        .match_inherits("KitScrollBar")
+        .find_all()
+        .into_iter()
+        .find(|bar| bar.size().height > 200.)
+        .unwrap();
+    let knob = thumb(&vertical);
+    let p = knob.absolute_position();
+    let x = p.x + knob.size().width / 2.;
+    let y = p.y + knob.size().height / 2.;
+    priority_drag(&window, (x, y), (x, y + 50.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
 }

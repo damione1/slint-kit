@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitScrollArea, KitDialogSurface, KitDialogPanel, DialogTabPolicy, KitButton, KitTextField, KitMenu, KitDataTable, FieldAccess, OptionRow, SelectState, SelectionAvailability } from "@kit/kit.slint";
+import { KitScrollArea, KitDialogSurface, KitDialogPanel, DialogTabPolicy, KitButton, KitTextField, KitMenu, KitDataTable, FieldAccess, OptionRow, SelectState, SelectionAvailability, CloseReason } from "@kit/kit.slint";
 export component NativeDialogFixture inherits Window {
     width: 640px; height: 700px;
     in property <bool> opened: true;
@@ -67,5 +67,24 @@ export component ModalWheelFixture inherits Window {
                 Rectangle { height:1200px; Text { text:"Dialog content"; } }
             }
         }
+    }
+}
+
+// Exercises scrim pointer routing under both focus traversal policies.
+export component DialogBackdropFixture inherits Window {
+    width: 640px; height: 480px;
+    in property <bool> opened: true;
+    in property <bool> topmost: true;
+    in property <bool> busy;
+    in property <bool> dismiss-enabled: true;
+    in property <DialogTabPolicy> tab-policy: DialogTabPolicy.native;
+    callback dismissed(CloseReason);
+    callback background-clicked();
+    TouchArea { clicked => { root.background-clicked(); } }
+    KitDialogSurface {
+        state: {open:root.opened,topmost:root.topmost,busy:root.busy};
+        tab-policy: root.tab-policy; dismiss-on-backdrop: root.dismiss-enabled;
+        dismiss(reason) => { root.dismissed(reason); }
+        KitDialogPanel { x:180px; y:80px; width:360px; height:300px; }
     }
 }

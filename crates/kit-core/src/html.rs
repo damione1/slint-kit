@@ -7,6 +7,57 @@ use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::Zero;
 
+/// A bounded native edit and a safe UTF-8 caret offset after a rejected edit.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct HtmlTextEdit {
+    pub text: String,
+    pub cursor_byte_offset: usize,
+}
+
+/// Reject an overlong user edit atomically, counting HTML UTF-16 units.
+/// Without public native selection offsets, partial insertion trimming would
+/// misidentify ambiguous replacements. The previous text is retained instead.
+/// Its common prefix supplies a safe caret fallback, not a recovered selection.
+/// A previous value already above the limit is a whole-value update: keep the
+/// edited value’s fitting prefix without splitting a Unicode scalar.
+pub fn limit_html_text_edit(previous: &str, edited: &str, maximum: usize) -> HtmlTextEdit {
+    fn prefix(value: &str, maximum: usize) -> &str {
+        let mut units = 0;
+        let mut end = 0;
+        for character in value.chars() {
+            units += character.len_utf16();
+            if units > maximum {
+                break;
+            }
+            end += character.len_utf8();
+        }
+        &value[..end]
+    }
+    if edited.encode_utf16().count() <= maximum {
+        return HtmlTextEdit {
+            text: edited.into(),
+            cursor_byte_offset: edited.len(),
+        };
+    }
+    if previous.encode_utf16().count() > maximum {
+        let text = prefix(edited, maximum).to_owned();
+        return HtmlTextEdit {
+            cursor_byte_offset: text.len(),
+            text,
+        };
+    }
+    let common_start = previous
+        .chars()
+        .zip(edited.chars())
+        .take_while(|(before, after)| before == after)
+        .map(|(character, _)| character.len_utf8())
+        .sum::<usize>();
+    HtmlTextEdit {
+        text: previous.into(),
+        cursor_byte_offset: common_start,
+    }
+}
+
 /// Each flag is independent, as in HTML's ValidityState.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct HtmlValidity {
@@ -647,6 +698,30 @@ impl<K: Eq> HtmlFormValidation<K> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn strict_text_edits_keep_existing_suffix_and_use_utf16_capacity() {
+        for (previous, edited, maximum, text, cursor) in [
+            ("", "12345678", 6, "", 0),
+            ("123456", "1237456", 6, "123456", 3),
+            ("123456", "1789456", 6, "123456", 1),
+            ("123456", "12456", 6, "12456", 5),
+            ("111111", "1111111", 6, "111111", 6),
+            ("123456", "12345678", 4, "1234", 4),
+            ("A😀B", "A😀Bz", 4, "A😀B", 6),
+            ("AB", "A😀xB", 4, "AB", 1),
+            ("AB", "A😀B", 3, "AB", 1),
+            ("", "😀", 1, "", 0),
+            ("e\u{301}", "e\u{301}x", 2, "e\u{301}", 3),
+            ("", "1", 0, "", 0),
+        ] {
+            let result = super::limit_html_text_edit(previous, edited, maximum);
+            assert_eq!(result.text, text, "{previous:?} -> {edited:?}");
+            assert_eq!(result.cursor_byte_offset, cursor);
+            assert!(result.text.is_char_boundary(result.cursor_byte_offset));
+            assert!(result.text.encode_utf16().count() <= maximum);
+        }
+    }
+
     use super::*;
     fn rules(kind: HtmlInputKind) -> HtmlConstraints {
         HtmlConstraints {

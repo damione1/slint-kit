@@ -209,3 +209,65 @@ fn unlabelled_divider_paints_one_continuous_line() {
         "an empty label must not leave a central gap"
     );
 }
+
+#[test]
+fn one_sided_button_icons_leave_the_text_centered_in_the_button() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = ProductStyleFixture::new().unwrap();
+    app.show().unwrap();
+    let glyph = app.get_leading_icon();
+    for mut theme in [app.get_theme(), app.get_nested_theme()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            app.set_theme(theme.clone());
+            app.set_local_size(18. * scale);
+            for leading in [true, false] {
+                app.set_leading_icon(if leading {
+                    glyph.clone()
+                } else {
+                    IconGlyph::default()
+                });
+                app.set_trailing_icon(if leading {
+                    IconGlyph::default()
+                } else {
+                    glyph.clone()
+                });
+                let button = ElementQuery::from_root(&app)
+                    .match_id("ProductStyleFixture::action")
+                    .find_first()
+                    .unwrap();
+                let label = button
+                    .query_descendants()
+                    .match_type_name("Text")
+                    .find_first()
+                    .unwrap();
+                let button_center = button.absolute_position().x + button.size().width / 2.;
+                let label_center = label.absolute_position().x + label.size().width / 2.;
+                assert!(
+                    (label_center - button_center).abs() < 0.01,
+                    "leading={leading}, scale={scale}"
+                );
+
+                let snapshot = app.window().take_snapshot().unwrap();
+                crate::choice_presentation::save_capture(
+                    &snapshot,
+                    &format!(
+                        "button-{}-{scale}-{}",
+                        if theme.canvas.red() > 100 {
+                            "light"
+                        } else {
+                            "dark"
+                        },
+                        if leading { "leading" } else { "trailing" }
+                    ),
+                );
+            }
+        }
+    }
+}

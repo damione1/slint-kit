@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy } from "@kit/kit.slint";
+
+import { ScrollFrame } from "@kit/scroll.slint";
 
 export component ScrollBarFixture inherits Window {
     width: 480px; height: 400px;
@@ -18,6 +20,17 @@ export component ScrollBarFixture inherits Window {
     out property <length> area-offset: area.content-y;
     out property <length> area-viewport: area.visible-height;
     out property <length> area-content: area.content-height;
+    in property <bool> overlay-scrollbars;
+    in property <bool> wide-content: true;
+    in property <bool> tall-content: true;
+    in property <bool> vertical-off;
+    in property <bool> horizontal-off;
+    in property <bool> horizontal-always-on;
+    out property <length> frame-visible-width: frame.visible-width;
+    out property <length> frame-visible-height: frame.visible-height;
+    out property <length> frame-offset-x: frame.content-x;
+    out property <length> frame-offset-y: frame.content-y;
+    in-out property <int> edge-clicks;
     public pure function recipe(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
     bar := KitScrollBar {
         x: 440px; y: 0px; width: KitThemes.scroll-bar-recipe(root.theme).thickness; height: 200px;
@@ -34,5 +47,52 @@ export component ScrollBarFixture inherits Window {
         KitButton { text: "First action"; }
         Rectangle { height: 400px; }
         KitButton { text: "Last action"; }
+    }
+    frame := ScrollFrame {
+        x: 220px; y: 220px; width: 240px; height: 160px;
+        theme: root.theme; overlay-scrollbars: root.overlay-scrollbars;
+        vertical-scrollbar-policy: root.vertical-off ? ScrollBarPolicy.always-off : ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: root.horizontal-off ? ScrollBarPolicy.always-off : root.horizontal-always-on ? ScrollBarPolicy.always-on : ScrollBarPolicy.as-needed;
+        content-width: root.wide-content ? 600px : self.visible-width;
+        content-height: root.tall-content ? 500px : self.visible-height;
+        accessible-role: groupbox; accessible-label: "Two axis viewport";
+        KitButton {
+            x: max(0px,frame.visible-width - self.width);
+            y: max(0px,frame.visible-height - self.height);
+            width: frame.visible-width; height: self.preferred-height;
+            theme: root.theme; text: "Edge"; accessible-name: "Edge action"; control-size: comfortable; control-width: fill;
+            activated => { root.edge-clicks += 1; }
+        }
+    }
+
+}
+
+export component PanPriorityFixture inherits Window {
+    width: 260px; height: 240px;
+    in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.children-first;
+    in property <bool> control-enabled: true;
+    out property <length> offset: area.content-y;
+    in-out property <int> commits;
+    in-out property <float> draft;
+    in-out property <bool> adjusting;
+    public function reset-scroll() { area.content-y = 0px; }
+    public function reveal-end() { area.reveal(700px,750px); }
+    area := KitScrollArea {
+        width: root.width; height: root.height;
+        pan-policy: root.pan-policy; mouse-drag-pan-enabled: true;
+        Rectangle {
+            height: 800px;
+            TouchArea {
+                x: 80px; y: 20px; width: 80px; height: 160px;
+                enabled: root.control-enabled;
+                accessible-role: slider; accessible-label: "Priority slider";
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) { root.adjusting = true; }
+                    if (event.kind == PointerEventKind.up && root.adjusting) { root.adjusting = false; root.commits += 1; }
+                    if (event.kind == PointerEventKind.cancel) { root.adjusting = false; }
+                }
+                moved => { if (self.pressed && root.adjusting) { root.draft = clamp(self.mouse-y / self.height,0,1); } }
+            }
+        }
     }
 }

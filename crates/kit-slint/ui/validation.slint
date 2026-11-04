@@ -3,6 +3,7 @@ import { HtmlInputKind, FieldAccess, NumberInputFormat } from "shared-contracts.
 export { HtmlInputKind } from "shared-contracts.slint";
 import { ChoiceRow } from "contracts.slint";
 export enum ValidationTiming { on-blur, on-input, on-submit }
+export struct KitTextEdit { text: string, cursor-byte-offset: int }
 export struct KitValidityState {
     valid: bool, value-missing: bool, type-mismatch: bool, pattern-mismatch: bool,
     too-long: bool, too-short: bool, range-underflow: bool, range-overflow: bool,
@@ -26,6 +27,8 @@ export global KitFormValidation {
 
     pure callback valid-time-zone(string) -> bool;
     pure callback count-selected([ChoiceRow]) -> int;
+    pure callback choice-enabled([ChoiceRow], int) -> bool;
+    pure callback limit-text-edit(string, string, int) -> KitTextEdit;
     pure callback numeric-insertion(string) -> bool;
     pure callback phone-insertion(string) -> bool;
     pure callback phone-paste(string) -> bool;

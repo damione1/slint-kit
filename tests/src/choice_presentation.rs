@@ -13,6 +13,7 @@ use std::{
 fn fixture() -> ChoicePresentationFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = ChoicePresentationFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
     window.show().unwrap();
     window
 }
@@ -561,4 +562,400 @@ fn information_badge_uses_the_information_tokens() {
         );
         assert_eq!(window.get_badge_border(), solid(theme.information));
     }
+}
+
+#[test]
+fn segmented_keyboard_activation_checks_the_live_row_and_fails_closed_without_initialization() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ChoicePresentationFixture::new().unwrap();
+    window.show().unwrap();
+    let activations = Rc::new(RefCell::new(Vec::new()));
+    let observed = activations.clone();
+    window.on_speed_activate(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    window.invoke_focus_speeds();
+    key(&window, Key::Return);
+    assert!(
+        activations.borrow().is_empty(),
+        "uninitialized bridge fails closed"
+    );
+    kit_slint::init_form_validation!(ui, window);
+    key(&window, Key::Return);
+    assert_eq!(*activations.borrow(), [(31, 3)]);
+    for token in [0, 999] {
+        window.set_speed_active(token);
+        key(&window, Key::Return);
+    }
+    let rows = Rc::new(slint::VecModel::from(vec![ChoiceRow {
+        token: 31,
+        label: "Low".into(),
+        selected: true,
+        disabled: true,
+    }]));
+    window.set_speeds(rows.clone().into());
+    window.set_speed_active(31);
+    key(&window, Key::Space);
+    assert_eq!(*activations.borrow(), [(31, 3)]);
+    use slint::Model;
+    rows.set_row_data(
+        0,
+        ChoiceRow {
+            disabled: false,
+            ..rows.row_data(0).unwrap()
+        },
+    );
+    key(&window, Key::Return);
+    assert_eq!(*activations.borrow(), [(31, 3), (31, 3)]);
+    rows.push(rows.row_data(0).unwrap());
+    key(&window, Key::Return);
+    assert_eq!(
+        activations.borrow().len(),
+        2,
+        "duplicate identities are rejected"
+    );
+}
+
+#[test]
+fn segmented_grid_keeps_two_columns_and_token_icons_after_reordering() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ChoicePresentationFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
+    window.show().unwrap();
+    window.set_speed_width(320.);
+
+    window.set_speed_direction(ChoiceDirection::Horizontal);
+    window.set_speed_columns(2);
+    let rows: Vec<_> = (1..=4)
+        .map(|token| ChoiceRow {
+            token,
+            label: token.to_string().into(),
+            selected: token == 1,
+            disabled: false,
+        })
+        .collect();
+    window.set_speeds(slint::ModelRc::new(slint::VecModel::from(rows.clone())));
+    window.set_speed_icons(slint::ModelRc::new(slint::VecModel::from(vec![
+        ChoiceIcon {
+            token: 1,
+            glyph: window.get_theme().icons.check,
+        },
+    ])));
+    for mut theme in [window.get_light(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            let options: Vec<_> = (1..=4)
+                .map(|value| element(&window, &value.to_string()))
+                .collect();
+            assert_eq!(
+                options[0].absolute_position().y,
+                options[1].absolute_position().y
+            );
+            assert_eq!(
+                options[2].absolute_position().y,
+                options[3].absolute_position().y
+            );
+            assert!(
+                options[0].absolute_position().y + options[0].size().height
+                    <= options[2].absolute_position().y
+            );
+            assert_eq!(
+                options[0].absolute_position().x,
+                options[2].absolute_position().x
+            );
+            assert_eq!(
+                options[0]
+                    .query_descendants()
+                    .match_inherits("KitIcon")
+                    .find_all()
+                    .len(),
+                1
+            );
+            assert!(
+                options[1]
+                    .query_descendants()
+                    .match_inherits("KitIcon")
+                    .find_all()
+                    .is_empty()
+            );
+
+            let snapshot = window.window().take_snapshot().unwrap();
+            save_capture(
+                &snapshot,
+                &format!(
+                    "segments-grid-{}-{scale}",
+                    if theme.canvas.red() > 100 {
+                        "light"
+                    } else {
+                        "dark"
+                    }
+                ),
+            );
+        }
+    }
+    window.set_speeds(slint::ModelRc::new(slint::VecModel::from(
+        rows.into_iter().rev().collect::<Vec<_>>(),
+    )));
+    assert_eq!(
+        element(&window, "1")
+            .query_descendants()
+            .match_inherits("KitIcon")
+            .find_all()
+            .len(),
+        1
+    );
+    assert!(
+        element(&window, "1").absolute_position().x > element(&window, "4").absolute_position().x
+    );
+    let uneven: Vec<_> = (1..=5)
+        .map(|token| ChoiceRow {
+            token,
+            label: token.to_string().into(),
+            selected: false,
+            disabled: false,
+        })
+        .collect();
+    window.set_speeds(slint::ModelRc::new(slint::VecModel::from(uneven)));
+    assert!(
+        element(&window, "5").absolute_position().y > element(&window, "3").absolute_position().y
+    );
+    let activated = Rc::new(RefCell::new(Vec::new()));
+    let observed = activated.clone();
+    window.on_speed_activate(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    for flow in [ChoiceFlow::LeftToRight, ChoiceFlow::RightToLeft] {
+        window.set_speed_flow(flow);
+        // Keep a handle while its real row becomes the final empty cell.
+        // Invisible grid cells are excluded from fresh accessibility queries.
+        let rows = Rc::new(slint::VecModel::from(
+            (1..=6)
+                .map(|token| ChoiceRow {
+                    token,
+                    label: token.to_string().into(),
+                    disabled: false,
+                    selected: false,
+                })
+                .collect::<Vec<_>>(),
+        ));
+        window.set_speeds(rows.clone().into());
+        let placeholder = element(&window, "6");
+        rows.remove(5);
+        assert_eq!(placeholder.accessible_enabled(), Some(false));
+        placeholder.invoke_accessible_default_action();
+        window.set_speed_active(0);
+        window.invoke_focus_speeds();
+        key(&window, Key::Return);
+        assert!(
+            activated.borrow().is_empty(),
+            "no placeholder token in {flow:?}"
+        );
+        element(&window, "5").invoke_accessible_default_action();
+        assert_eq!(
+            *activated.borrow(),
+            [(5, 3)],
+            "the real cell remains actionable"
+        );
+        activated.borrow_mut().clear();
+    }
+}
+
+#[test]
+fn selected_segment_focus_readonly_choices_and_custom_disabled_slider_paint_render() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ChoicePresentationFixture::new().unwrap();
+    kit_slint::init_form_validation!(ui, window);
+    window.show().unwrap();
+    let switches = Rc::new(Cell::new(0));
+    let observed = switches.clone();
+    window.on_switch_toggled(move |_| observed.set(observed.get() + 1));
+    for mut theme in [window.get_light(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            theme.reduced_motion = true;
+            window.set_theme(theme.clone());
+            window.set_access(FieldAccess::Editable);
+            window.invoke_focus_speeds();
+            let selected = element(&window, "Low");
+            let outline = selected
+                .query_descendants()
+                .match_inherits("FocusOutline")
+                .find_first()
+                .expect("selected row focus outline");
+            let snapshot = window.window().take_snapshot().unwrap();
+            let origin = outline.absolute_position();
+            let pixel = snapshot.as_slice()[((origin.y + 1.).floor() * snapshot.width() as f32
+                + (origin.x + outline.size().width / 2.).floor())
+                as usize];
+            assert_eq!(
+                [pixel.r, pixel.g, pixel.b],
+                [
+                    theme.on_accent.red(),
+                    theme.on_accent.green(),
+                    theme.on_accent.blue()
+                ]
+            );
+            assert!(contrast(theme.on_accent, theme.accent) >= 3.);
+            save_capture(
+                &snapshot,
+                &format!(
+                    "choices-focused-{}-{scale}",
+                    if theme.canvas.red() > 100 {
+                        "light"
+                    } else {
+                        "dark"
+                    }
+                ),
+            );
+
+            // Focus can remain on the group's active token while its row is
+            // disabled by a host update. The neutral fill needs the normal ring.
+            use slint::Model;
+            let previous_rows = window.get_speeds();
+            let disabled_rows: Vec<_> = previous_rows
+                .iter()
+                .map(|row| ChoiceRow {
+                    disabled: row.token == 31,
+                    ..row
+                })
+                .collect();
+            window.set_speeds(slint::ModelRc::new(slint::VecModel::from(disabled_rows)));
+            window.invoke_focus_speeds();
+            let disabled_outline = element(&window, "Low")
+                .query_descendants()
+                .match_inherits("FocusOutline")
+                .find_first()
+                .unwrap();
+            let disabled_snapshot = window.window().take_snapshot().unwrap();
+            let origin = disabled_outline.absolute_position();
+            let pixel = disabled_snapshot.as_slice()[((origin.y + 1.).floor()
+                * disabled_snapshot.width() as f32
+                + (origin.x + disabled_outline.size().width / 2.).floor())
+                as usize];
+            assert_eq!(
+                [pixel.r, pixel.g, pixel.b],
+                [
+                    theme.focus.color.red(),
+                    theme.focus.color.green(),
+                    theme.focus.color.blue()
+                ]
+            );
+            window.set_speeds(previous_rows);
+            let selected = element(&window, "Low");
+            window.set_access(FieldAccess::ReadOnly);
+            let snapshot = window.window().take_snapshot().unwrap();
+            let origin = selected.absolute_position();
+            let pixel = snapshot.as_slice()[((origin.y + selected.size().height / 2.).floor()
+                * snapshot.width() as f32
+                + (origin.x + theme.spacing.unit * 2.).floor())
+                as usize];
+            assert_eq!(
+                [pixel.r, pixel.g, pixel.b],
+                [
+                    theme.pressed.red(),
+                    theme.pressed.green(),
+                    theme.pressed.blue()
+                ]
+            );
+            let switch = element(&window, "Power");
+            switch.invoke_accessible_default_action();
+            assert_eq!(
+                switch.accessible_description().as_deref(),
+                Some("Read only")
+            );
+            let track = switch
+                .query_descendants()
+                .match_type_name("Rectangle")
+                .match_predicate(|rectangle| {
+                    rectangle.size().width > rectangle.size().height * 1.5
+                        && rectangle.size().height > 10.
+                        && rectangle.size().width < 100.
+                })
+                .find_all()
+                .into_iter()
+                .min_by(|a, b| a.size().height.total_cmp(&b.size().height))
+                .unwrap();
+            let origin = track.absolute_position();
+            save_capture(
+                &snapshot,
+                &format!(
+                    "choices-readonly-{}-{scale}",
+                    if theme.canvas.red() > 100 {
+                        "light"
+                    } else {
+                        "dark"
+                    }
+                ),
+            );
+            let pixel = snapshot.as_slice()[((origin.y + track.size().height / 2.).floor()
+                * snapshot.width() as f32
+                + (origin.x + 4.).floor()) as usize];
+            assert_eq!(
+                [pixel.r, pixel.g, pixel.b],
+                [
+                    theme.text_secondary.red(),
+                    theme.text_secondary.green(),
+                    theme.text_secondary.blue()
+                ]
+            );
+            window.set_access(FieldAccess::Disabled);
+            window.set_custom_slider_paints(true);
+            let snapshot = window.window().take_snapshot().unwrap();
+            for (x, expected) in [(30usize, [0x24, 0x68, 0x13]), (330, [0x13, 0x57, 0x24])] {
+                let pixel =
+                    snapshot.as_slice()[320 * usize::try_from(snapshot.width()).unwrap() + x];
+                assert_eq!([pixel.r, pixel.g, pixel.b], expected);
+            }
+
+            assert!(
+                snapshot
+                    .as_slice()
+                    .iter()
+                    .any(|pixel| [pixel.r, pixel.g, pixel.b] == [0xf5, 0xa9, 0xc8]),
+                "custom disabled handle paint"
+            );
+            save_capture(
+                &snapshot,
+                &format!(
+                    "choices-disabled-{}-{scale}",
+                    if theme.canvas.red() > 100 {
+                        "light"
+                    } else {
+                        "dark"
+                    }
+                ),
+            );
+            window.set_custom_slider_paints(false);
+        }
+    }
+    assert_eq!(switches.get(), 0);
+}
+
+pub(super) fn save_capture(snapshot: &slint::SharedPixelBuffer<slint::Rgba8Pixel>, name: &str) {
+    let Ok(directory) = std::env::var("KIT_CONTROL_CAPTURE_DIR") else {
+        return;
+    };
+    std::fs::create_dir_all(&directory).unwrap();
+    let mut bytes = format!("P6\n{} {}\n255\n", snapshot.width(), snapshot.height()).into_bytes();
+    for pixel in snapshot.as_slice() {
+        bytes.extend([pixel.r, pixel.g, pixel.b]);
+    }
+    std::fs::write(
+        std::path::Path::new(&directory).join(format!("{name}.ppm")),
+        bytes,
+    )
+    .unwrap();
 }

@@ -7,7 +7,7 @@ export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitSegmentedControl — exemple";
     preferred-width: 420px;
-    preferred-height: 330px;
+    preferred-height: 420px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -18,6 +18,7 @@ export component Example inherits Window {
         Text { text: "Choix segmenté"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         KitSegmentedControl { theme: root.theme; rows: [{ token: 11, label: "Courriel", selected: true, disabled: false }, { token: 23, label: "Notification push", selected: false, disabled: false }, { token: 38, label: "SMS", selected: false, disabled: true }]; generation: 1; active-token: 11; activate(token, generation) => { root.status = "Identifiant du choix " + token; } }
         KitSegmentedControl { theme: root.theme; width: 200px; direction: ChoiceDirection.vertical; label: "Densité des lignes"; rows: [{ token: 41, label: "Compacte", selected: false, disabled: false }, { token: 42, label: "Confortable", selected: true, disabled: false }, { token: 43, label: "Aérée", selected: false, disabled: false }]; generation: 1; active-token: 42; activate(token, generation) => { root.status = "Identifiant de densité " + token; } }
+        KitSegmentedControl { theme: root.theme; columns: 2; label: "Quatre choix"; rows: [{ token: 51, label: "Un", selected: true }, { token: 52, label: "Deux", selected: false }, { token: 53, label: "Trois", selected: false }, { token: 54, label: "Quatre", selected: false }]; icons: [{ token: 51, glyph: root.theme.icons.check }]; generation: 1; active-token: 51; activate(token, generation) => { root.status = "Choix " + token; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

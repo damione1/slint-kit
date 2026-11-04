@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSlider, KitTheme, KitThemes, ChoiceDirection, SliderPresentation } from "@kit/kit.slint";
+import { KitSlider, KitTheme, KitThemes, ChoiceDirection, SliderPresentation, FieldAccess } from "@kit/kit.slint";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitSlider — exemple";
     preferred-width: 420px;
-    preferred-height: 470px;
+    preferred-height: 540px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -22,6 +22,7 @@ export component Example inherits Window {
             KitSlider { theme: root.theme; direction: ChoiceDirection.vertical; presentation: SliderPresentation.filled; height: 160px; label: "Gain"; position: 0.7; value-label: "70 %"; position-requested(value) => { root.status = "Gain demandé"; } }
             KitSlider { theme: root.theme; direction: ChoiceDirection.vertical; height: 160px; label: "Balance"; position: 0.5; value-label: "Centrée"; position-requested(value) => { root.status = "Balance demandée"; } }
         }
+        KitSlider { theme: root.theme; label: "Échelle personnalisée indisponible"; presentation: SliderPresentation.filled; access: FieldAccess.disabled; position: 0.5; track-brush: root.theme.canvas; fill-brush: root.theme.text-secondary; handle-brush: root.theme.surface; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

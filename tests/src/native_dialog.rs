@@ -100,3 +100,70 @@ fn native_dialog_traverses_real_editors_skips_disabled_controls_and_wraps_in_bot
     assert_eq!(tab.get(), 1);
     assert!(window.get_first_focused());
 }
+
+#[test]
+fn backdrop_pointer_dismissal_respects_panel_and_modal_policies() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = DialogBackdropFixture::new().unwrap();
+    let reasons = Rc::new(std::cell::RefCell::new(Vec::new()));
+    let output = reasons.clone();
+    window.on_dismissed(move |reason| output.borrow_mut().push(reason));
+    let background = Rc::new(Cell::new(0));
+    let output = background.clone();
+    window.on_background_clicked(move || output.set(output.get() + 1));
+    window.show().unwrap();
+    let click = |x, y| {
+        let position = slint::LogicalPosition::new(x, y);
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerMoved { position });
+        window.window().dispatch_event(WindowEvent::PointerPressed {
+            position,
+            button: PointerEventButton::Left,
+        });
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerReleased {
+                position,
+                button: PointerEventButton::Left,
+            });
+    };
+    for policy in [DialogTabPolicy::Native, DialogTabPolicy::Host] {
+        window.set_tab_policy(policy);
+        reasons.borrow_mut().clear();
+        click(200., 100.);
+        assert!(
+            reasons.borrow().is_empty(),
+            "empty panel space is inside the dialog"
+        );
+        click(40., 40.);
+        assert_eq!(&*reasons.borrow(), &[CloseReason::OutsidePress]);
+        assert_eq!(
+            background.get(),
+            0,
+            "a scrim click never reaches the background"
+        );
+        window.set_busy(true);
+        click(40., 40.);
+        window.set_busy(false);
+        window.set_topmost(false);
+        click(40., 40.);
+        window.set_topmost(true);
+        window.set_dismiss_enabled(false);
+        click(40., 40.);
+        window.set_dismiss_enabled(true);
+        assert_eq!(
+            reasons.borrow().len(),
+            1,
+            "all dismissal guards remain effective"
+        );
+        assert_eq!(background.get(), 0);
+    }
+    window.set_opened(false);
+    click(40., 40.);
+    assert_eq!(
+        background.get(),
+        1,
+        "closed dialogs release background input"
+    );
+}

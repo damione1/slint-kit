@@ -14,7 +14,8 @@ component KeypadKey inherits KitPressable {
     private property <bool> has-glyph: root.glyph.stroke != "" || root.glyph.fill != "";
     control-width: ControlWidth.fill;
     min-height: max(root.theme.spacing.unit * 12, KitMetrics.control-height(root.theme, root.control-size), root.text-size * 1.4 + 2 * root.padding-block);
-    min-width: root.min-height;
+    min-width: max(root.theme.spacing.unit * 12, root.has-glyph ? KitMetrics.icon-size(root.theme, root.control-size) : root.text-size);
+    preferred-width: root.min-height;
     accessible-name: root.text;
     Rectangle {
         if root.has-glyph: KitIcon {
@@ -59,6 +60,8 @@ export component KitKeypad inherits Rectangle {
     in property <ButtonIntent> confirm-intent: ButtonIntent.primary;
     // The host enables confirm once its code is complete.
     in property <bool> can-confirm;
+    // Press feedback begins before a pointer or Space activation commits.
+    callback activation-started();
     callback digit(int);
     callback delete-requested();
     callback confirm();
@@ -100,14 +103,14 @@ export component KitKeypad inherits Rectangle {
         key-pressed(event) => {
             if (!root.editable) { return reject; }
             if (event.modifiers.control || event.modifiers.alt || event.modifiers.meta) { return reject; }
-            if (event.text == Key.Backspace) { root.delete-requested(); return accept; }
+            if (event.text == Key.Backspace) { root.activation-started(); if (root.editable) { root.delete-requested(); } return accept; }
             if (event.text == Key.Return) {
                 if (!root.can-confirm) { return reject; }
-                if (!self.confirm-held) { self.confirm-held = true; root.confirm(); }
+                if (!self.confirm-held) { self.confirm-held = true; root.activation-started(); if (root.editable && root.can-confirm) { root.confirm(); } }
                 return accept;
             }
             // One character that parses as a number is a digit from 0 to 9.
-            if (event.text.character-count == 1 && event.text.is-float()) { root.digit(event.text.to-float()); return accept; }
+            if (event.text.character-count == 1 && event.text.is-float()) { root.activation-started(); if (root.editable) { root.digit(event.text.to-float()); } return accept; }
             return reject;
         }
         key-released(event) => {
@@ -118,24 +121,24 @@ export component KitKeypad inherits Rectangle {
             width: parent.width; height: parent.height;
             spacing: root.gap;
             Row {
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[0]; disabled: !root.editable; activated => { root.digit(1); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[1]; disabled: !root.editable; activated => { root.digit(2); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[2]; disabled: !root.editable; activated => { root.digit(3); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[0]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(1); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[1]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(2); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[2]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(3); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[3]; disabled: !root.editable; activated => { root.digit(4); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[4]; disabled: !root.editable; activated => { root.digit(5); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[5]; disabled: !root.editable; activated => { root.digit(6); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[3]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(4); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[4]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(5); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[5]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(6); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[6]; disabled: !root.editable; activated => { root.digit(7); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[7]; disabled: !root.editable; activated => { root.digit(8); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[8]; disabled: !root.editable; activated => { root.digit(9); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[6]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(7); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[7]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(8); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[8]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(9); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: root.delete-label; glyph: root.delete-glyph; disabled: !root.editable; activated => { root.delete-requested(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[9]; disabled: !root.editable; activated => { root.digit(0); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { theme: root.theme; control-size: root.control-size; intent: root.confirm-intent; text: root.confirm-label; glyph: root.confirm-glyph; disabled: !root.editable || !root.can-confirm; activated => { root.confirm(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: root.delete-label; glyph: root.delete-glyph; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.delete-requested(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[9]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(0); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: root.confirm-intent; text: root.confirm-label; glyph: root.confirm-glyph; disabled: !root.editable || !root.can-confirm; activation-started => { root.activation-started(); } activated => { root.confirm(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
         }
     }

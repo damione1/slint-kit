@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitGlyphs, ChoiceRow, ChoiceDirection, SliderPresentation, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitSwitch, KitGlyphs, ChoiceRow, ChoiceIcon, ChoiceDirection, ChoiceFlow, SliderPresentation, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit/kit.slint";
 
 // Vertical and filled sliders, a vertical segmented control, a chip button
 // and an information badge, placed at fixed coordinates.
 export component ChoicePresentationFixture inherits Window {
     width: 720px; height: 640px;
+    background: root.theme.canvas;
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
@@ -24,6 +25,15 @@ export component ChoicePresentationFixture inherits Window {
         { token: 33, label: "High", disabled: false, selected: false },
     ];
     in property <int> speed-active: 31;
+    in property <length> speed-width: 200px;
+    in property <ChoiceDirection> speed-direction: ChoiceDirection.vertical;
+    in property <ChoiceFlow> speed-flow: ChoiceFlow.left-to-right;
+    in property <int> speed-columns: max(1, root.speeds.length);
+    in property <[ChoiceIcon]> speed-icons;
+    in property <bool> custom-slider-paints;
+    in property <bool> switch-checked: true;
+    callback switch-toggled(bool);
+
     out property <length> line-cross: line-vertical.preferred-width;
     out property <length> line-travel-minimum: line-vertical.min-height;
     out property <length> filled-cross: filled-horizontal.preferred-height;
@@ -72,20 +82,23 @@ export component ChoicePresentationFixture inherits Window {
         x: 20px; y: 300px; width: 320px; height: self.preferred-height;
         theme: root.theme; access: root.access;
         presentation: SliderPresentation.filled;
+        track-brush: root.custom-slider-paints ? #135724 : root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.theme.pressed;
+        fill-brush: root.custom-slider-paints ? #246813 : root.access == FieldAccess.disabled ? root.theme.pressed : root.theme.accent;
+        handle-brush: root.custom-slider-paints ? #f5a9c8 : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.on-accent;
         label: "Filled width"; value-label: "70 percent"; position: root.level;
         position-requested(value) => { root.position-requested("filled-horizontal", value); }
         navigate(step) => { root.navigated("filled-horizontal", step); }
     }
     speeds := KitSegmentedControl {
-        x: 400px; y: 20px; width: 200px; height: self.preferred-height;
+        x: 400px; y: 20px; width: root.speed-width; height: self.preferred-height;
         theme: root.theme; access: root.access;
-        direction: ChoiceDirection.vertical;
+        direction: root.speed-direction; flow: root.speed-flow; columns: root.speed-columns; icons: root.speed-icons;
         label: "Speed"; rows: root.speeds; active-token: root.speed-active; generation: 3;
         navigate(step) => { root.speed-navigate(step); }
         activate(token, generation) => { root.speed-activate(token, generation); }
     }
     chip := KitChipButton {
-        x: 400px; y: 300px; height: self.preferred-height;
+        x: 400px; y: 300px; width: self.preferred-width; height: self.preferred-height;
         theme: root.theme; control-size: root.chip-size;
         label: "Open orders"; glyph: KitGlyphs.check();
         tone: root.chip-tone; selected: root.chip-selected; disabled: root.chip-disabled;
@@ -101,5 +114,6 @@ export component ChoicePresentationFixture inherits Window {
             label: "Squeezed width"; value-label: "70 percent"; position: root.level;
         }
     }
-    badge := KitBadge { x: 400px; y: 400px; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }
+    KitSwitch { x: 400px; y: 470px; width: 250px; height: self.preferred-height; theme: root.theme; access: root.access; checked: root.switch-checked; label: "Power"; toggled(value) => { root.switch-toggled(value); } }
+    badge := KitBadge { x: 400px; y: 400px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }
 }

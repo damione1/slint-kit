@@ -356,3 +356,121 @@ fn code_indicator_fills_exactly_the_first_marks_in_both_themes() {
         }
     }
 }
+
+#[test]
+fn keypad_fits_320_pixels_at_double_text_with_rectangular_touch_keys() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = KeypadFixture::new().unwrap();
+    window.show().unwrap();
+    window.set_can_confirm(true);
+    for mut theme in [window.get_light(), window.get_dark()] {
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            window.set_available_width(320.);
+            assert!(window.get_keypad_width() <= 320.);
+            let first = element(&window, "1");
+            let last = element(&window, "Unlock");
+            assert!(
+                last.absolute_position().x + last.size().width
+                    <= first.absolute_position().x + 320.
+            );
+            for label in KEYS {
+                let key = element(&window, label);
+                assert!(key.size().width >= 48. && key.size().height >= 48.);
+            }
+            let snapshot = window.window().take_snapshot().unwrap();
+            crate::choice_presentation::save_capture(
+                &snapshot,
+                &format!(
+                    "keypad-320-{}-{scale}",
+                    if theme.canvas.red() > 100 {
+                        "light"
+                    } else {
+                        "dark"
+                    }
+                ),
+            );
+            if scale == 2. {
+                // At 320px the shipped metrics happen to produce 100px squares.
+                // A tighter width proves that height no longer dictates width.
+                window.set_available_width(280.);
+                assert!(first.size().width < first.size().height);
+                assert!(window.get_keypad_width() <= 280.);
+            }
+        }
+    }
+}
+
+#[test]
+fn keypad_reports_press_feedback_before_commit_and_suppresses_ineligible_keys() {
+    let (window, intentions) = fixture();
+    let starts = Rc::new(std::cell::Cell::new(0));
+    let observed = starts.clone();
+    window.on_activation_started(move || observed.set(observed.get() + 1));
+    let digit = element(&window, "1");
+    let origin = digit.absolute_position();
+    let position = LogicalPosition::new(
+        origin.x + digit.size().width / 2.,
+        origin.y + digit.size().height / 2.,
+    );
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    assert_eq!(starts.get(), 1);
+    assert!(intentions.borrow().is_empty());
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+    assert_eq!(*intentions.borrow(), [Intention::Digit(1)]);
+    assert_eq!(starts.get(), 1);
+    window.invoke_focus_keypad();
+    type_text(&window, "2");
+    assert_eq!(starts.get(), 2);
+    click(&window, &element(&window, "Unlock"));
+    assert_eq!(starts.get(), 2, "disabled confirm");
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        window.set_access(access);
+        click(&window, &digit);
+        digit.invoke_accessible_default_action();
+    }
+    assert_eq!(starts.get(), 2);
+}
+
+#[test]
+fn keyboard_press_feedback_can_revoke_access_or_confirmation_before_commit() {
+    let (window, intentions) = fixture();
+    for pressed in [
+        "4".into(),
+        SharedString::from(Key::Backspace),
+        SharedString::from(Key::Return),
+    ] {
+        window.set_access(FieldAccess::Editable);
+        window.set_can_confirm(true);
+        window.invoke_focus_keypad();
+        let weak = window.as_weak();
+        window.on_activation_started(move || weak.unwrap().set_access(FieldAccess::ReadOnly));
+        type_text(&window, pressed);
+        assert!(intentions.borrow().is_empty());
+    }
+    window.set_access(FieldAccess::Editable);
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    let weak = window.as_weak();
+    window.on_activation_started(move || weak.unwrap().set_can_confirm(false));
+    key(&window, Key::Return);
+    assert!(intentions.borrow().is_empty());
+}

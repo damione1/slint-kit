@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ScrollFrame } from "scroll.slint";
+import { ScrollFrame, ScrollPanPolicy } from "scroll.slint";
 import { ElevationLevel, KitTheme, KitThemes, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, KitThemeContext } from "theme.slint";
 export { SurfaceLevel } from "theme.slint";
 
@@ -150,8 +150,10 @@ export component KitScrollArea inherits Rectangle {
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <LayoutSpace> inset: LayoutSpace.none;
     in property <bool> enabled <=> frame.enabled;
+    in property <bool> overlay-scrollbars <=> frame.overlay-scrollbars;
     in property <ScrollBarPolicy> vertical-scrollbar-policy <=> frame.vertical-scrollbar-policy;
     in property <bool> mouse-drag-pan-enabled <=> frame.mouse-drag-pan-enabled;
+    in property <ScrollPanPolicy> pan-policy <=> frame.pan-policy;
     out property <length> visible-width: frame.visible-width;
     out property <length> visible-height: frame.visible-height;
     out property <length> content-width: frame.content-width;

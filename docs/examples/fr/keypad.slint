@@ -18,6 +18,7 @@ export component Example inherits Window {
         KitCodeIndicator { theme: root.theme; length: 4; filled: root.entered; label: root.entered + " chiffres sur 4 saisis"; }
         HorizontalLayout { alignment: center;
             KitKeypad { theme: root.theme; label: "Code du casier"; delete-label: "Effacer"; confirm-label: "Ouvrir le casier"; can-confirm: root.entered == 4;
+                activation-started => { root.status = "Touche pressée"; }
                 digit(value) => { root.entered = min(4, root.entered + 1); }
                 delete-requested => { root.entered = max(0, root.entered - 1); }
                 confirm => { root.status = "Code envoyé pour vérification"; root.entered = 0; }

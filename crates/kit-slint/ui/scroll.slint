@@ -91,12 +91,19 @@ export component KitScrollBar inherits Rectangle {
     }
 }
 
+export enum ScrollPanPolicy { native, children-first }
+
 // Themed replacement for the std-widgets ScrollView: a Flickable with
-// KitScrollBar overlays on its trailing edges. Internal to the kit; public
+// KitScrollBar gutters on its trailing edges. Internal to the kit; public
 // containers forward the parts of this API they support.
 export component ScrollFrame {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <bool> enabled: true;
+    // Reserve stable space even while an as-needed bar is hidden. Opting into
+    // overlays is appropriate only when content already protects its edges.
+    in property <bool> overlay-scrollbars: false;
+    private property <length> vertical-gutter: root.overlay-scrollbars || root.vertical-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
+    private property <length> horizontal-gutter: root.overlay-scrollbars || root.horizontal-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
     out property <length> visible-width <=> flickable.width;
     out property <length> visible-height <=> flickable.height;
     in-out property <length> content-width <=> flickable.content-width;
@@ -105,7 +112,10 @@ export component ScrollFrame {
     in-out property <length> content-y <=> flickable.content-y;
     in property <ScrollBarPolicy> vertical-scrollbar-policy <=> vertical-bar.policy;
     in property <ScrollBarPolicy> horizontal-scrollbar-policy <=> horizontal-bar.policy;
-    in property <bool> mouse-drag-pan-enabled <=> flickable.mouse-drag-pan-enabled;
+    in property <bool> mouse-drag-pan-enabled: false;
+    // children-first reserves a gesture for an interactive descendant at Down.
+    // Background panning is bounded and direct; wheel/focus/bars remain native.
+    in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.native;
     callback scrolled <=> flickable.flicked;
     // The std-widgets ScrollView footprint: a scrolled viewport fills its slot.
     min-height: 50px;
@@ -114,22 +124,52 @@ export component ScrollFrame {
     vertical-stretch: 1;
     preferred-height: 100%;
     preferred-width: 100%;
-    flickable := Flickable {
-        mouse-drag-pan-enabled: false;
-        content-y <=> vertical-bar.value;
-        content-x <=> horizontal-bar.value;
-        width: parent.width;
-        height: parent.height;
-        @children
+    // The viewport's TouchArea gets Down only when no child claims it. Its
+    // own grab then pans without stealing a slider/button's existing grab.
+    // Keep the Flickable ancestor for wheel scrolling and native focus reveal.
+    pan := TouchArea {
+        x: 0px; y: 0px;
+        width: max(0px,root.width - root.vertical-gutter);
+        height: max(0px,root.height - root.horizontal-gutter);
+        enabled: root.enabled && root.pan-policy == ScrollPanPolicy.children-first;
+        private property <bool> dragging;
+        private property <int> finger;
+        private property <length> start-x;
+        private property <length> start-y;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left && (event.touch-finger-id != 0 || root.mouse-drag-pan-enabled)) {
+                self.dragging = true; self.finger = event.touch-finger-id;
+                self.start-x = flickable.content-x; self.start-y = flickable.content-y;
+            }
+            if (event.kind == PointerEventKind.cancel || (event.kind == PointerEventKind.up && event.touch-finger-id == self.finger)) { self.dragging = false; }
+        }
+        moved => {
+            if (self.dragging && self.pressed) {
+                let next-x = clamp(self.start-x + self.mouse-x - self.pressed-x,-max(0px,flickable.content-width - self.width),0px);
+                let next-y = clamp(self.start-y + self.mouse-y - self.pressed-y,-max(0px,flickable.content-height - self.height),0px);
+                if (next-x != flickable.content-x || next-y != flickable.content-y) {
+                    flickable.content-x = next-x; flickable.content-y = next-y; root.scrolled();
+                }
+            }
+        }
+        flickable := Flickable {
+            x: 0px; y: 0px;
+            interactive: root.pan-policy == ScrollPanPolicy.native;
+            mouse-drag-pan-enabled: root.mouse-drag-pan-enabled;
+            content-y <=> vertical-bar.value;
+            content-x <=> horizontal-bar.value;
+            width: pan.width; height: pan.height;
+            @children
+        }
     }
     vertical-bar := KitScrollBar {
         theme: root.theme;
         enabled: root.enabled;
         orientation: Orientation.vertical;
-        x: flickable.width - self.width;
+        x: max(0px, root.width - self.width);
         y: 0px;
         width: KitThemes.scroll-bar-recipe(root.theme).thickness;
-        height: horizontal-bar.visible ? parent.height - horizontal-bar.height : parent.height;
+        height: max(0px, root.height - (root.overlay-scrollbars ? (horizontal-bar.visible ? horizontal-bar.height : 0px) : root.horizontal-gutter));
         maximum: flickable.content-height - flickable.height;
         page-size: flickable.height;
         scrolled => { root.scrolled(); }
@@ -139,8 +179,8 @@ export component ScrollFrame {
         enabled: root.enabled;
         orientation: Orientation.horizontal;
         x: 0px;
-        y: flickable.height - self.height;
-        width: vertical-bar.visible ? parent.width - vertical-bar.width : parent.width;
+        y: max(0px, root.height - self.height);
+        width: max(0px, root.width - (root.overlay-scrollbars ? (vertical-bar.visible ? vertical-bar.width : 0px) : root.vertical-gutter));
         height: KitThemes.scroll-bar-recipe(root.theme).thickness;
         maximum: flickable.content-width - flickable.width;
         page-size: flickable.width;

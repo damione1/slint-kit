@@ -284,6 +284,15 @@ fn filter<K: Clone>(source: &[SelectOption<K>], query: &str) -> Vec<SelectOption
         .collect()
 }
 
+/// Accept only one currently enabled row for an activation token.
+/// Duplicate tokens are ambiguous and must not select an arbitrary row.
+pub fn choice_token_enabled(rows: impl IntoIterator<Item = (i32, bool)>, token: i32) -> bool {
+    let mut matches = rows
+        .into_iter()
+        .filter(|(candidate, _)| *candidate == token);
+    matches.next().is_some_and(|(_, disabled)| !disabled) && matches.next().is_none()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

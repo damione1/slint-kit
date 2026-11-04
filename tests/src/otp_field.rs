@@ -15,16 +15,34 @@ fn fixture() -> OtpFixture {
     app
 }
 fn key(app: &OtpFixture, text: &str) {
+    slint::platform::update_timers_and_animations();
     app.window()
         .dispatch_event(WindowEvent::KeyPressed { text: text.into() });
+    slint::platform::update_timers_and_animations();
     app.window()
         .dispatch_event(WindowEvent::KeyReleased { text: text.into() });
+    slint::platform::update_timers_and_animations();
 }
 fn shortcut(app: &OtpFixture, text: &str) {
     app.window().dispatch_event(WindowEvent::KeyPressed {
         text: Key::Control.into(),
     });
     key(app, text);
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Control.into(),
+    });
+}
+fn redo(app: &OtpFixture) {
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Control.into(),
+    });
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Shift.into(),
+    });
+    key(app, "z");
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Shift.into(),
+    });
     app.window().dispatch_event(WindowEvent::KeyReleased {
         text: Key::Control.into(),
     });
@@ -85,21 +103,417 @@ fn otp_read_only_mask_keeps_value_private_and_plain_editor_keeps_native_history(
     shortcut(&app, "v");
     assert_eq!(app.get_text(), "A1B2C3");
 }
+fn code(app: &OtpFixture) -> ElementHandle {
+    ElementHandle::find_by_accessible_label(app, "Verification code")
+        .find(|element| {
+            element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)
+        })
+        .unwrap()
+}
+
+fn select_from_start(app: &OtpFixture, skip: usize, count: usize) {
+    // Collapse a native selection rather than Home, which scrolls on macOS.
+    app.invoke_select_code();
+    key(app, &slint::SharedString::from(Key::LeftArrow));
+    for _ in 0..skip {
+        key(app, &slint::SharedString::from(Key::RightArrow));
+    }
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Shift.into(),
+    });
+    for _ in 0..count {
+        key(app, &slint::SharedString::from(Key::RightArrow));
+    }
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Shift.into(),
+    });
+}
+
 #[test]
-fn otp_overflow_is_validation_only_until_upstream_supports_before_input() {
+fn otp_drops_overtyping_from_native_text_and_deletion_never_reveals_hidden_digits() {
     let app = fixture();
-    key(&app, "1234567");
+    for digit in ["1", "2", "3", "4", "5", "6", "7", "8"] {
+        key(&app, digit);
+    }
+    assert_eq!(app.get_text(), "123456");
+    assert_eq!(code(&app).accessible_value().as_deref(), Some("123456"));
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "12345");
+    key(&app, "9");
+    assert_eq!(app.get_text(), "123459");
+    assert!(app.get_validity().valid);
+}
+
+#[test]
+fn otp_overflow_in_the_middle_preserves_existing_suffix_and_places_the_caret() {
+    let app = fixture();
+    key(&app, "123456");
+    select_from_start(&app, 3, 0);
+    key(&app, "7");
     assert_eq!(
         app.get_text(),
-        "1234567",
-        "public native editing must not be rewritten"
+        "123456",
+        "refuse inserted surplus, not the existing last digit"
     );
-    assert!(app.get_validity().too_long);
-    assert!(!app.get_validation_visible());
-    assert!(!app.invoke_report_code());
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(
+        app.get_text(),
+        "12456",
+        "caret remains before the preserved suffix"
+    );
     app.invoke_select_code();
     key(&app, "123456");
-    assert!(app.get_validity().valid);
+    select_from_start(&app, 1, 2);
+    key(&app, "789");
+    assert_eq!(
+        app.get_text(),
+        "123456",
+        "overlong replacement is rejected atomically"
+    );
+    select_from_start(&app, 1, 2);
+    key(&app, "78");
+    assert_eq!(
+        app.get_text(),
+        "178456",
+        "a fitting replacement remains native"
+    );
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "17456");
+    key(&app, &slint::SharedString::from(Key::Delete));
+    assert_eq!(app.get_text(), "1756");
+}
+
+#[test]
+fn otp_paste_rejects_overlong_edits_atomically_and_accepts_fitting_replacements() {
+    let app = fixture();
+    app.set_clipboard_text("12345678".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_text(), "", "overlong paste is refused as a whole");
+    app.set_clipboard_text("123456".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_text(), "123456");
+    assert_eq!(code(&app).accessible_value().as_deref(), Some("123456"));
+    select_from_start(&app, 2, 2);
+    app.set_clipboard_text("374".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(
+        app.get_text(),
+        "123456",
+        "ambiguous matching text cannot remove an existing suffix"
+    );
+    app.invoke_select_code();
+    app.set_clipboard_text("765432".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_text(), "765432");
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "76543");
+}
+
+#[test]
+fn otp_limit_uses_effective_maximum_utf16_units_and_never_splits_a_scalar() {
+    let app = fixture();
+    app.set_pattern(".*".into());
+    app.set_slots(4);
+    key(&app, "A😀B");
+    key(&app, "z");
+    assert_eq!(app.get_text(), "A😀B");
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(
+        app.get_text(),
+        "A😀",
+        "caret uses UTF-8 byte offsets after a UTF-16 cap"
+    );
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "A");
+    app.invoke_select_code();
+    app.set_maximum(3);
+    key(&app, "😀x");
+    key(&app, "y");
+    assert_eq!(
+        app.get_text(),
+        "😀x",
+        "explicit maximum overrides the slot-derived default"
+    );
+    app.invoke_select_code();
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    app.set_maximum(1);
+    key(&app, "😀");
+    assert_eq!(app.get_text(), "");
+}
+
+#[test]
+fn otp_history_stays_native_until_overflow_requires_a_public_text_rewrite() {
+    let app = fixture();
+    key(&app, "123456");
+    app.invoke_select_code();
+    key(&app, "12");
+    shortcut(&app, "z");
+    shortcut(&app, "z");
+    assert_eq!(
+        app.get_text(),
+        "123456",
+        "in-limit replacement preserves native history"
+    );
+    app.invoke_select_code();
+    key(&app, &slint::SharedString::from(Key::RightArrow));
+    key(&app, "78");
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_text(), "123456");
+    shortcut(&app, "z");
+    assert_eq!(
+        app.get_text(),
+        "123456",
+        "Slint 1.18.1 clears undo after strict overflow normalization"
+    );
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "12345");
+    shortcut(&app, "z");
+    assert_eq!(
+        app.get_text(),
+        "123456",
+        "ordinary edits build a new native history"
+    );
+}
+
+#[test]
+fn otp_overflow_correction_keeps_undo_redo_safe_across_following_edits() {
+    let app = fixture();
+    key(&app, "12");
+    shortcut(&app, "z");
+    assert_eq!(app.get_text(), "");
+    redo(&app);
+    assert_eq!(app.get_text(), "12", "the test exercises native redo");
+    app.invoke_select_code();
+    key(&app, "123456");
+    app.invoke_select_code();
+    key(&app, &slint::SharedString::from(Key::RightArrow));
+    key(&app, "78");
+    assert_eq!(app.get_text(), "123456");
+    for _ in 0..3 {
+        redo(&app);
+        assert_eq!(
+            app.get_text(),
+            "123456",
+            "redo cannot resurrect dropped input"
+        );
+        shortcut(&app, "z");
+        assert_eq!(
+            app.get_text(),
+            "123456",
+            "overflow correction resets old history"
+        );
+    }
+    app.invoke_select_code();
+    key(&app, &slint::SharedString::from(Key::RightArrow));
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "12345");
+    key(&app, "9");
+    assert_eq!(app.get_text(), "123459");
+    shortcut(&app, "z");
+    assert_eq!(app.get_text(), "12345");
+    redo(&app);
+    assert_eq!(app.get_text(), "123459");
+}
+
+#[test]
+fn otp_repeated_overflow_and_selection_histories_never_reintroduce_hidden_text() {
+    let app = fixture();
+    app.set_text("123456".into());
+    app.invoke_select_code();
+    key(&app, &slint::SharedString::from(Key::RightArrow));
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_text(), "12345");
+    select_from_start(&app, 1, 0);
+    key(&app, "9");
+    assert_eq!(app.get_text(), "192345");
+    key(&app, "78");
+    assert_eq!(app.get_text(), "192345");
+    for _ in 0..8 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 6);
+    }
+    for _ in 0..32 {
+        app.invoke_select_code();
+        key(&app, "123456");
+        select_from_start(&app, 1, 2);
+        key(&app, "789");
+        for _ in 0..4 {
+            shortcut(&app, "z");
+            assert!(app.get_text().encode_utf16().count() <= 6);
+        }
+        for _ in 0..4 {
+            redo(&app);
+            assert!(app.get_text().encode_utf16().count() <= 6);
+        }
+        app.invoke_select_code();
+        key(&app, "12");
+        app.set_clipboard_text("3456789".into());
+        app.invoke_prepare_paste();
+        shortcut(&app, "v");
+        for _ in 0..4 {
+            shortcut(&app, "z");
+            redo(&app);
+            assert!(app.get_text().encode_utf16().count() <= 6);
+            assert_eq!(
+                code(&app).accessible_value().as_deref(),
+                Some(app.get_text().as_str())
+            );
+        }
+    }
+}
+
+#[test]
+fn otp_host_assignment_reduced_maximum_and_reset_notify_only_bounded_text() {
+    let app = fixture();
+    app.set_text("12345678".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_text(), "123456");
+    app.set_maximum(4);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_text(), "1234");
+    app.set_default_value("87654321".into());
+    app.invoke_reset_field();
+    assert_eq!(app.get_text(), "8765");
+    assert_eq!(app.get_last_edited(), "8765");
+    assert_eq!(code(&app).accessible_value().as_deref(), Some("8765"));
+}
+
+#[test]
+fn otp_waits_for_the_constraint_bridge_before_accepting_native_input() {
+    i_slint_backend_testing::init_no_event_loop();
+    let app = OtpFixture::new().unwrap();
+    app.show().unwrap();
+    app.invoke_focus_code();
+    key(&app, "12345678");
+    assert_eq!(app.get_text(), "");
+    kit_slint::init_form_validation!(ui, app);
+    key(&app, "123456");
+    key(&app, "78");
+    assert_eq!(app.get_text(), "123456");
+}
+
+#[test]
+fn otp_reentrant_host_text_assignment_is_bounded_before_semantic_notification() {
+    let app = fixture();
+    key(&app, "12");
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_edit_observed(move |_| {
+        if !once.replace(true) {
+            weak.upgrade().unwrap().set_text("12345678".into());
+        }
+    });
+    key(&app, "3");
+    assert_eq!(app.get_text(), "123456");
+    assert_eq!(app.get_semantic_value(), "123456");
+    for _ in 0..3 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 6);
+    }
+}
+
+#[test]
+fn otp_reentrant_lower_bound_cancels_native_overflow_before_semantic_notification() {
+    let app = fixture();
+    key(&app, "123");
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_edit_observed(move |_| {
+        if !once.replace(true) {
+            weak.upgrade().unwrap().set_maximum(3);
+        }
+    });
+    key(&app, "4");
+    assert_eq!(app.get_text(), "123");
+    assert_eq!(app.get_semantic_value(), "123");
+    for _ in 0..3 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 3);
+    }
+}
+
+#[test]
+fn otp_reentrant_bounded_replacement_cannot_leave_a_stale_native_undo_entry() {
+    let app = fixture();
+    key(&app, "123");
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_edit_observed(move |_| {
+        if !once.replace(true) {
+            weak.upgrade().unwrap().set_text("123".into());
+        }
+    });
+    key(&app, "4");
+    assert_eq!(app.get_text(), "123");
+    assert_eq!(app.get_semantic_value(), "123");
+    for _ in 0..3 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 6);
+    }
+}
+
+#[test]
+fn otp_semantic_callback_can_restore_previous_text_and_reduce_the_bound_safely() {
+    let app = fixture();
+    key(&app, "123");
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_value_observed(move |_| {
+        if !once.replace(true) {
+            let app = weak.upgrade().unwrap();
+            app.set_text("123".into());
+            app.set_maximum(3);
+        }
+    });
+    key(&app, "4");
+    assert_eq!(app.get_text(), "123");
+    for _ in 0..3 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 3);
+    }
+}
+
+#[test]
+fn otp_both_callbacks_can_change_text_and_bounds_in_one_native_transaction() {
+    let app = fixture();
+    key(&app, "123");
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_edit_observed(move |_| {
+        if !once.replace(true) {
+            weak.upgrade().unwrap().set_maximum(3);
+        }
+    });
+    let weak = app.as_weak();
+    let once = std::cell::Cell::new(false);
+    app.on_value_observed(move |value| {
+        if !once.replace(true) {
+            assert_eq!(
+                value, "123",
+                "the first callback's bound applies before this payload"
+            );
+            let app = weak.upgrade().unwrap();
+            app.set_text("12345678".into());
+            app.set_maximum(2);
+        }
+    });
+    key(&app, "4");
+    assert_eq!(app.get_text(), "12");
+    assert_eq!(code(&app).accessible_value().as_deref(), Some("12"));
+    for _ in 0..3 {
+        shortcut(&app, "z");
+        redo(&app);
+        assert!(app.get_text().encode_utf16().count() <= 2);
+    }
 }
 
 #[test]

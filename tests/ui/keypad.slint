@@ -5,11 +5,14 @@ import { KitTheme, KitThemes, KitKeypad, KitCodeIndicator, FieldAccess, ControlS
 // without the keypad holding them.
 export component KeypadFixture inherits Window {
     width: 520px; height: 720px;
+    background: root.theme.canvas;
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> light: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> can-confirm;
+    in property <length> available-width: 480px;
+    callback activation-started();
     in property <ControlSize> control-size: ControlSize.comfortable;
     in property <int> code-length: 4;
     in property <int> code-filled: 2;
@@ -28,9 +31,10 @@ export component KeypadFixture inherits Window {
         label: root.code-filled + " of " + root.code-length + " digits entered";
     }
     keypad := KitKeypad {
-        x: 20px; y: 80px; width: self.preferred-width; height: self.preferred-height;
+        x: 20px; y: 80px; width: min(root.available-width, self.preferred-width); height: self.preferred-height;
         theme: root.theme; control-size: root.control-size; access: root.access;
         label: "Access code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
+        activation-started => { root.activation-started(); }
         digit(value) => { root.digit-entered(value); }
         delete-requested => { root.deleted(); }
         confirm => { root.confirmed(); }

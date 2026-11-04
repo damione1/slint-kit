@@ -18,15 +18,17 @@ export component KitDialogSurface inherits Rectangle {
     callback focus-next(bool);
     visible: root.state.open;
     background: root.theme.scrim;
-    TouchArea {
-        // A modal consumes wheel events outside its panel. Scrollable panel
-        // descendants receive their own events first through normal hit testing.
-        scroll-event(event) => { return accept; }
-        clicked => {
-            if (root.state.topmost && !root.state.busy && root.dismiss-on-backdrop) { root.dismiss(CloseReason.outside-press); }
-        }
-    }
     FocusScope {
+        // Keep the scrim inside the focus scope so it receives the first
+        // pointer press instead of the scope consuming it to take focus.
+        TouchArea {
+            // A modal consumes wheel events outside its panel. Scrollable panel
+            // descendants receive their own events first through normal hit testing.
+            scroll-event(event) => { return accept; }
+            clicked => {
+                if (root.state.topmost && !root.state.busy && root.dismiss-on-backdrop) { root.dismiss(CloseReason.outside-press); }
+            }
+        }
         focus-on-tab-navigation: false;
         capture-key-pressed(event) => {
             if (root.state.topmost && root.tab-policy == DialogTabPolicy.host && (event.text == Key.Tab || event.text == Key.Backtab)) {

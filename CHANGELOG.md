@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.6.1
+
+No public signatures were removed and `ChoiceRow` is unchanged.
+
+- **OTP behavior change:** `KitOtpField` now uses `TextLengthPolicy.limit` to refuse edits exceeding `max-length` (default `slots`) in the actual native draft. Overlong paste and selection replacements are refused in full; existing text is retained. UTF-16 lengths never split a Unicode scalar. Native undo precedes restoration to avoid stale history offsets in Slint 1.18.1; refusal can discard undo/redo history and collapse selection. Edits within the limit retain native history. Strict input waits for `init_form_validation!`. `TextLengthPolicy.validate` restores validation-only behavior and remains the `KitTextField` default.
+
+- **Geometry change:** themed scroll viewports reserve stable scrollbar gutters by default, including hidden `as-needed` bars. `visible-width` and `visible-height` exclude the gutters; fit content to those dimensions. `KitScrollArea.overlay-scrollbars: true` restores overlay behavior.
+- Add opt-in `KitScrollArea.pan-policy: children-first` (`ScrollPanPolicy`) so nested drag controls retain gestures. Background/text drags pan directly without inertia; wheel, bars and focus reveal remain available. Default native arbitration is unchanged.
+- Dismiss dialogs on the first backdrop click or tap without leaking the press to background controls; preserve panel clicks and modal dismissal guards.
+- Ignore native keyboard events on disabled `KitSelectKeyboard`, including after focused controls become disabled. Preserve explicit `handle-key` delegation.
+
+- `KitSegmentedControl` gains token-keyed `ChoiceIcon` glyphs through `icons` and configurable horizontal `columns`, including 2×2. Selected focus uses contrasting on-accent ink; read-only selection uses neutral colors. Keyboard activation rejects absent, disabled and duplicate active tokens and fails closed before the required window initialization. The Rust `choice_token_enabled` projection helper exposes the same uniqueness/eligibility check for custom controls.
+- `KitButton` keeps its label centered with a leading or trailing icon, reserving equal side space in intrinsic sizing.
+- `KitSlider` honors explicit track, fill and handle brushes when disabled; uncustomized defaults still use disabled theme colors.
+- `KitSwitch` renders read-only tracks with neutral colors and a visible edge while preserving its checked position and keyboard inspection.
+- `KitKeypad` allows rectangular keys within 320px at 200% text and adds `activation-started()` for feedback before pointer/Space commit. Existing action callbacks keep their timing; a cancelled press may produce feedback without an action.
+
 ## 0.6.0
 
 0.6.0 adds home-automation primitives and changes the `Tone` and `KitIconSet` contracts; the compiler reports every site that must change.

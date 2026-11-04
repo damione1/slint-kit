@@ -56,7 +56,21 @@ macro_rules! init_form_validation {
             }
             count
         });
+        global.on_choice_enabled(|rows, token| {
+            use slint::Model as _;
+            $crate::choice_token_enabled(rows.iter().map(|row| (row.token, row.disabled)), token)
+        });
         global.on_numeric_insertion(|text| $crate::__core::html_numeric_insertion(text.as_str()));
+        global.on_limit_text_edit(|previous, edited, maximum| {
+            let maximum = usize::try_from(maximum).unwrap_or(usize::MAX);
+            let limited =
+                $crate::__core::limit_html_text_edit(previous.as_str(), edited.as_str(), maximum);
+            $ui::KitTextEdit {
+                text: limited.text.into(),
+                cursor_byte_offset: i32::try_from(limited.cursor_byte_offset)
+                    .expect("Slint text offset fits i32"),
+            }
+        });
         global.on_phone_insertion(|text| $crate::__core::phone_insertion(text.as_str()));
         #[cfg(target_arch = "wasm32")]
         let phone_paste_guard = {
