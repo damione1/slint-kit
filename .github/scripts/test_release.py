@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+import re
 import tarfile
 import tempfile
 import unittest
@@ -258,11 +259,14 @@ class ReleaseTests(unittest.TestCase):
         # Inspect the actual workflow, not the temporary crate fixture.
         workflow = (Path(__file__).resolve().parents[1] / 'workflows/release.yml').read_text()
         header, jobs = workflow.split('\njobs:\n', 1)
-        publish, later_jobs = jobs.split('\n  documentation:\n', 1)
+        match = re.search(r'(?ms)^  publish:\n.*?(?=^  \S|\Z)', jobs)
+        self.assertIsNotNone(match)
+        publish = match.group(0)
+        other_jobs = jobs.replace(publish, '', 1)
         self.assertIn('\npermissions:\n  contents: read\n', header)
         self.assertIn('\n    permissions:\n      contents: write\n', publish)
         self.assertEqual(workflow.count('contents: write'), 1)
-        self.assertNotIn('contents: write', later_jobs)
+        self.assertNotIn('contents: write', other_jobs)
         self.assertIn('GH_TOKEN: ${{ github.token }}', publish)
 
 
