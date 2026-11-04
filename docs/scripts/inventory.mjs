@@ -11,6 +11,7 @@ export const families = {
   field: { fr: 'Structure des formulaires', en: 'Form structure' },
   input: { fr: 'Saisie de texte', en: 'Text input' },
   number: { fr: 'Nombres et montants', en: 'Numbers and money' },
+  keypad: { fr: 'Pavés numériques et codes', en: 'Keypads and codes' },
   select: { fr: 'Sélection', en: 'Selection' },
   choice: { fr: 'Choix et valeurs', en: 'Choices and values' },
   calendar: { fr: 'Dates', en: 'Dates' },

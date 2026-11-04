@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use slint::ComponentHandle;
 use std::{cell::RefCell, rc::Rc};
-mod ui { slint::include_modules!(); }
+mod ui {
+    slint::include_modules!();
+}
 
 const CODE_LENGTH: usize = 4;
 // Example data: a real host checks the code where it is stored, never in the view.
@@ -12,7 +14,10 @@ const LOCKER_CODE: [Digit; CODE_LENGTH] = [Digit(2), Digit(4), Digit(6), Digit(8
 struct Digit(u8);
 impl Digit {
     fn parse(value: i32) -> Option<Self> {
-        u8::try_from(value).ok().filter(|digit| *digit <= 9).map(Self)
+        u8::try_from(value)
+            .ok()
+            .filter(|digit| *digit <= 9)
+            .map(Self)
     }
 }
 
@@ -33,7 +38,11 @@ fn main() -> Result<(), slint::PlatformError> {
     app.on_digit(move |value| {
         let Some(app) = weak.upgrade() else { return };
         let mut code = entered.borrow_mut();
-        if let Some(digit) = Digit::parse(value) && code.len() < CODE_LENGTH { code.push(digit); }
+        if let Some(digit) = Digit::parse(value)
+            && code.len() < CODE_LENGTH
+        {
+            code.push(digit);
+        }
         show(&app, &code, "");
     });
     let (weak, entered) = (app.as_weak(), code.clone());
@@ -47,7 +56,15 @@ fn main() -> Result<(), slint::PlatformError> {
     app.on_confirm(move || {
         let Some(app) = weak.upgrade() else { return };
         let mut code = entered.borrow_mut();
-        let status = if code.as_slice() == LOCKER_CODE { "Locker unlocked" } else { "Wrong code, try again" };
+        // Guard direct host calls too, independently of the disabled UI action.
+        if code.len() != CODE_LENGTH {
+            return;
+        }
+        let status = if code.as_slice() == LOCKER_CODE {
+            "Locker unlocked"
+        } else {
+            "Wrong code, try again"
+        };
         code.clear();
         show(&app, &code, status);
     });
