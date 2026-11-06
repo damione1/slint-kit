@@ -797,6 +797,7 @@ mod choice_presentation;
 mod keypad;
 mod otp_field;
 mod qa_polish;
+mod slider_paint;
 
 mod autonomous;
 mod keyed_model;

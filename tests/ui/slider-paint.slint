@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitTheme, KitThemes, ChoiceDirection, SliderPresentation, FieldAccess } from "@kit";
+
+export component SliderPaintFixture inherits Window {
+    width: 640px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <brush> paint: root.theme.accent;
+    out property <brush> gradient: @linear-gradient(45deg, root.theme.accent 0%, root.theme.danger 100%);
+    out property <brush> flat-gradient: @linear-gradient(45deg, root.theme.accent 0%, root.theme.accent 100%);
+    in property <float> fraction;
+    background: root.theme.canvas;
+    vertical := KitSlider {
+        x: 40px; y: 40px; width: 100px; height: 240px;
+        theme: root.theme; presentation: SliderPresentation.filled;
+        direction: ChoiceDirection.vertical; position: root.fraction;
+        fill-brush: root.paint; handle-brush: transparent;
+        label: "Vertical paint"; access: FieldAccess.read-only;
+    }
+    horizontal := KitSlider {
+        x: 200px; y: 40px; width: 240px; height: 100px;
+        theme: root.theme; presentation: SliderPresentation.filled;
+        position: root.fraction; fill-brush: root.paint; handle-brush: transparent;
+        label: "Horizontal paint"; access: FieldAccess.read-only;
+    }
+    // Reference brush boxes specify the existing gradient coordinate space:
+    // the value's partial extent, not the complete track.
+    Rectangle {
+        x: 200px; y: 180px; width: 240px; height: 100px;
+        background: root.theme.pressed;
+        Rectangle { x: 0px; y: 0px; width: parent.width * root.fraction; height: parent.height; background: root.paint; }
+    }
+    Rectangle {
+        x: 480px; y: 40px; width: 100px; height: 240px;
+        background: root.theme.pressed;
+        Rectangle { x: 0px; y: parent.height * (1 - root.fraction); width: parent.width; height: parent.height * root.fraction; background: root.paint; }
+    }
+    line := KitSlider {
+        x: 200px; y: 320px; width: 240px; height: 48px;
+        theme: root.theme; position: root.fraction;
+        fill-brush: root.paint; handle-brush: transparent;
+        label: "Line paint"; access: FieldAccess.read-only;
+    }
+}

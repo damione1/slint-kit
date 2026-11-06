@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix the rounded silhouette of filled `KitSlider` solid brushes in the Software renderer, including translucent colors and tiny values. Preserve gradient coordinates, line presentation, themes and interactions; rounded gradient clipping remains a Slint 1.18.1 Software limitation. No public API change.
+- Corrige la silhouette arrondie des brosses unies de `KitSlider` rempli dans le moteur Software, y compris les couleurs translucides et les petites valeurs. Les coordonnées des dégradés, la présentation linéaire, les thèmes et les interactions sont conservés ; le découpage arrondi des dégradés reste une limite de Slint 1.18.1 Software. Aucun changement d’API publique.
+
 ## 0.7.2
 
 - Present desktop and mobile Rust UI use cases consistently across GitHub, crates.io, docs.rs and the bilingual site. Document Android/iOS setup, desktop-only file dialogs and device qualification limits; clarify quality evidence and verify the generated AI documentation index.
