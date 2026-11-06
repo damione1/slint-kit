@@ -1023,6 +1023,12 @@ export component KitSlider inherits Rectangle {
     private property <bool> gesture-active;
     private property <bool> vertical: root.direction == ChoiceDirection.vertical;
     private property <bool> filled: root.presentation == SliderPresentation.filled;
+    // Preserve gradient coordinates on their original partial fill box. A
+    // solid brush can instead paint the complete rounded track behind a
+    // rectangular value viewport, including on renderers without radius clips.
+    private property <color> fill-color: root.fill-brush;
+    private property <brush> solid-fill-brush: root.fill-color;
+    private property <bool> solid-fill: root.fill-brush == root.solid-fill-brush;
     private property <bool> disabled: root.access == FieldAccess.disabled;
     // The extent across the travel axis. A filled slider is a touch target
     // in its own right, so it is at least twelve spacing units thick in
@@ -1067,7 +1073,20 @@ export component KitSlider inherits Rectangle {
         border-radius: root.filled ? min(root.theme.shape.radius-container, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
         clip: root.filled;
         background: root.track-brush;
-        Rectangle {
+        if root.filled && root.solid-fill: Rectangle {
+            x: 0px;
+            y: root.vertical ? track.height * (1 - root.fraction) : 0px;
+            width: root.vertical ? track.width : track.width * root.fraction;
+            height: root.vertical ? track.height * root.fraction : track.height;
+            clip: true;
+            Rectangle {
+                x: -parent.x; y: -parent.y;
+                width: track.width; height: track.height;
+                border-radius: track.border-radius;
+                background: root.fill-brush;
+            }
+        }
+        if !root.filled || !root.solid-fill: Rectangle {
             x: 0px;
             y: root.vertical ? parent.height * (1 - root.fraction) : 0px;
             width: root.vertical ? parent.width : parent.width * root.fraction;
