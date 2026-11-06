@@ -850,3 +850,140 @@ mod html_numeric_drafts {
         );
     }
 }
+
+/// An exact decimal lattice used by both slider thumbs. Floating point appears
+/// only at the renderer boundary; all accepted values remain decimal multiples.
+#[derive(Clone, Copy, Debug)]
+pub struct DecimalSlider {
+    minimum: DecimalValue,
+    maximum: DecimalValue,
+    step: DecimalValue,
+}
+impl DecimalSlider {
+    pub fn new(
+        minimum: DecimalValue,
+        maximum: DecimalValue,
+        step: DecimalValue,
+    ) -> Result<Self, ParseIssue> {
+        if minimum >= maximum || step <= DecimalValue::ZERO {
+            return Err(ParseIssue::InvalidRange);
+        }
+        maximum.checked_sub(minimum)?;
+        Ok(Self {
+            minimum,
+            maximum,
+            step,
+        })
+    }
+    pub fn minimum(self) -> DecimalValue {
+        self.minimum
+    }
+    pub fn maximum(self) -> DecimalValue {
+        self.maximum
+    }
+    pub fn validate(self, value: DecimalValue) -> Result<DecimalValue, ParseIssue> {
+        if value < self.minimum {
+            return Err(ParseIssue::BelowMinimum);
+        }
+        if value > self.maximum {
+            return Err(ParseIssue::AboveMaximum);
+        }
+        let offset = value.checked_sub(self.minimum)?;
+        if offset
+            .0
+            .checked_rem(self.step.0)
+            .ok_or(ParseIssue::Overflow)?
+            != Decimal::ZERO
+        {
+            return Err(ParseIssue::InvalidRange);
+        }
+        Ok(value)
+    }
+    pub fn position(self, value: DecimalValue) -> Result<f32, ParseIssue> {
+        use rust_decimal::prelude::ToPrimitive;
+        self.validate(value)?;
+        value
+            .checked_sub(self.minimum)?
+            .0
+            .checked_div(self.maximum.checked_sub(self.minimum)?.0)
+            .and_then(|value| value.to_f32())
+            .ok_or(ParseIssue::Overflow)
+    }
+    pub fn at_position(self, position: f32) -> Result<DecimalValue, ParseIssue> {
+        if !position.is_finite() {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        let fraction = Decimal::from_str(&position.clamp(0.0, 1.0).to_string())
+            .map_err(|_| ParseIssue::InvalidSyntax)?;
+        let span = self.maximum.checked_sub(self.minimum)?.0;
+        let projected = span
+            .checked_mul(fraction)
+            .and_then(|value| value.checked_div(self.step.0))
+            .ok_or(ParseIssue::Overflow)?;
+        let maximum_steps = span
+            .checked_div(self.step.0)
+            .ok_or(ParseIssue::Overflow)?
+            .floor();
+        let steps = projected.round().min(maximum_steps);
+        self.minimum
+            .checked_add(DecimalValue(steps).checked_mul(self.step)?)
+    }
+    pub fn navigate(
+        self,
+        value: DecimalValue,
+        direction: crate::NavigationStep,
+    ) -> Result<DecimalValue, ParseIssue> {
+        self.validate(value)?;
+        let delta = match direction {
+            crate::NavigationStep::First => return Ok(self.minimum),
+            crate::NavigationStep::Last => return self.at_position(1.0),
+            crate::NavigationStep::Next => self.step,
+            crate::NavigationStep::Previous => DecimalValue::ZERO.checked_sub(self.step)?,
+            crate::NavigationStep::PageNext => {
+                self.step.checked_mul(DecimalValue::from_integer(10))?
+            }
+            crate::NavigationStep::PagePrevious => {
+                self.step.checked_mul(DecimalValue::from_integer(-10))?
+            }
+        };
+        let next = value.checked_add(delta)?;
+        if next < self.minimum {
+            Ok(self.minimum)
+        } else if next > self.maximum {
+            self.at_position(1.0)
+        } else {
+            Ok(next)
+        }
+    }
+}
+
+#[cfg(test)]
+mod slider_tests {
+    use super::*;
+    #[test]
+    fn pointer_rounding_and_navigation_keep_decimal_lattice_exact() {
+        let slider = DecimalSlider::new(
+            "0.1".parse().unwrap(),
+            "0.95".parse().unwrap(),
+            "0.2".parse().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(slider.at_position(1.0).unwrap(), "0.9".parse().unwrap());
+        assert_eq!(slider.at_position(0.26).unwrap(), "0.3".parse().unwrap());
+        assert_eq!(
+            slider
+                .navigate("0.3".parse().unwrap(), crate::NavigationStep::Next)
+                .unwrap(),
+            "0.5".parse().unwrap()
+        );
+        assert!(slider.at_position(f32::NAN).is_err());
+        assert!(slider.validate("0.2".parse().unwrap()).is_err());
+        let huge = DecimalSlider::new(
+            DecimalValue::ZERO,
+            "79228162514264337593543950335".parse().unwrap(),
+            "0.0000000000000000000000000001".parse().unwrap(),
+        )
+        .unwrap();
+        assert!(huge.at_position(0.5).is_err());
+    }
+}

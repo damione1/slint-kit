@@ -1,7 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitNavigationAction, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitNavigationAction, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -16,7 +16,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Action de navigation"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitNavigationAction { theme: root.theme; option-data: { token: 11, generation: 1, label: "Vue d’ensemble du projet", description: "Ouvrir les détails du projet", disabled: false }; selected: true; activate(token, generation) => { root.status = "Activation demandée pour l’identifiant stable " + token; } }
+        KitNavigationAction { theme: root.theme; tab-stop: true; accessible-role: button; option-data: { token: 11, generation: 1, label: "Vue d’ensemble du projet", description: "Ouvrir les détails du projet", disabled: false }; selected: true; chosen(row) => { root.status = "Choisi : " + row.label; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

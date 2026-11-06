@@ -3,8 +3,10 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 These previews compile the documented Rust and Slint applications to WebAssembly.
 Corresponding application and build sources are linked separately as Source in the preview footer.
-The documentation browser build includes the kit's browser-compatible monotonic
-clock correction. Downloadable native projects pin the published Slint Kit version declared by their Cargo.toml.
+The shared browser build includes all interactive starters and the English and
+French catalogue fixtures. Its URL selects a component and presentation at runtime.
+The source archive includes the exact kit implementations used by the module.
+Its Cargo manifests identify the matching kit and dependency versions.
 
 Slint 1.18.1: Copyright © SixtyFPS GmbH and contributors.
 Used here under GPL-3.0-only, one of Slint's available licenses.
@@ -29,3 +31,9 @@ set CARGO_TARGET_DIR=target for the final command above. Install the exact
 wasm-bindgen-cli version 0.2.129. Cargo downloads the source registry dependencies
 identified by the lockfile. The archive's root workspace lists library crates;
 its omitted showcase/test workspace members are not required by the preview.
+
+The browser distribution transports that one module as a gzip asset. loader.js
+is the small, original transport wrapper; the wasm-bindgen bindings remain
+unmodified. A browser with DecompressionStream support decompresses the module
+before instantiating it. The component, locale and presentation remain runtime
+parameters and do not select separately compiled binaries.

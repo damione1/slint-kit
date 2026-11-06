@@ -1,10 +1,10 @@
 mod workspace;
 // SPDX-License-Identifier: GPL-3.0-or-later
-use kit::{
+use slint::{ComponentHandle, Model};
+use slint_kit::{
     CloseResult, DismissReason, FocusDirection, FocusHandle, FocusId, FocusRegistry, FocusScopeId,
     OverlayId, OverlaySpec, OverlayStack, Ownership, SelectOption,
 };
-use slint::{ComponentHandle, Model};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc, time::Duration};
 
 mod application_icon;
@@ -17,6 +17,7 @@ mod form_files;
 mod form_schedule;
 
 mod ui {
+    pub use slint_kit::ui::*;
     slint::include_modules!();
 }
 use ui::*;
@@ -318,14 +319,22 @@ fn preview_invalid(window: &Showcase) {
         }
         ShowcasePage::Schedule => {
             form.set_date_text("2026-02-29".into());
-            form.invoke_date_commit(DateExample::Date, "2026-02-29".into());
-            form.set_zone_date_text("2026-03-08".into());
-            form.set_zone_time_text("02:30".into());
-            form.invoke_zone_resolve(ZonedDateTimeDraft {
-                date: "2026-03-08".into(),
-                time: "02:30".into(),
-                zone: "America/Toronto".into(),
-            });
+            form.invoke_date_commit(
+                DateExample::Date,
+                FieldCommit {
+                    value: FieldValue {
+                        present: true,
+                        text: "2026-02-29".into(),
+                    },
+                    constraints: KitInputConstraints {
+                        kind: HtmlInputKind::Date,
+                        min_length: -1,
+                        max_length: -1,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            );
         }
         ShowcasePage::Files => {
             form.invoke_color_hex_commit("#4F".into());
@@ -546,7 +555,7 @@ fn main() -> Result<(), slint::PlatformError> {
         std::process::exit(2)
     });
     let window = Showcase::new()?;
-    kit::init_form_validation!(ui, window);
+    slint_kit::install(&window);
     application_icon::install()?;
     form_fields::install(&window);
     form_choices::install(&window);
@@ -565,24 +574,24 @@ fn main() -> Result<(), slint::PlatformError> {
         ));
     }
     window.on_place_popup(|anchor, viewport| {
-        let placement = kit::place_popup(
-            kit::Rect {
+        let placement = slint_kit::place_popup(
+            slint_kit::Rect {
                 x: anchor.x,
                 y: anchor.y,
                 width: anchor.width,
                 height: anchor.height,
             },
-            kit::Size {
+            slint_kit::Size {
                 width: 438.0,
                 height: 380.0,
             },
-            kit::Rect {
+            slint_kit::Rect {
                 x: 0.0,
                 y: 0.0,
                 width: viewport.width,
                 height: viewport.height,
             },
-            kit::Insets {
+            slint_kit::Insets {
                 top: 24.0,
                 right: 24.0,
                 bottom: 24.0,
@@ -600,7 +609,8 @@ fn main() -> Result<(), slint::PlatformError> {
     let session = Rc::new(RefCell::new(Session::new()));
     session.borrow().publish(&window);
     let dialog_selection = Rc::new(RefCell::new(None));
-    let select = kit::bind_select!(ui, window, dataset(), Some(PersonId(42)), Ownership::Local);
+    let select =
+        slint_kit::bind_select!(ui, window, dataset(), Some(PersonId(42)), Ownership::Local);
     diagnostics(&window, &session.borrow(), select.selected(), 10_000);
 
     let weak = window.as_weak();
@@ -880,12 +890,12 @@ fn main() -> Result<(), slint::PlatformError> {
                     session.focus.set_eligible(handle, true);
                 }
             }
-            if !(kit::HtmlConstraints {
+            if !(slint_kit::HtmlConstraints {
                 required: true,
                 min_length: Some(3),
                 ..Default::default()
             })
-            .validate(&name, kit::HtmlInputState::default())
+            .validate(&name, slint_kit::HtmlInputState::default())
             .valid()
             {
                 session.validation = ValidationState::Failed;

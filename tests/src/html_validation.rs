@@ -9,7 +9,7 @@ use std::{cell::Cell, rc::Rc};
 fn fixture() -> ui::HtmlFixture {
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::HtmlFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.show().unwrap();
     slint::platform::update_timers_and_animations();
     view
@@ -134,7 +134,7 @@ fn selected_values_and_in_place_radio_model_changes_update_required_constraints(
     use slint::{Model, ModelRc, VecModel};
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::HtmlChoiceFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.show().unwrap();
     assert!(view.get_checkbox_validity().value_missing);
     view.set_checked(ui::CheckState::Checked);
@@ -174,7 +174,7 @@ fn submit_validates_but_explicit_novalidate_and_reset_preserve_web_semantics() {
     use slint::platform::PointerEventButton;
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::HtmlChoiceFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.show().unwrap();
     let submitted = Rc::new(Cell::new(0));
     let count = submitted.clone();
@@ -241,7 +241,7 @@ fn a_second_at_or_unsupported_email_character_is_visible_before_blur() {
 fn date_picker_temporal_groups_and_hex_fields_expose_real_constraints() {
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::HtmlTemporalFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.show().unwrap();
     view.set_date_text("2026-10-27".into());
     assert!(view.get_date_validity().range_underflow);
@@ -269,7 +269,7 @@ fn calendar_bounds_and_steps_guard_keyboard_selection_without_rewriting_the_mode
     use slint::{ModelRc, VecModel};
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::HtmlTemporalFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.set_days(ModelRc::new(VecModel::from(
         (27..=29)
             .map(|day| ui::CalendarDay {

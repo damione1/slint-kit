@@ -3,6 +3,7 @@ import { HtmlInputKind, FieldAccess, NumberInputFormat } from "shared-contracts.
 export { HtmlInputKind } from "shared-contracts.slint";
 import { ChoiceRow } from "contracts.slint";
 export enum ValidationTiming { on-blur, on-input, on-submit }
+export struct KitTextEdit { text: string, cursor-byte-offset: int }
 export struct KitValidityState {
     valid: bool, value-missing: bool, type-mismatch: bool, pattern-mismatch: bool,
     too-long: bool, too-short: bool, range-underflow: bool, range-overflow: bool,
@@ -26,6 +27,8 @@ export global KitFormValidation {
 
     pure callback valid-time-zone(string) -> bool;
     pure callback count-selected([ChoiceRow]) -> int;
+    pure callback choice-enabled([ChoiceRow], int) -> bool;
+    pure callback limit-text-edit(string, string, int) -> KitTextEdit;
     pure callback numeric-insertion(string) -> bool;
     pure callback phone-insertion(string) -> bool;
     pure callback phone-paste(string) -> bool;
@@ -68,14 +71,15 @@ export component FormConstraintState inherits Rectangle {
     in property <string> step-message: "Please enter a value matching the requested step.";
     in property <string> bad-input-message: "Please enter a valid value.";
     out property <bool> validation-ready: KitFormValidation.ready;
-    private property <KitValidationResult> result: KitFormValidation.ready ? KitFormValidation.evaluate({
+    out property <KitInputConstraints> constraints: {
         kind: root.kind, number-format: root.number-format, twelve-hour: root.twelve-hour, required: root.required, multiple: root.multiple,
         min-length: root.min-length, max-length: root.max-length,
         pattern: root.pattern, pattern-enabled: root.pattern-enabled,
         min: root.min, max: root.max, step: root.step, default-value: root.default-value,
         custom-error: root.custom-validity, disabled: root.access == FieldAccess.disabled,
         read-only: root.access == FieldAccess.read-only,
-    }, root.text, root.dirty, root.checked, root.selected-count) : {
+    };
+    private property <KitValidationResult> result: KitFormValidation.ready ? KitFormValidation.evaluate(root.constraints, root.text, root.dirty, root.checked, root.selected-count) : {
         validity: {valid: false, bad-input: true}, value: root.text, will-validate: false,
     };
     out property <KitValidityState> validity: root.result.validity;

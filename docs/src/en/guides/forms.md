@@ -5,81 +5,58 @@ title: "Forms, shared options and validation"
 translationKey: "guides/forms/"
 permalink: "{{ 'guides/forms/' | localeUrl(locale) }}index.html"
 ---
+
 # Forms, shared options and validation
 
-Choose a field, then set its options:
+Set up the application once using [Project setup](/guides/project-setup/). Import controls from `@kit` and call `slint_kit::install(&app)` before showing each window. This installs pure shared services; fields, calendars and selections keep their own instance state. Repeated installation is harmless. These APIs target Slint Kit **{{ project.version }}**; use matching runtime and build packages.
 
 ```slint
-KitEmailField {
-    label: "Work email";
-    required: true;
-    pattern: ".+@example\\.com";
-    pattern-message: "Use your example.com address.";
+import { KitEmailField, FieldCommit } from "@kit";
+export component App inherits Window {
+    callback contact-changed(FieldCommit);
+    KitEmailField {
+        label: "Work email";
+        required: true;
+        spec-key: "contact";
+        committed(value) => { root.contact-changed(value); }
+    }
 }
 ```
 
-Fields already include `label`, `description` and `error`. [KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are primitives for custom composition. Their pages list compatible controls; each reference also shows inherited properties.
-
-## Initialize validation
-
-The complete projects install the engine once per window. Export these types from your root Slint file, then initialize the Rust engine:
-
-```slint
-export { KitFormValidation, HtmlInputKind, NumberInputFormat,
-    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-```
+Register the domain codec once and guard the Rust boundary too:
 
 ```rust
-// After App::new(), before app.run().
-slint_kit::init_form_validation!(self, app);
-```
-
-If generated code lives in `mod ui`, use `init_form_validation!(ui, app)`. Without initialization, `validation-ready` stays false and validity checks fail. The [email](/components/email-field/), [URL](/components/url-field/) and [text field](/components/text-field/) projects contain all files.
-
-## Choose constraints
-
-| Option | Purpose |
-| --- | --- |
-| `required` | Reject an empty value or a missing required selection. |
-| `multiple` | Accept comma-separated email addresses. |
-| `min-length`, `max-length` | Text length in UTF-16 code units; `-1` removes the limit. The native draft remains editable. |
-| `pattern`, `pattern-message` | ECMAScript `v` regex, matching the whole value. |
-| `min`, `max`, `step` | Canonical number/date/time bounds and steps; `step: "any"` removes the step constraint. |
-| `default-value` | Reset value and step base when `min` is absent. |
-| `validation-timing` | Defaults to `on-blur`; also `on-input` and `on-submit`. |
-| `custom-validity` | Application error; an empty string clears it. |
-
-An incomplete email shows an error on blur. A second `@` or an unsupported character reveals it while typing. HTML accepts `name@machine`: the domain does not require a dot. URLs must be absolute; `https://example.comddf.dofmo@` is invalid, while `mailto:a@example.com` is valid. Validation does not establish that a mailbox or website exists. [HTML email and URL rules](https://html.spec.whatwg.org/multipage/input.html).
-
-`validity` exposes independent flags; `value` is canonical and `text` preserves the native draft. `check-validity()` checks; `report-validity()` also reveals the error and focuses the control. Disabled controls and read-only text fields are excluded. [HTML form validation](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
-
-## Guard the accepted value in Rust
-
-A visual error does not replace validation before accepting a value. The examples configure matching `FieldBinding` constraints:
-
-```rust
-field.set_html_constraints(slint_kit::HtmlConstraints {
-    kind: slint_kit::HtmlInputKind::Email,
-    required: true,
-    pattern: Some(slint_kit::HtmlPattern::compile(r".+@example\.com").expect("valid application pattern")),
-    ..Default::default()
+let app = App::new()?;
+slint_kit::install(&app);
+let spec = slint_kit::FieldSpec::email();
+slint_kit::install_field_specs(&app, [
+    spec.named(slint_kit::FieldSpecKey::new("contact").unwrap())
+]).unwrap();
+app.on_contact_changed(move |commit| {
+    if let Ok(Some(address)) = spec.accept(commit) {
+        println!("Contact: {}", spec.format(&address));
+    }
 });
 ```
 
-The engine checks before the domain parser, which receives the normalized value. An invalid draft cannot replace the last accepted value. For several fields, use `HtmlFormValidation<FieldKey>` and `first_invalid()`, or connect `KitSubmitButton.validation-requested`. `form-no-validate` bypasses this guard; reset never submits.
+The HTML constraint engine enforces intrinsic email, URL, numeric, date and other input rules, including `required`, bounds, lengths, pattern and step. Nonempty text is insufficient for email or URL. A custom codec adds domain rules after those shared constraints. `FieldSpec::accept` returns the parsed value; pass that value to business code instead of parsing it again. Do not replace native editing with host-side string rewriting.
 
-## Mask or regex
+## Drafts and acceptance
 
-A [mask](/components/masked-field/) guides a fixed structure. A regex validates without rewriting the draft. For example, `pattern: "[A-Z]{3}-[0-9]{4}"` accepts `ABC-1234`, rejects `abc-1234` and rejects `XABC-1234`. This is a shared option, not another component.
+`text` remains the native editing draft, including incomplete values. `field-state` exposes accepted value, draft, dirty/touched flags and the last transition; `accepted-text` projects the last accepted text. `committed(FieldCommit)` contains the candidate and the constraints under which it was accepted. A named codec key is application data, independent of visual position.
 
-HTML does not apply `pattern` to `textarea`. For a multiline rule, use `HtmlPattern` in Rust and report the result through `custom-validity`. Invalid patterns impose no constraint, as in HTML; `pattern-error` exposes the diagnostic. `pattern-enabled: true` distinguishes an explicit empty pattern from no pattern. [HTML pattern attribute](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
+`commit-policy` defaults to `CommitPolicy.on-blur`. Choose `on-submit` or `on-change-when-valid` when appropriate. `commit()` reports validity and requests acceptance, `cancel-edit()` restores the last accepted draft, and `reset-field()` restores `default-value` and validation state. `ownership: Ownership.controlled` emits proposals; acknowledge accepted host values explicitly with `acknowledge(FieldValue)`. The typed [controllers guide](/guides/controllers/) covers custom codecs and exact decimals.
 
-## Compose and extend
+`access: FieldAccess.read-only` retains native text selection and prevents acceptance. Disabled controls reject interaction. Native caret, selection, undo and IME stay in the underlying TextInput. Headless tests exercise public input paths; they do not qualify physical keyboards, composition engines or screen readers on every platform.
 
-Keep the native editor for caret, selection and history. Themes, labels, messages, prefixes and suffixes remain customizable. For another skin, import the nonvisual `FormConstraintState` from `@kit/validation.slint`. Business rules, exact money, masks, OTP alphabets and zone resolution remain in typed controllers. [Controllers](/guides/controllers/).
+## Shared options and composition
 
-The kit provides native validation based on HTML. HTTP form transport, browser autofill and platform-specific keyboards need host integration; color controls retain their typed sRGB model.
+Fields already include `label`, `description`, `error`, validation and accessible naming. `leading-icon` and `trailing-icon` are decorative `IconGlyph` values; they do not replace a textual accessible name. Presentation options such as `decoration`, `corner-radius`, padding and text size preserve the native editor and shared validation.
 
-For [one-time codes](/components/otp-field/), set `slots` and a complete-draft `pattern` such as `[A-Za-z0-9]*`; guard Rust acceptance with the same `OtpRules` and `HtmlPattern`. For a read-only masked view use `input-type: InputType.password` with `access: FieldAccess.read-only`; editable password undo has a known Slint 1.18.1 failure after a shorter selection replacement. Slot bounds validate excess input; Slint 1.18.1 does not expose a public hook to enforce a hard limit while preserving native selection, history and composition. `ValidationTiming.on-submit` lets incomplete drafts wait until acceptance.
+[KitFieldLabel](/components/field-label/), [KitFieldDescription](/components/field-description/) and [KitFieldError](/components/field-error/) are composition primitives for custom layouts. Their compatibility links come from actual inherited APIs. They do not supply an editor, domain parsing or an independent validation controller. `KitInputGroup` and its start/end/text parts arrange an existing field.
 
-Optional grouping uses inherited `display-text`: store `FG76657` with seven slots and pattern `[A-Z]{2}[0-9]{5}`, then project `FG‑76657` only at rest. The example groups accepted values, shows raw drafts while focused and expects raw paste without a separator. Grouping and the read-only masked view are independent options.
+## Submit and reset
+
+`KitSubmitButton` and `KitFormButton` express form actions. Before dispatching a submission, call each field's `report-validity()` and focus the first invalid field. The Rust command must also accept checked domain values or validate its incoming payload; a disabled button is not a submission guard. Form examples keep the command and domain validation in Rust. `KitResetButton` invokes the application's reset action, which calls field resets and clears business state deliberately.
+
+Calendar/date-range composites validate availability as well as HTML bounds. The time-zone field refuses nonexistent times and asks for an explicit occurrence when clocks repeat. Its accepted `ZonedDateTimeCommit` converts to `ResolvedDateTime`; no time zone is inferred from a local date-time.

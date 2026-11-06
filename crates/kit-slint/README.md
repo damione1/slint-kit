@@ -5,7 +5,7 @@ Public Slint components, model projections and weak-window Rust adapters for [Sl
 Applications normally use the [`slint-kit` facade](https://crates.io/crates/slint-kit) and [`slint-kit-build`](https://crates.io/crates/slint-kit-build). The build helper registers the installed library as `@kit`:
 
 ```slint
-import { KitButton, KitTextField } from "@kit/kit.slint";
+import { KitButton, KitTextField } from "@kit";
 ```
 
 Rust 1.92 or later and Slint 1.18.1 are required. The default `adapter` feature exposes Rust bindings; disabling it leaves the installed Slint library available to build tools without a UI runtime.
@@ -22,8 +22,7 @@ which is also the target of [W3C's HTML reference](https://www.w3.org/TR/html/).
 Export the validation global and its boundary types from the application UI:
 
 ```slint
-export { KitFormValidation, HtmlInputKind, NumberInputFormat,
-    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
 ```
 
 Install the Rust engine once per window, before showing it:
@@ -31,7 +30,7 @@ Install the Rust engine once per window, before showing it:
 ```rust
 mod ui { slint::include_modules!(); }
 // In main, after constructing the window:
-slint_kit::init_form_validation!(ui, window);
+slint_kit::install(&window);
 ```
 
 Use the facade's actual dependency name (`slint_kit` for a registry application;
@@ -130,7 +129,7 @@ have not been narrowed globally.
 
 Every component uses the shipped Tailwind presentation by default. Compile
 through `slint_kit_build::compile("ui/app.slint")` and import the public
-`@kit/kit.slint` library. `KitThemes.light` and `.dark` provide complete themes,
+`@kit` library. `KitThemes.light` and `.dark` provide complete themes,
 including semantic colors, spacing, elevation and Lucide icon roles.
 
 The theme embeds no font. Import `{ InterFont }` from

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![forbid(unsafe_code)]
 //! Weak-window friendly field bindings. Native TextInput remains the editor.
 use kit_core::{
     AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldAccess, FieldController,
@@ -6,6 +7,27 @@ use kit_core::{
     ParseIssue, ValidationGeneration, ValidationPresentation, ValidationState, grapheme_count,
 };
 use std::{cell::RefCell, rc::Rc};
+
+impl From<FieldAccess> for crate::ui::FieldAccess {
+    fn from(value: FieldAccess) -> Self {
+        match value {
+            FieldAccess::Editable => Self::Editable,
+            FieldAccess::ReadOnly => Self::ReadOnly,
+            FieldAccess::Disabled => Self::Disabled,
+        }
+    }
+}
+
+impl From<ValidationPresentation> for crate::ui::ValidationPresentation {
+    fn from(value: ValidationPresentation) -> Self {
+        match value {
+            ValidationPresentation::Pristine => Self::Pristine,
+            ValidationPresentation::Checking => Self::Checking,
+            ValidationPresentation::Valid => Self::Valid,
+            ValidationPresentation::Invalid => Self::Invalid,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FieldProjection {
@@ -472,7 +494,7 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
         }
     }
 }
-fn failure_message(failure: FieldFailure) -> &'static str {
+pub(crate) fn failure_message(failure: FieldFailure) -> &'static str {
     match failure {
         FieldFailure::AccessDenied => "This field cannot be edited.",
         FieldFailure::MissingValue => "Enter a value.",

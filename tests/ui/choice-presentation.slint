@@ -1,0 +1,119 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitSlider, KitSegmentedControl, KitChipButton, KitBadge, KitSwitch, KitGlyphs, ChoiceRow, ChoiceIcon, ChoiceDirection, ChoiceFlow, SliderPresentation, FieldAccess, NavigationStep, ControlSize, Tone } from "@kit";
+
+// Vertical and filled sliders, a vertical segmented control, a chip button
+// and an information badge, placed at fixed coordinates.
+export component ChoicePresentationFixture inherits Window {
+    width: 720px; height: 640px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <float> level: 0.7;
+    in property <Tone> chip-tone: Tone.information;
+    in property <bool> chip-selected;
+    in property <bool> chip-disabled;
+    in property <ControlSize> chip-size: ControlSize.compact;
+    in property <bool> chip-checkable: true;
+    in property <int> chip-token: 7;
+    in property <int> chip-generation: 1;
+    in property <Tone> badge-tone: Tone.information;
+    in property <[ChoiceRow]> speeds: [
+        { token: 31, label: "Low", disabled: false, selected: true },
+        { token: 32, label: "Medium", disabled: false, selected: false },
+        { token: 33, label: "High", disabled: false, selected: false },
+    ];
+    in property <int> speed-active: 31;
+    in property <length> speed-width: 200px;
+    in property <ChoiceDirection> speed-direction: ChoiceDirection.vertical;
+    in property <ChoiceFlow> speed-flow: ChoiceFlow.left-to-right;
+    in property <int> speed-columns: max(1, root.speeds.length);
+    in property <[ChoiceIcon]> speed-icons;
+    in property <bool> custom-slider-paints;
+    in property <bool> switch-checked: true;
+    callback switch-toggled(bool);
+
+    out property <length> line-cross: line-vertical.preferred-width;
+    out property <length> line-travel-minimum: line-vertical.min-height;
+    out property <length> filled-cross: filled-horizontal.preferred-height;
+    out property <length> filled-min-cross: filled-horizontal.min-height;
+    out property <length> squeezed-height: squeezed.height;
+    // Where a medium line slider's travel starts: the thumb centre's limit.
+    out property <length> line-edge: KitThemes.choice-recipe(root.theme, ControlSize.medium).slider-thumb-size / 2 + KitThemes.choice-recipe(root.theme, ControlSize.medium).thumb-inset;
+    out property <brush> filled-track: filled-horizontal.track-brush;
+    out property <brush> filled-fill: filled-horizontal.fill-brush;
+    out property <brush> filled-handle: filled-horizontal.handle-brush;
+    out property <brush> chip-background: chip.background;
+    out property <brush> chip-border: chip.border-color;
+    out property <length> chip-border-width: chip.border-width;
+    out property <length> chip-preferred-width: chip.preferred-width;
+    out property <length> chip-height: chip.height;
+    out property <length> chip-min-height: chip.min-height;
+    out property <brush> badge-background: badge.background;
+    out property <brush> badge-border: badge.border-color;
+    callback position-requested(string, float);
+    callback navigated(string, NavigationStep);
+    callback speed-navigate(NavigationStep);
+    callback speed-activate(int, int);
+    callback chip-activated();
+    callback chip-activate(int, int);
+    public function focus-line-vertical() { line-vertical.take-focus(); }
+    public function focus-speeds() { speeds.take-focus(); }
+    public function focus-chip() { chip.take-focus(); }
+
+    line-vertical := KitSlider {
+        x: 20px; y: 20px; width: self.preferred-width; height: 240px;
+        theme: root.theme; access: root.access;
+        direction: ChoiceDirection.vertical;
+        label: "Vertical level"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("line-vertical", value); }
+        navigate(step) => { root.navigated("line-vertical", step); }
+    }
+    filled-vertical := KitSlider {
+        x: 120px; y: 20px; width: 120px; height: 240px;
+        theme: root.theme; access: root.access;
+        direction: ChoiceDirection.vertical; presentation: SliderPresentation.filled;
+        label: "Filled level"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("filled-vertical", value); }
+        navigate(step) => { root.navigated("filled-vertical", step); }
+    }
+    filled-horizontal := KitSlider {
+        x: 20px; y: 300px; width: 320px; height: self.preferred-height;
+        theme: root.theme; access: root.access;
+        presentation: SliderPresentation.filled;
+        track-brush: root.custom-slider-paints ? #135724 : root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.theme.pressed;
+        fill-brush: root.custom-slider-paints ? #246813 : root.access == FieldAccess.disabled ? root.theme.pressed : root.theme.accent;
+        handle-brush: root.custom-slider-paints ? #f5a9c8 : root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.on-accent;
+        label: "Filled width"; value-label: "70 percent"; position: root.level;
+        position-requested(value) => { root.position-requested("filled-horizontal", value); }
+        navigate(step) => { root.navigated("filled-horizontal", step); }
+    }
+    speeds := KitSegmentedControl {
+        x: 400px; y: 20px; width: root.speed-width; height: self.preferred-height;
+        theme: root.theme; access: root.access;
+        direction: root.speed-direction; flow: root.speed-flow; columns: root.speed-columns; icons: root.speed-icons;
+        label: "Speed"; rows: root.speeds; active-token: root.speed-active; generation: 3;
+        navigate(step) => { root.speed-navigate(step); }
+        activate(token, generation) => { root.speed-activate(token, generation); }
+    }
+    chip := KitChipButton {
+        x: 400px; y: 300px; width: self.preferred-width; height: self.preferred-height;
+        theme: root.theme; control-size: root.chip-size;
+        label: "Open orders"; glyph: KitGlyphs.check();
+        tone: root.chip-tone; selected: root.chip-selected; disabled: root.chip-disabled;
+        checkable: root.chip-checkable; token: root.chip-token; generation: root.chip-generation;
+        // Binding `activated` here would replace the chip's identity report.
+        activate(token, generation) => { root.chip-activated(); root.chip-activate(token, generation); }
+    }
+    // A horizontal filled slider squeezed by a layout far shorter than it.
+    VerticalLayout {
+        x: 20px; y: 400px; width: 320px; height: 8px;
+        squeezed := KitSlider {
+            theme: root.theme; presentation: SliderPresentation.filled;
+            label: "Squeezed width"; value-label: "70 percent"; position: root.level;
+        }
+    }
+    KitSwitch { x: 400px; y: 470px; width: 250px; height: self.preferred-height; theme: root.theme; access: root.access; checked: root.switch-checked; label: "Power"; toggled(value) => { root.switch-toggled(value); } }
+    badge := KitBadge { x: 400px; y: 400px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Scheduled"; tone: root.badge-tone; }
+}

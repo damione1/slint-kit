@@ -1,7 +1,8 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitOption, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes, KitSurface, KitCardHeader, KitIcon } from "@kit/kit.slint";
+import { KitOption, KitSelectKeyboard, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes, KitSurface, KitCardHeader, KitIcon } from "@kit";
 export component Example inherits Window {
+    in-out property <string> status;
     default-font-family: InterFont.family;
     title: "KitOption example";
     preferred-width: 520px;
@@ -11,27 +12,26 @@ export component Example inherits Window {
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in property <length> row-height: max(54px, 38px * root.theme.text-scale);
-    in property <[OptionRow]> rows: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
-    in property <SelectState> select-state: {open:true, generation:1,active-index:0,active:{present:true,token:11},selected:{present:true,token:11},selection-availability:SelectionAvailability.available};
-    in property <string> selected-label: "Overview";
+    in property <[OptionRow]> options: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
+
     in-out property <string> query;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
+
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
         KitCardHeader { theme: root.theme; title: "Choose your next destination"; description: "A clear selection, descriptive rows and familiar keyboard navigation."; }
         KitSurface { theme: root.theme;
-        for row in root.rows: KitOption {
-            theme: root.theme; option-data: row; height: root.row-height;
-            active: root.select-state.active.present && row.token == root.select-state.active.token;
-            selected: root.select-state.selected.present && row.token == root.select-state.selected.token;
-            activate(token, generation) => { root.select-activate(token, generation); }
+        control := KitSelectKeyboard {
+            options: root.options; selected: { present: true, token: 11 }; focus-on-tab-navigation: true;
+            height: root.options.length * root.row-height;
+            chosen(row) => { root.status = "Chosen: " + row.label; }
+            VerticalLayout {
+
+        for row in control.rows: KitOption {
+            theme: root.theme; option-data: row; height: root.row-height; activate(token, generation) => { control.choose-option(token, generation); }
+            active: control.state.active.present && row.token == control.state.active.token;
+            selected: control.state.selected.present && row.token == control.state.selected.token;
             HorizontalLayout {
                     spacing: 12px;
                     Rectangle { width: 20px * root.theme.text-scale; horizontal-stretch: 0;
@@ -42,12 +42,15 @@ export component Example inherits Window {
                         if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; overflow: elide; }
                     }
                     Rectangle { width: 20px * root.theme.text-scale; horizontal-stretch: 0;
-                        if root.select-state.selected.present && root.select-state.selected.token == row.token: KitIcon { theme: root.theme; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                        if control.state.selected.present && control.state.selected.token == row.token: KitIcon { theme: root.theme; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                     }
                 }
         }
+
+            }
         }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
+}
+        result := Text { text: "Selected: " + control.selected-label; color: root.theme.text-primary; }
     }
 
 }

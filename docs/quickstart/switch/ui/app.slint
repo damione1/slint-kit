@@ -1,9 +1,8 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSwitch, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitSwitch, KitTheme, KitThemes } from "@kit";
 export component App inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -14,13 +13,13 @@ export component App inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <bool> enabled;
+    in-out property <bool> enabled;
     callback change(bool);
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        control := KitSwitch { theme: root.theme; label: "Desktop notifications"; checked: root.enabled; toggled(value) => { root.change(value); } }
+        control := KitSwitch { theme: root.theme; label: "Desktop notifications"; checked <=> root.enabled; toggled(value) => { root.change(value); } }
         result := Text { text: root.enabled ? "Notifications enabled" : "Notifications disabled"; color: root.theme.text-primary; }
     }
 

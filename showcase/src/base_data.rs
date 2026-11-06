@@ -23,7 +23,7 @@ struct Product {
     id: ProductId,
     title: String,
     category: &'static str,
-    price: kit::Money,
+    price: slint_kit::Money,
     stock: u32,
 }
 struct Catalogue {
@@ -70,7 +70,7 @@ fn navigate(
 }
 impl Catalogue {
     fn new(window: &ui::Showcase) -> Self {
-        let currency = kit::CurrencyMetadata::cad().code;
+        let currency = slint_kit::CurrencyMetadata::cad().code;
         let products = (0..10_000_u32)
             .map(|i| Product {
                 id: ProductId(i + 1),
@@ -85,8 +85,8 @@ impl Catalogue {
                     i + 1
                 ),
                 category: ["Stationery", "Collections", "Books", "Accessories"][i as usize % 4],
-                price: kit::Money {
-                    amount: kit::DecimalValue::parse_canonical(&format!(
+                price: slint_kit::Money {
+                    amount: slint_kit::DecimalValue::parse_canonical(&format!(
                         "{}.{:02}",
                         8 + i % 140,
                         i % 100
@@ -189,7 +189,7 @@ impl Catalogue {
             });
         }
         self.generation = self.generation.checked_add(1).expect("demo generation");
-        let currency = kit::CurrencyMetadata::cad();
+        let currency = slint_kit::CurrencyMetadata::cad();
         self.rows.set_vec(
             self.visible
                 .iter()
@@ -203,8 +203,8 @@ impl Catalogue {
                             p.price
                                 .format(
                                     &currency,
-                                    kit::NumberLocale::EnCa,
-                                    kit::RoundingPolicy::Reject,
+                                    slint_kit::NumberLocale::EnCa,
+                                    slint_kit::RoundingPolicy::Reject,
                                 )
                                 .expect("exact two decimals")
                                 .into(),

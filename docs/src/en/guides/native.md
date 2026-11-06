@@ -11,8 +11,23 @@ permalink: "{{ 'guides/native/' | localeUrl(locale) }}index.html"
 Enable host services explicitly. The core domain and visual file components do not require a native picker dependency. Add the optional `native` feature only in an application that needs it:
 
 ```toml
-slint-kit = { version = "0.5", features = ["native"] }
+slint-kit = { version = "={{ project.version }}", features = ["native"] }
 ```
+
+## Typed picker bindings
+
+Use `FilePickerBinding<W>` or `DirectoryPickerBinding<W>` for the ordinary component flow. Their explicit ports identify application properties without a root naming convention; the binding owns weak-window publication, asynchronous requests and generation checks. Receive accepted resources through `on_selection`.
+
+```rust
+let picker = slint_kit::FilePickerBinding::new(&app, slint_kit::FilePickerPorts {
+    entries: App::set_entries, state: App::set_request_state, error: App::set_error,
+});
+picker.on_selection(|files| println!("{} resources selected", files.len()));
+app.on_browse(picker.browse_handler());
+app.on_remove(picker.remove_handler());
+```
+
+Initialize `slint_kit::install(&app)` before showing the window. See the complete [file picker](/components/file-picker/) and [directory picker](/components/directory-picker/) consumers. Cancellation preserves the accepted resources; destroying the window or superseding a request prevents obsolete results from publishing.
 
 ## Requests and outcomes
 
@@ -36,6 +51,6 @@ Handle every `SelectionOutcome` variant: `Selected(value)`, `Cancelled`, or `Fai
 
 ## Capabilities and pending requests
 
-Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/components/file-picker/), [KitDirectoryPicker](/components/directory-picker/) and [KitFileDropZone](/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The provided native adapter reports drop support as unsupported; the window backend must supply that integration separately.
+Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/components/file-picker/), [KitDirectoryPicker](/components/directory-picker/) and [KitFileDropZone](/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The generic native adapter reports drop support as unsupported. For a winit window, opt into `native-winit` and call `FilePickerBinding::install_winit_drop` with the capability and hover ports. This bridge is separate from picker support; exposing a Slint DropArea does not establish OS drop support or device qualification.
 
 `HostRequestController<T>` issues tickets to reject obsolete asynchronous results. Keep pending, failure and cancellation presentation explicit. See the complete [showcase file controller](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) for native request handling and the [host adapter](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) for platform behavior.

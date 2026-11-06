@@ -1,3 +1,4 @@
+use crate::Ownership;
 use crate::{DismissReason, NavigationStep};
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -28,12 +29,107 @@ pub struct SelectState<K> {
     pub open: bool,
 }
 
-/// Local commits update the snapshot immediately. Controlled commits only emit
-/// an intent; the application acknowledges them through `set_selected`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Ownership {
-    Local,
-    Controlled,
+/// Complete state for a selection instance using the pure reducer.
+/// The model and ownership are inputs; no window or registry owns this state.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SelectSession<K> {
+    pub selection: SelectState<K>,
+    pub typeahead: String,
+    pub last_typeahead_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SelectEvent<K> {
+    Reconcile,
+    Open,
+    Navigate {
+        step: NavigationStep,
+        page_size: usize,
+    },
+    Activate(K),
+    Dismiss(DismissReason),
+    Typeahead {
+        text: String,
+        now_ms: u64,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SelectTransition<K> {
+    pub session: SelectSession<K>,
+    pub intent: Option<SelectionIntent<K>>,
+}
+
+/// Apply one event to explicit instance state using the same interaction engine
+/// as `SelectController`. Duplicate keys reject the event before state changes.
+pub fn reduce_selection<K: Clone + Eq + Hash>(
+    options: Vec<SelectOption<K>>,
+    session: SelectSession<K>,
+    ownership: Ownership,
+    event: SelectEvent<K>,
+) -> Result<SelectTransition<K>, ModelError> {
+    let mut controller = SelectController::try_new(options, None, ownership)?;
+    controller.removal_policy = match &event {
+        SelectEvent::Reconcile => match ownership {
+            Ownership::Local => RemovalPolicy::Clear,
+            Ownership::Controlled => RemovalPolicy::PreserveUnavailable,
+        },
+        SelectEvent::Open
+        | SelectEvent::Navigate { .. }
+        | SelectEvent::Activate(_)
+        | SelectEvent::Dismiss(_)
+        | SelectEvent::Typeahead { .. } => RemovalPolicy::PreserveUnavailable,
+    };
+    controller.state = session.selection;
+    controller.reconcile_selection();
+    if controller.state.open
+        && controller
+            .state
+            .active
+            .as_ref()
+            .is_none_or(|key| !controller.eligible(key))
+    {
+        controller.state.active = controller
+            .state
+            .selected
+            .as_ref()
+            .filter(|key| controller.eligible(key))
+            .cloned()
+            .or_else(|| controller.first_key());
+    }
+    controller.typeahead = session.typeahead;
+    controller.last_typeahead_ms = session.last_typeahead_ms;
+    let intent = match event {
+        SelectEvent::Reconcile => {
+            controller.reset_typeahead();
+            None
+        }
+        SelectEvent::Open => {
+            controller.open();
+            None
+        }
+        SelectEvent::Navigate { step, page_size } => {
+            controller.navigate(step, page_size);
+            None
+        }
+        SelectEvent::Activate(key) => controller.activate(&key),
+        SelectEvent::Dismiss(reason) => {
+            controller.dismiss(reason);
+            None
+        }
+        SelectEvent::Typeahead { text, now_ms } => {
+            controller.typeahead(&text, now_ms);
+            None
+        }
+    };
+    Ok(SelectTransition {
+        session: SelectSession {
+            selection: controller.state,
+            typeahead: controller.typeahead,
+            last_typeahead_ms: controller.last_typeahead_ms,
+        },
+        intent,
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -372,6 +468,90 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explicit_sessions_preserve_typeahead_and_distinguish_filtering_from_removal() {
+        let options = vec![
+            SelectOption::new(1, "Apple"),
+            SelectOption::new(2, "Apricot"),
+            SelectOption::new(3, "Banana"),
+        ];
+        let initial = SelectSession {
+            selection: SelectState {
+                selected: None,
+                active: None,
+                open: false,
+            },
+            typeahead: String::new(),
+            last_typeahead_ms: None,
+        };
+        let first = reduce_selection(
+            options.clone(),
+            initial.clone(),
+            Ownership::Local,
+            SelectEvent::Open,
+        )
+        .unwrap()
+        .session;
+        let first = reduce_selection(
+            options.clone(),
+            first,
+            Ownership::Local,
+            SelectEvent::Typeahead {
+                text: "a".into(),
+                now_ms: 10,
+            },
+        )
+        .unwrap()
+        .session;
+        assert_eq!(first.selection.active, Some(2));
+        let repeated = reduce_selection(
+            options.clone(),
+            first.clone(),
+            Ownership::Local,
+            SelectEvent::Typeahead {
+                text: "a".into(),
+                now_ms: 20,
+            },
+        )
+        .unwrap()
+        .session;
+        assert_eq!(repeated.selection.active, Some(1));
+        assert!(
+            initial.typeahead.is_empty(),
+            "another instance keeps its own history"
+        );
+        assert!(!initial.selection.open);
+        let chosen =
+            reduce_selection(options, first, Ownership::Local, SelectEvent::Activate(2)).unwrap();
+        assert_eq!(chosen.intent, Some(SelectionIntent::Commit(2)));
+        let visible = vec![SelectOption::new(3, "Banana")];
+        let filtered = reduce_selection(
+            visible.clone(),
+            chosen.session,
+            Ownership::Local,
+            SelectEvent::Open,
+        )
+        .unwrap()
+        .session;
+        assert_eq!(
+            filtered.selection.selected,
+            Some(2),
+            "search is not model removal"
+        );
+        assert_eq!(filtered.selection.active, Some(3));
+        let controlled = reduce_selection(
+            visible.clone(),
+            filtered.clone(),
+            Ownership::Controlled,
+            SelectEvent::Reconcile,
+        )
+        .unwrap();
+        assert_eq!(controlled.session.selection.selected, Some(2));
+        let removed =
+            reduce_selection(visible, filtered, Ownership::Local, SelectEvent::Reconcile).unwrap();
+        assert_eq!(removed.session.selection.selected, None);
+    }
+
     fn controller(ownership: Ownership) -> SelectController<u32> {
         let mut options = vec![
             SelectOption::new(1, "Apple"),

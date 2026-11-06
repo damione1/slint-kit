@@ -1,22 +1,21 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// SPDX-License-Identifier: GPL-3.0-or-later
-// Display projections are fixtures. Validate accepted domain values in Rust.
-import { KitTheme, KitThemes, KitZonedDateTimeField, ZonedTimePresentation } from "@kit/kit.slint";
+import { LayoutSpace, KitMetrics, TypographyRole } from "@kit";
+import { KitThemes } from "@kit";
+import { KitTheme, KitThemeContext } from "@kit";
 
+import { KitZonedDateTimeField, ZonedDateTimeCommit, KitStack, KitButton } from "@kit";
 export component Example inherits Window {
+    max-width: 100000px; max-height: 100000px;
     default-font-family: InterFont.family;
-    title: "KitZonedDateTimeField example";
-    preferred-width: 480px;
-    preferred-height: 390px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    preferred-width: 600px; preferred-height: 460px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Zoned Date Time Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitZonedDateTimeField { theme: root.theme; label: "Meeting"; date-text: "2026-10-17"; time-text: "09:30"; zone-text: "America/Toronto"; resolution: ZonedTimePresentation.unique; resolution-message: "UTC−04:00"; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
+    background: root.theme.canvas;
+    changed theme => { KitThemeContext.current = root.theme; }
+    title: "Zoned date and time";
+    callback chosen(ZonedDateTimeCommit);
+    KitStack { inset: LayoutSpace.roomy;
+        Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        control := KitZonedDateTimeField { label: "Appointment"; date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto"; required: true; chosen(value) => { root.chosen(value); } }
+        KitButton { text: "Resolve time"; activated => { control.resolve(); } }
     }
 }

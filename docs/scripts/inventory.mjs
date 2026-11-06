@@ -11,6 +11,7 @@ export const families = {
   field: { fr: 'Structure des formulaires', en: 'Form structure' },
   input: { fr: 'Saisie de texte', en: 'Text input' },
   number: { fr: 'Nombres et montants', en: 'Numbers and money' },
+  keypad: { fr: 'Pavés numériques et codes', en: 'Keypads and codes' },
   select: { fr: 'Sélection', en: 'Selection' },
   choice: { fr: 'Choix et valeurs', en: 'Choices and values' },
   calendar: { fr: 'Dates', en: 'Dates' },
@@ -34,6 +35,11 @@ function mask(source) {
 }
 export function scanComponents() {
   const dir = path.join(root, 'crates/kit-slint/ui');
+  // Family files also export implementation helpers for sibling modules. Only
+  // declarations re-exported by the public @kit module belong in this catalogue.
+  const publicModule = fs.readFileSync(path.join(dir, 'kit.slint'), 'utf8');
+  const publicNames = new Set(Array.from(mask(publicModule).matchAll(/\bexport\s*\{([^}]+)\}/g))
+    .flatMap(match => match[1].split(',').map(name => name.trim())));
   const metadataPath = path.join(root, 'docs/content/components.json');
   const metadata = fs.existsSync(metadataPath) ? JSON.parse(fs.readFileSync(metadataPath, 'utf8')) : {};
   const renderProofPath = path.join(root,'docs/content/render-captures.json');
@@ -51,8 +57,7 @@ export function scanComponents() {
     const masked = mask(source);
     for (const match of masked.matchAll(/export\s+component\s+(\w+)\s+inherits\s+(\w+)\s*\{/g)) {
       const [declaration, name, base] = match;
-      // Nonvisual state helpers are documented in guides, outside the control catalogue.
-      if (!name.startsWith("Kit")) continue;
+      if (!name.startsWith("Kit") || !publicNames.has(name)) continue;
       let depth = 1, end = match.index + declaration.length;
       const start = end;
       while (depth && end < masked.length) { if (masked[end] === '{') depth++; if (masked[end] === '}') depth--; end++; }

@@ -23,7 +23,7 @@ const french = parameters.get('lang') === 'fr';
 document.documentElement.lang = french ? 'fr' : 'en';
 const canvas = document.querySelector('canvas');
 const themeChoice = document.querySelector('#preview-theme');
-const themeStorageKey = 'slint-kit-preview-theme';
+const themeStorageKey = 'slint-kit-theme';
 const isTheme = value => value === 'light' || value === 'dark';
 let runtime;
 let currentTheme = parameters.get('theme');
@@ -83,6 +83,14 @@ try {
   window.previewReady = true;
   applyTheme(currentTheme, false);
   requestAnimationFrame(() => message('ready'));
+  let interacted = false;
+  const interaction = event => {
+    if (interacted || !event.isTrusted) return;
+    interacted = true; message('interaction');
+  };
+  canvas.addEventListener('pointerdown', interaction);
+  canvas.addEventListener('keydown', interaction);
+  document.getElementById('source').addEventListener('click', () => message('download'));
   new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(canvas);
   new ResizeObserver(() => { if (canvas.width) message('ready'); }).observe(document.querySelector('footer'));
 } catch(error) {

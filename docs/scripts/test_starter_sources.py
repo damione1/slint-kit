@@ -22,7 +22,7 @@ class StarterSourceTests(unittest.TestCase):
         patch.object(starter_sources, 'ROOT', self.root).start()
         starter_sources._prepared.clear()
         self.addCleanup(starter_sources._prepared.clear)
-        (self.root / 'Cargo.toml').write_text('[workspace.package]\nversion="0.4.0"\n[workspace.dependencies]\n')
+        (self.root / 'Cargo.toml').write_text('[workspace.package]\nversion="0.4.0"\nrust-version="1.92"\n[workspace.dependencies]\nslint={version="=1.18.1"}\n')
         for package, directory in starter_sources.KIT_PACKAGES.items():
             folder = self.root / directory
             folder.mkdir(parents=True)
@@ -109,7 +109,7 @@ version = "0.3.0"
         self.assertIn('ui/assets/profile.jpg', manifest['source_sha256']['checkbox'])
         (self.root / 'LICENSE').write_text('GPL-3.0-or-later')
         with patch.object(doc_inputs, 'ROOT', self.root), patch.object(doc_inputs, 'DOCS', self.root / 'docs'), patch.object(starter_sources, 'prepare', return_value=consumers):
-            runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')))
+            runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')), run_name='__main__')
         with zipfile.ZipFile(self.root / 'docs/.generated/starters/checkbox.zip') as archive:
             self.assertEqual(archive.read('checkbox/ui/assets/profile.jpg'), b'original image')
             self.assertEqual(archive.read('checkbox/ui/assets/NOTICE.txt'), b'Original artwork license')
@@ -147,6 +147,35 @@ version = "0.3.0"
         manifest.write_text(manifest.read_text().replace('slint-kit = "=0.4.0"', 'slint-kit = { version = "=0.4.0", features = ["native"] }'))
         starter_sources.prepare('local')
         self.assertEqual(self.cargo.call_count, 2)
+
+    def test_workspace_version_projects_downloads_without_rewriting_templates(self):
+        path = self.root / 'docs/quickstart/checkbox/Cargo.toml'
+        source = path.read_text().replace('=0.4.0', '=0.3.0')
+        source = source.replace('slint-kit = "=0.3.0"',
+                                'slint-kit = { version = "=0.3.0", features = ["native"] }')
+        path.write_text(source)
+        consumers = starter_sources.prepare('local')
+        self.assertEqual(path.read_text(), source)
+        manifest = tomllib.loads((consumers['checkbox'] / 'Cargo.toml').read_text())
+        self.assertEqual(manifest['dependencies']['slint-kit'],
+                         {'version': '=0.4.0', 'features': ['native']})
+        self.assertEqual(manifest['build-dependencies']['slint-kit-build'], '=0.4.0')
+
+    def test_version_projection_preserves_external_dependencies_and_rejects_source_overrides(self):
+        source = (self.root / 'docs/quickstart/checkbox/Cargo.toml').read_text().replace(
+            '[dependencies]', '[dependencies]\nslint = { version = "=1.18.1", features = ["std"] }')
+        expected = tomllib.loads(source)['dependencies']['slint']
+        result = starter_sources.with_kit_version(source, '1.2.3')
+        self.assertEqual(tomllib.loads(result)['dependencies']['slint'], expected)
+        self.assertEqual(starter_sources.with_kit_version(result, '1.2.3'), result)
+        patched = source + '\n[patch.crates-io]\nslint-kit = { path = "../../crates/kit" }\n'
+        self.assertTrue(starter_sources.with_kit_version(patched, '1.2.3').endswith(
+            '[patch.crates-io]\nslint-kit = { path = "../../crates/kit" }\n'))
+        for field in ('path', 'git'):
+            invalid = source.replace('slint-kit = "=0.4.0"',
+                                     f'slint-kit = {{ version = "=0.4.0", {field} = "source" }}')
+            with self.assertRaisesRegex(ValueError, 'registry dependency'):
+                starter_sources.with_kit_version(invalid, '1.2.3')
 
     def test_public_overrides_wrong_versions_and_unknown_components_are_rejected(self):
         path = self.root / 'docs/quickstart/checkbox/Cargo.toml'

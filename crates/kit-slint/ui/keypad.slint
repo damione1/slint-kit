@@ -1,0 +1,175 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemeContext, KitMetrics, ButtonIntent, ControlSize, ControlWidth, TypographyRole } from "theme.slint";
+import { KitPressable } from "button.slint";
+import { KitIcon, IconGlyph } from "icons.slint";
+import { FieldAccess } from "contracts.slint";
+import { FocusOutline } from "focus.slint";
+
+// One keypad key: its glyph, or its text when the glyph is empty. The text
+// is always the key's accessible name. A key is at least a square touch
+// target of twelve spacing units and grows with enlarged text.
+component KeypadKey inherits KitPressable {
+    in property <string> text;
+    in property <IconGlyph> glyph;
+    private property <bool> has-glyph: root.glyph.stroke != "" || root.glyph.fill != "";
+    control-width: ControlWidth.fill;
+    min-height: max(root.theme.spacing.unit * 12, KitMetrics.control-height(root.theme, root.control-size), root.text-size * 1.4 + 2 * root.padding-block);
+    min-width: max(root.theme.spacing.unit * 12, root.has-glyph ? KitMetrics.icon-size(root.theme, root.control-size) : root.text-size);
+    preferred-width: root.min-height;
+    accessible-name: root.text;
+    Rectangle {
+        if root.has-glyph: KitIcon {
+            theme: root.theme; control-size: root.control-size;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            glyph: root.glyph;
+            ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        }
+        if !root.has-glyph: Text {
+            text: root.text;
+            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+            font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+            horizontal-alignment: center; vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+// A numeric keypad for a code, a PIN or a quantity: digits 1 to 9, then
+// delete, 0 and confirm. The keypad emits intentions only and never holds the
+// entered digits; the host keeps the code and shows its progress, for example
+// with KitCodeIndicator. `delete-requested()` asks to remove the last digit,
+// never the whole code.
+//
+// While `access` is editable, typed 0 to 9 and Backspace reach the same
+// callbacks whenever the keypad or any key has focus. Return confirms on the
+// keypad itself. Return and Space first activate a key that shows keyboard
+// focus, as on any button. A pointer press hands focus back to the keypad
+// without a focus ring, so Return after tapped digits confirms instead of
+// repeating the last digit. A read-only or disabled keypad emits nothing.
+export component KitKeypad inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.comfortable;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <string> label;
+    // Ten visible digit labels in keypad order: 1 to 9, then 0.
+    in property <[string]> digit-labels: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+    in property <string> delete-label: "Delete";
+    in property <IconGlyph> delete-glyph: root.theme.icons.delete;
+    in property <string> confirm-label: "Confirm";
+    in property <IconGlyph> confirm-glyph: root.theme.icons.check;
+    in property <ButtonIntent> confirm-intent: ButtonIntent.primary;
+    // The host enables confirm once its code is complete.
+    in property <bool> can-confirm;
+    // Press feedback begins before a pointer or Space activation commits.
+    callback activation-started();
+    callback digit(int);
+    callback delete-requested();
+    callback confirm();
+    // Focuses the keypad itself, so typed digits reach it without moving
+    // focus onto a key.
+    public function take-focus() { keys.focus(); }
+    // A key that a pointer pressed holds focus without a ring; focus returns
+    // to the keypad so typed Return confirms. A key that shows keyboard focus
+    // keeps it.
+    function settle-pointer-focus(key-has-focus: bool, key-shows-focus: bool) {
+        if (key-has-focus && !key-shows-focus) {
+            keys.pointer-return = true;
+            keys.focus();
+        }
+    }
+    private property <bool> editable: root.access == FieldAccess.editable;
+    private property <length> gap: KitMetrics.inline-gap(root.theme);
+    private property <length> digit-size: KitMetrics.font-size(root.theme, TypographyRole.title);
+    min-width: grid.min-width; min-height: grid.min-height;
+    preferred-width: grid.preferred-width; preferred-height: grid.preferred-height;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    accessible-role: groupbox; accessible-label: root.label;
+    accessible-enabled: root.access != FieldAccess.disabled;
+    forward-focus: keys;
+    keys := FocusScope {
+        private property <bool> keyboard-focus;
+        private property <bool> confirm-held;
+        private property <bool> pointer-return;
+        width: root.width; height: root.height;
+        enabled: root.access != FieldAccess.disabled;
+        focus-on-tab-navigation: false;
+        focus-on-click: false;
+        focus-gained(reason) => {
+            self.keyboard-focus = !self.pointer-return && (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic);
+            self.pointer-return = false;
+        }
+        focus-lost(reason) => { self.confirm-held = false; }
+        // Keys pressed on a focused key that it does not handle arrive here.
+        key-pressed(event) => {
+            if (!root.editable) { return reject; }
+            if (event.modifiers.control || event.modifiers.alt || event.modifiers.meta) { return reject; }
+            if (event.text == Key.Backspace) { root.activation-started(); if (root.editable) { root.delete-requested(); } return accept; }
+            if (event.text == Key.Return) {
+                if (!root.can-confirm) { return reject; }
+                if (!self.confirm-held) { self.confirm-held = true; root.activation-started(); if (root.editable && root.can-confirm) { root.confirm(); } }
+                return accept;
+            }
+            // One character that parses as a number is a digit from 0 to 9.
+            if (event.text.character-count == 1 && event.text.is-float()) { root.activation-started(); if (root.editable) { root.digit(event.text.to-float()); } return accept; }
+            return reject;
+        }
+        key-released(event) => {
+            if (event.text == Key.Return) { self.confirm-held = false; }
+            return reject;
+        }
+        grid := GridLayout {
+            width: parent.width; height: parent.height;
+            spacing: root.gap;
+            Row {
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[0]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(1); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[1]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(2); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[2]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(3); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+            }
+            Row {
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[3]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(4); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[4]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(5); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[5]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(6); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+            }
+            Row {
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[6]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(7); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[7]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(8); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[8]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(9); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+            }
+            Row {
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: root.delete-label; glyph: root.delete-glyph; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.delete-requested(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[9]; disabled: !root.editable; activation-started => { root.activation-started(); } activated => { root.digit(0); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                KeypadKey { theme: root.theme; control-size: root.control-size; intent: root.confirm-intent; text: root.confirm-label; glyph: root.confirm-glyph; disabled: !root.editable || !root.can-confirm; activation-started => { root.activation-started(); } activated => { root.confirm(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+            }
+        }
+    }
+    if keys.has-focus && keys.keyboard-focus: FocusOutline {
+        ring: root.theme.focus;
+        radius: root.theme.shape.radius-container;
+        host-width: root.width; host-height: root.height;
+    }
+}
+
+// The progress of a code entry: one mark per expected digit, the first
+// `filled` of them filled. It shows how many digits the host holds, never
+// which. The host supplies the accessible `label`, such as "2 of 4 digits".
+export component KitCodeIndicator inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <int> length;
+    in property <int> filled;
+    in property <string> label;
+    private property <length> mark: root.theme.spacing.unit * 3 * root.theme.text-scale;
+    accessible-role: text; accessible-label: root.label;
+    HorizontalLayout {
+        alignment: center;
+        spacing: root.theme.spacing.unit * 3;
+        padding-top: root.theme.spacing.unit; padding-bottom: root.theme.spacing.unit;
+        for index in max(0, root.length): Rectangle {
+            private property <bool> set: index < root.filled;
+            width: root.mark; height: root.mark;
+            border-radius: min(root.theme.shape.radius-pill, self.height / 2);
+            background: self.set ? root.theme.text-primary : transparent;
+            border-width: self.set ? 0px : root.theme.shape.border-width-strong;
+            border-color: root.theme.border-strong;
+        }
+    }
+}

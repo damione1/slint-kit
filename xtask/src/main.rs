@@ -4,12 +4,14 @@ use std::process::{Command, ExitCode};
 mod docs;
 mod icons;
 mod lint_tokens;
+mod quickstarts;
 
 enum Task {
     VerifyContracts,
     GenerateContracts,
     GenerateIcons,
     LintTokens,
+    CheckQuickstarts,
     Check,
     CompileDocs(std::path::PathBuf),
 }
@@ -20,12 +22,13 @@ impl Task {
             Some("generate-contracts") => Ok(Self::GenerateContracts),
             Some("generate-icons") => Ok(Self::GenerateIcons),
             Some("lint-tokens") => Ok(Self::LintTokens),
+            Some("check-quickstarts") => Ok(Self::CheckQuickstarts),
             Some("check") => Ok(Self::Check),
             Some("compile-docs") => std::env::args().nth(2)
                 .map(|path| Self::CompileDocs(path.into()))
                 .ok_or_else(|| "compile-docs requires a JSON request file".into()),
             _ => Err(
-                "usage: cargo run -p xtask -- [contracts|generate-contracts|generate-icons|lint-tokens|check]"
+                "usage: cargo run -p xtask -- [contracts|generate-contracts|generate-icons|lint-tokens|check-quickstarts|check]"
                     .into(),
             ),
         }
@@ -41,9 +44,11 @@ impl Task {
             .map_err(|e| e.to_string()),
             Self::GenerateIcons => icons::generate(),
             Self::LintTokens => lint_tokens::run(),
+            Self::CheckQuickstarts => quickstarts::run(),
             Self::Check => run("cargo", &["fmt", "--all", "--", "--check"])
                 .and_then(|_| verify_generated())
                 .and_then(|_| lint_tokens::run())
+                .and_then(|_| quickstarts::run())
                 .and_then(|_| run("cargo", &["test", "--workspace", "--locked"]))
                 .and_then(|_| {
                     run(

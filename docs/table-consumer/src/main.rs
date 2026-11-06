@@ -3,6 +3,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 use std::{cell::RefCell, rc::Rc};
 
 pub mod ui {
+    pub use slint_kit::ui::*;
     slint::include_modules!();
 }
 
@@ -263,7 +264,7 @@ fn publish(
 
 pub fn create_app(french: bool) -> Result<ui::TableApp, slint::PlatformError> {
     let app = ui::TableApp::new()?;
-    slint_kit::init_form_validation!(ui, app);
+    slint_kit::install(&app);
     app.set_language(if french {
         ui::TableLanguage::French
     } else {

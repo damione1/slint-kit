@@ -1,13 +1,17 @@
 {% if locale == 'fr' %}
 ## Essayer le composant
 
-[Télécharger le projet complet](/quickstart/projects/{{ component.slug }}.zip), le décompresser et lancer `cargo run --locked` dans son dossier. Rust 1.92+ ; Slint Kit {{ quickstart.kitVersion }} depuis crates.io. Vous pouvez aussi copier les quatre fichiers ci-dessous.
+[Télécharger le projet complet](/quickstart/projects/{{ component.slug }}.zip), le décompresser et lancer `cargo run --locked` dans son dossier. Pour ajouter ce composant à une application, suivre la [configuration du projet](/fr/guides/project-setup/), puis copier les deux fichiers ci-dessous.
+
+Le kit fournit le comportement du composant et ses styles ; les callbacks Rust relient ses valeurs typées à votre application.
 
 {{ quickstart.fr }}
 {% else %}
 ## Try the component
 
-[Download the complete project](/quickstart/projects/{{ component.slug }}.zip), extract it and run `cargo run --locked` in its folder. Rust 1.92+; Slint Kit {{ quickstart.kitVersion }} from crates.io. You can also copy the four files below.
+[Download the complete project](/quickstart/projects/{{ component.slug }}.zip), extract it and run `cargo run --locked` in its folder. To add this component to an application, follow [Project setup](/guides/project-setup/), then copy the two files below.
+
+The kit supplies the component's behavior and styles; Rust callbacks connect its typed values to your application.
 
 {{ quickstart.en }}
 {% endif %}
@@ -23,23 +27,6 @@
 ```rust
 {{ 'src/main.rs' | quickstartSource(component.slug) | safe }}
 ```
-
-<details class="project-files">
-<summary>{% if locale == 'fr' %}Cargo.toml et build.rs{% else %}Cargo.toml and build.rs{% endif %}</summary>
-
-### Cargo.toml
-
-```toml
-{{ 'Cargo.toml' | quickstartSource(component.slug) | safe }}
-```
-
-### build.rs
-
-```rust
-{{ 'build.rs' | quickstartSource(component.slug) | safe }}
-```
-
-</details>
 
 <p class="quickstart-downloads">{% if locale == 'fr' %}Fichiers :{% else %}Files:{% endif %}
 <a href="/quickstart/{{ component.slug }}/Cargo.toml" download>Cargo.toml</a> ·

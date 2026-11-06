@@ -1,41 +1,27 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSegmentedControl, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, SelectionRef, KitSegmentedControl } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitSegmentedControl example";
-    preferred-width: 520px;
-    preferred-height: 240px;
-    max-width: 100000px;
-    max-height: 100000px;
+    preferred-width: 560px; preferred-height: 360px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <SelectState> select-state;
-    in property <string> selected-label: "Overview";
-    in-out property <string> query;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
+    in property <[OptionRow]> options;
+    in-out property <SelectionRef> selected;
+    callback destination-chosen(OptionRow);
+
     VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
+        padding: 24px; spacing: 16px; alignment: start;
         control := KitSegmentedControl {
             theme: root.theme; label: "Destination";
-            rows: [{ token: root.rows[0].token, label: root.rows[0].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[0].token }, { token: root.rows[1].token, label: root.rows[1].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[1].token }, { token: root.rows[2].token, label: root.rows[2].label, disabled: false, selected: root.select-state.selected.present && root.select-state.selected.token == root.rows[2].token }];
-            generation: root.select-state.generation; active-token: root.select-state.active.token;
-            navigate(step) => { root.select-navigate(step); }
-            activate(token, generation) => { root.select-activate(token, generation); }
+            options: root.options; selected <=> root.selected;
+            chosen(row) => { root.destination-chosen(row); }
         }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
-    }
+        Text { text: "Selected: " + control.selected-label; color: root.theme.text-primary; }
 
+    }
 }

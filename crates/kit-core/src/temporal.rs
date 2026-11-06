@@ -1,7 +1,7 @@
 //! Civil values never acquire a timezone implicitly. IANA resolution is explicit.
 mod availability;
 mod date_pattern;
-use crate::CalendarMove;
+use crate::{CalendarMove, WeekStart};
 use crate::{ClockFormat, TimePrecision};
 use crate::{DraftValue, NumericBounds, ParseIssue};
 pub use availability::*;
@@ -381,16 +381,6 @@ pub enum ZonedResolution {
     Ambiguous { earlier: Instant, later: Instant },
     Nonexistent,
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum WeekStart {
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday,
-    Sunday,
-}
 impl WeekStart {
     fn index(self) -> u32 {
         match self {
@@ -421,7 +411,47 @@ pub struct CalendarController {
     constraints: DateConstraints,
     week_start: WeekStart,
 }
+/// Complete interaction state supplied to the pure calendar reducer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CalendarState {
+    pub selected: Option<CivilDate>,
+    pub focused: CivilDate,
+}
+
 impl CalendarController {
+    /// Reconstruct a calendar from explicit state; no shared or hidden state is kept.
+    pub fn from_state(
+        state: CalendarState,
+        constraints: DateConstraints,
+        week_start: WeekStart,
+    ) -> Result<Self, ParseIssue> {
+        let mut calendar = Self::with_constraints(
+            state.selected,
+            state.focused.year_month(),
+            constraints,
+            week_start,
+        )?;
+        calendar.focus_date(state.focused);
+        Ok(calendar)
+    }
+    pub fn state(&self) -> CalendarState {
+        CalendarState {
+            selected: self.selected,
+            focused: self.focused,
+        }
+    }
+    /// Pure navigation for independently owned component instances.
+    pub fn reduce(
+        state: CalendarState,
+        constraints: DateConstraints,
+        week_start: WeekStart,
+        movement: CalendarMove,
+    ) -> Result<CalendarState, ParseIssue> {
+        let mut calendar = Self::from_state(state, constraints, week_start)?;
+        calendar.navigate(movement)?;
+        Ok(calendar.state())
+    }
+
     /// Create a bounds-only calendar. An out-of-bounds initial selection is
     /// rejected to `None`; focus is clamped to the bounds. Use `with_constraints`
     /// when the caller needs an explicit construction error instead.
@@ -611,6 +641,30 @@ pub struct DateRangeController {
     rules: DateRangeRules,
 }
 impl DateRangeController {
+    /// Pure range selection with every provisional value supplied by the caller.
+    pub fn reduce(
+        draft: RangeSelection,
+        rules: DateRangeRules,
+        date: CivilDate,
+    ) -> Result<RangeSelection, ParseIssue> {
+        match draft {
+            RangeSelection::ChoosingStart => {}
+            RangeSelection::ChoosingEnd { start } => {
+                rules.dates().validate(start)?;
+            }
+            RangeSelection::Complete(range) => {
+                rules.validate(range)?;
+            }
+        }
+        let mut controller = Self {
+            accepted: None,
+            draft,
+            rules,
+        };
+        controller.choose(date)?;
+        Ok(controller.draft)
+    }
+
     pub fn new(accepted: Option<DateRange>) -> Self {
         Self {
             accepted,

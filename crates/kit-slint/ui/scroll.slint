@@ -91,6 +91,8 @@ export component KitScrollBar inherits Rectangle {
     }
 }
 
+export enum ScrollPanPolicy { native, children-first }
+
 // Themed replacement for the std-widgets ScrollView: a Flickable with
 // KitScrollBar gutters on its trailing edges. Internal to the kit; public
 // containers forward the parts of this API they support.
@@ -110,7 +112,10 @@ export component ScrollFrame {
     in-out property <length> content-y <=> flickable.content-y;
     in property <ScrollBarPolicy> vertical-scrollbar-policy <=> vertical-bar.policy;
     in property <ScrollBarPolicy> horizontal-scrollbar-policy <=> horizontal-bar.policy;
-    in property <bool> mouse-drag-pan-enabled <=> flickable.mouse-drag-pan-enabled;
+    in property <bool> mouse-drag-pan-enabled: false;
+    // children-first reserves a gesture for an interactive descendant at Down.
+    // Background panning is bounded and direct; wheel/focus/bars remain native.
+    in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.native;
     callback scrolled <=> flickable.flicked;
     // The std-widgets ScrollView footprint: a scrolled viewport fills its slot.
     min-height: 50px;
@@ -119,14 +124,43 @@ export component ScrollFrame {
     vertical-stretch: 1;
     preferred-height: 100%;
     preferred-width: 100%;
-    flickable := Flickable {
+    // The viewport's TouchArea gets Down only when no child claims it. Its
+    // own grab then pans without stealing a slider/button's existing grab.
+    // Keep the Flickable ancestor for wheel scrolling and native focus reveal.
+    pan := TouchArea {
         x: 0px; y: 0px;
-        mouse-drag-pan-enabled: false;
-        content-y <=> vertical-bar.value;
-        content-x <=> horizontal-bar.value;
-        width: max(0px, root.width - root.vertical-gutter);
-        height: max(0px, root.height - root.horizontal-gutter);
-        @children
+        width: max(0px,root.width - root.vertical-gutter);
+        height: max(0px,root.height - root.horizontal-gutter);
+        enabled: root.enabled && root.pan-policy == ScrollPanPolicy.children-first;
+        private property <bool> dragging;
+        private property <int> finger;
+        private property <length> start-x;
+        private property <length> start-y;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left && (event.touch-finger-id != 0 || root.mouse-drag-pan-enabled)) {
+                self.dragging = true; self.finger = event.touch-finger-id;
+                self.start-x = flickable.content-x; self.start-y = flickable.content-y;
+            }
+            if (event.kind == PointerEventKind.cancel || (event.kind == PointerEventKind.up && event.touch-finger-id == self.finger)) { self.dragging = false; }
+        }
+        moved => {
+            if (self.dragging && self.pressed) {
+                let next-x = clamp(self.start-x + self.mouse-x - self.pressed-x,-max(0px,flickable.content-width - self.width),0px);
+                let next-y = clamp(self.start-y + self.mouse-y - self.pressed-y,-max(0px,flickable.content-height - self.height),0px);
+                if (next-x != flickable.content-x || next-y != flickable.content-y) {
+                    flickable.content-x = next-x; flickable.content-y = next-y; root.scrolled();
+                }
+            }
+        }
+        flickable := Flickable {
+            x: 0px; y: 0px;
+            interactive: root.pan-policy == ScrollPanPolicy.native;
+            mouse-drag-pan-enabled: root.mouse-drag-pan-enabled;
+            content-y <=> vertical-bar.value;
+            content-x <=> horizontal-bar.value;
+            width: pan.width; height: pan.height;
+            @children
+        }
     }
     vertical-bar := KitScrollBar {
         theme: root.theme;

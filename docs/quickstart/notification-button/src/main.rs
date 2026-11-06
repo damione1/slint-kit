@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use slint::ComponentHandle;
-
-mod ui { slint::include_modules!(); }
+slint::include_modules!();
 fn main() -> Result<(), slint::PlatformError> {
-    let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
-    let weak = app.as_weak();
-    app.on_open(move || { if let Some(app) = weak.upgrade() { app.set_unread(0); } });
+    let app = App::new()?;
+    slint_kit::install(&app);
+    app.on_open(slint_kit::action(&app, |app| app.set_unread(0)));
     app.run()
 }

@@ -1,21 +1,20 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// SPDX-License-Identifier: GPL-3.0-or-later
-import { KitRating, KitTheme, KitThemes } from "@kit/kit.slint";
+import { LayoutSpace, KitMetrics, TypographyRole } from "@kit";
+import { KitThemes } from "@kit";
+import { KitTheme, KitThemeContext } from "@kit";
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { KitRating, KitStack, KitThemeContext, RatingView } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitRating example";
-    preferred-width: 560px;
-    preferred-height: 170px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Rating"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitRating { theme: root.theme; label: "Your rating"; generation: 1; active-token: 4; scores: [{ token: 1, label: "1 stars", selected: false, disabled: false }, { token: 2, label: "2 stars", selected: false, disabled: false }, { token: 3, label: "3 stars", selected: false, disabled: false }, { token: 4, label: "4 stars", selected: true, disabled: false }, { token: 5, label: "5 stars", selected: false, disabled: false }]; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-    }
+    changed theme => { KitThemeContext.current = root.theme; }
+    title: "Rating"; preferred-width: 560px; preferred-height: 360px;
+    background: KitThemeContext.current.canvas;
+    callback feedback-changed(RatingView);
+    KitStack { inset: LayoutSpace.roomy;
+        Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        KitRating { label: "Your rating"; scale: 5; value: {present: true, step: 4, scale: 5}; chosen(value) => { root.feedback-changed(value); } } }
 }

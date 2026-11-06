@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy } from "@kit";
 
 import { ScrollFrame } from "@kit/scroll.slint";
 
@@ -65,4 +65,34 @@ export component ScrollBarFixture inherits Window {
         }
     }
 
+}
+
+export component PanPriorityFixture inherits Window {
+    width: 260px; height: 240px;
+    in property <ScrollPanPolicy> pan-policy: ScrollPanPolicy.children-first;
+    in property <bool> control-enabled: true;
+    out property <length> offset: area.content-y;
+    in-out property <int> commits;
+    in-out property <float> draft;
+    in-out property <bool> adjusting;
+    public function reset-scroll() { area.content-y = 0px; }
+    public function reveal-end() { area.reveal(700px,750px); }
+    area := KitScrollArea {
+        width: root.width; height: root.height;
+        pan-policy: root.pan-policy; mouse-drag-pan-enabled: true;
+        Rectangle {
+            height: 800px;
+            TouchArea {
+                x: 80px; y: 20px; width: 80px; height: 160px;
+                enabled: root.control-enabled;
+                accessible-role: slider; accessible-label: "Priority slider";
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) { root.adjusting = true; }
+                    if (event.kind == PointerEventKind.up && root.adjusting) { root.adjusting = false; root.commits += 1; }
+                    if (event.kind == PointerEventKind.cancel) { root.adjusting = false; }
+                }
+                moved => { if (self.pressed && root.adjusting) { root.draft = clamp(self.mouse-y / self.height,0,1); } }
+            }
+        }
+    }
 }

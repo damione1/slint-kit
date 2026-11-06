@@ -7,7 +7,7 @@ use slint::{ComponentHandle, LogicalPosition};
 fn fixture() -> QaPolishFixture {
     i_slint_backend_testing::init_no_event_loop();
     let app = QaPolishFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, app);
+    kit_slint::install(&app);
     app.show().unwrap();
     slint::platform::update_timers_and_animations();
     app
@@ -182,7 +182,7 @@ fn skeleton_paints_a_visible_placeholder_in_light_and_dark_themes() {
     })))
     .unwrap();
     let app = QaPolishFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, app);
+    kit_slint::install(&app);
     app.show().unwrap();
     for theme in [app.get_theme(), app.get_dark()] {
         app.set_theme(theme.clone());

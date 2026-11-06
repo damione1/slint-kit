@@ -11,7 +11,7 @@ use std::{
 fn fixture() -> Part2Fixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = Part2Fixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, window);
+    kit_slint::install(&window);
     window.show().unwrap();
     window
 }
@@ -677,7 +677,7 @@ fn multiselect_read_only_projection_does_not_reserve_hidden_editor_rows() {
 fn quality_fixture() -> FormQualityFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = FormQualityFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, window);
+    kit_slint::install(&window);
     window.show().unwrap();
     window
 }

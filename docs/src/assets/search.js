@@ -82,8 +82,10 @@ export function setupSearch(document,fetchIndex=globalThis.fetch.bind(globalThis
     }).catch(error=>{pending=null;throw error});
     return pending;
   }
-  let request=0;
+  const track = (name, values) => globalThis.window?.slintKitAnalytics?.track(name, values);
+  let request=0, measurement, reportedError=false;
   async function update(){
+    clearTimeout(measurement);
     const current=++request, query=input.value.trim();list.replaceChildren();
     if(!query){status.textContent=copy.start;return;}
     status.textContent=copy.loading;
@@ -95,13 +97,18 @@ export function setupSearch(document,fetchIndex=globalThis.fetch.bind(globalThis
         link.href=result.url;title.textContent=result.title;description.textContent=excerpt(result,query);link.append(title,description);item.append(link);list.append(item);
       }
       status.textContent=results.length?(french?`${results.length} résultat${results.length>1?'s':''}`:`${results.length} result${results.length>1?'s':''}`):copy.empty;
-    }catch{if(current===request)status.textContent=copy.error;}
+      measurement=setTimeout(()=>{
+        if(current!==request||!dialog.open)return;
+        track('view_search_results',{result_count:results.length,value:results.length});
+        if(!results.length)track('search_no_results');
+      },600);
+    }catch{if(current===request){status.textContent=copy.error;if(!reportedError){reportedError=true;track('search_error',{error_type:'index_unavailable'});}}}
   }
-  const open=()=>{if(dialog.open)return;originFocus=document.activeElement;dialog.showModal();input.focus();update();};
+  const open=()=>{if(dialog.open)return;reportedError=false;originFocus=document.activeElement;dialog.showModal();input.focus();track('search_open');update();};
   trigger.hidden=false;trigger.addEventListener('click',open);
   dialog.querySelector('.doc-search-close').addEventListener('click',()=>dialog.close());
   dialog.addEventListener('click',event=>{if(event.target===dialog){const box=dialog.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)dialog.close();}});
-  dialog.addEventListener('close',()=>{++request;originFocus?.focus();});
+  dialog.addEventListener('close',()=>{++request;clearTimeout(measurement);originFocus?.focus();});
   input.addEventListener('input',update);
   dialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();list.querySelector('a')?.click();});
   dialog.addEventListener('keydown',event=>{

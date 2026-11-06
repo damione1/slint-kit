@@ -1,5 +1,6 @@
 [package]
 name = "slint-kit-slint"
+links = "kit_slint"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,7 +11,7 @@ keywords.workspace = true
 categories.workspace = true
 readme = "README.md"
 description = "Slint Kit model projections, weak bindings and public Slint components"
-include = ["src/**", "ui/**", "tests/**", "Cargo.toml", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
+include = ["build.rs", "src/**", "ui/**", "tests/**", "Cargo.toml", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
 
 [dependencies]
 kit-core.workspace = true
@@ -27,3 +28,6 @@ workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", optional = true }
 web-sys = { version = "0.3", optional = true, features = ["Window", "EventTarget", "ClipboardEvent", "DataTransfer"] }
+
+[build-dependencies]
+slint-build = { workspace = true, features = ["experimental-module-builds"] }

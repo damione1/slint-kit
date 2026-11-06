@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitKeypad, KitCodeIndicator, KitTheme, KitThemes, KitMetrics, TypographyRole } from "@kit";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    title: "Pavé numérique";
+    preferred-width: 440px; preferred-height: 560px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    // L’exemple ne compte que les chiffres ; un vrai hôte conserve le code en Rust.
+    in-out property <int> entered;
+    in-out property <string> status;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Code du casier"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Saisissez le code à quatre chiffres imprimé sur votre reçu."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCodeIndicator { theme: root.theme; length: 4; filled: root.entered; label: root.entered + " chiffres sur 4 saisis"; }
+        HorizontalLayout { alignment: center;
+            KitKeypad { theme: root.theme; label: "Code du casier"; delete-label: "Effacer"; confirm-label: "Ouvrir le casier"; can-confirm: root.entered == 4;
+                activation-started => { root.status = "Touche pressée"; }
+                digit(value) => { root.entered = min(4, root.entered + 1); }
+                delete-requested => { root.entered = max(0, root.entered - 1); }
+                confirm => { root.status = "Code envoyé pour vérification"; root.entered = 0; }
+            }
+        }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

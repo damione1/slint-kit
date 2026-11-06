@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use slint::ComponentHandle;
 use slint_kit::{
-    AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldAccess, FieldBinding, FieldIntent,
-    Ownership, ParseIssue, SelectOption, SelectionIntent, ValidationPresentation,
+    AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldBinding, FieldIntent, Ownership,
+    ParseIssue, SelectOption,
 };
 
 mod ui {
@@ -27,7 +27,7 @@ enum WorkspaceKey {
 fn main() -> Result<(), slint::PlatformError> {
     let french = std::env::args().any(|arg| arg == "--fr");
     let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
+    slint_kit::install(&app);
     app.set_language(if french {
         ui::ExampleLanguage::French
     } else {
@@ -62,17 +62,8 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(app) = weak.upgrade() {
                 app.set_draft(projection.draft.into());
                 app.set_error(projection.error.into());
-                app.set_field_access(match projection.access {
-                    FieldAccess::Editable => ui::FieldAccess::Editable,
-                    FieldAccess::ReadOnly => ui::FieldAccess::ReadOnly,
-                    FieldAccess::Disabled => ui::FieldAccess::Disabled,
-                });
-                app.set_validation(match projection.validation {
-                    ValidationPresentation::Pristine => ui::ValidationPresentation::Pristine,
-                    ValidationPresentation::Checking => ui::ValidationPresentation::Checking,
-                    ValidationPresentation::Valid => ui::ValidationPresentation::Valid,
-                    ValidationPresentation::Invalid => ui::ValidationPresentation::Invalid,
-                });
+                app.set_field_access(projection.access.into());
+                app.set_validation(projection.validation.into());
             }
         },
     );
@@ -84,7 +75,8 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
     field.set_html_constraints(slint_kit::HtmlConstraints {
-        kind: slint_kit::HtmlInputKind::Text, required: true,
+        kind: slint_kit::HtmlInputKind::Text,
+        required: true,
         ..Default::default()
     });
     let weak = app.as_weak();
@@ -121,60 +113,50 @@ fn main() -> Result<(), slint::PlatformError> {
         },
     );
     archived.disabled = true;
-    let selection = slint_kit::bind_select!(
-        ui,
-        app,
-        vec![
-            SelectOption::new(
-                WorkspaceKey::Personal,
-                if french { "Personnel" } else { "Personal" }
-            ),
-            SelectOption::new(
-                WorkspaceKey::Shared,
-                if french { "Partagé" } else { "Shared" }
-            ),
-            archived,
-        ],
-        Some(WorkspaceKey::Personal),
-        Ownership::Local
-    );
+    let choices = slint_kit::Choices::from_options(vec![
+        SelectOption::new(
+            WorkspaceKey::Personal,
+            if french { "Personnel" } else { "Personal" },
+        ),
+        SelectOption::new(
+            WorkspaceKey::Shared,
+            if french { "Partagé" } else { "Shared" },
+        ),
+        archived,
+    ])
+    .expect("unique workspace keys");
+    app.set_options(choices.model());
+    app.set_workspace_selected(choices.selection(&WorkspaceKey::Personal).unwrap());
     app.set_selected_label(if french { "Personnel" } else { "Personal" }.into());
-    let weak = app.as_weak();
-    selection.on_intent(move |intent| {
-        if let Some(app) = weak.upgrade() {
-            let label = match intent {
-                SelectionIntent::Commit(WorkspaceKey::Personal) => {
+    app.on_workspace_chosen(slint_kit::event(&app, move |app, row| {
+        if let Some(key) = choices.accept(row) {
+            let label = match key {
+                WorkspaceKey::Personal => {
                     if french {
                         "Personnel"
                     } else {
                         "Personal"
                     }
                 }
-                SelectionIntent::Commit(WorkspaceKey::Shared) => {
+                WorkspaceKey::Shared => {
                     if french {
                         "Partagé"
                     } else {
                         "Shared"
                     }
                 }
-                SelectionIntent::Commit(WorkspaceKey::Archive) => {
+                WorkspaceKey::Archive => {
                     if french {
                         "Archives (lecture seule)"
                     } else {
                         "Archive (read only)"
                     }
                 }
-                SelectionIntent::Clear => {
-                    if french {
-                        "Choisir un espace"
-                    } else {
-                        "Choose a workspace"
-                    }
-                }
             };
             app.set_selected_label(label.into());
         }
-    });
-    // Keep both window-local bindings alive for the complete event loop.
+    }));
+
+    // The callback owns the keyed choices; field callbacks retain the field binding.
     app.run()
 }

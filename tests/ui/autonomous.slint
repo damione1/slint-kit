@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTimePicker, ClockFormat, NumberInputFormat, KitEmailField, KitDecimalField, KitSlider, KitRangeSlider, KitColorField, KitToggleGroup, KitTheme, KitThemes, FieldAccess, FieldState, FieldCommit, DecimalRangeView, SrgbColorView, OptionRow, SelectionRef, Ownership, ContentItem } from "@kit";
+export component AutonomousFixture inherits Window {
+    width: 1000px; height: 1100px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <[OptionRow]> options;
+    in property <[ContentItem]> content;
+    in property <int> generation;
+    in property <int> active;
+    in-out property <string> email-text <=> email.text;
+    out property <FieldState> email-state: email.field-state;
+    out property <FieldState> second-state: second.field-state;
+    out property <string> slider-value: slider.value;
+    out property <DecimalRangeView> range-value: range.value;
+    out property <SrgbColorView> color-value: color.accepted-color;
+    out property <[SelectionRef]> selected: toggles.selected;
+    callback email-committed(FieldCommit);
+    callback selection-changed(OptionRow, bool);
+    public function commit-email() { email.commit(); }
+    public function cancel-email() { email.cancel-edit(); }
+    public function reset-email() { email.reset-field(); }
+    public function focus-email() { email.take-focus(); }
+    public function focus-slider() { slider.take-focus(); }
+    public function focus-range() { range.take-focus(); }
+    public function focus-toggles() { toggles.take-focus(); }
+    public function commit-color(text: string) { color.text = text; color.commit(); }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        email := KitEmailField { theme: root.theme; label: "Primary email"; access: root.access; ownership: root.ownership; spec-key: "email"; required: true; text: "before@example.com"; default-value: "reset@example.com"; committed(value) => { root.email-committed(value); } }
+        second := KitEmailField { theme: root.theme; label: "Independent email"; spec-key: "email"; text: "second@example.com"; }
+        slider := KitSlider { theme: root.theme; label: "Exact decimal slider"; access: root.access; ownership: root.ownership; value: "0.2"; spec: {minimum: "0", maximum: "1", step: "0.1"}; }
+        range := KitRangeSlider { theme: root.theme; label: "Exact decimal range"; access: root.access; value: {lower: "0.2", upper: "0.8"}; spec: {minimum: "0", maximum: "1", step: "0.1"}; }
+        color := KitColorField { theme: root.theme; label: "Accent"; access: root.access; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; }
+        toggles := KitToggleGroup { theme: root.theme; label: "Membership"; access: root.access; ownership: root.ownership; options: root.options; selection-limit: 2; selection-changed(row, added) => { root.selection-changed(row, added); } }
+    }
+}
+
+import { KitZonedDateTimeField, ZonedDateTimeCommit, ZonedTimePresentation } from "@kit";
+export component ZonedServiceFixture inherits Window {
+    width: 700px; height: 600px;
+    in-out property <string> date-text <=> editor.date-text;
+    out property <ZonedTimePresentation> resolution: editor.resolution;
+    callback chosen(ZonedDateTimeCommit);
+    public function resolve() { editor.resolve(); }
+    editor := KitZonedDateTimeField {
+        date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto";
+        earlier-label: "Earlier occurrence"; later-label: "Later occurrence";
+        chosen(value) => { root.chosen(value); }
+    }
+}
+
+export component LocalizedFieldFixture inherits Window {
+    in-out property <string> decimal-text: "1\u{00a0}234,50";
+    in-out property <string> time-text: "01:30 PM";
+    out property <FieldState> decimal-state: decimal.field-state;
+    out property <FieldState> time-state: time.field-state;
+    callback decimal-committed(FieldCommit);
+    callback time-committed(FieldCommit);
+    public function commit-decimal() { decimal.commit(); }
+    public function cancel-decimal() { decimal.cancel-edit(); }
+    public function commit-time() { time.commit(); }
+    public function cancel-time() { time.cancel-edit(); }
+    VerticalLayout {
+        decimal := KitDecimalField { number-format: NumberInputFormat.decimal-comma; step: "any"; spec-key: "decimal-fr"; text <=> root.decimal-text; committed(value) => { root.decimal-committed(value); } }
+        time := KitTimePicker { clock-format: ClockFormat.twelve-hour; step: "any"; spec-key: "time12"; text <=> root.time-text; committed(value) => { root.time-committed(value); } }
+    }
+}
+
+export component NarrowToggleFixture inherits Window {
+    width: 560px; height: 600px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    out property <[SelectionRef]> selected: toggles.selected;
+    public function focus-toggles() { toggles.take-focus(); }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        toggles := KitToggleGroup {
+            theme: root.theme; label: "Delivery channels";
+            options: [
+                {token: 1, generation: 1, label: "Email"},
+                {token: 2, generation: 1, label: "Push"},
+                {token: 3, generation: 1, label: "SMS"},
+                {token: 4, generation: 1, label: "Desktop"},
+                {token: 5, generation: 1, label: "In-app inbox"},
+                {token: 6, generation: 1, label: "Weekly digest"},
+                {token: 7, generation: 1, label: "Webhook"},
+                {token: 8, generation: 1, label: "Calendar"},
+            ];
+        }
+    }
+}

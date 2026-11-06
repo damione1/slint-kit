@@ -45,6 +45,9 @@ macro_rules! contract_enums {
 }
 
 contract_enums! {
+    FieldAction => "FieldAction" { Edit => "edit", Blur => "blur", Submit => "submit", Cancel => "cancel" }
+    Ownership => "Ownership" { Local => "local", Controlled => "controlled" }
+    WeekStart => "WeekStart" { Monday => "monday", Tuesday => "tuesday", Wednesday => "wednesday", Thursday => "thursday", Friday => "friday", Saturday => "saturday", Sunday => "sunday" }
     PhoneNumberMode => "PhoneNumberMode" { National => "national", International => "international", Either => "either" }
     NumberInputFormat => "NumberInputFormat" { Canonical => "canonical", DecimalComma => "decimal-comma" }
     HtmlInputKind => "HtmlInputKind" {

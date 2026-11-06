@@ -433,3 +433,108 @@ fn gutter_bars_keep_native_wheel_and_thumb_drag_scrolling_on_both_axes() {
         assert!(after < before, "a gutter thumb still controls its axis");
     }
 }
+
+fn priority_fixture(policy: ScrollPanPolicy) -> PanPriorityFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = PanPriorityFixture::new().unwrap();
+    window.set_pan_policy(policy);
+    window.show().unwrap();
+    window
+}
+fn priority_drag(window: &PanPriorityFixture, from: (f32, f32), to: (f32, f32)) {
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position: LogicalPosition::new(from.0, from.1),
+        button: PointerEventButton::Left,
+    });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(110));
+    slint::platform::update_timers_and_animations();
+    window.window().dispatch_event(WindowEvent::PointerMoved {
+        position: LogicalPosition::new(to.0, to.1),
+    });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: LogicalPosition::new(to.0, to.1),
+            button: PointerEventButton::Left,
+        });
+}
+#[test]
+fn children_first_preserves_both_control_directions_and_single_commit() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    for (from, to) in [((120., 40.), (120., 170.)), ((120., 170.), (120., 40.))] {
+        let before = window.get_commits();
+        priority_drag(&window, from, to);
+        assert_eq!(window.get_commits(), before + 1);
+        assert_eq!(window.get_offset(), 0.);
+        assert!(!window.get_adjusting());
+    }
+}
+#[test]
+fn children_first_background_pan_crossing_control_keeps_original_scroll_owner() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    priority_drag(&window, (20., 200.), (120., 80.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+    window.invoke_reveal_end();
+    assert!(window.get_offset() <= -500.);
+    window.invoke_reset_scroll();
+    assert_eq!(window.get_offset(), 0.);
+}
+#[test]
+fn native_policy_keeps_existing_flickable_arbitration() {
+    let window = priority_fixture(ScrollPanPolicy::Native);
+    priority_drag(&window, (120., 170.), (120., 40.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+}
+#[test]
+fn children_first_disabling_control_cancels_without_commit_and_unclaimed_pan_still_works() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position: LogicalPosition::new(120., 40.),
+        button: PointerEventButton::Left,
+    });
+    assert!(window.get_adjusting());
+    window.set_control_enabled(false);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: LogicalPosition::new(120., 170.),
+            button: PointerEventButton::Left,
+        });
+    assert_eq!(window.get_commits(), 0);
+    assert!(!window.get_adjusting());
+    priority_drag(&window, (120., 170.), (120., 40.));
+    assert!(window.get_offset() < -50.);
+}
+
+#[test]
+fn children_first_keeps_wheel_and_scrollbar_input_available() {
+    let window = priority_fixture(ScrollPanPolicy::ChildrenFirst);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerScrolled {
+            position: LogicalPosition::new(20., 100.),
+            delta_x: 0.,
+            delta_y: -100.,
+        });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(250));
+    slint::platform::update_timers_and_animations();
+    assert!(window.get_offset() <= -90.);
+    window.invoke_reset_scroll();
+    let vertical = ElementQuery::from_root(&window)
+        .match_inherits("KitScrollBar")
+        .find_all()
+        .into_iter()
+        .find(|bar| bar.size().height > 200.)
+        .unwrap();
+    let knob = thumb(&vertical);
+    let p = knob.absolute_position();
+    let x = p.x + knob.size().width / 2.;
+    let y = p.y + knob.size().height / 2.;
+    priority_drag(&window, (x, y), (x, y + 50.));
+    assert!(window.get_offset() < -50.);
+    assert_eq!(window.get_commits(), 0);
+}

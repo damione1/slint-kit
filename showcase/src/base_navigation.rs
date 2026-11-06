@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Native navigation examples with stable application keys and controlled views.
 use super::ui;
-use kit::{
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use slint_kit::{
     DismissReason, FocusDirection, FocusHandle, FocusId, FocusRegistry, FocusScopeId,
     NavigationStep, OverlayId, OverlaySpec, OverlayStack, Ownership, SelectController,
     SelectOption,
 };
-use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{cell::RefCell, collections::HashSet, num::NonZeroUsize, rc::Rc, time::Instant};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -403,24 +403,10 @@ fn focus_view(handles: &[FocusHandle; 8], handle: FocusHandle) -> ui::DrawerFocu
 }
 
 fn step(value: ui::NavigationStep) -> NavigationStep {
-    match value {
-        ui::NavigationStep::Next => NavigationStep::Next,
-        ui::NavigationStep::Previous => NavigationStep::Previous,
-        ui::NavigationStep::First => NavigationStep::First,
-        ui::NavigationStep::Last => NavigationStep::Last,
-        ui::NavigationStep::PageNext => NavigationStep::PageNext,
-        ui::NavigationStep::PagePrevious => NavigationStep::PagePrevious,
-    }
+    value.into()
 }
 fn reason(value: ui::CloseReason) -> DismissReason {
-    match value {
-        ui::CloseReason::Escape => DismissReason::Escape,
-        ui::CloseReason::OutsidePress => DismissReason::OutsidePress,
-        ui::CloseReason::SystemBack => DismissReason::SystemBack,
-        ui::CloseReason::TriggerToggle => DismissReason::TriggerToggle,
-        ui::CloseReason::Programmatic => DismissReason::Programmatic,
-        ui::CloseReason::HostClosed => DismissReason::HostClosed,
-    }
+    value.into()
 }
 fn rows(c: &SelectController<ItemKey>) -> Vec<ui::OptionRow> {
     c.options()

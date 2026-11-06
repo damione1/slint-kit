@@ -1,9 +1,8 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFormButton, KitTextField, KitThemes, FormAction } from "@kit/kit.slint";
+import { KitFormButton, KitTextField, KitThemes, FormAction } from "@kit";
 export { FormAction }
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
@@ -17,11 +16,11 @@ export component App inherits Window {
     background: root.theme.canvas;
     in-out property <string> draft: "Field notes";
     in property <string> result: "Edit the draft, then use the action.";
-    callback form-action(FormAction, string);
+    callback submit-draft(string);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
-        KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft; }
-        action := KitFormButton { theme: root.theme; text: "Save changes"; form-action(action) => { root.form-action(action, root.draft); } }
+        editor := KitTextField { required: true; theme: root.theme; label: "Project name"; text <=> root.draft; }
+        action := KitFormButton { theme: root.theme; text: "Save changes"; form-action(action) => { if (editor.report-validity()) { root.submit-draft(root.draft); } } }
         Text { text: root.result; color: root.theme.text-primary; wrap: word-wrap; }
     }
 }

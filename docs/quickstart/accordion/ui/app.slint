@@ -1,41 +1,25 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitAccordion, DisclosureRow, ExpansionMode, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, KitAccordion } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitAccordion example";
-    preferred-width: 520px;
-    preferred-height: 400px;
-    max-width: 100000px;
-    max-height: 100000px;
+    preferred-width: 560px; preferred-height: 360px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <SelectState> select-state;
-    in property <string> selected-label: "Overview";
-    in-out property <string> query;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
-    in property <[DisclosureRow]> disclosures;
-    callback expand(int, int, bool, ExpansionMode);
-    VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        control := KitAccordion {
-            theme: root.theme; rows: root.disclosures; state: root.select-state; mode: ExpansionMode.single;
-            navigate(step) => { root.select-navigate(step); }
-            expansion-requested(token, generation, expanded, mode) => { root.expand(token, generation, expanded, mode); }
-        }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
-    }
+    in property <[OptionRow]> options;
+    callback section-expanded(OptionRow, bool);
 
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        control := KitAccordion {
+            theme: root.theme; options: root.options;
+            expansion-changed(row, expanded) => { root.section-expanded(row, expanded); }
+        }
+        Text { text: "Last section: " + control.selected-label; color: root.theme.text-primary; }
+
+    }
 }

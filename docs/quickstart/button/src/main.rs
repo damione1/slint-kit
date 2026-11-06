@@ -1,18 +1,10 @@
-use slint::ComponentHandle;
-use std::cell::Cell;
+// SPDX-License-Identifier: GPL-3.0-or-later
 slint::include_modules!();
-
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
-    slint_kit::init_form_validation!(self, app);
-    let count = Cell::new(0_i32);
-    let weak = app.as_weak();
-    app.on_increment(move || {
-        if let Some(app) = weak.upgrade() {
-            let next = count.get().checked_add(1).expect("counter capacity");
-            count.set(next);
-            app.set_count(next);
-        }
-    });
+    slint_kit::install(&app);
+    app.on_increment(slint_kit::action(&app, |app| {
+        app.set_count(app.get_count().checked_add(1).expect("counter capacity"));
+    }));
     app.run()
 }

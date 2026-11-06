@@ -1,22 +1,20 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// Public label overrides localize this fixture; toolkit/host defaults keep their language.
-// SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSlider, KitTheme, KitThemes } from "@kit/kit.slint";
+import { LayoutSpace, KitMetrics, TypographyRole } from "@kit";
+import { KitThemes } from "@kit";
+import { KitTheme, KitThemeContext } from "@kit";
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { KitSlider, KitStack, KitThemeContext, SliderSpec } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitSlider — exemple";
-    preferred-width: 420px;
-    preferred-height: 180px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Curseur"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        Text { text: "Volume · 65 %"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } KitSlider { theme: root.theme; label: "Volume"; position: 0.65; value-label: "65 %"; position-requested(value) => { root.status = "Position demandée"; } }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-    }
+    changed theme => { KitThemeContext.current = root.theme; }
+    title: "Curseur"; preferred-width: 560px; preferred-height: 360px;
+    background: KitThemeContext.current.canvas;
+    callback volume-changed(string);
+    KitStack { inset: LayoutSpace.roomy;
+        Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        KitSlider { label: "Volume"; value: "65"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
 }

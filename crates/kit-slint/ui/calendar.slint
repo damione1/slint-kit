@@ -13,13 +13,11 @@ import { FieldAccess } from "contracts.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
 
-// These are display projections; only kit-core constructs valid civil dates.
-export struct CivilDateView { year: int, month: int, day: int }
-export struct CalendarDay {
-    year: int, month: int, day: int, label: string, accessible-label: string,
-    enabled: bool, selected: bool, in-range: bool, today: bool,
-}
-export enum DateRangePhase { choosing-start, choosing-end, complete }
+import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
+export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
+import { WeekStart, Ownership } from "shared-contracts.slint";
+import { DateRangePhase, DateRangeDraft } from "calendar-service.slint";
+export { DateRangePhase } from "calendar-service.slint";
 
 component CalendarOption inherits KitPressable {
     in property <CalendarDay> day;
@@ -37,6 +35,33 @@ component CalendarOption inherits KitPressable {
 // One roving keyboard target announces the active civil date, while individual
 // cells remain accessible and pointer-activatable without adding 42 Tab stops.
 export component KitCalendar inherits Rectangle {
+    in property <Ownership> ownership: Ownership.local;
+    // Interaction belongs to each calendar instance. Services only compute values.
+    in-out property <CivilDateView> selected;
+    in-out property <CivilDateView> focused: root.selected.year > 0 ? root.selected : {year: 2000, month: 1, day: 1};
+    in property <CivilDateView> today;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in property <[WeekStart]> unavailable-weekdays;
+    in property <[DateRangeView]> unavailable-ranges;
+    in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    private property <CalendarView> view: { selected: root.selected, focused: root.focused, today: root.today, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
+    private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.month-names) : {active-index: -1};
+    callback chosen(CivilDateView);
+    public function move(direction: CalendarNavigation) {
+        if (root.access == FieldAccess.disabled) { return; }
+        if (KitCalendarService.ready) { root.focused = KitCalendarService.navigate(root.view, direction); }
+        root.navigate(direction);
+    }
+    function accept-day(day: CalendarDay) {
+        if (root.access != FieldAccess.editable || !root.day-allowed(day)) { return; }
+        let date = {year: day.year, month: day.month, day: day.day};
+        if (KitCalendarService.ready && !KitCalendarService.allowed(root.view, date)) { return; }
+        if (root.ownership == Ownership.local) { root.selected = date; }
+        root.focused = date;
+        root.chosen(date);
+        root.choose(day);
+    }
+
     in property <string> min;
     in property <string> max;
     in property <string> step;
@@ -53,15 +78,15 @@ export component KitCalendar inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <[CalendarDay]> days;
+    in property <[CalendarDay]> days: root.projection.days;
     in property <[string]> weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    in property <int> active-index;
-    in property <string> title;
+    in property <int> active-index: root.projection.active-index;
+    in property <string> title: root.projection.title;
     in property <string> label: "Choose a date";
     in property <string> previous-month-label: "Previous month";
     in property <string> next-month-label: "Next month";
-    in property <bool> previous-enabled: true;
-    in property <bool> next-enabled: true;
+    in property <bool> previous-enabled: root.projection.previous-enabled;
+    in property <bool> next-enabled: root.projection.next-enabled;
     in property <string> unavailable-label: "Unavailable";
     in property <string> navigation-help: "Arrow keys move by day or week. Home and End move within the week. Page Up and Page Down change month; hold Shift to change year.";
     in property <bool> request-focus;
@@ -88,9 +113,9 @@ export component KitCalendar inherits Rectangle {
         spacing: root.theme.spacing.unit * 2;
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access == FieldAccess.disabled || !root.previous-enabled; activated => { root.navigate(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-left; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.previous-month-label; intent: ButtonIntent.quiet; disabled: root.access == FieldAccess.disabled || !root.previous-enabled; activated => { root.move(CalendarNavigation.previous-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-left; ink: root.theme.text-primary; } } }
             Text { text: root.title; accessible-live-region: polite; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
-            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access == FieldAccess.disabled || !root.next-enabled; activated => { root.navigate(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-right; ink: root.theme.text-primary; } } }
+            KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access == FieldAccess.disabled || !root.next-enabled; activated => { root.move(CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-right; ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
             min-height: root.cell-height * 7;
@@ -98,16 +123,16 @@ export component KitCalendar inherits Rectangle {
             key-pressed(event) => {
                 if (event.text == Key.Escape) { root.cancelled(); return accept; }
                 if (root.access == FieldAccess.disabled) { return reject; }
-                if (event.text == Key.LeftArrow) { root.navigate(CalendarNavigation.previous-day); return accept; }
-                if (event.text == Key.RightArrow) { root.navigate(CalendarNavigation.next-day); return accept; }
-                if (event.text == Key.UpArrow) { root.navigate(CalendarNavigation.previous-week); return accept; }
-                if (event.text == Key.DownArrow) { root.navigate(CalendarNavigation.next-week); return accept; }
-                if (event.text == Key.Home) { root.navigate(CalendarNavigation.week-start); return accept; }
-                if (event.text == Key.End) { root.navigate(CalendarNavigation.week-end); return accept; }
-                if (event.text == Key.PageUp) { root.navigate(event.modifiers.shift ? CalendarNavigation.previous-year : CalendarNavigation.previous-month); return accept; }
-                if (event.text == Key.PageDown) { root.navigate(event.modifiers.shift ? CalendarNavigation.next-year : CalendarNavigation.next-month); return accept; }
+                if (event.text == Key.LeftArrow) { root.move(CalendarNavigation.previous-day); return accept; }
+                if (event.text == Key.RightArrow) { root.move(CalendarNavigation.next-day); return accept; }
+                if (event.text == Key.UpArrow) { root.move(CalendarNavigation.previous-week); return accept; }
+                if (event.text == Key.DownArrow) { root.move(CalendarNavigation.next-week); return accept; }
+                if (event.text == Key.Home) { root.move(CalendarNavigation.week-start); return accept; }
+                if (event.text == Key.End) { root.move(CalendarNavigation.week-end); return accept; }
+                if (event.text == Key.PageUp) { root.move(event.modifiers.shift ? CalendarNavigation.previous-year : CalendarNavigation.previous-month); return accept; }
+                if (event.text == Key.PageDown) { root.move(event.modifiers.shift ? CalendarNavigation.next-year : CalendarNavigation.next-month); return accept; }
                 if (event.text == Key.Return || event.text == Key.Space) {
-                    if (root.access == FieldAccess.editable && !root.activation-held && root.active-index >= 0 && root.active-index < root.days.length && root.day-allowed(root.days[root.active-index])) { root.activation-held = true; root.choose(root.days[root.active-index]); }
+                    if (root.access == FieldAccess.editable && !root.activation-held && root.active-index >= 0 && root.active-index < root.days.length && root.day-allowed(root.days[root.active-index])) { root.activation-held = true; root.accept-day(root.days[root.active-index]); }
                     return accept;
                 }
                 return reject;
@@ -134,7 +159,7 @@ export component KitCalendar inherits Rectangle {
                 border-color: root.theme.accent;
                 focus-indicated: keyboard.has-focus && root.active-index == index;
                 focus-ring: KitThemes.inset-focus(root.theme);
-                choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.choose(chosen); } }
+                choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.accept-day(chosen); } }
                 Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: day.selected || day.today ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
@@ -152,6 +177,7 @@ export component KitDateField inherits KitTextField {
 // TextInput stays mounted when the calendar opens. Host parsing, bounds and
 // selection apply atomically; opening an overlay never rewrites the draft.
 export component KitDatePicker inherits Rectangle {
+    in property <Ownership> ownership: Ownership.local;
     in property <bool> required;
     in property <string> min;
     in property <string> max;
@@ -170,11 +196,26 @@ export component KitDatePicker inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <CivilDateView> accepted-date;
-    in property <[CalendarDay]> days;
+    in-out property <CivilDateView> accepted-date;
+    changed accepted-date => { if (KitCalendarService.ready) { root.text = KitCalendarService.format-date(root.accepted-date); editor.acknowledge({present: root.accepted-date.year > 0, text: root.text}); } }
+    in-out property <CivilDateView> focused: root.accepted-date.year > 0 ? root.accepted-date : {year: 2000, month: 1, day: 1};
+    in property <WeekStart> week-start: WeekStart.monday;
+    in property <[WeekStart]> unavailable-weekdays;
+    in property <[DateRangeView]> unavailable-ranges;
+    in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    private property <CalendarView> view: {selected: root.accepted-date, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges};
+    private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.month-names) : {active-index: -1};
+    callback chosen(CivilDateView);
+    public function accept-date(date: CivilDateView) {
+        if (root.access != FieldAccess.editable || !KitCalendarService.ready || !KitCalendarService.allowed(root.view, date)) { return; }
+        if (root.ownership == Ownership.local) { root.accepted-date = date; root.text = KitCalendarService.format-date(date); }
+        root.focused = date;
+        root.chosen(date);
+    }
+    in property <[CalendarDay]> days: root.projection.days;
     in property <[string]> weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    in property <int> active-index;
-    in property <string> title;
+    in property <int> active-index: root.projection.active-index;
+    in property <string> title: root.projection.title;
     in property <string> label;
     in property <string> placeholder: "YYYY-MM-DD";
     in property <string> description: "Civil date; no time zone";
@@ -182,10 +223,10 @@ export component KitDatePicker inherits Rectangle {
     in property <string> calendar-accessible-name: "Open calendar for " + root.label;
     in property <string> previous-month-label: "Previous month";
     in property <string> next-month-label: "Next month";
-    in property <bool> previous-enabled: true;
-    in property <bool> next-enabled: true;
+    in property <bool> previous-enabled: root.projection.previous-enabled;
+    in property <bool> next-enabled: root.projection.next-enabled;
     in property <string> error;
-    in-out property <string> text;
+    in-out property <string> text: KitCalendarService.ready ? KitCalendarService.format-date(root.accepted-date) : "";
     in-out property <bool> open;
     callback edited(string);
     callback commit-requested(string);
@@ -212,11 +253,11 @@ export component KitDatePicker inherits Rectangle {
                 error: root.error;
                 invalid => { root.invalid(); }
 
-                theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-date;
+                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; accepted-date: root.accepted-date;
                 label: ""; description: ""; placeholder: root.placeholder; accessible-name: root.label; text <=> root.text;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
-                commit-requested(text) => { root.commit-requested(text); }
+                commit-requested(text) => { if (editor.check-validity()) { root.accept-date(KitCalendarService.parse-date(text)); } root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
             }
             KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
@@ -230,8 +271,9 @@ export component KitDatePicker inherits Rectangle {
         close-policy: close-on-click-outside;
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
-            calendar := KitCalendar { min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
+            calendar := KitCalendar { ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
+                chosen(date) => { root.accept-date(date); }
                 choose(day) => { root.choose(day); root.open = false; }
                 cancelled => { root.cancelled(); root.open = false; }
             }
@@ -242,21 +284,60 @@ export component KitDatePicker inherits Rectangle {
 // Selecting a start/end is provisional until Apply. The Rust DateRange model
 // rejects reversed dates or forbidden periods; it never normalizes them silently.
 export component KitDateRangePicker inherits Rectangle {
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <DateRangeView> selected;
+    in-out property <CivilDateView> focused: root.selected.start.year > 0 ? root.selected.start : {year: 2000, month: 1, day: 1};
+    in property <string> min;
+    in property <string> max;
+    in property <string> min-nights;
+    in property <string> max-nights;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in property <[WeekStart]> unavailable-weekdays;
+    in property <[DateRangeView]> unavailable-ranges;
+    in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    in property <string> rejected-message: "Choose an available end date on or after the start.";
+    private property <DateRangeDraft> draft;
+    init => { root.reset-draft(); }
+    changed selected => { root.reset-draft(); }
+    function reset-draft() { root.draft = root.selected.start.year > 0 ? {phase: DateRangePhase.complete, start: root.selected.start, end: root.selected.end} : {phase: DateRangePhase.choosing-start}; }
+    private property <DateRangeView> candidate-range: {start: root.draft.start, end: root.draft.end};
+    private property <bool> rejected;
+    private property <CalendarView> view: { focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
+    private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.range-project(root.view, root.draft, root.month-names) : {active-index: -1};
+    callback chosen(DateRangeView);
+    function choose-date(date: CivilDateView) {
+        if (root.access != FieldAccess.editable || !KitCalendarService.ready) { return; }
+        let update = KitCalendarService.range-choose(root.view, root.draft, date, root.min-nights, root.max-nights);
+        root.draft = update.draft;
+        root.rejected = update.rejected;
+    }
+    public function apply() {
+        if (root.access != FieldAccess.editable || root.draft.phase != DateRangePhase.complete || !KitCalendarService.range-valid(root.view, root.candidate-range, root.min-nights, root.max-nights)) { return; }
+        if (root.ownership == Ownership.local) { root.selected = root.candidate-range; }
+        root.chosen(root.candidate-range);
+        root.apply-requested();
+    }
+    public function cancel() {
+        root.reset-draft();
+        root.rejected = false;
+        root.cancelled();
+    }
+
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <DateRangePhase> phase: DateRangePhase.choosing-start;
-    in property <[CalendarDay]> days;
+    in property <DateRangePhase> phase: root.draft.phase;
+    in property <[CalendarDay]> days: root.projection.days;
     in property <[string]> weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    in property <int> active-index;
-    in property <string> title;
+    in property <int> active-index: root.projection.active-index;
+    in property <string> title: root.projection.title;
     in property <string> summary;
-    in property <string> error;
+    in property <string> error: root.rejected ? root.rejected-message : "";
     in property <string> label: "Choose a date range";
     in property <string> previous-month-label: "Previous month";
     in property <string> next-month-label: "Next month";
-    in property <bool> previous-enabled: true;
-    in property <bool> next-enabled: true;
+    in property <bool> previous-enabled: root.projection.previous-enabled;
+    in property <bool> next-enabled: root.projection.next-enabled;
     in property <string> choose-start-label: "Choose the start date";
     in property <string> choose-end-label: "Choose the end date";
     in property <string> ready-label: "Date range ready";
@@ -271,12 +352,12 @@ export component KitDateRangePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? root.choose-start-label : root.phase == DateRangePhase.choosing-end ? root.choose-end-label : root.ready-label) : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; accessible-live-region: polite; }
-        calendar := KitCalendar { label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancelled(); } }
+        calendar := KitCalendar { focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.cancel-label; disabled: root.access == FieldAccess.disabled; intent: ButtonIntent.quiet; activated => { root.cancelled(); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; intent: ButtonIntent.primary; disabled: root.access != FieldAccess.editable || root.phase != DateRangePhase.complete || root.error != ""; activated => { root.apply-requested(); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.cancel-label; disabled: root.access == FieldAccess.disabled; intent: ButtonIntent.quiet; activated => { root.cancel(); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; intent: ButtonIntent.primary; disabled: root.access != FieldAccess.editable || root.phase != DateRangePhase.complete || root.error != ""; activated => { root.apply(); } }
         }
     }
 }

@@ -5,81 +5,58 @@ title: "Formulaires, options partagées et validation"
 translationKey: "guides/forms/"
 permalink: "{{ 'guides/forms/' | localeUrl(locale) }}index.html"
 ---
+
 # Formulaires, options partagées et validation
 
-Choisissez un champ, puis réglez ses options :
+Configurez l’application une fois avec [Configuration du projet](/fr/guides/project-setup/). Importez les contrôles depuis `@kit` et appelez `slint_kit::install(&app)` avant d’afficher chaque fenêtre. Cette fonction installe les services purs partagés ; champs, calendriers et sélections conservent leur propre état. Une installation répétée est sans effet supplémentaire. Ces API ciblent Slint Kit **{{ project.version }}** ; utilisez des paquets runtime et build correspondants.
 
 ```slint
-KitEmailField {
-    label: "Email professionnel";
-    required: true;
-    pattern: ".+@example\\.com";
-    pattern-message: "Utilisez votre adresse example.com.";
+import { KitEmailField, FieldCommit } from "@kit";
+export component App inherits Window {
+    callback contact-changed(FieldCommit);
+    KitEmailField {
+        label: "Courriel professionnel";
+        required: true;
+        spec-key: "contact";
+        committed(value) => { root.contact-changed(value); }
+    }
 }
 ```
 
-`label`, `description` et `error` sont intégrés aux champs. [KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) servent à composer une présentation personnalisée. Leurs pages listent les contrôles compatibles ; chaque référence affiche aussi ses propriétés héritées.
-
-## Initialiser la validation
-
-Les projets complets initialisent le moteur une fois par fenêtre. Pour l’ajouter à votre application, exportez ces types depuis le fichier Slint principal, puis installez le moteur dans Rust :
-
-```slint
-export { KitFormValidation, HtmlInputKind, NumberInputFormat,
-    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-```
+Enregistrez le codec métier une fois et protégez aussi la frontière Rust :
 
 ```rust
-// Après App::new(), avant app.run().
-slint_kit::init_form_validation!(self, app);
-```
-
-Si le code généré est dans `mod ui`, utilisez `init_form_validation!(ui, app)`. Sans initialisation, `validation-ready` reste faux et les vérifications refusent la validation. Les projets [email](/fr/components/email-field/), [URL](/fr/components/url-field/) et [champ texte](/fr/components/text-field/) contiennent les fichiers complets.
-
-## Choisir les contraintes
-
-| Option | Usage |
-| --- | --- |
-| `required` | Refuser une valeur vide ou une sélection obligatoire manquante. |
-| `multiple` | Autoriser plusieurs emails séparés par des virgules. |
-| `min-length`, `max-length` | Longueur des champs texte en unités UTF-16 ; `-1` désactive la limite. Le brouillon natif reste modifiable. |
-| `pattern`, `pattern-message` | Regex ECMAScript `v`, appliquée à toute la valeur. |
-| `min`, `max`, `step` | Bornes et pas des nombres, dates et heures, sous forme canonique ; `step: "any"` enlève la contrainte de pas. |
-| `default-value` | Valeur de réinitialisation et base du pas si `min` est absent. |
-| `validation-timing` | `on-blur` par défaut ; aussi `on-input` et `on-submit`. |
-| `custom-validity` | Erreur de l’application ; une chaîne vide la retire. |
-
-Un email incomplet devient une erreur à la perte du focus. Un second `@` ou un caractère interdit révèle l’erreur dès la saisie. `name@machine` est valide selon HTML : un point dans le domaine n’est pas obligatoire. Une URL doit être absolue ; `https://example.comddf.dofmo@` est invalide, tandis que `mailto:a@example.com` est valide. La validation ne vérifie ni l’existence d’une boîte email ni celle d’un site. [Règles HTML email et URL](https://html.spec.whatwg.org/multipage/input.html).
-
-`validity` expose les motifs d’erreur indépendants ; `value` fournit la valeur canonique et `text` conserve le brouillon natif. `check-validity()` vérifie ; `report-validity()` affiche l’erreur et place le focus. Les champs désactivés sont exclus, ainsi que les champs texte en lecture seule. [Validation des formulaires HTML](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#constraints).
-
-## Protéger la valeur acceptée en Rust
-
-Un message visuel ne remplace pas la vérification au moment d’accepter la valeur. Les exemples utilisent `FieldBinding` avec les mêmes contraintes :
-
-```rust
-field.set_html_constraints(slint_kit::HtmlConstraints {
-    kind: slint_kit::HtmlInputKind::Email,
-    required: true,
-    pattern: Some(slint_kit::HtmlPattern::compile(r".+@example\.com").expect("valid application pattern")),
-    ..Default::default()
+let app = App::new()?;
+slint_kit::install(&app);
+let spec = slint_kit::FieldSpec::email();
+slint_kit::install_field_specs(&app, [
+    spec.named(slint_kit::FieldSpecKey::new("contact").unwrap())
+]).unwrap();
+app.on_contact_changed(move |commit| {
+    if let Ok(Some(address)) = spec.accept(commit) {
+        println!("Contact : {}", spec.format(&address));
+    }
 });
 ```
 
-Le moteur vérifie avant le parseur métier. Le parseur reçoit la valeur normalisée ; un brouillon invalide ne remplace pas la dernière valeur acceptée. Pour plusieurs champs, utilisez `HtmlFormValidation<CleChamp>` et `first_invalid()`, ou reliez `KitSubmitButton.validation-requested`. `form-no-validate` contourne cette vérification ; une réinitialisation ne soumet pas.
+Le moteur de contraintes HTML applique les règles intrinsèques des courriels, URL, nombres, dates et autres champs : `required`, bornes, longueurs, motif et pas. Un texte non vide ne suffit pas pour un courriel ou une URL. Le codec personnalisé ajoute les règles métier après ces contraintes partagées. `FieldSpec::accept` retourne la valeur analysée ; transmettez-la au métier sans l’analyser de nouveau. Ne remplacez pas l’édition native par une réécriture du texte côté hôte.
 
-## Masque ou regex
+## Brouillon et acceptation
 
-Un [masque](/fr/components/masked-field/) guide une structure fixe. Une regex valide sans réécrire la saisie. Par exemple, `pattern: "[A-Z]{3}-[0-9]{4}"` accepte `ABC-1234`, refuse `abc-1234` et refuse `XABC-1234`. Il s’agit d’une option commune, pas d’un composant supplémentaire.
+`text` reste le brouillon de l’éditeur natif, y compris lorsqu’il est incomplet. `field-state` expose valeur acceptée, brouillon, indicateurs dirty/touched et dernière transition ; `accepted-text` projette le dernier texte accepté. `committed(FieldCommit)` contient le candidat et ses contraintes. La clé du codec est une donnée applicative, indépendante de la position visuelle.
 
-HTML n’applique pas `pattern` à `textarea`. Pour une règle multiligne, utilisez `HtmlPattern` en Rust et transmettez son résultat avec `custom-validity`. Une regex invalide est ignorée comme en HTML ; `pattern-error` expose le diagnostic. `pattern-enabled: true` distingue un motif explicitement vide de l’absence de motif. [Attribut HTML pattern](https://html.spec.whatwg.org/multipage/input.html#the-pattern-attribute).
+`commit-policy` vaut `CommitPolicy.on-blur` par défaut. Choisissez `on-submit` ou `on-change-when-valid` selon le besoin. `commit()` signale la validité et demande l’acceptation, `cancel-edit()` restaure le dernier brouillon accepté et `reset-field()` restaure `default-value` et la validation. `ownership: Ownership.controlled` émet des propositions ; confirmez les valeurs acceptées par l’hôte avec `acknowledge(FieldValue)`. Le [guide des contrôleurs](/fr/guides/controllers/) explique codecs personnalisés et décimaux exacts.
 
-## Composer et étendre
+`access: FieldAccess.read-only` conserve la sélection native du texte et interdit l’acceptation. Un contrôle désactivé refuse l’interaction. Curseur, sélection, annulation et IME restent dans le TextInput natif. Les tests sans écran exercent les chemins publics d’entrée ; ils ne qualifient pas tous les claviers physiques, moteurs de composition ou lecteurs d’écran.
 
-Conservez l’éditeur natif pour le curseur, la sélection et l’historique. Les thèmes, libellés, messages, préfixes et suffixes restent personnalisables. Pour un autre habillage, importez le composant non visuel `FormConstraintState` depuis `@kit/validation.slint`. Les règles métier, montants exacts, masques, alphabets OTP et résolution des fuseaux restent dans les contrôleurs typés. [Contrôleurs](/fr/guides/controllers/).
+## Options partagées et composition
 
-Le kit fournit une validation native inspirée du standard HTML. Le transport HTTP des formulaires, l’autofill des navigateurs et les claviers propres à chaque plateforme nécessitent une intégration hôte ; les contrôles de couleur conservent leur modèle sRGB typé.
+Les champs incluent déjà `label`, `description`, `error`, validation et nom accessible. `leading-icon` et `trailing-icon` sont des `IconGlyph` décoratifs ; ils ne remplacent pas le nom accessible textuel. Les options de présentation telles que `decoration`, `corner-radius`, marges et taille du texte conservent éditeur natif et validation partagée.
 
-Pour les [codes à usage unique](/fr/components/otp-field/), définissez `slots` et un `pattern` portant sur le brouillon complet, comme `[A-Za-z0-9]*` ; protégez l’acceptation Rust avec les mêmes `OtpRules` et `HtmlPattern`. Pour une vue masquée en lecture seule, utilisez `input-type: InputType.password` avec `access: FieldAccess.read-only` ; l’annulation dans un éditeur de mot de passe a un défaut connu dans Slint 1.18.1 après un remplacement de sélection par un texte plus court. Les bornes valident les caractères excédentaires ; Slint 1.18.1 ne fournit pas de point de contrôle public imposant une limite stricte tout en préservant sélection, historique et composition natifs. `ValidationTiming.on-submit` laisse les brouillons incomplets attendre l’acceptation.
+[KitFieldLabel](/fr/components/field-label/), [KitFieldDescription](/fr/components/field-description/) et [KitFieldError](/fr/components/field-error/) sont des primitives de composition. Leurs liens de compatibilité proviennent des API effectivement héritées. Elles ne fournissent ni éditeur, ni analyse métier, ni contrôleur de validation indépendant. `KitInputGroup` et ses parties start/end/text organisent un champ existant.
 
-Le groupement facultatif utilise `display-text` hérité : conservez `FG76657` avec sept emplacements et le motif `[A-Z]{2}[0-9]{5}`, puis projetez `FG‑76657` au repos seulement. L’exemple groupe les valeurs acceptées, montre les brouillons bruts au focus et attend un collage brut sans séparateur. Le groupement et la vue masquée en lecture seule sont deux options indépendantes.
+## Soumission et réinitialisation
+
+`KitSubmitButton` et `KitFormButton` expriment les actions du formulaire. Avant de soumettre, appelez `report-validity()` sur les champs et focalisez le premier champ invalide. La commande Rust doit aussi recevoir des valeurs métier vérifiées ou valider sa charge utile ; désactiver un bouton ne protège pas la soumission. Les exemples conservent commande et validation métier dans Rust. `KitResetButton` déclenche une action applicative qui réinitialise explicitement les champs et l’état métier.
+
+Les composites calendrier/intervalle valident les indisponibilités en plus des bornes HTML. Le champ avec fuseau refuse les heures inexistantes et exige une occurrence explicite lorsqu’une heure se répète. Son `ZonedDateTimeCommit` accepté se convertit en `ResolvedDateTime` ; aucun fuseau n’est déduit d’une date-heure locale.

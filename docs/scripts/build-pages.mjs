@@ -8,6 +8,7 @@ const run = (command, args, extra = {}) => {
   if (result.status !== 0) process.exit(result.status || 1);
 };
 const staging = '.generated/site-stage';
+run('python3',['scripts/sync-doc-versions.py','--check']);
 run('node',['scripts/check-migration.mjs']);
 run('python3',['scripts/pack-starters.py']);
 fs.rmSync(staging,{recursive:true,force:true});

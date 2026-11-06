@@ -1,9 +1,8 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPagination, NavigationStep, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitPagination, NavigationStep, KitTheme, KitThemes } from "@kit";
 export component App inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -14,13 +13,13 @@ export component App inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <int> page;
+    in-out property <int> page;
     callback navigate(NavigationStep);
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        control := KitPagination { theme: root.theme; page-index: root.page; page-count: 4; navigate(step) => { root.navigate(step); } }
+        control := KitPagination { theme: root.theme; page-index <=> root.page; page-count: 4; navigate(step) => { root.navigate(step); } }
         result := Text { text: "Page " + (root.page + 1) + " of 4"; color: root.theme.text-primary; }
     }
 

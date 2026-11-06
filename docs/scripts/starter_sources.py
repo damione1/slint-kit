@@ -78,6 +78,43 @@ def validate_manifest(source, version):
     return manifest
 
 
+def with_kit_version(source, version):
+    """Project registry dependency versions while retaining every other option."""
+    if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+        raise ValueError('Expected a stable workspace version')
+    parsed = tomllib.loads(source)
+    for section, name in [('dependencies', 'slint-kit'), ('build-dependencies', 'slint-kit-build')]:
+        dependency = parsed[section][name]
+        if isinstance(dependency, dict) and any(key in dependency for key in ('path', 'git')):
+            raise ValueError(f'{name}: a downloadable consumer requires a registry dependency')
+        pattern = rf'(?m)^({re.escape(name)}\s*=\s*)("[^"]+"|\{{[^\n]*\}})(\s*(?:#.*)?)$'
+        def replace(match):
+            value = match[2]
+            if value.startswith('"'):
+                value = json.dumps('=' + version)
+            else:
+                value, count = re.subn(r'(\bversion\s*=\s*)"[^"]+"',
+                                      lambda part: part[1] + json.dumps('=' + version), value)
+                if count != 1:
+                    raise ValueError(f'{name}: expected one explicit registry version')
+            return match[1] + value + match[3]
+        lines = []
+        active_section = None
+        count = 0
+        for line in source.splitlines(keepends=True):
+            heading = re.fullmatch(r'\s*\[([^\]]+)\]\s*(?:#.*)?', line.strip())
+            if heading:
+                active_section = heading[1]
+            if active_section == section:
+                line, matches = re.subn(pattern, replace, line)
+                count += matches
+            lines.append(line)
+        source = ''.join(lines)
+        if count != 1:
+            raise ValueError(f'{name}: expected one dependency declaration')
+    return source
+
+
 def prepared_lock(mode, source, seed, cargo_version):
     manifest = rename_package(source, LOCK_PACKAGE)
     if mode is BuildMode.LOCAL:
@@ -123,7 +160,7 @@ def prepare(mode=None):
         if not re.fullmatch('[a-z]+(?:-[a-z]+)*', slug):
             raise ValueError(f'Invalid starter slug: {slug}')
         original = ROOT / 'docs/quickstart' / slug
-        source = (original / 'Cargo.toml').read_text()
+        source = with_kit_version((original / 'Cargo.toml').read_text(), version)
         manifest = validate_manifest(source, version)
         seed = (original / 'Cargo.lock').read_text()
         # Root package names differ; dependency graphs can share one resolution.

@@ -32,9 +32,56 @@ pub fn config() -> slint_build::CompilerConfiguration {
 }
 
 pub fn compile(path: impl AsRef<Path>) -> Result<(), slint_build::CompileError> {
-    // A stale shared contract is a build error, never a silently incompatible projection.
-    verify_contracts().expect("Slint Kit shared contracts are stale");
-    slint_build::compile_with_config(path, config())
+    compile_with_config(path, config())
+}
+
+/// Compile with additional libraries or presentation settings while preserving
+/// the shared kit identities and automatically exported window services.
+pub fn compile_with_config(
+    path: impl AsRef<Path>,
+    configuration: slint_build::CompilerConfiguration,
+) -> Result<(), slint_build::CompileError> {
+    let diagnostic =
+        |error: std::io::Error| slint_build::CompileError::CompileError(vec![error.to_string()]);
+    verify_contracts().map_err(diagnostic)?;
+    let source = std::fs::canonicalize(path.as_ref()).map_err(diagnostic)?;
+    let source = import_literal(&source).map_err(diagnostic)?;
+    let output = std::path::PathBuf::from(
+        std::env::var_os("OUT_DIR").ok_or(slint_build::CompileError::NotRunViaCargo)?,
+    );
+    let wrapper = output.join("kit-app.slint");
+    std::fs::write(&wrapper, format!(
+        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitThemes, KitThemeContext }}\n"
+    )).map_err(slint_build::CompileError::SaveError)?;
+    slint_build::compile_with_config(wrapper, configuration)
+}
+
+// Slint import strings are literal paths, not Rust strings: Debug escaping
+// changes Windows prefixes and separators instead of quoting them for Slint.
+fn import_literal(source: &Path) -> std::io::Result<String> {
+    let source = source.to_str().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Slint source paths must be UTF-8",
+        )
+    })?;
+    if source.contains(['"', '\n', '\r']) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Slint source paths cannot contain quotes or line breaks",
+        ));
+    }
+    let source = if let Some(unc) = source.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{unc}")
+    } else if source.starts_with(r"\\") && !source.starts_with(r"\\?\") {
+        source.to_owned()
+    } else {
+        source
+            .strip_prefix(r"\\?\")
+            .unwrap_or(source)
+            .replace('\\', "/")
+    };
+    Ok(format!("\"{source}\""))
 }
 
 /// Deterministically renders enums declared once by the pure Rust core.
@@ -64,6 +111,42 @@ pub fn verify_contracts() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn import_paths_preserve_windows_drives_and_network_shares() {
+        for (source, expected) in [
+            (r"C:\project\ui\app.slint", "\"C:/project/ui/app.slint\""),
+            (
+                r"\\?\G:\projet été\ui\app.slint",
+                "\"G:/projet été/ui/app.slint\"",
+            ),
+            (
+                r"\\server\share\ui\app.slint",
+                r#""\\server\share\ui\app.slint""#,
+            ),
+            (
+                r"\\?\UNC\server\share\ui\app.slint",
+                r#""\\server\share\ui\app.slint""#,
+            ),
+            ("/project/été ui/app.slint", "\"/project/été ui/app.slint\""),
+        ] {
+            assert_eq!(import_literal(Path::new(source)).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn import_paths_reject_unrepresentable_slint_literals() {
+        for source in [
+            "/project/\"app.slint",
+            "/project/\napp.slint",
+            "/project/\rapp.slint",
+        ] {
+            assert_eq!(
+                import_literal(Path::new(source)).unwrap_err().kind(),
+                std::io::ErrorKind::InvalidInput
+            );
+        }
+    }
 
     #[test]
     fn generated_contracts_match_source() {

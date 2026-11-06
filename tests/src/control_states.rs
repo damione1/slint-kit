@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
-use crate::ui;
 use crate::variants::{alert_severities, control_sizes};
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::{ComponentHandle, Model};
@@ -256,7 +255,7 @@ fn invalid_choice_groups_and_composites_draw_a_danger_edge() {
     })))
     .unwrap();
     let window = ControlStateRenderFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, window);
+    kit_slint::install(&window);
     let window = show(window);
     let theme = window.get_theme();
     let find = |kind: &str| {

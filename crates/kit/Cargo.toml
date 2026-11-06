@@ -1,5 +1,6 @@
 [package]
 name = "slint-kit"
+links = "kit"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,9 +12,10 @@ categories.workspace = true
 readme = "README.md"
 description = "Composable native Slint controls with shared interaction behavior"
 
-include = ["src/**", "Cargo.toml", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
+include = ["build.rs", "src/**", "Cargo.toml", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md"]
 
 [dependencies]
+slint.workspace = true
 kit-core.workspace = true
 kit-native = { workspace = true, optional = true }
 kit-slint = { workspace = true, features = ["adapter"] }
@@ -21,6 +23,10 @@ kit-slint = { workspace = true, features = ["adapter"] }
 [features]
 default = []
 native = ["dep:kit-native"]
+native-winit = ["native", "slint/unstable-winit-030"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+i-slint-backend-testing = "=1.18.1"

@@ -1,0 +1,36 @@
+
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+export { HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
+import { KitKeypad, KitCodeIndicator, KitTheme, KitThemeContext, KitMetrics, TypographyRole } from "@kit";
+export component App inherits Window {
+    default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    title: "Keypad";
+    preferred-width: 440px; preferred-height: 580px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    background: root.theme.canvas;
+    // Rust owns the code; the window only learns how many digits it holds.
+    in property <int> entered;
+    in property <int> code-length;
+    in property <bool> can-confirm;
+    in property <string> status;
+    callback digit(int);
+    callback delete-requested();
+    callback confirm();
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Locker code"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Try the example code 2468, or another four-digit code."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCodeIndicator { theme: root.theme; length: root.code-length; filled: root.entered; label: root.entered + " of " + root.code-length + " digits entered"; }
+        HorizontalLayout { alignment: center;
+            keypad := KitKeypad { theme: root.theme; label: "Locker code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
+                digit(value) => { root.digit(value); }
+                delete-requested => { root.delete-requested(); }
+                confirm => { root.confirm(); }
+            }
+        }
+        result := Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+    init => { keypad.take-focus(); }
+}

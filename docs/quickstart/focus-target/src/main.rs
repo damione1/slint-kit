@@ -1,27 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use slint::ComponentHandle;
-use std::cell::Cell;
 slint::include_modules!();
-
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
-    slint_kit::init_form_validation!(self, app);
-    let sequence = Cell::new(0_i32);
-    let weak = app.as_weak();
-    app.on_request_focus(move || {
-        if let Some(app) = weak.upgrade() {
-            let request = sequence
-                .get()
-                .checked_add(1)
-                .expect("focus request capacity");
-            sequence.set(request);
-            app.set_focus_request(FocusRequest {
-                present: true,
-                token: 42,
-                generation: 1,
-                request,
-            });
-        }
-    });
+    slint_kit::install(&app);
+    app.on_request_focus(slint_kit::action(&app, |app| {
+        let request = app.get_focus_request().request.checked_add(1).expect("focus request capacity");
+        app.set_focus_request(slint_kit::ui::FocusRequest { present: true, token: 42, generation: 1, request });
+    }));
     app.run()
 }

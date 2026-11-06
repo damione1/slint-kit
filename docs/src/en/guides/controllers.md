@@ -6,80 +6,63 @@ translationKey: "guides/controllers/"
 permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 ---
 
-# Typed controllers
+# Typed values and owned collections
 
+Start with [Project setup](/guides/project-setup/) and one `slint_kit::install(&app)` per window. Interactive components own their local view state and call pure shared reducers. Business callbacks receive a checked projection that converts to a Rust domain type. Applications retain ownership of their documents, lists, tables, files and asynchronous work.
 
-Keep the accepted value in Rust and project its presentation into Slint. The `slint_kit` facade reexports core values and weak-window adapters. A view token is only valid within its model generation; it is never the application's stable identity.
+## FieldSpec and native drafts
 
-[Run and read the complete typed application](/guides/typed-example/): native field, validation, stable selection and every signal connected.
+`FieldSpec<T, E>` contains a parser, accepted-value formatter, display formatter, domain validator and error formatter. `FieldSpec::codec` is suitable when parsing expresses the full rule; `FieldSpec::new` adds a domain error type and validator. Built-ins cover text, email, URL, integers, decimal, money, percent, quantity, temporal values, telephone, OTP and masks.
 
-## Field drafts and accepted values
+Register named codecs through `install_field_specs(&app, specs)` before showing the window; duplicate `FieldSpecKey` values are rejected atomically. A codec is an immutable shared definition. It never stores the draft or accepted value of a component. `KitFieldService.reduce` receives explicit `FieldState`, action, rules and codec key; fields keep the returned state themselves.
 
-`FieldBinding<T, E>` connects a `FieldController<T, E>` to a publisher. Choose a domain type for `T` and an error enum for `E`. Its constructor accepts the initial accepted value, ownership, commit policy, absence policy, parser, formatter, error formatter and projection publisher.
+Slint stores native drafts and formatted accepted-value projections. The pure service uses the codec to validate and format a candidate. At the Rust business boundary `spec.accept(FieldCommit)` decodes that projection and returns `T`, applying the same intrinsic constraints and domain rule. Keep that returned value. `with_display` and `with_grouping` affect the resting presentation without changing the accepted value or rewriting native edits. An error or incomplete draft leaves the last accepted value intact.
 
-| Choice | Values and behavior |
-| --- | --- |
-| `Ownership` | `Local` accepts successful local commits. `Controlled` emits an intent and waits for the host to call `acknowledge`. |
-| `CommitPolicy` | `OnBlur`, `OnSubmit`, `OnChangeWhenValid`. A host calls `commit` with the corresponding `CommitTrigger`. |
-| `AbsencePolicy` | `Required` or `Optional`; an empty draft is not the same as an invalid value. |
-| `DraftValue<T>` | `Empty`, `Incomplete`, `Parsed(T)` or `Invalid(ParseIssue)`. Keep incomplete input editable. |
-| `FieldAccess` | `Editable`, `ReadOnly`, `Disabled`. Read-only text retains native selection. |
+Money and decimals stay exact: use `Money`, `DecimalValue` and their explicit rules. Slider specs use decimal strings and a shared exact lattice; normalized floats are only pointer/display projections. `SliderSpec` defines minimum, maximum and step. `DecimalRangeView` converts to `OrderedRange<DecimalValue>`, whose endpoints cannot cross.
 
-Feed editor changes into `edited(&str)`, wire blur and submit to `commit`, and use `cancel` or `reset` for explicit actions. Publish `FieldProjection.draft`, access, validation and error back into the view. The publisher should capture `window.as_weak()` and upgrade it only while updating the window. Keep the binding alive with the window's controller.
+`FieldBinding` and explicit `FieldController` remain available for custom integrations. The ordinary field path needs no component-specific macro. `init_form_validation!` is deprecated in favor of `install`.
 
-Do not replace the editor or rewrite its text on every keystroke. Native Slint text editing owns selection, caret, undo and IME. Formatting belongs at the acceptance boundary. See the complete [field bindings in the showcase](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_fields.rs) and [editor signals](/components/text-field/).
+The legacy `bind_select!` macro is retained for migration and deprecated in documentation. Replace its window callback convention with `Choices<K>`, the component’s `options`/`selected`/`chosen` contract and the shared installer. Explicit `SelectBinding` projections remain available for custom controlled integrations.
 
-## Validation and form submission
-
-`begin_validation()` returns a `ValidationGeneration`; retain that ticket with the asynchronous request. `finish_validation(ticket, errors)` ignores a result superseded by a newer draft. Do not identify requests by a mutable row index. `FormCoordinator` similarly uses submission tickets and typed field keys. A submit button only emits the form action; the host owns validation and persistence.
-
-## Stable keyed selection
-
-`SelectBinding<K>` retains stable application keys and publishes `SelectProjection` rows, active and selected tokens, availability, open state and generation. Its `activate(token, generation)` rejects stale input. `reconcile` changes the source options; `query` filters the view without removing the accepted key. Duplicate keys are an error.
-
-Use `on_intent` for `SelectionIntent::Commit(K)` and `SelectionIntent::Clear`. Under controlled ownership, acknowledge the accepted key with `set_selected`. The `bind_select!` macro wires the conventional window contract; its required `rows`, `select-state` and `select-*` callbacks are documented in the [public macro source](https://github.com/damione1/slint-kit/blob/main/crates/kit-slint/src/macros.rs).
-
-`SelectionAvailability` distinguishes `Absent`, `Available` and `Unavailable`. A selected item hidden by filtering or removed from the current model is not automatically an instruction to clear the domain value. See [KitSelect](/components/select/) and [navigation examples](https://github.com/damione1/slint-kit/blob/main/showcase/src/base_navigation.rs).
-
-## Exact numbers and civil time
-
-Use `DecimalValue`, `Money`, `CurrencyMetadata` and explicit `NumberLocale`, `DecimalScale` and `RoundingPolicy`. Slider positions and color byte projections are renderer values; they do not replace exact accepted amounts. Parse civil dates and local times with the core types, then resolve a zone explicitly. An ambiguous local time requires an explicit choice; never silently pick an instant.
-
-## Overlays and feedback
-
-Keep `FocusRegistry` and the exact opener in the host controller. Dialog and drawer primitives present focus requests; register real focus targets and restore the opener on close. A tooltip needs one window-level [KitTooltipLayer](/components/tooltip-layer/), mounted after the content. `ToastQueue` owns toast lifetimes; pointer and focus pauses use distinct `ToastPause` sources so overlapping interactions do not resume a toast prematurely.
-
-
-## Tables and row identity
-
-The [complete sortable table application](/guides/table-example/) demonstrates selection surviving sorting, keyboard navigation and rejection of events from an older generation.
-
-## Calendar dates, formats and availability
-
-`CivilDate` uses the proleptic Gregorian calendar, years 1–9999. `KitDateField` and `KitDatePicker` keep their HTML date contract: drafts, `min`, `max` and accepted strings use `YYYY-MM-DD`. A display label and a date input format are separate choices. There is no automatic inference between day-first and month-first input, and no implicit time zone.
-
-For application-owned text fields or date labels, validate a `DatePattern` once and keep it with the controller:
+## Stable choices
 
 ```rust
-use slint_kit::{CivilDate, DateNames, DatePattern, DraftValue};
-let pattern = DatePattern::new("%d/%m/%Y").unwrap();
-let DraftValue::Parsed(date) = pattern.parse("29/02/2024") else { return };
-assert_eq!(date, CivilDate::new(2024, 2, 29).unwrap());
-assert_eq!(date.iso_string(), "2024-02-29");
-let spoken = DatePattern::new("%A %-d %B %Y").unwrap();
-assert_eq!(spoken.format_with_names(date, &DateNames::french()), "jeudi 29 février 2024");
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+enum Destination { Overview, Activity }
+let choices = slint_kit::Choices::new([
+    (Destination::Overview, "Overview"),
+    (Destination::Activity, "Activity"),
+]).unwrap();
+app.set_options(choices.model());
+app.on_chosen(move |row| {
+    if let Some(destination) = choices.accept(row) {
+        println!("Open {destination:?}");
+    }
+});
 ```
 
-Supported directives are `%Y`, `%m`, `%d`, `%e`, `%b`, `%B`, `%a`, `%A`, `%j`, `%G`, `%V`, `%u`, `%F` and `%%`; numeric directives accept `-`, `_` or `0` padding. Unpadded or space-padded numeric fields require nonnumeric separators: `%Y%m%d` is valid, while `%Y%-m%-d` is rejected as ambiguous. This covers numeric orders and separators, compact dates, English month names, ordinal dates and ISO week dates. `%y` is rejected because a two-digit year requires a century policy. Plain `parse`/`format` use English names. `parse_with_names`/`format_with_names` use validated host-owned `DateNames`; a French preset is included. Names must be nonempty and have no surrounding whitespace. Matching uses Unicode lowercase, retains accents and requires configured abbreviation punctuation. Other calendar systems and locale-specific digit shapes require an explicit host adapter.
+Tokens are projections of stable keys, never array positions. `Choices::replace` preserves identity across reordering and invalidates stale source generations. Disabled choices cannot be accepted. Components keep independent selected, active, open and search state. `ownership: Ownership.controlled` emits an intent and waits for host acknowledgement through the selected property. MultiSelect and ToggleGroup own sets and emit `selection-changed(row, added)`; `Choices::accept` still returns the domain key.
 
-Keep the native `KitTextField` editor for custom-format text. Parse its draft with the chosen pattern, then validate the resulting `CivilDate` against the same rules as calendar clicks. Do not attach `HtmlInputKind.date` to localized text; the shared HTML date engine expects ISO. If the field participates in a form, apply its required/custom validity rules and guard the Rust submit path too.
+`KitSelectKeyboard`, `KitSelectTrigger` and `KitSelectSurface` are composition primitives. Their public props allow you to share one selection instance between parts; they are not separate application controllers. The complete Select/Combobox controls provide this composition already. Calendar/date/time components likewise keep local state; receive `CivilDate`, `DateRange`, `LocalDateTime` or `ResolvedDateTime` by checked conversion of their `chosen` payload.
 
-`DateConstraints` combines optional inclusive `NumericBounds<CivilDate>`, unavailable `DateRange` values and unavailable weekdays. Pass it to `CalendarController::with_constraints`. `choose` rejects blocked dates while keyboard focus may inspect them. All seven `WeekStart` values are available; changing `set_week_start` also requires rotating the host's weekday labels. `can_navigate` drives `previous-enabled` and `next-enabled`; month/year paging must change the visible month, while day/week actions must move the focused date. The bounds-only `CalendarController::new` rejects an out-of-bounds initial selection to `None` and clamps focus; use `with_constraints` when construction must return an explicit error. `show_month` and `focus_date` move the visible keyboard target without committing a value. `grid_for_month` lets an application compose several `KitCalendar` views over the same selection and rules.
+`KitSelectKeyboard.move-active(NavigationStep)` and `type-ahead(string)` route custom navigation surfaces through the same session as native keyboard events. Use `choose-option(token, generation)` for activation; keep host input gates on the calling surface.
 
-If the host supplies a business error through `error`, clear that stale error on `edited` before the next submission. Keep the accepted date unchanged until the newly edited draft passes the same constraints.
+## KeyedModel for host-owned data
 
-`DateRangeRules` adds optional minimum/maximum nights. A same-day range is zero nights; the inclusive range may not cross an unavailable day. `DateRangeController::with_rules` preserves the previous accepted range until Apply and restores it on Cancel. Failed end-date selection preserves the start. `DateSetController` supports multiple dates keyed by `CivilDate`: project `selected().contains(&date)` into `CalendarDay.selected`, then call `toggle` from the calendar action. There is no visual-index identity.
+`KeyedModel<K, R>` associates a unique typed key with each public row. `R: KeyedRow` defines the kit projection; built-in rows cover table, content, text, chip, file, notification and toast views. `model()` provides a virtualizable model. `replace` rejects duplicate keys before changing anything and retains tokens for surviving keys. Removed tokens are never recycled.
 
-Calendar keyboard actions use arrows, Home/End and Page Up/Down; Shift changes the paging unit to years. Read-only calendars remain browsable and cannot accept a date. Supply localized month titles, weekday labels, accessible date labels and range action labels. The [calendar](/components/calendar/), [date picker](/components/date-picker/) and [range picker](/components/date-range-picker/) executable examples combine the kit's card, badge and helper primitives with real availability rules. Their reference date is fixed for reproducible examples. These APIs do not by themselves qualify a screen reader or IME on a particular backend.
+For collection views with explicit ports, `bind` takes the window and setters for rows, generation and active index. The binding retains a weak window. `navigation()` implements shared roving navigation; `activation(handler)` updates `SelectableRow` state and calls the business handler with `K`. Validate other intents through `accept(token, generation)` or `remove_fenced`. Token-only chip callbacks use `remove(token)` with a non-reused token. Changing source content invalidates generation-fenced gestures; do not substitute an index for a key.
 
-Navigation composites (`KitMenu`, `KitMenuBar`, `KitTabs`, `KitAccordion`, `KitCarousel`, `KitBreadcrumbs` and `KitPagination`) expose `interactive`, defaulting to `true`. Bind it to `!modal-open` for every background composite. Set ordinary actions’ `disabled` and fields’ `access: FieldAccess.disabled` in the same scope. A scrim only intercepts pointer hits: it does not make semantic accessibility actions ineligible. These switches preserve models, selection and mounted content. Disable any custom children separately, then restore the exact opener when the modal closes.
+The application still chooses data, sorting, filtering, loading and commands. A large model belongs in a virtualized collection control, not repeated visual children. `action`, `event`, `event2` and `event3` connect business callbacks with a weak window and pass a temporary live handle to the handler.
+
+## Host effects and notifications
+
+`FilePickerBinding` and `DirectoryPickerBinding` accept explicit projection ports, install weak-window handlers and deliver typed `FileHandle` or `DirectoryHandle` values. Request generations discard stale asynchronous results. The optional `native-winit` feature adds a window-level drop bridge with an explicit capability. See [Native integration](/guides/native/) for platform limits.
+
+`ToastBinding<Action>` stores typed actions in `ToastQueue`, projects `ToastEntry` rows and manages a weak timer. Capacity and `ToastLifetime` are explicit. Its three handlers route action, dismissal and independent pointer/focus pauses; the application only performs the resulting business action.
+
+`KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection.
+
+Use `Choices::selections(&keys)` for initial multiple selections; missing or repeated keys reject the complete projection. `KeyedModel::bind_active` publishes the active row through a weak window to an editor. Use `update_active` to reject commits for a line that is no longer active.
+
+Match a decimal codec’s `DecimalRules.locale` to the component’s `number-format`, and a time codec’s `ClockFormat` to the component’s `clock-format`. The HTML engine validates the native grammar; the codec then receives that grammar, including decimal commas and 12-hour clocks. Accepted formatting round-trips through the same parser, so cancelling restores an editable value in the declared format.

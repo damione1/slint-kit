@@ -1,0 +1,33 @@
+import { NavigationStep, RangeThumb, ColorAlphaMode } from "shared-contracts.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection } from "shared-contracts.slint";
+import { KitInputConstraints } from "validation.slint";
+export struct FieldValue { present: bool, text: string }
+export struct FieldState {
+    accepted: FieldValue, draft: string, dirty: bool, touched: bool,
+    error: string, committed: bool, value: FieldValue,
+}
+export struct FieldCommit { value: FieldValue, constraints: KitInputConstraints, spec: string }
+export struct SliderSpec { minimum: string, maximum: string, step: string }
+export struct DecimalRangeView { lower: string, upper: string }
+export enum ColorChannel { red, green, blue, alpha }
+export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
+export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
+export global KitFieldService {
+    pure callback color-format(SrgbColorView, ColorAlphaMode) -> string;
+    pure callback color-validate(SrgbColorView, ColorAlphaMode) -> ColorResult;
+    pure callback color-parse(string, ColorAlphaMode) -> ColorResult;
+    pure callback color-component(SrgbColorView, ColorChannel) -> string;
+    pure callback color-channel(SrgbColorView, ColorChannel, string, ColorAlphaMode) -> ColorResult;
+    pure callback slider-valid(string, SliderSpec) -> bool;
+    pure callback range-valid(DecimalRangeView, SliderSpec) -> bool;
+    pure callback slider-position(string, SliderSpec) -> float;
+    pure callback slider-pointer(string, float, SliderSpec) -> string;
+    pure callback slider-navigate(string, NavigationStep, SliderSpec) -> string;
+    pure callback range-pointer(DecimalRangeView, RangeThumb, float, SliderSpec) -> DecimalRangeView;
+    pure callback range-navigate(DecimalRangeView, RangeThumb, NavigationStep, SliderSpec) -> DecimalRangeView;
+    in-out property <bool> ready;
+    pure callback display(string, string) -> string;
+    pure callback step-number(string, KitInputConstraints, StepDirection) -> string;
+    pure callback reduce(FieldState, FieldAction, string, KitInputConstraints, CommitPolicy, Ownership, string) -> FieldState;
+}

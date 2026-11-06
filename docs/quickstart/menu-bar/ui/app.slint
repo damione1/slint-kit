@@ -1,41 +1,27 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenuBar, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, SelectionRef, KitMenuBar } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitMenuBar example";
-    preferred-width: 520px;
-    preferred-height: 300px;
-    max-width: 100000px;
-    max-height: 100000px;
+    preferred-width: 560px; preferred-height: 360px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <SelectState> select-state;
-    in property <string> selected-label: "Overview";
-    in-out property <string> query;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
-    VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        control := KitMenuBar {
-            theme: root.theme; rows: root.rows; state: root.select-state;
-            navigate(step) => { root.select-navigate(step); }
-            activate(token, generation) => { root.select-activate(token, generation); }
-            dismiss(reason) => { root.select-dismiss(reason); }
-            typeahead(text) => { root.select-typeahead(text); }
-        }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; }
-    }
+    in property <[OptionRow]> options;
+    in-out property <SelectionRef> selected;
+    callback destination-chosen(OptionRow);
 
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        control := KitMenuBar {
+            theme: root.theme;
+            options: root.options; selected <=> root.selected;
+            chosen(row) => { root.destination-chosen(row); }
+        }
+        Text { text: "Selected: " + control.selected-label; color: root.theme.text-primary; }
+
+    }
 }

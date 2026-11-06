@@ -18,6 +18,67 @@ impl PreviewTheme {
     }
 }
 
+#[derive(Clone, Copy)]
+enum PreviewKind {
+    Starter,
+    Catalogue,
+}
+#[derive(Clone, Copy)]
+enum PreviewLocale {
+    English,
+    French,
+}
+#[derive(Clone, Copy)]
+struct PreviewOptions {
+    kind: PreviewKind,
+    locale: PreviewLocale,
+    text_scale: f32,
+    viewport: Option<(f32, f32)>,
+}
+
+impl PreviewOptions {
+    fn parse(parameters: &web_sys::UrlSearchParams) -> Result<Self, JsValue> {
+        let kind = match parameters.get("kind").as_deref().unwrap_or("starter") {
+            "starter" => PreviewKind::Starter,
+            "catalogue" => PreviewKind::Catalogue,
+            _ => return Err(JsValue::from_str("Unknown scene kind")),
+        };
+        let locale = match parameters.get("locale").as_deref().unwrap_or("en") {
+            "en" => PreviewLocale::English,
+            "fr" => PreviewLocale::French,
+            _ => return Err(JsValue::from_str("Unknown scene locale")),
+        };
+        let text_scale = match parameters.get("textScale").as_deref().unwrap_or("1") {
+            "1" => 1.0,
+            "2" => 2.0,
+            _ => return Err(JsValue::from_str("Unsupported text scale")),
+        };
+        let viewport = parameters
+            .get("viewport")
+            .map(|value| {
+                let (width, height) = value
+                    .split_once('x')
+                    .ok_or_else(|| JsValue::from_str("Expected WIDTHxHEIGHT"))?;
+                let parse = |value: &str| {
+                    value
+                        .parse::<u16>()
+                        .ok()
+                        .filter(|value| *value > 0 && *value <= 4096)
+                        .map(f32::from)
+                        .ok_or_else(|| JsValue::from_str("Invalid viewport dimension"))
+                };
+                Ok::<_, JsValue>((parse(width)?, parse(height)?))
+            })
+            .transpose()?;
+        Ok(Self {
+            kind,
+            locale,
+            text_scale,
+            viewport,
+        })
+    }
+}
+
 type ThemeUpdate = Box<dyn Fn(PreviewTheme)>;
 thread_local! {
     static CURRENT_THEME: Cell<PreviewTheme> = const { Cell::new(PreviewTheme::Light) };
@@ -71,5 +132,5 @@ pub fn start() -> Result<(), JsValue> {
         .get("component")
         .unwrap_or_else(|| "button".into());
     set_theme(&parameters.get("theme").unwrap_or_else(|| "light".into()))?;
-    run_component(&component)
+    run_component(&component, PreviewOptions::parse(&parameters)?)
 }

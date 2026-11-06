@@ -1,102 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use slint::{ComponentHandle, ModelRc, VecModel};
-use std::{cell::RefCell, rc::Rc};
-mod ui {
-    slint::include_modules!();
-}
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Notice {
-    SharedDocument,
-    ExportReady,
-    JoinedWorkspace,
-}
-impl Notice {
-    fn token(self) -> i32 {
-        match self {
-            Self::SharedDocument => 11,
-            Self::ExportReady => 23,
-            Self::JoinedWorkspace => 37,
-        }
-    }
-    fn label(self) -> &'static str {
-        match self {
-            Self::SharedDocument => "Document shared",
-            Self::ExportReady => "Export ready",
-            Self::JoinedWorkspace => "Angela joined the workspace",
-        }
-    }
-}
-fn publish(app: &ui::App, notices: &[(Notice, bool)]) {
-    app.set_notices(ModelRc::new(VecModel::from(
-        notices
-            .iter()
-            .map(|(key, read)| ui::NotificationRow {
-                item: ui::OptionRow {
-                    token: key.token(),
-                    generation: 1,
-                    label: key.label().into(),
-                    description: "Review the latest project update.".into(),
-                    disabled: false,
-                },
-                read: *read,
-            })
-            .collect::<Vec<_>>(),
-    )));
-}
+use slint::ComponentHandle;
+use slint_kit::{KeyedModel, event2, ui};
+slint::include_modules!();
+#[derive(Clone, Debug, PartialEq, Eq, Hash)] struct NoticeId(&'static str);
 fn main() -> Result<(), slint::PlatformError> {
-    let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
-    let notices = Rc::new(RefCell::new(vec![
-        (Notice::SharedDocument, false),
-        (Notice::ExportReady, true),
-        (Notice::JoinedWorkspace, false),
-    ]));
-    publish(&app, &notices.borrow());
-    let weak = app.as_weak();
-    let state = notices.clone();
-    app.on_open_notice(move |token, generation| {
-        if generation != 1 {
-            return;
-        }
-        let label = state
-            .borrow()
-            .iter()
-            .find(|(key, _)| key.token() == token)
-            .map(|(key, _)| key.label());
-        if let (Some(app), Some(label)) = (weak.upgrade(), label) {
-            app.set_result(format!("Preview: {label}").into());
-        }
-    });
-    let weak = app.as_weak();
-    let state = notices.clone();
-    app.on_mark_read(move |token, generation| {
-        if generation != 1 {
-            return;
-        }
-        if let Some(app) = weak.upgrade() {
-            if let Some((_, read)) = state
-                .borrow_mut()
-                .iter_mut()
-                .find(|(key, _)| key.token() == token)
-            {
-                *read = true;
-            }
-            let snapshot = state.borrow().clone();
-            publish(&app, &snapshot);
-            app.set_result("Notification marked read".into());
-        }
-    });
-    let weak = app.as_weak();
-    app.on_dismiss_notice(move |token, generation| {
-        if generation != 1 {
-            return;
-        }
-        if let Some(app) = weak.upgrade() {
-            notices.borrow_mut().retain(|(key, _)| key.token() != token);
-            let snapshot = notices.borrow().clone();
-            publish(&app, &snapshot);
-            app.set_result("Notification dismissed".into());
-        }
-    });
+    let app = App::new()?;
+    slint_kit::install(&app);
+    let notices = KeyedModel::new([(NoticeId("review"), ui::NotificationRow {item: ui::OptionRow {label: "Review ready".into(), description: "Your design is ready for review.".into(), ..Default::default()}, read: false}), (NoticeId("release"), ui::NotificationRow {item: ui::OptionRow {label: "Release complete".into(), ..Default::default()}, read: false})]).unwrap();
+    app.set_notices(notices.model());
+    let read = notices.clone(); app.on_mark_read(move |token, generation| { read.update(token, generation, |row| row.read = true); });
+    let open = notices.clone(); app.on_open_notice(event2(&app, move |app, token, generation| { if let Some(key) = open.accept(token, generation) { app.set_result(format!("Opened: {}", key.0).into()); } }));
+    app.on_dismiss_notice(move |token, generation| { notices.remove_fenced(token, generation); });
     app.run()
 }

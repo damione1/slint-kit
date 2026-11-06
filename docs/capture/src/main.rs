@@ -4,9 +4,8 @@ use slint::{
     ComponentHandle,
     platform::{PointerEventButton, WindowEvent},
 };
-use slint_interpreter::{Compiler, Value};
+
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -23,25 +22,19 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-fn compile(path: &Path, dark: bool) -> Result<slint_interpreter::ComponentDefinition> {
-    kit_build::verify_contracts()?;
-    let mut compiler = Compiler::default();
-    compiler.set_library_paths(HashMap::from([("kit".into(), kit_build::ui_directory())]));
-    compiler.set_style("fluent".into());
-    let source = std::fs::read_to_string(path)?;
-    let source = if dark {
-        source.replace("KitThemes.light", "KitThemes.dark")
-    } else {
-        source
-    };
-    let result = pollster::block_on(compiler.build_from_source(source, path.to_owned()));
-    for diagnostic in result.diagnostics() {
-        eprintln!("{diagnostic}");
-    }
-    result
-        .component("Example")
-        .ok_or_else(|| format!("{} failed to compile", path.display()).into())
+mod ui {
+    slint::include_modules!();
 }
+struct CaptureOptions {
+    locale: ExampleLocale,
+    dark: bool,
+    enlarged: bool,
+    exercise: bool,
+    show: bool,
+    size: Option<slint::LogicalSize>,
+    output: PathBuf,
+}
+include!(concat!(env!("OUT_DIR"), "/capture_routes.rs"));
 
 fn save(window: &slint::Window, path: &Path) -> Result<()> {
     let pixels = window.take_snapshot()?;
@@ -70,7 +63,7 @@ fn main() -> Result<()> {
     }
     if args.iter().any(|a| a == "--help" || a == "-h") {
         println!(
-            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT] [--output-dir PATH]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures every example; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--output-dir writes qualification images separately from public posters.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples are presentation fixtures; accepted values and keyed selection\nrequire host Rust controllers. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter public capture: python3 docs/capture/provenance.py"
+            "kit-docs-capture [SLUG ...] [--all] [--check] [--dark] [--text-200] [--show] [--exercise] [--locale en|fr] [--size WIDTHxHEIGHT] [--output-dir PATH]\n\nCompiles complete docs/examples/*.slint files using public @kit imports.\nCaptures actual native winit/Skia windows via Window::take_snapshot.\nOutput: docs/src/assets/components/<slug>[-fr][-dark][-text-200].png\n\n--check validates exact examples without opening native windows.\n--all captures every example; otherwise pass one or more component slugs.\n--locale fr compiles localized authored fixtures; toolkit/host defaults retain their language.\n--show leaves one native example window open for exploration.\n--size sets a logical viewport, independently of the display pixel density.\n--output-dir writes qualification images separately from public posters.\n--text-200 sets theme text scale 2 in a 1000×1000 logical viewport.\n--exercise checks the button example's native pointer and Space callbacks.\n\nExamples use the public compiled kit and install its shared services.\nApplication-owned collections remain explicit presentation fixtures. Capture uses reduced motion. An active native\ngraphical desktop is required. Screenshots do not qualify IME/screen readers.\nAfter public capture: python3 docs/capture/provenance.py"
         );
         return Ok(());
     }
@@ -139,7 +132,7 @@ fn main() -> Result<()> {
     paths.sort();
     if check {
         for path in &paths {
-            compile(path, dark)?;
+            kit_build::verify_contracts()?;
             println!("Validated {}", path.display());
         }
         println!("Validated {} complete examples", paths.len());
@@ -177,21 +170,6 @@ fn main() -> Result<()> {
         .renderer_name("skia".into())
         .select()?;
     let path = paths.first().ok_or("No examples found")?;
-    let definition = compile(path, dark)?;
-    let instance = definition.create()?;
-    if let Value::Struct(mut theme) = instance.get_property("theme")? {
-        theme.set_field("reduced-motion".into(), Value::Bool(true));
-        if enlarged {
-            theme.set_field("text-scale".into(), Value::Number(2.));
-        }
-        instance.set_property("theme", Value::Struct(theme))?;
-    }
-    if let Some(size) = size.or_else(|| enlarged.then(|| slint::LogicalSize::new(1000., 1000.))) {
-        instance.window().set_size(size);
-    }
-    if show {
-        return Ok(instance.run()?);
-    }
     let slug = path
         .file_stem()
         .ok_or("missing filename")?
@@ -213,60 +191,96 @@ fn main() -> Result<()> {
         if exercise { "-interaction" } else { "" }
     );
     let output = output_directory.join(format!("{slug}{suffix}.png"));
-    instance.show()?;
-    let weak = instance.as_weak();
+    capture(
+        path,
+        CaptureOptions {
+            locale,
+            dark,
+            enlarged,
+            exercise,
+            show,
+            size,
+            output,
+        },
+    )
+}
+
+type StatusPorts<W> = (fn(&W) -> slint::SharedString, fn(&W, slint::SharedString));
+
+fn run_example<W>(
+    app: W,
+    get_theme: fn(&W) -> slint_kit::ui::KitTheme,
+    set_theme: fn(&W, slint_kit::ui::KitTheme),
+    status: Option<StatusPorts<W>>,
+    options: CaptureOptions,
+) -> Result<()>
+where
+    W: ComponentHandle + 'static,
+    for<'a> slint_kit::ui::KitThemes<'a>: slint::Global<'a, W>,
+    for<'a> slint_kit::ui::KitThemeContext<'a>: slint::Global<'a, W>,
+{
+    let mut theme = if options.dark {
+        app.global::<slint_kit::ui::KitThemes>().get_dark()
+    } else {
+        get_theme(&app)
+    };
+    theme.reduced_motion = true;
+    if options.enlarged {
+        theme.text_scale = 2.;
+    }
+    app.global::<slint_kit::ui::KitThemeContext>()
+        .set_current(theme.clone());
+    set_theme(&app, theme);
+    if let Some(size) = options.size.or_else(|| {
+        options
+            .enlarged
+            .then(|| slint::LogicalSize::new(1000., 1000.))
+    }) {
+        app.window().set_size(size);
+    }
+    if options.show {
+        return Ok(app.run()?);
+    }
+    app.show()?;
+    let weak = app.as_weak();
     slint::Timer::single_shot(Duration::from_millis(300), move || {
-        if let Some(instance) = weak.upgrade() {
-            if exercise {
-                // The Button example places its button at (24,64). Dispatch through
-                // the public native Window event route, then verify its callback.
+        if let Some(app) = weak.upgrade() {
+            if options.exercise {
+                let (get_status, set_status) = status.expect("button exposes status");
                 let position = slint::LogicalPosition::new(70., 96.);
-                instance
-                    .window()
+                app.window()
                     .dispatch_event(WindowEvent::PointerMoved { position });
-                instance
-                    .window()
-                    .dispatch_event(WindowEvent::PointerPressed {
-                        position,
-                        button: PointerEventButton::Left,
-                    });
-                instance
-                    .window()
-                    .dispatch_event(WindowEvent::PointerReleased {
-                        position,
-                        button: PointerEventButton::Left,
-                    });
-                let status = instance.get_property("status").expect("status projection");
-                if !matches!(&status, Value::String(text) if !text.is_empty()) {
-                    eprintln!("Native pointer callback did not update status: {status:?}");
-                    std::process::exit(1);
-                }
-                instance
-                    .set_property("status", Value::String("".into()))
-                    .expect("reset observation");
-                instance.window().dispatch_event(WindowEvent::KeyPressed {
+                app.window().dispatch_event(WindowEvent::PointerPressed {
+                    position,
+                    button: PointerEventButton::Left,
+                });
+                app.window().dispatch_event(WindowEvent::PointerReleased {
+                    position,
+                    button: PointerEventButton::Left,
+                });
+                let text = get_status(&app);
+                assert!(!text.is_empty(), "native pointer activation updates status");
+                set_status(&app, "".into());
+                app.window().dispatch_event(WindowEvent::KeyPressed {
                     text: slint::platform::Key::Space.into(),
                 });
-                instance.window().dispatch_event(WindowEvent::KeyReleased {
+                app.window().dispatch_event(WindowEvent::KeyReleased {
                     text: slint::platform::Key::Space.into(),
                 });
-                if instance
-                    .get_property("status")
-                    .expect("keyboard observation")
-                    != status
-                {
-                    eprintln!("Native keyboard activation did not update status");
-                    std::process::exit(1);
-                }
+                assert_eq!(
+                    get_status(&app),
+                    text,
+                    "native Space activation updates status"
+                );
                 println!("Verified pointer activation and keyboard Space activation");
             }
-            if let Err(error) = save(instance.window(), &output) {
+            if let Err(error) = save(app.window(), &options.output) {
                 eprintln!("Snapshot failed: {error}");
                 std::process::exit(1);
             }
         }
         slint::quit_event_loop().expect("finish capture");
     });
-    instance.run()?;
+    app.run()?;
     Ok(())
 }

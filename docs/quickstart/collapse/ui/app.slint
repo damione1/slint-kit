@@ -1,9 +1,8 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCollapse, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitCollapse, KitTheme, KitThemes } from "@kit";
 export component App inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -14,13 +13,13 @@ export component App inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <bool> expanded;
+    in-out property <bool> expanded;
     callback expand(bool);
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        control := KitCollapse { theme: root.theme; title: "Publishing details"; expanded: root.expanded; expansion-requested(value) => { root.expand(value); } Text { text: "Publishing sends your team a notification."; color: root.theme.text-primary; wrap: word-wrap; } }
+        control := KitCollapse { theme: root.theme; title: "Publishing details"; expanded <=> root.expanded; expansion-requested(value) => { root.expand(value); } Text { text: "Publishing sends your team a notification."; color: root.theme.text-primary; wrap: word-wrap; } }
         result := Text { text: root.expanded ? "Expanded" : "Collapsed"; color: root.theme.text-secondary; }
     }
 

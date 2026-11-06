@@ -11,12 +11,19 @@ import { lucideCatalogue } from './scripts/lucide-catalogue.mjs';
 import { mockups } from './src/assets/component-mockups.js';
 import { iconSnippet } from './src/assets/lucide-gallery.js';
 import { writeSearchIndexes } from './scripts/search-index.mjs';
+import { loadProject } from './scripts/project.mjs';
 export default function (eleventyConfig) {
   const outputDirectory = process.env.DOCS_SITE_STAGE || '_site';
   const lucide = lucideCatalogue();
   eleventyConfig.addGlobalData('lucide', lucide);
   eleventyConfig.addFilter('iconSnippet', (name, mode, locale) => iconSnippet(name, mode, locale === 'fr'));
   eleventyConfig.addPassthroughCopy('src/assets');
+  const webVitalsVersion = JSON.parse(fs.readFileSync('node_modules/web-vitals/package.json', 'utf8')).version;
+  const webVitals = Buffer.from(`/*! web-vitals ${webVitalsVersion} | Copyright 2020 Google LLC | Apache-2.0 | /assets/vendor/web-vitals-LICENSE.txt */\n` + fs.readFileSync('node_modules/web-vitals/dist/web-vitals.js', 'utf8'));
+  const webVitalsHash = createHash('sha256').update(webVitals).digest('hex').slice(0, 16);
+  const webVitalsUrl = `/assets/versioned/web-vitals.${webVitalsHash}.js`;
+  eleventyConfig.addGlobalData('webVitalsUrl', webVitalsUrl);
+  eleventyConfig.addPassthroughCopy({'node_modules/web-vitals/LICENSE':'assets/vendor/web-vitals-LICENSE.txt'});
   if (fs.existsSync('.generated/workspace-preview/manifest.json')) { eleventyConfig.addPassthroughCopy({ '.generated/workspace-preview': 'assets/workspace-preview' }); }
   eleventyConfig.addPassthroughCopy({ 'src/_redirects': '_redirects' });
   eleventyConfig.addPassthroughCopy({ 'src/_headers': '_headers' });
@@ -50,16 +57,21 @@ export default function (eleventyConfig) {
     }
     return versionedAssets.get(sourceUrl).url;
   });
-  eleventyConfig.addFilter('starterPoster', (slug, density = 2) => {
-    const key = `starter:${slug}:${density}`;
+  eleventyConfig.addFilter('starterPoster', (slug, density = 2, theme = 'light') => {
+    if (theme !== 'light' && theme !== 'dark') throw new Error('Unknown starter poster theme');
+    const suffix = theme === 'dark' ? '-dark' : '';
+    const key = `starter:${slug}:${density}:${theme}`;
     if (!versionedAssets.has(key)) {
-      const content = fs.readFileSync(path.join('quickstart', slug, density === 2 ? 'preview@2x.png' : 'preview.png'));
+      const content = fs.readFileSync(path.join('quickstart', slug, `preview${suffix}${density === 2 ? '@2x' : ''}.png`));
       const hash = createHash('sha256').update(content).digest('hex').slice(0, 16);
       versionedAssets.set(key, { url: `/assets/versioned/${slug}.${hash}${density === 2 ? "@2x" : ""}.png`, content });
     }
     return versionedAssets.get(key).url;
   });
   eleventyConfig.on('eleventy.after', () => {
+    const webVitalsTarget = path.join(outputDirectory, webVitalsUrl.slice(1));
+    fs.mkdirSync(path.dirname(webVitalsTarget), {recursive:true});
+    fs.writeFileSync(webVitalsTarget, webVitals);
     const spriteTarget = path.join(outputDirectory, lucide.url.slice(1));
     fs.mkdirSync(path.dirname(spriteTarget), { recursive: true });
     fs.writeFileSync(spriteTarget, lucide.sprite);
@@ -97,13 +109,8 @@ export default function (eleventyConfig) {
     name: 'Slint Kit', repository: 'https://github.com/damione1/slint-kit',
     url: siteOrigin(),
   });
-  const manifest = fs.readFileSync('../Cargo.toml', 'utf8');
-  eleventyConfig.addGlobalData('project', {
-    version: manifest.match(/^version = "([^"]+)"/m)[1],
-    rust: manifest.match(/^rust-version = "([^"]+)"/m)[1],
-    slint: manifest.match(/^slint = \{ version = "=([^"]+)"/m)[1],
-    preOne: manifest.match(/^version = "([^"]+)"/m)[1].startsWith('0.'),
-  });
+  eleventyConfig.addGlobalData('project', loadProject());
+  eleventyConfig.addWatchTarget('../Cargo.toml');
   eleventyConfig.addGlobalData('locales', ['en', 'fr']);
   const markdown = new MarkdownIt({ html: false, linkify: false });
   eleventyConfig.addFilter('consumerSource', file => fs.readFileSync(path.join('consumer', file), 'utf8'));

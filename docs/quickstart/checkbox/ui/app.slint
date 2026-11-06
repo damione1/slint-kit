@@ -1,9 +1,8 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+
+import { KitMetrics, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCheckbox, CheckState, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitCheckbox, CheckState, KitTheme, KitThemes } from "@kit";
 export component App inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -14,13 +13,13 @@ export component App inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <CheckState> choice: CheckState.unchecked;
+    in-out property <CheckState> choice: CheckState.unchecked;
     callback change(CheckState);
     VerticalLayout {
         padding: 24px;
         spacing: 16px;
         alignment: start;
-        control := KitCheckbox { theme: root.theme; label: "Send product updates"; state: root.choice; toggled(value) => { root.change(value); } }
+        control := KitCheckbox { theme: root.theme; label: "Send product updates"; state <=> root.choice; toggled(value) => { root.change(value); } }
         result := Text { text: root.choice == CheckState.checked ? "Subscribed" : "Not subscribed"; color: root.theme.text-primary; }
     }
 

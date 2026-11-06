@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenu, KitAccordion, KitSelect, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess } from "@kit";
+export component SelectionServiceFixture inherits Window {
+    width: 800px; height: 1000px;
+    in property <[OptionRow]> options;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ExpansionMode> expansion-mode: ExpansionMode.single;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    out property <SelectState> first-state: first.state;
+    out property <SelectState> second-state: second.state;
+    out property <SelectState> popup-state: popup.state;
+    out property <SelectionRef> radio-selected: radio.selected;
+    in-out property <SelectionRef> acknowledged <=> first.selected;
+    in-out property <[SelectionRef]> expanded <=> accordion.expanded;
+    out property <[SelectionRef]> local-expanded: local-accordion.expanded;
+    out property <int> local-expanded-count: local-accordion.expanded.length;
+    callback expansion-changed(OptionRow, bool);
+    callback first-chosen(OptionRow);
+    callback second-chosen(OptionRow);
+    callback keyboard-chosen(OptionRow);
+    out property <SelectState> keyboard-state: keyboard.state;
+    public function move-keyboard(step: NavigationStep) { keyboard.move-active(step); }
+    public function type-keyboard(text: string) { keyboard.type-ahead(text); }
+    public function choose-keyboard() { keyboard.choose-option(keyboard.state.active.token, keyboard.state.generation); }
+    keyboard := KitSelectKeyboard {
+        width: 0px; height: 0px; enabled: false; options: root.options;
+        chosen(row) => { root.keyboard-chosen(row); }
+    }
+    public function focus-first() { first.take-focus(); }
+    public function focus-second() { second.take-focus(); }
+    public function focus-popup() { popup.take-focus(); }
+    public function focus-radio() { radio.take-focus(); }
+    public function search-first(text: string) { first.query = text; }
+    background: root.theme.canvas;
+    VerticalLayout {
+        HorizontalLayout {
+            first := KitMenu { theme: root.theme; options: root.options; ownership: root.ownership; chosen(row) => { root.first-chosen(row); } }
+            second := KitMenu { theme: root.theme; options: root.options; chosen(row) => { root.second-chosen(row); } }
+        }
+        popup := KitSelect { theme: root.theme; options: root.options; access: root.access; }
+        accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; ownership: root.ownership; expansion-changed(row, expanded) => { root.expansion-changed(row, expanded); } }
+        local-accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; }
+        radio := KitRadioGroup { theme: root.theme; options: root.options; access: root.access; label: "Destination"; }
+    }
+}

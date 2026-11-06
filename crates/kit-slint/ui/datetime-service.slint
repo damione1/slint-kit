@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { CivilDateView } from "calendar-service.slint";
+import { TimePrecision, ClockFormat } from "shared-contracts.slint";
+export enum TimeSegment { hour, minute, second }
+export enum TimeAdjustment { increment, decrement }
+export enum ZonedTimePresentation { unresolved, unique, ambiguous, nonexistent, invalid-zone }
+export enum AmbiguousTimeChoice { earlier, later }
+export enum ZonedAcceptance { unique, earlier, later }
+export struct LocalTimeView { hour: int, minute: int, second: int }
+export struct LocalDateTimeView { date: CivilDateView, time: LocalTimeView }
+export struct LocalDateTimeDraft { date: string, time: string }
+export struct ZonedDateTimeDraft { date: string, time: string, zone: string }
+export struct ZonedDateTimeResult { state: ZonedTimePresentation, local: LocalDateTimeView }
+export struct ZonedDateTimeCommit { local: LocalDateTimeView, zone: string, acceptance: ZonedAcceptance }
+export global KitTimeService {
+    in-out property <bool> ready;
+    pure callback adjust(string, TimePrecision, ClockFormat, TimeSegment, TimeAdjustment) -> string;
+    pure callback parse-local(LocalDateTimeDraft, TimePrecision, ClockFormat) -> LocalDateTimeView;
+    pure callback resolve(ZonedDateTimeDraft, TimePrecision, ClockFormat) -> ZonedDateTimeResult;
+}

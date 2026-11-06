@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Validate a tagged source release and safely resume its crates.io publication."""
+"""Validate a tagged release and safely resume crates.io and GitHub publication."""
 import argparse
 import hashlib
 import io
@@ -13,6 +13,7 @@ import tarfile
 import time
 import tomllib
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,7 +50,7 @@ def validate(tag):
         raise ValueError('Checkout does not match the triggering commit')
     if run('git', 'status', '--porcelain'):
         raise ValueError('Release source must be committed and clean')
-    print(f'Validated {tag}: six libraries at commit {commit}', flush=True)
+    print(f'Validated {tag}: {len(PACKAGES)} libraries at commit {commit}', flush=True)
     return version, commit
 
 
@@ -122,6 +123,90 @@ def check(version, commit):
     return archives, published
 
 
+def release_notes(version):
+    """Read only the exact version section, retaining its Markdown subsections."""
+    text = (ROOT / 'CHANGELOG.md').read_text()
+    headings = list(re.finditer(r'^## ([^\n]+)\s*$', text, re.MULTILINE))
+    matches = [index for index, heading in enumerate(headings) if heading[1].strip() == version]
+    if len(matches) != 1:
+        raise ValueError(f'CHANGELOG.md must contain exactly one section for {version}')
+    index = matches[0]
+    end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
+    notes = text[headings[index].end():end].strip()
+    if not notes:
+        raise ValueError(f'CHANGELOG.md section for {version} is empty')
+    return notes
+
+
+def github_api(path, payload=None):
+    token = os.environ.get('GH_TOKEN')
+    repository = os.environ.get('GITHUB_REPOSITORY', '')
+    if not token or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository):
+        raise ValueError('GH_TOKEN and GITHUB_REPOSITORY are required for GitHub publication')
+    req = urllib.request.Request(
+        f'https://api.github.com/repos/{repository}/{path}',
+        data=None if payload is None else json.dumps(payload).encode(),
+        headers={'User-Agent': USER_AGENT, 'Accept': 'application/vnd.github+json',
+                 'Authorization': f'Bearer {token}', 'X-GitHub-Api-Version': '2022-11-28',
+                 'Content-Type': 'application/json'},
+    )
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.load(response)
+
+
+def github_pages(resource):
+    page = 1
+    while True:
+        entries = github_api(f'{resource}?per_page=100&page={page}')
+        yield from entries
+        if len(entries) < 100:
+            return
+        page += 1
+
+
+def stable_version(tag):
+    """Stable SemVer precedence; build metadata never changes precedence."""
+    match = re.fullmatch('v' + SEMVER, tag)
+    if match is None or '-' in tag.split('+', 1)[0]:
+        return None
+    return tuple(int(part) for part in match.groups())
+
+
+def github_release(version, commit):
+    tag = f'v{version}'
+    releases = list(github_pages('releases'))
+    if any(entry['tag_name'] == tag for entry in releases):
+        print(f'GitHub Release {tag} already exists; preserving its metadata and assets', flush=True)
+        return
+    notes = release_notes(version)
+    stable = stable_version(tag)
+    latest = False
+    if stable is not None:
+        # The facade is published last. Its registry versions also cover releases
+        # missing a GitHub object, without mistaking an unbuilt tag for a release.
+        candidates = [entry['tag_name'] for entry in releases if not entry['draft'] and not entry['prerelease']]
+        registry = json.loads(request('https://crates.io/api/v1/crates/slint-kit'))
+        candidates.extend('v' + entry['num'] for entry in registry['versions'] if not entry['yanked'])
+        latest = not any(other > stable for candidate in candidates
+                         if (other := stable_version(candidate)) is not None)
+    payload = {'tag_name': tag, 'target_commitish': commit, 'name': tag, 'body': notes,
+               'draft': False, 'prerelease': stable is None,
+               'make_latest': 'true' if latest else 'false'}
+    try:
+        github_api('releases', payload)
+    except urllib.error.HTTPError as error:
+        if error.code != 422:
+            raise
+        # Another publisher may have created the same Release after our read.
+        # Only that exact conflict is idempotent; all other failures remain fatal.
+        existing = github_api('releases/tags/' + urllib.parse.quote(tag, safe=''))
+        if existing['tag_name'] != tag:
+            raise error
+        print(f'GitHub Release {tag} appeared concurrently; preserving it', flush=True)
+        return
+    print(f'Created GitHub Release {tag} (latest={latest})', flush=True)
+
+
 def publish(version, commit):
     if not os.environ.get('CARGO_REGISTRY_TOKEN'):
         raise ValueError('CARGO_REGISTRY_TOKEN repository secret is missing or empty')
@@ -139,7 +224,8 @@ def publish(version, commit):
                 time.sleep(5)
         else:
             raise ValueError(f'{name}: upload exit {result.returncode}; registry version unavailable. Rerun this same tag after resolving the failure; verified libraries will be skipped.')
-    print(f'Published and verified all six Slint Kit {version} libraries', flush=True)
+    print(f'Published and verified all {len(PACKAGES)} Slint Kit {version} libraries', flush=True)
+    github_release(version, commit)
 
 
 def main():

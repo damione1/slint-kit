@@ -20,6 +20,7 @@ fn navigation_composites_cancel_armed_presses_and_reject_every_activation_while_
         NavigationInteractiveKind::Pagination,
     ] {
         let window = NavigationInteractiveFixture::new().unwrap();
+        slint_kit::install(&window);
         window.set_kind(kind);
         let calls = Rc::new(Cell::new(0));
         let output = calls.clone();
@@ -37,7 +38,7 @@ fn navigation_composites_cancel_armed_presses_and_reject_every_activation_while_
             .match_inherits("KitPressable")
             .match_predicate(move |element| element.accessible_label().as_deref() == Some(label))
             .find_first()
-            .unwrap();
+            .unwrap_or_else(|| panic!("{kind:?}: public action {label}"));
         let origin = action.absolute_position();
         let position = LogicalPosition::new(
             origin.x + action.size().width / 2.,
@@ -100,7 +101,7 @@ fn navigation_composites_cancel_armed_presses_and_reject_every_activation_while_
 fn drawer_keeps_simple_content_grouped_below_an_intrinsic_header() {
     i_slint_backend_testing::init_no_event_loop();
     let window = DrawerContentFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, window);
+    kit_slint::install(&window);
     window.show().unwrap();
     for scale in [1., 2.] {
         let mut theme = window.get_theme();

@@ -1,3 +1,4 @@
+import { Ownership, CommitPolicy } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitFieldError } from "field.slint";
@@ -13,14 +14,9 @@ import { FieldAccess } from "contracts.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 
-export enum TimeSegment { hour, minute, second }
-export enum TimeAdjustment { increment, decrement }
-export enum ZonedTimePresentation { unresolved, unique, ambiguous, nonexistent, invalid-zone }
-export enum AmbiguousTimeChoice { earlier, later }
-export struct LocalTimeView { hour: int, minute: int, second: int }
-export struct LocalDateTimeView { date: CivilDateView, time: LocalTimeView }
-export struct LocalDateTimeDraft { date: string, time: string }
-export struct ZonedDateTimeDraft { date: string, time: string, zone: string }
+import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
+export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
+import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 
 component TimeSegmentControl inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -54,6 +50,24 @@ export component KitTimeField inherits KitTextField {
 }
 
 export component KitTimePicker inherits Rectangle {
+    in property <string> spec-key;
+    in property <Ownership> ownership: Ownership.local;
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    out property <FieldState> field-state: editor.field-state;
+    out property <string> accepted-text: editor.accepted-text;
+    public function acknowledge(value: FieldValue) { editor.acknowledge(value); }
+    callback committed(FieldCommit);
+    public function commit() { editor.commit(); }
+    public function cancel-edit() { editor.cancel-edit(); }
+    function adjust-time(segment: TimeSegment, direction: TimeAdjustment) {
+        if (root.access != FieldAccess.editable) { return; }
+        if (KitTimeService.ready) {
+            root.text = KitTimeService.adjust(root.text, root.precision, root.clock-format, segment, direction);
+            editor.commit();
+        }
+        root.adjust(segment, direction);
+    }
+
     in property <bool> required;
     in property <string> min;
     in property <string> max;
@@ -86,19 +100,33 @@ export component KitTimePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         editor := KitTimeField {
+                ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
                 required: root.required; min: root.min; max: root.max; step: root.step;
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
  theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; text <=> root.text; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; adjust(segment,direction) => { root.adjust(segment,direction); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; adjust(segment,direction) => { root.adjust(segment,direction); } }
-        if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; adjust(segment,direction) => { root.adjust(segment,direction); } }
+        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
     }
 }
 
 // Separate date and time editors compose one commit payload. No half-accepted
 // application value is emitted when just one of the drafts parses successfully.
 export component KitDateTimeField inherits Rectangle {
+    in property <Ownership> ownership: Ownership.local;
+    private property <LocalDateTimeView> candidate;
+    private property <LocalDateTimeDraft> current-draft: {date: root.date-text, time: root.time-text};
+    callback chosen(LocalDateTimeView);
+    public function commit() {
+        if (root.access != FieldAccess.editable || !KitTimeService.ready || !root.report-validity()) { return; }
+        root.candidate = KitTimeService.parse-local(root.current-draft, root.precision, root.clock-format);
+        if (root.candidate.date.year > 0) {
+            if (root.ownership == Ownership.local) { root.accepted-value = root.candidate; }
+            root.chosen(root.candidate); root.commit-requested(root.current-draft);
+        }
+    }
+
     in property <bool> required;
     in property <string> min;
     in property <string> max;
@@ -125,7 +153,7 @@ export component KitDateTimeField inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <LocalDateTimeView> accepted-value;
+    in-out property <LocalDateTimeView> accepted-value;
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
@@ -154,7 +182,7 @@ export component KitDateTimeField inherits Rectangle {
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
             focus-observed(focused) => { root.date-focused = focused; }
             edited(text) => { checks.note-edit(); root.edited({date: text, time: root.time-text}); }
-            commit-requested(text) => { if (root.report-validity()) { root.commit-requested({date: text, time: root.time-text}); } }
+            commit-requested(text) => { root.commit(); }
             cancelled => { root.cancelled(); }
         }
         time := KitTimeField {
@@ -162,7 +190,7 @@ export component KitDateTimeField inherits Rectangle {
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
             focus-observed(focused) => { root.time-focused = focused; }
             edited(text) => { checks.note-edit(); root.edited({date: root.date-text, time: text}); }
-            commit-requested(text) => { if (root.report-validity()) { root.commit-requested({date: root.date-text, time: text}); } }
+            commit-requested(text) => { root.commit(); }
             cancelled => { root.cancelled(); }
         }
         if checks.show-error && root.date-error == "" && root.time-error == "": KitFieldError { theme: root.theme; text: checks.validation-message; }
@@ -170,6 +198,29 @@ export component KitDateTimeField inherits Rectangle {
 }
 
 export component KitZonedDateTimeField inherits Rectangle {
+    private property <ZonedDateTimeResult> result;
+    private property <ZonedDateTimeDraft> current: {date: root.date-text, time: root.time-text, zone: root.zone-text};
+    private property <ZonedDateTimeDraft> resolved-draft;
+    private property <ZonedDateTimeDraft> pressed-draft;
+    callback chosen(ZonedDateTimeCommit);
+    public function resolve() {
+        if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
+        root.result = {state: ZonedTimePresentation.unresolved};
+        if (!root.report-validity()) { return; }
+        root.resolved-draft = root.current;
+        root.result = KitTimeService.resolve(root.current, root.precision, root.clock-format);
+        root.resolve-requested(root.current);
+        if (root.result.state == ZonedTimePresentation.unique) { root.chosen({local: root.result.local, zone: root.zone-text, acceptance: ZonedAcceptance.unique}); }
+    }
+    function accept-occurrence(choice: AmbiguousTimeChoice) {
+        if (root.access != FieldAccess.editable || root.pressed-draft != root.current || root.resolution != ZonedTimePresentation.ambiguous) { return; }
+        if (root.resolved-draft == root.current && root.result.state == ZonedTimePresentation.ambiguous) {
+            root.chosen({local: root.result.local, zone: root.zone-text, acceptance: choice == AmbiguousTimeChoice.earlier ? ZonedAcceptance.earlier : ZonedAcceptance.later});
+        }
+        root.ambiguity-chosen(choice);
+    }
+    changed current => { root.result = {state: ZonedTimePresentation.unresolved}; }
+
     in property <bool> required;
     in property <string> min;
     in property <string> max;
@@ -205,8 +256,8 @@ export component KitZonedDateTimeField inherits Rectangle {
     in property <string> date-error;
     in property <string> time-error;
     in property <string> zone-error;
-    in property <string> resolution-message;
-    in property <ZonedTimePresentation> resolution: ZonedTimePresentation.unresolved;
+    in property <string> resolution-message: root.resolution == ZonedTimePresentation.ambiguous ? "This local time occurs twice. Choose an occurrence." : root.resolution == ZonedTimePresentation.nonexistent ? "This local time does not exist in this time zone." : root.resolution == ZonedTimePresentation.invalid-zone ? root.invalid-zone-message : root.resolution == ZonedTimePresentation.unique ? "Local time resolved." : "";
+    in property <ZonedTimePresentation> resolution: root.result.state;
     in-out property <string> date-text;
     in-out property <string> time-text;
     in-out property <string> zone-text;
@@ -233,7 +284,7 @@ export component KitZonedDateTimeField inherits Rectangle {
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-value: root.accepted-local; clock-format: root.clock-format; precision: root.precision; label: root.label; date-label: root.date-label; time-label: root.time-label; date-placeholder: root.date-placeholder; date-description: root.date-description; time-description: root.time-description; date-error: root.date-error; time-error: root.time-error; date-text <=> root.date-text; time-text <=> root.time-text;
             focus-observed(focused) => { root.local-focused = focused; }
             edited(draft) => { root.edited({date: draft.date, time: draft.time, zone: root.zone-text}); }
-            commit-requested(draft) => { if (root.check-validity()) { root.resolve-requested({date: draft.date, time: draft.time, zone: root.zone-text}); } }
+            commit-requested(draft) => { root.resolve(); }
             cancelled => { root.cancelled(); }
         }
         zone := KitTextField {
@@ -243,7 +294,7 @@ export component KitZonedDateTimeField inherits Rectangle {
             theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.zone-text; label: root.zone-label; placeholder: root.zone-placeholder; description: root.zone-description; error: root.zone-error; validation: root.zone-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             focus-observed(focused) => { root.zone-focused = focused; }
             edited(text) => { root.edited({date: root.date-text, time: root.time-text, zone: text}); }
-            commit-requested(text) => { if (root.check-validity()) { root.resolve-requested({date: root.date-text, time: root.time-text, zone: text}); } }
+            commit-requested(text) => { root.resolve(); }
         }
         if root.resolution != ZonedTimePresentation.unresolved: Text {
             text: root.resolution-message;
@@ -253,8 +304,8 @@ export component KitZonedDateTimeField inherits Rectangle {
         }
         if root.resolution == ZonedTimePresentation.ambiguous: VerticalLayout {
             spacing: root.theme.spacing.unit * 2;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.earlier-label; disabled: root.access != FieldAccess.editable; activation-started => { root.ambiguity-started(); } activated => { root.ambiguity-chosen(AmbiguousTimeChoice.earlier); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.later-label; disabled: root.access != FieldAccess.editable; activation-started => { root.ambiguity-started(); } activated => { root.ambiguity-chosen(AmbiguousTimeChoice.later); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.earlier-label; disabled: root.access != FieldAccess.editable; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.earlier); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.later-label; disabled: root.access != FieldAccess.editable; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.later); } }
         }
     }
 }

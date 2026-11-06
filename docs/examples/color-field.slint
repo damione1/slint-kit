@@ -1,21 +1,21 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// SPDX-License-Identifier: GPL-3.0-or-later
-import { KitColorField, KitTheme, KitThemes } from "@kit/kit.slint";
+import { LayoutSpace, KitMetrics, TypographyRole } from "@kit";
+import { KitThemes } from "@kit";
+import { KitTheme, KitThemeContext } from "@kit";
 
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+import { KitColorField, KitStack, KitThemeContext, SrgbColorView, KitButton } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
-    title: "KitColorField example";
-    preferred-width: 420px;
-    preferred-height: 210px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: root.theme.canvas;
+    max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <string> status;
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        Text { text: "Color Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitColorField { theme: root.theme; label: "Accent color"; swatch: #6366f1; accepted-color: { red: 99, green: 102, blue: 241, alpha: 255 }; text: "#6366F1"; }
-        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
-    }
+    changed theme => { KitThemeContext.current = root.theme; }
+    title: "Color field"; preferred-width: 560px; preferred-height: 360px;
+    background: KitThemeContext.current.canvas;
+    callback accent-changed(SrgbColorView);
+    KitStack { inset: LayoutSpace.roomy;
+        Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+        control := KitColorField { label: "Accent color"; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; chosen(value) => { root.accent-changed(value); } }
+        KitButton { text: "Apply color"; activated => { control.commit(); } } }
 }

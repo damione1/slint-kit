@@ -4,7 +4,8 @@ use super::ui::{
     self, FormExamples, LocaleExample, NumericExample, Showcase, SubmissionPresentation,
     TextExample,
 };
-use kit::{
+use slint::ComponentHandle;
+use slint_kit::{
     AbsencePolicy, CommitPolicy, CommitTrigger, CurrencyMetadata, DecimalRules, DecimalScale,
     DecimalValue, DraftValue, DurationUnit, DurationValue, FieldAccess, FieldBinding, FieldError,
     FieldFailure, FieldIntent, FieldProjection, FormCoordinator, FormIntent, GraphemeLimit,
@@ -12,7 +13,6 @@ use kit::{
     OtpLength, OtpValue, Ownership, ParseIssue, Percent, Quantity, RoundingPolicy, SignPolicy,
     StepDirection, ValidationPresentation, format_decimal, grapheme_count, parse_integer,
 };
-use slint::ComponentHandle;
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -230,12 +230,7 @@ fn view_access(access: ui::FieldAccess) -> FieldAccess {
     }
 }
 fn view_validation(value: ValidationPresentation) -> ui::ValidationPresentation {
-    match value {
-        ValidationPresentation::Pristine => ui::ValidationPresentation::Pristine,
-        ValidationPresentation::Checking => ui::ValidationPresentation::Checking,
-        ValidationPresentation::Valid => ui::ValidationPresentation::Valid,
-        ValidationPresentation::Invalid => ui::ValidationPresentation::Invalid,
-    }
+    value.into()
 }
 fn locale(value: LocaleExample) -> NumberLocale {
     match value {
@@ -424,7 +419,7 @@ fn parse_email(text: &str) -> DraftValue<EmailAddress> {
     if text.is_empty() {
         return DraftValue::Empty;
     }
-    if kit::html_email_address(text) {
+    if slint_kit::html_email_address(text) {
         plain(text, 254, EmailAddress)
     } else {
         DraftValue::Invalid(ParseIssue::InvalidSyntax)
@@ -448,7 +443,7 @@ fn parse_website(text: &str) -> DraftValue<Website> {
     }
 }
 fn parse_phone(text: &str) -> DraftValue<PhoneNumber> {
-    match kit::PhoneRules::new(kit::PhoneNumberMode::International, 7, 15)
+    match slint_kit::PhoneRules::new(slint_kit::PhoneNumberMode::International, 7, 15)
         .unwrap()
         .parse(text)
     {
@@ -946,10 +941,7 @@ fn install_numbers(window: &Showcase, state: &Rc<Examples>) {
             return;
         }
         let current = target.numbers.stepper.accepted().unwrap_or(1);
-        let direction = match direction {
-            ui::StepDirection::Increment => StepDirection::Increment,
-            ui::StepDirection::Decrement => StepDirection::Decrement,
-        };
+        let direction: StepDirection = direction.into();
         let next = match direction {
             StepDirection::Increment => current.checked_add(1),
             StepDirection::Decrement => current.checked_sub(1),

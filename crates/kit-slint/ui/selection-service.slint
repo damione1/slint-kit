@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { OptionRow, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason } from "contracts.slint";
+import { Ownership } from "shared-contracts.slint";
+import { ExpansionMode, DisclosureRow, ChipRow } from "contracts.slint";
+
+export struct SelectionSession {
+    state: SelectState,
+    typeahead: string,
+    has-timestamp: bool,
+    timestamp: int,
+}
+export struct SelectionTransition {
+    session: SelectionSession,
+    chosen: SelectionRef,
+}
+
+export struct RatingView { present: bool, step: int, scale: int }
+export struct MultipleTransition { selected: [SelectionRef], accepted: bool, added: bool }
+
+export global KitSelectionService {
+    pure callback rating-options(int) -> [OptionRow];
+    pure callback multiple-choices([OptionRow], [SelectionRef]) -> [ChoiceRow];
+    pure callback chips([OptionRow], [SelectionRef]) -> [ChipRow];
+    pure callback toggle([OptionRow], [SelectionRef], int, int, int) -> MultipleTransition;
+    in-out property <bool> ready;
+    pure callback project([OptionRow], [OptionRow], SelectionRef, SelectionRef, bool, int) -> SelectState;
+    pure callback reconcile([OptionRow], SelectionSession, Ownership) -> SelectionSession;
+    pure callback open([OptionRow], SelectionSession, Ownership) -> SelectionSession;
+    pure callback navigate([OptionRow], SelectionSession, NavigationStep, Ownership) -> SelectionSession;
+    pure callback dismiss([OptionRow], SelectionSession, CloseReason, Ownership) -> SelectionSession;
+    pure callback activate([OptionRow], SelectionSession, int, int, Ownership) -> SelectionTransition;
+    pure callback typeahead([OptionRow], SelectionSession, string, int, Ownership) -> SelectionSession;
+    pure callback rows([OptionRow], string, int) -> [OptionRow];
+    pure callback choices([OptionRow], SelectionRef) -> [ChoiceRow];
+    pure callback disclosures([OptionRow], [SelectionRef]) -> [DisclosureRow];
+    pure callback disclosure(OptionRow, [SelectionRef]) -> DisclosureRow;
+    pure callback disclosure-options([DisclosureRow]) -> [OptionRow];
+    pure callback disclosure-source([DisclosureRow], int) -> DisclosureRow;
+    pure callback disclose([OptionRow], [SelectionRef], int, int, int, bool, ExpansionMode) -> [SelectionRef];
+    pure callback label([OptionRow], SelectionRef) -> string;
+    pure callback source([OptionRow], int) -> OptionRow;
+    pure callback generation([OptionRow]) -> int;
+    pure callback next-generation(int) -> int;
+    callback timestamp() -> int;
+}
+
+// Reusable instance state. The service computes transitions from explicit
+// inputs; it never stores the selection, search or opening of a component.
+export component KitSelection inherits Rectangle {
+    width: 0px; height: 0px;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in property <bool> persistent;
+    in-out property <SelectionRef> selected;
+    in-out property <string> query;
+    private property <SelectionSession> session;
+    private property <int> gesture-generation: 1;
+    private property <int> gesture-source-generation: -1;
+    private property <string> gesture-query;
+    private property <int> source-generation: KitSelectionService.ready ? KitSelectionService.generation(root.options) : -1;
+    changed source-generation => { root.invalidate(); }
+    changed query => { root.invalidate(); }
+    out property <[OptionRow]> rows: KitSelectionService.ready ? KitSelectionService.rows(root.options, root.query, root.gesture-generation) : [];
+    out property <SelectState> state: KitSelectionService.ready ? KitSelectionService.project(root.options, root.rows, root.selected, root.session.state.active, root.persistent || root.session.state.open, root.gesture-generation) : {active-index: -1};
+    out property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.choices(root.rows, root.selected) : [];
+    out property <string> selected-label: KitSelectionService.ready ? KitSelectionService.label(root.options, root.selected) : "";
+    private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp };
+    callback chosen(OptionRow);
+    function invalidate() {
+        root.gesture-source-generation = root.source-generation;
+        root.gesture-query = root.query;
+        if (KitSelectionService.ready) { root.gesture-generation = KitSelectionService.next-generation(root.gesture-generation); }
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.reconcile(root.options, root.current-session, root.ownership)); }
+    }
+    function apply(session: SelectionSession) {
+        root.session = session;
+        root.selected = session.state.selected;
+    }
+    public function open() {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.open(root.rows, root.current-session, root.ownership)); }
+    }
+    public function navigate(step: NavigationStep) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.navigate(root.rows, root.current-session, step, root.ownership)); }
+    }
+    public function activate(token: int, generation: int) {
+        if (!KitSelectionService.ready || root.source-generation < 0 || root.gesture-generation < 0 || root.gesture-source-generation != root.source-generation || root.gesture-query != root.query) { return; }
+        let update = KitSelectionService.activate(root.rows, root.current-session, token, generation, root.ownership);
+        let row = KitSelectionService.source(root.options, update.chosen.token);
+        root.apply(update.session);
+        if (update.chosen.present) {
+            if (root.persistent) { root.session.state.active = {present: true, token: token}; }
+            root.chosen(row);
+        }
+    }
+    public function dismiss(reason: CloseReason) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.dismiss(root.rows, root.current-session, reason, root.ownership)); }
+    }
+    public function typeahead(text: string) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.typeahead(root.rows, root.current-session, text, KitSelectionService.timestamp(), root.ownership)); }
+    }
+}
+
+// Multiple selection owns a set while reusing the single-selection keyboard
+// session for opening, filtering, typeahead and generation-fenced gestures.
+export component KitMultipleSelection inherits Rectangle {
+    width: 0px; height: 0px; horizontal-stretch: 0; vertical-stretch: 0;
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in property <int> limit;
+    in property <bool> persistent;
+    in-out property <[SelectionRef]> selected;
+    in-out property <string> query <=> keyboard.query;
+    out property <[OptionRow]> rows: keyboard.rows;
+    out property <SelectState> state: keyboard.state;
+    out property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.multiple-choices(root.rows, root.selected) : [];
+    out property <[ChipRow]> chips: KitSelectionService.ready ? KitSelectionService.chips(root.options, root.selected) : [];
+    private property <MultipleTransition> transition;
+    callback changed-selection(OptionRow, bool);
+    keyboard := KitSelection {
+        options: root.options; ownership: Ownership.controlled; persistent: root.persistent;
+        chosen(row) => { root.toggle(row.token, row.generation); }
+    }
+    function toggle(token: int, generation: int) {
+        if (!KitSelectionService.ready) { return; }
+        root.transition = KitSelectionService.toggle(root.options, root.selected, token, generation, root.limit);
+        if (root.transition.accepted) {
+            if (root.ownership == Ownership.local) { root.selected = root.transition.selected; }
+            root.changed-selection(KitSelectionService.source(root.options, token), root.transition.added);
+        }
+    }
+    public function remove(token: int) {
+        if (KitSelectionService.ready) { root.toggle(token, KitSelectionService.generation(root.options)); }
+    }
+    public function open() { keyboard.open(); }
+    public function navigate(step: NavigationStep) { keyboard.navigate(step); }
+    public function activate(token: int, generation: int) { keyboard.activate(token, generation); }
+    public function dismiss(reason: CloseReason) { keyboard.dismiss(reason); }
+    public function typeahead(text: string) { keyboard.typeahead(text); }
+}

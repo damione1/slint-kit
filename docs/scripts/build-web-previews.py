@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Build only invalidated component/theme previews, with independent public URLs."""
+"""Build one shared WASM bundle for every interactive example and catalogue fixture."""
 import argparse
+import ast
+import inspect
 import gzip
 import hashlib
 import io
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -16,8 +17,8 @@ import tomllib
 import fcntl
 from functools import wraps
 
-from doc_inputs import ROOT, DOCS, build_inputs, digest, runtime_inputs, write_changed, write_json, consumer_identity, compiler_environment, relocated_source
-from presentation import ThemeFamily, themed_source
+from doc_inputs import ROOT, DOCS, build_inputs, digest, runtime_inputs, write_changed, write_json, consumer_identity, compiler_environment
+
 from web_cache import ASSETS, restore, save
 
 BINDGEN_VERSION = '0.2.129'
@@ -61,18 +62,21 @@ def content_hash(directory, names):
     return value.hexdigest()[:20]
 
 
-def corresponding_sources(slug):
+def corresponding_sources(slug=None):
     from starter_sources import source_files
     files = [ROOT / name for name in ['Cargo.toml', 'Cargo.lock', 'LICENSE', 'README.md']]
     files += [path for path in (ROOT / 'crates').rglob('*') if path.is_file() and 'target' not in path.parts]
     files += [path for path in (DOCS / 'preview').rglob('*') if path.is_file() and 'target' not in path.parts]
     files += [DOCS / 'scripts' / name for name in ['build-web-previews.py', 'web_cache.py', 'presentation.py', 'doc_inputs.py']]
-    starter = DOCS / 'quickstart' / slug
-    files += [starter / name for name in source_files(starter)]
+    starters = [DOCS / 'quickstart' / slug] if slug else sorted((DOCS / 'quickstart').iterdir())
+    for starter in starters:
+        if (starter / 'src/main.rs').is_file():
+            files += [starter / name for name in source_files(starter)]
+    files += [path for path in (DOCS / 'examples').rglob('*') if path.is_file()]
     return sorted(set(files))
 
 
-def archive_sources(directory, slug):
+def archive_sources(directory, slug=None):
     files = corresponding_sources(slug)
     with (directory / 'source.tar.gz').open('wb') as compressed, gzip.GzipFile(fileobj=compressed, mode='wb', mtime=0, filename='') as gzip_stream, tarfile.open(fileobj=gzip_stream, mode='w') as archive:
         for path in files:
@@ -80,8 +84,6 @@ def archive_sources(directory, slug):
             if path == ROOT / 'Cargo.toml':
                 # Keep the exact library workspace while removing absent apps.
                 content = content.replace(b', "showcase", "tests", "xtask", "docs/capture", "docs/integration"', b'')
-            if path == DOCS / 'quickstart' / slug / 'ui/app.slint':
-                content = themed_source(content.decode(), ThemeFamily.TAILWIND.value).encode()
             info = tarfile.TarInfo('slint-kit/' + str(path.relative_to(ROOT)))
             info.mode, info.size, info.mtime = 0o644, len(content), 0
             archive.addfile(info, io.BytesIO(content))
@@ -103,10 +105,17 @@ def third_party_notices():
 
 
 def publish_assets(temporary, output, slug, family):
-    code_hash = content_hash(temporary, ASSETS)
-    code_base = f'/assets/previews/{slug}/{family}/{code_hash}'
-    for name in ASSETS:
-        data = (temporary / name).read_bytes()
+    # Keep the generated bindings byte exact. The authored loader decompresses
+    # one transport asset into the original single WebAssembly module.
+    assets = {name: (temporary / name).read_bytes() for name in ASSETS}
+    assets['slint_kit_previews_bindings.js'] = assets.pop('slint_kit_previews.js')
+    assets['slint_kit_previews.js'] = (DOCS / 'preview/loader.js').read_bytes()
+    assets['slint_kit_previews_bg.wasm.gz'] = gzip.compress(assets.pop('slint_kit_previews_bg.wasm'), compresslevel=6, mtime=0)
+    value = hashlib.sha256()
+    for name, data in sorted(assets.items()):
+        value.update(name.encode() + b'\0' + data + b'\0')
+    code_base = f'/assets/previews/{slug}/{family}/{value.hexdigest()[:20]}'
+    for name, data in assets.items():
         if len(data) > 25 * 1024 * 1024:
             raise ValueError(f'Preview asset exceeds hosting limit: {slug}/{name}')
         write_changed(output / code_base.lstrip('/') / name, data)
@@ -120,7 +129,8 @@ def publish_assets(temporary, output, slug, family):
         sources[name] = url
     record = json.loads((temporary / 'component.json').read_text())
     return {'key': record['key'], 'base': code_base, 'sources': sources,
-            'assets': {name: digest((temporary / name).read_bytes()) for name in ASSETS},
+            'assets': {name: digest(data) for name, data in assets.items()},
+            'transport': {'encoding': 'gzip', 'moduleSha256': digest((temporary / 'slint_kit_previews_bg.wasm').read_bytes())},
             'sourceAssets': {name: digest((temporary / name).read_bytes()) for name in EXTRA_ASSETS}}
 
 
@@ -154,57 +164,90 @@ def exclusive_build(function):
     return locked
 
 
-@exclusive_build
-def build_fixture(task, inputs):
-    """An exact catalogue fixture, compiled only when its old render is stale."""
-    bindgen = os.environ.get('WASM_BINDGEN', 'wasm-bindgen')
-    version = subprocess.check_output([bindgen, '--version'], text=True).strip()
-    if version != f'wasm-bindgen {BINDGEN_VERSION}':
-        raise ValueError('Unexpected wasm-bindgen version')
-    rustc = subprocess.check_output(['rustc', '-vV'], cwd=ROOT, text=True).strip()
-    target = Path(os.environ.get('SLINT_WEB_TARGET_DIR', ROOT / 'target/doc-previews')).resolve()
-    environment = {**compiler_environment(), 'CARGO_TARGET_DIR': str(target)}
-    key = digest({'schema': 1, 'scene': task['sceneKey'], 'rustc': rustc, 'bindgen': version,
-                  'driver': digest((DOCS / 'preview/build.rs').read_bytes()),
-                  'manifest': digest((DOCS / 'preview/Cargo.toml').read_bytes())})
-    output = DOCS / '.generated/web'
-    output.mkdir(parents=True, exist_ok=True)
-    slug = task['slug']
-    family = 'fixture-' + task['locale'] + '-' + task['recipe']['theme'] + '-' + str(task['recipe']['textScale'])
-    with tempfile.TemporaryDirectory(prefix='fixture-', dir=output) as folder:
-        temporary = Path(folder)
-        if not restore(DOCS / '.cache/previews', key, temporary, EXTRA_ASSETS):
-            source = DOCS / 'examples' / ('fr' if task['locale'] == 'fr' else '') / (slug + '.slint')
-            text = source.read_text()
-            if task['recipe']['theme'] == 'dark':
-                text = text.replace('KitThemes.light', 'KitThemes.dark')
-            ui_dir = DOCS / '.generated/preview-ui' / family
-            write_changed(ui_dir / (slug + '.slint'), relocated_source(text, source))
-            viewport = task['recipe']['viewport']
-            env = {**environment, 'SLINT_PREVIEW_COMPONENTS': slug, 'SLINT_PREVIEW_SOURCE_DIR': str(ui_dir),
-                   'SLINT_PREVIEW_FIXTURE': '1', 'SLINT_PREVIEW_TEXT_SCALE': str(task['recipe']['textScale']),
-                   'SLINT_PREVIEW_VIEWPORT': f'{viewport[0]}x{viewport[1]}'}
-            subprocess.run(['cargo', 'build', '--manifest-path', 'docs/preview/Cargo.toml', '--locked', '--release',
-                            '--target', 'wasm32-unknown-unknown'], cwd=ROOT, env=env, check=True)
-            subprocess.run([bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name', 'slint_kit_previews',
-                            str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm')], cwd=ROOT, check=True)
-            hashes = archive_sources(temporary, slug)
-            # Fixtures are an internal screenshot tool; record their exact UI too.
-            write_json(temporary / 'component.json', {'key': key, 'slug': slug, 'scene': task['sceneKey'],
-                       'source_sha256': hashes, 'fixtureSource': text,
-                       'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()})
-            write_changed(temporary / 'NOTICE.txt', (DOCS / 'preview/NOTICE.txt').read_bytes())
-            write_changed(temporary / 'THIRD_PARTY_NOTICES.txt', third_party_notices())
-            save(DOCS / '.cache/previews', key, temporary, EXTRA_ASSETS)
-        return publish_assets(temporary, output, slug, family)
+def fixture_code_key(task, rustc, bindgen, environment):
+    files = ('build.rs', 'src/lib.rs', 'Cargo.toml', 'Cargo.lock')
+    host = {name: digest((DOCS / 'preview' / name).read_bytes()) for name in files}
+    flags = compiler_flags(environment)
+    return digest({'schema': 3, 'scene': task['sceneKey'], 'rustc': rustc,
+                   'bindgen': bindgen, 'host': host, 'flags': flags})
+
+
+def compiler_flags(environment):
+    return {name: value for name, value in environment.items()
+            if name in ('RUSTFLAGS', 'CARGO_ENCODED_RUSTFLAGS')
+            or name.startswith(('CARGO_PROFILE_RELEASE_', 'CARGO_TARGET_WASM32_'))}
+
+
+def bundle_key(inputs, rustc, bindgen, environment, packaging_hash=None):
+    # A binary contains every route, so any reachable fixture or host change
+    # invalidates the bundle. Each screenshot still has its own scene identity.
+    hosts = {str(path.relative_to(ROOT)): digest(path.read_bytes())
+             for path in corresponding_sources()
+             if path.suffix in ('.rs', '.slint', '.toml', '.lock')
+             or path.name == 'build-web-previews.py'}
+    if packaging_hash is not None:
+        hosts['docs/scripts/build-web-previews.py'] = packaging_hash
+    return digest({'schema': 1, 'inputs': {name: entry['identity'] for name, entry in inputs['entries'].items()},
+                   'hosts': hosts, 'runtime': runtime_inputs(), 'rustc': rustc,
+                   'bindgen': bindgen, 'flags': compiler_flags(environment)})
+
+
+def compile_bundle(target, environment, bindgen, destination):
+    log_path = DOCS / '.verification/wasm/documentation-bundle.log'
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open('w') as log:
+        result = subprocess.run(['cargo', 'build', '--manifest-path', 'docs/preview/Cargo.toml', '--locked', '--release',
+                                 '--target', 'wasm32-unknown-unknown'], cwd=ROOT, env=environment,
+                                stdout=log, stderr=subprocess.STDOUT)
+    if result.returncode:
+        raise RuntimeError(f'Documentation bundle compilation failed; see {log_path}')
+    subprocess.run([bindgen, '--target', 'web', '--out-dir', str(destination), '--out-name', 'slint_kit_previews',
+                    str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm')], cwd=ROOT, check=True)
+
+
+def restore_packaging_only(cache, key, destination, inputs, rustc, bindgen, environment):
+    """Reuse a proven binary when only this Python packager changed.
+
+    Verify its original key against the current compiler inputs/toolchain/flags,
+    then compare the Cargo+bindgen recipe with the archived source. Rust/Slint
+    edits or different compiler commands cannot enter this path.
+    """
+    source_name = 'docs/scripts/build-web-previews.py'
+    recipe = ast.dump(ast.parse(inspect.getsource(compile_bundle)), include_attributes=False)
+    for record_path in sorted(cache.glob('*/component.json')):
+        try:
+            record = json.loads(record_path.read_text())
+            archived_hash = record['source_sha256'][source_name]
+            original = record['key']
+            if original != bundle_key(inputs, rustc, bindgen, environment, archived_hash):
+                continue
+            if not restore(cache, original, destination, COMPILED_EXTRAS):
+                continue
+            with tarfile.open(destination / 'source.tar.gz', 'r:gz') as archive:
+                archived_source = archive.extractfile('slint-kit/' + source_name).read()
+            if digest(archived_source) != archived_hash:
+                continue
+            tree = ast.parse(archived_source)
+            function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'compile_bundle')
+            old_recipe = ast.dump(ast.Module(body=[function], type_ignores=[]), include_attributes=False)
+            if old_recipe != recipe:
+                continue
+        except (OSError, ValueError, KeyError, TypeError, StopIteration, tarfile.TarError):
+            continue
+        record.update({'key': key, 'reusedCompilation': original, 'source_sha256': archive_sources(destination)})
+        write_json(destination / 'component.json', record)
+        save(cache, key, destination, COMPILED_EXTRAS)
+        print(f'WASM compilation reused after verified packaging-only change: {original}', flush=True)
+        return True
+    return False
 
 
 @exclusive_build
-
 def build():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('slugs', nargs='*', help='Build a subset for development; production validation requires every component')
+    parser.add_argument('slugs', nargs='*', help='Validate requested routes; the shared bundle always contains every component')
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--package-only', action='store_true', help='Refuse any compiler invocation; require a verified compiled cache')
     args = parser.parse_args()
     from starter_sources import prepare
     prepare()
@@ -212,7 +255,7 @@ def build():
     entries = json.loads((DOCS / 'content/starters.json').read_text())
     if not set(args.slugs) <= set(entries):
         parser.error('Unknown preview component')
-    slugs = sorted(args.slugs or entries)
+    slugs = sorted(entries)
     bindgen = os.environ.get('WASM_BINDGEN', 'wasm-bindgen')
     version = subprocess.check_output([bindgen, '--version'], text=True).strip()
     if version != f'wasm-bindgen {BINDGEN_VERSION}':
@@ -223,67 +266,42 @@ def build():
     output = DOCS / '.generated/web'
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / 'manifest.json'
+    key = bundle_key(inputs, rustc, version, environment)
     old = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
-    previews = {slug: {'tailwind': entry['tailwind']} for slug, entry in old.get('entries', {}).items() if 'tailwind' in entry} if old.get('schema') == 2 else {}
     if args.check:
-        for slug in slugs:
-            for family in ThemeFamily:
-                expected = code_key(slug, family.value, inputs, rustc, version, environment)
-                if previews.get(slug, {}).get(family.value, {}).get('key') != expected:
-                    raise SystemExit(f'Stale browser preview: {slug}/{family.value}; rebuild it')
-        print(f'Browser preview keys verified: {len(slugs) * len(ThemeFamily)}')
+        if old.get('bundle', {}).get('key') != key or old.get('components') != slugs:
+            raise SystemExit('Stale browser bundle; rebuild it')
+        print(f'Browser bundle verified: {len(slugs)} interactive examples + {2 * len(slugs)} localized fixtures')
         return
-    cache = DOCS / '.cache/previews'
-    notices = None
-    hits = 0
-    for slug in slugs:
-        previews.setdefault(slug, {})
-        for family in ThemeFamily:
-            key = code_key(slug, family.value, inputs, rustc, version, environment)
-            with tempfile.TemporaryDirectory(prefix='preview-', dir=output) as folder:
-                temporary = Path(folder)
-                restored = restore(cache, key, temporary, COMPILED_EXTRAS)
-                if restored:
-                    hits += 1
-                    print(f'WASM reused {slug}/{family.value}', flush=True)
-                else:
-                    print(f'WASM build {slug}/{family.value}', flush=True)
-                    ui_dir = DOCS / '.generated/preview-ui' / family.value
-                    source = DOCS / 'quickstart' / slug / 'ui/app.slint'
-                    write_changed(ui_dir / f'{slug}.slint', relocated_source(themed_source(source.read_text(), family.value), source))
-                    env = {**environment, 'SLINT_PREVIEW_COMPONENTS': slug, 'SLINT_PREVIEW_SOURCE_DIR': str(ui_dir)}
-                    log_path = DOCS / '.verification/wasm' / f'{slug}-{family.value}.log'
-                    log_path.parent.mkdir(parents=True, exist_ok=True)
-                    with log_path.open('w') as log:
-                        result = subprocess.run(['cargo', 'build', '--manifest-path', 'docs/preview/Cargo.toml', '--locked', '--release',
-                            '--target', 'wasm32-unknown-unknown'], cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
-                    if result.returncode:
-                        raise RuntimeError(f'{slug}/{family.value} compilation failed; see {log_path}')
-                    subprocess.run([bindgen, '--target', 'web', '--out-dir', str(temporary), '--out-name', 'slint_kit_previews',
-                                    str(target / 'wasm32-unknown-unknown/release/slint_kit_doc_previews.wasm')], cwd=ROOT, check=True)
-                    hashes = archive_sources(temporary, slug)
-                    if notices is None:
-                        notices = third_party_notices()
-                    write_changed(temporary / 'NOTICE.txt', (DOCS / 'preview/NOTICE.txt').read_bytes())
-                    write_changed(temporary / 'THIRD_PARTY_NOTICES.txt', notices)
-                    write_json(temporary / 'component.json', {'key': key, 'slug': slug, 'theme': family.value,
-                            'uiIdentity': inputs['entries'][f'starter:{slug}:{family.value}']['identity'], 'source_sha256': hashes,
-                            'revision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()})
-                    save(cache, key, temporary, EXTRA_ASSETS)
-                # Packaging is independent of compilation: corrected notices
-                # are published even when the binary and its original sources
-                # are reused from an earlier source revision.
-                if notices is None:
-                    notices = third_party_notices()
-                write_changed(temporary / 'NOTICE.txt', (DOCS / 'preview/NOTICE.txt').read_bytes())
-                write_changed(temporary / 'THIRD_PARTY_NOTICES.txt', notices)
-                save(cache, key, temporary, COMPILED_EXTRAS)
-                previews[slug][family.value] = publish_assets(temporary, output, slug, family.value)
-                # Checkpoint after each expensive link; interrupted builds resume.
-                write_json(manifest_path, {'schema': 2, 'defaultTheme': 'tailwind', 'bindgen': BINDGEN_VERSION,
-                                          'components': sorted(previews), 'entries': previews})
+    cache = DOCS / '.cache/preview-bundles'
+    with tempfile.TemporaryDirectory(prefix='bundle-', dir=output) as folder:
+        temporary = Path(folder)
+        hit = restore(cache, key, temporary, COMPILED_EXTRAS)
+        if not hit:
+            hit = restore_packaging_only(cache, key, temporary, inputs, rustc, version, environment)
+        if not hit:
+            if args.package_only:
+                raise RuntimeError('No compiled bundle matches the current sources; package-only never builds')
+            print(f'WASM build once: {len(slugs)} interactive examples + {2 * len(slugs)} localized fixtures', flush=True)
+            compile_bundle(target, environment, bindgen, temporary)
+            # Reject a concurrently edited source tree rather than attesting a
+            # binary under a hash computed before its sources changed.
+            if bundle_key(build_inputs(), rustc, version, environment) != key:
+                raise RuntimeError('Documentation sources changed during compilation; rebuild the bundle')
+            hashes = archive_sources(temporary)
+            write_json(temporary / 'component.json', {'key': key, 'components': slugs,
+                       'source_sha256': hashes, 'revision': subprocess.check_output(
+                           ['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()})
+            save(cache, key, temporary, COMPILED_EXTRAS)
+        write_changed(temporary / 'NOTICE.txt', (DOCS / 'preview/NOTICE.txt').read_bytes())
+        write_changed(temporary / 'THIRD_PARTY_NOTICES.txt', third_party_notices())
+        bundle = publish_assets(temporary, output, 'bundle', 'shared')
+        previews = {slug: {'tailwind': {**bundle, 'key': code_key(slug, 'tailwind', inputs, rustc, version, environment)}}
+                    for slug in slugs}
+        write_json(manifest_path, {'schema': 2, 'defaultTheme': 'tailwind', 'bindgen': BINDGEN_VERSION,
+                                  'components': slugs, 'entries': previews, 'bundle': bundle})
     prune_generated(output, previews)
-    print(f'Browser previews: {hits} reused, {len(slugs) * len(ThemeFamily) - hits} built', flush=True)
+    print(f'Browser bundle: {"reused" if hit else "built once"}; {3 * len(slugs)} runtime routes', flush=True)
 
 
 if __name__ == '__main__':

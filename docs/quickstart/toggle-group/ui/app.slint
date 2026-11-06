@@ -1,39 +1,21 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitToggleGroup, OptionRow, ChoiceRow, ChipRow, SelectState, NavigationStep, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, KitToggleGroup, OptionRow, SelectionRef } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
-    title: "KitToggleGroup example";
-    preferred-width: 520px;
-    preferred-height: 400px;
-    max-width: 100000px;
-    max-height: 100000px;
+    title: "Delivery channels"; preferred-width: 560px; preferred-height: 440px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <[ChoiceRow]> choices;
-    in property <[ChipRow]> chips;
-    in property <SelectState> select-state;
-    in property <string> result;
-    callback toggle(int, int);
-    callback navigate(NavigationStep);
-    callback open();
-    callback close();
-    callback remove(int);
+    in property <[OptionRow]> options;
+    in-out property <[SelectionRef]> selected;
+    callback membership-changed(OptionRow, bool);
     VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        control := KitToggleGroup {
-            theme: root.theme; rows: root.choices; generation: 1; active-token: root.select-state.active.token; label: "Delivery channels";
-            navigate(step) => { root.navigate(step); }
-            toggled(token, generation) => { root.toggle(token, generation); }
-        }
-        result := Text { text: root.result; color: root.theme.text-primary; }
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Keep in the loop"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Choose your notification channels. Email is selected initially; SMS is unavailable."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitToggleGroup { theme: root.theme; options: root.options; selected <=> root.selected; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        Text { text: "Selected channels: " + root.selected.length; color: root.theme.text-secondary; }
     }
-
 }

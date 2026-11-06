@@ -16,7 +16,7 @@ from doc_inputs import ROOT, DOCS, compiler_environment, source_hashes, write_ch
 
 OUTPUT = DOCS / '.generated/workspace-preview'
 MANIFEST = DOCS / 'workspace-preview/Cargo.toml'
-TARGET = DOCS / 'workspace-preview/target'
+TARGET = Path(os.environ.get('SLINT_WEB_TARGET_DIR', os.environ.get('CARGO_TARGET_DIR', DOCS / 'workspace-preview/target'))).resolve()
 ASSETS = ('workspace.js', 'workspace_bg.wasm')
 DOWNLOADS = ('source.tar.gz', 'LICENSE', 'NOTICE.txt', 'THIRD_PARTY_NOTICES.txt')
 

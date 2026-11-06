@@ -13,15 +13,15 @@ eleventyComputed:
 {% if locale == 'fr' %}
 # Application avec contrôleurs typés
 
-Une application Rust complète avec un champ natif validé et une sélection par clé stable. Tous les signaux de ces deux contrôles sont raccordés à leurs contrôleurs.
+Une application Rust complète avec un champ natif validé et une sélection par clé stable. Le champ illustre une validation métier personnalisée ; la sélection conserve son interaction dans le composant.
 
-Créez une application avec les paquets publiés sur crates.io. Les quatre fichiers complets ci-dessous s’utilisent dans un projet neuf, sans copier le dépôt du kit :
+Cet exemple cible Slint Kit **{{ project.version }}**. Suivez [Configurer le projet](/fr/guides/project-setup/) pour installer les dépendances correspondantes ou utiliser un checkout local avant de compiler les quatre fichiers ci-dessous.
 {% else %}
 # Typed controller application
 
-A complete Rust application with a validated native field and a selection identified by stable keys. Every signal on these two controls is connected to its controller.
+A complete Rust application with a validated native field and a selection identified by stable keys. The field demonstrates custom business validation; the selection keeps its interaction inside the component.
 
-Create an application using the packages published on crates.io. The four complete files below work in a fresh project without copying the kit repository:
+This example targets Slint Kit **{{ project.version }}**. Follow [Project setup](/guides/project-setup/) to install matching dependencies or use a local checkout before compiling the four files below.
 {% endif %}
 
 ```sh
@@ -61,7 +61,7 @@ Replace the manifest created by Cargo. [Download Cargo.toml](/consumer/Cargo.tom
 3. Ouvrez Espace de travail, utilisez les flèches puis Entrée, ou cliquez sur un choix. La ligne Archives désactivée est ignorée.
 4. Fermez la liste avec Échap ; Tab revient au champ. Le nom choisi provient de `WorkspaceKey`, jamais d’un index de ligne.
 
-L’exemple choisit `Ownership::Local`. Pour une persistance contrôlée, passez à `Ownership::Controlled` et accusez réception après la décision métier avec `acknowledge` pour le champ et `set_selected` pour la sélection. Gardez les callbacks de publication faibles et libérez tout emprunt d’état avant une mise à jour de fenêtre.
+Le champ choisit `Ownership::Local` et la sélection `Ownership.local`. Pour une persistance contrôlée, utilisez `Ownership::Controlled` pour le champ et `selection-ownership: Ownership.controlled` dans la composition. Accusez réception après la décision métier avec `acknowledge` pour le champ et `set_workspace_selected(choices.selection(&key).unwrap())` pour la sélection. Gardez les callbacks de publication faibles et libérez tout emprunt d’état avant une mise à jour de fenêtre.
 
 Les surfaces modales demandent aussi une pile de superpositions et un registre de focus. L’[exemple complet de navigation](https://github.com/damione1/slint-kit/blob/main/showcase/src/base_navigation.rs) et sa [composition Slint](https://github.com/damione1/slint-kit/blob/main/showcase/ui/base-navigation.slint) montrent le tiroir modal avec restauration de l’ouvreur exact, trap de focus et cibles réelles enregistrées.
 
@@ -76,7 +76,7 @@ Les surfaces modales demandent aussi une pile de superpositions et un registre d
 3. Open Workspace, use arrow keys then Enter, or click an option. The disabled Archive row is skipped.
 4. Close the list with Escape; Tab returns to the field. The accepted choice comes from `WorkspaceKey`, never a row index.
 
-The example chooses `Ownership::Local`. For controlled persistence, use `Ownership::Controlled` and acknowledge the business decision with `acknowledge` for the field and `set_selected` for the selection. Keep publisher callbacks weak and release any state borrow before updating a window.
+The field chooses `Ownership::Local` and the selection `Ownership.local`. For controlled persistence, use `Ownership::Controlled` for the field and `selection-ownership: Ownership.controlled` in the composition. Acknowledge the business decision with `acknowledge` for the field and `set_workspace_selected(choices.selection(&key).unwrap())` for the selection. Keep publisher callbacks weak and release any state borrow before updating a window.
 
 Modal surfaces also need an overlay stack and a focus registry. The [complete navigation example](https://github.com/damione1/slint-kit/blob/main/showcase/src/base_navigation.rs) and its [Slint composition](https://github.com/damione1/slint-kit/blob/main/showcase/ui/base-navigation.slint) demonstrate a modal drawer with exact opener restoration, focus trapping and registered real targets.
 
@@ -91,7 +91,7 @@ Modal surfaces also need an overlay stack and a focus registry. The [complete na
 
 ## {% if locale == 'fr' %}Contrôleurs Rust{% else %}Rust controllers{% endif %}
 
-{% if locale == 'fr' %}Le parseur construit `ProjectName` ; le validateur compte les graphèmes. Le signal d’édition alimente le brouillon sans remplacer l’éditeur natif. `bind_select!` projette les options avec leur génération et raccorde tous les signaux de sélection. [Télécharger src/main.rs](/consumer/src/main.rs).{% else %}The parser constructs `ProjectName`; the validator counts graphemes. The edit signal updates the draft while preserving the native editor. `bind_select!` projects options with their generation and wires every selection signal. [Download src/main.rs](/consumer/src/main.rs).{% endif %}
+{% if locale == 'fr' %}Le parseur construit `ProjectName` ; le validateur compte les graphèmes. Le signal d’édition alimente le brouillon sans remplacer l’éditeur natif. `Choices` fournit les options stables et résout la clé métier reçue par `chosen` ; `install` initialise les services partagés une fois par fenêtre. [Télécharger src/main.rs](/consumer/src/main.rs).{% else %}The parser constructs `ProjectName`; the validator counts graphemes. The edit signal updates the draft while preserving the native editor. `Choices` supplies stable options and resolves the business key received through `chosen`; `install` initializes shared services once per window. [Download src/main.rs](/consumer/src/main.rs).{% endif %}
 
 ```rust
 {{ 'src/main.rs' | consumerSource | safe }}
@@ -100,11 +100,11 @@ Modal surfaces also need an overlay stack and a focus registry. The [complete na
 {% if locale == 'fr' %}
 ## Exécuter l’application
 
-Enregistrez les quatre fichiers aux emplacements indiqués dans le projet créé au début de ce guide. Cargo installe `slint-kit` et `slint-kit-build` depuis crates.io ; aucun chemin local vers le kit n’est nécessaire. Lancez la version française :
+Enregistrez les quatre fichiers aux emplacements indiqués dans le projet créé au début de ce guide. Configurez les chemins locaux de `slint-kit` et `slint-kit-build` selon [Project setup](/fr/guides/project-setup/), puis lancez la version française :
 {% else %}
 ## Run the application
 
-Save the four files at the shown paths in the project created at the start of this guide. Cargo installs `slint-kit` and `slint-kit-build` from crates.io; no local path to the kit is needed. Run the English version:
+Save the four files at the shown paths in the project created at the start of this guide. Configure the local `slint-kit` and `slint-kit-build` paths from [Project setup](/guides/project-setup/), then run the English version:
 {% endif %}
 
 ```sh

@@ -8,9 +8,9 @@ permalink: "{{ 'guides/editor/' | localeUrl(locale) }}index.html"
 
 # Resolve `@kit` imports in your editor
 
-`slint-kit-build` registers `@kit` for Cargo compilation. The Slint language server does not read your `build.rs`, so configure its library paths separately to enable diagnostics, completion and navigation for imports such as `@kit/kit.slint`.
+`slint-kit-build` registers `@kit` for Cargo compilation. The Slint language server does not read your `build.rs`, so configure its library paths separately to enable diagnostics, completion and navigation for imports such as `@kit`.
 
-Use the Slint extension for your editor and a language server matching the application's Slint version (currently **1.18.1**).
+Use the Slint extension for your editor and a language server matching the application's Slint version (currently **{{ project.slint }}**).
 
 ## Applications using crates.io
 
@@ -33,12 +33,12 @@ Merge this setting into `.vscode/settings.json` at the workspace root:
 ```json
 {
   "slint.libraryPaths": {
-    "kit": "target/slint-editor/vendor/slint-kit-slint/ui"
+    "kit": "target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
   }
 }
 ```
 
-The key is `kit`, without `@`; the value points to the directory containing `kit.slint`. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.18.1/editors/vscode/package.json).
+The key is `kit`, without `@`; the value points to the `kit.slint` file itself, because the import is `@kit` without a filename. The Slint extension resolves relative library paths against the workspace root. Preserve any other library aliases already in this map. See the [Slint extension's library path setting](https://github.com/slint-ui/slint/blob/v1.18.1/editors/vscode/package.json).
 
 ## Zed
 
@@ -51,7 +51,7 @@ Merge these language-server arguments into `.zed/settings.json` at the workspace
       "binary": {
         "arguments": [
           "-L",
-          "kit=target/slint-editor/vendor/slint-kit-slint/ui"
+          "kit=target/slint-editor/vendor/slint-kit-slint/ui/kit.slint"
         ]
       }
     }
@@ -63,12 +63,18 @@ Keep existing server arguments and add this `-L` pair. Zed starts the server in 
 
 ## Check and refresh
 
-Restart the Slint language server (or reload the editor), then open a `.slint` file that imports `KitButton` from `@kit/kit.slint`. The import should resolve, and Go to Definition should open the vendored component. Keep compiling with `slint_kit_build::compile` in `build.rs`; editor settings do not configure Cargo compilation.
+Restart the Slint language server (or reload the editor), then open a `.slint` file that imports `KitButton` from `@kit`. The import should resolve, and Go to Definition should open the vendored component. Keep compiling with `slint_kit_build::compile` in `build.rs`; editor settings do not configure Cargo compilation.
 
 Rerun the vendoring command after updating `Cargo.lock` or running `cargo clean`, which removes `target/`. Do not edit the vendored files: refresh them from the resolved dependency instead. You can commit the relative editor settings; `target/` remains generated and ignored by Git.
 
 ## Applications using a local checkout
 
-Cargo does not vendor local path dependencies. If your application uses `slint-kit` and `slint-kit-build` from a sibling `../slint-kit` checkout, use `../slint-kit/crates/kit-slint/ui` as the VS Code library path, or `kit=../slint-kit/crates/kit-slint/ui` in Zed's `-L` argument. Adjust that relative path to your workspace layout. When opening the Slint Kit repository itself, use `crates/kit-slint/ui`.
+Cargo does not vendor local path dependencies. If your application uses `slint-kit` and `slint-kit-build` from a sibling `../slint-kit` checkout, use `../slint-kit/crates/kit-slint/ui/kit.slint` as the VS Code library path, or `kit=../slint-kit/crates/kit-slint/ui/kit.slint` in Zed's `-L` argument. Adjust that relative path to your workspace layout. When opening the Slint Kit repository itself, use `crates/kit-slint/ui/kit.slint`.
 
-If the editor still reports “Cannot find requested import”, check that the configured directory contains `kit.slint`, the opened workspace matches the path's root, and the selected library version matches your Cargo dependency. An include path alone does not register the `@kit` library alias. See [Slint component libraries](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
+If the editor still reports “Cannot find requested import”, check that the configured file is `kit.slint` and exists, the opened workspace matches the path's root, and the selected library version matches your Cargo dependency. An include path alone does not register the `@kit` library alias. See [Slint component libraries](https://docs.slint.dev/latest/docs/slint/guide/language/coding/file/#component-libraries).
+
+## Supplemental imports in Slint 1.18.1
+
+The language server resolves a bare alias as a file and joins a suffixed import onto the configured path. A single alias cannot therefore resolve both `@kit` and `@kit/fonts/inter.slint` or `@kit/icons/lucide/all.slint`. Mapping `kit` to the `ui` directory supports those supplemental imports, but makes bare `@kit` unresolved. The file mapping above prioritizes the component API.
+
+Keep the documented supplemental imports in your application: Cargo compilation through `slint-kit-build` resolves them correctly using its module metadata and directory alias. With the editor file mapping, Slint 1.18.1 can still report unresolved supplemental imports. This is a language-server limitation, not a failure of the Cargo configuration; do not replace the application's root imports with the old `@kit/kit.slint` path.

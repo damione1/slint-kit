@@ -1,47 +1,21 @@
-import { KitMetrics, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMultiSelect, OptionRow, ChoiceRow, ChipRow, SelectState, NavigationStep, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+import { KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component Example inherits Window {
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
-    title: "KitMultiSelect example";
-    preferred-width: 520px;
-    preferred-height: 540px;
-    max-width: 100000px;
-    max-height: 100000px;
+    title: "Canaux de notification"; preferred-width: 560px; preferred-height: 440px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemes.light;
-    in property <[OptionRow]> rows: [{ token: 11, generation: 1, label: "SMS", description: "", disabled: false }, { token: 25, generation: 1, label: "Bureau", description: "", disabled: false }, { token: 39, generation: 1, label: "Boîte de réception", description: "", disabled: false }, { token: 53, generation: 1, label: "Résumé hebdomadaire", description: "", disabled: false }, { token: 67, generation: 1, label: "Webhook", description: "", disabled: false }, { token: 81, generation: 1, label: "Calendrier", description: "", disabled: false }];
-    in property <[ChoiceRow]> choices;
-    in property <[ChipRow]> chips: [{ token: 211, label: "Email", removable: true }, { token: 223, label: "Push", removable: true }];
-    in property <SelectState> select-state: { open: false, generation: 1, active-index: 0, active: { present: true, token: 11 }, selected: { present: false, token: 11 }, selection-availability: SelectionAvailability.available };
-    in property <string> result: "2 channels selected: Email, Push";
-    callback toggle(int, int);
-    callback navigate(NavigationStep);
-    callback open();
-    callback close();
-    callback remove(int);
-    callback query(string);
-    callback typeahead(string);
+    in property <[OptionRow]> options: [{token: 1, generation: 1, label: "Email"}, {token: 2, generation: 1, label: "Push"}, {token: 3, generation: 1, label: "SMS"}, {token: 4, generation: 1, label: "Bureau"}, {token: 5, generation: 1, label: "Boîte de réception"}, {token: 6, generation: 1, label: "Résumé hebdomadaire"}, {token: 7, generation: 1, label: "Webhook"}, {token: 8, generation: 1, label: "Calendrier"}];
+    in-out property <[SelectionRef]> selected: [{present: true, token: 1}, {present: true, token: 2}];
+    callback membership-changed(OptionRow, bool);
     VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        Text { text: "Gardez le contact"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        Text { text: "Choisissez vos canaux de notification. Ils apparaissent au-dessus. Retirez une pastille pour retrouver le canal dans la liste."; color: root.theme.text-secondary; wrap: word-wrap; }
-        control := KitMultiSelect {
-            theme: root.theme; rows: root.rows; chips: root.chips; state: root.select-state; placeholder: "Ajouter un canal";
-            open-requested => { root.open(); }
-            navigate(step) => { root.navigate(step); }
-            activate(token, generation) => { root.toggle(token, generation); }
-            dismiss(reason) => { root.close(); }
-            tab-navigation(reverse) => { return reject; }
-            query-edited(text) => { root.query(text); }
-            typeahead(text) => { root.typeahead(text); }
-            remove-requested(token) => { root.remove(token); }
-        }
-        result := Text { text: root.result; color: root.theme.text-secondary; wrap: word-wrap; }
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Restez au courant"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
+        Text { text: "Choisissez vos canaux de notification. Chaque sélection conserve son identité lorsque la liste visible change."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitMultiSelect { theme: root.theme; options: root.options; selected <=> root.selected; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        Text { text: root.selected.length + " canaux sélectionnés"; color: root.theme.text-secondary; }
     }
-
 }

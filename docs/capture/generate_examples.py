@@ -88,6 +88,9 @@ for name in ['KitRadioGroup','KitSegmentedControl','KitToggleGroup']:
     cb='toggled' if name=='KitToggleGroup' else 'activate'
     add(name, name+' { theme: root.theme; rows: '+choice+'; generation: 1; active-token: 11; '+cb+'(token, generation) => { root.status = "Choice token " + token; } }', 320 if name=='KitRadioGroup' else 240)
 add('KitChip', 'KitChip { theme: root.theme; chip: '+chip+'; remove-requested(token) => { root.status = "Remove token " + token; } }')
+add('KitChipButton', 'KitChipButton { theme: root.theme; label: "Awaiting shipment"; glyph: KitGlyphs.check(); tone: Tone.information; selected: true; activated => { root.status = "Filter requested"; } }')
+add('KitKeypad', 'KitKeypad { theme: root.theme; label: "Locker code"; confirm-label: "Open locker"; can-confirm: true; digit(value) => { root.status = "Digit requested"; } delete-requested => { root.status = "Delete requested"; } confirm => { root.status = "Confirm requested"; } }', 420)
+add('KitCodeIndicator', 'KitCodeIndicator { theme: root.theme; length: 4; filled: 2; label: "2 of 4 digits entered"; }')
 add('KitMultiSelect', 'KitMultiSelect { theme: root.theme; rows: '+rows+'; chips: ['+chip+']; state: '+state+'; }', 300)
 add('KitTagInput', 'KitTagInput { theme: root.theme; label: "Project tags"; chips: ['+chip+', { token: 23, label: "Research", removable: true }]; text: ""; create-requested(value) => { root.status = "Create tag: " + value; } }', 280)
 add('KitCombobox', 'KitCombobox { theme: root.theme; label: "Search projects"; rows: '+rows+'; state: '+state+'; selected-label: "Overview"; query: ""; query-edited(value) => { root.status = "Search: " + value; } }')

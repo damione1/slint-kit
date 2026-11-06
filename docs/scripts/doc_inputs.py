@@ -78,6 +78,27 @@ def runtime_inputs():
     return {'external': external, 'rust': source_hashes(rust), 'manifests': manifests}
 
 
+def archived_runtime_inputs(sources):
+    lock = tomllib.loads(sources['Cargo.lock'].decode())
+    return {'external': [package for package in lock['package'] if package.get('source')],
+            'rust': {name: digest(content) for name, content in sources.items()
+                     if name.startswith('crates/') and name.endswith('.rs')},
+            'manifests': {name: tomllib.loads(content.decode()) for name, content in sources.items()
+                          if name.startswith('crates/') and name.endswith('/Cargo.toml')}}
+
+
+def rendering_runtime(value):
+    # Build-helper changes are checked through the generated Slint identities.
+    # Runtime implementations, features and external dependencies stay exact.
+    result = json.loads(json.dumps(value))
+    result['rust'] = {name: checksum for name, checksum in result['rust'].items()
+                      if not name.startswith('crates/kit-build/')}
+    result['manifests'].pop('crates/kit-build/Cargo.toml', None)
+    for manifest in result['manifests'].values():
+        manifest['package'].pop('version', None)
+    return result
+
+
 def consumer_identity(slug):
     folder = DOCS / '.generated/consumers' / slug
     manifest = tomllib.loads((folder / 'Cargo.toml').read_text())

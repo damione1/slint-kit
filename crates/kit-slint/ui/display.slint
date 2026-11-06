@@ -5,7 +5,7 @@ import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
 
-export enum Tone { neutral, accent, success, warning, danger }
+export enum Tone { neutral, accent, success, warning, danger, information }
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
@@ -29,9 +29,9 @@ export component KitBadge inherits Rectangle {
     min-height: self.preferred-height; max-height: self.preferred-height;
     vertical-stretch: 0; horizontal-stretch: 0;
     border-radius: root.theme.shape.radius-control;
-    background: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.theme.surface;
+    background: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.theme.surface;
     border-width: root.theme.shape.border-width;
-    border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.accent ? root.theme.accent : root.theme.border-subtle;
+    border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.information ? root.theme.information : root.theme.border-subtle;
     accessible-role: AccessibleRole.text; accessible-label: root.text;
     if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
     label := Text { x: root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;

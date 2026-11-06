@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { CalendarNavigation, WeekStart } from "shared-contracts.slint";
+export struct CivilDateView { year: int, month: int, day: int }
+export struct CalendarDay {
+    year: int, month: int, day: int, label: string, accessible-label: string,
+    enabled: bool, selected: bool, in-range: bool, today: bool,
+}
+export struct DateRangeView { start: CivilDateView, end: CivilDateView }
+export enum DateRangePhase { choosing-start, choosing-end, complete }
+export struct DateRangeDraft { phase: DateRangePhase, start: CivilDateView, end: CivilDateView }
+export struct DateRangeUpdate { draft: DateRangeDraft, rejected: bool }
+export struct CalendarView {
+    selected: CivilDateView, focused: CivilDateView, today: CivilDateView,
+    min: string, max: string, week-start: WeekStart,
+    unavailable-weekdays: [WeekStart], unavailable-ranges: [DateRangeView],
+}
+export struct CalendarProjection {
+    days: [CalendarDay], active-index: int, title: string,
+    previous-enabled: bool, next-enabled: bool,
+}
+export global KitCalendarService {
+    in-out property <bool> ready;
+    pure callback range-choose(CalendarView, DateRangeDraft, CivilDateView, string, string) -> DateRangeUpdate;
+    pure callback range-project(CalendarView, DateRangeDraft, [string]) -> CalendarProjection;
+    pure callback range-valid(CalendarView, DateRangeView, string, string) -> bool;
+    pure callback parse-date(string) -> CivilDateView;
+    pure callback format-date(CivilDateView) -> string;
+    pure callback project(CalendarView, [string]) -> CalendarProjection;
+    pure callback navigate(CalendarView, CalendarNavigation) -> CivilDateView;
+    pure callback allowed(CalendarView, CivilDateView) -> bool;
+}

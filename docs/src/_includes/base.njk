@@ -2,8 +2,16 @@
 <html lang="{{ locale }}">
 <head>
   <meta charset="utf-8">
+  {% include "analytics-tag.njk" %}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
+  <script>
+    (() => {
+      let theme = new URLSearchParams(location.search).get('theme');
+      if (theme !== 'light' && theme !== 'dark') { try { theme = localStorage.getItem('slint-kit-theme'); } catch {} }
+      document.documentElement.dataset.theme = theme === 'light' || theme === 'dark' ? theme : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    })();
+  </script>
   <title>{{ seo.title }}</title>
   <meta name="description" content="{{ seo.description }}">
   <meta property="og:type" content="website">
@@ -34,6 +42,7 @@
 </head>
 <body>
 <a class="skip" href="#main">{{ ui[locale].skip }}</a>
+<p class="development-notice">{% if locale == 'fr' %}Projet en développement actif · Des changements cassants sont encore à prévoir.{% else %}Actively developed · Breaking changes are still expected.{% endif %}</p>
 <header class="topbar">
   <a class="brand" href="{{ '' | localeUrl(locale) }}" aria-label="Slint Kit — {{ ui[locale].home }}">
     <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
@@ -44,6 +53,7 @@
     <span>{% if locale == 'fr' %}Rechercher dans la doc{% else %}Search documentation{% endif %}</span><kbd aria-hidden="true">⌘ / Ctrl K</kbd>
   </button>
   <nav class="toplinks" aria-label="{% if locale == 'fr' %}Navigation principale{% else %}Main navigation{% endif %}">
+    <label class="site-theme-choice"><span class="sr-only">{% if locale == 'fr' %}Thème de la documentation{% else %}Documentation theme{% endif %}</span><select class="site-theme" disabled><option value="light">{% if locale == 'fr' %}☀ Jour{% else %}☀ Light{% endif %}</option><option value="dark">{% if locale == 'fr' %}☾ Nuit{% else %}☾ Dark{% endif %}</option></select></label>
     <a href="{{ 'components/' | localeUrl(locale) }}"{% if translationKey == 'components/' %} aria-current="page"{% endif %}>{{ ui[locale].components }}</a>
     <a href="{{ site.repository }}">GitHub<span class="sr-only"> ({{ ui[locale].source }})</span></a>
     {% if locale == 'fr' %}<a class="language" href="{{ translationKey | localeUrl('en') }}" lang="en" hreflang="en" aria-label="This page in English">EN</a>{% else %}<a class="language" href="{{ translationKey | localeUrl('fr') }}" lang="fr" hreflang="fr" aria-label="Cette page en français">FR</a>{% endif %}

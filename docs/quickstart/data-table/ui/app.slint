@@ -1,10 +1,7 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDataTable, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit/kit.slint";
-export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep }
+import { KitDataTable, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit";
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
@@ -14,11 +11,11 @@ export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in property <[TableRow]> rows;
-    in property <[TableColumn]> columns;
+    in property <DataSortDirection> name-sort: DataSortDirection.unsorted;
     in property <int> generation;
     in property <int> active-index: -1;
     in property <string> selected-label: "No selection";
-    callback sort(int);
+    callback sort();
     callback choose(int, int);
     callback move(NavigationStep);
     VerticalLayout {
@@ -26,9 +23,9 @@ export component App inherits Window {
         Text { text: "The people behind the work"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
         Text { text: "8 teammates · sort by name or select a row to see its accepted identity."; color: root.theme.text-secondary; wrap: word-wrap; }
         table := KitDataTable { theme: root.theme;
-            height: 350px; rows: root.rows; columns: root.columns;
+            height: 350px; rows: root.rows; columns: [{token: 1, label: "Name", sortable: true, sort: root.name-sort, alignment: DataAlignment.leading}, {token: 2, label: "Team", sortable: false, alignment: DataAlignment.leading}, {token: 3, label: "Status", sortable: false, alignment: DataAlignment.leading}];
             generation: root.generation; active-index: root.active-index;
-            sort-requested(token) => { root.sort(token); }
+            sort-requested(token) => { root.sort(); }
             activate(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }
         }

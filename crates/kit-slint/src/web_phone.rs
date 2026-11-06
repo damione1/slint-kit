@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![forbid(unsafe_code)]
 //! Browser paste events bypass TextInput key callbacks in Slint 1.18.1.
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 

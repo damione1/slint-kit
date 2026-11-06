@@ -1,9 +1,9 @@
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
+export { HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitTextField, KitSelect, KitThemes, FieldAccess, ValidationPresentation, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "@kit/kit.slint";
+import { KitButton, KitTextField, KitSelect, KitThemes, FieldAccess, ValidationPresentation, OptionRow, SelectState, SelectionRef, Ownership } from "@kit";
 
 export enum ExampleLanguage { english, french }
-export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, FieldAccess, ValidationPresentation }
+export { OptionRow, SelectState, SelectionRef, Ownership, FieldAccess, ValidationPresentation }
 export component App inherits Window {
     in property <ExampleLanguage> language: ExampleLanguage.english;
     private property <bool> french: root.language == ExampleLanguage.french;
@@ -13,20 +13,17 @@ export component App inherits Window {
     max-width: 100000px;
     max-height: 100000px;
     background: KitThemes.light.canvas;
-    in property <[OptionRow]> rows;
-    in property <SelectState> select-state;
+    in property <[OptionRow]> options;
+    in property <Ownership> selection-ownership: Ownership.local;
+    in-out property <SelectionRef> workspace-selected;
+    out property <SelectState> select-state: workspace.state;
     in property <string> selected-label;
     in property <string> draft;
     in property <string> error;
     in property <string> accepted-label;
     in property <FieldAccess> field-access;
     in property <ValidationPresentation> validation;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
+    callback workspace-chosen(OptionRow);
     callback name-edited(string);
     callback name-commit();
     callback name-blur();
@@ -49,16 +46,12 @@ export component App inherits Window {
             focus-observed(focused) => { if (!focused) { root.name-blur(); } }
         }
         Text { text: root.french ? "Espace de travail" : "Workspace"; color: KitThemes.light.text-primary; font-size: 14px; }
-        KitSelect {
-            rows: root.rows;
-            state: root.select-state;
+        workspace := KitSelect {
+            options: root.options;
+            ownership: root.selection-ownership;
+            selected <=> root.workspace-selected;
             placeholder: root.selected-label;
-            open-requested => { root.select-open(); }
-            navigate(step) => { root.select-navigate(step); }
-            activate(token, generation) => { root.select-activate(token, generation); }
-            dismiss(reason) => { root.select-dismiss(reason); }
-            query-edited(query) => { root.select-query(query); }
-            typeahead(text) => { root.select-typeahead(text); }
+            chosen(row) => { root.workspace-chosen(row); }
             tab-navigation(reverse) => { root.focus-name(); return accept; }
         }
         KitButton { text: root.french ? "Accepter le nom" : "Accept name"; activated => { root.name-commit(); } }

@@ -1,40 +1,27 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCard, KitBadge, Tone, KitBreadcrumbs, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit/kit.slint";
+
+import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, SelectionRef, KitBreadcrumbs } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitBreadcrumbs example";
-    preferred-width: 520px;
-    preferred-height: 310px;
-    max-width: 100000px;
-    max-height: 100000px;
+    preferred-width: 560px; preferred-height: 360px;
+    max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <SelectState> select-state;
-    in property <string> selected-label: "Overview";
-    in-out property <string> query;
-    callback select-open();
-    callback select-navigate(NavigationStep);
-    callback select-activate(int, int);
-    callback select-dismiss(CloseReason);
-    callback select-query(string);
-    callback select-typeahead(string);
-    VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        control := KitBreadcrumbs { theme: root.theme; rows: root.rows; activate(token, generation) => { root.select-activate(token, generation); } }
-        KitCard { theme: root.theme;
-            KitBadge { theme: root.theme; text: "PROJECT WORKSPACE"; tone: Tone.accent; }
-            Text { text: "Everything has its place"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-            Text { text: "Follow the trail to revisit a parent section without losing your bearings."; color: root.theme.text-secondary; wrap: word-wrap; }
-        }
-        result := Text { text: "Selected: " + root.selected-label; color: root.theme.text-secondary; }
-    }
+    in property <[OptionRow]> options;
+    in-out property <SelectionRef> selected;
+    callback destination-chosen(OptionRow);
 
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        control := KitBreadcrumbs {
+            theme: root.theme;
+            options: root.options; selected <=> root.selected;
+            chosen(row) => { root.destination-chosen(row); }
+        }
+        Text { text: "Selected: " + control.selected-label; color: root.theme.text-primary; }
+
+    }
 }

@@ -9,7 +9,7 @@
 <p>A composable Rust and Slint toolkit with typed behavior, native text editing,<br>and a Tailwind-inspired presentation you can shape around your application.</p>
 
 <p>
-  <a href="https://github.com/damione1/slint-kit/actions/workflows/check.yml"><img alt="Check" src="https://github.com/damione1/slint-kit/actions/workflows/check.yml/badge.svg"></a>
+  <a href="https://github.com/damione1/slint-kit/actions/workflows/check.yml"><img alt="Kit checks on main" src="https://github.com/damione1/slint-kit/actions/workflows/check.yml/badge.svg?branch=main"></a>
   <a href="https://crates.io/crates/slint-kit"><img alt="crates.io version" src="https://img.shields.io/crates/v/slint-kit.svg"></a>
   <a href="LICENSE"><img alt="License: GPL v3 or later" src="https://img.shields.io/badge/License-GPLv3%2B-blue.svg"></a>
   <img alt="Rust 1.92 or later" src="https://img.shields.io/badge/Rust-1.92%2B-B7410E?logo=rust&amp;logoColor=white">
@@ -29,14 +29,14 @@ Install the toolkit from [crates.io](https://crates.io/crates/slint-kit) with Ru
 
 ```toml
 [dependencies]
-slint-kit = "0.5"
+slint-kit = "0.7"
 slint = "=1.18.1"
 
 [build-dependencies]
-slint-kit-build = "0.5"
+slint-kit-build = "0.7"
 ```
 
-Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit/kit.slint`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
+Compile your Slint UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`. Import components from `@kit`. See the [installation guide](https://slint-kit.dev/guides/getting-started/) or [consumption skill](.agents/skills/slint-kit/SKILL.md) for a complete application.
 
 For `@kit` completion and diagnostics in VS Code or Zed, configure the language server separately with the project-relative paths in [Editor setup](https://slint-kit.dev/guides/editor/).
 
@@ -56,7 +56,9 @@ cargo run --release --locked -p kit-showcase
 
 ## Contribute
 
-Pull requests follow the design and type rules in [AGENTS.md](AGENTS.md) and update the English and French documentation with the change. Run `cargo run -p xtask --locked -- check` before submitting.
+Slint Kit is still young and changing quickly. The priority is to reach a stable foundation as soon as possible, so we aren't accepting external contributions or pull requests for now. Coordinating and reviewing them at this stage would slow that work.
+
+Thank you for wanting to contribute. [Issues](https://github.com/damione1/slint-kit/issues) and [discussions](https://github.com/damione1/slint-kit/discussions) are welcome for bug reports, questions and feedback. We'll reopen contributions once the kit reaches the level of stability we're aiming for.
 
 ## License
 

@@ -73,11 +73,11 @@ pub fn schedule(app: &App) {
         key(&app, Key::Return);
         assert_eq!(app.get_accepted_label(), valid_draft);
         // Open through the actual trigger pointer route, navigate through its
-        // keyboard handler, then commit a stable WorkspaceKey through bind_select!.
+        // keyboard handler, then resolve a stable WorkspaceKey through Choices.
         click(&app, 100., 205.);
         assert!(
             app.get_select_state().open,
-            "trigger opens controlled presentation"
+            "trigger opens the autonomous selection"
         );
         key(&app, Key::DownArrow);
         key(&app, Key::Return);

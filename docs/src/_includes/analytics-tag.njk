@@ -1,0 +1,24 @@
+<!-- Google tag (gtag.js) -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  if (location.hostname === 'slint-kit.dev') {
+    const tag = document.createElement('script');
+    tag.async = true;
+    tag.src = 'https://www.googletagmanager.com/gtag/js?id=G-1YYWKMNEWP';
+    document.head.append(tag);
+    gtag('js', new Date());
+    let debug = false;
+    try { debug = sessionStorage.getItem('slint-kit-analytics-debug') === '1'; } catch {}
+    const path = location.pathname.replace(/^\/fr(?=\/)/, '');
+    const component = path.match(/^\/components\/([a-z]+(?:-[a-z]+)*)\/$/)?.[1];
+    const workspace = path === '/examples/workspace/';
+    gtag('config', 'G-1YYWKMNEWP', {
+      content_group: component ? 'component' : path.startsWith('/guides/') ? 'guide' : path === '/components/' ? 'catalogue' : workspace ? 'workspace' : 'home',
+      page_locale: workspace ? (new URLSearchParams(location.search).get('lang') === 'fr' ? 'fr' : 'en') : document.documentElement.lang,
+      ...(component ? {component_name:component} : {}),
+      ...(debug ? {debug_mode:true} : {})
+    });
+  }
+</script>
+<script src="{{ '/assets/analytics.js' | versionedAsset }}" data-web-vitals="{{ webVitalsUrl }}" defer></script>

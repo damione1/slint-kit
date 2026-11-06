@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![forbid(unsafe_code)]
 use kit_core::{
     DismissReason, ModelError, NavigationStep, Ownership, RemovalPolicy, SelectController,
     SelectOption, SelectionAvailability, SelectionIntent,
@@ -282,6 +283,183 @@ fn filter<K: Clone>(source: &[SelectOption<K>], query: &str) -> Vec<SelectOption
         })
         .cloned()
         .collect()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ChoiceError {
+    DuplicateKey,
+    CapacityExhausted,
+}
+impl std::fmt::Display for ChoiceError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DuplicateKey => formatter.write_str("choice keys must be unique"),
+            Self::CapacityExhausted => formatter.write_str("choice identity capacity exhausted"),
+        }
+    }
+}
+impl std::error::Error for ChoiceError {}
+
+#[derive(Clone)]
+struct ChoiceSource<K> {
+    options: Vec<SelectOption<K>>,
+    tokens: HashMap<K, i32>,
+    generation: i32,
+}
+
+static CHOICE_TOKEN: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(1);
+static CHOICE_GENERATION: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(1);
+fn choice_identity(counter: &std::sync::atomic::AtomicI32) -> Result<i32, ChoiceError> {
+    use std::sync::atomic::Ordering;
+    let mut value = counter.load(Ordering::Relaxed);
+    loop {
+        let next = value.checked_add(1).ok_or(ChoiceError::CapacityExhausted)?;
+        match counter.compare_exchange_weak(value, next, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(previous) => return Ok(previous),
+            Err(actual) => value = actual,
+        }
+    }
+}
+
+/// A typed source for autonomous selection components.
+///
+/// Keys remain stable across filtering and reordering. Replacing the source
+/// advances its generation, so `accept` rejects stale callback payloads. Clone
+/// this handle into application callbacks; it contains no window reference.
+pub struct Choices<K> {
+    source: Rc<RefCell<ChoiceSource<K>>>,
+    model: Rc<slint::VecModel<crate::ui::OptionRow>>,
+}
+impl<K> Clone for Choices<K> {
+    fn clone(&self) -> Self {
+        Self {
+            source: self.source.clone(),
+            model: self.model.clone(),
+        }
+    }
+}
+impl<K: Clone + Eq + Hash + 'static> Choices<K> {
+    pub fn new<L: Into<String>>(
+        choices: impl IntoIterator<Item = (K, L)>,
+    ) -> Result<Self, ChoiceError> {
+        Self::from_options(
+            choices
+                .into_iter()
+                .map(|(key, label)| SelectOption::new(key, label))
+                .collect(),
+        )
+    }
+
+    pub fn from_options(options: Vec<SelectOption<K>>) -> Result<Self, ChoiceError> {
+        let choices = Self {
+            source: Rc::new(RefCell::new(ChoiceSource {
+                options: Vec::new(),
+                tokens: HashMap::new(),
+                generation: 0,
+            })),
+            model: Rc::new(slint::VecModel::default()),
+        };
+        choices.replace(options)?;
+        Ok(choices)
+    }
+
+    pub fn model(&self) -> slint::ModelRc<crate::ui::OptionRow> {
+        slint::ModelRc::from(self.model.clone())
+    }
+
+    /// Project an existing domain key for a component's `selected` property.
+    pub fn selection(&self, key: &K) -> Option<crate::ui::SelectionRef> {
+        self.source
+            .borrow()
+            .tokens
+            .get(key)
+            .map(|token| crate::ui::SelectionRef {
+                present: true,
+                token: *token,
+            })
+    }
+
+    /// Project a set of existing, distinct domain keys for a multiple selector.
+    /// A missing or repeated key rejects the complete projection.
+    pub fn selections(&self, keys: &[K]) -> Option<slint::ModelRc<crate::ui::SelectionRef>> {
+        let mut seen = std::collections::HashSet::new();
+        let rows = keys
+            .iter()
+            .map(|key| {
+                if !seen.insert(key) {
+                    return None;
+                }
+                self.selection(key)
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(slint::ModelRc::new(slint::VecModel::from(rows)))
+    }
+
+    /// Validate a callback's source generation, stable token and availability,
+    /// then return its domain key. Disabled or stale values are not accepted.
+    pub fn accept(&self, row: crate::ui::OptionRow) -> Option<K> {
+        let source = self.source.borrow();
+        if row.generation != source.generation {
+            return None;
+        }
+        source
+            .options
+            .iter()
+            .find(|option| !option.disabled && source.tokens.get(&option.key) == Some(&row.token))
+            .map(|option| option.key.clone())
+    }
+
+    /// Atomically replace the model. A rejected replacement preserves all
+    /// source values, tokens, generations and visible rows.
+    pub fn replace(&self, options: Vec<SelectOption<K>>) -> Result<(), ChoiceError> {
+        SelectController::try_new(options.clone(), None, Ownership::Local).map_err(|error| {
+            match error {
+                ModelError::DuplicateKey => ChoiceError::DuplicateKey,
+            }
+        })?;
+        let (next, rows) = {
+            let source = self.source.borrow();
+            let generation = choice_identity(&CHOICE_GENERATION)?;
+            let mut tokens = HashMap::with_capacity(options.len());
+            let mut rows = Vec::with_capacity(options.len());
+            for option in &options {
+                let token = match source.tokens.get(&option.key) {
+                    Some(token) => *token,
+                    None => choice_identity(&CHOICE_TOKEN)?,
+                };
+                tokens.insert(option.key.clone(), token);
+                rows.push(crate::ui::OptionRow {
+                    token,
+                    generation,
+                    label: option.label.as_str().into(),
+                    description: option.description.as_str().into(),
+                    disabled: option.disabled,
+                });
+            }
+            (
+                ChoiceSource {
+                    options,
+                    tokens,
+                    generation,
+                },
+                rows,
+            )
+        };
+        *self.source.borrow_mut() = next;
+        // Notify observers after releasing the domain-state borrow: a callback
+        // triggered by model invalidation may immediately ask for a typed key.
+        self.model.set_vec(rows);
+        Ok(())
+    }
+}
+
+/// Accept only one currently enabled row for an activation token.
+/// Duplicate tokens are ambiguous and must not select an arbitrary row.
+pub fn choice_token_enabled(rows: impl IntoIterator<Item = (i32, bool)>, token: i32) -> bool {
+    let mut matches = rows
+        .into_iter()
+        .filter(|(candidate, _)| *candidate == token);
+    matches.next().is_some_and(|(_, disabled)| !disabled) && matches.next().is_none()
 }
 
 #[cfg(test)]

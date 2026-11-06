@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Application-owned lifetimes for the display gallery's interactive examples.
 use super::ui;
-use kit::{ToastId, ToastLifetime, ToastPause, ToastQueue};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use slint_kit::{ToastId, ToastLifetime, ToastPause, ToastQueue};
 use std::{
     cell::RefCell,
     num::NonZeroUsize,

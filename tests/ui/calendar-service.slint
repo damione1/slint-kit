@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership } from "@kit";
+export component CalendarServiceFixture inherits Window {
+    width: 1000px; height: 740px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    out property <CivilDateView> first-selected: first.selected;
+    out property <CivilDateView> first-focused: first.focused;
+    out property <CivilDateView> second-selected: second.selected;
+    out property <CivilDateView> second-focused: second.focused;
+    public function acknowledge-first(date: CivilDateView) { first.selected = date; }
+    public function focus-first() { first.take-focus(); }
+    public function focus-second() { second.take-focus(); }
+    callback first-chosen(CivilDateView);
+    background: root.theme.canvas;
+    HorizontalLayout {
+        first := KitCalendar {
+            theme: root.theme; access: root.access; ownership: root.ownership; label: "First calendar";
+            selected: {year: 2024, month: 2, day: 28};
+            min: "2024-02-01"; max: "2024-03-31";
+            chosen(date) => { root.first-chosen(date); }
+        }
+        second := KitCalendar {
+            theme: root.theme; label: "Second calendar";
+            selected: {year: 2026, month: 12, day: 31};
+        }
+    }
+}
+
+import { KitDatePicker, KitDateRangePicker, KitDateTimeField, DateRangeView, LocalDateTimeView } from "@kit";
+export component ControlledTemporalFixture inherits Window {
+    width: 800px; height: 1000px;
+    out property <CivilDateView> picked: picker.accepted-date;
+    out property <DateRangeView> range-value: range.selected;
+    out property <LocalDateTimeView> local-value: local.accepted-value;
+    callback date-proposed(CivilDateView);
+    callback range-proposed(DateRangeView);
+    callback local-proposed(LocalDateTimeView);
+    public function propose-date(date: CivilDateView) { picker.accept-date(date); }
+    public function acknowledge-date(date: CivilDateView) { picker.accepted-date = date; }
+    public function focus-range() { range.take-focus(); }
+    public function apply-range() { range.apply(); }
+    public function acknowledge-range(value: DateRangeView) { range.selected = value; }
+    public function propose-local() { local.commit(); }
+    public function acknowledge-local(value: LocalDateTimeView) { local.accepted-value = value; }
+    VerticalLayout {
+        alignment: start;
+        picker := KitDatePicker { ownership: Ownership.controlled; accepted-date: {year: 2026, month: 10, day: 1}; chosen(date) => { root.date-proposed(date); } }
+        range := KitDateRangePicker { ownership: Ownership.controlled; selected: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}}; chosen(value) => { root.range-proposed(value); } }
+        local := KitDateTimeField { ownership: Ownership.controlled; accepted-value: {date: {year: 2026, month: 10, day: 1}, time: {hour: 9, minute: 30}}; date-text: "2026-10-05"; time-text: "10:30"; chosen(value) => { root.local-proposed(value); } }
+    }
+}

@@ -6,11 +6,34 @@ import json
 from unittest.mock import patch
 from PIL import Image
 from doc_inputs import generated_identity, key_for, write_changed, digest, compiler_environment, relocated_source, local_image_files
+from doc_inputs import archived_runtime_inputs, rendering_runtime
 from presentation import themed_source
 import capture_pipeline as captures
 
 
 class DocumentationIdentityTests(unittest.TestCase):
+    def test_capture_reuse_ignores_only_build_helpers_and_local_package_versions(self):
+        sources = {
+            'Cargo.lock': b'[[package]]\nname="external"\nversion="1.0.0"\nsource="registry"\nchecksum="original"\n',
+            'crates/kit/src/lib.rs': b'pub fn runtime() {}',
+            'crates/kit/Cargo.toml': b'[package]\nname="slint-kit"\nversion="0.7.0"\n[features]\nnative=[]\n',
+            'crates/kit-build/src/lib.rs': b'pub fn compile() {}',
+            'crates/kit-build/Cargo.toml': b'[package]\nname="slint-kit-build"\nversion="0.7.0"\n',
+        }
+        before = archived_runtime_inputs(sources)
+        changed = {**sources, 'crates/kit-build/src/lib.rs': b'pub fn compile_windows() {}',
+                   'crates/kit/Cargo.toml': sources['crates/kit/Cargo.toml'].replace(b'0.7.0', b'0.7.1')}
+        self.assertNotEqual(before, archived_runtime_inputs(changed))
+        self.assertEqual(rendering_runtime(before), rendering_runtime(archived_runtime_inputs(changed)))
+        for name, content in [
+            ('crates/kit/src/lib.rs', b'pub fn changed_runtime() {}'),
+            ('crates/kit/Cargo.toml', sources['crates/kit/Cargo.toml'].replace(b'native=[]', b'native=["changed"]')),
+            ('Cargo.lock', sources['Cargo.lock'].replace(b'original', b'changed')),
+        ]:
+            with self.subTest(name=name):
+                self.assertNotEqual(rendering_runtime(before),
+                                    rendering_runtime(archived_runtime_inputs({**changed, name: content})))
+
     def test_relative_images_resolve_from_authored_source_instead_of_generated_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -154,7 +177,7 @@ class DocumentationIdentityTests(unittest.TestCase):
             self.assertFalse(journal.exists())
 
     def test_overlay_poster_activation_reaches_the_browser_capture_driver(self):
-        task = {'id': 'starter:dialog', 'slug': 'dialog', 'outputs': [captures.ROOT / 'preview@2x.png'],
+        task = {'kind': captures.SceneKind.STARTER, 'id': 'starter:dialog', 'slug': 'dialog', 'outputs': [captures.ROOT / 'preview@2x.png'],
                 'sceneKey': 'scene', 'key': 'key', 'recipe': {'activation': [120, 80]}}
         scene = captures.browser_scene(task, {'base': '/assets/previews/dialog'})
         self.assertEqual(scene['activation'], {'action': 'click', 'point': [120, 80]})

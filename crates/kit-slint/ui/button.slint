@@ -171,8 +171,9 @@ export component KitButton inherits KitPressable {
     private property <length> icon-gap: KitMetrics.inline-gap(root.theme);
     private property <length> leading-width: root.has-leading ? root.icon-size + root.icon-gap : 0px;
     private property <length> trailing-width: root.has-trailing ? root.icon-size + root.icon-gap : 0px;
+    private property <length> side-reserve: max(root.leading-width, root.trailing-width);
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    private property <length> natural-width: max(root.preferred-height, label.preferred-width + root.leading-width + root.trailing-width + 2 * root.padding-inline);
+    private property <length> natural-width: max(root.preferred-height, label.preferred-width + 2 * root.side-reserve + 2 * root.padding-inline);
     min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
     preferred-width: root.natural-width;
     // Pressable injects these children into its padded content rectangle.
@@ -181,8 +182,8 @@ export component KitButton inherits KitPressable {
     if root.has-leading: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
     if root.has-trailing: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; x: root.width - 2 * root.padding-inline - self.width; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
     label := Text {
-        x: root.leading-width; y: 0px;
-        width: max(0px, root.width - 2 * root.padding-inline - root.leading-width - root.trailing-width);
+        x: root.side-reserve; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - 2 * root.side-reserve);
         height: max(0px, root.height - 2 * root.padding-block);
         opacity: root.busy ? 0 : 1;
         text: root.text;

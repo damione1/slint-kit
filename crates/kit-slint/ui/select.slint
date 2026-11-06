@@ -1,3 +1,6 @@
+import { KitSelection } from "selection-service.slint";
+import { Ownership } from "shared-contracts.slint";
+import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
@@ -12,7 +15,7 @@ export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailabil
 // One key translator is shared by both the standard and composed surfaces.
 // Selection, skip-disabled, search and identity reconciliation stay in kit-core.
 export component KitSelectKeyboard inherits FocusScope {
-    in property <SelectState> state;
+    in property <SelectState> state: selection.state;
     in property <bool> dismiss-on-system-back: true;
     callback open-requested();
     callback navigate(NavigationStep);
@@ -26,30 +29,30 @@ export component KitSelectKeyboard inherits FocusScope {
     changed enabled => { if (!root.enabled) { root.activation-held = false; } }
     public function handle-key(event: KeyEvent) -> EventResult {
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
-            if (!root.state.open) { root.open-requested(); }
-            else { root.navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
+            if (!root.state.open) { root.handle-open-requested(); }
+            else { root.handle-navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
             return accept;
         }
         if (!root.state.open) { return reject; }
-        if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
-        if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.PageDown) { root.navigate(NavigationStep.page-next); return accept; }
-        if (event.text == Key.PageUp) { root.navigate(NavigationStep.page-previous); return accept; }
-        if (event.text == Key.Escape) { root.dismiss(CloseReason.escape); return accept; }
-        if (event.text == Key.Back && root.dismiss-on-system-back) { root.dismiss(CloseReason.system-back); return accept; }
+        if (event.text == Key.Home) { root.handle-navigate(NavigationStep.first); return accept; }
+        if (event.text == Key.End) { root.handle-navigate(NavigationStep.last); return accept; }
+        if (event.text == Key.PageDown) { root.handle-navigate(NavigationStep.page-next); return accept; }
+        if (event.text == Key.PageUp) { root.handle-navigate(NavigationStep.page-previous); return accept; }
+        if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return accept; }
+        if (event.text == Key.Back && root.dismiss-on-system-back) { root.handle-dismiss(CloseReason.system-back); return accept; }
         if (event.text == Key.Tab || event.text == Key.Backtab) {
-            root.dismiss(CloseReason.programmatic);
+            root.handle-dismiss(CloseReason.programmatic);
             return root.tab-navigation(event.modifiers.shift || event.text == Key.Backtab);
         }
         if (event.text == Key.Return || event.text == Key.Space) {
             if (!root.activation-held) {
                 root.activation-held = true;
-                if (root.state.active.present) { root.activate(root.state.active.token, root.state.generation); }
+                if (root.state.active.present) { root.handle-activate(root.state.active.token, root.state.generation); }
             }
             return accept;
         }
         if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
-            root.typeahead(event.text); return accept;
+            root.handle-typeahead(event.text); return accept;
         }
         return reject;
     }
@@ -63,13 +66,36 @@ export component KitSelectKeyboard inherits FocusScope {
         return reject;
     }
     focus-lost(reason) => { root.activation-held = false; }
+
+    in-out property <string> query <=> selection.query;
+
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <SelectionRef> selected <=> selection.selected;
+    callback chosen(OptionRow);
+    selection := KitSelection {
+        options: root.options; ownership: root.ownership; persistent: true;
+        chosen(row) => { root.chosen(row); }
+    }
+    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
+    function handle-open-requested() { selection.open(); root.open-requested(); }
+
+    out property <[OptionRow]> rows: selection.rows;
+    public function choose-option(token: int, generation: int) { root.handle-activate(token, generation); }
+    public function move-active(step: NavigationStep) { root.handle-navigate(step); }
+    public function type-ahead(text: string) { root.handle-typeahead(text); }
+
+    out property <string> selected-label: selection.selected-label;
 }
 
 // The trigger is the field surface of a popover. Read-only keeps it focusable
 // and announced, but it neither opens nor answers hover and press.
 export component KitSelectTrigger inherits KitPressable {
     control-width: ControlWidth.fill;
-    in property <SelectState> state;
+    in property <SelectState> state: selection.state;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     callback open-requested();
@@ -85,9 +111,9 @@ export component KitSelectTrigger inherits KitPressable {
     accessible-role: combobox;
     accessible-expanded: root.state.open;
     accessible-read-only: root.access == FieldAccess.read-only;
-    function request-open() { if (root.access == FieldAccess.editable) { root.open-requested(); } }
+    function request-open() { if (root.access == FieldAccess.editable) { root.handle-open-requested(); } }
     activated => {
-        if (root.state.open) { root.dismiss(CloseReason.trigger-toggle); }
+        if (root.state.open) { root.handle-dismiss(CloseReason.trigger-toggle); }
         else { root.request-open(); }
     }
     key-event(event) => { return translator.handle-key(event); }
@@ -96,18 +122,39 @@ export component KitSelectTrigger inherits KitPressable {
         enabled: false;
         state: root.state;
         open-requested => { root.request-open(); }
-        navigate(step) => { root.navigate(step); }
-        activate(token, generation) => { root.activate(token, generation); }
-        dismiss(reason) => { root.dismiss(reason); }
-        typeahead(text) => { root.typeahead(text); }
+        navigate(step) => { root.handle-navigate(step); }
+        activate(token, generation) => { root.handle-activate(token, generation); }
+        dismiss(reason) => { root.handle-dismiss(reason); }
+        typeahead(text) => { root.handle-typeahead(text); }
         tab-navigation(reverse) => { return root.tab-navigation(reverse); }
     }
     @children
+
+    in-out property <string> query <=> selection.query;
+
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <SelectionRef> selected <=> selection.selected;
+    callback chosen(OptionRow);
+    selection := KitSelection {
+        options: root.options; ownership: root.ownership; persistent: false;
+        chosen(row) => { root.chosen(row); }
+    }
+    function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { if (root.access != FieldAccess.editable) { return; } selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) { if (root.access != FieldAccess.editable) { return; } selection.typeahead(text); root.typeahead(text); }
+    function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
+
+    out property <[OptionRow]> rows: selection.rows;
+    public function choose-option(token: int, generation: int) { root.handle-activate(token, generation); }
+
+    out property <string> selected-label: selection.selected-label;
 }
 
 export component KitSelectSurface inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
-    in property <SelectState> state;
+    in property <SelectState> state: selection.state;
     in property <length> row-height: 48px;
     in property <length> viewport-height: content-box.height;
     in property <bool> searchable: true;
@@ -115,7 +162,7 @@ export component KitSelectSurface inherits Rectangle {
     in property <bool> empty;
     in property <string> empty-label: "No matching options";
     in property <string> search-label: "Search options";
-    in-out property <string> query;
+    in-out property <string> query <=> selection.query;
     in-out property <length> scroll-y;
     out property <length> active-scroll-y: root.scroll-y;
     callback navigate(NavigationStep);
@@ -149,10 +196,10 @@ export component KitSelectSurface inherits Rectangle {
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
         state: root.state;
-        navigate(step) => { root.navigate(step); root.ensure-active-visible(); }
-        activate(token, generation) => { root.activate(token, generation); }
-        dismiss(reason) => { root.dismiss(reason); }
-        typeahead(text) => { root.typeahead(text); root.ensure-active-visible(); }
+        navigate(step) => { root.handle-navigate(step); root.ensure-active-visible(); }
+        activate(token, generation) => { root.handle-activate(token, generation); }
+        dismiss(reason) => { root.handle-dismiss(reason); }
+        typeahead(text) => { root.handle-typeahead(text); root.ensure-active-visible(); }
         tab-navigation(reverse) => { return root.tab-navigation(reverse); }
         VerticalLayout {
             padding: root.inset;
@@ -187,7 +234,7 @@ export component KitSelectSurface inherits Rectangle {
                             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
                             single-line: true;
                             accessible-label: root.search-label;
-                            edited => { root.query-edited(self.text); root.ensure-active-visible(); }
+                            edited => { root.handle-query-edited(self.text); root.ensure-active-visible(); }
                             cursor-position-changed(position) => {
                                 if (position.x + search-scroll.content-x < 0px) { search-scroll.content-x = -position.x; }
                                 else if (position.x + 2px + search-scroll.content-x > search-scroll.width) {
@@ -220,6 +267,25 @@ export component KitSelectSurface inherits Rectangle {
             }
         }
     }
+
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <SelectionRef> selected <=> selection.selected;
+    callback chosen(OptionRow);
+    selection := KitSelection {
+        options: root.options; ownership: root.ownership; persistent: true;
+        chosen(row) => { root.chosen(row); }
+    }
+    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
+    function handle-query-edited(text: string) { root.query = text; root.query-edited(text); }
+
+    out property <[OptionRow]> rows: selection.rows;
+    public function choose-option(token: int, generation: int) { root.handle-activate(token, generation); }
+
+    out property <string> selected-label: selection.selected-label;
 }
 
 // Non-focusable row: the composite remains the single keyboard focus target.
@@ -227,7 +293,9 @@ export component KitOption inherits KitPressable {
     control-width: ControlWidth.fill;
     in property <OptionRow> option-data;
     in property <bool> active;
-    in property <bool> selected;
+    in property <bool> selected: root.local-selected;
+    private property <bool> local-selected;
+    callback chosen(OptionRow);
     callback activate(int, int);
     disabled: root.option-data.disabled;
     tab-stop: false;
@@ -254,7 +322,7 @@ export component KitOption inherits KitPressable {
         root.press-generation = root.option-data.generation;
     }
     changed option-data => { root.cancel-press(); }
-    activated => { root.activate(root.press-token, root.press-generation); }
+    activated => { root.local-selected = true; root.chosen(root.option-data); root.activate(root.press-token, root.press-generation); }
     @children
 }
 
@@ -278,9 +346,10 @@ export component KitSelect inherits Rectangle {
     }
 
     in property <KitTheme> theme: KitThemeContext.current;
-    in property <[OptionRow]> rows;
-    in property <SelectState> state;
-    in property <string> placeholder: "Choose an option";
+    in property <[OptionRow]> rows: selection.rows;
+    in property <SelectState> state: selection.state;
+    in property <string> placeholder: selection.selected-label != "" ? selection.selected-label : "Choose an option";
+    private property <string> trigger-label: root.options.length > 0 && root.selected.present ? selection.selected-label : root.placeholder;
     in property <string> unavailable-label: "Selected option is unavailable";
     in property <FieldAccess> access: FieldAccess.editable;
     // A composite (multi-select) reports its own constraint through this.
@@ -301,7 +370,7 @@ export component KitSelect inherits Rectangle {
     changed access => {
         trigger.cancel-press();
         // The controller's closed state then closes the presentation once.
-        if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); }
+        if (root.access != FieldAccess.editable && root.state.open) { root.handle-dismiss(CloseReason.programmatic); }
     }
     private property <ValidationPresentation> presented-validation: checks.show-error || root.state.selection-availability == SelectionAvailability.unavailable ? ValidationPresentation.invalid : root.validation;
     private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
@@ -332,7 +401,7 @@ export component KitSelect inherits Rectangle {
     }
     changed popup-visible => {
         // Native presentation closure does not expose its precise cause.
-        if (!root.popup-visible && root.state.open) { root.dismiss(CloseReason.host-closed); }
+        if (!root.popup-visible && root.state.open) { root.handle-dismiss(CloseReason.host-closed); }
     }
     trigger := KitSelectTrigger {
         theme: root.theme;
@@ -341,16 +410,17 @@ export component KitSelect inherits Rectangle {
         access: root.access;
         validation: root.presented-validation;
         accessible-name: root.placeholder;
+        accessible-value: root.trigger-label;
         accessible-description: checks.show-error ? checks.validation-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
-        open-requested => { root.open-requested(); }
-        navigate(step) => { root.navigate(step); }
-        activate(token, generation) => { root.activate(token, generation); }
-        dismiss(reason) => { root.dismiss(reason); }
-        typeahead(text) => { root.typeahead(text); }
+        open-requested => { root.handle-open-requested(); }
+        navigate(step) => { root.handle-navigate(step); }
+        activate(token, generation) => { root.handle-activate(token, generation); }
+        dismiss(reason) => { root.handle-dismiss(reason); }
+        typeahead(text) => { root.handle-typeahead(text); }
         tab-navigation(reverse) => { return root.advance-tab(reverse); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            Text { text: root.placeholder; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
+            Text { text: root.trigger-label; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
             Rectangle {
                 width: root.icon.size;
                 if root.state.selection-availability == SelectionAvailability.unavailable: Text {
@@ -381,12 +451,12 @@ export component KitSelect inherits Rectangle {
             viewport-height: options.visible-height;
             scroll-y <=> options.content-y;
             empty: root.rows.length == 0;
-            navigate(step) => { root.navigate(step); }
-            activate(token, generation) => { root.activate(token, generation); }
-            dismiss(reason) => { root.dismiss(reason); }
-            typeahead(text) => { root.typeahead(text); }
+            navigate(step) => { root.handle-navigate(step); }
+            activate(token, generation) => { root.handle-activate(token, generation); }
+            dismiss(reason) => { root.handle-dismiss(reason); }
+            typeahead(text) => { root.handle-typeahead(text); }
             tab-navigation(reverse) => { return root.advance-tab(reverse); }
-            query-edited(text) => { root.query-edited(text); }
+            query-edited(text) => { root.handle-query-edited(text); }
             options := ListView {
                 theme: root.theme;
                 for row in root.rows: KitOption {
@@ -395,7 +465,7 @@ export component KitSelect inherits Rectangle {
                     height: root.row-height;
                     active: root.state.active.present && root.state.active.token == row.token;
                     selected: root.state.selected.present && root.state.selected.token == row.token;
-                    activate(token, generation) => { root.activate(token, generation); }
+                    activate(token, generation) => { root.handle-activate(token, generation); }
                     HorizontalLayout {
                         spacing: KitMetrics.inline-gap(root.theme);
                         VerticalLayout {
@@ -411,4 +481,23 @@ export component KitSelect inherits Rectangle {
             }
         }
     }
+
+    in-out property <string> query <=> selection.query;
+
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <SelectionRef> selected <=> selection.selected;
+    callback chosen(OptionRow);
+    selection := KitSelection {
+        options: root.options; ownership: root.ownership; persistent: false;
+        chosen(row) => { root.chosen(row); }
+    }
+    function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { if (root.access != FieldAccess.editable) { return; } selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) { if (root.access != FieldAccess.editable) { return; } selection.typeahead(text); root.typeahead(text); }
+    function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
+    function handle-query-edited(text: string) { root.query = text; root.query-edited(text); }
+
+    out property <string> selected-label: selection.selected-label;
 }

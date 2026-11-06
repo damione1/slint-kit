@@ -18,7 +18,7 @@ const decode = text => text.replaceAll('&quot;', '"').replaceAll('&#39;', "'").r
 const capturesPath = path.join(docs, 'content/captures.json');
 const provenance = fs.existsSync(capturesPath) ? JSON.parse(fs.readFileSync(capturesPath, 'utf8')) : { components: {} };
 check(provenance.environment?.backend === 'winit' && provenance.environment?.renderer === 'skia', 'Capture manifest must identify its native backend and renderer');
-for (const arguments_ of [['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check'], ['scripts/build-workspace-preview.py','--check']]) {
+for (const arguments_ of [['scripts/sync-doc-versions.py','--check'], ['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check'], ['scripts/build-workspace-preview.py','--check']]) {
   const result = spawnSync('python3', arguments_, {cwd:docs,stdio:'inherit'});
   check(result.status === 0, `Individual documentation artifacts are stale: ${arguments_[0]}`);
 }
@@ -70,7 +70,7 @@ for (const component of components) {
     check(fs.existsSync(imagePath), `${name}/${locale}: missing capture`);
     if (!fs.existsSync(examplePath) || !fs.existsSync(imagePath)) continue;
     const example = fs.readFileSync(examplePath, 'utf8'), image = fs.readFileSync(imagePath);
-    check(/from\s+"@kit\//.test(example), `${name}/${locale}: example must consume public @kit imports`);
+    check(/from\s+"@kit(?:\/[^"\s]+)?"/.test(example), `${name}/${locale}: example must consume public @kit imports`);
     check(/export component Example inherits Window/.test(example), `${name}/${locale}: example must provide a runnable Window`);
     check(new RegExp(`\\b${name}\\s*\\{`).test(example), `${name}/${locale}: example must instantiate its documented component`);
     const record = locale === 'fr' ? provenance.components[slug]?.locales?.fr : provenance.components[slug];
@@ -120,12 +120,18 @@ for (const component of components) {
       // Package locks and README changes do not invalidate a rendered scene.
       // The individual render key above covers UI, host and resolved runtime.
       check(sha(fs.readFileSync(path.join(docs, 'quickstart', slug, capture.image.file))) === capture.image.sha256, `${name}: starter screenshot differs from its capture proof`);
+      const darkCapture = capture.dark;
+      check(darkCapture?.theme === 'dark' && darkCapture?.image?.file === 'preview-dark@2x.png', `${name}: missing real dark starter proof`);
+      if (darkCapture?.image) check(sha(fs.readFileSync(path.join(docs, 'quickstart', slug, darkCapture.image.file))) === darkCapture.image.sha256, `${name}: dark starter screenshot differs from its capture proof`);
       const blocks = [...html.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
       for (const file of ['Cargo.toml', 'build.rs', 'ui/app.slint', 'src/main.rs']) {
         const source = fs.readFileSync(path.join(docs, 'quickstart', slug, file), 'utf8');
-        check(blocks.includes(source.trim()), `${name}/${locale}: working example must display the complete ${file}`);
+        if (['ui/app.slint', 'src/main.rs'].includes(file)) {
+          check(blocks.includes(source.trim()), `${name}/${locale}: working example must display the complete ${file}`);
+        }
         check(fs.readFileSync(path.join(output, 'quickstart', slug, file), 'utf8') === source, `${name}/${locale}: downloaded ${file} must match displayed code`);
       }
+      check(html.includes(`href="${localeUrl('guides/project-setup/', locale)}"`), `${name}/${locale}: link to shared project setup is required`);
     }
     check(html.includes(`srcset="/assets/components/${imageFilename.replace('.png', '@2x.png')} 2x"`), `${name}/${locale}: Retina candidate is required`);
     check(html.includes(`/assets/components/${imageFilename}`), `${name}/${locale}: missing matching capture`);
@@ -169,7 +175,7 @@ check(webPreviews.components.length === components.length && components.every(c 
 for (const component of components) {
   for (const theme of ['tailwind']) {
     const entry = webPreviews.entries[component.slug]?.[theme];
-    check(entry && new RegExp(`/assets/previews/${component.slug}/${theme}/[a-f0-9]{20}$`).test(entry.base), `Missing independent preview ${component.slug}/${theme}`);
+    check(entry && /^\/assets\/previews\/bundle\/shared\/[a-f0-9]{20}$/.test(entry.base), `Missing shared preview route ${component.slug}/${theme}`);
     if (!entry) continue;
     for (const [name,checksum] of Object.entries(entry.assets)) {
       const file=path.join(output,entry.base,name);

@@ -26,8 +26,19 @@ pub fn compile(path: &Path) -> Result<(), String> {
             config = config
                 .with_library_paths(std::collections::HashMap::from([("kit".into(), library)]));
         }
-        slint_build::compile_with_output_path(request.source, request.output, config)
+        // Fingerprints deliberately expand the reachable implementation in file
+        // mode. This process is not an application Cargo build and receives no
+        // DEP_KIT module metadata. Normalize only the public root import; keep
+        // the directory alias for supplemental font/icon imports. Prepared
+        // documentation sources already contain absolute local resource paths.
+        let source = std::fs::read_to_string(&request.source).map_err(|error| error.to_string())?;
+        let input = request.output.with_extension("fingerprint.slint");
+        std::fs::write(&input, source.replace("\"@kit\"", "\"@kit/kit.slint\""))
             .map_err(|error| error.to_string())?;
+        let result = slint_build::compile_with_output_path(&input, request.output, config)
+            .map_err(|error| error.to_string());
+        std::fs::remove_file(input).map_err(|error| error.to_string())?;
+        result?;
     }
     Ok(())
 }

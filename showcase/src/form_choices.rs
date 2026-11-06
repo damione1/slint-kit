@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Window-local, typed application models for the choice examples.
 use super::ui;
-use kit::{
+use slint::ComponentHandle;
+use slint_kit::{
     CheckState, DecimalStep, DecimalValue, DismissReason, MultiSelectController, NavigationStep,
     NumericBounds, OrderedRange, Ownership, ParseIssue, RangeController, Rating, RatingScale,
     SearchController, SearchState, SelectBinding, SelectController, SelectOption, SelectProjection,
     SelectionAvailability, SelectionIntent, StepDirection,
 };
-use slint::ComponentHandle;
 use std::{cell::RefCell, convert::Infallible, hash::Hash, rc::Rc, time::Duration};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -172,20 +172,10 @@ impl ExactSlider {
 }
 
 fn navigation(step: ui::NavigationStep) -> NavigationStep {
-    match step {
-        ui::NavigationStep::Next => NavigationStep::Next,
-        ui::NavigationStep::Previous => NavigationStep::Previous,
-        ui::NavigationStep::First => NavigationStep::First,
-        ui::NavigationStep::Last => NavigationStep::Last,
-        ui::NavigationStep::PageNext => NavigationStep::PageNext,
-        ui::NavigationStep::PagePrevious => NavigationStep::PagePrevious,
-    }
+    step.into()
 }
-fn thumb(value: ui::RangeThumb) -> kit::RangeThumb {
-    match value {
-        ui::RangeThumb::Lower => kit::RangeThumb::Start,
-        ui::RangeThumb::Upper => kit::RangeThumb::End,
-    }
+fn thumb(value: ui::RangeThumb) -> slint_kit::RangeThumb {
+    value.into()
 }
 fn navigation_value(
     value: DecimalValue,
@@ -716,8 +706,8 @@ fn install_sliders(window: &ui::Showcase, state: Rc<RefCell<Choices>>) {
             let range = state.range.value();
             let thumb = thumb(view_thumb);
             let (current, minimum, maximum) = match thumb {
-                kit::RangeThumb::Start => (range.start(), decimal(0), range.end()),
-                kit::RangeThumb::End => (range.end(), range.start(), decimal(100)),
+                slint_kit::RangeThumb::Start => (range.start(), decimal(0), range.end()),
+                slint_kit::RangeThumb::End => (range.end(), range.start(), decimal(100)),
             };
             if let Err(issue) = navigation_value(current, navigation(step), minimum, maximum)
                 .and_then(|value| state.range.set(thumb, value))

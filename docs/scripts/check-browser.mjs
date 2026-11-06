@@ -249,6 +249,7 @@ try {
   await call('Network.setCacheDisabled', { cacheDisabled: false });
   await call('Emulation.setDeviceMetricsOverride', { width: 900, height: 900, deviceScaleFactor: browserDensity, mobile: false });
   const starters = JSON.parse(await fs.readFile(path.join(docs, 'content/starters.json'), 'utf8'));
+  const componentCount = Object.keys(starters).length;
   const previewSlugs = process.env.BROWSER_COMPONENTS?.split(',').filter(Boolean) || Object.keys(starters);
   assert(previewSlugs.length && previewSlugs.every(slug => Object.hasOwn(starters, slug)), 'BROWSER_COMPONENTS must list known component slugs');
   for (const slug of previewSlugs) {
@@ -305,11 +306,28 @@ try {
   for (const locale of ['en', 'fr']) {
     await call('Emulation.setDeviceMetricsOverride', { width: 375, height: 900, deviceScaleFactor: browserDensity, mobile: false });
     const start = requests.length;
-    await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/`);
-    assert(!requests.slice(start).some(url => /\.(?:wasm)(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
+    if (locale === 'en') await evaluate('localStorage.setItem("slint-kit-preview-theme", "dark")');
+    await navigate(`${locale === 'fr' ? '/fr' : ''}/components/button/${locale === 'en' ? '?theme=light' : ''}`);
+    assert(!requests.slice(start).some(url => /\.wasm(?:\.gz)?(?:\?|$)/.test(url)), 'Landing on a component must not fetch WebAssembly');
     assert.deepEqual(await evaluate('[...document.querySelector(".preview-theme").options].map(option=>option.value)'), ['light', 'dark'], 'The built-in presentation supports both color modes');
+    assert(await evaluate('!document.querySelector(".site-theme").disabled'), 'Documentation theme control is available');
+    if (locale === 'en') {
+      assert.equal(await evaluate('document.documentElement.dataset.theme'), 'light');
+      assert.equal(await evaluate('getComputedStyle(document.documentElement).backgroundColor'), 'rgb(255, 255, 255)');
+      assert.equal(await evaluate('document.querySelector("[data-theme-source]").media'), 'not all');
+      await click('.run-preview');
+      for (let count = 0; count < 300; count++) {
+        if (await evaluate('document.querySelector(".component-preview").hidden && !document.querySelector(".run-preview").disabled')) break;
+        await pause(100);
+      }
+      assert.equal(await evaluate('document.querySelector("iframe").contentWindow.previewTheme'), 'light', 'A light page starts a light demo despite an old dark preview preference');
+      await click('.run-preview');
+    }
     if(locale==='fr') assert.equal(await evaluate('document.querySelector(".preview-theme").value'),'dark','Theme preference follows the reader between languages');
-    await evaluate(`(()=>{const choice=document.querySelector('.preview-theme');choice.value='dark';choice.dispatchEvent(new Event('change'))})()`);
+    await evaluate(`(()=>{const choice=document.querySelector('.site-theme');choice.value='dark';choice.dispatchEvent(new Event('change'))})()`);
+    assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark');
+    assert.equal(await evaluate('document.querySelector(".preview-theme").value'), 'dark');
+    assert.equal(await evaluate('document.querySelector("[data-theme-source]").media'), 'all');
     assert.equal(await evaluate('document.querySelector("iframe")'),null,'Choosing a theme does not start WASM');
     await click('.run-preview');
     for (let count = 0; count < 300; count++) {
@@ -387,7 +405,7 @@ try {
   for (const locale of ['en','fr']) {
     await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1050, deviceScaleFactor: browserDensity, mobile: false });
     await navigate(locale==='fr'?'/fr/components/':'/components/');
-    assert.equal(await evaluate('document.querySelectorAll("[data-component-mockup]").length'),124);
+    assert.equal(await evaluate('document.querySelectorAll("[data-component-mockup]").length'),componentCount);
     assert(await evaluate(`(()=>{const c=document.querySelector('[data-component-mockup="button"]');return c.getContext('2d').getImageData(10,10,1,1).data[3]>0})()`), 'Visible mockup must be painted');
     assert.equal(await evaluate('document.querySelectorAll(".family-illustration").length'),0);
     const catalogue = await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
@@ -419,7 +437,7 @@ try {
       const screenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await fs.writeFile(path.join(output,`${locale}-lucide-${variant}.png`),Buffer.from(screenshot.data,'base64'));
     }
-    results.push({name:'visual-catalogues',locale,icons:1999,mockups:124,search:true,categories:true,copy:true});
+    results.push({name:'visual-catalogues',locale,icons:1999,mockups:componentCount,search:true,categories:true,copy:true});
     await evaluate("document.documentElement.style.fontSize=''");
   }
   passed = true;

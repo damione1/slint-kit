@@ -9,93 +9,25 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 # Getting started
 
 
-Install Slint Kit from crates.io with **Rust 1.92+** and **Slint 1.18.1**. No toolkit checkout is required.
+Install Slint Kit from crates.io with **Rust {{ project.rust }}+** and **Slint {{ project.slint }}**. No toolkit checkout is required.
 
 Applications use Rust edition 2024. The Slint compiler and runtime must match the kit’s versions.
 
 ## Create a desktop application
 
-Run `cargo new my-app`, then add these dependencies to `my-app/Cargo.toml`. Cargo downloads the kit and its component library automatically.
+Follow [Project setup](/guides/project-setup/) once to configure Cargo and `build.rs`. Use the public `@kit` root import and call `slint_kit::install(&app)` before showing each window. The kit supplies the component behavior, theme and typed contract conversions; application callbacks handle business actions.
 
-```toml
-[package]
-name = "my-app"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.92"
-
-[dependencies]
-slint-kit = "0.5"
-slint = { version = "=1.18.1", default-features = false, features = ["std", "compat-1-18", "backend-winit", "renderer-skia", "accessibility"] }
-
-[build-dependencies]
-slint-kit-build = "0.5"
-```
-
-Create `build.rs` at the application root. `slint-kit-build` registers the `@kit` library and verifies the generated shared contracts before compiling the UI.
-
-```rust
-fn main() {
-    slint_kit_build::compile("ui/app.slint").expect("compile application UI");
-}
-```
-
-Create `ui/app.slint`:
-
-```slint
-import { KitButton, KitTextField, KitThemes } from "@kit/kit.slint";
-
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-
-export component App inherits Window {
-    title: "Slint Kit";
-    preferred-width: 420px;
-    preferred-height: 240px;
-    max-width: 100000px;
-    max-height: 100000px;
-    background: KitThemes.light.canvas;
-    in-out property <string> name;
-    callback save(string);
-
-    VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        alignment: start;
-        KitTextField { label: "Name"; text <=> root.name; }
-        KitButton {
-            text: "Save";
-            activated => { root.save(root.name); }
-        }
-    }
-}
-```
-
-Create `src/main.rs`. The callback receives the current draft when Save is activated; an application should validate that draft before accepting it into its domain state.
-
-```rust
-slint::include_modules!();
-
-fn main() -> Result<(), slint::PlatformError> {
-    let app = App::new()?;
-    slint_kit::init_form_validation!(self, app);
-    app.on_save(|name| println!("Saved: {name}"));
-    app.run()
-}
-```
-
-Run `cargo run` from `my-app`. This configuration uses the **winit backend and Skia renderer**. Preserve an existing compatible backend when integrating into another app.
-
-If your editor reports “Cannot find requested import” for `@kit`, follow [Editor setup](/guides/editor/) to configure VS Code or Zed with project-relative library paths. Cargo build configuration and language-server configuration are separate.
+This documentation targets Slint Kit **{{ project.version }}**. Use matching runtime and build packages. Project setup also describes local source dependencies. Applications using an older release should follow its matching documentation.
 
 ## Use a documented example
 
-For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page provides all four files with its Rust callbacks connected.
+For a working app, start with the [button](/components/button/) or [searchable combobox](/components/combobox/): each page shows the Slint component and its business callbacks, with a link to shared project setup.
 
 Each page offers a complete downloadable project with `Cargo.lock`, Rust, Slint and `build.rs`. Extract its ZIP, then run `cargo run --locked`. The screenshot and interactive preview use that same example. For shared field rules, see [forms and validation](/guides/forms/).
 
 The screenshots show the declared example state. Host-dependent actions such as opening a file picker require the [native adapter](/guides/native/). For validated editing and interactive selection, see the [typed controller application](/guides/typed-example/).
 
-Public imports use `@kit/kit.slint`, or a public family module such as `@kit/button.slint`. Do not depend on private helper components. Pass the same theme into composed controls, preserve intrinsic sizing and choose `ControlWidth.fill` only when the parent requests a stretched control.
+Import components, structs, enums and globals from the single `@kit` entry point. Supplemental font and Lucide files keep their documented paths. Do not depend on private helper components. Pass the same theme into composed controls, preserve intrinsic sizing and choose `ControlWidth.fill` only when the parent requests a stretched control.
 
 ## Keep the domain in Rust
 
@@ -103,9 +35,9 @@ A Slint string is an editable draft. For accepted names, money, dates and keyed 
 
 ## Build the showcase
 
-The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust 1.92+**.
+The showcase is a working application that demonstrates the public components. Build it from the source repository with Git and **Rust {{ project.rust }}+**.
 
-Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint 1.18.1 build guide](https://github.com/slint-ui/slint/blob/v1.18.1/docs/building.md#prerequisites) for platform setup.
+Prepare the desktop dependencies for your OS: Xcode Command Line Tools on macOS, an MSVC Rust toolchain and Visual Studio Build Tools on Windows, or the required development libraries on Linux. See the [Slint {{ project.slint }} build guide](https://github.com/slint-ui/slint/blob/v{{ project.slint }}/docs/building.md#prerequisites) for platform setup.
 
 ```sh
 git clone https://github.com/damione1/slint-kit.git

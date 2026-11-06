@@ -9,7 +9,7 @@ use std::{cell::Cell, rc::Rc};
 fn fixture() -> ui::PhoneFixture {
     i_slint_backend_testing::init_no_event_loop();
     let view = ui::PhoneFixture::new().unwrap();
-    kit_slint::init_form_validation!(ui, view);
+    kit_slint::install(&view);
     view.show().unwrap();
     view
 }

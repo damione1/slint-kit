@@ -73,6 +73,22 @@ pub enum FieldFailure {
     ValidationPending,
     ValidationFailed,
 }
+/// Explicit value state for a pure, synchronous field transition.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FieldState<T> {
+    pub accepted: Option<T>,
+    pub draft: String,
+    pub dirty: bool,
+    pub touched: bool,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FieldRules {
+    pub ownership: Ownership,
+    pub access: FieldAccess,
+    pub policy: CommitPolicy,
+    pub absence: AbsencePolicy,
+}
+
 #[derive(Debug)]
 pub struct FieldController<T, E> {
     accepted: Option<T>,
@@ -90,6 +106,56 @@ pub struct FieldController<T, E> {
     touched: bool,
 }
 impl<T: Clone + PartialEq, E> FieldController<T, E> {
+    /// Apply one synchronous event without allocating a validation owner or
+    /// retaining state. The caller parses the draft once at its boundary.
+    pub fn reduce(
+        state: FieldState<T>,
+        rules: FieldRules,
+        action: crate::FieldAction,
+        parsed: DraftValue<T>,
+        format: impl Fn(&T) -> String,
+    ) -> (FieldState<T>, Result<Option<FieldIntent<T>>, FieldFailure>) {
+        if rules.access != FieldAccess::Editable {
+            return (state, Err(FieldFailure::AccessDenied));
+        }
+        let mut controller = Self {
+            accepted: state.accepted,
+            draft: state.draft,
+            parsed,
+            validation: ValidationState::Unchecked,
+            ownership: rules.ownership,
+            access: rules.access,
+            policy: rules.policy,
+            absence: rules.absence,
+            invalid_commit: InvalidCommitPolicy::PreserveDraft,
+            owner: 0,
+            revision: 0,
+            dirty: state.dirty,
+            touched: state.touched,
+        };
+        let result = match action {
+            crate::FieldAction::Edit => {
+                controller.dirty = true;
+                controller.request_commit(CommitTrigger::Change, format)
+            }
+            crate::FieldAction::Blur => controller.request_commit(CommitTrigger::Blur, format),
+            crate::FieldAction::Submit => controller.request_commit(CommitTrigger::Submit, format),
+            crate::FieldAction::Cancel => {
+                controller.cancel(format);
+                Ok(Some(FieldIntent::Cancel))
+            }
+        };
+        (
+            FieldState {
+                accepted: controller.accepted,
+                draft: controller.draft,
+                dirty: controller.dirty,
+                touched: controller.touched,
+            },
+            result,
+        )
+    }
+
     pub fn new(
         accepted: Option<T>,
         text: String,

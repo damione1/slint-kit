@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const docsDirectory = fileURLToPath(new URL('../', import.meta.url));
-export const starterFiles = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint', 'preview@2x.png', 'preview.png'];
+export const starterFiles = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/app.slint', 'preview@2x.png', 'preview.png', 'preview-dark@2x.png', 'preview-dark.png'];
 
 export function loadStarters() {
   const entries = JSON.parse(fs.readFileSync(path.join(docsDirectory, 'content/starters.json'), 'utf8'));

@@ -1,10 +1,7 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
+import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitContentList, KitThemes, ContentItem, NavigationStep } from "@kit/kit.slint";
-export { ContentItem, NavigationStep }
+import { KitContentList, KitThemes, ContentItem, NavigationStep } from "@kit";
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
     default-font-family: InterFont.family;
@@ -14,6 +11,10 @@ export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in property <[ContentItem]> items;
+    in property <int> generation;
+    out property <image> alpine: @image-url("assets/alpine.png");
+    out property <image> desert: @image-url("assets/desert.png");
+    out property <image> coast: @image-url("assets/coast.png");
     in property <int> active-index: -1;
     in property <string> selected-label: "Choose an article";
     callback choose(int, int);
@@ -22,7 +23,7 @@ export component App inherits Window {
         padding: 24px; spacing: 16px;
         Text { text: "A little inspiration for your next build"; color: root.theme.text-primary; font-size: 22px; font-weight: 600; wrap: word-wrap; }
         Text { text: "Practical guides for thoughtful, accessible native applications."; color: root.theme.text-secondary; wrap: word-wrap; }
-        list := KitContentList { theme: root.theme; height: 440px; items: root.items; generation: 1;
+        list := KitContentList { theme: root.theme; height: 440px; items: root.items; generation: root.generation;
             active-index: root.active-index;
             activate(token, generation) => { root.choose(token, generation); }
             navigate(step) => { root.move(step); }

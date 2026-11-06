@@ -9,3 +9,8 @@ pub use kit_slint::*;
 
 #[cfg(feature = "native")]
 pub use kit_native as native;
+
+#[cfg(feature = "native")]
+mod native_bindings;
+#[cfg(feature = "native")]
+pub use native_bindings::*;

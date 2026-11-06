@@ -12,7 +12,7 @@ permalink: "{{ 'guides/themes/' | localeUrl(locale) }}index.html"
 Un thème est une valeur `KitTheme`. Transmettez-la à chaque composant composé ; les valeurs publiques par défaut sont `KitThemes.light` et `KitThemes.dark`. Utilisez le même thème pour le fond et le texte de la fenêtre.
 
 ```slint
-import { KitTheme, KitThemes, KitButton, ControlSize, ControlWidth } from "@kit/kit.slint";
+import { KitTheme, KitThemes, KitButton, ControlSize, ControlWidth } from "@kit";
 
 export component Example inherits Window {
     preferred-width: 420px;
@@ -49,7 +49,7 @@ Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marqu
 Le kit fournit un seul système visuel inspiré de Tailwind, en modes clair et sombre. `KitThemes.light` et `.dark` définissent les surfaces ardoise, les actions indigo, les couleurs sémantiques, la typographie, les espacements, le focus, les élévations et les icônes Lucide. L’intégration standard `slint_kit_build::compile("ui/app.slint")` enregistre tout le nécessaire aux composants.
 
 ```slint
-import { KitThemes, KitThemeContext, KitButton } from "@kit/kit.slint";
+import { KitThemes, KitThemeContext, KitButton } from "@kit";
 
 export component Example inherits Window {
     preferred-width: 420px;
@@ -68,7 +68,7 @@ export component Example inherits Window {
 
 **Inter est une police optionnelle.** Importez `{ InterFont } from "@kit/fonts/inter.slint"`, puis réglez `default-font-family: InterFont.family` sur la fenêtre, comme les exemples documentaires. Sans cet import, le thème utilise la police de l’application. Les quatre graisses statiques totalisent environ 1,6 Mo de fichiers sources ; une application embarquée peut choisir une police adaptée à son périphérique.
 
-Pour ajouter des alias de bibliothèques applicatives, partez de `slint_kit_build::config_with_libraries(...)`, puis utilisez `slint_build::compile_with_config`. Le helper préserve les alias de l’application et réserve `kit`. La hauteur des composants reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
+Pour ajouter des alias de bibliothèques applicatives, partez de `slint_kit_build::config_with_libraries(...)`, puis utilisez `slint_kit_build::compile_with_config("ui/app.slint", config)`. Le helper préserve les alias de l’application et réserve `kit`. La hauteur des composants reste intrinsèque : contenu et padding peuvent demander davantage que la taille nominale.
 
 La palette dérive de Tailwind CSS sous MIT, Inter est sous SIL Open Font License et Lucide conserve les notices ISC/MIT. Préservez les [notices tierces](https://github.com/damione1/slint-kit/blob/main/THIRD-PARTY-NOTICES.md). Le rendu des ombres dépend du renderer ; les bordures conservent les limites des surfaces lorsqu’elles sont indisponibles.
 
@@ -87,7 +87,7 @@ Utilisez le thème pour l’identité partagée, `control-size` pour la densité
 Les groupes composés, sélecteurs, onglets et menus conservent leurs contrats de thème, taille et composition ; ce tableau ne promet pas les mêmes propriétés locales sur chaque conteneur. Les libellés, aides et erreurs gardent leurs rôles typographiques et ne prennent pas le `text-size` de l’éditeur.
 
 ```slint
-import { KitButton, ButtonIntent, KitThemeContext } from "@kit/kit.slint";
+import { KitButton, ButtonIntent, KitThemeContext } from "@kit";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 
 component ExportAction inherits KitButton {
@@ -114,7 +114,7 @@ export component Example inherits Window {
 Une région locale nécessite une transmission explicite aux enfants applicatifs :
 
 ```slint
-import { KitCard, KitButton, KitThemes } from "@kit/kit.slint";
+import { KitCard, KitButton, KitThemes } from "@kit";
 
 component DarkPanel inherits KitCard {
     theme: KitThemes.dark;
@@ -141,7 +141,7 @@ Un contrôle voisin sans thème explicite continue d’utiliser le contexte de l
 [Parcourir toutes les icônes Lucide et copier leur intégration](/fr/components/icon/).
 
 ```slint
-import { KitIcon, KitIconButton, IconPurpose } from "@kit/kit.slint";
+import { KitIcon, KitIconButton, IconPurpose } from "@kit";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 
 component Toolbar inherits HorizontalLayout {
@@ -187,3 +187,7 @@ Ce site propose des previews navigateur et des captures natives ; leurs légende
 Utilisez `KitAvatar` avec `AvatarInteraction.action` pour accéder à un profil : fournissez un nom d’action et traitez `activated`. Les avatars statiques restent des images. `KitBadge` et `KitStat` acceptent des glyphes `leading-icon` optionnels ; gardez le statut et la valeur lisibles. Les champs OTP soulignés utilisent toujours un seul éditeur natif. Alignez les `slots` visuels sur la longueur de code acceptée par l’hôte. Pour les infobulles des boutons Kit, liez `target-focused` à `focus-visible` afin de garder l’aide au survol sans ouvrir une projection clavier après un clic.
 
 Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, utilisé pour la saisie de codes. Les thèmes fournis embarquent et enregistrent JetBrains Mono Regular (OFL 1.1) via `@kit/fonts/monospace.slint`, afin que chiffres, lettres larges et points de masquage gardent la même chasse en natif et en WebAssembly. Le nom système générique `monospace` ne suffit pas sur tous les backends. Une police de code personnalisée doit être enregistrée, réellement à chasse fixe et couvrir l’alphabet ainsi que les glyphes de masquage. `KitTextField.text-cell-width` mesure le glyphe zéro réel pour aligner les emplacements de code.
+
+Pour des sliders dans une modale défilante, activez `KitScrollArea.pan-policy: children-first`. Un enfant interactif conserve son appui jusqu’au relâchement ; démarrez sur le fond ou le texte pour défiler. Ce déplacement est direct, sans inertie. Molette, barres et révélation du focus restent actives. La politique `native` par défaut conserve l’arbitrage Slint.
+
+Pour un contrôle sélectionné à fond accentué personnalisé, `KitThemes.selected-inset-focus(theme)` utilise la couleur `on-accent` du thème avec la géométrie partagée d’anneau intérieur. `KitThemes.inset-focus(theme)` conserve la couleur de focus habituelle sur les surfaces neutres.

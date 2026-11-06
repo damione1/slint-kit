@@ -222,3 +222,59 @@ mod tests {
         assert!(GraphemeLimit::new(1).validate("👩‍💻").is_ok());
     }
 }
+
+/// Plain application text, separate from identifiers and validated addresses.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TextValue(String);
+impl TextValue {
+    pub fn new(text: impl Into<String>) -> Self {
+        Self(text.into())
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+/// A single address accepted by the shared HTML email constraint engine.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EmailAddress(String);
+impl EmailAddress {
+    pub fn parse(text: &str) -> DraftValue<Self> {
+        validated_text(text, crate::HtmlInputKind::Email, Self)
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+/// An absolute URL accepted by the shared HTML URL constraint engine.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WebUrl(String);
+impl WebUrl {
+    pub fn parse(text: &str) -> DraftValue<Self> {
+        validated_text(text, crate::HtmlInputKind::Url, Self)
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+fn validated_text<T>(
+    text: &str,
+    kind: crate::HtmlInputKind,
+    construct: impl FnOnce(String) -> T,
+) -> DraftValue<T> {
+    if text.is_empty() {
+        return DraftValue::Empty;
+    }
+    let constraints = crate::HtmlConstraints {
+        kind,
+        ..Default::default()
+    };
+    let canonical = constraints.sanitize(text);
+    if constraints
+        .validate(&canonical, crate::HtmlInputState::default())
+        .valid()
+    {
+        DraftValue::Parsed(construct(canonical))
+    } else {
+        DraftValue::Invalid(ParseIssue::InvalidSyntax)
+    }
+}

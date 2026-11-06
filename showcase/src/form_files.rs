@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Window-local native resource requests and exact sRGB editing.
 use super::ui;
-use kit::{
-    AlphaPolicy, DirectoryHandle, DirectoryRequest, DraftValue, FileHandle, FileLocation,
-    FileRequest, HostCapability, HostError, HostRequestController, HostRequestTicket, NumberLocale,
-    NumericBounds, SelectionOutcome, SrgbColor, parse_integer,
-};
 use slint::winit_030::{WinitWindowAccessor, winit::event::WindowEvent};
 use slint::{
     ComponentHandle, ModelRc, VecModel,
     language::{DragAction, DropEvent},
+};
+use slint_kit::{
+    AlphaPolicy, DirectoryHandle, DirectoryRequest, DraftValue, FileHandle, FileLocation,
+    FileRequest, HostCapability, HostError, HostRequestController, HostRequestTicket, NumberLocale,
+    NumericBounds, SelectionOutcome, SrgbColor, parse_integer,
 };
 use std::{cell::RefCell, path::Path, rc::Rc};
 
@@ -33,7 +33,7 @@ struct Resources {
 }
 impl Resources {
     fn new() -> Self {
-        let capabilities = kit::native::capabilities();
+        let capabilities = slint_kit::native::capabilities();
         Self {
             files: Vec::new(),
             generation: 1,
@@ -474,7 +474,7 @@ pub fn install(window: &ui::Showcase) {
     let forms = window.global::<ui::FormExamples>();
     // The host adapter below supplies Winit native paths. Other backends retain
     // the explicit capability outcome and their native file picker fallback.
-    forms.set_drop_capability(match kit::native::capabilities().drop {
+    forms.set_drop_capability(match slint_kit::native::capabilities().drop {
         HostCapability::Available => ui::DropCapability::Available,
         HostCapability::Unsupported => ui::DropCapability::Unsupported,
     });
@@ -511,13 +511,13 @@ pub fn install(window: &ui::Showcase) {
                 ticket
             };
             let selection = match mode {
-                ui::FileSelectionMode::Single => kit::FileSelectionMode::Single,
-                ui::FileSelectionMode::Multiple => kit::FileSelectionMode::Multiple,
+                ui::FileSelectionMode::Single => slint_kit::FileSelectionMode::Single,
+                ui::FileSelectionMode::Multiple => slint_kit::FileSelectionMode::Multiple,
             };
             let resources_async = resources.clone();
             let weak_async = weak.clone();
             if slint::spawn_local(async move {
-                let outcome = kit::native::pick_files(FileRequest {
+                let outcome = slint_kit::native::pick_files(FileRequest {
                     selection,
                     filters: Vec::new(),
                     suggested_name: None,
@@ -580,7 +580,7 @@ pub fn install(window: &ui::Showcase) {
             let resources_async = resources.clone();
             let weak_async = weak.clone();
             if slint::spawn_local(async move {
-                let outcome = kit::native::pick_directory(DirectoryRequest {
+                let outcome = slint_kit::native::pick_directory(DirectoryRequest {
                     title: Some("Choose a project folder".into()),
                 })
                 .await;

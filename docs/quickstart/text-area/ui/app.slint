@@ -1,31 +1,21 @@
-export { KitThemeContext, KitThemes } from "@kit/kit.slint";
-import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit/kit.slint";
-import { InterFont } from "@kit/fonts/inter.slint";
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit/kit.slint";
-import { KitTextArea, KitButton, KitThemes, ValidationPresentation } from "@kit/kit.slint";
+import { KitTheme, KitThemeContext, KitFieldDescription, LayoutSpace } from "@kit";
+
+import { KitTextArea, KitStack, KitButton, FieldCommit } from "@kit";
 export component App inherits Window {
-    in-out property <KitTheme> theme: KitThemeContext.current;
-    default-font-family: InterFont.family;
-    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
-    title: "Notes"; preferred-width: 520px; preferred-height: 520px;
-    max-width: 100000px; max-height: 100000px; background: root.theme.canvas;
-    in-out property <string> draft; in property <string> error; in property <string> accepted;
-    callback edited(string); callback commit(); callback blurred(); callback cancel();
+    max-width: 100000px; max-height: 100000px;
+    preferred-width: 520px; preferred-height: 520px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme <=> KitThemeContext.current;
+    title: "Biography";
+    callback committed(FieldCommit);
+    KitStack { inset: LayoutSpace.roomy;
+        control := KitTextArea {
+            label: "Biography"; text: "I build native applications."; required: true; spec-key: "value";
 
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        control := KitTextArea { theme: root.theme;
-            required: true;
-            label: "Project notes"; description: "Capture ideas, context, and next steps. Your draft stays editable until accepted."; text <=> root.draft; error: root.error;
-            validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-
-            edited(value) => { root.edited(value); }
-            commit-requested(value) => { root.commit(); }
-            cancelled => { root.cancel(); }
-            focus-observed(focused) => { if (!focused) { root.blurred(); } }
-
+            committed(value) => { root.committed(value); }
         }
-        KitButton { theme: root.theme; text: "Accept"; activated => { root.commit(); } }
-        Text { text: root.error == "" ? "Draft ready · edit freely, then choose Accept" : root.error; color: root.theme.text-primary; wrap: word-wrap; }
+        KitButton { text: "Apply"; activated => { control.commit(); } }
+        KitFieldDescription { text: "Accepted: " + control.accepted-text; }
+        KitButton { text: "Cancel edit"; activated => { control.cancel-edit(); } }
     }
 }

@@ -1,6 +1,7 @@
+import { FieldCommit, ZonedDateTimeCommit } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent } from "@kit/theme.slint";
-import { KitCard } from "@kit/display.slint";
+import { KitCard, Tone } from "@kit/display.slint";
 import { KitButton } from "@kit/button.slint";
 import { FieldAccess, ValidationPresentation, StepDirection, CheckState, RangeThumb, FileSelectionMode, CalendarNavigation, TimePrecision, ColorAlphaMode } from "@kit/shared-contracts.slint";
 import { NavigationStep, SelectState, OptionRow, FocusRequest } from "@kit/contracts.slint";
@@ -8,11 +9,12 @@ import { KitField, KitFieldSet, KitFieldLabel, KitFieldDescription, KitFieldErro
 import { KitTextField, KitEmailField, KitUrlField, KitTelephoneField, KitPasswordField, KitSearchField, KitTextArea, KitOtpField, KitMaskedField, PhoneNumberMode } from "@kit/input.slint";
 import { NumberInputFormat } from "@kit/shared-contracts.slint";
 import { KitIntegerField, KitDecimalField, KitMoneyField, KitPercentField, KitQuantityField, KitDurationField, KitNumberStepper } from "@kit/number.slint";
-import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, ChoiceRow, ChipRow, SearchPresentation } from "@kit/choice.slint";
-import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CivilDateView, DateRangePhase } from "@kit/calendar.slint";
+import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSlider, KitRangeSlider, KitRating, KitChipButton, ChoiceRow, ChipRow, SearchPresentation, SliderPresentation } from "@kit/choice.slint";
+import { KitCalendar, KitDateField, KitDatePicker, KitDateRangePicker, KitMonthField, KitYearField, KitIsoWeekField, CalendarDay, CivilDateView, DateRangeView, DateRangePhase } from "@kit/calendar.slint";
 import { KitTimeField, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedTimePresentation, AmbiguousTimeChoice, TimeSegment, TimeAdjustment, ClockFormat } from "@kit/datetime.slint";
 import { KitFilePicker, KitDirectoryPicker, KitFileDropZone, FileViewEntry, HostRequestPresentation, DropCapability } from "@kit/files.slint";
 import { KitColorPicker, ColorChannel, SrgbColorView } from "@kit/color.slint";
+import { KitKeypad, KitCodeIndicator } from "@kit/keypad.slint";
 
 export enum ShowcasePage { gallery, profile, billing, choices, schedule, files, display, navigation, data }
 export enum TextExample { name, email, website, phone, password, search, biography, otp, reference }
@@ -113,6 +115,8 @@ export global FormExamples {
     in-out property <string> duration-error;
     in-out property <int> duration-count;
     in-out property <string> stepper-text;
+    // The gallery counts PIN digits only; it never keeps the digits.
+    in-out property <int> pin-entered;
     in-out property <ValidationPresentation> stepper-validation: ValidationPresentation.pristine;
     in-out property <string> stepper-error;
     in-out property <int> stepper-count;
@@ -184,29 +188,21 @@ export global FormExamples {
     in-out property <string> time-text;
     in-out property <string> time-error;
     in-out property <LocalTimeView> accepted-time;
-    callback date-edited(DateExample,string); callback date-commit(DateExample,string);
-    callback calendar-navigate(CalendarNavigation); callback calendar-choose(CalendarDay);
-    callback time-adjust(TimeSegment,TimeAdjustment);
+    callback date-commit(DateExample,FieldCommit);
+    callback calendar-chosen(CivilDateView);
     in-out property <ClockFormat> time-format: ClockFormat.twenty-four-hour;
     callback time-format-changed(ClockFormat);
-    in-out property <[CalendarDay]> range-days;
-    in-out property <int> range-active;
-    in-out property <string> range-title;
-    callback date-range-navigate(CalendarNavigation);
-    in-out property <DateRangePhase> range-phase: DateRangePhase.choosing-start;
     in-out property <string> date-range-summary;
-    in-out property <string> date-range-error;
-    callback date-range-choose(CalendarDay); callback date-range-apply(); callback date-range-cancel();
+    callback date-range-chosen(DateRangeView);
     in-out property <string> local-date-text: "2026-10-16";
     in-out property <string> local-time-text: "09:30";
     in-out property <string> local-error;
-    callback local-commit(LocalDateTimeDraft);
+    callback local-chosen(LocalDateTimeView);
     in-out property <string> zone-date-text: "2026-11-01";
     in-out property <string> zone-time-text: "01:30";
     in-out property <string> zone-text: "America/Toronto";
-    in-out property <ZonedTimePresentation> zone-resolution: ZonedTimePresentation.unresolved;
     in-out property <string> zone-message;
-    callback zone-edited(); callback zone-resolve(ZonedDateTimeDraft); callback ambiguity-chosen(AmbiguousTimeChoice);
+    callback zone-chosen(ZonedDateTimeCommit);
     in-out property <[FileViewEntry]> selected-files;
     in-out property <HostRequestPresentation> file-state: HostRequestPresentation.idle;
     in-out property <HostRequestPresentation> folder-state: HostRequestPresentation.idle;
@@ -497,6 +493,19 @@ export component FormGallery inherits VerticalLayout {
             view-options := KitSegmentedControl {control-size:root.control-size;theme:root.theme;label:"View mode";rows:FormExamples.segmented-options;active-token:FormExamples.segmented-active;generation:FormExamples.choice-generation;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.segmented,step);}activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
         }
         KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"View mode chips";}
+            FlexboxLayout { spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; alignment: start;
+                for row in FormExamples.segmented-options: KitChipButton {control-size:root.control-size;theme:root.theme;label:row.label;tone:Tone.information;selected:row.selected;disabled:row.disabled;token:row.token;generation:FormExamples.choice-generation;activate(token,generation)=>{FormExamples.choice-activate(ChoiceExample.segmented,token,generation);}}
+            }
+        }
+        KitField { theme: root.theme;
+            KitFieldLabel {theme:root.theme;text:"Approval PIN";focus-requested => { pin-keypad.take-focus(); }}
+            KitCodeIndicator {theme:root.theme;length:4;filled:FormExamples.pin-entered;label:FormExamples.pin-entered + " of 4 digits entered";}
+            HorizontalLayout { alignment: start;
+                pin-keypad := KitKeypad {theme:root.theme;access:FormExamples.access;label:"Approval PIN";confirm-label:"Approve";can-confirm:FormExamples.pin-entered == 4;digit(value)=>{FormExamples.pin-entered = min(4, FormExamples.pin-entered + 1);}delete-requested=>{FormExamples.pin-entered = max(0, FormExamples.pin-entered - 1);}confirm=>{FormExamples.pin-entered = 0;}}
+            }
+        }
+        KitField { theme: root.theme;
             KitFieldLabel {theme:root.theme;text:"Export formats";focus-requested => { export-options.take-focus(); }}
             export-options := KitToggleGroup {control-size:root.control-size;active-token:FormExamples.toggle-active;navigate(step)=>{FormExamples.choice-navigate(ChoiceExample.toggle,step);}theme:root.theme;label:"Export formats";rows:FormExamples.toggle-options;generation:FormExamples.choice-generation;toggled(token,generation)=>{FormExamples.choice-activate(ChoiceExample.toggle,token,generation);}}
         }
@@ -524,6 +533,7 @@ export component FormGallery inherits VerticalLayout {
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Adjust with the pointer, keyboard or an exact whole number."; }
         KitFieldLabel { theme: root.theme; text: "Allocation · " + FormExamples.slider-label; }
         KitSlider {theme:root.theme;control-size:root.control-size;label:"Allocation";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
+        KitSlider {theme:root.theme;control-size:root.control-size;presentation:SliderPresentation.filled;label:"Allocation, filled";position:FormExamples.slider-position;value-label:FormExamples.slider-label;position-requested(value)=>{FormExamples.slider-position-requested(value);}navigate(step)=>{FormExamples.slider-navigate(step);}gesture-started=>{FormExamples.slider-gesture(SliderGesture.started);}committed=>{FormExamples.slider-gesture(SliderGesture.committed);}cancelled=>{FormExamples.slider-gesture(SliderGesture.cancelled);}}
         KitIntegerField { number-format: FormExamples.locale == LocaleExample.french-canada || FormExamples.locale == LocaleExample.french-france ? NumberInputFormat.decimal-comma : NumberInputFormat.canonical;control-size:root.control-size;theme:root.theme;label:"Allocation, precise value (0–100)";error:FormExamples.slider-error;validation:FormExamples.slider-error == "" ? ValidationPresentation.pristine : ValidationPresentation.invalid;text <=> FormExamples.slider-text;commit-requested(text)=>{FormExamples.slider-text-commit(text);}focus-observed(focused)=>{if (!focused) {FormExamples.slider-text-commit(self.text);}}}
         KitFieldLabel { theme: root.theme; text: "Preferred range · " + FormExamples.range-lower-label + " – " + FormExamples.range-upper-label; }
         KitRangeSlider {theme:root.theme;control-size:root.control-size;label:"Preferred range";lower-position:FormExamples.range-lower;upper-position:FormExamples.range-upper;lower-label:FormExamples.range-lower-label;upper-label:FormExamples.range-upper-label;position-requested(thumb,value)=>{FormExamples.range-position-requested(thumb,value);}navigate(thumb,step)=>{FormExamples.range-navigate(thumb,step);}gesture-started(thumb)=>{FormExamples.range-gesture(SliderGesture.started);}committed(thumb)=>{FormExamples.range-gesture(SliderGesture.committed);}cancelled(thumb)=>{FormExamples.range-gesture(SliderGesture.cancelled);}}
@@ -541,36 +551,37 @@ export component FormGallery inherits VerticalLayout {
     if root.page == ShowcasePage.schedule: ExamplePanel {
         theme:root.theme;
         SectionTitle {theme:root.theme;text:"Date picker";}
-        KitDatePicker {control-size:root.control-size;theme:root.theme;label:"Project date";text <=> FormExamples.date-text;error:FormExamples.date-error;accepted-date:FormExamples.accepted-date;days:FormExamples.calendar-days;active-index:FormExamples.calendar-active;title:FormExamples.calendar-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];edited(text)=>{FormExamples.date-edited(DateExample.date,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.date,text);}navigate(step)=>{FormExamples.calendar-navigate(step);}choose(day)=>{FormExamples.calendar-choose(day);}}
+        KitDatePicker {control-size:root.control-size;theme:root.theme;label:"Project date";error:FormExamples.date-error;text <=> FormExamples.date-text;accepted-date <=> FormExamples.accepted-date;chosen(date)=>{FormExamples.calendar-chosen(date);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Date range"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Choose a draft range, then apply or cancel."; }
-        KitDateRangePicker {control-size:root.control-size;theme:root.theme;days:FormExamples.range-days;active-index:FormExamples.range-active;title:FormExamples.range-title;weekdays:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];phase:FormExamples.range-phase;summary:FormExamples.date-range-summary;error:FormExamples.date-range-error;navigate(step)=>{FormExamples.date-range-navigate(step);}choose(day)=>{FormExamples.date-range-choose(day);}apply-requested=>{FormExamples.date-range-apply();}cancelled=>{FormExamples.date-range-cancel();}}
+        KitDateRangePicker {control-size:root.control-size;theme:root.theme;focused:{year:2026,month:10,day:16};summary:FormExamples.date-range-summary;chosen(range)=>{FormExamples.date-range-chosen(range);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Month, year & week"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Civil date values remain independent of a time zone."; }
-        KitMonthField {control-size:root.control-size;theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;edited(text)=>{FormExamples.date-edited(DateExample.month,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.month,text);}}
-        KitYearField {control-size:root.control-size;theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;edited(text)=>{FormExamples.date-edited(DateExample.year,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.year,text);}}
-        KitIsoWeekField {control-size:root.control-size;theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;edited(text)=>{FormExamples.date-edited(DateExample.week,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.week,text);}}
+        KitMonthField {control-size:root.control-size;theme:root.theme;label:"Budget month";text <=> FormExamples.month-text;error:FormExamples.month-error;spec-key:"schedule-month";committed(value)=>{FormExamples.date-commit(DateExample.month,value);}}
+        KitYearField {control-size:root.control-size;theme:root.theme;label:"Financial year";text <=> FormExamples.year-text;error:FormExamples.year-error;spec-key:"schedule-year";committed(value)=>{FormExamples.date-commit(DateExample.year,value);}}
+        KitIsoWeekField {control-size:root.control-size;theme:root.theme;label:"ISO week";text <=> FormExamples.week-text;error:FormExamples.week-error;spec-key:"schedule-week";committed(value)=>{FormExamples.date-commit(DateExample.week,value);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Time picker"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Switch between 12-hour and 24-hour presentation."; }
         KitButton {control-size:root.control-size;theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
-        KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;edited(text)=>{FormExamples.date-edited(DateExample.time,text);}commit-requested(text)=>{FormExamples.date-commit(DateExample.time,text);}adjust(segment,direction)=>{FormExamples.time-adjust(segment,direction);}}
+        KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;spec-key:FormExamples.time-format == ClockFormat.twelve-hour ? "schedule-time12" : "schedule-time24";committed(value)=>{FormExamples.date-commit(DateExample.time,value);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Local date & time"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "A local meeting time needs a time zone before it is an instant."; }
-        KitDateTimeField {control-size:root.control-size;theme:root.theme;label:"Local meeting";date-text <=> FormExamples.local-date-text;time-text <=> FormExamples.local-time-text;date-error:FormExamples.local-error;commit-requested(draft)=>{FormExamples.local-commit(draft);}}
+        KitDateTimeField {control-size:root.control-size;theme:root.theme;label:"Local meeting";date-text <=> FormExamples.local-date-text;time-text <=> FormExamples.local-time-text;date-error:FormExamples.local-error;chosen(value)=>{FormExamples.local-chosen(value);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Time zone resolution"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Resolve a local time explicitly, including ambiguous and missing times."; }
-        KitZonedDateTimeField {control-size:root.control-size;theme:root.theme;label:"Meeting in a time zone";date-text <=> FormExamples.zone-date-text;time-text <=> FormExamples.zone-time-text;zone-text <=> FormExamples.zone-text;resolution:FormExamples.zone-resolution;resolution-message:FormExamples.zone-message;edited(draft)=>{FormExamples.zone-edited();}resolve-requested(draft)=>{FormExamples.zone-resolve(draft);}ambiguity-chosen(choice)=>{FormExamples.ambiguity-chosen(choice);}}
-        KitButton { theme: root.theme; control-size: root.control-size; text: "Resolve time"; intent: ButtonIntent.primary; activated => { FormExamples.zone-resolve({date:FormExamples.zone-date-text,time:FormExamples.zone-time-text,zone:FormExamples.zone-text}); } }
+        zoned := KitZonedDateTimeField {control-size:root.control-size;theme:root.theme;label:"Meeting in a time zone";date-text <=> FormExamples.zone-date-text;time-text <=> FormExamples.zone-time-text;zone-text <=> FormExamples.zone-text;chosen(value)=>{FormExamples.zone-chosen(value);}}
+        KitButton { theme: root.theme; control-size: root.control-size; text: "Resolve time"; intent: ButtonIntent.primary; activated => { zoned.resolve(); } }
+        KitFieldDescription { theme: root.theme; text: FormExamples.zone-message; }
     }
     if root.page == ShowcasePage.files: ExamplePanel {
         theme:root.theme;

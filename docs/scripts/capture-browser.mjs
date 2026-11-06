@@ -27,7 +27,7 @@ const server=http.createServer(async(request,response)=>{
     const file=path.resolve(docs,'.generated/web','.'+decodeURIComponent(url.pathname));
     assert(file.startsWith(path.resolve(docs,'.generated/web')+path.sep));
     const content=await fs.readFile(file);
-    response.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});
+    response.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'public, max-age=31536000, immutable'});
     response.end(content);
   }catch{response.writeHead(404);response.end();}
 });
@@ -56,7 +56,13 @@ try{
  await call('Emulation.setDeviceMetricsOverride',{width:1400,height:1200,deviceScaleFactor:2,mobile:false});
  const version=await call('Browser.getVersion');
  for(const scene of plan){
-  const url=`${origin}/capture/?scene=${encodeURIComponent(scene.id)}&component=${encodeURIComponent(scene.slug)}`;
+  const sceneStarted=Date.now();
+  const recipe=scene.recipe;
+  assert(recipe && ['light','dark','tailwind'].includes(recipe.theme),'Missing scene presentation');
+  const parameters=new URLSearchParams({scene:scene.id,component:scene.slug,kind:scene.kind,
+    locale:recipe.locale,theme:recipe.theme==='dark'?'dark':'light',textScale:String(recipe.textScale),
+    viewport:recipe.viewport.join('x')});
+  const url=`${origin}/capture/?${parameters}`;
   await call('Page.navigate',{url});
   let ready=false;
   for(let i=0;i<600;i++){
@@ -65,6 +71,7 @@ try{
    if(state.ready){ready=true;break}await pause(100);
   }
   assert(ready,`Canvas not ready: ${scene.id}`);
+  const readyMilliseconds=Date.now()-sceneStarted;
   await pause(150);
   const rectangle=await evaluate('(()=>{const c=document.querySelector("canvas"),r=c.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height,pixels:[c.width,c.height],density:devicePixelRatio}})()');
   assert.equal(rectangle.density,2);assert(rectangle.width>0&&rectangle.height>0);
@@ -95,8 +102,8 @@ try{
   const png=Buffer.from(screenshot.data,'base64');
   assert.equal(png.readUInt32BE(16),Math.round(rectangle.width*2));assert.equal(png.readUInt32BE(20),Math.round(rectangle.height*2));
   await fs.writeFile(destination,png);
-  await fs.writeFile(destination+'.environment.json',JSON.stringify({sceneKey:scene.sceneKey,key:scene.key,capturedAt:new Date().toISOString(),backend:'browser',renderer:'femtovg',chrome:version.product,platform:process.platform,density:2,canvasPixels:rectangle.pixels}));
-  console.log(`Browser ×2: ${scene.id}`);
+  await fs.writeFile(destination+'.environment.json',JSON.stringify({sceneKey:scene.sceneKey,key:scene.key,capturedAt:new Date().toISOString(),backend:'browser',renderer:'femtovg',chrome:version.product,platform:process.platform,density:2,canvasPixels:rectangle.pixels,presentation:recipe,bundleBase:scene.base,readyMilliseconds}));
+  console.log(`Browser ×2: ${scene.id} (${readyMilliseconds}ms to ready)`);
  }
 }finally{
  for(const item of pending.values())clearTimeout(item.timeout);

@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitKeypad, KitCodeIndicator, KitTheme, KitThemes, KitMetrics, TypographyRole } from "@kit";
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
+    title: "Keypad";
+    preferred-width: 440px; preferred-height: 560px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    // The example counts digits only; a real host keeps the code in Rust.
+    in-out property <int> entered;
+    in-out property <string> status;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Locker code"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
+        Text { text: "Enter the four-digit code printed on your receipt."; color: root.theme.text-secondary; wrap: word-wrap; }
+        KitCodeIndicator { theme: root.theme; length: 4; filled: root.entered; label: root.entered + " of 4 digits entered"; }
+        HorizontalLayout { alignment: center;
+            KitKeypad { theme: root.theme; label: "Locker code"; confirm-label: "Open locker"; can-confirm: root.entered == 4;
+                activation-started => { root.status = "Key pressed"; }
+                digit(value) => { root.entered = min(4, root.entered + 1); }
+                delete-requested => { root.entered = max(0, root.entered - 1); }
+                confirm => { root.status = "Code submitted for checking"; root.entered = 0; }
+            }
+        }
+        if root.status != "": Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }
+    }
+}

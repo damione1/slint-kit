@@ -1,37 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use slint::ComponentHandle;
-use slint_kit::{Ownership, SelectOption, SelectionIntent};
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+slint::include_modules!();
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 enum Destination { Overview, Activity, Settings }
-impl Destination {
-    fn label(self) -> &'static str {
-        match self { Self::Overview => "Overview", Self::Activity => "Activity", Self::Settings => "Settings" }
-    }
-}
-
-mod ui { slint::include_modules!(); }
 fn main() -> Result<(), slint::PlatformError> {
-    let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
-    let selection = slint_kit::bind_select!(ui, app, vec![
-        SelectOption::new(Destination::Overview, "Overview"),
-        SelectOption::new(Destination::Activity, "Activity"),
-        SelectOption::new(Destination::Settings, "Settings"),
-    ], Some(Destination::Overview), Ownership::Local);
-    selection.open();
-    let weak = app.as_weak();
-    selection.on_intent(move |intent| {
-        if let Some(app) = weak.upgrade() {
-            app.set_selected_label(match intent {
-                SelectionIntent::Commit(key) => key.label(),
-                SelectionIntent::Clear => "No selection",
-            }.into());
-        }
-    });
-    let persistent = selection.clone();
-    app.on_select_activate(move |token, generation| {
-        persistent.activate(token, generation);
-        persistent.open();
-    });
+    let app = App::new()?;
+    slint_kit::install(&app);
+    let choices = slint_kit::Choices::new([(Destination::Overview, "Overview"), (Destination::Activity, "Activity"), (Destination::Settings, "Settings")]).expect("unique destination keys");
+    app.set_options(choices.model());
+    app.set_selected(choices.selection(&Destination::Overview).expect("destination exists"));
+    app.on_destination_chosen(move |row| { if let Some(key) = choices.accept(row) { println!("Destination: {key:?}"); } });
     app.run()
 }

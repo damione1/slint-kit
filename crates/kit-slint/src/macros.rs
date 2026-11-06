@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#![forbid(unsafe_code)]
 /// Bind the conventional window contract to a weak, window-local controller.
 ///
 /// `ui` is the module containing `slint::include_modules!()`. Its window exposes
 /// `rows`, `select-state` and select-open/navigate/activate/dismiss/query/typeahead
 /// callbacks. Payload conversion remains exhaustive and compile-time checked.
+///
+/// Deprecated compatibility API: use `Choices` and the component's
+/// `options`/`selected`/`chosen` contract with `slint_kit::install` instead.
 #[macro_export]
 macro_rules! bind_select {
     ($ui:ident, $window:expr, $options:expr, $selected:expr, $ownership:expr) => {{

@@ -1,70 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 use slint::ComponentHandle;
-use std::{cell::RefCell, rc::Rc};
-mod ui {
-    slint::include_modules!();
-}
-#[derive(Clone, Copy, PartialEq)]
-struct FileId(i32);
-struct Entry {
-    id: FileId,
-    name: &'static str,
-    detail: &'static str,
-}
-struct Files {
-    generation: i32,
-    entries: Vec<Entry>,
-}
-fn publish(app: &ui::App, state: &Files) {
-    app.set_entries(slint::ModelRc::new(slint::VecModel::from(
-        state
-            .entries
-            .iter()
-            .map(|entry| ui::FileViewEntry {
-                token: entry.id.0,
-                generation: state.generation,
-                name: entry.name.into(),
-                detail: entry.detail.into(),
-                removable: true,
-            })
-            .collect::<Vec<_>>(),
-    )));
-    app.set_status(format!("{} selected files", state.entries.len()).into());
-}
+use slint_kit::{KeyedModel, event2, ui};
+slint::include_modules!();
+#[derive(Clone, PartialEq, Eq, Hash)] struct ResourceId(&'static str);
 fn main() -> Result<(), slint::PlatformError> {
-    let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
-    let state = Rc::new(RefCell::new(Files {
-        generation: 1,
-        entries: vec![
-            Entry {
-                id: FileId(11),
-                name: "Project brief.pdf",
-                detail: "PDF document · 248 KB",
-            },
-            Entry {
-                id: FileId(23),
-                name: "Research notes.md",
-                detail: "Markdown · 12 KB",
-            },
-            Entry {
-                id: FileId(37),
-                name: "Interface preview.png",
-                detail: "PNG image · 1.4 MB",
-            },
-        ],
-    }));
-    publish(&app, &state.borrow());
-    let weak = app.as_weak();
-    app.on_remove(move |token, generation| {
-        if let Some(app) = weak.upgrade() {
-            let mut state = state.borrow_mut();
-            if state.generation != generation {
-                return;
-            }
-            state.entries.retain(|entry| entry.id != FileId(token));
-            state.generation = state.generation.checked_add(1).expect("view generation");
-            publish(&app, &state);
-        }
-    });
+    let app = App::new()?;
+    slint_kit::install(&app);
+    let files = KeyedModel::new([(ResourceId("brief"), ui::FileViewEntry {name: "Brief.pdf".into(), detail: "Project document".into(), removable: true, ..Default::default()}), (ResourceId("photo"), ui::FileViewEntry {name: "Reference.png".into(), removable: true, ..Default::default()})]).unwrap();
+    app.set_entries(files.model());
+    app.on_remove(event2(&app, move |app, token, generation| { if let Some(key) = files.remove_fenced(token, generation) { app.set_status(format!("Removed: {}", key.0).into()); } }));
     app.run()
 }

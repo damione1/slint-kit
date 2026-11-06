@@ -3,8 +3,8 @@
 use crate::ui::{
     EditorStatus, ProjectFilter, SelectionRef, Showcase, WorkspaceDraft, WorkspaceProject,
 };
-use kit::{HtmlConstraints, HtmlInputKind, HtmlInputState};
 use slint::{ComponentHandle, Model, SharedString};
+use slint_kit::{HtmlConstraints, HtmlInputKind, HtmlInputState};
 use std::{cell::RefCell, rc::Rc, time::Duration};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -279,7 +279,7 @@ mod tests {
     fn setup() -> Showcase {
         i_slint_backend_testing::init_no_event_loop();
         let window = Showcase::new().unwrap();
-        kit::init_form_validation!(ui, window);
+        slint_kit::install(&window);
         window.set_product_workspace(true);
         window.set_workspace_page(ui::WorkspacePage::Projects);
         install(&window);

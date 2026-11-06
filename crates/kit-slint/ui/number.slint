@@ -1,3 +1,5 @@
+import { Ownership, CommitPolicy } from "shared-contracts.slint";
+import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitValidityState } from "validation.slint";
 import { NumberInputFormat } from "shared-contracts.slint";
@@ -21,6 +23,16 @@ export component KitQuantityField inherits KitDecimalField { }
 export component KitDurationField inherits KitDecimalField { }
 
 export component KitNumberStepper inherits KitField {
+    in property <string> spec-key;
+    in property <Ownership> ownership: Ownership.local;
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    out property <FieldState> field-state: editor.field-state;
+    out property <string> accepted-text: editor.accepted-text;
+    public function acknowledge(value: FieldValue) { editor.acknowledge(value); }
+    callback committed(FieldCommit);
+    public function commit() { editor.commit(); }
+    public function cancel-edit() { editor.cancel-edit(); }
+
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -64,6 +76,7 @@ export component KitNumberStepper inherits KitField {
     HorizontalLayout {
         spacing: KitMetrics.inline-gap(root.theme);
         editor := KitDecimalField {
+            ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
             show-validation-message: false; error: root.error;
             required: root.required; min: root.min; max: root.max; step: root.step;
             number-format: root.number-format; default-value: root.default-value;
@@ -86,7 +99,7 @@ export component KitNumberStepper inherits KitField {
             min-width: self.preferred-width;
             disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
             accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
-            activated => { root.step-requested(direction); }
+            activated => { editor.step-number(direction); root.step-requested(direction); }
             Rectangle {
                 KitIcon {
                 theme: root.theme; control-size: root.control-size;

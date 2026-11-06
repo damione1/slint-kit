@@ -4,9 +4,10 @@ pub mod ui {
     slint::include_modules!();
 }
 use slint::{ComponentHandle, Model, SharedString};
+use slint_kit::ui::SelectionRef;
 use slint_kit::{HtmlConstraints, HtmlInputKind, HtmlInputState};
 use std::{cell::RefCell, rc::Rc, time::Duration};
-use ui::{App, EditorStatus, ProjectFilter, SelectionRef, WorkspaceDraft, WorkspaceProject};
+use ui::{App, EditorStatus, ProjectFilter, WorkspaceDraft, WorkspaceProject};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct ProjectId(i32);
@@ -273,7 +274,7 @@ pub fn install(window: &App) {
 
 pub fn create() -> Result<ui::App, slint::PlatformError> {
     let app = ui::App::new()?;
-    slint_kit::init_form_validation!(ui, app);
+    slint_kit::install(&app);
     install(&app);
     Ok(app)
 }
