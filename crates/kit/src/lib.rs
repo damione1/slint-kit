@@ -61,3 +61,10 @@ pub use kit_native as native;
 mod native_bindings;
 #[cfg(feature = "native")]
 pub use native_bindings::*;
+
+// Keep generated Slint implementation in its own test-only module; the native
+// adapter retains forbid(unsafe_code), including its handwritten tests.
+#[cfg(all(test, feature = "native"))]
+mod native_test_fixture {
+    slint::slint! { export component FileBindingTestWindow inherits Window {} }
+}

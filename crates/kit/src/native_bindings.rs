@@ -417,8 +417,8 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::native_test_fixture::FileBindingTestWindow;
     use slint::Model;
-    slint::slint! { export component FileBindingTestWindow inherits Window {} }
     #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();
