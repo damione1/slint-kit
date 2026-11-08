@@ -46,6 +46,20 @@ fn project(value: Result<SrgbColor, ParseIssue>, mode: AlphaPolicy) -> ui::Color
     }
 }
 pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
+    service.on_color_wheel_position(|value| {
+        let Ok(value) = SrgbColor::try_from(value) else { return ui::ColorWheelPosition::default(); };
+        let hsv = slint::Color::from_rgb_u8(value.red, value.green, value.blue).to_hsva();
+        let (hue, saturation) = (hsv.hue, hsv.saturation);
+        let angle = hue.to_radians();
+        ui::ColorWheelPosition { x: angle.sin() * saturation, y: -angle.cos() * saturation, hue, saturation }
+    });
+    service.on_color_wheel(|x, y| {
+        if !x.is_finite() || !y.is_finite() { return ui::ColorResult::default(); }
+        let saturation = x.hypot(y).min(1.0);
+        let hue = x.atan2(-y).to_degrees().rem_euclid(360.0);
+        wheel_color(hue, saturation)
+    });
+    service.on_color_hue(wheel_color);
     service.on_color_format(|value, mode| project(value.try_into(), policy(mode)).text);
     service.on_color_validate(|value, mode| project(value.try_into(), policy(mode)));
     service.on_color_parse(|text, mode| {
@@ -87,4 +101,34 @@ pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
         };
         project(update(), policy(mode))
     });
+}
+
+// The wheel is the full-value hue/saturation plane; light intensity remains a
+// separate host capability. This computes a color choice, never an observation.
+fn wheel_color(hue: f32, saturation: f32) -> ui::ColorResult {
+    if !hue.is_finite() || !saturation.is_finite() || !(0.0..=360.0).contains(&hue) || !(0.0..=1.0).contains(&saturation) {
+        return ui::ColorResult::default();
+    }
+    let color = slint::Color::from_hsva(hue.rem_euclid(360.0), saturation, 1.0, 1.0);
+    project(Ok(SrgbColor { red: color.red(), green: color.green(), blue: color.blue(), alpha: 255 }), AlphaPolicy::Opaque)
+}
+
+#[cfg(test)]
+mod wheel_tests {
+    use super::*;
+
+    #[test]
+    fn spectrum_choices_are_opaque_and_invalid_coordinates_fail_closed() {
+        for (hue, channels) in [(0.0, [255,0,0]), (120.0, [0,255,0]), (240.0, [0,0,255]), (360.0, [255,0,0])] {
+            let result = wheel_color(hue, 1.0);
+            assert!(result.valid);
+            assert_eq!([result.value.red, result.value.green, result.value.blue], channels);
+            assert_eq!(result.value.alpha, 255);
+        }
+        let white = wheel_color(37.0, 0.0);
+        assert_eq!([white.value.red, white.value.green, white.value.blue], [255,255,255]);
+        for (hue, saturation) in [(f32::NAN,0.5), (f32::INFINITY,0.5), (-1.0,0.5), (361.0,0.5), (1.0,f32::NAN), (1.0,-0.1), (1.0,1.1)] {
+            assert!(!wheel_color(hue,saturation).valid);
+        }
+    }
 }

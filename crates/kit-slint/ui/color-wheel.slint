@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole } from "theme.slint";
+import { FieldAccess } from "contracts.slint";
+import { KitFieldService, SrgbColorView, ColorWheelPosition, ColorResult } from "field-service.slint";
+import { FocusOutline } from "focus.slint";
+
+// A controlled full-value HSV plane. Its callbacks edit a local color draft;
+// the owning form decides when to submit. Opaque RGB is the public value.
+export component KitColorWheel inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <SrgbColorView> value;
+    in property <bool> known: true;
+    in property <string> label: "Color";
+    // Change this epoch when rebinding an editor, even if its RGB is unchanged.
+    in property <int> generation;
+    callback chosen(SrgbColorView);
+    callback gesture-started();
+    callback committed();
+    callback cancelled();
+    private property <bool> dragging;
+    private property <ColorWheelPosition> position: KitFieldService.color-wheel-position(root.value);
+    private property <ColorResult> candidate;
+    private property <length> diameter: min(root.width, root.height);
+    min-width: root.theme.spacing.unit * 24;
+    preferred-width: root.theme.spacing.unit * 50;
+    preferred-height: root.width;
+    min-height: root.width;
+    max-height: root.width;
+    changed access => { root.dragging = false; }
+    changed generation => { root.dragging = false; }
+    function choose(x: float, y: float) {
+        if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
+        root.candidate = KitFieldService.color-wheel(x,y);
+        if (root.candidate.valid) { root.chosen(root.candidate.value); }
+    }
+    function move() {
+        if (root.diameter > 0px) {
+            root.choose(2 * pointer.mouse-x / root.diameter - 1, 2 * pointer.mouse-y / root.diameter - 1);
+        }
+    }
+    wheel := Rectangle {
+        width: root.diameter; height: root.diameter;
+        border-radius: root.diameter / 2;
+        // Spectrum colors are the selectable data, independent of UI theme.
+        background: @conic-gradient(hsv(0,1,1) 0deg, hsv(60,1,1) 60deg, hsv(120,1,1) 120deg, hsv(180,1,1) 180deg, hsv(240,1,1) 240deg, hsv(300,1,1) 300deg, hsv(360,1,1) 360deg);
+        Rectangle {
+            border-radius: parent.border-radius;
+            background: @radial-gradient(circle (root.diameter / 2), rgba(255,255,255,1) 0%, rgba(255,255,255,0) 100%);
+        }
+        if root.access == FieldAccess.disabled: Rectangle { border-radius: parent.border-radius; background: root.theme.disabled-fill.with-alpha(0.7); }
+        if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
+    }
+    if root.known: Rectangle {
+        width: root.theme.spacing.unit * 8; height: self.width;
+        x: (1 + root.position.x) * root.diameter / 2 - self.width / 2;
+        y: (1 + root.position.y) * root.diameter / 2 - self.height / 2;
+        border-radius: self.width / 2;
+        background: rgb(root.value.red,root.value.green,root.value.blue);
+        border-color: root.theme.surface; border-width: root.theme.shape.border-width-strong * 2;
+    }
+    keyboard := FocusScope {
+        enabled: root.access != FieldAccess.disabled;
+        accessible-role: slider;
+        accessible-label: root.label;
+        accessible-value: root.known ? "Hue \{round(root.position.hue)}°, saturation \{round(root.position.saturation * 100)}%" : "Unknown color";
+        accessible-enabled: root.access == FieldAccess.editable;
+        key-pressed(event) => {
+            if (root.access != FieldAccess.editable) { return reject; }
+            if (event.text == Key.Escape) { root.dragging = false; root.cancelled(); return accept; }
+            if (event.text == Key.Return) { root.committed(); return accept; }
+            if (event.text == Key.LeftArrow || event.text == Key.RightArrow || event.text == Key.UpArrow || event.text == Key.DownArrow) {
+                let hue = mod(root.position.hue + (event.text == Key.LeftArrow ? -1 : event.text == Key.RightArrow ? 1 : 0) + 360, 360);
+                let saturation = clamp(root.position.saturation + (event.text == Key.UpArrow ? 0.01 : event.text == Key.DownArrow ? -0.01 : 0), 0, 1);
+                root.candidate = KitFieldService.color-hue(hue,saturation);
+                if (root.candidate.valid) { root.chosen(root.candidate.value); }
+                return accept;
+            }
+            return reject;
+        }
+    }
+    pointer := TouchArea {
+        enabled: root.access == FieldAccess.editable;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                keyboard.focus(); root.dragging = true; root.gesture-started(); root.move();
+            }
+            if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.dragging) { root.dragging = false; root.committed(); }
+            if (event.kind == PointerEventKind.cancel && root.dragging) { root.dragging = false; root.cancelled(); }
+        }
+        moved => { if (self.pressed && root.dragging) { root.move(); } }
+    }
+}
