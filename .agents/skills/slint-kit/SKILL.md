@@ -141,3 +141,5 @@ For application state updates in callbacks, `action(&window, |window| ...)`, `ev
 For multi-selection, derive initial refs with `Choices::selections(&[K])`. `KeyedModel::sort_by`/`sorting_by` preserve stable keys and advance the interaction generation. Use `active_row`, `bind_active` and `update_active` to keep an editor attached to the current key; do not identify its record by a displayed row index. For customized compiler settings, pass the configuration to `slint_kit_build::compile_with_config(path, config)` so automatic service exports remain installed.
 
 For custom selection surfaces, `KitSelectKeyboard.move-active(NavigationStep)` and `type-ahead(string)` reuse its local session. Activate with `choose-option(token, generation)` and consume `chosen(OptionRow)` through `Choices::accept`; keep interaction admission on the calling surface.
+
+`KitColorWheel` is a controlled opaque RGB draft surface. Set `known: false` for missing observations and advance `generation` whenever its editor is rebound. Handle `chosen` locally and keep remote submission in an explicit form action. Full-value hue/saturation is independent of any device brightness capability.

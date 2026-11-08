@@ -15,6 +15,7 @@ export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
 export struct ColorWheelPosition { x: float, y: float, hue: float, saturation: float }
 export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
 export global KitFieldService {
+    in-out property <image> color-wheel-image;
     pure callback color-wheel-position(SrgbColorView) -> ColorWheelPosition;
     pure callback color-wheel(float, float) -> ColorResult;
     pure callback color-hue(float, float) -> ColorResult;

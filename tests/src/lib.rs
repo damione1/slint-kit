@@ -801,3 +801,5 @@ mod slider_paint;
 
 mod autonomous;
 mod keyed_model;
+
+mod color_wheel;
