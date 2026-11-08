@@ -20,6 +20,10 @@ The public documentation is [English at the site root](https://slint-kit.dev/) a
 
 For a registry consumer, inspect the source of its resolved package version when exact signatures matter; `cargo metadata --format-version 1` reports package manifest paths. The relative source links below are shortcuts when this skill lives in a toolkit checkout. If they are unavailable, use the installed package sources or the [published package source](https://docs.rs/crate/slint-kit-slint/0.7.1/source/). Keep runtime and build dependencies on the same `"0.7"` compatibility range.
 
+## Desktop and mobile targets
+
+The components can be used in desktop Rust applications (macOS, Windows, Linux) and in Android/iOS applications through Slint’s mobile backends. See [platform setup](https://slint-kit.dev/guides/project-setup/#desktop-and-mobile-targets) and its [French version](https://slint-kit.dev/fr/guides/project-setup/#desktop-and-mobile-targets). Android needs `backend-android-activity-06`, a `cdylib` entry point and SDK/NDK tools; iOS uses winit/Skia and Xcode on macOS. Adapt desktop starter entry points and packaging to the target. Keep the same `@kit` imports, build helper and per-window `install`. Optional `native` file/directory dialogs return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. Verify touch, keyboard/IME and accessibility on target devices; desktop screenshots and headless tests do not qualify mobile devices.
+
 ## Wire the consumer
 
 Merge these registry dependencies into the application’s `Cargo.toml`:

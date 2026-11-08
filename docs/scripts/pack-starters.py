@@ -49,7 +49,7 @@ def main():
         dependency = tomllib.loads(files['Cargo.toml'].decode())['dependencies']['slint-kit']
         kit_version = (dependency if isinstance(dependency, str) else dependency['version']).removeprefix('=')
         files['LICENSE'] = (ROOT / 'LICENSE').read_bytes()
-        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].removeprefix('='))
+        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].lstrip('=~'))
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
             for name, content in sorted(files.items()):

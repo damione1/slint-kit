@@ -8,7 +8,9 @@ test('documentation versions come from the workspace, not another package table'
   const source = `[package]\nversion = "9.8.7"\n[workspace.package]\nversion = "0.7.0"\nrust-version = "1.92"\n[workspace.dependencies]\nslint = { version = "=1.18.1", default-features = false }\n`;
   assert.deepEqual(projectMetadata(source), {version: '0.7.0', rust: '1.92', slint: '1.18.1', preOne: true});
   assert.equal(projectMetadata(source.replace('0.7.0', '1.2.3')).preOne, false);
-  assert.throws(() => projectMetadata(source.replace('=1.18.1', '1.18.1')), /exact Slint version/);
+  assert.equal(projectMetadata(source.replace('=1.18.1', '~1.18.1')).slint, '1.18.1');
+  assert.throws(() => projectMetadata(source.replace('=1.18.1', '1.18.1')), /pinned Slint version/);
+  assert.throws(() => projectMetadata(source.replace('=1.18.1', '^1.18.1')), /pinned Slint version/);
 });
 
 test('published guide dependency snippets use the central version', () => {

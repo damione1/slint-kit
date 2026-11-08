@@ -43,6 +43,22 @@ slint-kit-build = { path = "../slint-kit/crates/kit-build" }
 
 Conservez la dépendance Slint du premier manifeste. Les téléchargements ciblent la version correspondante du registre ; les chemins locaux permettent de développer depuis les sources. Gardez le nom Cargo `slint-kit` : le code de modules généré par Slint référence `slint_kit::ui`.
 
+<h2 id="desktop-and-mobile-targets">Cibles bureau et mobile</h2>
+
+Les composants Slint Kit peuvent servir dans des applications Rust de bureau et mobiles. Choisissez le backend et le moteur de rendu Slint de l’application pour chaque cible ; conservez les imports `@kit`, le helper de compilation et l’initialisation `slint_kit::install(&window)`.
+
+| Cible | Configuration de l’application |
+| --- | --- |
+| macOS, Windows, Linux | Le manifeste winit/Skia ci-dessus constitue un point de départ pour le bureau. Installez les [prérequis système](/fr/guides/getting-started/). |
+| Android | Activez la feature Slint `backend-android-activity-06`, compilez l’application en `cdylib` et appelez `slint::android::init(app)` dans `android_main` avant de créer la fenêtre. Installez les SDK/NDK Android et une cible Rust Android ; suivez le [guide Android de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/android/) pour créer l’APK. |
+| iOS | Utilisez winit et Skia avec les cibles Rust pour appareil et simulateur iOS. La compilation et l’empaquetage nécessitent macOS et Xcode ; le [guide iOS de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/ios/) détaille le point d’entrée, le projet Xcode et la signature. |
+
+Les projets téléchargeables utilisent des points d’entrée et manifestes de bureau ; adaptez-les avec le guide de la plateforme avant de compiler pour mobile.
+
+Sur mobile, adaptez la mise en page, les cibles tactiles, le défilement, les zones sûres et le clavier virtuel en suivant les [conseils mobiles de Slint](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/general/). Les sélecteurs de fichiers/répertoires de la feature optionnelle `native` renvoient `SelectionOutcome::Failed(HostError::Unsupported)` sur Android et iOS ; prévoyez une intégration de plateforme dans l’application si ces services sont nécessaires.
+
+La compilation repose sur les backends de Slint. Les captures publiées et les tests headless du kit ne qualifient pas les appareils Android/iOS : vérifiez les interactions tactiles, la saisie native, l’IME et les lecteurs d’écran sur vos appareils cibles.
+
 ## Compiler l’interface
 
 Créez `build.rs` à la racine du projet :

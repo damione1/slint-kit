@@ -9,6 +9,7 @@ import { scanComponents } from './inventory.mjs';
 import { localeUrl, siteOrigin } from './routes.mjs';
 import { scriptJson } from './metadata.mjs';
 import { loadStarters } from './starters.mjs';
+import { loadProject } from './project.mjs';
 const docs = fileURLToPath(new URL('../', import.meta.url));
 const output = path.join(docs, '_site');
 const errors = [];
@@ -188,6 +189,27 @@ for (const component of components) {
   }
 }
 const origin = siteOrigin();
+const llmsFile = path.join(output, 'llms.txt');
+check(fs.existsSync(llmsFile), 'Missing llms.txt documentation index');
+if (fs.existsSync(llmsFile)) {
+  const llms = fs.readFileSync(llmsFile, 'utf8');
+  const project = loadProject();
+  check(llms.startsWith('# Slint Kit\n') && !/<(?:html|script|head)\b/i.test(llms), 'llms.txt must be plain Markdown without an HTML layout');
+  check(llms.includes(`${components.length} native UI components`) && llms.includes(`Current release: ${project.version}.`), 'llms.txt must use the current inventory and release');
+  check(!/\{\{|\{%/.test(llms), 'llms.txt must not contain unrendered template expressions');
+  const componentLinks = [...llms.matchAll(/^- \[(Kit[^\]]+)\]\(([^)]+)\)/gm)];
+  check(componentLinks.length === components.length, 'llms.txt must contain one standalone link per public component');
+  for (const component of components) {
+    check(componentLinks.filter(([, name, url]) => name === component.name && url === `${origin}/components/${component.slug}/`).length === 1, `llms.txt must link to ${component.name}'s canonical reference once`);
+  }
+  for (const [, target] of llms.matchAll(/\]\(([^)]+)\)/g)) {
+    if (!target.startsWith(origin + '/')) continue;
+    const url = new URL(target);
+    const local = path.join(output, url.pathname, url.pathname.endsWith('/') ? 'index.html' : '');
+    check(fs.existsSync(local), `llms.txt has a missing local destination: ${target}`);
+    if (url.hash && fs.existsSync(local)) check(fs.readFileSync(local, 'utf8').includes(`id="${url.hash.slice(1)}"`), `llms.txt has a missing destination anchor: ${target}`);
+  }
+}
 check(!fs.existsSync(path.join(output, 'en')), 'Legacy /en pages must redirect, not remain duplicate HTML output');
 const redirectFile = path.join(output, '_redirects');
 check(fs.existsSync(redirectFile), 'Cloudflare Pages must receive the legacy English redirect rules');

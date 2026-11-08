@@ -1,0 +1,39 @@
+---
+permalink: /llms.txt
+eleventyExcludeFromCollections: true
+---
+# Slint Kit
+
+> {{ components.length }} native UI components for Rust and Slint: typed forms and validation, virtualized tables and lists, date and time pickers, exact decimal fields, dialogs, navigation and layout, with complete light and dark themes. Rust owns validated values and stable identity; Slint owns presentation and native interaction.
+
+Current release: {{ project.version }}. Requires Rust {{ project.rust }}+ and Slint {{ project.slint }}. Desktop: macOS, Windows, Linux. Mobile: Android and iOS through Slint's mobile backends; device qualification is application-specific. Optional native file/directory dialogs return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. License: GPL-3.0-or-later; a commercial license is planned from 1.0.
+
+Install with `slint-kit = "={{ project.version }}"` in `[dependencies]`, a compatible `slint` dependency, and `slint-kit-build = "={{ project.version }}"` in `[build-dependencies]`. Compile the UI with `slint_kit_build::compile("ui/app.slint")` in `build.rs`, import components with `import { KitButton } from "@kit";` and call `slint_kit::install(&window)` once per window before showing it.
+
+## Guides
+
+- [Getting started]({{ site.url }}/guides/getting-started/): install from crates.io, configure Cargo and build.rs, run a first window
+- [Project setup]({{ site.url }}/guides/project-setup/): dependencies, backends, renderers and matching releases
+- [Desktop and mobile targets]({{ site.url }}/guides/project-setup/#desktop-and-mobile-targets): Android SDK/NDK, iOS with Xcode, backend selection and platform limits
+- [Forms]({{ site.url }}/guides/forms/): `FieldSpec<T, E>`, HTML-style constraints, draft/commit/cancel and Rust-side validation
+- [Controllers]({{ site.url }}/guides/controllers/): `Choices<K>`, `KeyedModel<K, Row>` and weak-window bindings
+- [Themes]({{ site.url }}/guides/themes/): light/dark modes, theme tokens and custom themes
+- [Native services]({{ site.url }}/guides/native/): file and directory dialogs, file drop
+- [Typed example]({{ site.url }}/guides/typed-example/): a complete typed form
+- [Table example]({{ site.url }}/guides/table-example/): a virtualized, sortable table
+- [Editor setup]({{ site.url }}/guides/editor/): `@kit` completion in VS Code and Zed
+- [Agent integration skill](https://github.com/damione1/slint-kit/blob/main/.agents/skills/slint-kit/SKILL.md): rules for coding agents integrating the kit
+
+## Components
+{% for family, members in components | groupby("family") %}
+### {{ members[0].familyLabel.en }}
+{% for component in members %}
+- [{{ component.name }}]({{ site.url }}{{ ('components/' + component.slug + '/') | localeUrl('en') }}){% if component.en and component.en.summary %}: {{ component.en.summary | safe }}{% endif %}
+{%- endfor %}
+{% endfor %}
+## Optional
+
+- [French documentation]({{ site.url }}/fr/)
+- [Source code](https://github.com/damione1/slint-kit)
+- [Changelog](https://github.com/damione1/slint-kit/blob/main/CHANGELOG.md)
+- [API reference on docs.rs](https://docs.rs/slint-kit)

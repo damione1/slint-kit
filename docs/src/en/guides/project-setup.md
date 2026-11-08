@@ -43,6 +43,22 @@ slint-kit-build = { path = "../slint-kit/crates/kit-build" }
 
 Keep the Slint dependency from the first manifest. Downloads target the matching registry release; local paths are an alternative for source development. Keep the Cargo dependency name `slint-kit`: Slint's generated module code references `slint_kit::ui`.
 
+<h2 id="desktop-and-mobile-targets">Desktop and mobile targets</h2>
+
+Slint Kit components can be used in desktop and mobile Rust applications. Select the application's Slint backend and renderer for each target; keep the same `@kit` imports, build helper and `slint_kit::install(&window)` initialization.
+
+| Target | Application setup |
+| --- | --- |
+| macOS, Windows, Linux | The winit/Skia manifest above is a desktop starting point. Install the [system prerequisites](/guides/getting-started/). |
+| Android | Enable Slint's `backend-android-activity-06` feature, build the application as a `cdylib` and initialize `slint::android::init(app)` in `android_main` before creating the window. Install the Android SDK/NDK and a Rust Android target; follow the [Slint Android guide](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/android/) for APK packaging. |
+| iOS | Use winit and Skia with the Rust iOS device/simulator targets. Building and packaging require macOS and Xcode; follow the [Slint iOS guide](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/ios/) for the application entry point, Xcode project and signing. |
+
+The downloadable starters use desktop entry points and manifests; adapt them using the platform guide before building for mobile.
+
+On mobile, adapt layouts, touch targets, scrolling, safe areas and the virtual keyboard using [Slint's mobile guidance](https://docs.slint.dev/latest/docs/slint/guide/platforms/mobile/general/). The kit's optional `native` file/directory dialogs return `SelectionOutcome::Failed(HostError::Unsupported)` on Android and iOS; use an application platform integration if those services are needed.
+
+Compilation support comes from Slint's backends. The kit's published screenshots and headless tests do not qualify Android/iOS devices: verify touch interaction, native text input, IME and screen readers on your target devices.
+
 ## Build the UI
 
 Create `build.rs` at the project root:

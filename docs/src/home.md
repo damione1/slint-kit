@@ -14,9 +14,9 @@ eleventyComputed:
 {% if locale == 'fr' %}
 <p class="eyebrow">Rust + Slint</p>
 
-# Construire avec Slint Kit
+# Composants UI Rust pour bureau et mobile
 
-Des composants natifs, des contrôleurs typés et des thèmes partagés pour vos applications Rust et Slint.
+{{ components.length }} composants UI pour vos applications Rust et Slint : formulaires typés, tableaux virtualisés, calendriers et thèmes clair/sombre. Ciblez macOS, Windows et Linux, ou compilez pour Android et iOS avec les backends mobiles de Slint. Consultez la [configuration bureau et mobile](/fr/guides/project-setup/#desktop-and-mobile-targets).
 
 <div class="home-actions"><a class="primary-link" href="/fr/guides/getting-started/">Bien démarrer <span aria-hidden="true">→</span></a><a href="/fr/components/">Parcourir les {{ components.length }} composants</a></div>
 
@@ -32,9 +32,9 @@ Essayez un [bouton avec callback Rust](/fr/components/button/) ou une [liste ave
 {% else %}
 <p class="eyebrow">Rust + Slint</p>
 
-# Build with Slint Kit
+# Rust UI components for desktop and mobile
 
-Native components, typed controllers and shared themes for your Rust and Slint applications.
+{{ components.length }} UI components for Rust and Slint applications: typed forms, virtualized tables, calendars and light/dark themes. Target macOS, Windows and Linux, or build for Android and iOS with Slint’s mobile backends. See [desktop and mobile setup](/guides/project-setup/#desktop-and-mobile-targets).
 
 <div class="home-actions"><a class="primary-link" href="/guides/getting-started/">Get started <span aria-hidden="true">→</span></a><a href="/components/">Browse all {{ components.length }} components</a></div>
 

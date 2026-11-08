@@ -22,7 +22,7 @@ export function projectMetadata(source) {
   return {
     version,
     rust: required('workspace.package', /^rust-version\s*=\s*"([^"]+)"/m, 'rust-version'),
-    slint: required('workspace.dependencies', /^slint\s*=\s*\{[^\n]*?version\s*=\s*"=([^"]+)"/m, 'exact Slint version'),
+    slint: required('workspace.dependencies', /^slint\s*=\s*\{[^\n]*?version\s*=\s*"[=~](\d+\.\d+\.\d+)"/m, 'pinned Slint version'),
     preOne: version.startsWith('0.'),
   };
 }
