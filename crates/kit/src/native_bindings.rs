@@ -418,10 +418,11 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
 mod tests {
     use super::*;
     use slint::Model;
+    slint::slint! { export component FileBindingTestWindow inherits Window {} }
     #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = FileBindingTestWindow::new().unwrap();
         let weak = window.as_weak();
         let binding = FilePickerBinding::new(
             &window,
