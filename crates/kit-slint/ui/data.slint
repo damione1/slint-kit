@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "scroll.slint";
-import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitTextField } from "input.slint";
+import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
 import { CheckState } from "shared-contracts.slint";
@@ -36,9 +37,15 @@ export struct TableColumn { token: int, label: string, sortable: bool, sort: Dat
 // `TableCell` is its flat projection, written once by `From`, so only the
 // fields of `kind` are meaningful: `text` for every kind (it is also the
 // accessible label of a badge or check mark), `tone` for a badge, `check`
-// for a check mark.
-export enum TableCellKind { text, badge, check }
-export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState }
+// for a check mark, `access` and `spec` for a field. A `field` is a text
+// value the user may edit in place: `text` is its accepted value in the
+// canonical draft form of its codec, `spec` the key of the installed
+// `FieldSpec` that parses, validates and displays it ("" for plain text)
+// and `access` whether Enter opens the editor.
+export enum TableCellKind { text, badge, check, field }
+export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string }
+// Where the cell cursor moves inside the active row.
+enum ColumnStep { previous, next }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
@@ -47,10 +54,18 @@ export struct TableRow { token: int, cells: [string], content: [TableCell], sele
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
 
+// The key scope of a data composite. Return and Space are reported apart:
+// a table confirms the active cell with Return (edit or activate) while
+// Space always activates the row; lists bind both to activation.
 component DataKeyboard inherits FocusScope {
     in property <bool> disabled;
+    // Left/Right move a cell cursor inside the active row; off, they are
+    // rejected like any unknown key.
+    in property <bool> column-navigation;
     callback navigate(NavigationStep);
+    callback navigate-column(ColumnStep);
     callback activate();
+    callback confirm();
     enabled: !root.disabled;
     key-pressed(event) => {
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
@@ -59,7 +74,10 @@ component DataKeyboard inherits FocusScope {
         if (event.text == Key.End) {root.navigate(NavigationStep.last);return accept;}
         if (event.text == Key.PageDown) {root.navigate(NavigationStep.page-next);return accept;}
         if (event.text == Key.PageUp) {root.navigate(NavigationStep.page-previous);return accept;}
-        if (event.text == Key.Return || event.text == Key.Space) {root.activate();return accept;}
+        if (root.column-navigation && event.text == Key.LeftArrow) {root.navigate-column(ColumnStep.previous);return accept;}
+        if (root.column-navigation && event.text == Key.RightArrow) {root.navigate-column(ColumnStep.next);return accept;}
+        if (event.text == Key.Return) {root.confirm();return accept;}
+        if (event.text == Key.Space) {root.activate();return accept;}
         return reject;
     }
     @children
@@ -189,7 +207,12 @@ component ColumnResizeHandle inherits Rectangle {
 // fixes element kinds at compile time, so each kind is its own element; the
 // text of every kind is the cell's accessible label, so a badge or a check
 // mark reads as the words the host chose. A disabled row dims its text and
-// its check mark; a badge keeps its tone, which is data, not a state.
+// its check mark; a badge keeps its tone, which is data, not a state. A
+// field at rest paints its codec's display projection like a text cell, a
+// disabled field in the disabled ink; while it is edited it hosts the one
+// `KitTextField` of the table, whose native editor owns caret, selection,
+// undo and IME. The editor reports its outcomes upward and never decides
+// the editing session itself.
 component TableCellView inherits Rectangle {
     in property <KitTheme> theme;
     in property <ControlSize> control-size;
@@ -198,8 +221,25 @@ component TableCellView inherits Rectangle {
     in property <length> inset;
     in property <bool> row-selected;
     in property <bool> row-disabled;
+    // The cell cursor of the table rests here.
+    in property <bool> focus-indicated;
+    in property <KitFocusRing> focus-ring;
+    // The editing session of the table is on this cell.
+    in property <bool> editing;
+    in property <string> editor-name;
+    // The draft of the session, kept by the table so a cell that the
+    // viewport recreates shows the same text.
+    in-out property <string> draft;
+    callback committed(FieldCommit);
+    callback cancel-requested();
+    callback step-requested(ColumnStep);
+    callback blurred();
+    callback error-changed(string);
     pure function aligned-x(extent: length) -> length {
         return root.alignment == DataAlignment.trailing ? root.width - root.inset - extent : root.alignment == DataAlignment.center ? (root.width - extent) / 2 : root.inset;
+    }
+    pure function text-alignment() -> TextHorizontalAlignment {
+        return root.alignment == DataAlignment.trailing ? TextHorizontalAlignment.right : root.alignment == DataAlignment.center ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
     }
     clip: true;
     if root.cell.kind == TableCellKind.text: Text {
@@ -208,7 +248,49 @@ component TableCellView inherits Rectangle {
         color: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
         font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
         overflow: elide; vertical-alignment: center;
-        horizontal-alignment: root.alignment == DataAlignment.trailing ? right : root.alignment == DataAlignment.center ? center : left;
+        horizontal-alignment: root.text-alignment();
+    }
+    if root.cell.kind == TableCellKind.field && !root.editing: Text {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        text: KitFieldService.ready ? KitFieldService.display(root.cell.spec, root.cell.text) : root.cell.text;
+        color: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+        overflow: elide; vertical-alignment: center;
+        horizontal-alignment: root.text-alignment();
+    }
+    if root.cell.kind == TableCellKind.field && root.editing: FocusScope {
+        // Not a focus target itself: it only receives the keys the native
+        // editor leaves, after the IME and the editor had them.
+        x: 0px; width: parent.width; height: parent.height;
+        focus-on-click: false; focus-on-tab-navigation: false;
+        key-pressed(event) => {
+            if (event.text == Key.Escape) { root.cancel-requested(); return accept; }
+            if (event.text == Key.Tab || event.text == Key.Backtab) {
+                editor.commit();
+                root.step-requested(event.modifiers.shift || event.text == Key.Backtab ? ColumnStep.previous : ColumnStep.next);
+                return accept;
+            }
+            return reject;
+        }
+        editor := KitTextField {
+            x: 0px; y: (parent.height - self.height) / 2; width: parent.width; height: self.preferred-height;
+            theme: root.theme; control-size: root.control-size;
+            accessible-name: root.editor-name;
+            text <=> root.draft;
+            spec-key: root.cell.spec;
+            text-alignment: root.text-alignment();
+            // The row has no room under the editor: the host reads the
+            // error from the table instead.
+            show-validation-message: false;
+            init => { self.take-focus(); self.select-all(); }
+            committed(commit) => { root.committed(commit); }
+            edited(text) => { root.error-changed(""); }
+            invalid => { root.error-changed(self.field-state.error != "" ? self.field-state.error : self.validation-message); }
+            focus-observed(focused) => { if (!focused) { root.blurred(); } }
+        }
+    }
+    if root.focus-indicated: FocusOutline {
+        ring: root.focus-ring; radius: 0px; host-width: root.width; host-height: root.height;
     }
     if root.cell.kind == TableCellKind.badge: KitBadge {
         theme: root.theme;
@@ -245,15 +327,76 @@ export component KitDataTable inherits Rectangle {
     // The floor of every `fill` column. A `fixed` column is exactly its
     // basis within its own bounds.
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
+    // The cell cursor inside the active row: -1 is the whole row, otherwise
+    // a column position. Left/Right move it; the table owns it because it
+    // is a view cursor, not application identity.
+    in-out property <int> active-column: -1;
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
     // A clamped width the user asked for, by column token. The table paints
     // nothing from it: the host changes the column's `width` policy.
     callback resize-requested(int,length);
+    // A committed cell edit: row token, column token and the generation
+    // armed when editing began, then the field commit to run through the
+    // column's `FieldSpec::accept`. The host fences it with the generation
+    // and republishes the row; the table paints nothing from it.
+    callback cell-committed(int,int,int,FieldCommit);
     public function take-focus() {if(root.interactive){keys.focus();}}
     out property <length> scroll-y: list.content-y;
     out property <length> scroll-x: list.content-x;
+    // Whether a cell editor is open, and the error of its last rejected
+    // commit ("" while the draft is acceptable or untried). The row has no
+    // room for the message, so the host shows it where it fits.
+    out property <bool> editing: root.edit-open;
+    out property <string> edit-error;
+    // The editing session: the identity armed when it began, never the
+    // positions, so a commit names the cell the user opened even after the
+    // viewport moved. A new generation ends it: the projection changed and
+    // the kit cannot know what the row now means.
+    private property <bool> edit-open;
+    private property <int> edit-row-token;
+    private property <int> edit-column-token;
+    private property <int> edit-generation;
+    private property <string> edit-draft;
+    pure function has-active-cell() -> bool {
+        return root.has-active-row && root.active-column >= 0 && root.active-column < root.columns.length;
+    }
+    pure function active-cell-editable() -> bool {
+        return root.interactive && root.has-active-cell() && !root.rows[root.active-index].disabled
+            && root.active-column < root.rows[root.active-index].content.length
+            && root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field
+            && root.rows[root.active-index].content[root.active-column].access == FieldAccess.editable;
+    }
+    function begin-edit() {
+        root.edit-row-token = root.rows[root.active-index].token;
+        root.edit-column-token = root.columns[root.active-column].token;
+        root.edit-generation = root.generation;
+        root.edit-draft = root.rows[root.active-index].content[root.active-column].text;
+        root.edit-error = "";
+        root.edit-open = true;
+    }
+    // Close the session; `refocus` returns the keyboard to the table when
+    // the editor had it, and stays away when focus already went elsewhere.
+    function end-edit(refocus: bool) {
+        root.edit-open = false;
+        root.edit-error = "";
+        if (refocus) { keys.focus(); }
+    }
+    pure function edits-cell(row: TableRow, column: TableColumn) -> bool {
+        return root.edit-open && row.token == root.edit-row-token && column.token == root.edit-column-token;
+    }
+    function confirm-active() {
+        if (root.active-cell-editable()) { root.begin-edit(); }
+        else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token, root.generation); }
+    }
+    function step-column(step: ColumnStep) {
+        if (!root.has-active-row) { return; }
+        if (step == ColumnStep.previous) { root.active-column = max(-1, min(root.active-column, root.columns.length) - 1); }
+        if (step == ColumnStep.next) { root.active-column = min(root.columns.length - 1, root.active-column + 1); }
+    }
+    changed generation => { if (root.edit-open) { root.end-edit(true); } }
+    changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false); } }
     private property <ButtonRecipe> row-recipe: KitThemes.table-row-recipe(root.theme, root.control-size);
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
     private property <ColumnHandleRecipe> handle-recipe: KitThemes.column-handle-recipe(root.theme);
@@ -317,11 +460,14 @@ export component KitDataTable inherits Rectangle {
     // `accessible-item-selected`, so focus, active row and selection are
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
-    accessible-label: root.label + (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "");
+    accessible-label: root.label + (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.columns[root.active-column].label : "");
     keys := DataKeyboard {
         disabled: !root.interactive;
+        column-navigation: true;
         navigate(step) => {root.navigate(step);}
-        activate => {if (root.active-index >= 0 && root.active-index < root.rows.length && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
+        navigate-column(step) => {root.step-column(step);}
+        activate => {if (root.has-active-row && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
+        confirm => {root.confirm-active();}
     }
     header := Rectangle {
         y: 0px;
@@ -392,7 +538,12 @@ export component KitDataTable inherits Rectangle {
             accessible-name:root.row-name(row);
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
             background:self.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
-            focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
+            // The row ring shows while the cursor is the whole row; a cell
+            // ring takes over once Left/Right chose a column. A row with an
+            // open editor hands the pointer to it: caret and selection stay
+            // native, and a press beside the editor is not an activation.
+            focus-indicated:keys.has-focus && index == root.active-index && root.active-column < 0;focus-ring:KitThemes.inset-focus(root.theme);
+            pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
             // Row cells take the constraints of their column, so the solver
@@ -407,9 +558,15 @@ export component KitDataTable inherits Rectangle {
                     cell: { kind: TableCellKind.text, text: cell };
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
+                    focus-indicated: keys.has-focus && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
                 }
             }
             if row.content.length > 0: HorizontalLayout {spacing:0px; padding: 0px;
+                // The editor mounts on the cell whose row and column tokens
+                // are the armed ones, wherever the viewport now paints them.
+                // Its outcomes are forwarded only while that session is the
+                // open one, so the blur the closing itself provokes cannot
+                // commit a second time or to another cell.
                 for cell[column-index] in row.content: content-cell := TableCellView {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
@@ -417,6 +574,23 @@ export component KitDataTable inherits Rectangle {
                     cell: cell;
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
+                    focus-indicated: keys.has-focus && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
+                    editing: root.edits-cell(row, root.columns[column-index]);
+                    editor-name: root.columns[column-index].label + ", " + root.row-name(row);
+                    draft <=> root.edit-draft;
+                    committed(commit) => {
+                        if (root.edits-cell(row, root.columns[column-index])) {
+                            root.end-edit(true);
+                            root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                        }
+                    }
+                    cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true); } }
+                    // The commit ran before this: a closed session means it
+                    // was accepted and the cursor may move on; an open one
+                    // keeps the invalid draft in the editor.
+                    step-requested(step) => { if (!root.edit-open) { root.step-column(step); } }
+                    blurred => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(false); } }
+                    error-changed(message) => { if (root.edits-cell(row, root.columns[column-index])) { root.edit-error = message; } }
                 }
             }
         }
@@ -443,7 +617,8 @@ export component KitContentList inherits Rectangle {
     }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}}
+    function activate-active() {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}
+    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active();}confirm=>{root.activate-active();}}
     list := ListView {
         theme: root.theme;
         vertical-scrollbar-policy: ScrollBarPolicy.always-on;
@@ -495,7 +670,8 @@ export component KitVirtualTextView inherits Rectangle {
     changed active-index=>{if(root.active-index>=0){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}}
+    function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}
+    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.select-active();}confirm=>{root.select-active();}}
     list := ListView {
         theme: root.theme;
         y: 0px;

@@ -65,6 +65,8 @@ L’application choisit toujours données, tri, filtrage, chargement et commande
 
 `KeyedModel::sorting_by` transforme un comparateur de clés métier en handler de tri alterné. Le tri conserve sélection et identité active et avance la génération : un geste commencé avant le réordonnancement ne peut pas cibler la nouvelle projection.
 
+`KeyedModel::cell_commits(handler)` est le handler de `KitDataTable.cell-committed` pour l’édition de cellule sur place : il n’admet un commit que sous la génération courante et pour une ligne active, puis transmet la clé de ligne, le jeton de colonne et le `FieldCommit`, que l’application passe dans le `FieldSpec::accept` de la colonne avant de republier la ligne.
+
 `Choices::selections(&keys)` prépare une sélection multiple initiale ; une clé absente ou répétée refuse toute la projection. `KeyedModel::bind_active` publie la ligne active vers un éditeur au moyen d’une fenêtre faible. `update_active` refuse une confirmation pour une ligne qui n’est plus active.
 
 Accordez `DecimalRules.locale` du codec décimal au `number-format` du composant, et `ClockFormat` du codec temporel à son `clock-format`. Le moteur HTML valide la grammaire native ; le codec reçoit ensuite cette grammaire, y compris les virgules décimales et les heures sur 12 heures. Le format accepté reste lisible par le même analyseur : Annuler restaure donc une valeur éditable dans le format déclaré.

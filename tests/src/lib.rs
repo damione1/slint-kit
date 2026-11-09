@@ -10,6 +10,7 @@ mod keyboard_scope;
 mod preview;
 mod selection_service;
 mod table_cells;
+mod table_editing;
 mod window_callback;
 mod wrapped_field;
 

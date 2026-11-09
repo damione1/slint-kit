@@ -68,12 +68,12 @@ pub(crate) fn delegates(window: &BaseDataFixture, component: &str) -> Vec<Elemen
         .match_inherits("DataAction")
         .find_all()
 }
-fn down(window: &BaseDataFixture, key: Key) {
+pub(crate) fn down(window: &BaseDataFixture, key: Key) {
     window
         .window()
         .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
 }
-fn up(window: &BaseDataFixture, key: Key) {
+pub(crate) fn up(window: &BaseDataFixture, key: Key) {
     window
         .window()
         .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
@@ -82,7 +82,7 @@ pub(crate) fn key(window: &BaseDataFixture, value: Key) {
     down(window, value);
     up(window, value);
 }
-fn text(window: &BaseDataFixture, value: &str) {
+pub(crate) fn text(window: &BaseDataFixture, value: &str) {
     window
         .window()
         .dispatch_event(WindowEvent::KeyPressed { text: value.into() });

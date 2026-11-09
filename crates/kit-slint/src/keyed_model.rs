@@ -242,6 +242,24 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             });
         }
     }
+    /// A `KitDataTable.cell-committed` handler that admits a commit only
+    /// when its armed generation is the current one and its row is still an
+    /// enabled entry, then hands the row key, the column token and the field
+    /// commit to the application, which runs the commit through that
+    /// column's `FieldSpec::accept`. A sort or filter that advanced the
+    /// generation while the cell was edited is rejected here, so no commit
+    /// reaches another row.
+    pub fn cell_commits(
+        &self,
+        handler: impl Fn(K, i32, ui::FieldCommit) + 'static,
+    ) -> impl Fn(i32, i32, i32, ui::FieldCommit) + 'static {
+        let model = self.clone();
+        move |token, column, generation, commit| {
+            if let Some(key) = model.accept(token, generation) {
+                handler(key, column, commit);
+            }
+        }
+    }
     pub fn insert(&self, key: K, row: R) -> Result<(), ModelError> {
         let mut entries = self
             .state

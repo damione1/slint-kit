@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes } from "@kit";
+import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, FieldCommit } from "@kit";
 export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -18,6 +18,9 @@ export component BaseDataFixture inherits Window {
     in property <int> table-generation: 1;
     in property <int> line-generation: 1;
     in property <int> table-active: -1;
+    in-out property <int> table-active-column <=> table.active-column;
+    out property <bool> table-editing: table.editing;
+    out property <string> table-edit-error: table.edit-error;
     in property <int> content-active: -1;
     in property <int> line-active: -1;
     in-out property <string> line-draft;
@@ -36,6 +39,7 @@ export component BaseDataFixture inherits Window {
     callback line-copied(int,int);
     callback sort-requested(int);
     callback resize-requested(int, length);
+    callback cell-committed(int, int, int, FieldCommit);
     public function focus-table() { table.take-focus(); }
     public function focus-content() { content.take-focus(); }
     public function focus-document() { document.take-focus(); }
@@ -53,6 +57,7 @@ export component BaseDataFixture inherits Window {
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
+            cell-committed(row, column, generation, commit) => { root.cell-committed(row, column, generation, commit); }
         }
         content := KitContentList {
             theme: root.theme; height: 250px; items: root.items; generation: 1; active-index: root.content-active;

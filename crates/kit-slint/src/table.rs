@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-//! Typed presentation cells of `KitDataTable`. The Slint `TableCell` struct
-//! is a flat projection; `CellContent` is the sum type behind it, converted
-//! once here so only the fields of a cell's kind ever carry meaning.
-use crate::ui;
-use kit_core::CheckState;
+//! Typed cells of `KitDataTable`. The Slint `TableCell` struct is a flat
+//! projection; `CellContent` is the sum type behind it, converted once here
+//! so only the fields of a cell's kind ever carry meaning.
+use crate::{FieldSpec, FieldSpecKey, ui};
+use kit_core::{CheckState, FieldAccess};
 use slint::{ModelRc, SharedString, VecModel};
 
 impl From<CheckState> for ui::CheckState {
@@ -17,9 +17,21 @@ impl From<CheckState> for ui::CheckState {
     }
 }
 
+/// The codec of an editable cell: the key of a `FieldSpec` installed with
+/// `install_field_specs`, which parses, validates and displays the value in
+/// the editor and at rest, or plain text when the cell has none.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CellCodec {
+    /// Free text: every draft is accepted as typed.
+    PlainText,
+    /// The installed codec named by this key.
+    Spec(FieldSpecKey),
+}
+
 /// What one data-table cell shows. Every variant carries the words a reader
 /// gets for the cell: a badge shows its `text`, a check mark exposes its
-/// `text` as the accessible label of the painted `state`.
+/// `text` as the accessible label of the painted `state`, a field shows its
+/// accepted value.
 #[derive(Clone, Debug, PartialEq)]
 pub enum CellContent {
     /// Plain text, as a `TableRow.cells` string renders.
@@ -30,6 +42,15 @@ pub enum CellContent {
     Check {
         state: CheckState,
         text: SharedString,
+    },
+    /// A value the user may edit in place. `text` is the accepted value in
+    /// the canonical draft form of `codec`; `access` says whether Enter opens
+    /// the editor (`Editable`), or the cell only shows its value (`ReadOnly`),
+    /// or shows it dimmed (`Disabled`).
+    Field {
+        text: SharedString,
+        codec: CellCodec,
+        access: FieldAccess,
     },
 }
 
@@ -52,6 +73,30 @@ impl CellContent {
             text: text.into(),
         }
     }
+    /// A free-text field holding `text`.
+    pub fn field(text: impl Into<SharedString>, access: FieldAccess) -> Self {
+        Self::Field {
+            text: text.into(),
+            codec: CellCodec::PlainText,
+            access,
+        }
+    }
+    /// A field holding a typed value, formatted once by the codec that the
+    /// host installed under `key`; an absent value is an empty draft. The
+    /// commit the table reports for it round-trips through the same
+    /// `spec.accept(commit)`.
+    pub fn typed_field<T: 'static, E: 'static>(
+        key: FieldSpecKey,
+        spec: &FieldSpec<T, E>,
+        value: Option<&T>,
+        access: FieldAccess,
+    ) -> Self {
+        Self::Field {
+            text: value.map_or_else(SharedString::default, |value| spec.format(value).into()),
+            codec: CellCodec::Spec(key),
+            access,
+        }
+    }
 }
 
 impl From<CellContent> for ui::TableCell {
@@ -72,6 +117,20 @@ impl From<CellContent> for ui::TableCell {
                 kind: ui::TableCellKind::Check,
                 text,
                 check: state.into(),
+                ..Self::default()
+            },
+            CellContent::Field {
+                text,
+                codec,
+                access,
+            } => Self {
+                kind: ui::TableCellKind::Field,
+                text,
+                access: access.into(),
+                spec: match codec {
+                    CellCodec::PlainText => SharedString::default(),
+                    CellCodec::Spec(key) => key.as_str().into(),
+                },
                 ..Self::default()
             },
         }

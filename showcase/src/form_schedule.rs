@@ -50,7 +50,10 @@ pub fn install(window: &Showcase) {
             .named(key("schedule-time24")),
             FieldSpec::time(TimePrecision::Minute, slint_kit::ClockFormat::TwelveHour)
                 .named(key("schedule-time12")),
-        ],
+        ]
+        // One catalogue per window: the data page's cell codecs join it here.
+        .into_iter()
+        .chain(super::base_data::codecs()),
     )
     .expect("unique schedule codec keys");
     let global = window.global::<FormExamples>();

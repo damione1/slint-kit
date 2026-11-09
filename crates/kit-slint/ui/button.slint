@@ -31,6 +31,9 @@ export component KitPressable inherits Rectangle {
     in property <bool> disabled;
     in property <bool> busy;
     in property <bool> tab-stop: true;
+    // A pressable whose children host an open native editor hands the
+    // pointer to them; keyboard activation and focus are unaffected.
+    in property <bool> pointer-enabled: true;
     // A composite that keeps keyboard focus itself sets this on its active
     // row; the row then paints `focus-ring` as if it held focus.
     in property <bool> focus-indicated;
@@ -140,7 +143,7 @@ export component KitPressable inherits Rectangle {
         }
     }
     touch := TouchArea {
-        enabled: !root.disabled && !root.busy;
+        enabled: !root.disabled && !root.busy && root.pointer-enabled;
         mouse-cursor: pointer;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::ui;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
-use slint_kit::CellContent;
+use slint_kit::{CellContent, FieldAccess, FieldSpec, FieldSpecKey, NamedFieldSpec};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ProductId(u32);
@@ -85,6 +85,13 @@ struct Catalogue {
     line_generation: i32,
     // Widths the user fixed by resizing, by column, in logical pixels.
     widths: BTreeMap<Column, f32>,
+}
+fn stock_key() -> FieldSpecKey {
+    FieldSpecKey::new("stock").expect("nonempty codec key")
+}
+/// The cell codecs of the data page, installed with the window's catalogue.
+pub(crate) fn codecs() -> impl Iterator<Item = NamedFieldSpec> {
+    std::iter::once(FieldSpec::integer().named(stock_key()))
 }
 fn model<T: Clone + 'static>(data: Rc<VecModel<T>>) -> ModelRc<T> {
     ModelRc::from(data)
@@ -258,7 +265,14 @@ impl Catalogue {
                                     )
                                     .expect("exact two decimals"),
                             ),
-                            CellContent::text(p.stock.to_string()),
+                            // The stock is edited in place through the
+                            // integer codec installed under `stock`.
+                            CellContent::typed_field(
+                                stock_key(),
+                                &FieldSpec::integer(),
+                                Some(&i64::from(p.stock)),
+                                FieldAccess::Editable,
+                            ),
                         ]),
                         selected: self.selected == Some(p.id),
                         disabled: false,
@@ -378,6 +392,37 @@ pub fn install(window: &ui::Showcase) {
         if let Some(window) = weak.upgrade() {
             let mut data = shared.borrow_mut();
             data.widths.insert(column, width);
+            data.publish(&window);
+        }
+    });
+    let shared = state.clone();
+    let weak = window.as_weak();
+    global.on_table_cell_committed(move |token, column, generation, commit| {
+        if Column::from_token(column) != Some(Column::Stock) {
+            return;
+        }
+        // The same codec that validated the draft in the editor guards the
+        // Rust path; a negative or oversized count is rejected here.
+        let Ok(Some(stock)) = FieldSpec::integer().accept(commit) else {
+            return;
+        };
+        let Ok(stock) = u32::try_from(stock) else {
+            return;
+        };
+        if let Some(window) = weak.upgrade() {
+            let mut data = shared.borrow_mut();
+            if data.generation != generation {
+                return;
+            }
+            let Some(index) = data
+                .products
+                .iter()
+                .position(|product| product.id.0 as i32 == token)
+            else {
+                return;
+            };
+            data.products[index].stock = stock;
+            data.rebuild(&window.global::<ui::DataExamples>().get_query());
             data.publish(&window);
         }
     });
@@ -611,6 +656,55 @@ mod tests {
             data.get_lines().row_data(49_999).unwrap().text.as_str(),
             "Dernière ligne — été"
         );
+    }
+    #[test]
+    fn stock_commits_are_fenced_by_generation_and_column_and_keep_the_order() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::Showcase::new().unwrap();
+        install(&window);
+        let data = window.global::<ui::DataExamples>();
+        let generation = data.get_table_generation();
+        let stock_of = |token: i32| {
+            data.get_table_rows()
+                .iter()
+                .find(|row| row.token == token)
+                .unwrap()
+                .content
+                .row_data(3)
+                .unwrap()
+                .text
+        };
+        // The constraints a plain field editor reports: no length limits.
+        let commit = |text: &str| ui::FieldCommit {
+            value: ui::FieldValue {
+                present: true,
+                text: text.into(),
+            },
+            constraints: ui::KitInputConstraints {
+                min_length: -1,
+                max_length: -1,
+                ..ui::KitInputConstraints::default()
+            },
+            ..ui::FieldCommit::default()
+        };
+        let before = stock_of(17);
+        data.invoke_table_cell_committed(17, 4, generation - 1, commit("5"));
+        assert_eq!(stock_of(17), before, "a stale generation changes nothing");
+        data.invoke_table_cell_committed(17, 1, generation, commit("5"));
+        assert_eq!(stock_of(17), before, "only the stock column is editable");
+        data.invoke_table_cell_committed(17, 4, generation, commit("-5"));
+        assert_eq!(
+            stock_of(17),
+            before,
+            "a negative count is rejected in Rust too"
+        );
+        data.invoke_table_cell_committed(17, 4, generation, commit("5"));
+        assert_eq!(stock_of(17), "5");
+        assert!(
+            data.get_table_generation() > generation,
+            "the republished rows advance the generation"
+        );
+        assert_eq!(data.get_table_rows().row_count(), 10_000);
     }
     #[test]
     fn article_preview_uses_the_selected_identity_and_keeps_the_model_virtual() {
