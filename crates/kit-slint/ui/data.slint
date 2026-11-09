@@ -45,6 +45,22 @@ component DataAction inherits KitPressable {
     @children
 }
 
+// The label and sort indicator of one header cell, shared by the sortable
+// pressable and the static text header.
+component TableHeaderContent inherits HorizontalLayout {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <TableColumn> column;
+    in property <length> inset;
+    padding-left: root.inset; padding-right: root.inset; spacing: root.theme.spacing.unit * 1.5;
+    alignment: root.column.alignment == DataAlignment.trailing ? end : root.column.alignment == DataAlignment.center ? center : start;
+    Text {horizontal-stretch: 0; max-width: self.preferred-width; text:root.column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-medium;overflow:elide;vertical-alignment:center;}
+    if root.column.sort != DataSortDirection.unsorted: Rectangle {
+        width: KitMetrics.icon-size(root.theme, root.control-size); height: parent.height;
+        TurningIcon {theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.column.sort == DataSortDirection.descending; rest-glyph: root.theme.icons.chevron-up; turned-glyph: root.theme.icons.chevron-down;ink:root.theme.text-secondary;}
+    }
+}
+
 export component KitDataTable inherits Rectangle {
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
@@ -55,6 +71,11 @@ export component KitDataTable inherits Rectangle {
     in property <int> active-index: -1;
     in property <string> label: "Data table";
     in property <string> empty-label: "No matching records";
+    // Accessible words the application localizes. The kit joins them to the
+    // column label with ", " and never builds a sentence from them.
+    in property <string> sort-ascending-label: "ascending";
+    in property <string> sort-descending-label: "descending";
+    in property <string> unnamed-row-label: "Row";
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
     callback activate(int,int);
     callback navigate(NavigationStep);
@@ -66,6 +87,11 @@ export component KitDataTable inherits Rectangle {
     private property <length> row-height: root.row-recipe.height;
     private property <length> cell-inset: root.theme.spacing.unit * 4;
     private property <length> grid-width: max(list.visible-width,root.columns.length * root.minimum-column-width);
+    private property <bool> has-active-row: root.active-index >= 0 && root.active-index < root.rows.length;
+    pure function row-name(row: TableRow) -> string { return row.cells.length > 0 ? row.cells[0] : root.unnamed-row-label; }
+    pure function header-name(column: TableColumn) -> string {
+        return column.label + (column.sort == DataSortDirection.ascending ? ", " + root.sort-ascending-label : column.sort == DataSortDirection.descending ? ", " + root.sort-descending-label : "");
+    }
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
         if (root.active-index >= 0) {
@@ -77,7 +103,14 @@ export component KitDataTable inherits Rectangle {
     min-height: 160px; preferred-height: 320px;
     background: root.surface.fill; border-width: root.surface.border-width; border-color: root.surface.border; border-radius: root.surface.radius;
     drop-shadow-offset-y: root.surface.shadow.offset-y; drop-shadow-blur: root.surface.shadow.blur; drop-shadow-color: root.surface.shadow.color;
-    clip: true; accessible-role: table; accessible-label: root.label; forward-focus: keys;
+    // Slint 1.18.1 has no row, cell or column-header roles, and delegated
+    // accessible focus addresses mounted descendants, which virtualized rows
+    // do not number stably. Like KitCalendar, the composite keeps focus on its
+    // key scope and names its active row here; selection stays on each row's
+    // `accessible-item-selected`, so focus, active row and selection are
+    // three separate facts in the accessible tree.
+    clip: true; accessible-role: table; forward-focus: keys;
+    accessible-label: root.label + (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "");
     keys := DataKeyboard {
         disabled: !root.interactive;
         navigate(step) => {root.navigate(step);}
@@ -91,21 +124,27 @@ export component KitDataTable inherits Rectangle {
             // Header cells share the flat, square row recipe so a fill never
             // draws its own corners inside the table's clip. A column that
             // cannot sort is static text, not a disabled control: it keeps
-            // the header tone instead of the disabled fill.
-            for column in root.columns: KitPressable {
-                theme: root.theme; control-width: ControlWidth.fill;
-                width: root.grid-width / max(1,root.columns.length);
-                min-height: root.row-height; preferred-height: root.row-height;
-                recipe: root.row-recipe; disabled: !root.interactive || !column.sortable;
-                background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
-                accessible-name: column.label + (column.sort == DataSortDirection.ascending ? ", ascending" : column.sort == DataSortDirection.descending ? ", descending" : "");
-                activated => {root.sort-requested(column.token);}
-                HorizontalLayout {padding-left: root.cell-inset; padding-right: root.cell-inset; spacing: root.theme.spacing.unit * 1.5; alignment: column.alignment == DataAlignment.trailing ? end : column.alignment == DataAlignment.center ? center : start;
-                    Text {horizontal-stretch: 0; max-width: self.preferred-width; text:column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-medium;overflow:elide;vertical-alignment:center;}
-                    if column.sort != DataSortDirection.unsorted: Rectangle {
-                        width: KitMetrics.icon-size(root.theme, root.control-size); height: parent.height;
-                        TurningIcon {theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: column.sort == DataSortDirection.descending; rest-glyph: root.theme.icons.chevron-up; turned-glyph: root.theme.icons.chevron-down;ink:root.theme.text-secondary;}
-                    }
+            // the header tone instead of the disabled fill and the accessible
+            // tree reports it as text, never as a button. Slint fixes
+            // `accessible-role` at compile time, so each kind is its own
+            // element. Keyboard, pointer and the accessible default action of
+            // a sortable header all go through one pressable, so one
+            // `disabled` rule decides all three.
+            for column in root.columns: Rectangle {
+                width: root.grid-width / max(1,root.columns.length); height: root.row-height;
+                if column.sortable: KitPressable {
+                    theme: root.theme; control-width: ControlWidth.fill;
+                    width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
+                    recipe: root.row-recipe; disabled: !root.interactive;
+                    background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
+                    accessible-name: root.header-name(column);
+                    activated => {root.sort-requested(column.token);}
+                    TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
+                }
+                if !column.sortable: Rectangle {
+                    width: parent.width; height: parent.height; background: root.row-recipe.fill;
+                    accessible-role: text; accessible-label: root.header-name(column);
+                    TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
                 }
             }
         }
@@ -118,7 +157,7 @@ export component KitDataTable inherits Rectangle {
             token:row.token;generation:root.generation;theme:root.theme;
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
-            accessible-name:row.cells.length > 0 ? row.cells[0] : "Row";
+            accessible-name:root.row-name(row);
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
             background:self.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);

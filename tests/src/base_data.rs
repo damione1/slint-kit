@@ -95,8 +95,28 @@ fn shortcut(window: &BaseDataFixture, letter: &str) {
     text(window, letter);
     up(window, Key::Control);
 }
+// A header cell is the first element carrying the header's accessible name:
+// the sortable button, or the static text wrapper that precedes its label.
+fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
+    let requested = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+                && matches!(
+                    element.accessible_role(),
+                    Some(
+                        i_slint_backend_testing::AccessibleRole::Button
+                            | i_slint_backend_testing::AccessibleRole::Text
+                    )
+                )
+        })
+        .find_first()
+}
 fn columns() -> ModelRc<TableColumn> {
-    ModelRc::new(VecModel::from(vec![
+    ModelRc::new(VecModel::from(column_set()))
+}
+fn column_set() -> Vec<TableColumn> {
+    vec![
         TableColumn {
             token: 17,
             label: "Product".into(),
@@ -111,7 +131,7 @@ fn columns() -> ModelRc<TableColumn> {
             sort: DataSortDirection::Unsorted,
             alignment: DataAlignment::Trailing,
         },
-    ]))
+    ]
 }
 fn rows(start: i32, count: i32) -> Vec<TableRow> {
     (0..count)
@@ -323,6 +343,10 @@ impl TryFrom<i32> for ColumnKey {
     }
 }
 
+// The table tests below are contract proofs in the headless testing backend:
+// they check the names, roles, enabled states and actions the kit publishes.
+// They do not qualify a screen reader; that needs a named OS, backend, device
+// and version.
 #[test]
 fn headers_emit_stable_column_tokens_and_respect_sortability() {
     let window = fixture();
@@ -334,10 +358,172 @@ fn headers_emit_stable_column_tokens_and_respect_sortability() {
             .borrow_mut()
             .push(ColumnKey::try_from(token).unwrap())
     });
-    let header = labelled(&window, "Product, ascending");
-    header.invoke_accessible_default_action();
+    // The assistive action, the pointer and the keyboard follow one rule:
+    // a sortable header sorts its column, a static header never does.
+    labelled(&window, "Product, ascending").invoke_accessible_default_action();
     labelled(&window, "Quantity").invoke_accessible_default_action();
     assert_eq!(&*sorted.borrow(), &[ColumnKey::Product]);
+    labelled(&window, "Product, ascending").mock_single_click(PointerEventButton::Left);
+    labelled(&window, "Quantity").mock_single_click(PointerEventButton::Left);
+    assert_eq!(&*sorted.borrow(), &[ColumnKey::Product; 2]);
+    window.invoke_focus_table();
+    key(&window, Key::Tab);
+    key(&window, Key::Return);
+    assert_eq!(&*sorted.borrow(), &[ColumnKey::Product; 3]);
+    key(&window, Key::Tab);
+    key(&window, Key::Return);
+    assert_eq!(
+        &*sorted.borrow(),
+        &[ColumnKey::Product; 3],
+        "a static header is not a tab stop"
+    );
+}
+
+#[test]
+fn sort_direction_is_announced_with_host_supplied_words() {
+    let window = fixture();
+    let model = Rc::new(VecModel::from(column_set()));
+    window.set_columns(ModelRc::from(model.clone()));
+    let sortable = header(&window, "Product, ascending").expect("sortable header");
+    assert_eq!(
+        sortable.accessible_role(),
+        Some(i_slint_backend_testing::AccessibleRole::Button)
+    );
+    assert_eq!(sortable.accessible_enabled(), Some(true));
+    let fixed = header(&window, "Quantity").expect("static header");
+    assert_eq!(
+        fixed.accessible_role(),
+        Some(i_slint_backend_testing::AccessibleRole::Text),
+        "a header that cannot sort is static text, not a button"
+    );
+    assert_eq!(
+        fixed.accessible_enabled(),
+        None,
+        "static text carries no enabled state"
+    );
+    window.set_table_ascending_label("croissant".into());
+    window.set_table_descending_label("décroissant".into());
+    assert!(header(&window, "Product, croissant").is_some());
+    assert!(header(&window, "Product, ascending").is_none());
+    let mut column = model.row_data(0).unwrap();
+    column.sort = DataSortDirection::Descending;
+    model.set_row_data(0, column.clone());
+    assert!(header(&window, "Product, décroissant").is_some());
+    column.sort = DataSortDirection::Unsorted;
+    model.set_row_data(0, column);
+    assert!(header(&window, "Product").is_some());
+    assert!(
+        header(&window, "Quantity").is_some(),
+        "an unsorted column carries no direction word"
+    );
+}
+
+#[test]
+fn a_blocked_table_rejects_sorting_and_activation_from_every_input() {
+    let window = fixture();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    window.set_table_active(0);
+    let sorted = Rc::new(RefCell::new(Vec::new()));
+    let observed = sorted.clone();
+    window.on_sort_requested(move |token| {
+        observed
+            .borrow_mut()
+            .push(ColumnKey::try_from(token).unwrap())
+    });
+    let activated = Rc::new(RefCell::new(Vec::new()));
+    let observed = activated.clone();
+    window.on_table_activated(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    let exercise = |window: &BaseDataFixture| {
+        labelled(window, "Product, ascending").invoke_accessible_default_action();
+        labelled(window, "Product, ascending").mock_single_click(PointerEventButton::Left);
+        labelled(window, "Product 2").invoke_accessible_default_action();
+        labelled(window, "Product 2").mock_single_click(PointerEventButton::Left);
+        window.invoke_focus_table();
+        key(window, Key::Return);
+    };
+    window.set_table_interactive(false);
+    assert_eq!(
+        labelled(&window, "Product, ascending").accessible_enabled(),
+        Some(false)
+    );
+    assert_eq!(
+        labelled(&window, "Quantity").accessible_enabled(),
+        None,
+        "static text is not a disabled control: it has no enabled state"
+    );
+    assert_eq!(
+        labelled(&window, "Product 1").accessible_enabled(),
+        Some(false)
+    );
+    exercise(&window);
+    assert!(sorted.borrow().is_empty());
+    assert!(activated.borrow().is_empty());
+    window.set_table_interactive(true);
+    assert_eq!(
+        labelled(&window, "Product, ascending").accessible_enabled(),
+        Some(true)
+    );
+    assert_eq!(
+        labelled(&window, "Product 1").accessible_enabled(),
+        Some(true)
+    );
+    exercise(&window);
+    assert_eq!(&*sorted.borrow(), &[ColumnKey::Product; 2]);
+    assert_eq!(&*activated.borrow(), &[(2, 1), (2, 1), (1, 1)]);
+}
+
+#[test]
+fn focus_active_row_and_selection_are_three_separate_facts() {
+    let window = fixture();
+    window.set_columns(columns());
+    let mut table_rows = rows(1, 3);
+    table_rows[0].selected = true;
+    window.set_rows(ModelRc::new(VecModel::from(table_rows)));
+    let activated = Rc::new(RefCell::new(Vec::new()));
+    let observed = activated.clone();
+    window.on_table_activated(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    // Without an active row the table is named by its label alone.
+    labelled(&window, "Products fixture");
+    window.set_table_active(2);
+    labelled(&window, "Products fixture: Product 3");
+    assert_eq!(
+        labelled(&window, "Product 1").accessible_item_selected(),
+        Some(true)
+    );
+    assert_eq!(
+        labelled(&window, "Product 3").accessible_item_selected(),
+        Some(false),
+        "the active row is not the selected row"
+    );
+    // Keyboard activation targets the active row, not the selected one.
+    window.invoke_focus_table();
+    key(&window, Key::Return);
+    assert_eq!(&*activated.borrow(), &[(3, 1)]);
+    // Pointer activation targets the pressed row; it neither moves the host's
+    // active row nor changes the host's selection.
+    labelled(&window, "Product 2").mock_single_click(PointerEventButton::Left);
+    assert_eq!(&*activated.borrow(), &[(3, 1), (2, 1)]);
+    labelled(&window, "Products fixture: Product 3");
+    assert_eq!(
+        labelled(&window, "Product 2").accessible_item_selected(),
+        Some(false)
+    );
+    assert_eq!(
+        labelled(&window, "Product 1").accessible_item_selected(),
+        Some(true)
+    );
+    // Clearing the active row removes it from the name and leaves selection.
+    window.set_table_active(-1);
+    labelled(&window, "Products fixture");
+    assert_eq!(
+        labelled(&window, "Product 1").accessible_item_selected(),
+        Some(true)
+    );
 }
 
 #[test]

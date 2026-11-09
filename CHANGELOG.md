@@ -28,6 +28,7 @@
 - Slint requirement relaxed from `=1.18.1` to `~1.18.1`: applications can use any Slint 1.18 patch release from 1.18.1. Keep `slint-kit` and `slint-kit-build` on the same release. No public API changes.
 - The documentation site publishes `/llms.txt`, generated from the component inventory, for AI assistants and search tools.
 - README, crates.io page, docs.rs crate documentation and crate metadata now present the component catalogue, screenshots, engineering guarantees and licensing plans.
+- `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
 
@@ -39,6 +40,7 @@
 - L’exigence Slint passe de `=1.18.1` à `~1.18.1` : les applications peuvent utiliser toute version corrective de Slint 1.18 à partir de 1.18.1. Gardez `slint-kit` et `slint-kit-build` sur la même version. Aucun changement d’API publique.
 - Le site de documentation publie `/llms.txt`, généré à partir de l’inventaire des composants, pour les assistants IA et les outils de recherche.
 - Le README, la page crates.io, la documentation docs.rs et les métadonnées des crates présentent le catalogue, des captures, les garanties d’ingénierie et les plans de licence.
+- Le texte accessible de `KitDataTable` est localisable : les nouvelles propriétés `sort-ascending-label`, `sort-descending-label` et `unnamed-row-label` remplacent les suffixes de tri anglais et le libellé de ligne codés en dur. Un en-tête avec `sortable: false` est maintenant exposé comme `text` statique plutôt que comme `button` désactivé, et le libellé accessible du tableau nomme la ligne active (`libellé : première cellule`) pour que focus, ligne active et sélection restent distincts. Des tests headless prouvent le contrat de tri, d’activation et de sélection au clavier, au pointeur et par action accessible ; ils ne sont pas une qualification de lecteur d’écran. Aucun changement cassant : les valeurs par défaut gardent les noms anglais précédents.
 
 ## 0.7.1
 

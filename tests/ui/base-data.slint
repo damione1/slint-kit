@@ -11,6 +11,9 @@ export component BaseDataFixture inherits Window {
     in property <[ContentItem]> items;
     in property <string> content-empty-label;
     in property <[TextLine]> lines;
+    in property <bool> table-interactive: true;
+    in property <string> table-ascending-label: "ascending";
+    in property <string> table-descending-label: "descending";
     in property <int> table-generation: 1;
     in property <int> line-generation: 1;
     in property <int> table-active: -1;
@@ -38,7 +41,10 @@ export component BaseDataFixture inherits Window {
         table := KitDataTable {
             theme: root.theme; height: 240px; columns: root.columns; rows: root.rows;
             generation: root.table-generation; active-index: root.table-active;
+            interactive: root.table-interactive;
             label: "Products fixture";
+            sort-ascending-label: root.table-ascending-label;
+            sort-descending-label: root.table-descending-label;
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
