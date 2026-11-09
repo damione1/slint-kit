@@ -63,7 +63,7 @@ L’application choisit toujours données, tri, filtrage, chargement et commande
 
 `ToastBinding<Action>` stocke les actions typées dans `ToastQueue`, projette les lignes `ToastEntry` et gère un minuteur faible. Capacité et `ToastLifetime` sont explicites. Ses trois handlers routent action, fermeture et pauses indépendantes pointeur/focus ; l’application exécute uniquement l’action métier reçue.
 
-`KeyedModel::sorting_by` transforme un comparateur de clés métier en handler de tri alterné. Le tri conserve sélection et identité active et avance la génération : un geste commencé avant le réordonnancement ne peut pas cibler la nouvelle projection.
+`KeyedModel::sorting_by` transforme un comparateur de clés métier en handler de tri alterné. Le tri conserve sélection et identité active et avance la génération : un geste commencé avant le réordonnancement ne peut pas cibler la nouvelle projection. L’[application de tableau triable](/fr/guides/table-example/) raccorde `bind`, `navigation()`, `activation` et `sorting_by` à un `KitDataTable` dans un seul fichier court.
 
 `KeyedModel::cell_commits(handler)` est le handler de `KitDataTable.cell-committed` pour l’édition de cellule sur place : il n’admet un commit que sous la génération courante et pour une ligne active, puis transmet la clé de ligne, le jeton de colonne et le `FieldCommit`, que l’application passe dans le `FieldSpec::accept` de la colonne avant de republier la ligne.
 

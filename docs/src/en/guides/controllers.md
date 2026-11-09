@@ -63,7 +63,7 @@ The application still chooses data, sorting, filtering, loading and commands. A 
 
 `ToastBinding<Action>` stores typed actions in `ToastQueue`, projects `ToastEntry` rows and manages a weak timer. Capacity and `ToastLifetime` are explicit. Its three handlers route action, dismissal and independent pointer/focus pauses; the application only performs the resulting business action.
 
-`KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection.
+`KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection. The [sortable table application](/guides/table-example/) wires `bind`, `navigation()`, `activation` and `sorting_by` to a `KitDataTable` in one short file.
 
 `KeyedModel::cell_commits(handler)` is the `KitDataTable.cell-committed` handler for in-place cell edits: it admits a commit only under the current generation and for an enabled row, then passes the row key, the column token and the `FieldCommit`, which the application runs through that column's `FieldSpec::accept` before republishing the row.
 

@@ -28,6 +28,28 @@ fn click(app: &TableApp, x: f32, y: f32) {
     });
 }
 
+// Tokens are stamped by `KeyedModel`, so a row is found by its name cell.
+fn token(app: &TableApp, name: &str) -> i32 {
+    app.get_rows()
+        .iter()
+        .find(|row| {
+            row.content
+                .row_data(0)
+                .is_some_and(|cell| cell.text.as_str() == name)
+        })
+        .unwrap_or_else(|| panic!("row named {name}"))
+        .token
+}
+
+fn first_row_name(app: &TableApp) -> String {
+    app.get_rows()
+        .row_data(0)
+        .and_then(|row| row.content.row_data(0))
+        .expect("first row name cell")
+        .text
+        .to_string()
+}
+
 fn snapshot(app: &TableApp, path: PathBuf) {
     let path = match app.window().scale_factor() {
         1.0 => path,
@@ -112,17 +134,25 @@ pub fn schedule(app: &TableApp) {
             app.get_generation() > generation,
             "header sort callback must run"
         );
-        assert_eq!(app.get_rows().row_data(0).expect("first row").token, 203);
+        assert_eq!(first_row_name(&app), "Boreal", "tasks sort ascending");
         assert!(
             app.get_selection_label().contains("#101"),
             "selection survives reorder"
         );
-        app.invoke_activate(409, generation);
-        app.invoke_activate(307, app.get_generation());
+        app.invoke_activate(token(&app, "Delta"), generation);
+        app.invoke_activate(token(&app, "Cedar"), app.get_generation());
         assert!(
             app.get_selection_label().contains("#101"),
             "stale and disabled activation rejected"
         );
+        app.invoke_show_archived_changed(false);
+        assert_eq!(app.get_rows().row_count(), 3, "archived row hidden");
+        assert!(
+            app.get_rows().row_data(2).is_some_and(|row| row.selected),
+            "selection follows its key through filtering"
+        );
+        app.invoke_show_archived_changed(true);
+        assert_eq!(app.get_rows().row_count(), 4, "archived row shown again");
         app.invoke_focus_table();
         key(&app, Key::End);
         assert_eq!(app.get_active_index(), 2, "archived last row is skipped");

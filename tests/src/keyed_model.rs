@@ -133,3 +133,147 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
     model.navigate(slint_kit::NavigationStep::Previous);
     assert_eq!(second.get_email_text(), "edited");
 }
+
+// The short integration path of a data table: `bind`, `navigation`,
+// `activation` and `sorting_by` wired to `KitDataTable`, with the host
+// supplying only its data, comparator and filter.
+#[test]
+fn table_rows_follow_their_key_through_keyboard_selection_sorting_and_filtering() {
+    use crate::{DataFixtureCollection, base_data};
+    use slint::platform::Key;
+    use slint_kit::{CellContent, table_cells};
+    use std::{cell::Cell, rc::Rc};
+    const PROJECTS: [(Record, &str, u64, bool); 4] = [
+        (Record(101), "Atlas", 12, false),
+        (Record(203), "Boreal", 3, false),
+        (Record(307), "Cedar", 24, true),
+        (Record(409), "Delta", 8, false),
+    ];
+    fn tasks(key: &Record) -> u64 {
+        PROJECTS
+            .iter()
+            .find(|(candidate, ..)| candidate == key)
+            .expect("known project")
+            .2
+    }
+    fn rows(show_archived: bool, selected: Option<Record>) -> Vec<(Record, ui::TableRow)> {
+        PROJECTS
+            .into_iter()
+            .filter(|(_, _, _, archived)| show_archived || !archived)
+            .map(|(key, name, tasks, archived)| {
+                let row = ui::TableRow {
+                    content: table_cells([
+                        CellContent::text(name),
+                        CellContent::text(tasks.to_string()),
+                    ]),
+                    selected: selected == Some(key),
+                    disabled: archived,
+                    ..Default::default()
+                };
+                (key, row)
+            })
+            .collect()
+    }
+    fn names(model: &KeyedModel<Record, ui::TableRow>) -> Vec<String> {
+        model
+            .model()
+            .iter()
+            .map(|row| row.content.row_data(0).expect("name cell").text.to_string())
+            .collect()
+    }
+    let window = base_data::fixture();
+    window.set_columns(slint::ModelRc::new(slint::VecModel::from(vec![
+        ui::TableColumn {
+            token: 1,
+            label: "Project".into(),
+            ..Default::default()
+        },
+        ui::TableColumn {
+            token: 2,
+            label: "Tasks".into(),
+            sortable: true,
+            alignment: ui::DataAlignment::Trailing,
+            ..Default::default()
+        },
+    ])));
+    let model = KeyedModel::new(rows(true, None)).unwrap();
+    model.bind(
+        &window,
+        crate::BaseDataFixture::set_rows,
+        crate::BaseDataFixture::set_table_generation,
+        crate::BaseDataFixture::set_table_active,
+    );
+    let navigate = model.navigation();
+    window.on_navigate(move |collection, step| match collection {
+        DataFixtureCollection::Table => navigate(step),
+        DataFixtureCollection::Content | DataFixtureCollection::Document => {}
+    });
+    let chosen = Rc::new(Cell::new(None));
+    window.on_table_activated(model.activation({
+        let chosen = chosen.clone();
+        move |key| chosen.set(Some(key))
+    }));
+    let sort = model.sorting_by(|left, right| tasks(left).cmp(&tasks(right)), |_| {});
+    window.on_sort_requested(move |_| sort());
+
+    window.invoke_focus_table();
+    base_data::key(&window, Key::DownArrow);
+    base_data::key(&window, Key::Return);
+    assert_eq!(
+        chosen.get(),
+        Some(Record(101)),
+        "Enter selects the first enabled row"
+    );
+    let atlas = model.model().row_data(0).unwrap().token;
+    let generation = window.get_table_generation();
+
+    window.invoke_sort_requested(2);
+    assert_eq!(names(&model), ["Boreal", "Delta", "Atlas", "Cedar"]);
+    assert_ne!(
+        window.get_table_generation(),
+        generation,
+        "sorting advances the generation"
+    );
+    let moved = model.model().row_data(2).unwrap();
+    assert!(
+        moved.selected && moved.token == atlas,
+        "selection follows its key"
+    );
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "the active row follows its key"
+    );
+
+    // A stale gesture and a disabled row are rejected at the component's callback.
+    window.invoke_table_activated(model.model().row_data(1).unwrap().token, generation);
+    window.invoke_table_activated(
+        model.model().row_data(3).unwrap().token,
+        window.get_table_generation(),
+    );
+    assert_eq!(chosen.get(), Some(Record(101)));
+
+    base_data::key(&window, Key::End);
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "End skips the archived last row"
+    );
+    base_data::key(&window, Key::Home);
+    base_data::key(&window, Key::Return);
+    assert_eq!(chosen.get(), Some(Record(203)));
+
+    // Filtering republishes the host's rows: surviving keys keep their token,
+    // selection and active position.
+    let boreal = model.model().row_data(0).unwrap().token;
+    model.replace(rows(false, chosen.get())).unwrap();
+    assert_eq!(model.model().row_count(), 3);
+    let kept = model.model().row_data(1).unwrap();
+    assert!(kept.selected && kept.token == boreal);
+    assert_eq!(window.get_table_active(), 1);
+    assert_eq!(
+        model.accept(boreal, generation),
+        None,
+        "old generation stays rejected"
+    );
+}
