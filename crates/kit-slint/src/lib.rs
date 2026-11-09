@@ -91,6 +91,11 @@ mod toast;
 pub use toast::*;
 
 #[cfg(feature = "adapter")]
+mod table;
+#[cfg(feature = "adapter")]
+pub use table::*;
+
+#[cfg(feature = "adapter")]
 mod numeric_service;
 
 #[cfg(feature = "adapter")]

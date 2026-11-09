@@ -143,6 +143,7 @@ pub(crate) fn rows(start: i32, count: i32) -> Vec<TableRow> {
                 format!("Product {}", start + index).into(),
                 index.to_string().into(),
             ])),
+            content: ModelRc::default(),
             selected: false,
             disabled: false,
         })

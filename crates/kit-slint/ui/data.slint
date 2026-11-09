@@ -6,6 +6,9 @@ import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
+import { CheckState } from "shared-contracts.slint";
+import { Tone, KitBadge } from "display.slint";
+import { CheckMark } from "choice.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
 export enum DataAlignment { leading, center, trailing }
 export enum TextViewAccess { read-only, edit-line }
@@ -26,7 +29,21 @@ export enum ColumnCeiling { unbounded, bounded }
 // changing this policy (usually to `fixed` at the reported basis).
 export struct ColumnWidth { sizing: ColumnSizing, basis: length, minimum: length, ceiling: ColumnCeiling, maximum: length, resizable: bool }
 export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth }
-export struct TableRow { token: int, cells: [string], selected: bool, disabled: bool }
+// What one typed table cell shows. The set is closed and painted by the
+// kit inside the virtualized row, because Slint 1.18.1 rejects `@children`
+// and slot placeholders inside a repeated element and keeps dynamic
+// components experimental. The Rust `CellContent` enum is the sum type;
+// `TableCell` is its flat projection, written once by `From`, so only the
+// fields of `kind` are meaningful: `text` for every kind (it is also the
+// accessible label of a badge or check mark), `tone` for a badge, `check`
+// for a check mark.
+export enum TableCellKind { text, badge, check }
+export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState }
+// A row is either plain strings (`cells`) or typed cells (`content`), one
+// per column in column order. When a row carries both, `content` is
+// rendered and `cells` is ignored; the row's accessible name is its first
+// cell's text in either form.
+export struct TableRow { token: int, cells: [string], content: [TableCell], selected: bool, disabled: bool }
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
 
@@ -168,6 +185,45 @@ component ColumnResizeHandle inherits Rectangle {
     }
 }
 
+// One row cell, painted by its kind inside the column's constraints. Slint
+// fixes element kinds at compile time, so each kind is its own element; the
+// text of every kind is the cell's accessible label, so a badge or a check
+// mark reads as the words the host chose. A disabled row dims its text and
+// its check mark; a badge keeps its tone, which is data, not a state.
+component TableCellView inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <TableCell> cell;
+    in property <DataAlignment> alignment;
+    in property <length> inset;
+    in property <bool> row-selected;
+    in property <bool> row-disabled;
+    pure function aligned-x(extent: length) -> length {
+        return root.alignment == DataAlignment.trailing ? root.width - root.inset - extent : root.alignment == DataAlignment.center ? (root.width - extent) / 2 : root.inset;
+    }
+    clip: true;
+    if root.cell.kind == TableCellKind.text: Text {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        text: root.cell.text;
+        color: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+        overflow: elide; vertical-alignment: center;
+        horizontal-alignment: root.alignment == DataAlignment.trailing ? right : root.alignment == DataAlignment.center ? center : left;
+    }
+    if root.cell.kind == TableCellKind.badge: KitBadge {
+        theme: root.theme;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+        text: root.cell.text; tone: root.cell.tone;
+    }
+    if root.cell.kind == TableCellKind.check: CheckMark {
+        theme: root.theme; control-size: root.control-size;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+        state: root.cell.check;
+        access: root.row-disabled ? FieldAccess.disabled : FieldAccess.read-only;
+        accessible-role: text; accessible-label: root.cell.text;
+    }
+}
+
 export component KitDataTable inherits Rectangle {
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
@@ -215,7 +271,9 @@ export component KitDataTable inherits Rectangle {
     private property <int> preview-token;
     private property <length> preview-width;
     private property <bool> has-active-row: root.active-index >= 0 && root.active-index < root.rows.length;
-    pure function row-name(row: TableRow) -> string { return row.cells.length > 0 ? row.cells[0] : root.unnamed-row-label; }
+    pure function row-name(row: TableRow) -> string {
+        return row.content.length > 0 ? row.content[0].text : row.cells.length > 0 ? row.cells[0] : root.unnamed-row-label;
+    }
     pure function header-name(column: TableColumn) -> string {
         return column.label + (column.sort == DataSortDirection.ascending ? ", " + root.sort-ascending-label : column.sort == DataSortDirection.descending ? ", " + root.sort-descending-label : "");
     }
@@ -337,14 +395,28 @@ export component KitDataTable inherits Rectangle {
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             recipe:root.row-recipe;
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
-            HorizontalLayout {spacing:0px; padding: 0px;
-                // Row cells take the constraints of their column, so the
-                // solver lays them out exactly as the header above.
-                for cell[column-index] in row.cells: row-cell := Rectangle {
+            // Row cells take the constraints of their column, so the solver
+            // lays them out exactly as the header above. A row paints its
+            // typed `content` when it has any, otherwise its plain `cells`
+            // as text cells.
+            if row.content.length == 0: HorizontalLayout {spacing:0px; padding: 0px;
+                for cell[column-index] in row.cells: row-cell := TableCellView {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
-                    clip: true;
-                    Text {x:root.cell-inset;width:max(0px,parent.width - 2 * root.cell-inset);text:cell;color:row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
+                    theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
+                    cell: { kind: TableCellKind.text, text: cell };
+                    alignment: root.columns[column-index].alignment;
+                    row-selected: row.selected; row-disabled: row.disabled;
+                }
+            }
+            if row.content.length > 0: HorizontalLayout {spacing:0px; padding: 0px;
+                for cell[column-index] in row.content: content-cell := TableCellView {
+                    min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
+                    horizontal-stretch: root.cell-stretch(root.columns[column-index]);
+                    theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
+                    cell: cell;
+                    alignment: root.columns[column-index].alignment;
+                    row-selected: row.selected; row-disabled: row.disabled;
                 }
             }
         }

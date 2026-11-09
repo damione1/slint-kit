@@ -81,6 +81,37 @@ component RadioMark inherits Rectangle {
     }
 }
 
+// The checkbox indicator: a box whose border, fill and mark follow one
+// `CheckState` and one `FieldAccess`. KitCheckbox paints it inside its
+// pressable; read-only presentations such as data-table check cells paint it
+// alone, so a checked value looks the same everywhere.
+export component CheckMark inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <CheckState> state;
+    in property <bool> invalid;
+    in property <FieldAccess> access: FieldAccess.editable;
+    private property <bool> disabled: root.access == FieldAccess.disabled;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.box-size; height: root.choice.box-size;
+    border-radius: root.choice.box-radius;
+    border-width: root.theme.shape.border-width;
+    border-color: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
+    background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
+        : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
+    if root.state == CheckState.checked: KitIcon {
+        theme: root.theme; glyph: root.theme.icons.check;
+        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+        width: root.choice.box-size; height: root.choice.box-size;
+        ink: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+    }
+    if root.state == CheckState.mixed: mixed-bar := Rectangle {
+        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+        width: root.choice.mixed-width; height: root.choice.mark-stroke;
+        background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+    }
+}
+
 // All boolean skins use the same Pressable activation and cancellation machine.
 // The state is controlled: mixed is a real third value and never coerced to false.
 export component KitCheckbox inherits KitPressable {
@@ -126,26 +157,11 @@ export component KitCheckbox inherits KitPressable {
         spacing: root.choice.label-gap;
         Rectangle {
             width: root.choice.box-size; horizontal-stretch: 0;
-            indicator := Rectangle {
+            indicator := CheckMark {
                 y: (parent.height - self.height) / 2;
-                width: root.choice.box-size; height: root.choice.box-size;
-            border-radius: root.choice.box-radius;
-            border-width: root.theme.shape.border-width;
-            border-color: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-text : root.state == CheckState.unchecked ? root.theme.border-strong : root.theme.accent;
-            background: root.disabled ? root.theme.disabled-fill : root.state != CheckState.unchecked ? root.theme.accent
-                : root.access == FieldAccess.read-only ? root.theme.canvas : root.theme.surface;
-            if root.state == CheckState.checked: KitIcon {
-                theme: root.theme; glyph: root.theme.icons.check;
-                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                width: root.choice.box-size; height: root.choice.box-size;
-                ink: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
+                theme: root.theme; control-size: root.control-size;
+                state: root.state; invalid: checks.show-error; access: root.access;
             }
-            if root.state == CheckState.mixed: Rectangle {
-                x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-                width: root.choice.mixed-width; height: root.choice.mark-stroke;
-                background: root.disabled ? root.theme.disabled-text : root.theme.on-accent;
-            }
-        }
         }
         label := Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
     }

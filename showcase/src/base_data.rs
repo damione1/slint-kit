@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::ui;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use slint_kit::CellContent;
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ProductId(u32);
@@ -242,19 +243,23 @@ impl Catalogue {
                     let p = &self.products[*index];
                     ui::TableRow {
                         token: p.id.0 as i32,
-                        cells: ModelRc::new(VecModel::from(vec![
-                            p.title.as_str().into(),
-                            p.category.into(),
-                            p.price
-                                .format(
-                                    &currency,
-                                    slint_kit::NumberLocale::EnCa,
-                                    slint_kit::RoundingPolicy::Reject,
-                                )
-                                .expect("exact two decimals")
-                                .into(),
-                            p.stock.to_string().into(),
-                        ])),
+                        cells: ModelRc::default(),
+                        // Typed cells: the category reads as a badge, the
+                        // other columns stay text.
+                        content: slint_kit::table_cells([
+                            CellContent::text(p.title.as_str()),
+                            CellContent::badge(p.category, ui::Tone::Neutral),
+                            CellContent::text(
+                                p.price
+                                    .format(
+                                        &currency,
+                                        slint_kit::NumberLocale::EnCa,
+                                        slint_kit::RoundingPolicy::Reject,
+                                    )
+                                    .expect("exact two decimals"),
+                            ),
+                            CellContent::text(p.stock.to_string()),
+                        ]),
                         selected: self.selected == Some(p.id),
                         disabled: false,
                     }

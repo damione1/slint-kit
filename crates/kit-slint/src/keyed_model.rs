@@ -390,9 +390,11 @@ impl KeyedRow for ui::TableRow {
         !self.disabled
     }
     fn label(&self) -> String {
-        self.cells
+        self.content
             .row_data(0)
-            .map_or_else(String::new, |label| label.to_string())
+            .map(|cell| cell.text.to_string())
+            .or_else(|| self.cells.row_data(0).map(|label| label.to_string()))
+            .unwrap_or_default()
     }
 }
 impl SelectableRow for ui::TableRow {

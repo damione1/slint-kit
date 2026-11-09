@@ -194,6 +194,7 @@ fn project(state: &Catalogue, french: bool) -> Projection {
                     project.name.into(),
                     project.tasks.to_string().into(),
                 ])),
+                content: ModelRc::default(),
                 selected: state.selected == Some(*id),
                 disabled: project.archived,
             }
