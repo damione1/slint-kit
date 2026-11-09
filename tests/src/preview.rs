@@ -20,6 +20,14 @@ fn has_label(window: &PreviewFixture, label: &str) -> bool {
         .is_some()
 }
 
+fn select_value(window: &PreviewFixture) -> Option<slint::SharedString> {
+    ElementQuery::from_root(window)
+        .match_inherits("KitSelectTrigger")
+        .find_first()
+        .expect("select trigger")
+        .accessible_value()
+}
+
 #[test]
 fn declarative_options_render_without_install_across_selection_families() {
     i_slint_backend_testing::init_no_event_loop();
@@ -129,7 +137,7 @@ fn explicit_calendar_and_field_presentations_survive_without_rust_services() {
     let calendar = fixture(PreviewFamily::Calendar);
     assert!(has_label(&calendar, "November 8, 2026"));
     let select = fixture(PreviewFamily::Select);
-    assert!(has_label(&select, "Choose an option"));
+    assert_eq!(select_value(&select).as_deref(), Some("Choose an option"));
 }
 
 #[test]
@@ -143,17 +151,16 @@ fn installed_select_keeps_an_explicit_empty_option_label() {
             ..Default::default()
         },
     ])));
-    assert!(has_label(&window, "Choose an option"));
+    assert_eq!(select_value(&window).as_deref(), Some("Choose an option"));
     slint_kit::install(&window);
     slint::platform::update_timers_and_animations();
     assert!(
-        ElementQuery::from_root(&window)
-            .match_inherits("KitSelectTrigger")
-            .find_first()
-            .is_some()
+        has_label(&window, "Choose an option"),
+        "the field keeps its accessible name"
     );
-    assert!(
-        !has_label(&window, "Choose an option"),
+    assert_eq!(
+        select_value(&window).as_deref(),
+        Some(""),
         "an installed selector must preserve an intentionally empty selected label"
     );
 }
