@@ -1,0 +1,462 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Column width policies of `KitDataTable`: geometry of fill, fixed and
+//! bounded columns, header/row alignment under horizontal scroll, and the
+//! pointer, keyboard and assistive resize contract. These are headless
+//! contract proofs; they do not qualify a screen reader.
+use super::base_data::{column_set, delegates, fixture, key, labelled, rows};
+use super::*;
+use i_slint_backend_testing::{AccessibleRole, ElementHandle, ElementQuery};
+use slint::platform::{Key, PointerEventButton, WindowEvent};
+use slint::{ComponentHandle, LogicalPosition, Model, ModelRc, VecModel};
+use std::{cell::RefCell, rc::Rc};
+
+const PRODUCT: i32 = 17;
+
+fn fill() -> ColumnWidth {
+    ColumnWidth::default()
+}
+fn fixed(basis: f32) -> ColumnWidth {
+    ColumnWidth {
+        sizing: ColumnSizing::Fixed,
+        basis,
+        ..ColumnWidth::default()
+    }
+}
+fn bounded(width: ColumnWidth, minimum: f32, maximum: f32) -> ColumnWidth {
+    ColumnWidth {
+        minimum,
+        ceiling: ColumnCeiling::Bounded,
+        maximum,
+        ..width
+    }
+}
+fn resizable(width: ColumnWidth) -> ColumnWidth {
+    ColumnWidth {
+        resizable: true,
+        ..width
+    }
+}
+fn with_widths(product: ColumnWidth, quantity: ColumnWidth) -> Vec<TableColumn> {
+    let mut columns = column_set();
+    columns[0].width = product;
+    columns[1].width = quantity;
+    columns
+}
+fn header_cells(window: &BaseDataFixture) -> Vec<ElementHandle> {
+    ElementHandle::find_by_element_id(window, "KitDataTable::header-cell").collect()
+}
+fn row_cells(window: &BaseDataFixture, index: usize) -> Vec<ElementHandle> {
+    delegates(window, "KitDataTable")
+        .remove(index)
+        .query_descendants()
+        .match_id("KitDataTable::row-cell")
+        .find_all()
+}
+fn widths(cells: &[ElementHandle]) -> Vec<f32> {
+    cells.iter().map(|cell| cell.size().width).collect()
+}
+fn near(actual: f32, expected: f32) -> bool {
+    (actual - expected).abs() < 1.
+}
+fn assert_aligned(window: &BaseDataFixture) {
+    let header = header_cells(window);
+    for index in 0..2 {
+        let row = row_cells(window, index);
+        assert_eq!(header.len(), row.len(), "one row cell per header cell");
+        for (header_cell, row_cell) in header.iter().zip(&row) {
+            assert!(
+                near(
+                    header_cell.absolute_position().x,
+                    row_cell.absolute_position().x
+                ) && near(header_cell.size().width, row_cell.size().width),
+                "header {:?}/{} and row {:?}/{} must share x and width",
+                header_cell.absolute_position(),
+                header_cell.size().width,
+                row_cell.absolute_position(),
+                row_cell.size().width
+            );
+        }
+    }
+}
+fn visible_width(window: &BaseDataFixture) -> f32 {
+    ElementHandle::find_by_element_id(window, "KitDataTable::list")
+        .next()
+        .expect("table viewport")
+        .query_descendants()
+        .match_type_name("Flickable")
+        .find_first()
+        .expect("viewport flickable")
+        .size()
+        .width
+}
+fn handle(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
+    let requested = label.to_owned();
+    ElementQuery::from_root(window)
+        .match_accessible_role(AccessibleRole::Spinbox)
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+        })
+        .find_first()
+}
+fn center(element: &ElementHandle) -> LogicalPosition {
+    let origin = element.absolute_position();
+    LogicalPosition::new(
+        origin.x + element.size().width / 2.,
+        origin.y + element.size().height / 2.,
+    )
+}
+fn pointer_move(window: &BaseDataFixture, position: LogicalPosition) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+}
+fn pointer_down(window: &BaseDataFixture, position: LogicalPosition) {
+    pointer_move(window, position);
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+}
+fn pointer_up(window: &BaseDataFixture, position: LogicalPosition) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+}
+fn observe_resizes(window: &BaseDataFixture) -> Rc<RefCell<Vec<(i32, f32)>>> {
+    let requested = Rc::new(RefCell::new(Vec::new()));
+    let observed = requested.clone();
+    window.on_resize_requested(move |token, width| observed.borrow_mut().push((token, width)));
+    requested
+}
+
+#[test]
+fn default_policy_shares_the_viewport_equally_and_aligns_rows_at_every_text_scale() {
+    let window = fixture();
+    window.set_columns(ModelRc::new(VecModel::from(column_set())));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    for scale in [1., 2.] {
+        let mut theme = window.get_theme();
+        theme.text_scale = scale;
+        window.set_theme(theme);
+        let header = widths(&header_cells(&window));
+        assert_eq!(header.len(), 2);
+        assert!(near(header[0], header[1]), "fill columns share equally");
+        assert!(
+            near(header[0] + header[1], visible_width(&window)),
+            "fill columns cover the viewport: {header:?}"
+        );
+        assert_aligned(&window);
+        assert!(
+            handle(&window, "Product, width").is_none()
+                && handle(&window, "Quantity, width").is_none(),
+            "a column that is not resizable has no handle"
+        );
+    }
+}
+
+#[test]
+fn fixed_fill_and_bounded_columns_respect_their_explicit_bounds() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    // A fixed column is exactly its basis; a bounded fill column stops at
+    // its maximum and the space it leaves stays empty rather than widening it.
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        fixed(120.),
+        bounded(fill(), 0., 200.),
+    ))));
+    let header = widths(&header_cells(&window));
+    assert!(near(header[0], 120.), "fixed column: {header:?}");
+    assert!(near(header[1], 200.), "bounded fill column: {header:?}");
+    assert_aligned(&window);
+    // A fixed basis outside its own bounds is clamped to them.
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        bounded(fixed(500.), 80., 160.),
+        fill(),
+    ))));
+    let header = widths(&header_cells(&window));
+    assert!(near(header[0], 160.), "fixed basis clamped: {header:?}");
+    assert!(
+        near(header[1], visible_width(&window) - 160.),
+        "the fill column takes the rest: {header:?}"
+    );
+    // The table floor applies to fill columns; a fixed column may be narrower.
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        fixed(48.),
+        fill(),
+    ))));
+    let header = widths(&header_cells(&window));
+    assert!(
+        near(header[0], 48.),
+        "fixed below the table floor: {header:?}"
+    );
+    assert_aligned(&window);
+}
+
+#[test]
+fn minimums_that_overflow_the_viewport_scroll_with_the_header_aligned() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        fixed(600.),
+        bounded(fill(), 500., 800.),
+    ))));
+    let viewport = visible_width(&window);
+    let header = widths(&header_cells(&window));
+    assert!(600. + 500. > viewport, "the fixture must overflow");
+    assert!(near(header[0], 600.) && near(header[1], 500.), "{header:?}");
+    assert_aligned(&window);
+    let first_cell_x = header_cells(&window)[0].absolute_position().x;
+    let rows_area = center(&delegates(&window, "KitDataTable")[3]);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerScrolled {
+            position: rows_area,
+            delta_x: -300.,
+            delta_y: 0.,
+        });
+    assert!(
+        window.get_table_scroll_x() < -1.,
+        "a horizontal wheel scrolls the grid: {}",
+        window.get_table_scroll_x()
+    );
+    assert!(
+        header_cells(&window)[0].absolute_position().x < first_cell_x - 1.,
+        "the header follows the horizontal scroll"
+    );
+    assert_aligned(&window);
+}
+
+#[test]
+fn a_pointer_drag_previews_the_width_then_requests_one_clamped_width() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    let model = Rc::new(VecModel::from(with_widths(
+        resizable(bounded(fixed(200.), 100., 400.)),
+        fill(),
+    )));
+    window.set_columns(ModelRc::from(model.clone()));
+    let requested = observe_resizes(&window);
+    let grip = handle(&window, "Product, width").expect("resizable column handle");
+    assert_eq!(grip.accessible_value().as_deref(), Some("200"));
+    assert_eq!(grip.accessible_value_minimum(), Some(100.));
+    assert_eq!(grip.accessible_value_maximum(), Some(400.));
+    let start = center(&grip);
+    pointer_down(&window, start);
+    pointer_move(&window, LogicalPosition::new(start.x + 50., start.y));
+    assert!(
+        near(widths(&header_cells(&window))[0], 250.),
+        "the dragged column previews live"
+    );
+    assert_aligned(&window);
+    assert!(
+        requested.borrow().is_empty(),
+        "nothing is requested before release"
+    );
+    pointer_move(&window, LogicalPosition::new(start.x + 900., start.y));
+    assert!(
+        near(widths(&header_cells(&window))[0], 400.),
+        "the preview stops at the maximum"
+    );
+    pointer_up(&window, LogicalPosition::new(start.x + 900., start.y));
+    assert_eq!(&*requested.borrow(), &[(PRODUCT, 400.)]);
+    assert!(
+        near(widths(&header_cells(&window))[0], 200.),
+        "without a host change the column returns to its policy width"
+    );
+    assert_aligned(&window);
+    // The host applies the width by changing the column's policy.
+    let mut column = model.row_data(0).unwrap();
+    column.width.basis = 400.;
+    model.set_row_data(0, column);
+    assert!(near(widths(&header_cells(&window))[0], 400.));
+    assert_aligned(&window);
+    // A drag below the minimum is clamped as well, and a release emits once.
+    let grip = handle(&window, "Product, width").expect("handle after resize");
+    let start = center(&grip);
+    pointer_down(&window, start);
+    pointer_move(&window, LogicalPosition::new(start.x - 900., start.y));
+    pointer_up(&window, LogicalPosition::new(start.x - 900., start.y));
+    assert_eq!(&*requested.borrow(), &[(PRODUCT, 400.), (PRODUCT, 100.)]);
+}
+
+#[test]
+fn keyboard_and_assistive_steps_resize_within_bounds_and_respect_blocking() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    let model = Rc::new(VecModel::from(with_widths(
+        resizable(bounded(fixed(200.), 100., 400.)),
+        fill(),
+    )));
+    window.set_columns(ModelRc::from(model.clone()));
+    let requested = observe_resizes(&window);
+    let step = window.get_theme().spacing.unit * 4.;
+    let grip = handle(&window, "Product, width").expect("resizable column handle");
+    assert_eq!(grip.accessible_value_step(), Some(step));
+    assert_eq!(grip.accessible_enabled(), Some(true));
+    // Tab order: the table, the sortable header, then its resize handle.
+    window.invoke_focus_table();
+    key(&window, Key::Tab);
+    key(&window, Key::Tab);
+    key(&window, Key::RightArrow);
+    assert_eq!(&*requested.borrow(), &[(PRODUCT, 200. + step)]);
+    key(&window, Key::LeftArrow);
+    assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 200. - step)));
+    key(&window, Key::End);
+    assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 400.)));
+    key(&window, Key::Home);
+    assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 100.)));
+    // Near the ceiling, one more step is clamped to it.
+    let mut column = model.row_data(0).unwrap();
+    column.width.basis = 400. - step / 2.;
+    model.set_row_data(0, column);
+    grip.invoke_accessible_increment_action();
+    assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 400.)));
+    grip.invoke_accessible_decrement_action();
+    assert_eq!(
+        requested.borrow().last(),
+        Some(&(PRODUCT, 400. - step * 1.5))
+    );
+    assert_eq!(grip.accessible_value().as_deref(), Some("392"));
+    let count = requested.borrow().len();
+    // The quantity column is not resizable: no handle, no requests.
+    assert!(handle(&window, "Quantity, width").is_none());
+    // A blocked table disables the handle for keys, pointer and assistive actions.
+    window.set_table_interactive(false);
+    let grip = handle(&window, "Product, width").expect("handle stays in the tree");
+    assert_eq!(grip.accessible_enabled(), Some(false));
+    grip.invoke_accessible_increment_action();
+    let start = center(&grip);
+    pointer_down(&window, start);
+    pointer_move(&window, LogicalPosition::new(start.x + 40., start.y));
+    pointer_up(&window, LogicalPosition::new(start.x + 40., start.y));
+    assert_eq!(
+        requested.borrow().len(),
+        count,
+        "a blocked table never resizes"
+    );
+    assert!(near(widths(&header_cells(&window))[0], 400. - step / 2.));
+}
+
+#[test]
+fn an_unbounded_resizable_column_reports_no_maximum_and_grows_the_grid() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 20))));
+    let model = Rc::new(VecModel::from(with_widths(resizable(fixed(200.)), fill())));
+    window.set_columns(ModelRc::from(model.clone()));
+    let requested = observe_resizes(&window);
+    let grip = handle(&window, "Product, width").expect("resizable column handle");
+    assert_eq!(grip.accessible_value_minimum(), Some(0.));
+    assert_eq!(
+        grip.accessible_value_maximum(),
+        None,
+        "no ceiling is not a number"
+    );
+    let viewport = visible_width(&window);
+    let start = center(&grip);
+    pointer_down(&window, start);
+    pointer_move(
+        &window,
+        LogicalPosition::new(start.x + viewport / 2., start.y),
+    );
+    let header = header_cells(&window);
+    assert!(
+        near(header[0].size().width, 200. + viewport / 2.),
+        "an unbounded preview passes the bounded range: {}",
+        header[0].size().width
+    );
+    assert_aligned(&window);
+    pointer_up(
+        &window,
+        LogicalPosition::new(start.x + viewport / 2., start.y),
+    );
+    assert_eq!(&*requested.borrow(), &[(PRODUCT, 200. + viewport / 2.)]);
+    // A width past the viewport widens the grid instead of being clamped,
+    // so the table scrolls horizontally.
+    let mut column = model.row_data(0).unwrap();
+    column.width.basis = viewport + 100.;
+    model.set_row_data(0, column);
+    assert!(near(widths(&header_cells(&window))[0], viewport + 100.));
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerScrolled {
+            position: center(&delegates(&window, "KitDataTable")[3]),
+            delta_x: -300.,
+            delta_y: 0.,
+        });
+    assert!(
+        window.get_table_scroll_x() < -1.,
+        "the grid grew past the viewport"
+    );
+    assert_aligned(&window);
+}
+
+#[test]
+fn width_and_order_changes_keep_row_identity_and_selection() {
+    let window = fixture();
+    let columns = Rc::new(VecModel::from(with_widths(resizable(fixed(200.)), fill())));
+    window.set_columns(ModelRc::from(columns.clone()));
+    let mut table_rows = rows(1, 3);
+    table_rows[1].selected = true;
+    let row_model = Rc::new(VecModel::from(table_rows));
+    window.set_rows(ModelRc::from(row_model.clone()));
+    window.set_table_active(1);
+    let activated = Rc::new(RefCell::new(Vec::new()));
+    let observed = activated.clone();
+    window.on_table_activated(move |token, generation| {
+        observed.borrow_mut().push((token, generation))
+    });
+    let selected = || {
+        delegates(&window, "KitDataTable")
+            .iter()
+            .filter(|row| row.accessible_item_selected() == Some(true))
+            .map(|row| row.accessible_label().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(selected(), ["Product 2"]);
+    // Change the widths, then reorder the columns and every row's cells as
+    // the application would. Row tokens, selection and the active row stay.
+    let mut product = columns.row_data(0).unwrap();
+    product.width.basis = 320.;
+    columns.set_row_data(0, product);
+    assert!(near(widths(&header_cells(&window))[0], 320.));
+    let mut reordered = with_widths(resizable(fixed(320.)), fill());
+    reordered.swap(0, 1);
+    columns.set_vec(reordered);
+    for index in 0..row_model.row_count() {
+        let mut row = row_model.row_data(index).unwrap();
+        let cells: Vec<slint::SharedString> = row.cells.iter().collect();
+        row.cells = ModelRc::new(VecModel::from(vec![cells[1].clone(), cells[0].clone()]));
+        row_model.set_row_data(index, row);
+    }
+    assert!(
+        labelled(&window, "Quantity").absolute_position().x
+            < labelled(&window, "Product, ascending")
+                .absolute_position()
+                .x,
+        "the quantity column now leads"
+    );
+    assert!(
+        near(widths(&header_cells(&window))[1], 320.),
+        "the width followed the column key"
+    );
+    assert_aligned(&window);
+    assert_eq!(
+        delegates(&window, "KitDataTable")
+            .iter()
+            .filter(|row| row.accessible_item_selected() == Some(true))
+            .count(),
+        1,
+        "exactly one row remains selected"
+    );
+    assert_eq!(
+        row_model.row_data(1).unwrap().token,
+        2,
+        "the selected row keeps its token"
+    );
+    window.invoke_focus_table();
+    key(&window, Key::Return);
+    assert_eq!(&*activated.borrow(), &[(2, 1)]);
+}

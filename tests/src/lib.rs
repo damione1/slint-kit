@@ -5,6 +5,7 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod column_widths;
 mod keyboard_scope;
 mod preview;
 mod selection_service;

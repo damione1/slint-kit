@@ -16,7 +16,7 @@ export global DataExamples {
     in-out property <int> table-active:-1;
     in-out property <string> query;
     in-out property <string> table-status;
-    callback query-edited(string);callback sort(int);callback table-select(int,int);
+    callback query-edited(string);callback sort(int);callback table-select(int,int);callback table-resize(int,length);
     callback navigate(DataCollection,NavigationStep);
     in-out property <[ContentItem]> articles;
     in-out property <int> article-active:-1;
@@ -45,7 +45,7 @@ export component DataGallery inherits VerticalLayout {
         PreviewAnchor { height: 0px; target: PreviewTarget.table; }
         KitCardHeader {theme:root.theme;title:"Data table";description:"Search and sort ten thousand records. Selection stays with the record when its position changes.";}
         KitSearchField {theme:root.theme;control-size:root.control-size;label:"Find a product";placeholder:"Search title or category";text<=>DataExamples.query;edited(query)=>{DataExamples.query-edited(query);}}
-        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step);}sort-requested(column)=>{DataExamples.sort(column);}}
+        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step);}sort-requested(column)=>{DataExamples.sort(column);}resize-requested(column,width)=>{DataExamples.table-resize(column,width);}}
         Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
     KitCard {theme:root.theme;

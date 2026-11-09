@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes } from "@kit";
+import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes } from "@kit";
+export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
 
@@ -23,6 +24,8 @@ export component BaseDataFixture inherits Window {
     in property <string> line-error;
     in-out property <string> pasted;
     out property <length> table-scroll: table.scroll-y;
+    out property <length> table-scroll-x: table.scroll-x;
+    out property <length> table-width: table.width;
     out property <length> content-scroll: content.scroll-y;
     out property <length> line-scroll: document.scroll-y;
     callback navigate(DataFixtureCollection, NavigationStep);
@@ -32,6 +35,7 @@ export component BaseDataFixture inherits Window {
     callback line-committed(int,int,string);
     callback line-copied(int,int);
     callback sort-requested(int);
+    callback resize-requested(int, length);
     public function focus-table() { table.take-focus(); }
     public function focus-content() { content.take-focus(); }
     public function focus-document() { document.take-focus(); }
@@ -48,6 +52,7 @@ export component BaseDataFixture inherits Window {
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
+            resize-requested(token, width) => { root.resize-requested(token, width); }
         }
         content := KitContentList {
             theme: root.theme; height: 250px; items: root.items; generation: 1; active-index: root.content-active;

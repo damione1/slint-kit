@@ -6,12 +6,54 @@ use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 struct ProductId(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ArticleId(i32);
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Column {
     Title,
     Category,
     Price,
     Stock,
+}
+impl Column {
+    fn from_token(token: i32) -> Option<Self> {
+        match token {
+            1 => Some(Column::Title),
+            2 => Some(Column::Category),
+            3 => Some(Column::Price),
+            4 => Some(Column::Stock),
+            _ => None,
+        }
+    }
+    // Every column resizes within the same bounds; text columns fill the
+    // viewport until the user fixes them, numeric columns start fixed.
+    fn width(self, resized: Option<f32>) -> ui::ColumnWidth {
+        let bounds = ui::ColumnWidth {
+            minimum: 96.,
+            ceiling: ui::ColumnCeiling::Bounded,
+            maximum: 480.,
+            resizable: true,
+            ..ui::ColumnWidth::default()
+        };
+        match resized {
+            Some(basis) => ui::ColumnWidth {
+                sizing: ui::ColumnSizing::Fixed,
+                basis,
+                ..bounds
+            },
+            None => match self {
+                Column::Title | Column::Category => bounds,
+                Column::Price => ui::ColumnWidth {
+                    sizing: ui::ColumnSizing::Fixed,
+                    basis: 128.,
+                    ..bounds
+                },
+                Column::Stock => ui::ColumnWidth {
+                    sizing: ui::ColumnSizing::Fixed,
+                    basis: 112.,
+                    ..bounds
+                },
+            },
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Order {
@@ -40,6 +82,8 @@ struct Catalogue {
     line: Option<usize>,
     drafts: BTreeMap<usize, String>,
     line_generation: i32,
+    // Widths the user fixed by resizing, by column, in logical pixels.
+    widths: BTreeMap<Column, f32>,
 }
 fn model<T: Clone + 'static>(data: Rc<VecModel<T>>) -> ModelRc<T> {
     ModelRc::from(data)
@@ -157,6 +201,7 @@ impl Catalogue {
             line: None,
             drafts: BTreeMap::new(),
             line_generation: 1,
+            widths: BTreeMap::new(),
         }
     }
     fn rebuild(&mut self, query: &str) {
@@ -264,6 +309,7 @@ impl Catalogue {
                     Column::Price | Column::Stock => ui::DataAlignment::Trailing,
                     Column::Title | Column::Category => ui::DataAlignment::Leading,
                 },
+                width: column.width(self.widths.get(column).copied()),
             })
             .collect::<Vec<_>>(),
         )));
@@ -320,13 +366,21 @@ pub fn install(window: &ui::Showcase) {
     });
     let shared = state.clone();
     let weak = window.as_weak();
+    global.on_table_resize(move |token, width| {
+        let Some(column) = Column::from_token(token) else {
+            return;
+        };
+        if let Some(window) = weak.upgrade() {
+            let mut data = shared.borrow_mut();
+            data.widths.insert(column, width);
+            data.publish(&window);
+        }
+    });
+    let shared = state.clone();
+    let weak = window.as_weak();
     global.on_sort(move |token| {
-        let column = match token {
-            1 => Column::Title,
-            2 => Column::Category,
-            3 => Column::Price,
-            4 => Column::Stock,
-            _ => return,
+        let Some(column) = Column::from_token(token) else {
+            return;
         };
         if let Some(window) = weak.upgrade() {
             let mut data = shared.borrow_mut();

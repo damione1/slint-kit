@@ -221,6 +221,7 @@ fn project(state: &Catalogue, french: bool) -> Projection {
             } else {
                 ui::DataAlignment::Trailing
             },
+            width: ui::ColumnWidth::default(),
         })
         .collect();
     let selection_label = match state.selected {

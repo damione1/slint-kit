@@ -117,6 +117,15 @@ export struct ScrollBarRecipe {
     transition: duration,
 }
 
+// The resize handle at the trailing edge of a resizable data-table column:
+// `width` is its pointer target, `thickness` the divider it draws, `step`
+// the width change of one keyboard or accessible increment.
+export struct ColumnHandleRecipe {
+    width: length, thickness: length, active-thickness: length, step: length,
+    ink: color, hover-ink: color, active-ink: color,
+    focus: KitFocusRing,
+}
+
 // Metrics derive from theme tokens; text sizes and control heights follow text-scale.
 export global KitMetrics {
     public pure function label-gap(theme: KitTheme) -> length { return theme.spacing.unit * 2; }
@@ -444,6 +453,14 @@ export global KitThemes {
             thickness: 14px, thumb-thickness: 6px, active-thumb-thickness: 8px, inset: 3px, min-thumb-length: 24px,
             thumb: theme.border-strong, active-thumb: theme.text-secondary, track: transparent, active-track: theme.hover,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
+        };
+    }
+    public pure function column-handle-recipe(theme: KitTheme) -> ColumnHandleRecipe {
+        return {
+            width: theme.spacing.unit * 3, thickness: theme.shape.border-width, active-thickness: theme.shape.border-width-strong,
+            step: theme.spacing.unit * 4,
+            ink: theme.border-subtle, hover-ink: theme.border-strong, active-ink: theme.accent,
+            focus: KitThemes.inset-focus(theme),
         };
     }
     public pure function icon-recipe(theme: KitTheme, size: ControlSize) -> IconRecipe {

@@ -5,7 +5,7 @@ use slint::platform::{Key, PointerEventButton, WindowEvent};
 use slint::{ComponentHandle, LogicalPosition, Model, ModelRc, VecModel};
 use std::{cell::RefCell, rc::Rc};
 
-fn fixture() -> BaseDataFixture {
+pub(crate) fn fixture() -> BaseDataFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = BaseDataFixture::new().unwrap();
     kit_slint::install(&window);
@@ -50,7 +50,7 @@ fn content_thumbnail_uses_an_icon_only_while_the_host_image_is_empty() {
     articles.set_row_data(0, article);
     assert_eq!(icons().len(), 1, "removing an image restores the fallback");
 }
-fn labelled(window: &BaseDataFixture, label: &str) -> ElementHandle {
+pub(crate) fn labelled(window: &BaseDataFixture, label: &str) -> ElementHandle {
     let requested = label.to_owned();
     ElementQuery::from_root(window)
         .match_predicate(move |element| {
@@ -59,7 +59,7 @@ fn labelled(window: &BaseDataFixture, label: &str) -> ElementHandle {
         .find_first()
         .unwrap_or_else(|| panic!("missing element {label}"))
 }
-fn delegates(window: &BaseDataFixture, component: &str) -> Vec<ElementHandle> {
+pub(crate) fn delegates(window: &BaseDataFixture, component: &str) -> Vec<ElementHandle> {
     ElementQuery::from_root(window)
         .match_inherits(component)
         .find_first()
@@ -78,7 +78,7 @@ fn up(window: &BaseDataFixture, key: Key) {
         .window()
         .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
 }
-fn key(window: &BaseDataFixture, value: Key) {
+pub(crate) fn key(window: &BaseDataFixture, value: Key) {
     down(window, value);
     up(window, value);
 }
@@ -115,7 +115,7 @@ fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
 fn columns() -> ModelRc<TableColumn> {
     ModelRc::new(VecModel::from(column_set()))
 }
-fn column_set() -> Vec<TableColumn> {
+pub(crate) fn column_set() -> Vec<TableColumn> {
     vec![
         TableColumn {
             token: 17,
@@ -123,6 +123,7 @@ fn column_set() -> Vec<TableColumn> {
             sortable: true,
             sort: DataSortDirection::Ascending,
             alignment: DataAlignment::Leading,
+            width: ColumnWidth::default(),
         },
         TableColumn {
             token: 91,
@@ -130,10 +131,11 @@ fn column_set() -> Vec<TableColumn> {
             sortable: false,
             sort: DataSortDirection::Unsorted,
             alignment: DataAlignment::Trailing,
+            width: ColumnWidth::default(),
         },
     ]
 }
-fn rows(start: i32, count: i32) -> Vec<TableRow> {
+pub(crate) fn rows(start: i32, count: i32) -> Vec<TableRow> {
     (0..count)
         .map(|index| TableRow {
             token: start + index,

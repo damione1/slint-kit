@@ -1,14 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "scroll.slint";
-import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitTextField } from "input.slint";
+import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
 export enum DataAlignment { leading, center, trailing }
 export enum TextViewAccess { read-only, edit-line }
-export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment }
+// How a data-table column takes its width. `fill` (the default) starts at
+// its basis, never below the table's `minimum-column-width` or its own
+// minimum, and shares the space left over with the other fill columns.
+// `fixed` is exactly its basis, clamped to its own bounds, and never grows.
+export enum ColumnSizing { fill, fixed }
+// Whether a column has a ceiling. Slint struct fields default to zero, so an
+// absent ceiling is named here instead of being read from a zero maximum.
+export enum ColumnCeiling { unbounded, bounded }
+// The width policy of one column, carried by the column so it follows the
+// column's stable token through reordering. Lengths are logical pixels and
+// are not scaled by the theme; the table's own default minimum is. A
+// resizable column shows a handle at its trailing edge; pointer drags and
+// keyboard steps are clamped to [minimum, maximum] and reported through
+// `resize-requested(token, width)`, which the application applies by
+// changing this policy (usually to `fixed` at the reported basis).
+export struct ColumnWidth { sizing: ColumnSizing, basis: length, minimum: length, ceiling: ColumnCeiling, maximum: length, resizable: bool }
+export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth }
 export struct TableRow { token: int, cells: [string], selected: bool, disabled: bool }
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
@@ -61,6 +78,96 @@ component TableHeaderContent inherits HorizontalLayout {
     }
 }
 
+// The resize handle of one column: the pointer target at the trailing edge
+// of its header cell, a tab stop that steps the width with the arrow keys,
+// and an accessible spinbox whose value is the width in logical pixels. It
+// never stores a width: a drag previews through `preview`, then `commit`
+// hands the clamped width to the table, which reports it to the host.
+component ColumnResizeHandle inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ColumnHandleRecipe> recipe;
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    // The width the column is painted at now, from the header cell.
+    in property <length> current-width;
+    in property <length> minimum;
+    in property <ColumnCeiling> ceiling;
+    in property <length> maximum;
+    callback preview(length);
+    callback commit(length);
+    callback cancel();
+    out property <bool> dragging;
+    out property <bool> active: root.dragging || keys.has-focus;
+    private property <bool> keyboard-focus;
+    private property <length> start-pointer;
+    private property <length> start-width;
+    pure function clamped(width: length) -> length {
+        return root.ceiling == ColumnCeiling.bounded ? clamp(width, root.minimum, max(root.minimum, root.maximum)) : max(root.minimum, width);
+    }
+    function widen() { root.commit(root.clamped(root.current-width + root.recipe.step)); }
+    function narrow() { root.commit(root.clamped(root.current-width - root.recipe.step)); }
+    width: root.recipe.width;
+    background: transparent;
+    accessible-role: spinbox;
+    accessible-label: root.accessible-name;
+    accessible-value: "" + Math.round(root.current-width / 1px);
+    accessible-value-minimum: root.minimum / 1px;
+    accessible-value-step: root.recipe.step / 1px;
+    accessible-enabled: !root.disabled;
+    accessible-action-increment => { if (!root.disabled) { root.widen(); } }
+    accessible-action-decrement => { if (!root.disabled) { root.narrow(); } }
+    forward-focus: keys;
+    divider := Rectangle {
+        x: parent.width - self.width;
+        width: root.active ? root.recipe.active-thickness : root.recipe.thickness;
+        height: parent.height;
+        background: root.disabled ? root.recipe.ink : root.active ? root.recipe.active-ink : pointer.has-hover ? root.recipe.hover-ink : root.recipe.ink;
+    }
+    pointer := TouchArea {
+        enabled: !root.disabled;
+        mouse-cursor: col-resize;
+        pointer-event(event) => {
+            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.dragging = true;
+                root.start-width = root.current-width;
+                root.start-pointer = root.absolute-position.x + self.mouse-x;
+            }
+            if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.dragging) {
+                root.dragging = false;
+                root.commit(root.clamped(root.start-width + root.absolute-position.x + self.mouse-x - root.start-pointer));
+            }
+            if (event.kind == PointerEventKind.cancel && root.dragging) {
+                root.dragging = false;
+                root.cancel();
+            }
+        }
+        moved => {
+            if (root.dragging) {
+                // The pointer's window position is frame independent, so the
+                // handle moving with its column does not feed back into the drag.
+                root.preview(root.clamped(root.start-width + root.absolute-position.x + self.mouse-x - root.start-pointer));
+            }
+        }
+    }
+    keys := FocusScope {
+        enabled: !root.disabled;
+        focus-on-click: false;
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic;
+        }
+        key-pressed(event) => {
+            if (event.text == Key.RightArrow || event.text == Key.UpArrow) { root.widen(); return accept; }
+            if (event.text == Key.LeftArrow || event.text == Key.DownArrow) { root.narrow(); return accept; }
+            if (event.text == Key.Home) { root.commit(root.clamped(root.minimum)); return accept; }
+            if (event.text == Key.End && root.ceiling == ColumnCeiling.bounded) { root.commit(root.clamped(root.maximum)); return accept; }
+            return reject;
+        }
+    }
+    if keys.has-focus && root.keyboard-focus: FocusOutline {
+        ring: root.recipe.focus; radius: 0px; host-width: root.width; host-height: root.height;
+    }
+}
+
 export component KitDataTable inherits Rectangle {
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
@@ -76,22 +183,64 @@ export component KitDataTable inherits Rectangle {
     in property <string> sort-ascending-label: "ascending";
     in property <string> sort-descending-label: "descending";
     in property <string> unnamed-row-label: "Row";
+    // The accessible word of a column's resize handle, joined to the column
+    // label with ", ".
+    in property <string> resize-label: "width";
+    // The floor of every `fill` column. A `fixed` column is exactly its
+    // basis within its own bounds.
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
+    // A clamped width the user asked for, by column token. The table paints
+    // nothing from it: the host changes the column's `width` policy.
+    callback resize-requested(int,length);
     public function take-focus() {if(root.interactive){keys.focus();}}
     out property <length> scroll-y: list.content-y;
+    out property <length> scroll-x: list.content-x;
     private property <ButtonRecipe> row-recipe: KitThemes.table-row-recipe(root.theme, root.control-size);
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
+    private property <ColumnHandleRecipe> handle-recipe: KitThemes.column-handle-recipe(root.theme);
     private property <length> row-height: root.row-recipe.height;
     private property <length> cell-inset: root.theme.spacing.unit * 4;
-    private property <length> grid-width: max(list.visible-width,root.columns.length * root.minimum-column-width);
+    // The ceiling of an unbounded column: a layout bound, not a width the
+    // grid can reach, so the constraints never depend on the grid width.
+    private property <length> unbounded: 100000px;
+    // The grid is as wide as the viewport, or as the sum of the column
+    // minimums when they do not fit; the header layout adds them up.
+    private property <length> grid-width: max(list.visible-width, header-cells.min-width);
+    // A pointer drag paints the dragged column at `preview-width` until it
+    // is released; the host then receives one `resize-requested`.
+    private property <bool> previewing;
+    private property <int> preview-token;
+    private property <length> preview-width;
     private property <bool> has-active-row: root.active-index >= 0 && root.active-index < root.rows.length;
     pure function row-name(row: TableRow) -> string { return row.cells.length > 0 ? row.cells[0] : root.unnamed-row-label; }
     pure function header-name(column: TableColumn) -> string {
         return column.label + (column.sort == DataSortDirection.ascending ? ", " + root.sort-ascending-label : column.sort == DataSortDirection.descending ? ", " + root.sort-descending-label : "");
     }
+    pure function handle-name(column: TableColumn) -> string { return column.label + ", " + root.resize-label; }
+    // Width policy, resolved once here for header and row cells alike. The
+    // layout solver then gives both grids the same answer for the same
+    // constraints and total width, which keeps them aligned.
+    pure function column-floor(column: TableColumn) -> length {
+        return column.width.sizing == ColumnSizing.fill ? max(root.minimum-column-width, column.width.minimum) : max(0px, column.width.minimum);
+    }
+    pure function column-ceiling(column: TableColumn) -> length {
+        return column.width.ceiling == ColumnCeiling.bounded ? max(root.column-floor(column), column.width.maximum) : root.unbounded;
+    }
+    pure function column-basis(column: TableColumn) -> length { return clamp(column.width.basis, root.column-floor(column), root.column-ceiling(column)); }
+    pure function previewed(column: TableColumn) -> bool { return root.previewing && root.preview-token == column.token; }
+    // A fixed or previewed column pins min, max and preferred together, so
+    // the solver never grows it, even when no column stretches.
+    pure function cell-min(column: TableColumn) -> length {
+        return root.previewed(column) ? root.preview-width : column.width.sizing == ColumnSizing.fixed ? root.column-basis(column) : root.column-floor(column);
+    }
+    pure function cell-max(column: TableColumn) -> length {
+        return root.previewed(column) ? root.preview-width : column.width.sizing == ColumnSizing.fixed ? root.column-basis(column) : root.column-ceiling(column);
+    }
+    pure function cell-preferred(column: TableColumn) -> length { return root.previewed(column) ? root.preview-width : root.column-basis(column); }
+    pure function cell-stretch(column: TableColumn) -> float { return !root.previewed(column) && column.width.sizing == ColumnSizing.fill ? 1 : 0; }
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
         if (root.active-index >= 0) {
@@ -119,8 +268,8 @@ export component KitDataTable inherits Rectangle {
     header := Rectangle {
         y: 0px;
         width: root.width; height: root.row-height; background: root.theme.canvas; clip: true;
-        HorizontalLayout {
-            x: list.content-x; width: root.grid-width; height: root.row-height; spacing: 0px;
+        header-cells := HorizontalLayout {
+            x: list.content-x; width: root.grid-width; height: root.row-height; spacing: 0px; padding: 0px;
             // Header cells share the flat, square row recipe so a fill never
             // draws its own corners inside the table's clip. A column that
             // cannot sort is static text, not a disabled control: it keeps
@@ -130,8 +279,10 @@ export component KitDataTable inherits Rectangle {
             // element. Keyboard, pointer and the accessible default action of
             // a sortable header all go through one pressable, so one
             // `disabled` rule decides all three.
-            for column in root.columns: Rectangle {
-                width: root.grid-width / max(1,root.columns.length); height: root.row-height;
+            for column in root.columns: header-cell := Rectangle {
+                min-width: root.cell-min(column); max-width: root.cell-max(column); preferred-width: root.cell-preferred(column);
+                horizontal-stretch: root.cell-stretch(column);
+                height: root.row-height; clip: true;
                 if column.sortable: KitPressable {
                     theme: root.theme; control-width: ControlWidth.fill;
                     width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
@@ -145,6 +296,29 @@ export component KitDataTable inherits Rectangle {
                     width: parent.width; height: parent.height; background: root.row-recipe.fill;
                     accessible-role: text; accessible-label: root.header-name(column);
                     TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
+                }
+                // The handle sits inside its own cell, after the header, so it
+                // wins the pointer over the sortable header beneath it. A
+                // bounded ceiling is an accessible maximum; an unbounded one
+                // reports none rather than a number the column can exceed.
+                if column.width.resizable && column.width.ceiling == ColumnCeiling.bounded: ColumnResizeHandle {
+                    x: parent.width - self.width; height: parent.height;
+                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.interactive;
+                    accessible-name: root.handle-name(column);
+                    accessible-value-maximum: root.column-ceiling(column) / 1px;
+                    current-width: parent.width; minimum: root.column-floor(column); ceiling: ColumnCeiling.bounded; maximum: root.column-ceiling(column);
+                    preview(width) => { root.preview-token = column.token; root.preview-width = width; root.previewing = true; }
+                    commit(width) => { root.previewing = false; root.resize-requested(column.token, width); }
+                    cancel => { root.previewing = false; }
+                }
+                if column.width.resizable && column.width.ceiling == ColumnCeiling.unbounded: ColumnResizeHandle {
+                    x: parent.width - self.width; height: parent.height;
+                    theme: root.theme; recipe: root.handle-recipe; disabled: !root.interactive;
+                    accessible-name: root.handle-name(column);
+                    current-width: parent.width; minimum: root.column-floor(column); ceiling: ColumnCeiling.unbounded; maximum: root.unbounded;
+                    preview(width) => { root.preview-token = column.token; root.preview-width = width; root.previewing = true; }
+                    commit(width) => { root.previewing = false; root.resize-requested(column.token, width); }
+                    cancel => { root.previewing = false; }
                 }
             }
         }
@@ -163,9 +337,13 @@ export component KitDataTable inherits Rectangle {
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             recipe:root.row-recipe;
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
-            HorizontalLayout {spacing:0px;
-                for cell[column-index] in row.cells: Rectangle {
-                    width:root.grid-width / max(1,root.columns.length);
+            HorizontalLayout {spacing:0px; padding: 0px;
+                // Row cells take the constraints of their column, so the
+                // solver lays them out exactly as the header above.
+                for cell[column-index] in row.cells: row-cell := Rectangle {
+                    min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
+                    horizontal-stretch: root.cell-stretch(root.columns[column-index]);
+                    clip: true;
                     Text {x:root.cell-inset;width:max(0px,parent.width - 2 * root.cell-inset);text:cell;color:row.disabled ? root.theme.disabled-text : row.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;horizontal-alignment:root.columns[column-index].alignment == DataAlignment.trailing ? right : root.columns[column-index].alignment == DataAlignment.center ? center : left;}
                 }
             }
