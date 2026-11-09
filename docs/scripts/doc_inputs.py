@@ -87,16 +87,47 @@ def archived_runtime_inputs(sources):
                           if name.startswith('crates/') and name.endswith('/Cargo.toml')}}
 
 
-def rendering_runtime(value):
-    # Build-helper changes are checked through the generated Slint identities.
-    # Runtime implementations, features and external dependencies stay exact.
+def without_crate_docs(source):
+    lines = []
+    preamble = True
+    for line in source.splitlines(keepends=True):
+        if preamble and line.startswith(b'//!'):
+            continue
+        if line.strip() and not line.startswith(b'//'):
+            preamble = False
+        lines.append(line)
+    return b''.join(lines)
+
+
+def rendering_runtime(value, sources):
+    # Generated Slint identities check build helpers. The locked external graph
+    # and every runtime implementation/feature remain part of the proof.
     result = json.loads(json.dumps(value))
-    result['rust'] = {name: checksum for name, checksum in result['rust'].items()
-                      if not name.startswith('crates/kit-build/')}
+    result['rust'] = {name: digest(without_crate_docs(sources[name]))
+                      for name in result['rust']
+                      if not name.startswith('crates/kit-build/') and name != 'crates/kit-slint/build.rs'}
     result['manifests'].pop('crates/kit-build/Cargo.toml', None)
     for manifest in result['manifests'].values():
-        manifest['package'].pop('version', None)
+        # These package metadata fields cannot affect a capture unless runtime
+        # source reads CARGO_PKG_*; the reuse caller rejects that case.
+        for field in ('version', 'description', 'keywords'):
+            manifest['package'].pop(field, None)
+        for dependencies in (manifest.get(section, {}) for section in ('dependencies', 'dev-dependencies', 'build-dependencies')):
+            for name in ('slint', 'slint-build', 'i-slint-backend-testing'):
+                if name in dependencies:
+                    dependencies[name] = rendering_slint_requirement(dependencies[name])
     return result
+
+
+def rendering_slint_requirement(dependency):
+    # Exact -> patch-compatible requirements do not alter the verified lock.
+    # Retain all features, paths and other dependency configuration.
+    if isinstance(dependency, dict):
+        dependency = dict(dependency)
+        if 'version' in dependency:
+            dependency['version'] = re.sub(r'^[=~](?=\d+\.\d+\.\d+$)', '', dependency['version'])
+        return dependency
+    return re.sub(r'^[=~](?=\d+\.\d+\.\d+$)', '', dependency)
 
 
 def consumer_identity(slug):

@@ -6,6 +6,7 @@ mod ui {
 }
 pub use ui::*;
 mod keyboard_scope;
+mod preview;
 mod selection_service;
 mod window_callback;
 mod wrapped_field;

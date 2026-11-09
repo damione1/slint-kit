@@ -78,3 +78,31 @@ Si l’éditeur affiche encore « Cannot find requested import », vérifiez que
 Le serveur de langage résout un alias seul comme un fichier et ajoute le suffixe d’un import au chemin configuré. Un alias unique ne peut donc pas résoudre à la fois `@kit` et `@kit/fonts/inter.slint` ou `@kit/icons/lucide/all.slint`. Faire pointer `kit` vers le dossier `ui` résout ces imports supplémentaires, mais laisse `@kit` seul introuvable. Le réglage vers le fichier ci-dessus privilégie l’API des composants.
 
 Conservez les imports supplémentaires documentés dans votre application : la compilation Cargo via `slint-kit-build` les résout correctement grâce aux métadonnées de module et à son alias de dossier. Avec le réglage éditeur vers le fichier, Slint 1.18.1 peut encore signaler ces imports supplémentaires comme introuvables. Il s’agit d’une limite du serveur de langage, pas d’un défaut de configuration Cargo ; ne remplacez pas les imports racine de l’application par l’ancien chemin `@kit/kit.slint`.
+
+<h2 id="apercus-statiques-et-services-rust">Aperçus statiques et services Rust</h2>
+
+À partir de Slint Kit 0.7.2, Live Preview dans VS Code et `slint-viewer` affichent les options de sélection déclarées même sans exécuter de Rust. Avec un checkout local, le viewer peut utiliser un alias de dossier si le fichier d’aperçu importe `@kit/kit.slint` ; utilisez un point d’entrée d’aperçu distinct et conservez `@kit` dans l’application. Un alias de fichier pour `@kit` garde la limite des imports supplémentaires décrite plus haut.
+
+Ces aperçus montrent la disposition et l’état déclaré ; ils n’installent pas les services Rust. Utilisez `cargo run` avec un appel à `slint_kit::install(&app)` par fenêtre, ou la démo navigateur de la fiche composant, pour exercer les comportements fournis par ces services.
+
+| Famille de composants | Aperçu Slint seul | Service nécessaire pour |
+| --- | --- | --- |
+| Onglets, menus/barres de menus, fils d’Ariane, carrousels | `options`, libellés, état désactivé et sélection simple déclarés | Filtrage, réconciliation, navigation et valeurs `chosen` acceptées ; les carrousels prévisualisent leur première diapositive source |
+| Groupes radio et segments | Options et sélection simple déclarées | Sélection au clavier, validation et contrôle des générations |
+| Groupes de toggles | Libellés des options ; `rows` explicites pour les marques de sélection exactes | Projection de l’ensemble sélectionné et acceptation des bascules |
+| Accordéon | En-têtes des options, repliés ; fournissez `rows: [DisclosureRow]` à la place de `options` pour prévisualiser les corps dépliés | Projection des sections ouvertes et navigation clavier |
+| Notation | Échelle et valeur configurées ; `scores` explicites également acceptés | Acceptation des scores et navigation |
+| Select, combobox, sélection multiple et saisie de tags | Placeholders/textes déclarés et propriétés de présentation explicites ; options statiques selon les ports exposés | Résolution du libellé sélectionné, chips, filtrage et navigation des popups |
+| Calendrier, sélecteurs de date et de période | `days`, `title` et propriétés de navigation explicites | Calcul des grilles mensuelles, bornes, périodes et dates acceptées |
+| Champs texte/numériques, couleur et heure/date-heure | Texte natif déclaré ; `text` ou `hex-text` selon le composant | Formatage/analyse typés, règles de commit, validation HTML et résolution des fuseaux |
+| Boutons, disposition, feedback et affichage de données | Contenu et présentation déclarés | Actions ou modèles applicatifs utilisés dans votre exemple |
+
+Ne forcez pas la propriété `ready` d’un service : elle signifie que ses callbacks Rust sont installés. La propriété locale ne remplace pas l’installation. Un aperçu statique ne qualifie ni clavier/IME ni technologies d’assistance sur un appareil cible.
+
+## Limite du live-preview Rust dans Slint 1.18.1
+
+La variable d’environnement `SLINT_LIVE_PREVIEW` sélectionne un autre générateur Rust. Celui-ci omet les exports de globals de bibliothèque et les implémentations `Global` nécessaires à Slint Kit ([issue amont #14812](https://github.com/slint-ui/slint/issues/14812)). Toutes les fenêtres utilisant `slint_kit::install` sont concernées, même si leurs contrôles visibles ne dépendent pas de la sélection.
+
+Slint Kit 0.7.2 signale cette limite pendant le build, au lieu de produire du Rust avec des globals introuvables. Supprimez `SLINT_LIVE_PREVIEW` du shell, de `build.rs` et des scripts de développement, puis recompilez. La définir à `0` ou à une chaîne vide sélectionne toujours le générateur live-preview de Slint : retirez entièrement la variable. Activer uniquement la feature Cargo `slint/live-preview` ne le sélectionne pas.
+
+Pour inspecter l’application à l’exécution, conservez `slint/mcp` et `SLINT_EMIT_DEBUG_INFO=1` avec le générateur normal. Live Preview de l’éditeur et `slint-viewer` n’ont pas besoin de `SLINT_LIVE_PREVIEW` ; leur rendu statique suit le tableau ci-dessus.

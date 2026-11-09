@@ -47,3 +47,5 @@ cargo run --release --locked -p kit-showcase
 ```
 
 Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.
+
+Editor previews show static declarations and do not run the Rust services. See [static previews and the Slint 1.18.1 live-preview limitation](../editor/#static-previews-and-rust-services) before enabling `SLINT_LIVE_PREVIEW`.

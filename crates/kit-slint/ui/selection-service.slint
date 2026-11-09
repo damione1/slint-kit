@@ -61,10 +61,16 @@ export component KitSelection inherits Rectangle {
     private property <int> source-generation: KitSelectionService.ready ? KitSelectionService.generation(root.options) : -1;
     changed source-generation => { root.invalidate(); }
     changed query => { root.invalidate(); }
-    out property <[OptionRow]> rows: KitSelectionService.ready ? KitSelectionService.rows(root.options, root.query, root.gesture-generation) : [];
-    out property <SelectState> state: KitSelectionService.ready ? KitSelectionService.project(root.options, root.rows, root.selected, root.session.state.active, root.persistent || root.session.state.open, root.gesture-generation) : {active-index: -1};
+    out property <[OptionRow]> rows: KitSelectionService.ready ? KitSelectionService.rows(root.options, root.query, root.gesture-generation) : root.options;
+    out property <SelectState> state: KitSelectionService.ready ? KitSelectionService.project(root.options, root.rows, root.selected, root.session.state.active, root.persistent || root.session.state.open, root.gesture-generation) : {selected: root.selected, active-index: -1, generation: -1};
     out property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.choices(root.rows, root.selected) : [];
     out property <string> selected-label: KitSelectionService.ready ? KitSelectionService.label(root.options, root.selected) : "";
+    // Slint has no model-map expression. Renderers project one static option at
+    // a time in editor/viewer previews; transitions remain guarded by ready.
+    public pure function preview-choice(index: int) -> ChoiceRow {
+        let row = root.options[index];
+        return {token: row.token, label: row.label, disabled: row.disabled, selected: root.selected.present && root.selected.token == row.token};
+    }
     private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp };
     callback chosen(OptionRow);
     function invalidate() {
@@ -115,6 +121,10 @@ export component KitMultipleSelection inherits Rectangle {
     out property <SelectState> state: keyboard.state;
     out property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.multiple-choices(root.rows, root.selected) : [];
     out property <[ChipRow]> chips: KitSelectionService.ready ? KitSelectionService.chips(root.options, root.selected) : [];
+    public pure function preview-choice(index: int) -> ChoiceRow {
+        let row = root.options[index];
+        return {token: row.token, label: row.label, disabled: row.disabled};
+    }
     private property <MultipleTransition> transition;
     callback changed-selection(OptionRow, bool);
     keyboard := KitSelection {

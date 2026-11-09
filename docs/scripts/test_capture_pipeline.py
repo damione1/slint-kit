@@ -64,7 +64,12 @@ class CatalogueCaptureTests(unittest.TestCase):
         sources = {'Cargo.toml': workspace, 'Cargo.lock': b'package=[]\n',
                    'crates/kit/Cargo.toml': b'[package]\nname="slint-kit"\nversion="0.7.0"\n',
                    'crates/kit/src/lib.rs': b'pub fn runtime() {}',
-                   'crates/kit-build/src/lib.rs': b'pub fn compile() {}'}
+                   'crates/kit-build/src/lib.rs': b'pub fn compile() {}',
+                   'crates/kit-slint/build.rs': b'fn main() { compile_ui(); }'}
+        for name, content in sources.items():
+            path = self.docs / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(content)
         (self.docs / 'Cargo.toml').write_bytes(workspace.replace(b'0.7.0', b'0.7.1'))
         folder = self.docs / '.cache/preview-bundles/previous'
         folder.mkdir(parents=True)
@@ -87,7 +92,8 @@ class CatalogueCaptureTests(unittest.TestCase):
         record = {'key': pipeline.digest({'scene': 'old', 'profile': pipeline.BROWSER_PROFILE}),
                   'sceneKey': 'old', 'renderProfile': pipeline.BROWSER_PROFILE, 'origin': origin,
                   'outputs': {'capture.png': {'sha256': pipeline.digest(image.read_bytes())}}}
-        runtime = archived_runtime_inputs({**sources, 'crates/kit-build/src/lib.rs': b'pub fn fixed_compile() {}'})
+        runtime = archived_runtime_inputs({**sources, 'crates/kit-build/src/lib.rs': b'pub fn fixed_compile() {}',
+                                           'crates/kit-slint/build.rs': b'fn main() { guard_preview(); compile_ui(); }'})
         with patch.object(pipeline, 'ROOT', self.docs), patch.object(pipeline, 'runtime_inputs', return_value=runtime), \
              patch.object(pipeline, 'tasks', return_value=[before]), patch.object(pipeline, 'update_legacy'), \
              patch.object(pipeline, 'store'):
@@ -96,11 +102,11 @@ class CatalogueCaptureTests(unittest.TestCase):
             self.assertEqual(manifest['entries']['scene']['key'], after['key'])
             self.assertEqual(manifest['entries']['scene']['origin'], origin)
             self.assertEqual(manifest['entries']['scene']['reuse']['previousKey'], record['key'])
-            runtime['rust']['crates/kit/src/lib.rs'] = 'changed runtime'
+            (self.docs / 'crates/kit/src/lib.rs').write_bytes(b'pub fn changed_runtime() {}')
             manifest = {'entries': {'scene': record}}
             pipeline.reuse_build_only_changes([after], manifest, {})
             self.assertEqual(manifest['entries']['scene'], record)
-            runtime['rust']['crates/kit/src/lib.rs'] = pipeline.digest(sources['crates/kit/src/lib.rs'])
+            (self.docs / 'crates/kit/src/lib.rs').write_bytes(sources['crates/kit/src/lib.rs'])
             archive_path.write_bytes(b'corrupted archive')
             pipeline.reuse_build_only_changes([after], manifest, {})
             self.assertEqual(manifest['entries']['scene'], record)

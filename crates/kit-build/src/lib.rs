@@ -41,6 +41,14 @@ pub fn compile_with_config(
     path: impl AsRef<Path>,
     configuration: slint_build::CompilerConfiguration,
 ) -> Result<(), slint_build::CompileError> {
+    // Slint's live-preview generator omits library global implementations.
+    // Presence selects that generator, even for an empty value or "0".
+    println!("cargo:rerun-if-env-changed=SLINT_LIVE_PREVIEW");
+    if std::env::var_os("SLINT_LIVE_PREVIEW").is_some() {
+        return Err(slint_build::CompileError::CompileError(vec![
+            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.18.1 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
+        ]));
+    }
     let diagnostic =
         |error: std::io::Error| slint_build::CompileError::CompileError(vec![error.to_string()]);
     verify_contracts().map_err(diagnostic)?;
@@ -111,6 +119,30 @@ pub fn verify_contracts() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn live_preview_reports_the_upstream_limitation_before_codegen() {
+        const CHILD: &str = "KIT_TEST_LIVE_PREVIEW_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            let error = compile("does-not-need-to-exist.slint").unwrap_err();
+            let diagnostic = format!("{error:?}");
+            assert!(diagnostic.contains("slint-ui/slint#14812"));
+            assert!(diagnostic.contains("Unset SLINT_LIVE_PREVIEW"));
+            return;
+        }
+        for value in ["1", "0", ""] {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "tests::live_preview_reports_the_upstream_limitation_before_codegen",
+                ])
+                .env(CHILD, "1")
+                .env("SLINT_LIVE_PREVIEW", value)
+                .status()
+                .unwrap();
+            assert!(status.success(), "live-preview value {value:?}");
+        }
+    }
 
     #[test]
     fn import_paths_preserve_windows_drives_and_network_shares() {

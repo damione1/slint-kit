@@ -1,4 +1,4 @@
-import { KitSelection } from "selection-service.slint";
+import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
@@ -349,7 +349,7 @@ export component KitSelect inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> placeholder: selection.selected-label != "" ? selection.selected-label : "Choose an option";
-    private property <string> trigger-label: root.options.length > 0 && root.selected.present ? selection.selected-label : root.placeholder;
+    private property <string> trigger-label: root.options.length > 0 && root.selected.present && KitSelectionService.ready ? selection.selected-label : root.placeholder;
     in property <string> unavailable-label: "Selected option is unavailable";
     in property <FieldAccess> access: FieldAccess.editable;
     // A composite (multi-select) reports its own constraint through this.
