@@ -57,15 +57,15 @@ Try [email validation](https://slint-kit.dev/components/email-field/) or [sortin
 
 ## Adoption and scope
 
-Slint Kit is before 1.0; breaking changes remain possible. The build helper uses Slint’s experimental module compilation. Keep runtime/build releases matched. Tables currently display text cells; modal surfaces are internal to a host window and require background-interaction gating by the application. The [selection guide](https://slint-kit.dev/guides/why-slint-kit/) explains supported use cases and qualification limits.
+Slint Kit is before 1.0; breaking changes remain possible. The build helper uses Slint’s experimental module compilation. Keep runtime/build releases matched. Tables display text, badge and check cells and edit field cells in place; modal surfaces are internal to a host window and require background-interaction gating by the application. The [selection guide](https://slint-kit.dev/guides/why-slint-kit/) explains supported use cases and qualification limits.
 
 ## Quality
 
-No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS and build/helper checks on Windows; Linux/mobile runtime behavior, IME and screen readers need verification on the target device.
+No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS, the headless test suite and `clippy` on Linux, and build/helper checks on Windows; native runtime behavior, mobile, IME and screen readers need verification on the target device.
 
 ## Requirements
 
-Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Android builds need the Android SDK/NDK; iOS builds need macOS and Xcode. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
+Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android builds need the Android SDK/NDK; iOS builds need macOS and Xcode. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
 
 ## License
 

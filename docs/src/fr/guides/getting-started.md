@@ -48,6 +48,21 @@ cargo build --release --locked -p kit-showcase
 cargo run --release --locked -p kit-showcase
 ```
 
+## Cibles annoncées et cibles qualifiées
+
+Slint Kit annonce les plateformes de bureau macOS, Windows et Linux, avec le backend winit et le moteur de rendu Skia de Slint comme pile documentée. Les sélecteurs natifs de fichiers et de répertoires compilent sur macOS, Windows, Linux et FreeBSD et signalent `Unsupported` ailleurs. Android, iOS, le web et les autres backends et moteurs de rendu de Slint ne sont pas des cibles annoncées ; les previews navigateur de ce site compilent le kit en WebAssembly à titre d’illustration seulement.
+
+Une cible annoncée est une cible pour laquelle le kit est construit. Une cible qualifiée est une cible qui a une preuve nommée : une vérification exécutée sur un système, un backend et un moteur de rendu nommés, dont le résultat se lit. Le tableau liste chaque preuve que le kit publie. Les preuves d’intégration continue s’exécutent à chaque push sur `main` et à chaque pull request ; leur résultat courant est la dernière exécution du [workflow Check](https://github.com/damione1/slint-kit/actions/workflows/check.yml), pas une affirmation de cette page.
+
+| Cible | Backend et moteur de rendu | Ce que la preuve vérifie | Où |
+| --- | --- | --- | --- |
+| macOS, runner GitHub `macos-latest` (arm64) | Backend de test Slint avec le moteur de rendu logiciel ; aucune fenêtre | `cargo run -p xtask -- check` : formatage, fichiers générés, lint des tokens, gardes des quickstarts, suite de tests headless complète et clippy avec avertissements refusés ; les starters téléchargeables compilent contre le kit | Job `desktop` du workflow Check, exécuté aussi avant chaque publication |
+| Linux, runner GitHub `ubuntu-24.04` (x86_64) | Backend de test Slint avec le moteur de rendu logiciel ; aucune fenêtre | Le kit et tout l’espace de travail compilent avec les bibliothèques de développement Linux installées ; la suite de tests headless s’exécute ; clippy avec avertissements refusés couvre les chemins de configuration Linux | Job `linux` du workflow Check |
+| Windows, runner GitHub `windows-2025` (x86_64) | Aucun : compilation seulement | `cargo check` compile le kit et sa crate de tests ; les tests de chemins du helper de build s’exécutent. Aucun test de composant ne s’exécute et aucune fenêtre ne s’ouvre | Job `windows` du workflow Check |
+| macOS arm64, poste du mainteneur (Darwin 27, Apple M4 Pro, facteurs d’échelle 1 et 2) | Backend winit avec le moteur de rendu Skia ; fenêtre native | Captures des composants rendues nativement en thèmes clair et sombre et à 200 % de texte ; clic pointeur et parcours Tab/Espace du bouton vérifiés dans des fenêtres natives neuves, en français et en anglais | Légendes de chaque fiche de composant ; `docs/content/captures.json` enregistre l’environnement et la portée de la qualification |
+
+Non qualifié sur toute cible : interaction pointeur et clavier dans une vraie fenêtre winit sur Windows et Linux (X11 et Wayland), composition IME sur tout système, lecteurs d’écran (VoiceOver, Narrateur, NVDA, Orca), moteurs de rendu autres que Skia sur la machine de capture, tactile, mobile et web. Un test headless prouve le contrat du composant sur le backend de test ; une capture prouve le rendu d’un état déclaré dans l’environnement de capture. Ni l’un ni l’autre n’est une qualification native, IME ou lecteur d’écran. Une telle qualification est un passage manuel sur le système, le backend, le moteur de rendu et la technologie d’assistance réels, rapporté avec ces noms ; le changelog indique quelles fonctions en attendent encore une. Quand vous qualifiez une cible pour votre application, consignez les mêmes noms.
+
 Le code et les ressources incluses sont sous [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE) ; conservez les notices des dépendances.
 
 Les aperçus de l’éditeur affichent les déclarations statiques sans exécuter les services Rust. Consultez les [aperçus statiques et la limite du live-preview de Slint 1.18.1](../editor/#apercus-statiques-et-services-rust) avant d’activer `SLINT_LIVE_PREVIEW`.

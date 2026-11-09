@@ -27,6 +27,38 @@ jobs:
         run: cargo check -p kit-tests --locked
       - name: Test build helper path handling
         run: cargo test -p slint-kit-build --locked
+  linux:
+    # Linux proof: the kit builds and its headless test suite passes on the
+    # Slint testing backend with the software renderer, and clippy accepts the
+    # Linux cfg paths. Formatting, generated files, token lint and quickstart
+    # guards are file-level checks with no platform dependency; the macOS job
+    # runs them. Nothing here opens a window, so no display server is needed.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: slint-kit-linux
+          cache-on-failure: true
+          cache-workspace-crates: true
+      - name: Install Linux development libraries
+        # xcb and xkbcommon: winit X11 path; fontconfig: Skia and system fonts;
+        # libwayland-dev: rfd (native pickers) links wayland-backend at build
+        # time instead of loading it at run time like the winit backend.
+        run: |
+          sudo timeout 600 apt-get update
+          sudo timeout 600 apt-get install -y --no-install-recommends \
+            libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libfontconfig-dev libwayland-dev
+      - name: Run the headless component suite
+        run: cargo test -p kit-tests --locked
+      - name: Test the rest of the workspace
+        run: cargo test --workspace --locked
+      - name: Clippy with warnings denied on Linux targets
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
   desktop:
     runs-on: macos-latest
     steps:

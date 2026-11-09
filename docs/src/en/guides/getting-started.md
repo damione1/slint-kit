@@ -48,6 +48,21 @@ cargo build --release --locked -p kit-showcase
 cargo run --release --locked -p kit-showcase
 ```
 
+## Announced and qualified targets
+
+Slint Kit announces the desktop platforms macOS, Windows and Linux, with Slint's winit backend and Skia renderer as the documented stack. Native file and directory pickers compile on macOS, Windows, Linux and FreeBSD and report `Unsupported` elsewhere. Android, iOS, the web and other Slint backends and renderers are not announced targets; the browser previews on this site compile the kit to WebAssembly for illustration only.
+
+An announced target is one the kit is built for. A qualified target is one with a named proof: a check that runs on a named OS, backend and renderer, and whose result you can read. The table lists every proof the kit publishes. The continuous-integration proofs run on every push to `main` and on every pull request; their current result is the latest run of the [Check workflow](https://github.com/damione1/slint-kit/actions/workflows/check.yml), not a claim made here.
+
+| Target | Backend and renderer | What the proof checks | Where |
+| --- | --- | --- | --- |
+| macOS, GitHub-hosted `macos-latest` runner (arm64) | Slint testing backend with the software renderer; no window | `cargo run -p xtask -- check`: formatting, generated files, token lint, quickstart guards, the complete headless test suite and clippy with warnings denied; the downloadable starters compile against the kit | `desktop` job of the Check workflow, also run before each release |
+| Linux, GitHub-hosted `ubuntu-24.04` runner (x86_64) | Slint testing backend with the software renderer; no window | The kit and the whole workspace build with the Linux development libraries installed; the headless test suite runs; clippy with warnings denied covers the Linux configuration paths | `linux` job of the Check workflow |
+| Windows, GitHub-hosted `windows-2025` runner (x86_64) | None: compile only | `cargo check` compiles the kit and its test crate; the build helper's path tests run. No component test runs and no window opens | `windows` job of the Check workflow |
+| macOS arm64, maintainer workstation (Darwin 27, Apple M4 Pro, scale factors 1 and 2) | winit backend with the Skia renderer; native window | Component screenshots rendered natively in light and dark themes and at 200% text; the button's pointer click and Tab/Space paths checked in fresh native windows, in French and English | Captions on each component page; `docs/content/captures.json` records the environment and the qualification scope |
+
+Not qualified on any target: pointer and keyboard interaction in a real winit window on Windows and Linux (X11 and Wayland), IME composition on any OS, screen readers (VoiceOver, Narrator, NVDA, Orca), renderers other than Skia on the capture machine, touch, mobile and web. A headless test proves the component contract on the testing backend; a capture proves the rendering of a declared state in the capture environment. Neither is a native, IME or screen-reader qualification. Such a qualification is a manual pass on the actual OS, backend, renderer and assistive technology, reported with those names; the changelog says which features still need one. When you qualify a target for your application, record the same names.
+
 Code and bundled assets are [GPL-3.0-or-later](https://github.com/damione1/slint-kit/blob/main/LICENSE); preserve dependency notices.
 
 Editor previews show static declarations and do not run the Rust services. See [static previews and the Slint 1.18.1 live-preview limitation](../editor/#static-previews-and-rust-services) before enabling `SLINT_LIVE_PREVIEW`.
