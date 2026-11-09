@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { heroProjects } from '../assets/landing.js';
 export default {
   en: {
+    hero: {projects:heroProjects, project:'Project', tasks:'Tasks', selected:'Selected', archive:'Cedar is archived', original:'{name} selected. Sort the table.', ascending:'{column} ↑ · {name} keeps its key.', descending:'{column} ↓ · {name} is still selected.', pause:'Pause animation', play:'Play animation', link:'Try the Slint example', select:'Select'},
+    mock: {money:'Money Field', budget:'Budget', value:'Accepted value', calendar:'Calendar', month:'October 2026', weekdays:['Mo','Tu','We','Th','Fr','Sa','Su'], dialog:'Project settings', question:'Archive this project?', description:'You can restore it from the archive.', cancel:'Cancel', confirm:'Archive', workspace:'Find your workspace', search:'Search eight workspaces by name.', chosen:'Accepted workspace: Personal', illustration:'HTML illustration'},
     eyebrow: 'The UI kit for Rust + Slint', title: 'Native Rust UI.', emphasis: 'Behavior included.',
     lead: 'Slint Kit combines {count} UI components with shared interaction logic and typed domain values. Build validated forms, exact money inputs and data views that keep their identity.',
     try: 'Try the components', start: 'Get started', why: 'See what the kit handles', free: 'Forever free for open-source use',
-    table: 'Virtualized data. Stable identity.', money: 'Exact values. Native editing.', visual: 'Real Slint Kit components, rendered from the documented examples.',
+    table: 'Virtualized data. Stable identity.', money: 'Exact values. Native editing.', visual: 'HTML illustration of the documented Slint behavior.',
     count: 'public components', typed: 'Typed Rust values', themes: 'Light & dark themes', platforms: 'Desktop & mobile',
     featureEyebrow: 'The behavior layer', featureTitle: 'The details that make an interface work.',
     features: [
@@ -26,10 +29,12 @@ export default {
     qualification:'Version {version}, before 1.0. Rust {rust}+ · Slint {slint}. Full checks run on macOS; Windows has build/helper checks. Linux and mobile require their own runtime qualification. IME and screen readers need checks on the target device.', evidence:'Explore the public checks', families:'Explore all component families',
   },
   fr: {
+    hero: {projects:heroProjects, project:'Projet', tasks:'Tâches', selected:'Sélection', archive:'Cedar est archivé', original:'{name} sélectionné. Triez le tableau.', ascending:'{column} ↑ · {name} conserve sa clé.', descending:'{column} ↓ · {name} reste sélectionné.', pause:'Mettre en pause', play:'Animer le tableau', link:'Essayer l’exemple Slint', select:'Sélectionner'},
+    mock: {money:'Champ monétaire', budget:'Budget', value:'Valeur acceptée', calendar:'Calendrier', month:'Octobre 2026', weekdays:['Lu','Ma','Me','Je','Ve','Sa','Di'], dialog:'Paramètres du projet', question:'Archiver ce projet ?', description:'Vous pourrez le restaurer depuis les archives.', cancel:'Annuler', confirm:'Archiver', workspace:'Choisissez votre espace', search:'Recherchez parmi huit espaces de travail.', chosen:'Espace accepté : Personal', illustration:'Illustration HTML'},
     eyebrow: 'Le kit UI pour Rust + Slint', title: 'Des composants Rust.', emphasis: 'Prêts à interagir.',
     lead: 'Slint Kit associe {count} composants UI à une logique d’interaction partagée et des valeurs métier typées. Créez des formulaires validés, des champs monétaires exacts et des vues de données à identité stable.',
     try: 'Essayer les composants', start: 'Bien démarrer', why: 'Voir ce que le kit prend en charge', free: 'Gratuit pour toujours pour l’usage open source',
-    table: 'Données virtualisées. Identité stable.', money: 'Valeurs exactes. Édition native.', visual: 'De vrais composants Slint Kit, rendus à partir des exemples documentés.',
+    table: 'Données virtualisées. Identité stable.', money: 'Valeurs exactes. Édition native.', visual: 'Illustration HTML du comportement Slint documenté.',
     count: 'composants publics', typed: 'Valeurs Rust typées', themes: 'Thèmes clair et sombre', platforms: 'Bureau et mobile',
     featureEyebrow: 'La couche de comportements', featureTitle: 'Les détails qui font fonctionner une interface.',
     features: [

@@ -1,6 +1,5 @@
 {% set copy = landing[locale] %}
-{% set langSuffix = '-fr' if locale == 'fr' else '' %}
-{% macro capture(slug, width, height, alt, eager=false) %}<picture>{% if slug != "money-field" %}<source data-theme-source="dark" media="(prefers-color-scheme: dark)" srcset="/assets/components/{{ slug }}{{ langSuffix }}-dark.png, /assets/components/{{ slug }}{{ langSuffix }}-dark@2x.png 2x">{% endif %}<img src="/assets/components/{{ slug }}{{ langSuffix }}.png" srcset="/assets/components/{{ slug }}{{ langSuffix }}@2x.png 2x" width="{{ width }}" height="{{ height }}" alt="{{ alt }}" loading="{{ 'eager' if eager else 'lazy' }}"></picture>{% endmacro %}
+{% import "landing-illustrations.njk" as illustrations %}
 
 <section class="landing-hero" aria-labelledby="landing-title">
   <div class="landing-hero-copy">
@@ -12,8 +11,16 @@
     <a class="landing-why" href="{{ 'guides/why-slint-kit/' | localeUrl(locale) }}">{{ copy.why }} <span aria-hidden="true">↗</span></a>
   </div>
   <div class="landing-stage">
-    <figure class="landing-screen landing-table"><a href="{{ 'guides/table-example/' | localeUrl(locale) }}">{{ capture('data-table', 620, 520, copy.table, true) }}</a><figcaption><code>KitDataTable</code><span>{{ copy.table }}</span></figcaption></figure>
-    <figure class="landing-screen landing-money"><a href="{{ 'components/money-field/' | localeUrl(locale) }}">{{ capture('money-field', 420, 180, copy.money, true) }}</a><figcaption><code>Money</code><span>{{ copy.money }}</span></figcaption></figure>
+    <figure class="landing-screen landing-table" data-hero-table data-project-label="{{ copy.hero.project }}" data-tasks-label="{{ copy.hero.tasks }}" data-selected-label="{{ copy.hero.selected }}" data-original-caption="{{ copy.hero.original }}" data-ascending-caption="{{ copy.hero.ascending }}" data-descending-caption="{{ copy.hero.descending }}" data-pause-label="{{ copy.hero.pause }}" data-play-label="{{ copy.hero.play }}">
+      <div class="kit-illustration mock-table"><p class="mock-title">KitDataTable <span class="mock-html-label">HTML</span></p>
+        <table aria-label="{{ copy.table }}"><thead><tr><th scope="col" aria-sort="none"><button type="button" data-sort-column="name" disabled>{{ copy.hero.project }} <span data-sort-icon aria-hidden="true">↕</span></button></th><th scope="col" aria-sort="none"><button type="button" data-sort-column="tasks" disabled>{{ copy.hero.tasks }} <span data-sort-icon aria-hidden="true">↕</span></button></th></tr></thead>
+          <tbody>{% for project in copy.hero.projects %}<tr data-project-key="{{ project.key }}" data-selected="{{ 'true' if project.key == 101 else 'false' }}"{% if project.archived %} aria-disabled="true"{% endif %}><td><button type="button" aria-label="{{ copy.hero.select }} {{ project.name }}" aria-pressed="{{ 'true' if project.key == 101 else 'false' }}" disabled{% if project.archived %} title="{{ copy.hero.archive }}"{% endif %}>{{ project.name }}</button></td><td>{{ project.tasks }}</td></tr>{% endfor %}</tbody>
+        </table><p class="mock-selection" data-hero-selection>{{ copy.hero.selected }}: Atlas · #101</p>
+      </div>
+      <div class="hero-animation-controls"><p data-hero-caption aria-live="off">{{ copy.hero.original | replace('{name}', 'Atlas') }}</p><button type="button" data-hero-playback hidden>{{ copy.hero.pause }}</button></div>
+      <figcaption><code>KitDataTable</code><a href="{{ 'guides/table-example/' | localeUrl(locale) }}">{{ copy.hero.link }} ↗</a></figcaption>
+    </figure>
+    <figure class="landing-screen landing-money"><a href="{{ 'components/money-field/' | localeUrl(locale) }}">{{ illustrations.money(copy.mock) }}</a><figcaption><code>Money</code><span>{{ copy.money }}</span></figcaption></figure>
     <p class="landing-visual-note">{{ copy.visual }}</p>
   </div>
 </section>
@@ -35,7 +42,7 @@
   {% set quickstart = quickstarts['combobox'] %}
   <div class="live-preview landing-live" data-component="combobox" data-width="{{ quickstart.displayWidth }}" data-height="{{ quickstart.displayHeight }}">
     <div class="preview-actions"><button class="run-preview" type="button">{{ copy.run }}</button><label class="preview-theme-choice" for="home-preview-theme"><span class="sr-only">{{ copy.demoTheme }}</span><select id="home-preview-theme" class="preview-theme" disabled><option value="light">{{ copy.light }}</option><option value="dark">{{ copy.dark }}</option></select></label><span class="preview-status" role="status"></span></div>
-    <figure class="component-preview"><picture><source data-theme-source="dark" media="(prefers-color-scheme: dark)" srcset="{{ 'combobox' | starterPoster(1, 'dark') }}, {{ 'combobox' | starterPoster(2, 'dark') }} 2x"><img src="{{ 'combobox' | starterPoster(1) }}" srcset="{{ 'combobox' | starterPoster(2) }} 2x" width="{{ quickstart.displayWidth }}" height="{{ quickstart.displayHeight }}" alt="KitCombobox — {{ copy.demoTitle }}" loading="lazy"></picture></figure>
+    <figure class="component-preview">{{ illustrations.combobox(copy.mock) }}<figcaption>{{ copy.mock.illustration }} · KitCombobox</figcaption></figure>
     <div class="preview-frame" hidden></div>
     <noscript><p>{{ copy.noScript }}</p></noscript>
   </div>
@@ -44,7 +51,7 @@
 <section class="landing-section" aria-labelledby="landing-theme-title">
   <div class="landing-section-heading"><div><p class="eyebrow">{{ copy.galleryEyebrow }}</p><h2 id="landing-theme-title">{{ copy.galleryTitle }}</h2></div><a href="{{ 'guides/themes/' | localeUrl(locale) }}">{{ copy.themeLink }} <span aria-hidden="true">↗</span></a></div>
   <p class="landing-section-intro">{{ copy.galleryText }}</p>
-  <div class="landing-gallery">{% for item in copy.gallery %}<a class="landing-gallery-item" href="{{ ('components/' + item.slug + '/') | localeUrl(locale) }}"><div class="landing-gallery-image">{{ capture(item.slug, item.width, item.height, item.title) }}</div><h3>{{ item.title }}</h3><p>{{ item.text }}</p></a>{% endfor %}</div>
+  <div class="landing-gallery">{% for item in copy.gallery %}<a class="landing-gallery-item" href="{{ ('components/' + item.slug + '/') | localeUrl(locale) }}"><div class="landing-gallery-image">{% if item.slug == 'calendar' %}{{ illustrations.calendar(copy.mock) }}{% elif item.slug == 'dialog-surface' %}{{ illustrations.dialog(copy.mock) }}{% elif item.slug == 'money-field' %}{{ illustrations.money(copy.mock) }}{% endif %}</div><h3>{{ item.title }}</h3><p>{{ item.text }}</p></a>{% endfor %}</div>
 </section>
 
 <section class="landing-integration landing-section" aria-labelledby="landing-integration-title">

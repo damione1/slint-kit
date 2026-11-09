@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+- Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented three-way table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
+
 - Redesign the bilingual homepage with real component captures, an on-demand Slint demo, integration excerpts and clear installation and licensing paths.
 - Explain Slint Kit's shared interaction and typed domain layer across the bilingual homepage, adoption guide, component catalogue, README and crate entry points. Link runnable behavior examples, distinguish complete controls from composition primitives, document adoption limits and clarify registry installation in the typed example. Correct outdated email/URL validation descriptions and clarify that base components stay free for open-source use, with commercial licensing on request and Slint Kit Pro coming. No public API changes.
 
 ### Français
+
+- Remplace les captures de l’accueil par des illustrations HTML légères adaptées au thème et démontre le cycle de tri documenté du tableau en conservant la sélection par clé. Respecte la réduction des mouvements, suspend l’animation hors écran et permet le contrôle manuel. Corrige le thème sombre de la section open source et l’indentation des extraits affichés/copiés. Aucun changement d’API de composant.
 
 - Revoit l’accueil bilingue avec de vraies captures de composants, une démo Slint à la demande, des extraits d’intégration et des parcours clairs d’installation et de licence.
 - Présente la couche d’interaction partagée et les valeurs métier typées de Slint Kit sur l’accueil bilingue, le guide de choix, le catalogue, le README et les entrées des crates. Relie les exemples exécutables, distingue contrôles complets et briques de composition, précise les limites d’adoption et l’installation depuis crates.io dans l’exemple typé. Corrige les descriptions obsolètes de validation courriel/URL et précise que les composants de base restent gratuits pour l’usage open source, avec licence commerciale sur demande et Slint Kit Pro à venir. Aucun changement d’API publique.

@@ -12,14 +12,15 @@
     "build": "npm run build:inputs && npm run build:web && npm run build:pages",
     "dev": "npm run build:inputs && npm run build:web && python3 scripts/pack-starters.py && eleventy --serve",
     "check": "node scripts/check.mjs",
-    "check:browser": "node scripts/check-browser.mjs && node scripts/check-search-browser.mjs && node scripts/check-workspace-browser.mjs",
+    "check:browser": "node scripts/check-browser.mjs && node scripts/check-search-browser.mjs && node scripts/check-workspace-browser.mjs && npm run check:landing",
     "build:web": "python3 scripts/build-web-previews.py && python3 scripts/build-workspace-preview.py",
     "build:pages": "node scripts/build-pages.mjs",
     "build:inputs": "npm run sync:versions && python3 scripts/doc_inputs.py",
     "capture:plan": "python3 scripts/capture_pipeline.py plan",
     "capture:update": "python3 scripts/capture_pipeline.py update",
     "capture:check": "python3 scripts/capture_pipeline.py check",
-    "check:scripts": "python3 -m unittest discover -s scripts -p 'test_*.py' && node --test scripts/test-*.mjs"
+    "check:scripts": "python3 -m unittest discover -s scripts -p 'test_*.py' && node --test scripts/test-*.mjs",
+    "check:landing": "node scripts/check-landing-browser.mjs"
   },
   "devDependencies": {
     "@11ty/eleventy": "3.1.7",
