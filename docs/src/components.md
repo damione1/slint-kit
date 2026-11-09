@@ -61,6 +61,7 @@ eleventyComputed:
 
 {% if component.name == "KitTelephoneField" %}{% include "telephone-options.njk" %}{% endif %}
 
+{% if component.name == 'KitDialogSurface' or component.name == 'KitFocusTarget' %}{% if locale == 'fr' %}Pour relier plusieurs déclencheurs, des couches imbriquées, Tab, Échap, Retour et l’état occupé à `OverlayStack` et `FocusRegistry`, suivez l’[application complète de dialogues](/fr/guides/dialog-example/).{% else %}To connect several triggers, nested layers, Tab, Escape, Back and the busy state to `OverlayStack` and `FocusRegistry`, follow the [complete dialog application](/guides/dialog-example/).{% endif %}{% endif %}
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
 <p class="source-link"><a href="https://docs.rs/crate/slint-kit-slint/{{ project.version }}/source/{{ component.source | replace("crates/kit-slint/", "") }}">{{ ui[locale].source }} ↗</a></p>

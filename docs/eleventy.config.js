@@ -94,6 +94,9 @@ export default function (eleventyConfig) {
   for (const file of ['Cargo.toml', 'build.rs', 'ui/table.slint', 'src/main.rs']) {
     eleventyConfig.addPassthroughCopy({ [`table-consumer/${file}`]: `table-consumer/${file}` });
   }
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs']) {
+    eleventyConfig.addPassthroughCopy({ [`dialog-consumer/${file}`]: `dialog-consumer/${file}` });
+  }
   eleventyConfig.addWatchTarget('../crates/kit-slint/ui');
   eleventyConfig.addWatchTarget('examples');
   eleventyConfig.addWatchTarget('content');
@@ -115,8 +118,10 @@ export default function (eleventyConfig) {
   const markdown = new MarkdownIt({ html: false, linkify: false });
   eleventyConfig.addFilter('consumerSource', file => fs.readFileSync(path.join('consumer', file), 'utf8'));
   eleventyConfig.addFilter('tableSource', file => fs.readFileSync(path.join('table-consumer', file), 'utf8'));
+  eleventyConfig.addFilter('dialogSource', file => fs.readFileSync(path.join('dialog-consumer', file), 'utf8'));
   eleventyConfig.addWatchTarget('consumer');
   eleventyConfig.addWatchTarget('table-consumer');
+  eleventyConfig.addWatchTarget('dialog-consumer');
   eleventyConfig.addGlobalData('typedCaptures', () => Object.fromEntries(['en', 'fr'].map(locale => {
     const filename = `typed-integration${locale === 'fr' ? '-fr' : ''}.png`;
     const image = fs.readFileSync(path.join('src/assets/components', filename));

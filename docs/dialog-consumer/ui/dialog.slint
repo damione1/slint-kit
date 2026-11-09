@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, ButtonIntent, KitTextField, FieldAccess, KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget, DialogState, FocusRequest, CloseReason, KitTheme, KitThemes } from "@kit";
+export { DialogState, FocusRequest, CloseReason }
+export enum DialogLanguage { english, french }
+// The two modal layers of this window, outer layer first. Each one is a
+// surface rendered inside the window, not a separate system window.
+export enum DialogLayer { archive, confirm }
+// What the host publishes for one focus target: the generation of its
+// registration and whether it may take focus and act right now.
+export struct FocusSlot { generation: int, eligible: bool }
+
+// A button the host addresses by token. `eligible: false` also disables the
+// button, so pointer, keyboard and accessibility activation are all neutral
+// while a layer covers it. KitFocusTarget applies the host's focus requests.
+component FocusButton inherits KitFocusTarget {
+    in property <KitTheme> theme;
+    in property <string> text;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <FocusSlot> slot;
+    in property <bool> busy;
+    callback activated();
+    generation: root.slot.generation;
+    eligible: root.slot.eligible;
+    min-height: button.min-height; preferred-height: button.preferred-height; vertical-stretch: 0;
+    min-width: button.min-width; preferred-width: button.preferred-width; max-width: self.preferred-width; horizontal-stretch: 0;
+    focus-requested => { button.take-focus(); }
+    button := KitButton {
+        theme: root.theme; text: root.text; intent: root.intent; busy: root.busy; disabled: !root.eligible;
+        activated => { root.activated(); }
+        focus-observed(focused) => { root.focus-observed(root.token, focused); }
+    }
+}
+
+export component DialogApp inherits Window {
+    in property <DialogLanguage> language: DialogLanguage.english;
+    private property <bool> french: root.language == DialogLanguage.french;
+    in-out property <KitTheme> theme: KitThemes.light;
+    title: root.french ? "Dialogues Slint Kit" : "Slint Kit dialogs";
+    preferred-width: 720px;
+    preferred-height: 520px;
+    background: root.theme.canvas;
+    // Published by the host: one slot per token (the index is the token), the
+    // state of each layer and the focus request to apply.
+    in property <[FocusSlot]> slots;
+    in property <DialogState> archive;
+    in property <DialogState> confirm;
+    in property <FocusRequest> focus-request;
+    in property <string> status;
+    in-out property <string> project-name: "Atlas";
+    // The second argument is the token of the control that opens the layer;
+    // focus returns to that exact control when the layer closes.
+    callback open-requested(DialogLayer, int);
+    callback dismiss(DialogLayer, CloseReason);
+    callback confirm-requested();
+    callback focus-next(bool);
+    callback focus-changed(int, bool);
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        Text { text: root.french ? "Projet Atlas" : "Atlas project"; color: root.theme.text-primary; font-size: 24px * root.theme.text-scale; font-weight: 600; }
+        Text { text: root.french ? "Deux contrôles ouvrent le même dialogue. Fermez-le avec Échap, Retour système, le voile ou un bouton : le focus revient au contrôle qui l’a ouvert." : "Two controls open the same dialog. Close it with Escape, system Back, the backdrop or a button: focus returns to the control that opened it."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+        HorizontalLayout {
+            spacing: 12px; alignment: start;
+            FocusButton { theme: root.theme; token: 1; slot: root.slots[1]; request: root.focus-request; intent: ButtonIntent.primary; text: root.french ? "Archiver depuis la barre d’outils" : "Archive from the toolbar"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+            FocusButton { theme: root.theme; token: 2; slot: root.slots[2]; request: root.focus-request; text: root.french ? "Archiver depuis la fiche du projet" : "Archive from the project card"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+        }
+        Text { text: root.status; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+    }
+
+    // Rendered last, so the layers cover the window content: the archive layer,
+    // then the nested confirmation above it. Only the topmost layer reacts to
+    // Escape, system Back and the backdrop; Tab stays inside it.
+    KitDialogSurface {
+        theme: root.theme; state: root.archive;
+        dismiss(reason) => { root.dismiss(DialogLayer.archive, reason); }
+        focus-next(backward) => { root.focus-next(backward); }
+        KitDialogPanel {
+            theme: root.theme; accessible-name: root.french ? "Archiver le projet" : "Archive project";
+            width: min(480px, parent.width - 48px); height: archive-content.preferred-height;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            archive-content := VerticalLayout {
+                padding: 24px; spacing: 16px;
+                KitDialogHeader { theme: root.theme; Text { text: root.french ? "Archiver ce projet ?" : "Archive this project?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; } }
+                KitDialogBody {
+                    theme: root.theme;
+                    Text { text: root.french ? "Le projet quitte la liste active. Vous pourrez le restaurer depuis les archives." : "The project leaves the active list. You can restore it from the archive later."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
+                    // A native editor is a focus target too: the request reaches the field through take-focus().
+                    KitFocusTarget {
+                        token: 3; generation: root.slots[3].generation; eligible: root.slots[3].eligible; request: root.focus-request;
+                        min-height: name.min-height; preferred-height: name.preferred-height; vertical-stretch: 0;
+                        focus-requested => { name.take-focus(); }
+                        focus-observed(token, focused) => { root.focus-changed(token, focused); }
+                        name := KitTextField { theme: root.theme; label: root.french ? "Nom du projet" : "Project name"; text <=> root.project-name; access: root.slots[3].eligible ? FieldAccess.editable : FieldAccess.disabled; focus-observed(focused) => { root.focus-changed(3, focused); } }
+                    }
+                }
+                KitDialogFooter {
+                    theme: root.theme;
+                    FocusButton { theme: root.theme; token: 4; slot: root.slots[4]; request: root.focus-request; text: root.french ? "Annuler" : "Cancel"; activated => { root.dismiss(DialogLayer.archive, CloseReason.programmatic); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                    FocusButton { theme: root.theme; token: 5; slot: root.slots[5]; request: root.focus-request; intent: ButtonIntent.destructive; text: root.french ? "Archiver…" : "Archive…"; activated => { root.open-requested(DialogLayer.confirm, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                }
+            }
+        }
+    }
+    KitDialogSurface {
+        theme: root.theme; state: root.confirm;
+        dismiss(reason) => { root.dismiss(DialogLayer.confirm, reason); }
+        focus-next(backward) => { root.focus-next(backward); }
+        KitDialogPanel {
+            theme: root.theme; accessible-name: root.french ? "Confirmer l’archivage" : "Confirm archiving";
+            width: min(400px, parent.width - 48px); height: confirm-content.preferred-height;
+            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+            confirm-content := VerticalLayout {
+                padding: 24px; spacing: 16px;
+                KitDialogHeader { theme: root.theme; Text { text: root.french ? "Archiver « " + root.project-name + " » ?" : "Archive “" + root.project-name + "”?"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; } }
+                KitDialogBody { theme: root.theme; Text { text: root.french ? "L’archivage prend un instant. Pendant ce temps, ce dialogue ne peut pas être fermé." : "Archiving takes a moment. The dialog cannot be dismissed until it completes."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } }
+                KitDialogFooter {
+                    theme: root.theme;
+                    FocusButton { theme: root.theme; token: 6; slot: root.slots[6]; request: root.focus-request; text: root.french ? "Conserver le projet" : "Keep project"; activated => { root.dismiss(DialogLayer.confirm, CloseReason.programmatic); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                    FocusButton { theme: root.theme; token: 7; slot: root.slots[7]; request: root.focus-request; intent: ButtonIntent.primary; busy: root.confirm.busy; text: root.confirm.busy ? (root.french ? "Archivage…" : "Archiving…") : (root.french ? "Archiver maintenant" : "Archive now"); activated => { root.confirm-requested(); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                }
+            }
+        }
+    }
+}

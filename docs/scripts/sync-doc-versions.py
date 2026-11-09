@@ -12,7 +12,7 @@ def synchronize(check=False):
     version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
     starters = json.loads((ROOT / 'docs/content/starters.json').read_text())
     paths = [ROOT / 'docs/quickstart' / slug / 'Cargo.toml' for slug in sorted(starters)]
-    paths += [ROOT / 'docs' / folder / 'Cargo.toml' for folder in ('consumer', 'table-consumer', 'preview')]
+    paths += [ROOT / 'docs' / folder / 'Cargo.toml' for folder in ('consumer', 'table-consumer', 'dialog-consumer', 'preview')]
     stale = []
     for path in paths:
         source = path.read_text()
