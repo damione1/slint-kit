@@ -467,7 +467,7 @@ export component KitCarousel inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     // The editor has source slides but no Rust active-row projection yet.
-    private property <int> display-index: !KitSelectionService.ready && root.options.length > 0 ? 0 : root.state.active-index;
+    private property <int> display-index: !KitSelectionService.ready && root.state.active-index < 0 && root.options.length > 0 ? 0 : root.state.active-index;
     in property <string> previous-label: "Previous slide";
     in property <string> next-label: "Next slide";
     in property <string> empty-label: "No slides";

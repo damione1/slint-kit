@@ -103,6 +103,10 @@ fn carousel_preview_shows_a_static_slide_without_an_active_projection() {
     let window = fixture(PreviewFamily::Carousel);
     assert!(has_label(&window, "Alpha"));
     assert!(has_label(&window, "1 / 3"));
+    window.set_carousel_index(1);
+    assert!(has_label(&window, "Beta"));
+    assert!(has_label(&window, "2 / 3"));
+    assert!(!has_label(&window, "Alpha"));
 }
 
 #[test]

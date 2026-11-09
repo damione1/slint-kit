@@ -21,6 +21,7 @@ export component PreviewFixture inherits Window {
         {token: 73, generation: 1, label: "Blocked", disabled: true},
     ];
     in-out property <int> rating-scale: 7;
+    in-out property <int> carousel-index: -1;
     callback chosen(OptionRow);
     background: root.theme.canvas;
     VerticalLayout {
@@ -29,7 +30,7 @@ export component PreviewFixture inherits Window {
         if root.family == PreviewFamily.menu: KitMenu { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
         if root.family == PreviewFamily.menu-bar: KitMenuBar { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
         if root.family == PreviewFamily.breadcrumbs: KitBreadcrumbs { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
-        if root.family == PreviewFamily.carousel: KitCarousel { theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.carousel: KitCarousel { state: {active-index: root.carousel-index}; theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
         if root.family == PreviewFamily.accordion: KitAccordion { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
         if root.family == PreviewFamily.radio || root.family == PreviewFamily.radio-horizontal: KitRadioGroup { theme: root.theme; options: root.options; selected: {present: true, token: 42}; direction: root.family == PreviewFamily.radio ? ChoiceDirection.vertical : ChoiceDirection.horizontal; flow: ChoiceFlow.right-to-left; chosen(row) => { root.chosen(row); } }
         if root.family == PreviewFamily.segments: KitSegmentedControl { theme: root.theme; options: root.options; selected: {present: true, token: 42}; columns: 2; chosen(row) => { root.chosen(row); } }
