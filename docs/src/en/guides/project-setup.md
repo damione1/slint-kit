@@ -10,6 +10,8 @@ permalink: "{{ 'guides/project-setup/' | localeUrl(locale) }}index.html"
 
 Configure a Rust application once, then use each component through an `@kit` import, properties and typed callbacks. Component pages provide `ui/app.slint` and `src/main.rs`; their downloadable projects also include the manifest, build script and lockfile.
 
+The build helper uses Slint’s experimental module compilation to share the kit's Rust/Slint contracts. Keep runtime and build packages on the same release and follow the supported Slint patch range. See [build compatibility](https://docs.rs/crate/slint-kit-build/latest) and [adoption limits](/guides/why-slint-kit/).
+
 ## Dependencies
 
 Use Rust **{{ project.rust }}+**, edition **2024**, and Slint **{{ project.slint }}**. Start with `cargo new my-app` and add the runtime and build packages to `Cargo.toml`:
@@ -28,6 +30,8 @@ slint = { version = "={{ project.slint }}", default-features = false, features =
 [build-dependencies]
 slint-kit-build = "={{ project.version }}"
 ```
+
+The manifest above pins the example to Slint {{ project.slint }} for reproducibility. The kit itself accepts Slint 1.18 patch releases from 1.18.1 (`~1.18.1`). Keep the Slint compiler and runtime aligned when updating a patch release.
 
 Keep the kit's runtime and build packages on matching releases. Preserve an existing application's compatible backend and renderer. This desktop example uses winit and Skia; see [Getting started](/guides/getting-started/) for platform prerequisites and [Native integration](/guides/native/) for optional host services.
 

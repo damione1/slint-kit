@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Redesign the bilingual homepage with real component captures, an on-demand Slint demo, integration excerpts and clear installation and licensing paths.
+- Explain Slint Kit's shared interaction and typed domain layer across the bilingual homepage, adoption guide, component catalogue, README and crate entry points. Link runnable behavior examples, distinguish complete controls from composition primitives, document adoption limits and clarify registry installation in the typed example. Correct outdated email/URL validation descriptions and clarify that base components stay free for open-source use, with commercial licensing on request and Slint Kit Pro coming. No public API changes.
+
+### Français
+
+- Revoit l’accueil bilingue avec de vraies captures de composants, une démo Slint à la demande, des extraits d’intégration et des parcours clairs d’installation et de licence.
+- Présente la couche d’interaction partagée et les valeurs métier typées de Slint Kit sur l’accueil bilingue, le guide de choix, le catalogue, le README et les entrées des crates. Relie les exemples exécutables, distingue contrôles complets et briques de composition, précise les limites d’adoption et l’installation depuis crates.io dans l’exemple typé. Corrige les descriptions obsolètes de validation courriel/URL et précise que les composants de base restent gratuits pour l’usage open source, avec licence commerciale sur demande et Slint Kit Pro à venir. Aucun changement d’API publique.
+
 ## 0.7.2
 
 - Fix empty pure-Slint previews across the selection family: render declarative options in menus, tabs, breadcrumbs, carousels, radio/segmented/toggle groups and accordion headers; render arbitrary valid rating scales. Keep service-backed interaction guarded until `install(&window)`. Preserve explicit row projections and document static projection limits for dropdowns, multi-selection, calendars and typed fields.

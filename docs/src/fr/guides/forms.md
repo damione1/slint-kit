@@ -8,6 +8,8 @@ permalink: "{{ 'guides/forms/' | localeUrl(locale) }}index.html"
 
 # Formulaires, options partagées et validation
 
+Les formulaires Slint Kit partagent un moteur de contraintes HTML et des codecs Rust typés. Ils refusent les courriels et URL mal formés, conservent les brouillons incomplets et retournent des valeurs validées à votre code métier. L’édition native reste dans Slint ; votre commande de soumission vérifie aussi la frontière Rust.
+
 Configurez l’application une fois avec [Configuration du projet](/fr/guides/project-setup/). Importez les contrôles depuis `@kit` et appelez `slint_kit::install(&app)` avant d’afficher chaque fenêtre. Cette fonction installe les services purs partagés ; champs, calendriers et sélections conservent leur propre état. Une installation répétée est sans effet supplémentaire. Ces API ciblent Slint Kit **{{ project.version }}** ; utilisez des paquets runtime et build correspondants.
 
 ```slint

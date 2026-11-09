@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Build-time registration of the `@kit` import library.
+//! Build-time companion to the Slint Kit Rust UI component library. Resolves
+//! installed `@kit` imports, compiles application UI and verifies shared
+//! Rust/Slint contracts without requiring a toolkit source checkout.
+//!
+//! Use the same-release `slint-kit` runtime and call its per-window installer.
+//! See [project setup](https://slint-kit.dev/guides/project-setup/) and
+//! [compatibility and scope](https://slint-kit.dev/guides/why-slint-kit/).
+//! The helper uses Slint's experimental module compilation.
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},

@@ -8,6 +8,8 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Typed values and owned collections
 
+`FieldSpec<T, E>` returns validated domain values; `Choices<K>` retains choice keys; `KeyedModel<K, Row>` connects rows to stable identities. These APIs share the validation and selection behavior of Slint Kit components. Your application supplies its types, rules and data.
+
 Start with [Project setup](/guides/project-setup/) and one `slint_kit::install(&app)` per window. Interactive components own their local view state and call pure shared reducers. Business callbacks receive a checked projection that converts to a Rust domain type. Applications retain ownership of their documents, lists, tables, files and asynchronous work.
 
 ## FieldSpec and native drafts

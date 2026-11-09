@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! # Slint Kit
 //!
-//! 125+ native UI components for Rust and Slint: typed forms and validation,
-//! virtualized tables and lists, date and time pickers, exact decimal fields,
-//! dialogs, navigation and layout, with complete light and dark themes.
+//! Slint Kit is a Rust UI component library for Slint, combining 127 native
+//! components with shared interaction logic and typed domain values. It supplies
+//! validated forms, exact money and decimals, stable-key choices, virtualized
+//! data views and complete light/dark themes. The catalogue includes ready-to-use
+//! controls and composition primitives.
 //!
-//! Rust owns validated values and stable identity; Slint owns presentation and
-//! native interaction (caret, selection, undo, IME).
+//! Fields retain incomplete native drafts while `FieldSpec` returns checked
+//! values to Rust. `Choices` and `KeyedModel` preserve domain identity through
+//! filtering and sorting and reject stale gestures. Your application supplies
+//! rules, data and business commands; Slint supplies rendering and native editing
+//! (caret, selection, undo, IME).
+//!
+//! [Why Slint Kit: behavior, responsibilities and limits](https://slint-kit.dev/guides/why-slint-kit/)
+//! · [Documentation en français](https://slint-kit.dev/fr/guides/why-slint-kit/)
 //!
 //! Build desktop Rust applications for macOS, Windows and Linux, or mobile
 //! applications for Android and iOS through Slint's mobile backends. See
@@ -48,6 +56,12 @@
 //! return `SelectionOutcome::Failed(HostError::Unsupported)` on Android and iOS;
 //! native editing and accessibility
 //! require verification on the target device.
+//!
+//! Slint Kit is before 1.0; breaking changes remain possible. Its build helper
+//! uses Slint's experimental module compilation. Tables currently display text
+//! cells, and modal surfaces operate inside their host window with host-managed
+//! background interaction. Public CI runs full checks on macOS and build/helper
+//! checks on Windows; other targets need their own runtime qualification.
 //!
 //! Custom skins compose the same public primitives. See the
 //! [themes guide](https://slint-kit.dev/guides/themes/).

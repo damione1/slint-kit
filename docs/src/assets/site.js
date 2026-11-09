@@ -119,7 +119,7 @@ for (const preview of document.querySelectorAll('.live-preview')) {
     clearTimeout(timeout); frame?.remove(); frame = null; ready = false; host.hidden = true;
     preview.querySelector('figure').hidden = false; button.disabled = false;
     button.textContent = french ? 'Réessayer' : 'Retry';
-    status.textContent = french ? 'Aperçu indisponible. L’exemple natif reste utilisable ci-dessous.' : 'Preview unavailable. The native example below remains available.';
+    status.textContent = french ? 'Aperçu indisponible. L’exemple natif reste disponible dans la fiche du composant.' : 'Preview unavailable. The native example remains available on the component page.';
     window.slintKitAnalytics?.track('preview_error', {component_name:preview.dataset.component, error_type:errorType});
   };
   const start = () => {

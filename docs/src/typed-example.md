@@ -13,13 +13,13 @@ eleventyComputed:
 {% if locale == 'fr' %}
 # Application avec contrôleurs typés
 
-Une application Rust complète avec un champ natif validé et une sélection par clé stable. Le champ illustre une validation métier personnalisée ; la sélection conserve son interaction dans le composant.
+Une application Rust complète avec un champ natif validé et une sélection par clé stable. Le champ illustre une validation métier personnalisée via la liaison explicite `FieldBinding` ; la sélection conserve son interaction dans le composant. Pour le chemin courant plus court, les [champs prêts à l’emploi](/fr/components/email-field/) utilisent `FieldSpec` et `committed` avec les mêmes services partagés.
 
 Cet exemple cible Slint Kit **{{ project.version }}**. Suivez [Configurer le projet](/fr/guides/project-setup/) pour installer les dépendances correspondantes ou utiliser un checkout local avant de compiler les quatre fichiers ci-dessous.
 {% else %}
 # Typed controller application
 
-A complete Rust application with a validated native field and a selection identified by stable keys. The field demonstrates custom business validation; the selection keeps its interaction inside the component.
+A complete Rust application with a validated native field and a selection identified by stable keys. The field demonstrates custom business validation through the explicit `FieldBinding` adapter; the selection keeps its interaction inside the component. For the shorter ordinary path, [ready-to-use fields](/components/email-field/) use `FieldSpec` and `committed` with the same shared services.
 
 This example targets Slint Kit **{{ project.version }}**. Follow [Project setup](/guides/project-setup/) to install matching dependencies or use a local checkout before compiling the four files below.
 {% endif %}
@@ -100,11 +100,11 @@ Modal surfaces also need an overlay stack and a focus registry. The [complete na
 {% if locale == 'fr' %}
 ## Exécuter l’application
 
-Enregistrez les quatre fichiers aux emplacements indiqués dans le projet créé au début de ce guide. Configurez les chemins locaux de `slint-kit` et `slint-kit-build` selon [Project setup](/fr/guides/project-setup/), puis lancez la version française :
+Enregistrez les quatre fichiers aux emplacements indiqués dans le projet créé au début de ce guide. Le manifeste fourni utilise les paquets crates.io correspondants ; aucun checkout du kit n’est nécessaire. Les dépendances sources locales décrites dans [Configurer le projet](/fr/guides/project-setup/) restent une option. Lancez la version française :
 {% else %}
 ## Run the application
 
-Save the four files at the shown paths in the project created at the start of this guide. Configure the local `slint-kit` and `slint-kit-build` paths from [Project setup](/guides/project-setup/), then run the English version:
+Save the four files at the shown paths in the project created at the start of this guide. The supplied manifest uses matching crates.io packages; no kit checkout is required. Local source dependencies described in [Project setup](/guides/project-setup/) remain optional. Run the English version:
 {% endif %}
 
 ```sh

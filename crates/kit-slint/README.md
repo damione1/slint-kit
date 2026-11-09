@@ -1,6 +1,8 @@
 # Slint Kit Components
 
-Public Slint components, model projections and weak-window Rust adapters for [Slint Kit](https://github.com/damione1/slint-kit). The package includes the complete `ui/` library and its generated shared contracts.
+The UI and Rust adapter implementation of [Slint Kit](https://slint-kit.dev/guides/why-slint-kit/): 127 public Slint components, shared interaction services, typed field acceptance and models with stable domain keys. The package includes complete controls, composition primitives, light/dark themes and generated Rust/Slint contracts.
+
+`FieldSpec`, `Choices` and `KeyedModel` connect native editors and virtualized views to Rust values without assigning business identity to a row index. See [forms](https://slint-kit.dev/guides/forms/), [controllers](https://slint-kit.dev/guides/controllers/) and the [component reference](https://slint-kit.dev/components/) ([français](https://slint-kit.dev/fr/guides/why-slint-kit/)).
 
 Applications normally use the [`slint-kit` facade](https://crates.io/crates/slint-kit) and [`slint-kit-build`](https://crates.io/crates/slint-kit-build). The build helper registers the installed library as `@kit`:
 
@@ -19,10 +21,10 @@ validation is shared by the field variants rather than being reimplemented in ea
 application parser. The reference is the [HTML Living Standard](https://html.spec.whatwg.org/multipage/input.html),
 which is also the target of [W3C's HTML reference](https://www.w3.org/TR/html/).
 
-Export the validation global and its boundary types from the application UI:
+Compile with `slint_kit_build::compile("ui/app.slint")`; the helper supplies the shared validation globals and boundary types. Import controls from the public module:
 
 ```slint
-    KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
+import { KitEmailField } from "@kit";
 ```
 
 Install the Rust engine once per window, before showing it:
@@ -158,3 +160,7 @@ layer paints its filled shapes, if any, with the same ink. An informative icon
 (`purpose: IconPurpose.informative`) is announced as an image named by `label`.
 Lucide (ISC) and the icons it derives from Feather (MIT) keep their licenses;
 see `THIRD-PARTY-NOTICES.md`.
+
+## Slint Kit licensing
+
+The base kit components are **forever free for open-source use**, under GPL-3.0-or-later. A commercial license for proprietary applications is coming, on request; **Slint Kit Pro** advanced components are also coming. [Contact the author](https://github.com/damione1/slint-kit/discussions) for availability.

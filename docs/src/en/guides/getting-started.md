@@ -8,6 +8,8 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Getting started
 
+Slint Kit combines visual components with shared behavior: draft validation, typed Rust values and stable identity. [Why Slint Kit](/guides/why-slint-kit/) explains the kit and application responsibilities, with examples you can try.
+
 
 Install Slint Kit from crates.io with **Rust {{ project.rust }}+** and **Slint {{ project.slint }}**. No toolkit checkout is required.
 

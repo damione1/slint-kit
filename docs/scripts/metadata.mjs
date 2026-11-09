@@ -22,6 +22,8 @@ export function pageMetadata(data, pages) {
   if (key) breadcrumbs.push({ name: component?.name || copy.label, url });
   return {
     title, description, url, breadcrumbs,
+    sourceDescription: pages[''][locale].description.replaceAll('{count}', data.components.length),
+    version: data.project.version,
     pageType: !key ? 'WebPage' : key === 'components/' ? 'CollectionPage' : 'TechArticle',
     image: `${data.site.url}/assets/social/slint-kit-${locale}.png`,
     imageAlt: locale === 'fr' ? 'Slint Kit — Composants UI natifs pour Rust et Slint' : 'Slint Kit — Native UI components for Rust and Slint',
@@ -40,7 +42,7 @@ export function structuredData(seo, site, locale) {
   };
   const graph = [
     { '@type': 'WebSite', '@id': websiteId, url: `${site.url}/`, name: site.name, inLanguage: ['en', 'fr'] },
-    { '@type': 'SoftwareSourceCode', '@id': sourceId, name: site.name, url: `${site.url}/`, codeRepository: site.repository, programmingLanguage: ['Rust', 'Slint'], license: `${site.repository}/blob/main/LICENSE` },
+    { '@type': 'SoftwareSourceCode', '@id': sourceId, name: site.name, url: `${site.url}/`, description: seo.sourceDescription, version: seo.version, sameAs: ['https://crates.io/crates/slint-kit', 'https://docs.rs/slint-kit'], codeRepository: site.repository, programmingLanguage: ['Rust', 'Slint'], license: `${site.repository}/blob/main/LICENSE` },
     page,
   ];
   if (seo.breadcrumbs.length) {

@@ -1,0 +1,70 @@
+{% set copy = landing[locale] %}
+{% set langSuffix = '-fr' if locale == 'fr' else '' %}
+{% macro capture(slug, width, height, alt, eager=false) %}<picture>{% if slug != "money-field" %}<source data-theme-source="dark" media="(prefers-color-scheme: dark)" srcset="/assets/components/{{ slug }}{{ langSuffix }}-dark.png, /assets/components/{{ slug }}{{ langSuffix }}-dark@2x.png 2x">{% endif %}<img src="/assets/components/{{ slug }}{{ langSuffix }}.png" srcset="/assets/components/{{ slug }}{{ langSuffix }}@2x.png 2x" width="{{ width }}" height="{{ height }}" alt="{{ alt }}" loading="{{ 'eager' if eager else 'lazy' }}"></picture>{% endmacro %}
+
+<section class="landing-hero" aria-labelledby="landing-title">
+  <div class="landing-hero-copy">
+    <p class="eyebrow">{{ copy.eyebrow }}</p>
+    <h1 id="landing-title">{{ copy.title }}<span>{{ copy.emphasis }}</span></h1>
+    <p class="landing-lead">{{ copy.lead | replace('{count}', components.length) }}</p>
+    <div class="home-actions"><a class="primary-link" href="#demo">{{ copy.try }} <span aria-hidden="true">→</span></a><a class="landing-secondary" href="{{ 'guides/getting-started/' | localeUrl(locale) }}">{{ copy.start }}</a></div>
+    <p class="landing-free"><span aria-hidden="true">✓</span> {{ copy.free }}</p>
+    <a class="landing-why" href="{{ 'guides/why-slint-kit/' | localeUrl(locale) }}">{{ copy.why }} <span aria-hidden="true">↗</span></a>
+  </div>
+  <div class="landing-stage">
+    <figure class="landing-screen landing-table"><a href="{{ 'guides/table-example/' | localeUrl(locale) }}">{{ capture('data-table', 620, 520, copy.table, true) }}</a><figcaption><code>KitDataTable</code><span>{{ copy.table }}</span></figcaption></figure>
+    <figure class="landing-screen landing-money"><a href="{{ 'components/money-field/' | localeUrl(locale) }}">{{ capture('money-field', 420, 180, copy.money, true) }}</a><figcaption><code>Money</code><span>{{ copy.money }}</span></figcaption></figure>
+    <p class="landing-visual-note">{{ copy.visual }}</p>
+  </div>
+</section>
+
+<div class="landing-facts" aria-label="Slint Kit">
+  <p><strong>{{ components.length }}</strong><span>{{ copy.count }}</span></p>
+  <p><strong>Rust + Slint</strong><span>{{ copy.typed }}</span></p>
+  <p><strong>KitTheme</strong><span>{{ copy.themes }}</span></p>
+  <p><strong>{{ project.version }}</strong><a href="{{ 'guides/project-setup/' | localeUrl(locale) }}#desktop-and-mobile-targets">{{ copy.platforms }}</a></p>
+</div>
+
+<section class="landing-section" aria-labelledby="landing-behavior-title">
+  <p class="eyebrow">{{ copy.featureEyebrow }}</p><h2 id="landing-behavior-title">{{ copy.featureTitle }}</h2>
+  <div class="landing-features">{% for feature in copy.features %}<article class="landing-feature"><p class="landing-tag">{{ feature.tag }}</p><h3>{{ feature.title }}</h3><p>{{ feature.text }}</p><code>{{ feature.api }}</code><a href="{{ feature.route | localeUrl(locale) }}">{{ feature.link }} <span aria-hidden="true">→</span></a></article>{% endfor %}</div>
+</section>
+
+<section class="landing-demo landing-section" id="demo" aria-labelledby="landing-demo-title">
+  <div class="landing-section-copy"><p class="eyebrow">{{ copy.demoEyebrow }}</p><h2 id="landing-demo-title">{{ copy.demoTitle }}</h2><p>{{ copy.demoText }}</p><a href="{{ 'components/combobox/' | localeUrl(locale) }}">{{ copy.demoLink }} <span aria-hidden="true">→</span></a></div>
+  {% set quickstart = quickstarts['combobox'] %}
+  <div class="live-preview landing-live" data-component="combobox" data-width="{{ quickstart.displayWidth }}" data-height="{{ quickstart.displayHeight }}">
+    <div class="preview-actions"><button class="run-preview" type="button">{{ copy.run }}</button><label class="preview-theme-choice" for="home-preview-theme"><span class="sr-only">{{ copy.demoTheme }}</span><select id="home-preview-theme" class="preview-theme" disabled><option value="light">{{ copy.light }}</option><option value="dark">{{ copy.dark }}</option></select></label><span class="preview-status" role="status"></span></div>
+    <figure class="component-preview"><picture><source data-theme-source="dark" media="(prefers-color-scheme: dark)" srcset="{{ 'combobox' | starterPoster(1, 'dark') }}, {{ 'combobox' | starterPoster(2, 'dark') }} 2x"><img src="{{ 'combobox' | starterPoster(1) }}" srcset="{{ 'combobox' | starterPoster(2) }} 2x" width="{{ quickstart.displayWidth }}" height="{{ quickstart.displayHeight }}" alt="KitCombobox — {{ copy.demoTitle }}" loading="lazy"></picture></figure>
+    <div class="preview-frame" hidden></div>
+    <noscript><p>{{ copy.noScript }}</p></noscript>
+  </div>
+</section>
+
+<section class="landing-section" aria-labelledby="landing-theme-title">
+  <div class="landing-section-heading"><div><p class="eyebrow">{{ copy.galleryEyebrow }}</p><h2 id="landing-theme-title">{{ copy.galleryTitle }}</h2></div><a href="{{ 'guides/themes/' | localeUrl(locale) }}">{{ copy.themeLink }} <span aria-hidden="true">↗</span></a></div>
+  <p class="landing-section-intro">{{ copy.galleryText }}</p>
+  <div class="landing-gallery">{% for item in copy.gallery %}<a class="landing-gallery-item" href="{{ ('components/' + item.slug + '/') | localeUrl(locale) }}"><div class="landing-gallery-image">{{ capture(item.slug, item.width, item.height, item.title) }}</div><h3>{{ item.title }}</h3><p>{{ item.text }}</p></a>{% endfor %}</div>
+</section>
+
+<section class="landing-integration landing-section" aria-labelledby="landing-integration-title">
+  <div class="landing-section-copy"><p class="eyebrow">{{ copy.integrationEyebrow }}</p><h2 id="landing-integration-title">{{ copy.integrationTitle }}</h2><p>{{ copy.integrationText }}</p><a href="{{ 'guides/getting-started/' | localeUrl(locale) }}">{{ copy.integrationLink }} <span aria-hidden="true">→</span></a></div>
+  <div class="landing-contract"><div><p>{{ copy.slintLabel }}</p><pre><code class="language-slint">import { KitEmailField } from "@kit";
+
+KitEmailField {
+    label: "Email";
+    required: true;
+    spec-key: "contact";
+    committed(value) =&gt; {
+        root.contact-changed(value);
+    }
+}</code></pre></div><div><p>{{ copy.rustLabel }}</p><pre><code class="language-rust">app.on_contact_changed(move |commit| {
+    if let Ok(Some(address)) = spec.accept(commit) {
+        println!("Contact: {}", spec.format(&amp;address));
+    }
+});</code></pre></div><p class="landing-excerpts">{{ copy.excerpts }} <a href="{{ 'components/email-field/' | localeUrl(locale) }}">KitEmailField ↗</a></p></div>
+</section>
+
+<section class="landing-license" aria-labelledby="landing-license-title"><div><p class="eyebrow">{{ copy.licenseEyebrow }}</p><h2 id="landing-license-title">{{ copy.licenseTitle }}</h2><p>{{ copy.licenseText }}</p><p class="landing-coming">{{ copy.commercial }}</p></div><div class="landing-license-actions"><a class="primary-link" href="{{ 'guides/getting-started/' | localeUrl(locale) }}">{{ copy.start }} <span aria-hidden="true">→</span></a><a href="{{ site.repository }}/discussions">{{ copy.contact }}</a><a href="{{ site.repository }}/blob/main/LICENSE">GPL-3.0-or-later ↗</a></div></section>
+
+<section class="landing-resources" aria-labelledby="landing-next-title"><h2 id="landing-next-title">{{ copy.docsTitle }}</h2><div class="landing-docs">{% for item in copy.docs %}<a href="{{ item.route | localeUrl(locale) }}"><strong>{{ item.title }} <span aria-hidden="true">↗</span></strong><span>{{ item.text }}</span></a>{% endfor %}</div><details class="landing-families"><summary>{{ copy.families }} <span>{{ components.length }}</span></summary><div class="family-grid">{% for family, label in ui.families %}<a href="{{ 'components/' | localeUrl(locale) }}#{{ family }}">{{ label[locale] }} <span>{{ (components | whereFamily(family)).length }}</span></a>{% endfor %}</div></details><p class="landing-qualification">{{ copy.qualification | replace('{version}', project.version) | replace('{rust}', project.rust) | replace('{slint}', project.slint) }} <a href="{{ site.repository }}/actions/workflows/check.yml">{{ copy.evidence }} ↗</a></p></section>

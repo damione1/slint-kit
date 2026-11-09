@@ -8,6 +8,8 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Valeurs typées et collections applicatives
 
+`FieldSpec<T, E>` retourne des valeurs métier validées ; `Choices<K>` conserve les clés des choix ; `KeyedModel<K, Row>` relie les lignes à leurs identités stables. Ces API partagent les comportements de validation et de sélection des composants Slint Kit. Votre application fournit ses types, ses règles et ses données.
+
 Commencez par [Configuration du projet](/fr/guides/project-setup/) et un appel à `slint_kit::install(&app)` par fenêtre. Les composants interactifs possèdent leur état local et appellent des réducteurs purs partagés. Les callbacks métier reçoivent une projection vérifiée convertible en type Rust. L’application reste propriétaire de ses documents, listes, tableaux, fichiers et tâches asynchrones.
 
 ## FieldSpec et brouillons natifs

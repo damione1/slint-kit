@@ -8,6 +8,8 @@ permalink: "{{ 'guides/getting-started/' | localeUrl(locale) }}index.html"
 
 # Bien démarrer
 
+Slint Kit associe composants visuels et comportements partagés : validation des brouillons, valeurs Rust typées et identités stables. Le [guide Pourquoi Slint Kit](/fr/guides/why-slint-kit/) présente les responsabilités du kit et de votre application, avec des exemples à essayer.
+
 
 Installez Slint Kit depuis crates.io avec **Rust {{ project.rust }}+** et **Slint {{ project.slint }}**. Aucun clonage du kit n’est nécessaire.
 

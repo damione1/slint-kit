@@ -1,8 +1,8 @@
 # Slint Kit
 
-**125+ native UI components for Rust and Slint**: typed forms and validation, virtualized tables and lists, date and time pickers, exact decimal fields, dialogs, navigation and layout, with complete light and dark themes.
+**Slint Kit is a Rust UI component library for Slint, combining 127 native components with shared interaction logic and typed domain values.** It supplies validated forms, exact money and decimals, stable-key choices, virtualized data views and complete light/dark themes. The catalogue includes ready-to-use controls and composition primitives.
 
-Rust owns validated values and stable identity; Slint owns presentation and native interaction (caret, selection, undo, IME).
+Fields retain incomplete native drafts while `FieldSpec` returns checked values to Rust. `Choices` and `KeyedModel` preserve domain identity through filtering and sorting and reject stale gestures. Your application supplies its rules, data and business commands; Slint supplies rendering and native editing (caret, selection, undo, IME).
 
 Build **desktop and mobile Rust applications**: macOS, Windows and Linux, plus Android and iOS through Slint's mobile backends. See [platform setup and limits](https://slint-kit.dev/guides/project-setup/#desktop-and-mobile-targets).
 
@@ -13,6 +13,8 @@ Build **desktop and mobile Rust applications**: macOS, Windows and Linux, plus A
 </p>
 
 **[Browse all components, in light and dark →](https://slint-kit.dev/components/)** · [Getting started](https://slint-kit.dev/guides/getting-started/) · [Forms guide](https://slint-kit.dev/guides/forms/) · [Documentation en français](https://slint-kit.dev/fr/)
+
+[Why Slint Kit: behavior, responsibilities and limits](https://slint-kit.dev/guides/why-slint-kit/) · [Pourquoi Slint Kit](https://slint-kit.dev/fr/guides/why-slint-kit/)
 
 ## Install
 
@@ -51,9 +53,15 @@ Use `slint_kit` in Rust for strict domain values, `Choices<K>`, `FieldSpec<T,E>`
 - **Exact values:** money and decimals use exact arithmetic.
 - **Complete themes:** every state is designed in light and dark, and checked at 200% text size.
 
+Try [email validation](https://slint-kit.dev/components/email-field/) or [sorting while retaining selection](https://slint-kit.dev/guides/table-example/) in a runnable project. Each component reference includes a demo, public API and complete download.
+
+## Adoption and scope
+
+Slint Kit is before 1.0; breaking changes remain possible. The build helper uses Slint’s experimental module compilation. Keep runtime/build releases matched. Tables currently display text cells; modal surfaces are internal to a host window and require background-interaction gating by the application. The [selection guide](https://slint-kit.dev/guides/why-slint-kit/) explains supported use cases and qualification limits.
+
 ## Quality
 
-No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Native text editing and accessibility still need verification on each target device.
+No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS and build/helper checks on Windows; Linux/mobile runtime behavior, IME and screen readers need verification on the target device.
 
 ## Requirements
 
@@ -61,4 +69,8 @@ Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Android builds n
 
 ## License
 
-Open source under the [GNU GPL v3.0 or later](LICENSE); dependencies retain their own licenses. From 1.0, a commercial license will be available for proprietary applications, along with **Slint Kit Pro** advanced components. [Get in touch](https://github.com/damione1/slint-kit/discussions).
+**Forever free for open-source use.** The base Slint Kit components remain free for open-source projects under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.
+
+**Commercial license — coming, on request.** [Contact the author](https://github.com/damione1/slint-kit/discussions) about proprietary applications and availability. **Slint Kit Pro**, a separate set of advanced components, is also coming.
+
+Les composants de base restent gratuits pour toujours pour l’usage open source, sous GPL-3.0-or-later. La licence commerciale est à venir, sur demande en contactant l’auteur ; Slint Kit Pro est également à venir.

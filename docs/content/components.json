@@ -533,7 +533,7 @@
     "fr": {
       "label": "Liste avec recherche",
       "seoTitle": "Combobox Slint avec recherche",
-      "summary": "Combobox Slint pour rechercher une option et choisir une valeur.",
+      "summary": "Combobox Slint avec recherche, navigation clavier et clés de choix Rust stables via Choices.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
       "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. La recherche préserve l’édition native. Les contrôles en lecture seule ou désactivés ne s’ouvrent pas et ne choisissent rien ; la fermeture restitue le focus au déclencheur, et Tab suit le parcours configuré. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust).",
       "related": [
@@ -544,7 +544,7 @@
     "en": {
       "label": "Searchable combobox",
       "seoTitle": "Searchable combobox for Slint",
-      "summary": "Slint combobox for searching options and selecting one value.",
+      "summary": "Searchable Slint combobox with keyboard navigation and stable Rust choice keys through Choices.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
       "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Search preserves native text editing. Read-only and disabled controls do not open or choose; popup closure restores the trigger focus, while Tab follows the configured traversal. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services).",
       "related": [
@@ -606,8 +606,8 @@
   "KitDataTable": {
     "fr": {
       "label": "Tableau de données",
-      "seoTitle": "Tableau de données Slint avec tri",
-      "summary": "Tableau de données Slint avec lignes virtualisées, en-têtes de tri et sélection de ligne.",
+      "seoTitle": "Tableau Slint virtualisé avec clés de ligne stables",
+      "summary": "Tableau Slint virtualisé avec en-têtes de tri et sélection de ligne, relié aux clés Rust stables avec KeyedModel.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives. `sorting_by` reçoit le comparateur de clés métier et alterne le sens du tri ; il conserve sélection et clé active, publie les lignes et invalide les anciens gestes.",
       "behavior": "Le tableau affiche l’ordre fourni par le modèle ; cliquer sur un en-tête ne le trie pas automatiquement. Modifier `active-index` rend cette ligne visible. Définissez `empty-label` pour un modèle vide et `interactive: false` pendant qu’une modale bloque le tableau. Une colonne avec `sortable: false` affiche un en-tête statique.",
       "related": [
@@ -616,8 +616,8 @@
     },
     "en": {
       "label": "Data table",
-      "seoTitle": "Slint data table with sorting",
-      "summary": "Slint data table with virtualized rows, sortable headers and row selection.",
+      "seoTitle": "Virtualized Slint data table with stable row keys",
+      "summary": "Virtualized Slint data table with sortable headers and row selection, connected to stable Rust keys through KeyedModel.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions. `sorting_by` accepts a business-key comparator and alternates sort direction; it preserves selection and active identity, publishes rows and invalidates old gestures.",
       "behavior": "The table renders the supplied row order; clicking a header does not sort it automatically. Changing `active-index` reveals that row. Set `empty-label` for an empty model and `interactive: false` while a modal blocks the table. A column with `sortable: false` shows a static header label.",
       "related": [
@@ -971,26 +971,26 @@
   },
   "KitEmailField": {
     "fr": {
-      "summary": "Champ texte natif pour une adresse courriel.",
+      "summary": "Champ courriel Slint avec validation syntaxique partagée, contraintes required et pattern, et acceptation typée en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "La finalité du champ fournit des indications de saisie ; l’exemple ne valide pas la syntaxe des adresses et ne contacte aucun service.",
+      "behavior": "Après `slint_kit::install(&window)`, le moteur de contraintes HTML partagé valide la syntaxe du courriel, la présence requise et les motifs configurés. Une saisie invalide ne peut pas être acceptée ; `FieldSpec::email().accept(commit)` vérifie la frontière Rust et retourne l’adresse typée. Brouillon, sélection et annulation restent dans l’éditeur natif. La validation syntaxique ne vérifie ni l’existence de la boîte ni la livraison.",
       "related": [
         "KitTextField",
         "KitField"
       ],
       "label": "Champ courriel",
-      "seoTitle": "Champ courriel pour Slint"
+      "seoTitle": "Champ courriel Slint avec validation Rust"
     },
     "en": {
-      "summary": "Native text field for an email address.",
+      "summary": "Slint email field with shared syntax validation, required and pattern constraints, and typed Rust acceptance.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "The input purpose supplies editing hints; the sample does not validate address syntax or contact external services.",
+      "behavior": "After `slint_kit::install(&window)`, the shared HTML constraint engine validates email syntax, required values and configured patterns. Invalid input cannot commit; `FieldSpec::email().accept(commit)` checks the Rust boundary and returns the typed address. Native drafts, selection and undo remain editable. Syntax validation does not verify mailbox existence or delivery.",
       "related": [
         "KitTextField",
         "KitField"
       ],
       "label": "Email Field",
-      "seoTitle": "Email Field for Slint"
+      "seoTitle": "Slint email field with Rust validation"
     }
   },
   "KitEmptyState": {
@@ -1729,7 +1729,7 @@
   },
   "KitMoneyField": {
     "fr": {
-      "summary": "Saisie numérique reliée à Money avec CurrencyCode CAD en Rust.",
+      "summary": "Champ monétaire Slint avec montants décimaux exacts, règles de devise explicites et édition native, acceptés en valeur Money typée en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
       "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
       "related": [
@@ -1737,10 +1737,10 @@
         "KitQuantityField"
       ],
       "label": "Champ monétaire",
-      "seoTitle": "Champ monétaire pour Slint"
+      "seoTitle": "Champ monétaire Slint et valeurs Rust exactes"
     },
     "en": {
-      "summary": "Numeric text input connected to Money with CurrencyCode CAD in Rust.",
+      "summary": "Slint money input with exact decimal amounts, explicit currency rules and native editing, accepted as a typed Money value in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
       "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
       "related": [
@@ -1748,7 +1748,7 @@
         "KitQuantityField"
       ],
       "label": "Money Field",
-      "seoTitle": "Money Field for Slint"
+      "seoTitle": "Slint money field with exact Rust values"
     }
   },
   "KitMonthField": {
@@ -2233,7 +2233,7 @@
     "fr": {
       "summary": "Champ texte natif pour une requête de recherche.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "La finalité du champ fournit des indications de saisie ; l’exemple ne valide pas la syntaxe des adresses et ne contacte aucun service.",
+      "behavior": "L’éditeur natif conserve le brouillon de recherche, le curseur, la sélection et l’annulation. Les contraintes partagées valident les règles de longueur et de motif configurées. Les callbacks de l’application décident quand et comment filtrer un modèle ou demander des résultats ; le champ ne contacte aucun service de recherche.",
       "related": [
         "KitCombobox",
         "KitTextField"
@@ -2244,7 +2244,7 @@
     "en": {
       "summary": "Native text field for a search query.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "The input purpose supplies editing hints; the sample does not validate address syntax or contact external services.",
+      "behavior": "The native editor keeps the search draft, caret, selection and undo. Shared constraints validate configured length and pattern rules. Application callbacks decide when and how to filter a model or request search results; the field does not contact a search service.",
       "related": [
         "KitCombobox",
         "KitTextField"
@@ -2929,26 +2929,26 @@
   },
   "KitUrlField": {
     "fr": {
-      "summary": "Champ texte natif pour une adresse web.",
+      "summary": "Champ URL Slint avec validation d’URL absolue, édition native du texte et acceptation typée en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "La finalité du champ fournit des indications de saisie ; l’exemple ne valide pas la syntaxe des adresses et ne contacte aucun service.",
+      "behavior": "Après `slint_kit::install(&window)`, le moteur de contraintes HTML partagé rejette les URL mal formées ou relatives et applique les contraintes required et pattern. `FieldSpec::url().accept(commit)` retourne l’URL vérifiée à la frontière Rust. Un brouillon invalide conserve la dernière valeur acceptée. La validation analyse l’adresse localement ; elle ne visite pas l’URL et ne vérifie pas l’existence de sa destination.",
       "related": [
         "KitTextField",
         "KitField"
       ],
       "label": "Champ URL",
-      "seoTitle": "Champ URL pour Slint"
+      "seoTitle": "Champ URL Slint avec validation Rust"
     },
     "en": {
-      "summary": "Native text field for a web address.",
+      "summary": "Slint URL field with absolute-URL validation, native text editing and typed Rust acceptance.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "The input purpose supplies editing hints; the sample does not validate address syntax or contact external services.",
+      "behavior": "After `slint_kit::install(&window)`, the shared HTML constraint engine rejects malformed or relative URLs and applies required and pattern constraints. `FieldSpec::url().accept(commit)` returns the checked URL at the Rust boundary. Invalid drafts preserve the last accepted value. Validation parses the address locally; it does not request the URL or verify that its destination exists.",
       "related": [
         "KitTextField",
         "KitField"
       ],
       "label": "URL Field",
-      "seoTitle": "URL Field for Slint"
+      "seoTitle": "Slint URL field with Rust validation"
     }
   },
   "KitVirtualTextView": {
@@ -3027,7 +3027,7 @@
   },
   "KitZonedDateTimeField": {
     "fr": {
-      "summary": "Date et heure locales résolues dans un fuseau IANA.",
+      "summary": "Champ date-heure Slint avec résolution de fuseau IANA en Rust, refus des heures inexistantes et choix explicite des heures répétées.",
       "usage": "Fournissez les brouillons date, heure et zone IANA. Le kit résout les heures uniques, refuse les heures inexistantes et exige le choix explicite de l’occurrence antérieure ou postérieure en cas d’ambiguïté. `chosen(ZonedDateTimeCommit)` contient valeur locale, zone et décision ; `ResolvedDateTime::try_from` retourne l’instant vérifié. Modifier un brouillon invalide toute résolution antérieure et tout geste d’ambiguïté en cours.",
       "behavior": "Une heure inexistante est refusée. Une heure répétée exige un choix explicite entre les deux occurrences ; une modification invalide ce choix en attente. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
       "label": "Champ date, heure et fuseau",
@@ -3038,7 +3038,7 @@
       ]
     },
     "en": {
-      "summary": "Local date and time resolved in an IANA time zone.",
+      "summary": "Slint date-time field with IANA time-zone resolution in Rust, rejecting nonexistent times and asking which repeated occurrence to accept.",
       "usage": "Provide the date, time and IANA zone drafts. The kit resolves unique times, rejects gaps and requests an explicit earlier/later occurrence for overlaps. `chosen(ZonedDateTimeCommit)` carries the local value, zone and occurrence decision; `ResolvedDateTime::try_from` returns the checked instant. Editing any draft invalidates an earlier resolution and pending ambiguity gesture.",
       "behavior": "A nonexistent time is rejected. A repeated time requires an explicit earlier/later choice; editing invalidates that pending choice. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
       "label": "Zoned Date and Time Field",

@@ -11,6 +11,7 @@ This skill describes the module API introduced in Slint Kit 0.7. Read the target
 
 The public documentation is [English at the site root](https://slint-kit.dev/) and [French under `/fr/`](https://slint-kit.dev/fr/). Start with the relevant guide:
 
+- [Why Slint Kit](https://slint-kit.dev/guides/why-slint-kit/) ([français](https://slint-kit.dev/fr/guides/why-slint-kit/)): shared behavior, Slint/application responsibilities, runnable evidence and adoption limits.
 - [Getting started](https://slint-kit.dev/guides/getting-started/): a complete registry-based application and desktop prerequisites.
 - [Editor setup](https://slint-kit.dev/guides/editor/): resolve `@kit` in VS Code and Zed through project-relative library paths.
 - [Component catalogue](https://slint-kit.dev/components/): component screenshots and complete Slint examples.

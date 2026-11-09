@@ -17,6 +17,8 @@ Cette application Rust et Slint complète raccorde le tri des colonnes, la navig
 
 Choisissez **Atlas**, puis triez la colonne **Tâches** : Atlas reste sélectionné même s’il change de ligne. **Cedar** est archivé et ne peut pas être sélectionné. Un événement provenant d’une ancienne génération est rejeté.
 
+Cet exemple détaille explicitement les clés, générations et publications du modèle pour montrer leur fonctionnement. Pour réutiliser ces mécanismes dans votre application, `KeyedModel<K, Row>` fournit `sorting_by`, `navigation` et `activation` : consultez le [guide des modèles typés](/fr/guides/controllers/). `KitDataTable` affiche des cellules texte ; une grille éditable demande une composition supplémentaire.
+
 ## Essayer l’application
 
 Créez un projet neuf, puis remplacez ses fichiers par les quatre fichiers complets ci-dessous. Les paquets viennent de crates.io ; aucun checkout du kit n’est nécessaire. Les [prérequis natifs](/fr/guides/getting-started/) sont les mêmes que pour le guide de démarrage.
@@ -26,6 +28,8 @@ Créez un projet neuf, puis remplacez ses fichiers par les quatre fichiers compl
 This complete Rust and Slint application connects column sorting, keyboard navigation and selection in a `KitDataTable`. Rust owns projects and their identities; the table virtualizes their presentation. The example uses Slint Kit {{ project.version }}, Rust {{ project.rust }}+ and Slint {{ project.slint }}.
 
 Choose **Atlas**, then sort the **Tasks** column: Atlas stays selected even as it moves to another row. **Cedar** is archived and cannot be selected. An event from an old generation is rejected.
+
+This example spells out keys, generations and model publication to show how they work. To reuse those mechanisms in your application, `KeyedModel<K, Row>` supplies `sorting_by`, `navigation` and `activation`: see the [typed model guide](/guides/controllers/). `KitDataTable` displays text cells; an editable grid requires additional composition.
 
 ## Try the application
 

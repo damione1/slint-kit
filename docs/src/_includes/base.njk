@@ -47,7 +47,7 @@
   <a class="brand" href="{{ '' | localeUrl(locale) }}" aria-label="Slint Kit — {{ ui[locale].home }}">
     <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
   </a>
-  <span class="site-label">{{ ui[locale].documentation }}</span>
+  <span class="site-label">{% if home %}{% if locale == "fr" %}Kit UI Rust{% else %}Rust UI kit{% endif %}{% else %}{{ ui[locale].documentation }}{% endif %}</span>
   <button class="doc-search-trigger" type="button" data-index="/assets/search-index-{{ locale }}.json" aria-haspopup="dialog" aria-controls="doc-search" hidden>
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>
     <span>{% if locale == 'fr' %}Rechercher dans la doc{% else %}Search documentation{% endif %}</span><kbd aria-hidden="true">⌘ / Ctrl K</kbd>
