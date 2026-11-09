@@ -131,3 +131,29 @@ fn explicit_calendar_and_field_presentations_survive_without_rust_services() {
     let select = fixture(PreviewFamily::Select);
     assert!(has_label(&select, "Choose an option"));
 }
+
+#[test]
+fn installed_select_keeps_an_explicit_empty_option_label() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = fixture(PreviewFamily::Select);
+    window.set_options(slint::ModelRc::new(slint::VecModel::from(vec![
+        slint_kit::ui::OptionRow {
+            token: 42,
+            generation: 1,
+            ..Default::default()
+        },
+    ])));
+    assert!(has_label(&window, "Choose an option"));
+    slint_kit::install(&window);
+    slint::platform::update_timers_and_animations();
+    assert!(
+        ElementQuery::from_root(&window)
+            .match_inherits("KitSelectTrigger")
+            .find_first()
+            .is_some()
+    );
+    assert!(
+        !has_label(&window, "Choose an option"),
+        "an installed selector must preserve an intentionally empty selected label"
+    );
+}
