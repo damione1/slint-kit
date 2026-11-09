@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add controlled `KitColorWheel`: opaque RGB drafts, pointer and keyboard input, explicit unknown state and rebind cancellation. No breaking API change.
+- Ajout de `KitColorWheel` contrôlé : brouillons RGB opaques, pointeur et clavier, état inconnu explicite et annulation au changement de source. Aucun changement incompatible.
+
 - Fix the rounded silhouette of filled `KitSlider` solid brushes in the Software renderer, including translucent colors and tiny values. Preserve gradient coordinates, line presentation, themes and interactions; rounded gradient clipping remains a Slint 1.18.1 Software limitation. No public API change.
 - Corrige la silhouette arrondie des brosses unies de `KitSlider` rempli dans le moteur Software, y compris les couleurs translucides et les petites valeurs. Les coordonnées des dégradés, la présentation linéaire, les thèmes et les interactions sont conservés ; le découpage arrondi des dégradés reste une limite de Slint 1.18.1 Software. Aucun changement d’API publique.
 

@@ -1,0 +1,11 @@
+import { KitColorWheel, KitTheme, KitThemeContext, KitThemes, SrgbColorView } from "@kit";
+export component Example inherits Window {
+    in-out property <KitTheme> theme: KitThemes.light;
+    changed theme => { KitThemeContext.current = root.theme; }
+    preferred-width: 300px; preferred-height: 340px;
+    max-width: 100000px; max-height: 100000px;
+    private property <SrgbColorView> draft: {red:124,green:108,blue:240,alpha:255};
+    VerticalLayout {
+        KitColorWheel { theme: root.theme; label: "Couleur d’accent"; value: root.draft; chosen(value) => { root.draft = value; } }
+    }
+}

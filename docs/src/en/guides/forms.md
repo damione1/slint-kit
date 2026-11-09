@@ -60,3 +60,5 @@ Fields already include `label`, `description`, `error`, validation and accessibl
 `KitSubmitButton` and `KitFormButton` express form actions. Before dispatching a submission, call each field's `report-validity()` and focus the first invalid field. The Rust command must also accept checked domain values or validate its incoming payload; a disabled button is not a submission guard. Form examples keep the command and domain validation in Rust. `KitResetButton` invokes the application's reset action, which calls field resets and clears business state deliberately.
 
 Calendar/date-range composites validate availability as well as HTML bounds. The time-zone field refuses nonexistent times and asks for an explicit occurrence when clocks repeat. Its accepted `ZonedDateTimeCommit` converts to `ResolvedDateTime`; no time zone is inferred from a local date-time.
+
+Use `KitColorWheel` for controlled hue/saturation selection and `KitColorPicker` for numeric RGB/hex editing. Both propose local colors; the form owns submission.

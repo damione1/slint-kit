@@ -60,3 +60,5 @@ Les champs incluent déjà `label`, `description`, `error`, validation et nom ac
 `KitSubmitButton` et `KitFormButton` expriment les actions du formulaire. Avant de soumettre, appelez `report-validity()` sur les champs et focalisez le premier champ invalide. La commande Rust doit aussi recevoir des valeurs métier vérifiées ou valider sa charge utile ; désactiver un bouton ne protège pas la soumission. Les exemples conservent commande et validation métier dans Rust. `KitResetButton` déclenche une action applicative qui réinitialise explicitement les champs et l’état métier.
 
 Les composites calendrier/intervalle valident les indisponibilités en plus des bornes HTML. Le champ avec fuseau refuse les heures inexistantes et exige une occurrence explicite lorsqu’une heure se répète. Son `ZonedDateTimeCommit` accepté se convertit en `ResolvedDateTime` ; aucun fuseau n’est déduit d’une date-heure locale.
+
+Utilisez `KitColorWheel` pour choisir teinte/saturation et `KitColorPicker` pour saisir RGB/hex. Ces surfaces proposent des couleurs locales ; le formulaire possède la validation.
