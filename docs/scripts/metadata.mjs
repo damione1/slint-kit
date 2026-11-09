@@ -24,7 +24,7 @@ export function pageMetadata(data, pages) {
     title, description, url, breadcrumbs,
     sourceDescription: pages[''][locale].description.replaceAll('{count}', data.components.length),
     version: data.project.version,
-    pageType: !key ? 'WebPage' : key === 'components/' ? 'CollectionPage' : 'TechArticle',
+    pageType: !key ? 'WebPage' : key === 'contact/' ? 'ContactPage' : key === 'components/' ? 'CollectionPage' : 'TechArticle',
     image: `${data.site.url}/assets/social/slint-kit-${locale}.png`,
     imageAlt: locale === 'fr' ? 'Slint Kit — Composants UI natifs pour Rust et Slint' : 'Slint Kit — Native UI components for Rust and Slint',
     locale: locale === 'fr' ? 'fr_CA' : 'en_CA',

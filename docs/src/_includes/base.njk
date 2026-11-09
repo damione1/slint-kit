@@ -33,6 +33,7 @@
   <script type="application/ld+json">{{ seo | structuredData(site, locale) | scriptJson | safe }}</script>
   <link rel="icon" href="/assets/branding/slint-kit-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="{{ '/assets/site.css' | versionedAsset }}">
+  {% if contactPage %}<link rel="stylesheet" href="{{ '/assets/contact.css' | versionedAsset }}"><script type="module" src="{{ '/assets/contact.js' | versionedAsset }}"></script>{% endif %}
   {% if home %}<link rel="stylesheet" href="{{ '/assets/landing.css' | versionedAsset }}">
   <script type="module" src="{{ '/assets/landing.js' | versionedAsset }}"></script>{% endif %}
   {% if site.url %}<link rel="canonical" href="{{ site.url }}{{ page.url }}">{% endif %}
@@ -89,6 +90,6 @@
 {% if seo.breadcrumbs.length %}<nav class="breadcrumbs" aria-label="{% if locale == 'fr' %}Fil d’Ariane{% else %}Breadcrumb{% endif %}"><ol>{% for crumb in seo.breadcrumbs %}<li>{% if loop.last %}<span aria-current="page">{{ crumb.name }}</span>{% else %}<a href="{{ crumb.url }}">{{ crumb.name }}</a>{% endif %}</li>{% endfor %}</ol></nav>{% endif %}
 {{ content | safe }}</main>
 </div>
-<footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a></footer>
+<footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a> <a href="{{ 'contact/' | localeUrl(locale) }}">Contact</a></footer>
 </body>
 </html>

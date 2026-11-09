@@ -2,12 +2,16 @@
 
 ## Unreleased
 
+- Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
+
 - Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented three-way table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
 
 - Redesign the bilingual homepage with real component captures, an on-demand Slint demo, integration excerpts and clear installation and licensing paths.
 - Explain Slint Kit's shared interaction and typed domain layer across the bilingual homepage, adoption guide, component catalogue, README and crate entry points. Link runnable behavior examples, distinguish complete controls from composition primitives, document adoption limits and clarify registry installation in the typed example. Correct outdated email/URL validation descriptions and clarify that base components stay free for open-source use, with commercial licensing on request and Slint Kit Pro coming. No public API changes.
 
 ### Français
+
+- Ajoute un formulaire de contact français/anglais avec vérification Turnstile côté serveur, validation bornée, limitation des tentatives et envoi privé par le Worker existant de la documentation. Conserve le texte en cas d’échec et relie le contact depuis l’accueil et les guides.
 
 - Remplace les captures de l’accueil par des illustrations HTML légères adaptées au thème et démontre le cycle de tri documenté du tableau en conservant la sélection par clé. Respecte la réduction des mouvements, suspend l’animation hors écran et permet le contrôle manuel. Corrige le thème sombre de la section open source et l’indentation des extraits affichés/copiés. Aucun changement d’API de composant.
 
