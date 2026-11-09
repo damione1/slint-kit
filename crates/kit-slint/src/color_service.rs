@@ -135,6 +135,24 @@ fn wheel_color(hue: f32, saturation: f32) -> ui::ColorResult {
     )
 }
 
+// Render the spectrum once per window. Software gradients ignore rounded
+// clipping in Slint 1.18.1; explicit RGBA coverage gives all backends the same
+// circular plane, without a theme-dependent mask or installation asset.
+fn wheel_image() -> slint::Image {
+    const SIZE: u32 = 512;
+    let mut buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(SIZE, SIZE);
+    for (index, pixel) in buffer.make_mut_slice().iter_mut().enumerate() {
+        let x = ((index % SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
+        let y = ((index / SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
+        let radius = x.hypot(y);
+        let hue = x.atan2(-y).to_degrees().rem_euclid(360.0);
+        let alpha = ((1.0 - radius) * SIZE as f32 / 2.0 + 0.5).clamp(0.0, 1.0);
+        let color = slint::Color::from_hsva(hue, radius.min(1.0), 1.0, alpha);
+        *pixel = slint::Rgba8Pixel::new(color.red(), color.green(), color.blue(), color.alpha());
+    }
+    slint::Image::from_rgba8(buffer)
+}
+
 #[cfg(test)]
 mod wheel_tests {
     use super::*;
@@ -172,22 +190,4 @@ mod wheel_tests {
             assert!(!wheel_color(hue, saturation).valid);
         }
     }
-}
-
-// Render the spectrum once per window. Software gradients ignore rounded
-// clipping in Slint 1.18.1; explicit RGBA coverage gives all backends the same
-// circular plane, without a theme-dependent mask or installation asset.
-fn wheel_image() -> slint::Image {
-    const SIZE: u32 = 512;
-    let mut buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(SIZE, SIZE);
-    for (index, pixel) in buffer.make_mut_slice().iter_mut().enumerate() {
-        let x = ((index % SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
-        let y = ((index / SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
-        let radius = x.hypot(y);
-        let hue = x.atan2(-y).to_degrees().rem_euclid(360.0);
-        let alpha = ((1.0 - radius) * SIZE as f32 / 2.0 + 0.5).clamp(0.0, 1.0);
-        let color = slint::Color::from_hsva(hue, radius.min(1.0), 1.0, alpha);
-        *pixel = slint::Rgba8Pixel::new(color.red(), color.green(), color.blue(), color.alpha());
-    }
-    slint::Image::from_rgba8(buffer)
 }
