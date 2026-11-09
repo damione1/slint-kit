@@ -4,6 +4,9 @@
 
 ## 0.7.2
 
+- Fix empty pure-Slint previews across the selection family: render declarative options in menus, tabs, breadcrumbs, carousels, radio/segmented/toggle groups and accordion headers; render arbitrary valid rating scales. Keep service-backed interaction guarded until `install(&window)`. Preserve explicit row projections and document static projection limits for dropdowns, multi-selection, calendars and typed fields.
+- Report an actionable build error when `SLINT_LIVE_PREVIEW` is set, instead of unresolved shared globals from Slint 1.18.1's live-preview generator (upstream slint-ui/slint#14812). Unset the variable, including assignments in `build.rs`; `slint/mcp` and `SLINT_EMIT_DEBUG_INFO` remain usable. No public API changes.
+
 - Present desktop and mobile Rust UI use cases consistently across GitHub, crates.io, docs.rs and the bilingual site. Document Android/iOS setup, desktop-only file dialogs and device qualification limits; clarify quality evidence and verify the generated AI documentation index.
 
 - Slint requirement relaxed from `=1.18.1` to `~1.18.1`: applications can use any Slint 1.18 patch release from 1.18.1. Keep `slint-kit` and `slint-kit-build` on the same release. No public API changes.
@@ -11,6 +14,9 @@
 - README, crates.io page, docs.rs crate documentation and crate metadata now present the component catalogue, screenshots, engineering guarantees and licensing plans.
 
 ### Français
+
+- Corrige les aperçus Slint seuls vides de la famille sélection : options déclarées visibles dans menus, onglets, fils d’Ariane, carrousels, groupes radio/segments/toggles et en-têtes d’accordéon ; échelles de notation valides visibles. Les interactions restent protégées jusqu’à `install(&window)`. Conserve les projections de lignes explicites et documente les limites statiques des listes déroulantes, sélections multiples, calendriers et champs typés.
+- Signale une erreur de compilation explicite lorsque `SLINT_LIVE_PREVIEW` est définie, au lieu des globals partagés introuvables du générateur live-preview de Slint 1.18.1 (slint-ui/slint#14812). Supprimez cette variable, y compris dans `build.rs` ; `slint/mcp` et `SLINT_EMIT_DEBUG_INFO` restent utilisables. Aucun changement d’API publique.
 
 - Présente les usages UI Rust de bureau et mobiles sur GitHub, crates.io, docs.rs et le site bilingue. Documente la configuration Android/iOS, les sélecteurs de fichiers réservés au bureau et les limites de qualification ; précise les preuves de qualité et vérifie l’index généré pour les assistants IA.
 

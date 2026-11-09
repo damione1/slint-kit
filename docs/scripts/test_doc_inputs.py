@@ -24,15 +24,43 @@ class DocumentationIdentityTests(unittest.TestCase):
         changed = {**sources, 'crates/kit-build/src/lib.rs': b'pub fn compile_windows() {}',
                    'crates/kit/Cargo.toml': sources['crates/kit/Cargo.toml'].replace(b'0.7.0', b'0.7.1')}
         self.assertNotEqual(before, archived_runtime_inputs(changed))
-        self.assertEqual(rendering_runtime(before), rendering_runtime(archived_runtime_inputs(changed)))
+        self.assertEqual(rendering_runtime(before, sources), rendering_runtime(archived_runtime_inputs(changed), changed))
         for name, content in [
             ('crates/kit/src/lib.rs', b'pub fn changed_runtime() {}'),
             ('crates/kit/Cargo.toml', sources['crates/kit/Cargo.toml'].replace(b'native=[]', b'native=["changed"]')),
             ('Cargo.lock', sources['Cargo.lock'].replace(b'original', b'changed')),
         ]:
             with self.subTest(name=name):
-                self.assertNotEqual(rendering_runtime(before),
-                                    rendering_runtime(archived_runtime_inputs({**changed, name: content})))
+                self.assertNotEqual(rendering_runtime(before, sources),
+                                    rendering_runtime(archived_runtime_inputs({**changed, name: content}), {**changed, name: content}))
+
+    def test_render_reuse_ignores_editorial_headers_but_keeps_code_and_features(self):
+        sources = {
+            'Cargo.lock': b'package=[]',
+            'crates/kit/src/lib.rs': b'// License\n//! Old crate docs\npub fn runtime() {}\n',
+            'crates/kit/Cargo.toml': b'[package]\nversion="0.7.1"\ndescription="Old"\n[dependencies]\nslint={version="=1.18.1",features=["std"]}\n',
+        }
+        changed = {
+            **sources,
+            'crates/kit/src/lib.rs': sources['crates/kit/src/lib.rs'].replace(b'Old crate docs', b'New crate docs'),
+            'crates/kit/Cargo.toml': sources['crates/kit/Cargo.toml'].replace(b'0.7.1', b'0.7.2').replace(b'Old', b'New').replace(b'=1.18.1', b'~1.18.1'),
+        }
+        before = rendering_runtime(archived_runtime_inputs(sources), sources)
+        self.assertEqual(before, rendering_runtime(archived_runtime_inputs(changed), changed))
+        for name, content in [
+            ('crates/kit/src/lib.rs', changed['crates/kit/src/lib.rs'].replace(b'runtime()', b'changed()')),
+            ('crates/kit/Cargo.toml', changed['crates/kit/Cargo.toml'].replace(b'"std"', b'"accessibility"')),
+            ('crates/kit/Cargo.toml', changed['crates/kit/Cargo.toml'].replace(b'~1.18.1', b'~1.18.2')),
+            ('Cargo.lock', b'[[package]]\nname="changed"\nversion="1.0.0"\nsource="registry"\n'),
+        ]:
+            with self.subTest(name=name):
+                actual = {**changed, name: content}
+                self.assertNotEqual(before, rendering_runtime(archived_runtime_inputs(actual), actual))
+        # A doc-looking line inside a raw string is runtime data, not a header.
+        raw = {**changed, 'crates/kit/src/lib.rs': b'const TEXT: &str = r"\n//! text\n";'}
+        other = {**raw, 'crates/kit/src/lib.rs': raw['crates/kit/src/lib.rs'].replace(b'text', b'changed')}
+        self.assertNotEqual(rendering_runtime(archived_runtime_inputs(raw), raw),
+                            rendering_runtime(archived_runtime_inputs(other), other))
 
     def test_relative_images_resolve_from_authored_source_instead_of_generated_directory(self):
         with tempfile.TemporaryDirectory() as directory:

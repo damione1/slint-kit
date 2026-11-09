@@ -384,9 +384,12 @@ export component KitAccordion inherits VerticalLayout {
     vertical-stretch: 0;
     // Expanding a section changes its value, not the source repeater. Keep
     // its native button/focus mounted while projecting the disclosure state.
-    private property <[OptionRow]> render-options: root.options.length > 0 ? selection.rows : KitSelectionService.ready ? KitSelectionService.disclosure-options(root.rows) : [];
-    for source in root.render-options: section := VerticalLayout {
-        private property <DisclosureRow> disclosure: root.options.length > 0 ? KitSelectionService.disclosure(source, root.expanded) : KitSelectionService.disclosure-source(root.rows, source.token);
+    private property <int> render-count: root.options.length > 0 ? selection.rows.length : root.rows.length;
+    for index in root.render-count: section := VerticalLayout {
+        private property <OptionRow> source: selection.rows[index];
+        private property <DisclosureRow> disclosure: root.options.length > 0
+            ? KitSelectionService.ready ? KitSelectionService.disclosure(self.source, root.expanded) : {item: self.source, expanded: false}
+            : root.rows[index];
         spacing: 0px;
         alignment: start;
         trigger := KitNavigationAction {
@@ -463,6 +466,8 @@ export component KitCarousel inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
+    // The editor has source slides but no Rust active-row projection yet.
+    private property <int> display-index: !KitSelectionService.ready && root.options.length > 0 ? 0 : root.state.active-index;
     in property <string> previous-label: "Previous slide";
     in property <string> next-label: "Next slide";
     in property <string> empty-label: "No slides";
@@ -485,24 +490,24 @@ export component KitCarousel inherits Rectangle {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height; alignment: start;
         padding: root.inset; spacing: root.theme.spacing.unit * 3;
         if root.rows.length == 0: Text { text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-        if root.state.active-index >= 0 && root.state.active-index < root.rows.length: VerticalLayout {
+        if root.display-index >= 0 && root.display-index < root.rows.length: VerticalLayout {
             width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; vertical-stretch: 0;
             spacing: root.theme.spacing.unit * 2;
             alignment: start;
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.state.active-index].description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
         }
         @children
-        if root.action-label != "" && root.state.active-index >= 0 && root.state.active-index < root.rows.length: KitNavigationAction {
+        if root.action-label != "" && root.display-index >= 0 && root.display-index < root.rows.length: KitNavigationAction {
             theme: root.theme; control-size: root.control-size; tab-stop: true; accessible-role: button;
-            option-data: {token: root.rows[root.state.active-index].token, generation: root.rows[root.state.active-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.state.active-index].disabled};
+            option-data: {token: root.rows[root.display-index].token, generation: root.rows[root.display-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.display-index].disabled};
             activate(token, generation) => { root.handle-activate(token, generation); }
         }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2; alignment: space-between;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.state.active-index <= 0; activated => { root.handle-navigate(NavigationStep.previous); } }
-            Text { text: root.rows.length == 0 ? "0 / 0" : (root.state.active-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.rows.length == 0 || root.state.active-index >= root.rows.length - 1; activated => { root.handle-navigate(NavigationStep.next); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.display-index <= 0; activated => { root.handle-navigate(NavigationStep.previous); } }
+            Text { text: root.rows.length == 0 ? "0 / 0" : (root.display-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.rows.length == 0 || root.display-index >= root.rows.length - 1; activated => { root.handle-navigate(NavigationStep.next); } }
         }
     }
 
