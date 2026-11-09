@@ -253,7 +253,10 @@ export component KitTabs inherits Rectangle {
     private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
-    min-height: KitMetrics.row-height(root.theme, root.control-size);
+    // ScrollFrame reserves its horizontal gutter even when no bar is visible.
+    // Keep a complete tab row above that gutter, including at larger text sizes.
+    min-height: KitMetrics.row-height(root.theme, root.control-size)
+        + KitThemes.scroll-bar-recipe(root.theme).thickness;
     preferred-height: self.min-height;
     vertical-stretch: 0;
     forward-focus: keyboard;
