@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep the complete `KitTabs` row above its horizontal scrollbar gutter, including overflow and enlarged text. No public API change.
+- Préserve la rangée complète de `KitTabs` au-dessus de la gouttière horizontale, y compris en débordement et avec texte agrandi. Aucun changement d’API publique.
+
 - Add controlled `KitColorWheel`: opaque RGB drafts, pointer and keyboard input, explicit unknown state and rebind cancellation. No breaking API change.
 - Ajout de `KitColorWheel` contrôlé : brouillons RGB opaques, pointeur et clavier, état inconnu explicite et annulation au changement de source. Aucun changement incompatible.
 

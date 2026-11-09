@@ -74,20 +74,26 @@ export component ThemeTokenFixture inherits Window {
 }
 
 export component TabsIndicatorFixture inherits Window {
-    width: 480px; height: 120px;
-    out property <KitTheme> theme-probe: KitThemes.light;
+    width: root.available-width; height: 180px;
+    background: root.theme.canvas;
+    in property <length> available-width: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> theme-probe: root.theme;
     in property <SelectState> state: {
         open: true, active: { present: false }, active-index: -1,
         selected: { present: true, token: 2 }, generation: 1,
     };
-    tabs := KitTabs {
-        x: 0px; y: 0px; width: 480px;
-        rows: [
-            { token: 1, generation: 1, label: "Overview" },
-            { token: 2, generation: 1, label: "Activity" },
-            { token: 3, generation: 1, label: "Settings" },
-        ];
-        state: root.state;
+    VerticalLayout {
+        alignment: start;
+        tabs := KitTabs {
+            theme: root.theme;
+            rows: [
+                { token: 1, generation: 1, label: "Overview" },
+                { token: 2, generation: 1, label: "Activity" },
+                { token: 3, generation: 1, label: "Settings" },
+            ];
+            state: root.state;
+        }
     }
 }
 
