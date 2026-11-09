@@ -120,7 +120,7 @@ def prepared_lock(mode, source, seed, cargo_version):
     if mode is BuildMode.LOCAL:
         manifest += local_patches()
     workspace = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']
-    context = {'format': 1, 'mode': mode.value, 'cargo': cargo_version,
+    context = {'format': 2, 'mode': mode.value, 'cargo': cargo_version,
                'manifest': manifest, 'seed': digest(rename_lock(seed, tomllib.loads(source)['package']['name'], LOCK_PACKAGE).encode())}
     if mode is BuildMode.LOCAL:
         context['workspace'] = {key: workspace[key] for key in ['package', 'dependencies']}
@@ -140,7 +140,9 @@ def prepared_lock(mode, source, seed, cargo_version):
     write_changed(directory / 'Cargo.toml', manifest)
     write_changed(directory / 'src/main.rs', 'fn main() {}\n')
     write_changed(lock, rename_lock(seed, tomllib.loads(source)['package']['name'], LOCK_PACKAGE))
-    subprocess.run(['cargo', 'generate-lockfile', '--manifest-path', str(directory / 'Cargo.toml')],
+    # Keep the seed's external graph; resolve only changes required by the
+    # consumer manifest instead of upgrading unrelated transitive packages.
+    subprocess.run(['cargo', 'update', '--workspace', '--manifest-path', str(directory / 'Cargo.toml')],
                    cwd=ROOT, check=True)
     write_changed(record, json.dumps({'key': key, 'sha256': digest(lock.read_bytes())}, sort_keys=True) + '\n')
     return lock.read_text()
