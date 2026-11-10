@@ -257,8 +257,8 @@ component TableCellView inherits Rectangle {
     changed width => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     changed focus-indicated => { if (root.focus-indicated) { root.reveal-requested(root.absolute-position.x, root.width); } }
     changed editing => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
-    // The draft of the session, kept by the table so a cell that the
-    // viewport recreates shows the same text.
+    // The draft stays separate from the accepted row while its editor is
+    // visible. Leaving the viewport cancels the session without committing.
     in-out property <string> draft;
     callback committed(FieldCommit, bool);
     callback editor-focus-changed(bool);
@@ -444,6 +444,13 @@ export component KitDataTable inherits Rectangle {
     private property <int> edit-column-token;
     private property <int> edit-generation;
     private property <string> edit-draft;
+    private property <int> edit-row-index;
+    private property <bool> edit-row-outside-viewport: root.edit-open && list.visible-height > 0px
+        && ((root.edit-row-index + 1) * root.row-height + list.content-y <= 0px
+            || root.edit-row-index * root.row-height + list.content-y >= list.visible-height);
+    changed edit-row-outside-viewport => {
+        if (root.edit-row-outside-viewport) { root.end-edit(root.edit-focused); }
+    }
     pure function has-active-column() -> bool { return root.active-column >= 0 && root.active-column < root.columns.length; }
     pure function has-active-cell() -> bool { return root.has-active-row && root.has-active-column(); }
     pure function active-cell-editable() -> bool {
@@ -455,6 +462,7 @@ export component KitDataTable inherits Rectangle {
     function begin-edit() {
         root.cursor-region = TableCursorRegion.body;
         root.reveal-active();
+        root.edit-row-index = root.active-index;
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.columns[root.active-column].token;
         root.edit-generation = root.generation;
@@ -708,11 +716,14 @@ export component KitDataTable inherits Rectangle {
                     editor-focus-changed(focused) => { root.edit-focused = focused; }
                     committed(commit, focused) => {
                         if (root.edits-cell(row, root.columns[column-index])) {
-                            let rejection = root.validate-edit(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
-                            if (rejection == "") {
-                                root.end-edit(focused);
-                                root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
-                            } else { root.edit-error = rejection; }
+                            if (root.edit-row-outside-viewport) { root.end-edit(focused); }
+                            else {
+                                let rejection = root.validate-edit(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                                if (rejection == "") {
+                                    root.end-edit(focused);
+                                    root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                                } else { root.edit-error = rejection; }
+                            }
                         }
                     }
                     cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true); } }

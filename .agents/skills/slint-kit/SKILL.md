@@ -176,3 +176,5 @@ ButtonIntent.link is an underlined accent text action with inline geometry and t
 Use `TableHeaderFocus.roving` for one table Tab stop; Up from the first row or empty body enters the header cursor, arrows traverse it, Down returns to the body, Enter/Space sorts and Alt+Left/Right requests a bounded resize. Localize `header-label`. The default `individual` mode keeps header controls before the body. Public `sort-active-column()` and `resize-active-column(delta)` use the same guarded stable-token callbacks.
 
 `DialogHostPorts.focus` receives the closed `DialogFocusRequest::{Control, Layer}` enum. Forward Control to the view FocusRequest setter. For Layer, clear that old view request and call the matching `KitDialogSurface.take-scope-focus()`. This fallback preserves Tab/Escape when every modal control is disabled and automatically yields to a newly eligible control.
+
+A table cancels an edit when scrolling or resizing moves its row entirely outside the viewport. The accepted record is unchanged; returning the row does not restore a ghost editor. Reopen editing explicitly rather than relying on a hidden session.

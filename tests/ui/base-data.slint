@@ -9,6 +9,7 @@ export component BaseDataFixture inherits Window {
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <ControlSize> table-size: ControlSize.medium;
+    in property <length> table-height: 240px;
     in property <[TableColumn]> columns;
     in property <[TableRow]> rows;
     in property <[ContentItem]> items;
@@ -63,7 +64,7 @@ export component BaseDataFixture inherits Window {
     VerticalLayout {
         padding: 16px; spacing: 12px; alignment: start;
         table := KitDataTable {
-            theme: root.theme; control-size: root.table-size; height: 240px; columns: root.columns; rows: root.rows;
+            theme: root.theme; control-size: root.table-size; height: root.table-height; columns: root.columns; rows: root.rows;
             generation: root.table-generation; active-index: root.table-active;
             interactive: root.table-interactive; header-focus: root.table-header-focus; header-label: root.table-header-label;
             label: "Products fixture";

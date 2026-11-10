@@ -1177,3 +1177,130 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
         }
     }
 }
+
+#[test]
+fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_ghost_editors() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::{LogicalPosition, platform::WindowEvent};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install_field_specs(
+        &window,
+        [
+            FieldSpec::integer().named(quantity_key()),
+            owner_spec().named(owner_key()),
+        ],
+    )
+    .unwrap();
+    window.set_columns(columns());
+    let records = (1..=1000)
+        .map(|token| {
+            record(
+                token,
+                &format!("Row {token}"),
+                12,
+                "Owner",
+                FieldAccess::Editable,
+            )
+        })
+        .collect::<Vec<_>>();
+    window.set_rows(ModelRc::new(VecModel::from(records)));
+    window.set_table_active(0);
+    window.show().unwrap();
+    flush();
+    window.window().take_snapshot().unwrap();
+    let commits = Rc::new(std::cell::Cell::new(0));
+    let observed = commits.clone();
+    window.on_cell_committed(move |_, _, _, _| observed.set(observed.get() + 1));
+    let navigated = Rc::new(std::cell::Cell::new(0));
+    let observed = navigated.clone();
+    window.on_navigate(move |collection, step| {
+        assert_eq!(collection, DataFixtureCollection::Table);
+        assert_eq!(step, NavigationStep::Next);
+        observed.set(observed.get() + 1);
+    });
+    let mut expected_navigation = 0;
+    let wheel = |delta| {
+        let bounds = table(&window);
+        let position = LogicalPosition::new(
+            bounds.absolute_position().x + window.get_theme().spacing.unit * 2.,
+            bounds.absolute_position().y + bounds.size().height / 2.,
+        );
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerScrolled {
+                position,
+                delta_x: 0.,
+                delta_y: delta,
+            });
+        flush();
+    };
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.set_table_height(240.);
+            flush();
+            window.window().take_snapshot().unwrap();
+            window.set_table_active(0);
+            window.invoke_focus_table();
+            open(&window, 2);
+            text(&window, "Unsaved");
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-scroll-session-editing-{name}-{scale}"),
+            );
+            wheel(-10000.);
+            let closed = window.window().take_snapshot().unwrap();
+            flush();
+            assert!(window.get_table_scroll() < 0.);
+            assert!(!window.get_table_editing());
+            assert!(editors(&window).is_empty());
+            assert_eq!(commits.get(), 0);
+            crate::choice_presentation::save_capture(
+                &closed,
+                &format!("table-scroll-session-closed-{name}-{scale}"),
+            );
+            key(&window, Key::DownArrow);
+            expected_navigation += 1;
+            assert_eq!(
+                navigated.get(),
+                expected_navigation,
+                "scroll cancellation returns keyboard ownership to the table"
+            );
+            wheel(100000.);
+            window.window().take_snapshot().unwrap();
+            assert_eq!(window.get_table_scroll(), 0.);
+            assert!(editors(&window).is_empty());
+            assert_eq!(table(&window).accessible_value().as_deref(), Some("Owner"));
+            window.set_table_active(4);
+            open(&window, 2);
+            text(&window, "Resize draft");
+            window.window().take_snapshot().unwrap();
+            window.set_table_height(160.);
+            flush();
+            window.window().take_snapshot().unwrap();
+            flush();
+            assert!(
+                !window.get_table_editing(),
+                "shrinking the viewport must also close an offscreen editor"
+            );
+            assert!(editors(&window).is_empty());
+            assert_eq!(commits.get(), 0);
+            window.invoke_focus_paste();
+            window.set_pasted("".into());
+            text(&window, "Destination");
+            assert_eq!(window.get_pasted(), "Destination");
+        }
+    }
+}

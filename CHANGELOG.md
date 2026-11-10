@@ -6,6 +6,8 @@
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.
 - Preserve completed macOS compiler caches when a later CI documentation check fails.
 - Conserve les caches de compilation macOS terminés lorsqu’un contrôle documentaire ultérieur de CI échoue.
+- Cancel table edits when their row leaves the viewport, preserving accepted values and preventing hidden or resurrected editors after scrolling or resizing.
+- Annule l’édition de tableau lorsque sa ligne quitte le viewport, conserve la valeur acceptée et évite les éditeurs cachés ou réapparus après défilement ou redimensionnement.
 
 - Add optional roving table-header navigation, localized header context and public sort/resize commands, including empty tables.
 - Ajoute une navigation optionnelle par curseur d’en-tête de tableau, un contexte localisable et des commandes de tri/redimensionnement, y compris sans lignes.
