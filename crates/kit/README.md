@@ -61,7 +61,7 @@ Slint Kit is before 1.0; breaking changes remain possible. The build helper uses
 
 ## Quality
 
-No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS and build/helper checks on Windows; the new Linux headless/clippy job awaits its first successful result; native runtime behavior, mobile, IME and screen readers need verification on the target device.
+No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS and build/helper checks on Windows; the [Linux job passed headless component/workspace tests and clippy on Ubuntu 24.04 at `59ece023`](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933). Native runtime behavior, mobile, IME and screen readers need verification on the target device.
 
 ## Requirements
 

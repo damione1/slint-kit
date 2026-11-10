@@ -25,7 +25,7 @@
 
 - Stop forcing Slint element debug metadata into consumer builds. Runtime inspection follows Slint defaults and can be enabled explicitly; kit interaction fixtures opt in.
 
-- Mark the new Linux CI checks as awaiting their first successful result and align the crate README with the announced desktop platform scope.
+- Record the successful Ubuntu 24.04 headless component/workspace tests and clippy run at [59ece023](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933), keeping native Linux, mobile, IME and screen-reader qualification separate.
 
 - Run the Linux component suite once, exclude it from the remaining workspace tests, and bound the CI job to 45 minutes.
 
@@ -134,7 +134,7 @@
 
 - N’impose plus les métadonnées de débogage Slint aux applications. L’inspection suit les réglages Slint et s’active explicitement ; les fixtures d’interaction du kit l’activent.
 
-- Indique que les nouvelles vérifications CI Linux attendent leur premier succès et aligne le README de la crate sur les plateformes de bureau annoncées.
+- Consigne le succès des tests headless composants/workspace et de clippy sur Ubuntu 24.04 à [59ece023](https://github.com/damione1/slint-kit/actions/runs/42769690387/job/129674322933), sans le confondre avec une qualification Linux native, mobile, IME ou lecteur d’écran.
 
 - Exécute une seule fois la suite des composants sur Linux, l’exclut des autres tests du workspace et limite le job CI à 45 minutes.
 
