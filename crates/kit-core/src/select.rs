@@ -924,6 +924,7 @@ mod tests {
                 },
                 typeahead: "ap".into(),
                 last_typeahead_ms: Some(42),
+                ..Default::default()
             };
             let reduced = reduce_selection_with_policy(
                 vec![SelectOption::new(2, "Banana"), SelectOption::new(3, "Pear")],
