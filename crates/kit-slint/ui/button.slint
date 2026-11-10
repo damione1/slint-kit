@@ -43,6 +43,9 @@ export component KitPressable inherits Rectangle {
     out property <bool> has-focus: keys.has-focus;
     out property <bool> focus-visible: keys.has-focus && root.keyboard-focus;
     callback activated();
+    // Composition hook runs before the public activation notification.
+    callback activation-allowed() -> bool;
+    activation-allowed => { return true; }
     callback activation-started();
     callback key-event(event: KeyEvent) -> EventResult;
     callback focus-observed(bool);
@@ -58,7 +61,7 @@ export component KitPressable inherits Rectangle {
     // Like a disabled web control, a disabled pressable cannot take focus.
     public function take-focus() { if (!root.disabled) { keys.focus(); } }
     function activate-once() {
-        if (!root.disabled && !root.busy) { root.activated(); }
+        if (!root.disabled && !root.busy && root.activation-allowed()) { root.activated(); }
     }
     changed disabled => { root.cancel-press(); }
     changed busy => { root.cancel-press(); }
@@ -207,10 +210,12 @@ export component KitFormButton inherits KitButton {
     in property <FormAction> action: FormAction.submit;
     in property <bool> form-no-validate;
     callback validation-requested() -> bool;
-    validation-requested => { return true; }
+    validation-requested => { return false; }
     callback form-action(FormAction);
-    activated => {
-        if (root.action != FormAction.submit || root.form-no-validate || root.validation-requested()) { root.form-action(root.action); }
+    activation-allowed => {
+        if (root.action == FormAction.submit && !root.form-no-validate && !root.validation-requested()) { return false; }
+        root.form-action(root.action);
+        return true;
     }
 }
 export component KitSubmitButton inherits KitFormButton {

@@ -154,3 +154,5 @@ Keep `FilePickerBinding::set_mode` and `set_access` synchronized with the Slint 
 `KeyedModel::bind_active` publishes only when the active key or its record revision changes; updates to other records and sorting preserve drafts. Explicit `replace` supplies fresh records and republishes the active record.
 
 Slint 1.18.1 exposes no dialog role, accessible modal state or accessible-subtree hiding property. KitDialogPanel uses a named groupbox. Disabling covered controls neutralizes actions but leaves their text in screen-reader browse order; verify assistive technology on target and document this upstream limitation.
+
+Connect `KitSubmitButton.validation-requested` to form validity or explicitly set `form-no-validate`; an unconnected submit gate blocks activation. Use `form-action(FormAction)` for submit/reset. Overriding `activated` cannot replace validation.

@@ -66,3 +66,5 @@ Les composites calendrier/intervalle valident les indisponibilités en plus des 
 `on-change-when-valid` émet la valeur finale de chaque édition native. Les flèches et modificateurs ne changent pas l’état d’acceptation.
 
 `report-validity()` ne déplace jamais le focus. Signalez tous les champs, puis appelez `focus-if-invalid()` uniquement sur le premier champ invalide pour éviter les effets secondaires du flou pendant la collecte des erreurs.
+
+`KitSubmitButton` exige un callback `validation-requested` raccordé qui retourne la validité du formulaire, ou `form-no-validate` explicite. Traitez `form-action(FormAction)` pour soumettre/réinitialiser ; `activated` observe ensuite l’action et ne remplace pas la validation. `KitResetButton` ne valide pas.

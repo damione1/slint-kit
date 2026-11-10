@@ -1695,7 +1695,7 @@
     "fr": {
       "summary": "Bouton qui transmet une intention de formulaire typée.",
       "usage": "Choisissez `FormAction.submit` ou `.reset`, puis traitez `form-action(action)` dans Rust. L’exemple transmet le brouillon courant à ce callback.",
-      "behavior": "L’activation émet l’intention courante sans soumettre ni réinitialiser les champs elle-même. Les états `busy` et `disabled` viennent de `KitButton`.",
+      "behavior": "L’activation émet l’intention courante sans soumettre ni réinitialiser les champs elle-même. Les états `busy` et `disabled` viennent de `KitButton`. Traitez form-action pour soumettre/réinitialiser. La validation précède activated, même si l’instance remplace ce handler. La soumission reste bloquée sans validation-requested, sauf form-no-validate explicite.",
       "related": [
         "KitSubmitButton",
         "KitResetButton"
@@ -1706,7 +1706,7 @@
     "en": {
       "summary": "Button that emits a typed form intent.",
       "usage": "Set `action` to `FormAction.submit` or `.reset`, then handle `form-action(action)` in Rust. The example passes the current draft to that callback.",
-      "behavior": "Activation emits the current intent without submitting or resetting fields itself. `busy` and `disabled` come from `KitButton`.",
+      "behavior": "Activation emits the current intent without submitting or resetting fields itself. `busy` and `disabled` come from `KitButton`. Handle form-action for submission/reset. The validation gate runs before activated, even when an instance overrides activated. Submit defaults to blocked until validation-requested is connected, unless form-no-validate is explicit.",
       "related": [
         "KitSubmitButton",
         "KitResetButton"
@@ -2799,7 +2799,7 @@
     "fr": {
       "summary": "Bouton discret préconfiguré pour demander la réinitialisation d’un formulaire.",
       "usage": "Fournissez un libellé explicite et traitez `form-action(FormAction.reset)` dans le contrôleur. Réinitialisez ensemble les valeurs, brouillons et erreurs selon la politique de l’application.",
-      "behavior": "Il conserve les interactions de `KitButton` avec `intent: ButtonIntent.quiet`. Le callback exprime une demande ; il ne modifie pas directement les champs.",
+      "behavior": "Il conserve les interactions de `KitButton` avec `intent: ButtonIntent.quiet`. Le callback exprime une demande ; il ne modifie pas directement les champs. Traitez form-action pour soumettre/réinitialiser. La validation précède activated, même si l’instance remplace ce handler. La soumission reste bloquée sans validation-requested, sauf form-no-validate explicite.",
       "related": [
         "KitSubmitButton",
         "KitFormButton"
@@ -2810,7 +2810,7 @@
     "en": {
       "summary": "Quiet button preset for requesting a form reset.",
       "usage": "Supply an explicit label and handle `form-action(FormAction.reset)` in the controller. Reset values, drafts and errors together according to application policy.",
-      "behavior": "It keeps `KitButton` interactions with `intent: ButtonIntent.quiet`. The callback expresses a request and does not directly modify fields.",
+      "behavior": "It keeps `KitButton` interactions with `intent: ButtonIntent.quiet`. The callback expresses a request and does not directly modify fields. Handle form-action for submission/reset. The validation gate runs before activated, even when an instance overrides activated. Submit defaults to blocked until validation-requested is connected, unless form-no-validate is explicit.",
       "related": [
         "KitSubmitButton",
         "KitFormButton"
@@ -3369,7 +3369,7 @@
     "fr": {
       "summary": "Bouton principal préconfiguré pour demander l’envoi d’un formulaire.",
       "usage": "Fournissez `text` et traitez `form-action(FormAction.submit)` avec les valeurs acceptées du formulaire. Projetez les traitements asynchrones dans `busy`.",
-      "behavior": "Il hérite de `KitFormButton`, avec `action: FormAction.submit` et `intent: ButtonIntent.primary`. Il n’effectue aucune validation implicite.",
+      "behavior": "Il hérite de `KitFormButton`, avec `action: FormAction.submit` et `intent: ButtonIntent.primary`. Il n’effectue aucune validation implicite. Traitez form-action pour soumettre/réinitialiser. La validation précède activated, même si l’instance remplace ce handler. La soumission reste bloquée sans validation-requested, sauf form-no-validate explicite.",
       "related": [
         "KitResetButton",
         "KitFormButton"
@@ -3380,7 +3380,7 @@
     "en": {
       "summary": "Primary button preset for requesting form submission.",
       "usage": "Supply `text` and handle `form-action(FormAction.submit)` using the form’s accepted values. Project asynchronous work through `busy`.",
-      "behavior": "It inherits `KitFormButton`, with `action: FormAction.submit` and `intent: ButtonIntent.primary`. It performs no implicit validation.",
+      "behavior": "It inherits `KitFormButton`, with `action: FormAction.submit` and `intent: ButtonIntent.primary`. It performs no implicit validation. Handle form-action for submission/reset. The validation gate runs before activated, even when an instance overrides activated. Submit defaults to blocked until validation-requested is connected, unless form-no-validate is explicit.",
       "related": [
         "KitResetButton",
         "KitFormButton"
