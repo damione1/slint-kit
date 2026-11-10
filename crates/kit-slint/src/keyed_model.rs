@@ -763,7 +763,7 @@ mod identity_tests {
         )])
         .unwrap();
         let before = model.rows.row_data(0).unwrap();
-        model.select(before.token, before.generation).unwrap();
+        model.select(before.token, model.generation()).unwrap();
         let generation = model.generation();
         let publications = Rc::new(std::cell::Cell::new(0));
         let observed = publications.clone();
