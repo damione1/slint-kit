@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+
+- Check complete downloadable applications against registry crates before a release documentation build and against local sources in CI. Development guides disclose unreleased APIs and link the immutable 0.7.2 registry example.
+
+
+
+
 - Animate button busy indicators using theme timing, honor reduced motion, and expose busy-label for an accessible explanation of pending work.
 
 - Protect form-button validation from overridden activated handlers. Breaking: submit buttons now require a validation-requested callback returning true, or explicit form-no-validate; form-action remains the submit/reset notification.
@@ -101,6 +107,12 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+
+- Vérifie les applications complètes téléchargeables contre les crates publiées avant de construire la documentation de release et contre les sources locales en CI. Les guides de développement signalent les API non publiées et relient l’exemple crates.io immuable 0.7.2.
+
+
+
 
 - Anime les indicateurs d’attente des boutons selon le thème, respecte la réduction des mouvements et ajoute busy-label pour expliquer le travail en cours aux technologies d’assistance.
 

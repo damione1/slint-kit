@@ -21,7 +21,7 @@ Cet exemple prend le chemin court : `KeyedModel<K, Row>` fournit `sorting_by`, `
 
 ## Essayer l’application
 
-Créez un projet neuf, puis remplacez ses fichiers par les quatre fichiers complets ci-dessous. Les paquets viennent de crates.io ; aucun checkout du kit n’est nécessaire. Les [prérequis natifs](/fr/guides/getting-started/) sont les mêmes que pour le guide de démarrage.
+Créez un projet neuf, puis remplacez ses fichiers par les quatre fichiers complets ci-dessous. {% if project.registryExamples %}Les paquets viennent de crates.io ; aucun checkout du kit n’est nécessaire.{% else %}Cette édition suit les sources de développement et utilise des API ajoutées après 0.7.2. Les versions 0.7.2 publiées ne compilent pas les sources ci-dessous : utilisez un checkout correspondant du kit et remplacez les dépendances `slint-kit` et `slint-kit-build` du manifeste par des dépendances `path` vers `crates/kit` et `crates/kit-build` de ce checkout. Pour un exemple disponible depuis crates.io, utilisez [les sources immuables du tableau 0.7.2](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), épinglées sur cette version publiée.{% endif %} Les [prérequis natifs](/fr/guides/getting-started/) sont les mêmes que pour le guide de démarrage.
 {% else %}
 # Sortable data table with stable identity
 
@@ -33,7 +33,7 @@ This example takes the short path: `KeyedModel<K, Row>` supplies `sorting_by`, `
 
 ## Try the application
 
-Create a fresh project, then replace its files with the four complete files below. Packages come from crates.io; no kit checkout is needed. The [native prerequisites](/guides/getting-started/) match the getting-started guide.
+Create a fresh project, then replace its files with the four complete files below. {% if project.registryExamples %}Packages come from crates.io; no kit checkout is needed.{% else %}This edition tracks development sources and uses APIs added after 0.7.2. Published 0.7.2 packages cannot compile the sources below: use a matching kit checkout and replace the manifest’s `slint-kit` and `slint-kit-build` dependencies with `path` dependencies pointing to that checkout’s `crates/kit` and `crates/kit-build`. For a registry-ready example, use [the immutable 0.7.2 table sources](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), pinned to that published release.{% endif %} The [native prerequisites](/guides/getting-started/) match the getting-started guide.
 {% endif %}
 
 ```sh
