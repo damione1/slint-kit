@@ -12,6 +12,8 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 Commencez par [Configuration du projet](/fr/guides/project-setup/) et un appel à `slint_kit::install(&app)` par fenêtre. Les composants interactifs possèdent leur état local et appellent des réducteurs purs partagés. Les callbacks métier reçoivent une projection vérifiée convertible en type Rust. L’application reste propriétaire de ses documents, listes, tableaux, fichiers et tâches asynchrones.
 
+Les contrôles montés ensuite par `if`, un modèle ou un popup initialisent leur propre garde de sélection avec les services déjà installés. Une installation par fenêtre suffit ; inutile de réinstaller ou de remplacer artificiellement les options.
+
 ## FieldSpec et brouillons natifs
 
 `FieldSpec<T, E>` contient analyseur, format de la valeur acceptée, format d’affichage, validateur métier et format des erreurs. `FieldSpec::codec` convient lorsque l’analyse exprime toute la règle ; `FieldSpec::new` ajoute un type d’erreur et un validateur métier. Les fabriques couvrent texte, courriel, URL, entier, décimal, argent, pourcentage, quantité, valeurs temporelles, téléphone, OTP et masques.

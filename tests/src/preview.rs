@@ -164,3 +164,102 @@ fn installed_select_keeps_an_explicit_empty_option_label() {
         "an installed selector must preserve an intentionally empty selected label"
     );
 }
+
+#[test]
+fn selection_controllers_mounted_after_install_accept_pointer_and_keyboard() {
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    i_slint_backend_testing::init_no_event_loop();
+    for family in [
+        PreviewFamily::Tabs,
+        PreviewFamily::Menu,
+        PreviewFamily::MenuBar,
+        PreviewFamily::Breadcrumbs,
+        PreviewFamily::Accordion,
+        PreviewFamily::Carousel,
+        PreviewFamily::Radio,
+        PreviewFamily::RadioHorizontal,
+        PreviewFamily::Segments,
+        PreviewFamily::Toggles,
+        PreviewFamily::Surface,
+        PreviewFamily::Select,
+        PreviewFamily::Combobox,
+        PreviewFamily::Multi,
+        PreviewFamily::Keyboard,
+    ] {
+        let window = PreviewFixture::new().unwrap();
+        window.set_family(PreviewFamily::Calendar);
+        let chosen = Rc::new(std::cell::RefCell::new(Vec::new()));
+        let output = chosen.clone();
+        window.on_chosen(move |row| output.borrow_mut().push(row));
+        slint_kit::install(&window);
+        window.show().unwrap();
+        slint::platform::update_timers_and_animations();
+        // Options were assigned before install; only the control is new. No
+        // model replacement or generation change can initialize its fence.
+        window.set_family(family);
+        slint::platform::update_timers_and_animations();
+        if family == PreviewFamily::Keyboard {
+            for key in [Key::DownArrow, Key::Return] {
+                window
+                    .window()
+                    .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+                window
+                    .window()
+                    .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+            }
+        } else {
+            if matches!(
+                family,
+                PreviewFamily::Select | PreviewFamily::Combobox | PreviewFamily::Multi
+            ) {
+                ElementQuery::from_root(&window)
+                    .match_inherits("KitSelectTrigger")
+                    .find_first()
+                    .expect("late select trigger")
+                    .mock_single_click(PointerEventButton::Left);
+            }
+            let label = if family == PreviewFamily::Carousel {
+                "Open slide"
+            } else {
+                "Alpha"
+            };
+            ElementQuery::from_root(&window)
+                .match_predicate(move |element| {
+                    element.accessible_label().as_deref() == Some(label)
+                })
+                .find_first()
+                .unwrap_or_else(|| panic!("{family:?}: missing {label}"))
+                .mock_single_click(PointerEventButton::Left);
+        }
+        assert_eq!(
+            chosen.borrow().len(),
+            1,
+            "{family:?}: initial static options must accept one gesture"
+        );
+        assert!(!chosen.borrow()[0].disabled, "{family:?}");
+        chosen.borrow_mut().clear();
+        let keys = if matches!(
+            family,
+            PreviewFamily::Select | PreviewFamily::Combobox | PreviewFamily::Multi
+        ) {
+            vec![Key::DownArrow, Key::Home, Key::Return]
+        } else {
+            vec![Key::Return]
+        };
+        for key in keys {
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+            slint::platform::update_timers_and_animations();
+        }
+        assert_eq!(
+            chosen.borrow().len(),
+            1,
+            "{family:?}: keyboard activation after late mount"
+        );
+        assert!(!chosen.borrow()[0].disabled, "{family:?}");
+    }
+}

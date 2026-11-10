@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Initialize selection controllers created after window installation, including conditional controls and popup content, without requiring an options mutation.
+- Initialise les contrôleurs de sélection créés après installation de la fenêtre, y compris les contrôles conditionnels et popups, sans exiger de mutation des options.
+
 - Expose one public `KitKeyResult` enum for keyboard hooks so Rust handlers can accept or reject events without private Slint types. Convert only at native event boundaries. **Breaking:** text-field `key-pressed`, table/pressable `key-event`, selector `tab-navigation` and public selector/navigation `handle-key` return `KitKeyResult`; Slint handlers use qualified `.accept`/`.reject` variants.
 
 

@@ -59,6 +59,7 @@ export component KitSelection inherits Rectangle {
     private property <int> gesture-source-generation: -1;
     private property <string> gesture-query;
     private property <int> source-generation: KitSelectionService.ready ? KitSelectionService.generation(root.options) : -1;
+    init => { root.invalidate(); }
     changed source-generation => { root.invalidate(); }
     changed query => { root.invalidate(); }
     out property <[OptionRow]> rows: KitSelectionService.ready ? KitSelectionService.rows(root.options, root.query, root.gesture-generation) : root.options;

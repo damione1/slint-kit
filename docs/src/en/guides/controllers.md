@@ -12,6 +12,8 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 Start with [Project setup](/guides/project-setup/) and one `slint_kit::install(&app)` per window. Interactive components own their local view state and call pure shared reducers. Business callbacks receive a checked projection that converts to a Rust domain type. Applications retain ownership of their documents, lists, tables, files and asynchronous work.
 
+Controls mounted later by `if`, model delegates or a popup initialize their own selection fence from the already installed window services. Keep one installation per window; no second install or artificial options replacement is needed.
+
 ## FieldSpec and native drafts
 
 `FieldSpec<T, E>` contains a parser, accepted-value formatter, display formatter, domain validator and error formatter. `FieldSpec::codec` is suitable when parsing expresses the full rule; `FieldSpec::new` adds a domain error type and validator. Built-ins cover text, email, URL, integers, decimal, money, percent, quantity, temporal values, telephone, OTP and masks.
