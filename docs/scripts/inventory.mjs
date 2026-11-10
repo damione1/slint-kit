@@ -112,7 +112,7 @@ export function scanComponents() {
       }
       const properties = Array.from(top.matchAll(propertyDeclaration), m => ({ direction: m[1], type: m[2], name: m[3], default: declaredDefault(m[4], m[5], body.slice(m.index, m.index + m[0].length) !== m[0]) }));
       const callbacks = Array.from(top.matchAll(/\bcallback\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^;]+))?\s*;/g), m => ({ name: m[1], signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
-      const functions = Array.from(top.matchAll(/\bpublic\s+(?:pure\s+)?function\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^{}\n]+))?/g), m => ({ signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
+      const functions = Array.from(top.matchAll(/\bpublic\s+(?:pure\s+)?function\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^{}\n]+))?/g), m => ({ name: m[1], signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
       const signatures = [...properties.map(p => p.type), ...callbacks.map(c => c.signature), ...functions.map(f => f.signature)].join(' ');
       const relatedTypes = new Map();
       function collectTypes(text) {
@@ -154,6 +154,18 @@ export function scanComponents() {
     for (const [name, documentation] of propertyDocumentation(component, properties)) properties.set(name, { ...properties.get(name), documentation });
     return [...properties.values()];
   };
+  for (const component of components) {
+    for (const kind of ['callbacks', 'functions']) {
+      const callables = new Map(component[kind].map(callable => [callable.name, callable]));
+      const en = component.en?.[kind] || {};
+      const fr = component.fr?.[kind] || {};
+      if (Object.keys(en).sort().join('\n') !== Object.keys(fr).sort().join('\n')) throw new Error(`${component.name}: documented ${kind} differ between English and French`);
+      for (const name of Object.keys(en)) {
+        if (!callables.has(name)) throw new Error(`${component.name}: unknown documented ${kind} ${name}`);
+        callables.get(name).documentation = { en: en[name], fr: fr[name] };
+      }
+    }
+  }
   for (const component of components) component.effectiveProperties = inherited(component);
   const optionPages = components.filter(component => component.sharedOption);
   for (const component of components) {

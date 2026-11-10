@@ -161,13 +161,13 @@ eleventyComputed:
 {% if component.callbacks.length %}
 ### {{ ui[locale].callbacks }}
 
-{% for callback in component.callbacks %}- `{{ callback.signature }}`
+{% for callback in component.callbacks %}- `{{ callback.signature }}`{% if callback.documentation[locale] %} — {{ callback.documentation[locale] }}{% endif %}
 {% endfor %}
 {% endif %}
 {% if component.functions.length %}
 ### {{ ui[locale].methods }}
 
-{% for method in component.functions %}- `{{ method.signature }}`
+{% for method in component.functions %}- `{{ method.signature }}`{% if method.documentation[locale] %} — {{ method.documentation[locale] }}{% endif %}
 {% endfor %}
 {% endif %}
 

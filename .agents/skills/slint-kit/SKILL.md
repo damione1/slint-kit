@@ -156,3 +156,5 @@ Keep `FilePickerBinding::set_mode` and `set_access` synchronized with the Slint 
 Slint 1.18.1 exposes no dialog role, accessible modal state or accessible-subtree hiding property. KitDialogPanel uses a named groupbox. Disabling covered controls neutralizes actions but leaves their text in screen-reader browse order; verify assistive technology on target and document this upstream limitation.
 
 Connect `KitSubmitButton.validation-requested` to form validity or explicitly set `form-no-validate`; an unconnected submit gate blocks activation. Use `form-action(FormAction)` for submit/reset. Overriding `activated` cannot replace validation.
+
+`KitDataTable` cell editing uses the installed field service, including plain text. Click selects a cell cursor; double-click, F2 and `edit-active()` open an editable field. `commit-edit()` and `cancel-edit()` share keyboard behavior. Fence `cell-committed(row-token, column-token, generation, FieldCommit)` before accepting a codec value. Localize `editable-label` and `read-only-label`.
