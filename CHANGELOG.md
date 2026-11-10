@@ -17,6 +17,9 @@
 - Preserve surviving toast delegates, keyboard focus and independent hover/focus pauses across queue additions, expiry, dismissal and capacity eviction; use incremental keyed insertion/removal without replacing the toast model.
 - Conserve les délégués de toast survivants, leur focus clavier et leurs pauses indépendantes de survol/focus lors des ajouts, expirations, fermetures et évictions ; applique des insertions/retraits incrémentaux par clé sans remplacer le modèle de toasts.
 
+- Keep an off-page accepted SelectBinding identity in a separate retained slot so its projection stays selected and cannot alias a row of a replacement page; resolve activations by token and generation.
+- Conserve l’identité acceptée hors page de SelectBinding dans un emplacement retenu distinct : sa projection reste sélectionnée sans désigner une ligne de remplacement ; les activations vérifient jeton et génération.
+
 - Preserve active combobox query drafts and native undo across remote label changes, keep outside-click focus destinations, and close suggestions below the minimum query length.
 - Conserve les brouillons de recherche de combobox et l’historique natif lors des changements de libellé distant, respecte le focus du clic extérieur et ferme les suggestions sous le seuil de recherche.
 

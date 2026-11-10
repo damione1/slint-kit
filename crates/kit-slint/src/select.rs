@@ -16,7 +16,7 @@ pub struct ProjectedOption {
     pub disabled: bool,
 }
 
-/// A coherent, immutable projection. Tokens are positions valid only within this
+/// A coherent, immutable projection. Tokens are opaque identities guarded by
 /// generation; the controller retains the application's actual stable keys.
 #[derive(Clone, Debug)]
 pub struct SelectProjection {
@@ -35,6 +35,7 @@ struct Inner<K> {
     removal_policy: RemovalPolicy,
     source: Vec<SelectOption<K>>,
     source_index: HashMap<K, i32>,
+    retained_selection: Option<(K, i32)>,
     query: String,
     rows: Rc<Vec<ProjectedOption>>,
     rows_generation: u64,
@@ -80,6 +81,7 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
                 controller,
                 removal_policy,
                 source_index: source_index(&options),
+                retained_selection: None,
                 source: options,
                 query: String::new(),
                 rows: Rc::new(Vec::new()),
@@ -103,8 +105,15 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         let inner = self.inner.borrow();
         let state = inner.controller.state();
         let token = |key: &Option<K>| {
-            key.as_ref()
-                .and_then(|key| inner.source_index.get(key).copied())
+            key.as_ref().and_then(|key| {
+                inner.source_index.get(key).copied().or_else(|| {
+                    inner
+                        .retained_selection
+                        .as_ref()
+                        .filter(|(retained, _)| retained == key)
+                        .map(|(_, token)| *token)
+                })
+            })
         };
         let active = token(&state.active);
         let selected = token(&state.selected);
@@ -141,6 +150,37 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     pub fn refresh(&self) {
         {
             let mut inner = self.inner.borrow_mut();
+            // Keep only the accepted identity outside the current result page.
+            // Its token must not alias a different row after page replacement.
+            inner.retained_selection = if inner.removal_policy == RemovalPolicy::Retain {
+                inner.controller.state().selected.clone().map(|key| {
+                    let token = inner
+                        .source_index
+                        .get(&key)
+                        .copied()
+                        .or_else(|| {
+                            inner
+                                .retained_selection
+                                .as_ref()
+                                .filter(|(held, _)| held == &key)
+                                .map(|(_, token)| *token)
+                        })
+                        .unwrap_or_else(|| {
+                            let vacant = (0..=inner.source_index.len())
+                                .find(|candidate| {
+                                    !inner.source_index.values().any(|token| {
+                                        usize::try_from(*token).ok() == Some(*candidate)
+                                    })
+                                })
+                                .expect("one more candidate than current row tokens");
+                            i32::try_from(vacant)
+                                .expect("Slint models are bounded by i32 row tokens")
+                        });
+                    (key, token)
+                })
+            } else {
+                None
+            };
             let generation = inner.controller.generation();
             if inner.rows_generation != generation {
                 inner.rows = Rc::new(
@@ -193,10 +233,14 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         }
         let key = {
             let inner = self.inner.borrow();
-            if inner.controller.generation() != generation as u64 {
+            if u64::try_from(generation).ok() != Some(inner.controller.generation()) {
                 return;
             }
-            inner.source.get(token as usize).map(|row| row.key.clone())
+            inner
+                .source
+                .iter()
+                .find(|row| inner.source_index.get(&row.key) == Some(&token))
+                .map(|row| row.key.clone())
         };
         if let Some(key) = key {
             self.apply(|c| c.activate(&key));
@@ -269,7 +313,8 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
             }
             let filtered = filter(&options, &inner.query);
             inner.controller.reconcile(filtered)?;
-            inner.source_index = source_index(&options);
+            inner.source_index =
+                source_index_retaining(&options, inner.retained_selection.as_ref());
             inner.source = options;
             (removed, retain)
         };
@@ -281,14 +326,28 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     }
 }
 fn source_index<K: Clone + Eq + Hash>(source: &[SelectOption<K>]) -> HashMap<K, i32> {
+    source_index_retaining(source, None)
+}
+fn source_index_retaining<K: Clone + Eq + Hash>(
+    source: &[SelectOption<K>],
+    retained: Option<&(K, i32)>,
+) -> HashMap<K, i32> {
+    let mut next = 0;
     source
         .iter()
-        .enumerate()
-        .map(|(index, row)| {
-            (
-                row.key.clone(),
-                i32::try_from(index).expect("Slint models are bounded by i32 row tokens"),
-            )
+        .map(|row| {
+            let token = if let Some((_, token)) = retained.filter(|(key, _)| key == &row.key) {
+                *token
+            } else {
+                if retained.and_then(|(_, token)| usize::try_from(*token).ok()) == Some(next) {
+                    next += 1;
+                }
+                let token =
+                    i32::try_from(next).expect("Slint models are bounded by i32 row tokens");
+                next += 1;
+                token
+            };
+            (row.key.clone(), token)
         })
         .collect()
 }
@@ -637,6 +696,7 @@ mod tests {
                 |_| {},
             );
             c.set_removal_policy(RemovalPolicy::Retain);
+            let retained_token = c.snapshot().selected.unwrap();
             let calls = Rc::new(RefCell::new(Vec::new()));
             let captured = calls.clone();
             c.on_intent(move |intent| captured.borrow_mut().push(intent));
@@ -647,6 +707,23 @@ mod tests {
                 SelectionAvailability::Available
             );
             assert!(calls.borrow().is_empty());
+            let snapshot = c.snapshot();
+            assert_eq!(snapshot.selected, Some(retained_token));
+            assert!(snapshot.rows.iter().all(|row| row.token != retained_token));
+            c.activate(retained_token, snapshot.generation);
+            assert_eq!(
+                c.selected(),
+                Some(9),
+                "retained identity is not a current page row"
+            );
+            let row = &snapshot.rows[0];
+            c.activate(row.token, row.generation);
+            if ownership == Ownership::Local {
+                assert_eq!(c.selected(), Some(4));
+            } else {
+                assert_eq!(c.selected(), Some(9));
+            }
+            assert_eq!(&*calls.borrow(), &[SelectionIntent::Commit(4)]);
         }
     }
 }
