@@ -16,7 +16,7 @@ Les contrôles montés ensuite par `if`, un modèle ou un popup initialisent leu
 
 ## FieldSpec et brouillons natifs
 
-`FieldSpec<T, E>` contient analyseur, format de la valeur acceptée, format d’affichage, validateur métier et format des erreurs. `FieldSpec::codec` convient lorsque l’analyse exprime toute la règle ; `FieldSpec::new` ajoute un type d’erreur et un validateur métier. Les fabriques couvrent texte, courriel, URL, entier, décimal, argent, pourcentage, quantité, valeurs temporelles, téléphone, OTP et masques.
+`FieldSpec<T, E>` contient analyseur, format de la valeur acceptée, format d’affichage, validateur métier et format des erreurs. `FieldSpec::codec` convient lorsque l’analyse exprime toute la règle ; `FieldSpec::new` ajoute un type d’erreur et un validateur métier. Les fabriques couvrent texte, courriel, URL, entier, décimal, argent, pourcentage, quantité, valeurs temporelles, téléphone, OTP et masques (`FieldSpec::masked(MaskPattern::compile("AA-####")?)`, qui partage la grammaire `#`/`A`/`*`/`\` de `KitMaskedField.mask`).
 
 Enregistrez les codecs nommés avec `install_field_specs(&app, specs)` avant l’affichage ; les doublons de `FieldSpecKey` sont rejetés atomiquement. Un codec est une définition partagée immuable. Il ne stocke jamais brouillon ou valeur acceptée d’un composant. `KitFieldService.reduce` reçoit explicitement `FieldState`, action, règles et clé du codec ; les champs conservent eux-mêmes l’état retourné.
 
@@ -129,3 +129,5 @@ Les grilles de segments conservent les positions de colonne source, y compris le
 La navigation par flèches/Début/Fin du carrousel appartient à sa propre cible de focus et à ses actions de navigation intégrées. Un éditeur natif ou une case placés dans `@children` conservent leurs touches d’édition et de formulaire ; les touches rejetées remontent à l’application. Activez les actions de diapositive par leur bouton dédié.
 
 `SelectBinding::navigate(step, page_rows)` reçoit à chaque appel la capacité actuelle `Option<NonZeroUsize>` du viewport ; `None` signifie non mesurée et refuse la navigation par page sans modifier ni engager la sélection. Les flèches/Début/Fin restent disponibles. `navigate_page` reçoit un `NonZeroUsize` explicite. La convention de fenêtre dépréciée `bind_select!` exige désormais `select-page-rows`, projeté depuis la surface active ; elle relit le getter de fenêtre faible à chaque touche. En Slint, `page-rows: 0` signifie non mesuré et PageUp/PageDown sont rejetées jusqu’à une capacité positive issue du layout.
+
+Un masque déclaratif utilise le même `MaskPattern` compilé et le moteur de contraintes HTML que l’acceptation Rust. Conservez les brouillons natifs après suppression ou mise à jour hôte ; ne soumettez que si les contraintes partagées et `FieldSpec::masked` acceptent tous deux la valeur complète.

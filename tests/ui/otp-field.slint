@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitOtpField, KitTheme, KitThemes, KitValidityState, FieldDecoration, ValidationTiming, FieldAccess } from "@kit";
+import { KitOtpField, KitMaskedField, KitTheme, KitThemes, KitValidityState, FieldDecoration, ValidationTiming, FieldAccess } from "@kit";
 export component OtpFixture inherits Window {
-    width: 600px; height: 240px;
+    width: 600px; height: 360px;
     in-out property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> dark: KitThemes.dark;
     background: root.theme.canvas;
@@ -23,6 +23,27 @@ export component OtpFixture inherits Window {
     out property <bool> validation-visible: otp.validation-visible;
     in-out property <int> edits;
     in-out property <int> commits;
+    in-out property <string> mask: "AA-####";
+    in-out property <string> masked-text;
+    in property <string> masked-spec-key;
+    in property <bool> masked-required: true;
+    in property <FieldAccess> masked-access: FieldAccess.editable;
+    out property <string> masked-placeholder: masked-field.placeholder;
+    out property <int> masked-min-length: masked-field.min-length;
+    out property <int> masked-max-length: masked-field.max-length;
+    out property <string> masked-pattern: masked-field.pattern;
+    out property <string> masked-format-error: masked-field.format-error;
+    out property <string> masked-accepted-text: masked-field.accepted-text;
+    out property <KitValidityState> masked-validity: masked-field.validity;
+    out property <bool> masked-validation-visible: masked-field.validation-visible;
+    out property <int> masked-cursor: masked-field.cursor-position;
+    out property <int> masked-anchor: masked-field.selection-anchor;
+    in-out property <int> masked-commits;
+    out property <bool> witness-focused: witness.has-focus;
+    out property <bool> masked-focused: masked-field.has-focus;
+    out property <string> witness-text: witness.text;
+    out property <int> witness-cursor: witness.cursor-position-byte-offset;
+    out property <int> witness-anchor: witness.anchor-position-byte-offset;
     public function focus-code() { otp.take-focus(); }
     public function blur-code() { other.focus(); }
     public function select-code() { otp.select-all(); }
@@ -30,10 +51,23 @@ export component OtpFixture inherits Window {
     public function reset-code() { otp.reset-validation(); }
     public function reset-field() { otp.reset-field(); }
     public function prepare-paste() { clipboard.select-all(); clipboard.copy(); }
+    public function focus-masked() { masked-field.take-focus(); }
+    public function select-masked() { masked-field.select-all(); }
+    public function set-masked-selection(anchor: int, cursor: int) { masked-field.set-selection(anchor, cursor); }
+    public function paste-masked() { masked-field.paste(); }
+    public function undo-masked() { masked-field.undo(); }
+    public function redo-masked() { masked-field.redo(); }
+    public function cut-masked() { masked-field.cut-selection(); }
+    public function commit-masked() { masked-field.commit(); }
+    public function report-masked() -> bool { return masked-field.report-validity(); }
+    public function focus-witness() { witness.focus(); }
+    public function select-witness() { witness.select-all(); }
+    public function set-witness-selection(anchor: int, cursor: int) { witness.set-selection-offsets(anchor, cursor); }
     clipboard := TextInput { visible: false; enabled: false; text: root.clipboard-text; }
+    witness := TextInput { x: 24px; y: 300px; width: 300px; height: 32px; single-line: true; }
     other := FocusScope { width: 0px; height: 0px; }
     VerticalLayout {
-        padding: 24px; alignment: start;
+        padding: 24px; spacing: 12px; alignment: start;
         otp := KitOtpField {
             theme: root.theme; label: "Verification code"; slots: root.slots; required: true;
             max-length: root.maximum;
@@ -47,6 +81,15 @@ export component OtpFixture inherits Window {
             edited(value) => { root.edits += 1; root.last-edited = value; root.edit-observed(value); }
             value-edited(value) => { root.semantic-value = value; root.value-observed(value); }
             commit-requested(value) => { root.commits += 1; }
+        }
+        masked-field := KitMaskedField {
+            theme: root.theme; label: "Project reference"; mask: root.mask;
+            required: root.masked-required;
+            spec-key: root.masked-spec-key;
+            access: root.masked-access;
+            text <=> root.masked-text;
+            validation-timing: ValidationTiming.on-submit;
+            committed(commit) => { root.masked-commits += 1; }
         }
     }
 }

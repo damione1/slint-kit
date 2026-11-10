@@ -9,9 +9,9 @@ use slint_kit::{
     AbsencePolicy, CommitPolicy, CommitTrigger, CurrencyMetadata, DecimalRules, DecimalScale,
     DecimalValue, DraftValue, DurationUnit, DurationValue, FieldAccess, FieldBinding, FieldError,
     FieldFailure, FieldIntent, FieldProjection, FormCoordinator, FormIntent, GraphemeLimit,
-    MaskPattern, MaskToken, MaskedValue, Money, NumberLocale, NumericBounds, OtpAlphabet,
-    OtpLength, OtpValue, Ownership, ParseIssue, Percent, Quantity, RoundingPolicy, SignPolicy,
-    StepDirection, ValidationPresentation, format_decimal, grapheme_count, parse_integer,
+    MaskPattern, MaskedValue, Money, NumberLocale, NumericBounds, OtpAlphabet, OtpLength, OtpValue,
+    Ownership, ParseIssue, Percent, Quantity, RoundingPolicy, SignPolicy, StepDirection,
+    ValidationPresentation, format_decimal, grapheme_count, parse_integer,
 };
 use std::{
     cell::{Cell, RefCell},
@@ -463,16 +463,7 @@ fn parse_password(text: &str) -> DraftValue<SecretText> {
     }
 }
 fn reference_mask() -> MaskPattern {
-    MaskPattern::new(vec![
-        MaskToken::Letter,
-        MaskToken::Letter,
-        MaskToken::Literal('-'),
-        MaskToken::Digit,
-        MaskToken::Digit,
-        MaskToken::Digit,
-        MaskToken::Digit,
-    ])
-    .expect("the reference mask is statically valid")
+    MaskPattern::compile("AA-####").expect("the reference mask is statically valid")
 }
 fn decimal(value: &str) -> DecimalValue {
     DecimalValue::parse_canonical(value).expect("valid sample decimal")

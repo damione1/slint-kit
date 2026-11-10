@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-use kit_core::{HtmlConstraints, HtmlInputState, HtmlPattern, HtmlValidity};
-use std::{cell::RefCell, collections::VecDeque};
+use kit_core::{
+    HtmlConstraints, HtmlInputState, HtmlPattern, HtmlValidity, MaskPattern, ParseIssue,
+};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 /// Window-local, bounded pattern cache. Patterns are authored by the application.
 #[derive(Default)]
 pub struct HtmlValidationEngine {
     patterns: RefCell<VecDeque<(String, Result<HtmlPattern, String>)>>,
+    masks: RefCell<VecDeque<CachedMask>>,
+}
+struct CachedMask {
+    source: String,
+    compiled: Result<Rc<MaskPattern>, ParseIssue>,
 }
 impl HtmlValidationEngine {
     pub fn pattern(&self, source: &str) -> Result<HtmlPattern, String> {
@@ -19,6 +26,25 @@ impl HtmlValidationEngine {
             cache.pop_front();
         }
         cache.push_back((source.into(), result.clone()));
+        result
+    }
+    pub fn mask(&self, source: &str) -> Result<Rc<MaskPattern>, ParseIssue> {
+        // Never retain an arbitrarily large invalid source as a cache key.
+        if source.len() > MaskPattern::MAX_SOURCE_BYTES {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        let mut cache = self.masks.borrow_mut();
+        if let Some(entry) = cache.iter().find(|entry| entry.source == source) {
+            return entry.compiled.clone();
+        }
+        let result = MaskPattern::compile(source).map(Rc::new);
+        if cache.len() == 64 {
+            cache.pop_front();
+        }
+        cache.push_back(CachedMask {
+            source: source.into(),
+            compiled: result.clone(),
+        });
         result
     }
 
@@ -114,6 +140,17 @@ macro_rules! init_form_validation {
     }};
 }
 
+// Native offsets can still describe the previous text after a host replacement.
+// Apply the native editor's bounded UTF-8 insertion projection before checking
+// the mask; do not change the native selection or rewrite the draft.
+fn native_mask_offsets(text: &str, anchor: i32, cursor: i32) -> (usize, usize) {
+    let project = |offset: i32| {
+        let offset = usize::try_from(offset.max(0)).expect("nonnegative native byte offset");
+        text.ceil_char_boundary(offset)
+    };
+    (project(anchor), project(cursor))
+}
+
 /// Register the shared HTML constraint engine once for this window.
 pub(crate) fn install_validation<W>(window: &W)
 where
@@ -125,7 +162,7 @@ where
     if global.get_ready() {
         return;
     }
-    let engine = crate::HtmlValidationEngine::default();
+    let engine = Rc::new(crate::HtmlValidationEngine::default());
     global.on_grapheme_count(|text| {
         i32::try_from(crate::__core::grapheme_count(text.as_str()))
             .expect("Slint string count fits i32")
@@ -160,6 +197,48 @@ where
             cursor_byte_offset: i32::try_from(limited.cursor_byte_offset)
                 .expect("Slint text offset fits i32"),
         }
+    });
+    let mask_compile_engine = Rc::clone(&engine);
+    global.on_compile_mask(move |source, message| {
+        if source.is_empty() {
+            return ui::KitMaskRules {
+                length: -1,
+                placeholder: Default::default(),
+                pattern: Default::default(),
+                error: Default::default(),
+            };
+        }
+        if let Ok(mask) = mask_compile_engine.mask(source.as_str()) {
+            ui::KitMaskRules {
+                length: i32::from(mask.utf16_length()),
+                placeholder: mask.placeholder().into(),
+                pattern: mask.html_pattern_source().into(),
+                error: Default::default(),
+            }
+        } else {
+            ui::KitMaskRules {
+                length: -1,
+                placeholder: Default::default(),
+                pattern: Default::default(),
+                error: message,
+            }
+        }
+    });
+    let mask_insert_engine = Rc::clone(&engine);
+    global.on_mask_insertion(move |mask, current, anchor, cursor, inserted| {
+        let Ok(compiled) = mask_insert_engine.mask(mask.as_str()) else {
+            return false;
+        };
+        let (anchor, cursor) = native_mask_offsets(current.as_str(), anchor, cursor);
+        compiled.accepts_key_insertion(current.as_str(), anchor, cursor, inserted.as_str())
+    });
+    let mask_paste_engine = Rc::clone(&engine);
+    global.on_mask_paste(move |mask, current, anchor, cursor, inserted| {
+        let Ok(compiled) = mask_paste_engine.mask(mask.as_str()) else {
+            return false;
+        };
+        let (anchor, cursor) = native_mask_offsets(current.as_str(), anchor, cursor);
+        compiled.accepts_edit(current.as_str(), anchor, cursor, inserted.as_str())
     });
     global.on_phone_insertion(|text| crate::__core::phone_insertion(text.as_str()));
     #[cfg(target_arch = "wasm32")]
@@ -260,4 +339,50 @@ where
         }
     });
     global.set_ready(true);
+}
+
+#[cfg(test)]
+mod mask_cache_tests {
+    use super::HtmlValidationEngine;
+    use kit_core::{MaskPattern, ParseIssue};
+    use std::rc::Rc;
+
+    #[test]
+    fn native_offsets_follow_host_text_replacement_before_mask_insertion() {
+        let mask = MaskPattern::compile("AA-####").unwrap();
+        let (anchor, cursor) = super::native_mask_offsets("", 0, 5);
+        assert_eq!((anchor, cursor), (0, 0));
+        assert!(mask.accepts_key_insertion("", anchor, cursor, "AB-1234"));
+        assert_eq!(super::native_mask_offsets("éA", -1, 1), (0, 2));
+        assert_eq!(super::native_mask_offsets("éA", 99, 2), (3, 2));
+    }
+
+    #[test]
+    fn caches_compiled_masks_and_evicts_oldest_past_sixty_four_entries() {
+        let engine = HtmlValidationEngine::default();
+        let first = engine.mask("AA-####").unwrap();
+        let cached = engine.mask("AA-####").unwrap();
+        assert!(Rc::ptr_eq(&first, &cached));
+        assert_eq!(engine.mask("---"), Err(ParseIssue::InvalidSyntax));
+        assert_eq!(engine.mask("---"), Err(ParseIssue::InvalidSyntax));
+
+        let engine = HtmlValidationEngine::default();
+        let first = engine.mask("A#0").unwrap();
+        for index in 1..64 {
+            assert!(engine.mask(&format!("A#{index}")).is_ok());
+        }
+        assert!(Rc::ptr_eq(&first, &engine.mask("A#0").unwrap()));
+        assert!(engine.mask("A#64").is_ok());
+        assert!(!Rc::ptr_eq(&first, &engine.mask("A#0").unwrap()));
+        let entries = engine.masks.borrow().len();
+        assert_eq!(
+            engine.mask(&"A".repeat(kit_core::MaskPattern::MAX_SOURCE_BYTES + 1)),
+            Err(ParseIssue::InvalidSyntax)
+        );
+        assert_eq!(
+            engine.masks.borrow().len(),
+            entries,
+            "oversized sources are not retained"
+        );
+    }
 }

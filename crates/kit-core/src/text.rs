@@ -83,6 +83,16 @@ pub enum MaskToken {
     Letter,
     Alphanumeric,
 }
+impl MaskToken {
+    fn matches(self, value: char) -> bool {
+        match self {
+            Self::Literal(expected) => value == expected,
+            Self::Digit => value.is_ascii_digit(),
+            Self::Letter => value.is_ascii_alphabetic(),
+            Self::Alphanumeric => value.is_ascii_alphanumeric(),
+        }
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MaskPattern {
     tokens: Vec<MaskToken>,
@@ -95,9 +105,13 @@ impl MaskedValue {
     }
 }
 impl MaskPattern {
+    const MAX_TOKENS: usize = 256;
+    /// Maximum UTF-8 source size: each token can be an escaped four-byte scalar.
+    pub const MAX_SOURCE_BYTES: usize = Self::MAX_TOKENS * 5;
+
     pub fn new(tokens: Vec<MaskToken>) -> Result<Self, ParseIssue> {
         if tokens.is_empty()
-            || tokens.len() > 256
+            || tokens.len() > Self::MAX_TOKENS
             || tokens
                 .iter()
                 .all(|token| matches!(token, MaskToken::Literal(_)))
@@ -106,8 +120,141 @@ impl MaskPattern {
         }
         Ok(Self { tokens })
     }
+    /// Compile a bounded mask string: `#` is an ASCII digit, `A` is an ASCII
+    /// letter, `*` is an ASCII alphanumeric slot, `\` escapes the next
+    /// character as a literal, and every other character is a literal.
+    pub fn compile(source: &str) -> Result<Self, ParseIssue> {
+        if source.len() > Self::MAX_SOURCE_BYTES {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        let mut tokens = Vec::new();
+        let mut chars = source.chars();
+        while let Some(ch) = chars.next() {
+            let token = match ch {
+                '#' => MaskToken::Digit,
+                'A' => MaskToken::Letter,
+                '*' => MaskToken::Alphanumeric,
+                '\\' => MaskToken::Literal(chars.next().ok_or(ParseIssue::InvalidSyntax)?),
+                literal => MaskToken::Literal(literal),
+            };
+            tokens.push(token);
+            if tokens.len() > Self::MAX_TOKENS {
+                return Err(ParseIssue::InvalidSyntax);
+            }
+        }
+        Self::new(tokens)
+    }
     pub fn tokens(&self) -> &[MaskToken] {
         &self.tokens
+    }
+    /// UTF-16 code unit length of a complete value matching this mask.
+    pub fn utf16_length(&self) -> u16 {
+        let units: usize = self
+            .tokens
+            .iter()
+            .map(|token| match token {
+                MaskToken::Literal(value) => value.len_utf16(),
+                MaskToken::Digit | MaskToken::Letter | MaskToken::Alphanumeric => 1,
+            })
+            .sum();
+        u16::try_from(units).expect("bounded mask length fits in u16")
+    }
+    /// Visual placeholder using `_` for editable slots and preserving literals.
+    pub fn placeholder(&self) -> String {
+        self.tokens
+            .iter()
+            .map(|token| match token {
+                MaskToken::Literal(value) => *value,
+                MaskToken::Digit | MaskToken::Letter | MaskToken::Alphanumeric => '_',
+            })
+            .collect()
+    }
+    /// Full-value ECMAScript UnicodeSets pattern source for the shared HTML engine.
+    pub fn html_pattern_source(&self) -> String {
+        use std::fmt::Write as _;
+        let mut pattern = String::new();
+        for token in &self.tokens {
+            match token {
+                MaskToken::Digit => pattern.push_str("[0-9]"),
+                MaskToken::Letter => pattern.push_str("[A-Za-z]"),
+                MaskToken::Alphanumeric => pattern.push_str("[A-Za-z0-9]"),
+                MaskToken::Literal(value) => {
+                    let _ = write!(&mut pattern, "\\u{{{:X}}}", u32::from(*value));
+                }
+            }
+        }
+        pattern
+    }
+    /// Whether `text` is an empty, partial, or complete prefix matching this mask.
+    pub fn accepts_draft(&self, text: &str) -> bool {
+        let mut tokens = self.tokens.iter();
+        for value in text.chars() {
+            let Some(token) = tokens.next() else {
+                return false;
+            };
+            if !token.matches(value) {
+                return false;
+            }
+        }
+        true
+    }
+    /// Longest prefix of `value` that satisfies this mask from the first token.
+    pub fn valid_prefix<'a>(&self, value: &'a str) -> &'a str {
+        let mut tokens = self.tokens.iter();
+        for (index, ch) in value.char_indices() {
+            let Some(token) = tokens.next() else {
+                return &value[..index];
+            };
+            if !token.matches(ch) {
+                return &value[..index];
+            }
+        }
+        value
+    }
+    /// Whether replacing `current[anchor..cursor]` with `inserted` keeps a valid mask prefix.
+    pub fn accepts_edit(
+        &self,
+        current: &str,
+        anchor_byte_offset: usize,
+        cursor_byte_offset: usize,
+        inserted: &str,
+    ) -> bool {
+        let start = anchor_byte_offset.min(cursor_byte_offset);
+        let end = anchor_byte_offset.max(cursor_byte_offset);
+        if end > current.len() || !current.is_char_boundary(start) || !current.is_char_boundary(end)
+        {
+            return false;
+        }
+        let mut candidate = String::with_capacity(current.len() - (end - start) + inserted.len());
+        candidate.push_str(&current[..start]);
+        candidate.push_str(inserted);
+        candidate.push_str(&current[end..]);
+        if self.accepts_draft(&candidate) {
+            return true;
+        }
+        // A native deletion or a host assignment may leave an invalid draft.
+        // Permit incremental repair of its first mismatch without replacing
+        // the suffix, caret or native history on the application's behalf.
+        !self.accepts_draft(current)
+            && self.valid_prefix(&candidate).chars().count()
+                > self.valid_prefix(current).chars().count()
+    }
+    /// Whether a `key-pressed` text payload is either a non-text navigation/editing
+    /// key or an insertion that keeps the draft a valid mask prefix.
+    pub fn accepts_key_insertion(
+        &self,
+        current: &str,
+        anchor_byte_offset: usize,
+        cursor_byte_offset: usize,
+        inserted: &str,
+    ) -> bool {
+        // Public key events can contain navigation codes or text delivered by
+        // an input method. Filter ordinary ASCII insertions only; non-ASCII
+        // input remains native and is checked by complete-draft validation.
+        if inserted.is_empty() || !inserted.is_ascii() || inserted.chars().any(char::is_control) {
+            return true;
+        }
+        self.accepts_edit(current, anchor_byte_offset, cursor_byte_offset, inserted)
     }
     /// ASCII slots are deliberately bounded. Unicode user text belongs in TextField.
     /// Literals are supplied by the user/native editor; no caret-changing insertion occurs.
@@ -115,23 +262,18 @@ impl MaskPattern {
         if text.is_empty() {
             return DraftValue::Empty;
         }
-        let chars: Vec<char> = text.chars().collect();
-        if chars.len() > self.tokens.len() {
-            return DraftValue::Invalid(ParseIssue::InvalidSyntax);
+        let mut count = 0usize;
+        let mut tokens = self.tokens.iter();
+        for value in text.chars() {
+            let Some(token) = tokens.next() else {
+                return DraftValue::Invalid(ParseIssue::InvalidSyntax);
+            };
+            if !token.matches(value) {
+                return DraftValue::Invalid(ParseIssue::InvalidSyntax);
+            }
+            count += 1;
         }
-        if chars
-            .iter()
-            .zip(&self.tokens)
-            .any(|(value, token)| !match token {
-                MaskToken::Literal(expected) => value == expected,
-                MaskToken::Digit => value.is_ascii_digit(),
-                MaskToken::Letter => value.is_ascii_alphabetic(),
-                MaskToken::Alphanumeric => value.is_ascii_alphanumeric(),
-            })
-        {
-            return DraftValue::Invalid(ParseIssue::InvalidSyntax);
-        }
-        if chars.len() < self.tokens.len() {
+        if count < self.tokens.len() {
             DraftValue::Incomplete
         } else {
             DraftValue::Parsed(MaskedValue(text.into()))
@@ -220,6 +362,76 @@ mod tests {
             DraftValue::Invalid(ParseIssue::InvalidSyntax)
         );
         assert!(GraphemeLimit::new(1).validate("👩‍💻").is_ok());
+    }
+    #[test]
+    fn mask_compile_handles_slots_literals_escapes_and_bounds() {
+        let mask = MaskPattern::compile("AA-####\\*\\#\\A\\\\").unwrap();
+        assert_eq!(
+            mask.tokens(),
+            &[
+                MaskToken::Letter,
+                MaskToken::Letter,
+                MaskToken::Literal('-'),
+                MaskToken::Digit,
+                MaskToken::Digit,
+                MaskToken::Digit,
+                MaskToken::Digit,
+                MaskToken::Literal('*'),
+                MaskToken::Literal('#'),
+                MaskToken::Literal('A'),
+                MaskToken::Literal('\\'),
+            ]
+        );
+        assert_eq!(mask.utf16_length(), 11);
+        assert_eq!(mask.placeholder(), "__-____*#A\\");
+        let pattern = HtmlPattern::compile(&mask.html_pattern_source()).unwrap();
+        assert!(pattern.matches("Ab-1234*#A\\"));
+        assert!(!pattern.matches("Ab-1234"));
+        assert!(!pattern.matches("Ab_1234*#A\\"));
+
+        let max_mask = "#".repeat(256);
+        assert!(MaskPattern::compile(&max_mask).is_ok());
+        assert_eq!(
+            MaskPattern::compile(&"#".repeat(257)),
+            Err(ParseIssue::InvalidSyntax)
+        );
+        assert_eq!(MaskPattern::compile(""), Err(ParseIssue::InvalidSyntax));
+        assert_eq!(MaskPattern::compile("---"), Err(ParseIssue::InvalidSyntax));
+        assert_eq!(
+            MaskPattern::compile("\\#\\A\\*"),
+            Err(ParseIssue::InvalidSyntax)
+        );
+        assert_eq!(MaskPattern::compile("#\\"), Err(ParseIssue::InvalidSyntax));
+
+        let astral = MaskPattern::compile("🔑*").unwrap();
+        assert_eq!(astral.utf16_length(), 3);
+        assert_eq!(astral.placeholder(), "🔑_");
+        assert!(astral.accepts_draft("🔑"));
+        assert!(astral.accepts_draft("🔑9"));
+        assert!(!astral.accepts_draft("🔑!"));
+        assert_eq!(
+            astral.parse("🔑Z"),
+            DraftValue::Parsed(MaskedValue("🔑Z".into()))
+        );
+    }
+    #[test]
+    fn mask_prefix_edits_preserve_native_drafts_and_allow_incremental_repairs() {
+        let mask = MaskPattern::compile("AA-####").unwrap();
+        assert_eq!(mask.valid_prefix("AB-12x9"), "AB-12");
+        assert_eq!(mask.valid_prefix("AB-123456"), "AB-1234");
+        assert!(mask.accepts_edit("AB-", 3, 3, "12"));
+        assert!(!mask.accepts_edit("AB-", 3, 3, "XY"));
+        assert!(mask.accepts_edit("AB-1234", 3, 7, "9876"));
+        assert!(!mask.accepts_edit("AB-1234", 0, 2, "12"));
+        assert!(mask.accepts_key_insertion("AB-12", 5, 5, "\u{8}"));
+        assert!(mask.accepts_key_insertion("AB-12", 5, 5, "\u{f700}"));
+        assert!(!mask.accepts_key_insertion("AB-12", 5, 5, "Z"));
+
+        assert!(mask.accepts_edit("-12", 0, 0, "A"));
+        assert!(mask.accepts_edit("A-12", 1, 1, "B"));
+        assert!(!mask.accepts_edit("-12", 0, 0, "9"));
+        assert!(mask.accepts_key_insertion("AB-12", 5, 5, "界"));
+        assert!(!mask.accepts_draft("AB-12界"));
     }
 }
 

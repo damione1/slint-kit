@@ -16,7 +16,7 @@ import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } fr
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
 export { PhoneNumberMode } from "shared-contracts.slint";
-import { KitFormValidation, FormConstraintState, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
+import { KitFormValidation, FormConstraintState, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 
 export { FieldDecoration } from "field.slint";
 
@@ -137,6 +137,8 @@ export component KitTextField inherits KitField {
         : root.purpose == TextPurpose.password ? HtmlInputKind.password
         : root.purpose == TextPurpose.search ? HtmlInputKind.search : HtmlInputKind.text;
     in property <bool> validation-twelve-hour;
+    in property <string> validation-mask;
+    private property <bool> mask-ready: root.validation-mask == "" || KitFormValidation.ready;
     in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
     // Custom skins may normalize validation independently of the native draft.
     in property <string> validation-text: root.text;
@@ -277,10 +279,10 @@ export component KitTextField inherits KitField {
     public function take-focus() { if (root.access != FieldAccess.disabled) { if (root.menu-opened) { text-menu.close(); } editor.focus(); } }
     public function select-all() { editor.select-all(); }
     public function copy-selection() { if (!root.hidden-password) { editor.copy(); } }
-    public function cut-selection() { if (root.access == FieldAccess.editable && !root.hidden-password) { editor.cut(); } }
+    public function cut-selection() { if (root.access == FieldAccess.editable && root.mask-ready && !root.hidden-password) { editor.cut(); } }
     public function paste() { if (root.access == FieldAccess.editable && root.paste-allowed()) { editor.paste(); } }
-    public function undo() { if (root.access == FieldAccess.editable) { editor.undo(); } }
-    public function redo() { if (root.access == FieldAccess.editable) { editor.redo(); } }
+    public function undo() { if (root.access == FieldAccess.editable && root.mask-ready) { editor.undo(); } }
+    public function redo() { if (root.access == FieldAccess.editable && root.mask-ready) { editor.redo(); } }
     public function clear() {
         if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") {
             root.take-focus();
@@ -313,7 +315,9 @@ export component KitTextField inherits KitField {
     changed context-menu => { if (root.context-menu == TextContextMenu.disabled && root.menu-opened) { root.close-text-menu(); } }
     changed hidden-password => { if (root.menu-opened) { root.close-text-menu(); } }
     function paste-allowed() -> bool {
+        if (!root.mask-ready) { return false; }
         clipboard-probe.text = ""; clipboard-probe.paste();
+        if (root.validation-mask != "" && KitFormValidation.ready && !KitFormValidation.mask-paste(root.validation-mask, root.text, root.selection-anchor, root.cursor-position, clipboard-probe.text)) { return false; }
         if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !KitFormValidation.phone-paste(clipboard-probe.text)) { return false; }
         if (root.input-type == InputType.decimal) {
             if (root.non-finite-number(clipboard-probe.text)) { return false; }
@@ -492,7 +496,7 @@ export component KitTextField inherits KitField {
                             height: viewport.content-height;
                             text <=> root.text;
                             enabled: root.access != FieldAccess.disabled;
-                            read-only: root.access == FieldAccess.read-only || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
+                            read-only: root.access == FieldAccess.read-only || !root.mask-ready || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
                             single-line: !root.multiline;
                             wrap: root.multiline ? word-wrap : no-wrap;
                             input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
@@ -538,6 +542,7 @@ export component KitTextField inherits KitField {
                                 if (root.access == FieldAccess.editable && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V")) || (event.modifiers.shift && event.text == Key.Insert))) {
                                     if (!root.paste-allowed()) { return accept; }
                                 } else {
+                                    if (root.validation-mask != "" && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.mask-insertion(root.validation-mask, self.text, root.selection-anchor, root.cursor-position, event.text)) { return accept; }
                                     if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
                                     if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
                                     if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
@@ -725,5 +730,17 @@ export component KitOtpField inherits KitTextField {
 // A compiled core mask validates the complete draft without rewriting the native
 // editor during composition. Separators remain ordinary selectable characters.
 export component KitMaskedField inherits KitTextField {
+    in property <string> mask;
+    private property <KitMaskRules> mask-rules: KitFormValidation.ready ? KitFormValidation.compile-mask(root.mask, KitStrings.mask-format-message) : { length: -1 };
+    out property <string> format-error: root.mask-rules.error;
+    validation-mask: root.mask;
+    min-length: root.mask-rules.length;
+    max-length: root.mask-rules.length;
+    // Do not rewrite host values or native deletion/undo transactions. The
+    // derived HTML bounds validate paths that cannot be filtered beforehand.
+    length-policy: TextLengthPolicy.validate;
+    intrinsic-error: root.format-error;
+    pattern: root.mask-rules.pattern;
+    placeholder: root.mask-rules.placeholder;
     input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
 }
