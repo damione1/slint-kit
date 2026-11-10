@@ -28,6 +28,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Document text-field callback payloads, native editing functions, focus, visibility, localization and accessibility in English and French; retain generated API tables and inherited reference links.
+- Documente en français et anglais les callbacks, fonctions natives, focus, visibilité, localisation et accessibilité des champs ; conserve les tableaux API générés et liens hérités.
+
 - Preserve text-field help alongside accessible errors, expose placeholder/required/count/pending descriptions and localisable visible required text; document Slint accessibility and mobile input limits.
 - Préserve l’aide avec les erreurs accessibles, expose espace réservé/obligation/compteur/vérification et l’indication d’obligation localisable ; documente les limites Slint d’accessibilité et saisie mobile.
 

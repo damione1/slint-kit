@@ -59,6 +59,17 @@ eleventyComputed:
 
 {{ text.behavior | prose | safe }}
 
+{% if text.states %}
+### {% if locale == 'fr' %}États du contrôle{% else %}Control states{% endif %}
+
+{{ text.states | prose | safe }}
+{% endif %}
+{% if text.accessibility %}
+### {% if locale == 'fr' %}Accessibilité du contrôle{% else %}Control accessibility{% endif %}
+
+{{ text.accessibility | prose | safe }}
+{% endif %}
+
 {% if component.name == "KitTelephoneField" %}{% include "telephone-options.njk" %}{% endif %}
 
 {% if component.name == 'KitDialogSurface' or component.name == 'KitFocusTarget' %}{% if locale == 'fr' %}Pour relier plusieurs déclencheurs, des couches imbriquées, Tab, Échap, Retour et l’état occupé à `OverlayStack` et `FocusRegistry`, suivez l’[application complète de dialogues](/fr/guides/dialog-example/).{% else %}To connect several triggers, nested layers, Tab, Escape, Back and the busy state to `OverlayStack` and `FocusRegistry`, follow the [complete dialog application](/guides/dialog-example/).{% endif %}{% endif %}
