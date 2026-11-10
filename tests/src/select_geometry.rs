@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use super::{OptionRow, SelectGeometryFixture, SelectState};
+use super::{OptionRow, SearchPresentation, SelectGeometryFixture, SelectState};
 use i_slint_backend_testing::{ElementHandle, ElementQuery};
 use slint::{ComponentHandle, ModelRc, VecModel};
+use std::{cell::Cell, rc::Rc};
 
 fn rows(count: usize) -> ModelRc<OptionRow> {
     ModelRc::new(VecModel::from(
@@ -42,19 +43,22 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
         });
         slint::platform::update_timers_and_animations();
         let height = surface(&window).size().height;
+        let expected_three = if combobox { 140.0..200.0 } else { 190.0..250.0 };
         assert!(
-            (190.0..250.0).contains(&height),
+            expected_three.contains(&height),
             "three rows need a compact popup: {height}"
         );
         window.set_rows(rows(1));
         let height = surface(&window).size().height;
+        let expected_one = if combobox { 55.0..110.0 } else { 90.0..150.0 };
         assert!(
-            (90.0..150.0).contains(&height),
+            expected_one.contains(&height),
             "filtered popup follows its content: {height}"
         );
         window.set_rows(rows(0));
+        let minimum_empty = if combobox { 55.0 } else { 90.0 };
         assert!(
-            surface(&window).size().height >= 90.0,
+            surface(&window).size().height >= minimum_empty,
             "empty state keeps a usable viewport"
         );
         window.set_rows(rows(200));
@@ -70,13 +74,14 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
     i_slint_backend_testing::init_no_event_loop();
     let window = SelectGeometryFixture::new().unwrap();
     window.set_combobox(true);
+    window.set_selected_label("".into());
     window.set_rows(rows(3));
     window.show().unwrap();
-    let _ = ElementQuery::from_root(&window)
+    let combobox = ElementQuery::from_root(&window)
         .match_inherits("KitCombobox")
         .find_first()
-        .unwrap()
-        .size();
+        .unwrap();
+    let _ = combobox.size();
     window.set_state(SelectState {
         open: true,
         ..Default::default()
@@ -104,20 +109,97 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
         (text.absolute_position().x - row.absolute_position().x - window.get_row_padding()).abs()
             < 1.0
     );
-    let placeholder = ElementQuery::from_root(&window)
+    let placeholder = combobox
+        .query_descendants()
         .match_type_name("Text")
         .match_predicate(|element| element.accessible_label().as_deref() == Some("Workspace"))
         .find_first()
-        .expect("search field exposes its placeholder");
+        .expect("inline combobox field exposes its placeholder");
     assert!(placeholder.size().width > 100.0);
-    let search = surface(&window)
+    let search = combobox
         .query_descendants()
         .match_type_name("TextInput")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Workspace"))
         .find_first()
         .unwrap();
     window.set_query("a very long query ".repeat(30).into());
     assert!(
         search.is_valid(),
         "query updates preserve the native editor"
+    );
+}
+
+#[test]
+fn combobox_renders_descriptions_loading_with_results_custom_geometry_and_end_reached() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = SelectGeometryFixture::new().unwrap();
+    window.set_combobox(true);
+    window.set_popup_height(220.0);
+    window.set_row_height(56.0);
+    let reached = Rc::new(Cell::new(0));
+    let observed = reached.clone();
+    window.on_end_reached(move || observed.set(observed.get() + 1));
+    window.set_rows(ModelRc::new(VecModel::from(vec![
+        OptionRow {
+            token: 1,
+            generation: 1,
+            label: "Primary".into(),
+            description: "Default workspace".into(),
+            disabled: false,
+        },
+        OptionRow {
+            token: 2,
+            generation: 1,
+            label: "Staging".into(),
+            description: "Preview environment".into(),
+            disabled: false,
+        },
+    ])));
+    window.set_search_state(SearchPresentation::Loading);
+    window.set_status_text("Loading more workspaces…".into());
+    window.show().unwrap();
+    let _ = ElementQuery::from_root(&window)
+        .match_inherits("KitCombobox")
+        .find_first()
+        .unwrap()
+        .size();
+    window.set_state(SelectState {
+        open: true,
+        ..Default::default()
+    });
+    slint::platform::update_timers_and_animations();
+    let popup_surface = surface(&window);
+    assert!(popup_surface.size().height <= 220.0);
+    for list in ElementQuery::from_root(&window)
+        .match_inherits("ListView")
+        .find_all()
+    {
+        let _ = list.size();
+    }
+    let first_row = ElementQuery::from_root(&window)
+        .match_inherits("KitOption")
+        .find_first()
+        .unwrap();
+    assert!((first_row.size().height - 56.0).abs() < 1.0);
+    assert!(
+        first_row
+            .query_descendants()
+            .match_type_name("Text")
+            .find_all()
+            .iter()
+            .any(|t| t.accessible_label().as_deref() == Some("Default workspace")),
+        "combobox option renders row.description"
+    );
+    assert!(
+        popup_surface
+            .query_descendants()
+            .match_inherits("KitSpinner")
+            .find_first()
+            .is_some(),
+        "popup shows spinner while search-state is loading even when rows exist"
+    );
+    assert!(
+        reached.get() >= 1,
+        "end-reached fires when visible rows reach the end of the list"
     );
 }

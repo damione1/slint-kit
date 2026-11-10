@@ -355,3 +355,68 @@ fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements
         assert_eq!(window.get_combo_selected_label(), "Apricot");
     }
 }
+
+#[test]
+fn combobox_inline_editing_respects_min_query_length_debounce_custom_value_and_clear() {
+    let (window, _choices) = fixture();
+    window.set_combo_min_query_length(2);
+    window.set_combo_query_debounce(50);
+    window.set_combo_allow_custom(true);
+    window.set_combo_clearable(true);
+
+    let queries = Rc::new(RefCell::new(Vec::new()));
+    let observed_queries = queries.clone();
+    window.on_combo_query_edited(move |q| observed_queries.borrow_mut().push(q.to_string()));
+
+    let customs = Rc::new(RefCell::new(Vec::new()));
+    let observed_customs = customs.clone();
+    window.on_combo_custom_chosen(move |val| observed_customs.borrow_mut().push(val.to_string()));
+
+    let cleared = Rc::new(RefCell::new(0usize));
+    let observed_cleared = cleared.clone();
+    window.on_combo_cleared(move || *observed_cleared.borrow_mut() += 1);
+
+    window.invoke_focus_combo();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "C".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "C".into() });
+    assert_eq!(window.get_combo_text(), "C");
+    assert_eq!(window.get_combo_query(), "");
+    assert!(!window.get_combo_state().open);
+    assert!(queries.borrow().is_empty());
+
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "u".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "u".into() });
+    assert_eq!(window.get_combo_text(), "Cu");
+    assert_eq!(window.get_combo_query(), "Cu");
+    assert!(window.get_combo_state().open);
+    assert!(
+        queries.borrow().is_empty(),
+        "debounced query waits for timer"
+    );
+
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(60));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(&*queries.borrow(), &["Cu"]);
+    assert!(
+        window.get_combo_validity().valid,
+        "allow-custom-value satisfies required with custom text"
+    );
+
+    // Pressing Return with no matching option commits the custom value.
+    key(&window, Key::Return);
+    assert_eq!(&*customs.borrow(), &["Cu"]);
+
+    // Clearing resets text, query, and emits cleared().
+    window.invoke_clear_combo();
+    assert_eq!(window.get_combo_text(), "");
+    assert_eq!(window.get_combo_query(), "");
+    assert_eq!(*cleared.borrow(), 1);
+}
