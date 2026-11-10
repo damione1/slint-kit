@@ -623,3 +623,232 @@ fn otp_placeholder_paints_a_complete_digit_in_every_slot_at_200_percent() {
         }
     }
 }
+
+#[test]
+fn masked_field_derives_placeholder_bounds_pattern_and_reports_invalid_mask_syntax() {
+    let app = fixture();
+    assert_eq!(app.get_masked_placeholder(), "__-____");
+    assert_eq!(app.get_masked_min_length(), 7);
+    assert_eq!(app.get_masked_max_length(), 7);
+    assert_eq!(
+        app.get_masked_pattern(),
+        "[A-Za-z][A-Za-z]\\u{2D}[0-9][0-9][0-9][0-9]"
+    );
+    assert_eq!(app.get_masked_format_error(), "");
+
+    app.set_mask("---".into());
+    assert!(!app.get_masked_format_error().is_empty());
+    assert_eq!(app.get_masked_min_length(), -1);
+    assert_eq!(app.get_masked_max_length(), -1);
+    assert_eq!(app.get_masked_placeholder(), "");
+    assert_eq!(app.get_masked_pattern(), "");
+
+    app.global::<KitStrings>()
+        .set_mask_format_message("Custom mask error".into());
+    assert_eq!(app.get_masked_format_error(), "Custom mask error");
+
+    app.invoke_focus_masked();
+    key(&app, "freeform-99");
+    assert_eq!(app.get_masked_text(), "freeform-99");
+}
+
+#[test]
+fn masked_field_waits_for_constraint_bridge_before_accepting_input() {
+    i_slint_backend_testing::init_no_event_loop();
+    let app = OtpFixture::new().unwrap();
+    app.show().unwrap();
+    app.invoke_focus_masked();
+    key(&app, "AB-1234");
+    assert_eq!(app.get_masked_text(), "");
+    kit_slint::install(&app);
+    key(&app, "AB-1234");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+}
+
+#[test]
+fn masked_field_filters_keystrokes_by_slot_and_preserves_native_caret_selection_and_undo() {
+    let app = fixture();
+    app.invoke_focus_masked();
+    key(&app, "A");
+    key(&app, "1");
+    assert_eq!(app.get_masked_text(), "A");
+    key(&app, "B");
+    key(&app, "3");
+    assert_eq!(app.get_masked_text(), "AB");
+    key(&app, "-");
+    key(&app, "X");
+    assert_eq!(app.get_masked_text(), "AB-");
+    key(&app, "1234");
+    key(&app, "5");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+    assert!(app.get_masked_validity().valid);
+
+    app.invoke_focus_witness();
+    key(&app, "AB-1234");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+    assert_eq!(app.get_masked_cursor(), app.get_witness_cursor());
+    assert_eq!(app.get_masked_anchor(), app.get_witness_anchor());
+
+    app.invoke_focus_masked();
+    app.invoke_set_masked_selection(3, 7);
+    key(&app, "X");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+    assert_eq!(app.get_masked_anchor(), 3);
+    assert_eq!(app.get_masked_cursor(), 7);
+    key(&app, "9876");
+
+    app.invoke_focus_witness();
+    app.invoke_set_witness_selection(3, 7);
+    key(&app, "9876");
+    assert_eq!(app.get_masked_text(), "AB-9876");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+    assert_eq!(app.get_masked_cursor(), app.get_witness_cursor());
+
+    app.invoke_focus_masked();
+    shortcut(&app, "z");
+    app.invoke_focus_witness();
+    shortcut(&app, "z");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+
+    app.invoke_focus_masked();
+    redo(&app);
+    app.invoke_focus_witness();
+    redo(&app);
+    assert_eq!(app.get_masked_text(), "AB-9876");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+}
+
+#[test]
+fn masked_field_guards_native_paste_shortcuts_and_programmatic_paste() {
+    let app = fixture();
+    app.invoke_focus_masked();
+
+    app.set_clipboard_text("12-ABCD".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_masked_text(), "");
+    app.invoke_paste_masked();
+    assert_eq!(app.get_masked_text(), "");
+
+    app.set_clipboard_text("AB-".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_masked_text(), "AB-");
+
+    app.set_clipboard_text("1234".into());
+    app.invoke_prepare_paste();
+    app.invoke_paste_masked();
+    assert_eq!(app.get_masked_text(), "AB-1234");
+
+    app.invoke_set_masked_selection(3, 7);
+    app.set_clipboard_text("ABCD".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+
+    app.invoke_set_masked_selection(3, 7);
+    app.set_clipboard_text("56789".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+
+    app.invoke_set_masked_selection(3, 7);
+    app.set_clipboard_text("5678".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_masked_text(), "AB-5678");
+}
+
+#[test]
+fn masked_field_rolls_back_incompatible_prefix_deletion_and_trims_host_assignments() {
+    let app = fixture();
+    app.invoke_focus_masked();
+    key(&app, "AB-12");
+    assert_eq!(app.get_masked_text(), "AB-12");
+
+    app.invoke_set_masked_selection(0, 2);
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_masked_text(), "AB-12");
+    assert_eq!(app.get_masked_cursor(), 0);
+
+    app.invoke_set_masked_selection(0, 2);
+    app.invoke_cut_masked();
+    assert_eq!(app.get_masked_text(), "AB-12");
+
+    app.invoke_set_masked_selection(3, 5);
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_masked_text(), "AB-");
+
+    app.set_masked_text("CD-987654".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_masked_text(), "CD-9876");
+
+    app.set_masked_text("CD_9876".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_masked_text(), "CD");
+
+    app.set_masked_text("CD-9876".into());
+    slint::platform::update_timers_and_animations();
+    app.set_mask("AA-##".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_masked_text(), "CD-98");
+}
+
+#[test]
+fn masked_field_respects_access_modes_and_commits_typed_spec_only_when_complete() {
+    let app = fixture();
+    let key_id = kit_slint::FieldSpecKey::new("reference").unwrap();
+    let mask = slint_kit::MaskPattern::compile("AA-####").unwrap();
+    kit_slint::bind_field_specs(
+        &app,
+        [(key_id.clone(), kit_slint::FieldSpec::masked(mask))],
+        |_, _| {},
+    );
+    app.set_masked_spec_key(key_id.as_str().into());
+    app.invoke_focus_masked();
+
+    key(&app, "AB-12");
+    assert!(!app.get_masked_validity().valid);
+    assert!(app.get_masked_validity().too_short);
+    assert!(!app.invoke_report_masked());
+    app.invoke_commit_masked();
+    assert_eq!(app.get_masked_commits(), 0);
+    assert_eq!(app.get_masked_accepted_text(), "");
+
+    key(&app, "34");
+    assert_eq!(app.get_masked_text(), "AB-1234");
+    assert!(app.get_masked_validity().valid);
+    app.invoke_commit_masked();
+    assert_eq!(app.get_masked_commits(), 1);
+    assert_eq!(app.get_masked_accepted_text(), "AB-1234");
+
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        app.set_masked_access(access);
+        app.invoke_select_masked();
+        key(&app, "Z");
+        app.set_clipboard_text("XY-9999".into());
+        app.invoke_prepare_paste();
+        app.invoke_paste_masked();
+        app.invoke_cut_masked();
+        app.invoke_commit_masked();
+        assert_eq!(app.get_masked_text(), "AB-1234");
+        assert_eq!(app.get_masked_commits(), 1);
+    }
+
+    app.set_masked_access(FieldAccess::Editable);
+    for base in [app.get_theme(), app.get_dark()] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            let masked_editor = ElementHandle::find_by_accessible_label(&app, "Project reference")
+                .find(|element| {
+                    element.accessible_role()
+                        == Some(i_slint_backend_testing::AccessibleRole::TextInput)
+                })
+                .unwrap();
+            assert_eq!(masked_editor.accessible_value().as_deref(), Some("AB-1234"));
+            assert!(masked_editor.size().width > 0. && masked_editor.size().height > 0.);
+        }
+    }
+}
