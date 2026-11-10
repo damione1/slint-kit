@@ -17,15 +17,18 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Date picker";
     callback chosen(CivilDateView);
+    callback cleared();
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         field := KitDatePicker {
+            clearable: true; clear-label: "Clear date";
             label: "Appointment";
             accepted-date: {year: 2026, month: 10, day: 19};
             min: "2026-10-01"; max: "2027-12-31";
             unavailable-weekdays: [WeekStart.saturday, WeekStart.sunday];
             unavailable-ranges: [{start: {year: 2026, month: 10, day: 13}, end: {year: 2026, month: 10, day: 15}}];
             chosen(date) => { root.chosen(date); }
+            cleared => { root.cleared(); }
         }
     }
 }

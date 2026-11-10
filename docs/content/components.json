@@ -1519,7 +1519,7 @@
       "seoTitle": "Sélecteur de date pour Slint",
       "summary": "Champ de date ISO éditable, avec calendrier déroulant et règles de réservation communes.",
       "usage": "Fournissez `accepted-date`, les libellés et les mêmes contraintes calendaires que `KitCalendar`. Le popup, le texte natif et le calendrier partagent l’état de cette instance. Traitez `chosen(CivilDateView)` pour la date acceptée ; utilisez `CivilDate::try_from` à la frontière Rust. Le projet complet ne nécessite que l’installation et un callback métier. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-date` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. Une date saisie est acceptée avec Entrée ou lorsque le focus quitte l’éditeur (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; un texte invalide ou indisponible conserve la date acceptée et le brouillon, et une date inchangée ne répète pas `chosen`.",
-      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions.",
+      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Un engagement vide facultatif et valide émet cleared() et remet accepted-date à vide en ownership local ; chosen contient toujours une vraie date civile. En mode controlled, la valeur reste inchangée jusqu’à confirmation de l’absence par l’hôte. Une valeur vide requise ou invalide selon custom-validity conserve la valeur acceptée. clearable active l’action native d’effacement en fin de champ ; clear-label localise son nom. clear() modifie le brouillon natif et préserve le curseur, l’annulation et la garde de préédition ; l’acceptation suit commit-policy. commit() demande une acceptation explicite validée. L’initialisation confirme la date acceptée après install sans remplacer un brouillon explicite de l’hôte.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1527,7 +1527,24 @@
       ],
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "clear": "Efface les brouillons natifs éditables hors préédition. L’acceptation suit commit-policy ; une absence requise ou invalide selon custom-validity est refusée.",
+        "commit": "Demande une acceptation explicite validée, y compris une absence facultative."
+      },
+      "properties": {
+        "clearable": {
+          "effect": "Affiche l’action finale d’effacement ; un champ requis peut vider son brouillon, sans accepter cette absence.",
+          "default": "false",
+          "example": "KitDatePicker { clearable: true; }"
+        },
+        "clear-label": {
+          "effect": "Nom accessible de l’action d’effacement.",
+          "default": "KitStrings.clear-label",
+          "example": "KitDatePicker { clear-label: \"Effacer le rendez-vous\"; }"
+        }
+      },
+      "callbacks": {
+        "cleared": "Absence valide engagée. Stockez None dans la valeur Rust facultative ; chosen n’émet pas de date nulle invalide. Ce signal diffère de KitTextField.cleared, qui décrit l’action d’effacement du brouillon natif."
       }
     },
     "en": {
@@ -1535,7 +1552,7 @@
       "seoTitle": "Date Picker for Slint",
       "summary": "Editable ISO date field with a calendar popover and consistent booking constraints.",
       "usage": "Provide `accepted-date`, labels and the same calendar constraints as `KitCalendar`. The popup, native text and calendar share instance state. Handle `chosen(CivilDateView)` for the accepted date; use `CivilDate::try_from` at the Rust boundary. The complete quickstart needs only installation and a business callback. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-date`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. A typed date is accepted on Enter or when focus leaves the editor (`commit-policy`, default `CommitPolicy.on-blur`); invalid or unavailable text keeps the accepted date and the draft, and an unchanged date does not repeat `chosen`.",
-      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction.",
+      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. An optional valid empty commit emits cleared() and resets accepted-date for local ownership; chosen always carries a real civil date. Controlled ownership keeps the old value until the host acknowledges absence. Required or custom-invalid empties preserve the accepted value. clearable enables the trailing native clear action; clear-label localizes its name. clear() edits the native draft and preserves its caret/undo/IME guard; acceptance follows commit-policy. commit() requests an explicit validated acceptance. Initialization acknowledges the accepted date after install without replacing an explicit host draft.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1543,7 +1560,24 @@
       ],
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "clear": "Clears native drafts while editable and without preedit. Acceptance follows commit-policy; required/custom-invalid empties are rejected.",
+        "commit": "Requests explicit validated acceptance, including optional absence."
+      },
+      "properties": {
+        "clearable": {
+          "effect": "Shows a trailing clear affordance; required fields may erase the draft but cannot accept empty.",
+          "default": "false",
+          "example": "KitDatePicker { clearable: true; }"
+        },
+        "clear-label": {
+          "effect": "Accessible name of the clear action.",
+          "default": "KitStrings.clear-label",
+          "example": "KitDatePicker { clear-label: \"Clear appointment\"; }"
+        }
+      },
+      "callbacks": {
+        "cleared": "Committed valid absence. Store None in the Rust optional value; chosen is not emitted with an invalid zero date. This differs from KitTextField.cleared, which reports a native draft-clear action."
       }
     }
   },
@@ -1575,7 +1609,7 @@
     "fr": {
       "summary": "Deux brouillons texte validés comme une seule date et heure locale.",
       "usage": "Liez `accepted-value: LocalDateTimeView` si l’hôte a besoin de la date et de l’heure locales acceptées. Le composant valide ses deux champs natifs et émet `chosen(LocalDateTimeView)`. Utilisez `LocalDateTime::try_from` à la frontière Rust. Une date-heure locale n’a aucun fuseau implicite. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-value` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance.",
-      "behavior": "La validation est atomique : une partie invalide laisse la paire acceptée inchangée. La paire est acceptée avec Entrée, `commit()` ou lorsque le focus quitte les deux éditeurs (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer de la date à l’heure n’est pas une perte de focus, et une paire inchangée ne répète pas `chosen`. Cette valeur ne contient pas de fuseau horaire. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
+      "behavior": "La validation est atomique : une partie invalide laisse la paire acceptée inchangée. La paire est acceptée avec Entrée, `commit()` ou lorsque le focus quitte les deux éditeurs (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer de la date à l’heure n’est pas une perte de focus, et une paire inchangée ne répète pas `chosen`. Cette valeur ne contient pas de fuseau horaire. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Une paire vide valide représente une absence : les deux brouillons natifs doivent être vides. Un seul éditeur vide reste une paire incomplète invalide. cleared() signale l’absence engagée sans chosen portant une date nulle ; accepted-value est vidé en mode local, ou attend la confirmation de l’hôte en mode controlled. clearable ajoute une action finale unique qui efface les deux éditeurs par leur chemin d’édition natif. Chaque éditeur garde son historique d’annulation ; toute préédition dans l’un d’eux bloque cet effacement. clear() modifie le brouillon ; on-blur accepte en quittant tout le contrôle, action comprise, on-submit attend commit()/Entrée et on-change-when-valid accepte une paire complète valide. editor-focused décrit toujours les éditeurs natifs ; focus-observed inclut aussi l’action auxiliaire.",
       "related": [
         "KitDateField",
         "KitTimeField",
@@ -1585,13 +1619,30 @@
       "seoTitle": "Champ date et heure pour Slint",
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "clear": "Demande séparément les deux actions natives d’effacement éditables, en conservant l’annulation de chaque éditeur. Seuls deux brouillons effectivement vides et valides peuvent accepter l’absence selon commit-policy. Une action refusée peut laisser un brouillon incomplet ; la paire acceptée reste inchangée. Il n’existe ni transaction IME entre éditeurs ni API d’état de composition.",
+        "commit": "Demande une acceptation explicite validée, y compris une absence facultative."
+      },
+      "properties": {
+        "clearable": {
+          "effect": "Affiche l’action finale d’effacement ; un champ requis peut vider son brouillon, sans accepter cette absence.",
+          "default": "false",
+          "example": "KitDateTimeField { clearable: true; }"
+        },
+        "clear-label": {
+          "effect": "Nom accessible de l’action d’effacement.",
+          "default": "KitStrings.clear-label",
+          "example": "KitDateTimeField { clear-label: \"Effacer le rendez-vous\"; }"
+        }
+      },
+      "callbacks": {
+        "cleared": "Absence valide engagée. Stockez None dans la valeur Rust facultative ; chosen n’émet pas de date nulle invalide. Ce signal diffère de KitTextField.cleared, qui décrit l’action d’effacement du brouillon natif."
       }
     },
     "en": {
       "summary": "Two text drafts accepted as one local date and time.",
       "usage": "Bind `accepted-value: LocalDateTimeView` if the host needs the accepted local date and time. The component validates its native date/time parts and emits `chosen(LocalDateTimeView)`. Use `LocalDateTime::try_from` at the Rust boundary. A local date-time has no implicit time zone. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-value`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned.",
-      "behavior": "Commit is atomic: an invalid part leaves the accepted pair unchanged. The pair is accepted on Enter, `commit()` or when focus leaves both editors (`commit-policy`, default `CommitPolicy.on-blur`); moving from the date to the time editor is not a blur, and an unchanged pair does not repeat `chosen`. This value has no time zone. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
+      "behavior": "Commit is atomic: an invalid part leaves the accepted pair unchanged. The pair is accepted on Enter, `commit()` or when focus leaves both editors (`commit-policy`, default `CommitPolicy.on-blur`); moving from the date to the time editor is not a blur, and an unchanged pair does not repeat `chosen`. This value has no time zone. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. A valid empty pair means absence: both native drafts must be empty. One empty editor is an invalid incomplete pair. cleared() emits committed absence without a zero-date chosen payload, resetting the local accepted-value or waiting for controlled host acknowledgement. clearable adds one trailing action that clears both native editors through their edit path. It preserves each editor’s own undo history and refuses to edit while either has preedit. clear() edits the draft; on-blur commits only after leaving the whole control including that action, on-submit waits for commit()/Enter, and on-change-when-valid accepts a complete valid pair. editor-focused still describes the native editors; focus-observed also includes the auxiliary action.",
       "related": [
         "KitDateField",
         "KitTimeField",
@@ -1601,7 +1652,24 @@
       "seoTitle": "Date and Time Field for Slint",
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "clear": "Requests the two editable native clear actions separately, retaining each editor’s undo history. Only two actually empty, valid drafts can accept absence under commit-policy. A refused action may leave an incomplete draft; the accepted pair stays unchanged. There is no cross-editor IME transaction or composition-state API.",
+        "commit": "Requests explicit validated acceptance, including optional absence."
+      },
+      "properties": {
+        "clearable": {
+          "effect": "Shows a trailing clear affordance; required fields may erase the draft but cannot accept empty.",
+          "default": "false",
+          "example": "KitDateTimeField { clearable: true; }"
+        },
+        "clear-label": {
+          "effect": "Accessible name of the clear action.",
+          "default": "KitStrings.clear-label",
+          "example": "KitDateTimeField { clear-label: \"Clear appointment\"; }"
+        }
+      },
+      "callbacks": {
+        "cleared": "Committed valid absence. Store None in the Rust optional value; chosen is not emitted with an invalid zero date. This differs from KitTextField.cleared, which reports a native draft-clear action."
       }
     }
   },

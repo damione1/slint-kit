@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDatePicker, KitDateTimeField, KitTextField, KitTheme, KitThemes, CivilDateView, LocalDateTimeView, KitValidityState, Ownership, CommitPolicy, FieldAccess } from "@kit";
+
+export component OptionalTemporalFixture inherits Window {
+    width: 760px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <Ownership> ownership: Ownership.local;
+    in property <CommitPolicy> policy: CommitPolicy.on-blur;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> required;
+    in property <bool> clearable: true;
+    in property <string> custom-validity;
+    in-out property <CivilDateView> picked <=> picker.accepted-date;
+    in-out property <string> picker-text <=> picker.text;
+    out property <KitValidityState> picker-validity: picker.validity;
+    in-out property <LocalDateTimeView> local-value <=> local.accepted-value;
+    in-out property <string> local-date <=> local.date-text;
+    in-out property <string> local-time <=> local.time-text;
+    out property <KitValidityState> local-validity: local.validity;
+    out property <bool> local-editor-focused: local.editor-focused;
+    out property <bool> after-focused: after.has-focus;
+    in-out property <int> picker-clear-count;
+    in-out property <int> picker-choice-count;
+    in-out property <int> local-clear-count;
+    in-out property <int> local-choice-count;
+    in-out property <int> local-edit-count;
+    in-out property <int> local-request-count;
+    public function focus-picker() { picker.take-focus(); }
+    public function focus-local() { local.take-focus(); }
+    public function focus-after() { after.take-focus(); }
+    public function clear-picker() { picker.clear(); }
+    public function commit-picker() { picker.commit(); }
+    public function clear-local() { local.clear(); }
+    public function commit-local() { local.commit(); }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 4; alignment: start;
+        picker := KitDatePicker {
+            theme: root.theme; label: "Optional date"; description: "An empty committed date has no value.";
+            ownership: root.ownership; commit-policy: root.policy; access: root.access; required: root.required;
+            clearable: root.clearable; clear-label: "Clear optional date"; custom-validity: root.custom-validity;
+            accepted-date: {year: 2026, month: 10, day: 19};
+            chosen(date) => { root.picker-choice-count += 1; }
+            cleared => { root.picker-clear-count += 1; }
+        }
+        local := KitDateTimeField {
+            theme: root.theme; label: "Optional appointment";
+            ownership: root.ownership; commit-policy: root.policy; access: root.access; required: root.required;
+            clearable: root.clearable; clear-label: "Clear optional appointment"; custom-validity: root.custom-validity;
+            accepted-value: {date: {year: 2026, month: 10, day: 19}, time: {hour: 9, minute: 30}};
+            date-text: "2026-10-19"; time-text: "09:30";
+            chosen(value) => { root.local-choice-count += 1; }
+            cleared => { root.local-clear-count += 1; }
+            edited(value) => { root.local-edit-count += 1; }
+            commit-requested(value) => { root.local-request-count += 1; }
+        }
+        after := KitTextField { theme: root.theme; label: "After temporal controls"; }
+    }
+}
+
+// A control created after service installation still starts from the typed
+// accepted value, while preserving an explicitly empty host draft.
+export component DynamicOptionalTemporalFixture inherits Window {
+    width: 760px; height: 300px;
+    in property <bool> show-date;
+    in-out property <int> cleared-count;
+    in-out property <int> chosen-count;
+    if root.show-date: KitDatePicker {
+        x: 24px; y: 24px; width: 680px;
+        label: "Dynamic optional date"; description: "";
+        accepted-date: {year: 2026, month: 10, day: 19}; text: "";
+        cleared => { root.cleared-count += 1; }
+        chosen(date) => { root.chosen-count += 1; }
+    }
+}
+
+// A direct native reference for platform-specific caret keys, with no kit
+// editing hook or field-state reducer between the window and TextInput.
+export component TemporalNativeKeyboardFixture inherits Window {
+    width: 480px; height: 80px;
+    in-out property <string> text <=> editor.text;
+    public function focus-start() { editor.focus(); editor.set-selection-offsets(0, 0); }
+    editor := TextInput { single-line: true; accessible-label: "Native temporal draft"; }
+}

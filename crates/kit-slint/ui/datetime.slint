@@ -2,6 +2,7 @@ import { Ownership, CommitPolicy, FieldAction } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitFieldError } from "field.slint";
+import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { KitGlyphs } from "icons.slint";
@@ -122,13 +123,23 @@ export component KitDateTimeField inherits Rectangle {
     // Native edits since the last acceptance; host text assignments are not typing.
     private property <bool> draft-dirty;
     callback chosen(LocalDateTimeView);
+    callback cleared();
     // Enter, commit() and leaving the whole group share this acceptance path.
     // Blur reads validity without firing `invalid`: the constraint state already
     // noted the touch and shows errors by its timing. An unchanged pair is not
     // chosen again.
     function accept-pair(action: FieldAction) {
         if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
-        if (action == FieldAction.blur ? !root.validity.valid : !root.report-validity()) { return; }
+        if (action == FieldAction.blur || action == FieldAction.edit ? !root.validity.valid : !root.report-validity()) { return; }
+        if (root.date-text == "" && root.time-text == "") {
+            root.draft-dirty = false;
+            if (root.accepted-value != {}) {
+                if (root.ownership == Ownership.local) { root.accepted-value = {}; }
+                root.cleared();
+            }
+            if (action == FieldAction.submit) { root.commit-requested(root.current-draft); }
+            return;
+        }
         root.candidate = KitTimeService.parse-local(root.current-draft, root.precision, root.clock-format);
         if (root.candidate.date.year == 0) { return; }
         root.draft-dirty = false;
@@ -136,11 +147,14 @@ export component KitDateTimeField inherits Rectangle {
             if (root.ownership == Ownership.local) { root.accepted-value = root.candidate; }
             root.chosen(root.candidate);
         }
-        if (action != FieldAction.blur) { root.commit-requested(root.current-draft); }
+        if (action == FieldAction.submit) { root.commit-requested(root.current-draft); }
     }
     public function commit() { root.accept-pair(FieldAction.submit); }
 
     in property <bool> required;
+    in property <bool> clearable;
+    in property <string> clear-label: KitStrings.clear-label;
+    private property <bool> show-clear: root.clearable && (root.date-text != "" || root.time-text != "");
     in property <string> min;
     in property <string> max;
     in property <string> step: root.precision == TimePrecision.second ? "1" : "60";
@@ -187,29 +201,49 @@ export component KitDateTimeField inherits Rectangle {
     out property <bool> editor-focused: date.has-focus || time.has-focus;
     // Moving between the date and time editors keeps the group focused; only
     // leaving the group is a blur for the atomic pair.
-    changed editor-focused => {
-        if (!root.editor-focused) {
+    private property <bool> control-focused: root.editor-focused || clear-action.has-focus;
+    changed control-focused => {
+        if (!root.control-focused) {
             checks.note-blur();
             if (root.commit-policy == CommitPolicy.on-blur && root.draft-dirty) { root.accept-pair(FieldAction.blur); }
         }
-        root.focus-observed(root.editor-focused);
+        root.focus-observed(root.control-focused);
     }
     public function take-focus() { date.take-focus(); }
+    // Request each public native clear action independently. Each editor owns
+    // its undo entry; only two empty, valid drafts can accept absence.
+    public function clear() {
+        if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
+        date.clear(); time.clear();
+    }
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
         date := KitDateField {
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
-            edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); }
+            edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
             commit-requested(text) => { root.commit(); }
             cancelled => { root.cancelled(); }
         }
-        time := KitTimeField {
-            step: "any";
-            theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
-            edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: root.date-text, time: text}); }
-            commit-requested(text) => { root.commit(); }
-            cancelled => { root.cancelled(); }
+        HorizontalLayout {
+            spacing: root.show-clear ? KitMetrics.inline-gap(root.theme) : 0px;
+            time := KitTimeField {
+                step: "any";
+                theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
+                edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: root.date-text, time: text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
+                commit-requested(text) => { root.commit(); }
+                cancelled => { root.cancelled(); }
+            }
+            clear-action := KitIconButton {
+                theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close;
+                layout-order: time.trailing-adornment-order;
+                cross-axis-self-alignment: center;
+                visible: root.show-clear; min-width: 0px;
+                preferred-width: root.show-clear ? self.preferred-height : 0px; max-width: self.preferred-width;
+                accessible-name: root.clear-label; focus-on-pointer: false;
+                disabled: !root.show-clear || root.access != FieldAccess.editable;
+                activated => { root.clear(); }
+            }
         }
         if checks.show-error && root.date-error == "" && root.time-error == "": KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
