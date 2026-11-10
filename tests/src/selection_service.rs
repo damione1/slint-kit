@@ -622,4 +622,94 @@ fn combobox_public_clear_uses_native_undo_and_one_empty_query_locally() {
 #[test]
 fn combobox_public_clear_uses_native_undo_and_waits_for_controlled_acknowledgment() {
     assert_combobox_native_clear(slint_kit::ui::Ownership::Controlled);
+    }
+#[test]
+fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carousel_keys() {
+    let (window, choices) = fixture();
+    let apple = choices.selection(&Destination::Apple).unwrap();
+    let apricot = choices.selection(&Destination::Apricot).unwrap();
+    let banana = choices.selection(&Destination::Banana).unwrap();
+
+    // KitMenu wraps by default and respects wrap=false when configured.
+    window.invoke_focus_first();
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_first_state().active, banana);
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_first_state().active, apple);
+    window.set_first_wrap(false);
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_first_state().active, apple);
+    assert!(window.get_first_page_rows() >= 1);
+
+    // Closed KitSelect opens and moves active on Home, End, and printable typeahead.
+    assert!(!window.get_popup_state().open);
+    window.invoke_focus_popup();
+    key(&window, Key::End);
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, banana);
+    key(&window, Key::Escape);
+    assert!(!window.get_popup_state().open);
+
+    window.invoke_focus_popup();
+    key(&window, Key::Home);
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, apple);
+    key(&window, Key::Escape);
+    assert!(!window.get_popup_state().open);
+
+    window.invoke_focus_popup();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "b".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "b".into() });
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, banana);
+    assert!(window.get_popup_page_rows() >= 1);
+    key(&window, Key::Escape);
+
+    // KitTabs supports manual and automatic activation plus RTL flow.
+    window.invoke_focus_tabs();
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_tabs_state().active, apricot);
+    assert!(!window.get_tabs_selected().present);
+    window.set_tab_activation(slint_kit::ui::TabActivation::Automatic);
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_tabs_selected(), banana);
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::RightToLeft);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        window.get_tabs_selected(),
+        apple,
+        "RTL LeftArrow advances to next tab and wraps"
+    );
+
+    // KitMenuBar mirrors Left/Right in RTL flow.
+    window.invoke_focus_menubar();
+    key(&window, Key::LeftArrow);
+    assert_eq!(window.get_menubar_state().active, apricot);
+
+    // KitCarousel handles arrow keys, Home/End, and RTL flow.
+    window.invoke_focus_carousel();
+    key(&window, Key::LeftArrow);
+    assert_eq!(window.get_carousel_state().active, apricot);
+    key(&window, Key::End);
+    assert_eq!(window.get_carousel_state().active, banana);
+    key(&window, Key::Home);
+    assert_eq!(window.get_carousel_state().active, apple);
+
+    // Wrapped 2-column KitSegmentedControl navigates vertically with DownArrow/UpArrow.
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::LeftToRight);
+    window.invoke_focus_segments();
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_segments_selected(), banana);
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_segments_selected(), apple);
+
+    // KitToggleGroup supports vertical direction and wraps.
+    window.set_toggle_direction(slint_kit::ui::ChoiceDirection::Vertical);
+    window.invoke_focus_toggles();
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_toggles_active(), banana.token);
 }

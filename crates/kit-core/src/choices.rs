@@ -379,6 +379,11 @@ mod tests {
         .unwrap();
         assert_eq!(choices.navigate(NavigationStep::Next, 10), Some(&1));
         assert_eq!(choices.navigate(NavigationStep::Next, 10), Some(&3));
+        assert_eq!(choices.navigate(NavigationStep::Next, 10), Some(&3));
+        choices.set_wrap(true);
+        assert!(choices.wrap());
+        assert_eq!(choices.navigate(NavigationStep::Next, 10), Some(&1));
+        assert_eq!(choices.navigate(NavigationStep::Previous, 10), Some(&3));
         assert_eq!(choices.toggle(&2), Err(ChoiceFailure::Disabled));
         choices.toggle(&3).unwrap();
         assert_eq!(choices.toggle(&1), Err(ChoiceFailure::LimitReached));

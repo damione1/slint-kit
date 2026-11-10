@@ -855,4 +855,88 @@ mod tests {
             assert!(reduced.intent.is_none());
         }
     }
+
+    #[test]
+    fn configurable_wrap_and_typeahead_timeout_and_internal_spaces_work() {
+        let mut options = vec![
+            SelectOption::new(1, "Apple Pie"),
+            SelectOption::new(2, "Blocked"),
+            SelectOption::new(3, "Apple Tart"),
+        ];
+        options[1].disabled = true;
+        let mut c = SelectController::new(options.clone(), Some(1), Ownership::Local);
+        c.open();
+        assert!(!c.wrap());
+        c.navigate(NavigationStep::Previous, 5);
+        assert_eq!(
+            c.state().active,
+            Some(1),
+            "default wrap=false clamps at start"
+        );
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(c.state().active, Some(3));
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(
+            c.state().active,
+            Some(3),
+            "default wrap=false clamps at end"
+        );
+
+        c.set_wrap(true);
+        assert!(c.wrap());
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(
+            c.state().active,
+            Some(1),
+            "wrap=true wraps from last to first"
+        );
+        c.navigate(NavigationStep::Previous, 5);
+        assert_eq!(
+            c.state().active,
+            Some(3),
+            "wrap=true wraps from first to last"
+        );
+
+        // Leading space when no typeahead is active is ignored.
+        assert!(!c.is_typeahead_active(10));
+        c.typeahead(" ", 10);
+        assert!(!c.is_typeahead_active(10));
+
+        // Active typeahead accepts internal spaces within the configured timeout.
+        c.set_typeahead_timeout_ms(1200);
+        assert_eq!(c.typeahead_timeout_ms(), 1200);
+        c.typeahead("apple", 100);
+        assert!(c.is_typeahead_active(900));
+        c.typeahead(" ", 900);
+        c.typeahead("t", 1500);
+        assert_eq!(c.state().active, Some(3));
+        assert!(!c.is_typeahead_active(2800));
+
+        // Pure reducer preserves wrap and typeahead_timeout_ms across transitions.
+        let session = SelectSession {
+            selection: SelectState {
+                selected: Some(1),
+                active: Some(1),
+                open: true,
+            },
+            typeahead: String::new(),
+            last_typeahead_ms: None,
+            typeahead_timeout_ms: 1500,
+            wrap: true,
+        };
+        let wrapped = reduce_selection(
+            options.clone(),
+            session,
+            Ownership::Local,
+            SelectEvent::Navigate {
+                step: NavigationStep::Previous,
+                page_size: 5,
+            },
+        )
+        .unwrap()
+        .session;
+        assert_eq!(wrapped.selection.active, Some(3));
+        assert!(wrapped.wrap);
+        assert_eq!(wrapped.typeahead_timeout_ms, 1500);
+    }
 }
