@@ -300,6 +300,7 @@ where
             &rows,
             current,
             ownership,
+            ui::SelectionRetention::BoundToOptions,
             SelectEvent::PreviousRow { columns },
         )
         .session
@@ -308,7 +309,14 @@ where
         let Ok(columns) = usize::try_from(columns) else {
             return current;
         };
-        reduce(&rows, current, ownership, SelectEvent::NextRow { columns }).session
+        reduce(
+            &rows,
+            current,
+            ownership,
+            ui::SelectionRetention::BoundToOptions,
+            SelectEvent::NextRow { columns },
+        )
+        .session
     });
     service.on_typeahead_active(|current, timestamp| {
         let Ok(now_ms) = u64::try_from(timestamp) else {
