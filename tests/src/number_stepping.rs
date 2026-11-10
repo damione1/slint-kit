@@ -353,3 +353,46 @@ fn numeric_fields_expose_a_spin_button_with_range_and_step_actions() {
     );
     let _ = editor(&window, "Amount");
 }
+
+#[test]
+fn numeric_spin_buttons_render_focus_and_actions_in_both_themes_and_double_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = NumberSteppingFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_min("2".into());
+    window.set_max("10".into());
+    window.set_step("0.5".into());
+    window.set_stepper_value("3".into());
+    window.show().unwrap();
+    for (name, base) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            amount(&window, "5");
+            key(&window, Key::UpArrow);
+            assert_eq!(window.get_value(), "5.5");
+            let spin = spin_button(&window, "Amount");
+            assert_eq!(spin.accessible_value_minimum(), Some(2.));
+            assert_eq!(spin.accessible_value_maximum(), Some(10.));
+            assert_eq!(spin.accessible_value_step(), Some(0.5));
+            spin.invoke_accessible_decrement_action();
+            assert_eq!(window.get_value(), "5");
+            assert!(window.get_amount_focus());
+            slint::platform::update_timers_and_animations();
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("numeric-spin-{name}-{scale}"),
+            );
+        }
+    }
+}
