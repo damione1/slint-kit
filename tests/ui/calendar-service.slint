@@ -86,3 +86,21 @@ export component StoredRangeFixture inherits Window {
         min: "2026-10-05"; max: "2026-10-31";
     }
 }
+
+
+export component WeekdayHeaderFixture inherits Window {
+    width: 800px; height: 760px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 19};
+    in-out property <CivilDateView> calendar-focused: root.selected;
+    out property <CivilDateView> chosen-date;
+    background: root.theme.canvas;
+    KitCalendar {
+        x: 24px; y: 24px; width: 700px; height: self.preferred-height;
+        theme: root.theme; week-start: root.week-start;
+        selected <=> root.selected; focused <=> root.calendar-focused;
+        weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        chosen(date) => { root.chosen-date = date; }
+    }
+}

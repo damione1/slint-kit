@@ -335,3 +335,92 @@ fn invalid_date_configuration_keeps_a_disabled_grid_and_a_localized_diagnostic()
         }
     }
 }
+
+#[test]
+fn weekday_headers_follow_every_week_start_and_the_first_grid_column() {
+    use crate::{CivilDateView, WeekdayHeaderFixture};
+    use i_slint_backend_testing::{
+        ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions,
+    };
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = WeekdayHeaderFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.show().unwrap();
+    let starts = [
+        (slint_kit::ui::WeekStart::Monday, "2026-09-28"),
+        (slint_kit::ui::WeekStart::Tuesday, "2026-09-29"),
+        (slint_kit::ui::WeekStart::Wednesday, "2026-09-30"),
+        (slint_kit::ui::WeekStart::Thursday, "2026-10-01"),
+        (slint_kit::ui::WeekStart::Friday, "2026-09-25"),
+        (slint_kit::ui::WeekStart::Saturday, "2026-09-26"),
+        (slint_kit::ui::WeekStart::Sunday, "2026-09-27"),
+    ];
+    let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    for (mode, base) in [
+        window.get_theme(),
+        window.global::<slint_kit::ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            for (offset, (start, first_date)) in starts.iter().enumerate() {
+                let october = CivilDateView {
+                    year: 2026,
+                    month: 10,
+                    day: 19,
+                };
+                window.set_selected(october.clone());
+                window.set_calendar_focused(october);
+                window.set_week_start(*start);
+                slint::platform::update_timers_and_animations();
+                let image = window.window().take_snapshot().unwrap();
+                let mut headers = ElementQuery::from_root(&window)
+                    .match_id("KitCalendar::weekday-header")
+                    .find_all();
+                headers.sort_by(|a, b| a.absolute_position().x.total_cmp(&b.absolute_position().x));
+                assert_eq!(headers.len(), 7);
+                for (column, header) in headers.iter().enumerate() {
+                    assert_eq!(
+                        header.accessible_label().as_deref(),
+                        Some(names[(column + offset) % 7])
+                    );
+                }
+                let first_day = ElementHandle::find_by_accessible_label(&window, first_date)
+                    .next()
+                    .unwrap();
+                assert!(headers[0].size().width > 0.);
+                assert!(
+                    (headers[0].absolute_position().x - first_day.absolute_position().x).abs() < 1.
+                );
+                assert!((headers[0].size().width - first_day.size().width).abs() < 1.);
+                if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                    use std::io::Write;
+                    std::fs::create_dir_all(&directory).unwrap();
+                    let path = std::path::PathBuf::from(directory)
+                        .join(format!("calendar-weekdays-{offset}-{mode}-{scale}.ppm"));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    write!(file, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                    for pixel in image.as_slice() {
+                        file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                    }
+                }
+                first_day.mock_single_click(slint::platform::PointerEventButton::Left);
+                let chosen = window.get_chosen_date();
+                assert_eq!(
+                    format!("{:04}-{:02}-{:02}", chosen.year, chosen.month, chosen.day),
+                    *first_date,
+                    "the rotated first column keeps its actual date when clicked"
+                );
+            }
+        }
+    }
+}

@@ -44,6 +44,11 @@ export component KitCalendar inherits Rectangle {
     in-out property <CivilDateView> focused: root.selected.year > 0 ? root.selected : {year: 2000, month: 1, day: 1};
     in property <CivilDateView> today;
     in property <WeekStart> week-start: WeekStart.monday;
+    // Names always remain Monday-first; the grid's first column follows week-start.
+    private property <int> weekday-offset: root.week-start == WeekStart.monday ? 0
+        : root.week-start == WeekStart.tuesday ? 1 : root.week-start == WeekStart.wednesday ? 2
+        : root.week-start == WeekStart.thursday ? 3 : root.week-start == WeekStart.friday ? 4
+        : root.week-start == WeekStart.saturday ? 5 : 6;
     in property <[WeekStart]> unavailable-weekdays;
     in property <[DateRangeView]> unavailable-ranges;
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -144,10 +149,10 @@ export component KitCalendar inherits Rectangle {
             }
             key-released(event) => { if (event.text == Key.Return || event.text == Key.Space) { root.activation-held = false; return accept; } return reject; }
             focus-lost(reason) => { root.activation-held = false; }
-            for day-name[index] in root.weekdays: Text {
+            for index in 7: weekday-header := Text {
                 x: mod(index,7) * parent.width / 7; y: 0px;
                 width: parent.width / 7; height: root.cell-height;
-                text: day-name; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+                text: root.weekdays[mod(index + root.weekday-offset, 7)]; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
                 horizontal-alignment: center; vertical-alignment: center;
             }
             for day[index] in root.days: CalendarOption {
