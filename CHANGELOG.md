@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add KitButton.text-wrap for multiline labels with intrinsic height and preserved icon, busy, disabled, keyboard and pointer behavior; single-line elision remains the default.
+- Ajoute KitButton.text-wrap pour les libellés multilignes avec hauteur intrinsèque et conservation des icônes, des états occupé/désactivé et des actions clavier/pointeur ; l’élision monoligne reste le défaut.
+
 - **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
 - **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.
 
