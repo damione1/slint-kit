@@ -7,6 +7,8 @@
 
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
 - Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
+- Clear disabled action focus and its outline once, preserving busy focus and preventing focus from returning on reenabling.
+- Retire le focus et son halo à la désactivation d’une action, sans restauration à la réactivation ; une action occupée conserve le focus.
 
 - Validate intrinsic table field constraints with the shared HTML engine and let hosts reject a commit while retaining its draft. **Breaking:** `CellContent::Field` gains optional `constraints`.
 - Valide les contraintes intrinsèques des cellules avec le moteur HTML partagé et permet de refuser une validation en conservant le brouillon. **Rupture :** `CellContent::Field` reçoit un champ optionnel `constraints`.

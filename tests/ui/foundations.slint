@@ -34,3 +34,42 @@ export component FileLocalizationFixture inherits Window {
         ]; }
     }
 }
+
+import { KitPressable } from "@kit";
+export component DisabledActionFocusFixture inherits Window {
+    width: 460px; height: 200px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <bool> disabled;
+    in property <bool> busy;
+    out property <bool> standard-focused: standard.has-focus;
+    out property <bool> standard-focus-visible: standard.focus-visible;
+    out property <bool> custom-focused: custom.has-focus;
+    out property <bool> custom-focus-visible: custom.focus-visible;
+    callback focus-observed(bool, bool);
+    out property <bool> fallback-focused: fallback.has-focus;
+    public function focus-fallback() { fallback.focus(); }
+    public function focus-action(is-custom: bool) {
+        if (is-custom) { custom.take-focus(); } else { standard.take-focus(); }
+    }
+    fallback := FocusScope {
+        width: 0px; height: 0px;
+        focus-on-tab-navigation: false;
+        accessible-role: none;
+    }
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        standard := KitButton {
+            theme: root.theme; text: "Standard action";
+            disabled: root.disabled; busy: root.busy;
+            focus-observed(value) => { root.focus-observed(false, value); }
+        }
+        custom := KitPressable {
+            preferred-width: title.preferred-width + 2 * self.padding-inline;
+            theme: root.theme; accessible-name: "Custom action";
+            disabled: root.disabled; busy: root.busy;
+            focus-observed(value) => { root.focus-observed(true, value); }
+            title := Text { text: "Custom action"; color: custom.disabled ? custom.recipe.disabled-foreground : custom.recipe.foreground; font-family: root.theme.typography.family; font-size: custom.text-size; }
+        }
+    }
+}

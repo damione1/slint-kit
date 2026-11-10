@@ -52,8 +52,8 @@ export component KitPressable inherits Rectangle {
     in property <KitFocusRing> focus-ring: root.recipe.focus;
     out property <bool> hovered: touch.has-hover && !root.disabled;
     out property <bool> pressed: (touch.pressed && root.pointer-armed && touch.has-hover) || root.space-held;
-    out property <bool> has-focus: keys.has-focus;
-    out property <bool> focus-visible: keys.has-focus && root.keyboard-focus;
+    out property <bool> has-focus: root.focused;
+    out property <bool> focus-visible: root.focused && root.keyboard-focus;
     out property <length> pointer-x: touch.mouse-x;
     callback double-activated();
     callback activated();
@@ -67,6 +67,7 @@ export component KitPressable inherits Rectangle {
     private property <bool> enter-held;
     private property <bool> pointer-armed;
     private property <bool> keyboard-focus;
+    private property <bool> focused;
     public function cancel-press() {
         root.space-held = false;
         root.enter-held = false;
@@ -77,7 +78,25 @@ export component KitPressable inherits Rectangle {
     function activate-once() {
         if (!root.disabled && !root.busy && root.activation-allowed()) { root.activated(); }
     }
-    changed disabled => { root.cancel-press(); }
+    changed disabled => {
+        root.cancel-press();
+        if (root.disabled) {
+            // Slint ignores FocusOut once the native scope is disabled. Move
+            // focus to an inert routing scope before notifying the host, so
+            // Tab still reaches enclosing composite/modal keyboard scopes.
+            let was-focused = root.focused;
+            root.focused = false;
+            root.keyboard-focus = false;
+            if (was-focused) {
+                routing.focus();
+                root.focus-observed(false);
+            }
+        } else {
+            // Public clear-focus only clears this scope when it owns focus;
+            // a host's redirected focus is never cleared by this notification.
+            routing.clear-focus();
+        }
+    }
     changed busy => { root.cancel-press(); }
     min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block);
     preferred-height: root.min-height;
@@ -125,17 +144,27 @@ export component KitPressable inherits Rectangle {
         y: -KitThemes.focus-outset(root.focus-ring);
         width: root.width - 2 * self.x;
         height: root.height - 2 * self.y;
-        enabled: !root.disabled;
-        focus-on-tab-navigation: root.tab-stop;
+        // Keep FocusOut observable even when disabled changes before its
+        // notification. Activation, pointer and traversal eligibility are
+        // guarded by the public disabled state instead.
+        focus-on-tab-navigation: root.tab-stop && !root.disabled;
         focus-on-click: false;
         focus-gained(reason) => {
-            if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
-            else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
-            root.focus-observed(true);
+            if (root.disabled) { routing.focus(); }
+            else {
+                let was-focused = root.focused;
+                root.focused = true;
+                if (reason == FocusReason.tab-navigation || reason == FocusReason.programmatic) { root.keyboard-focus = true; }
+                else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
+                if (!was-focused) { root.focus-observed(true); }
+            }
         }
         focus-lost(reason) => {
+            let was-focused = root.focused;
+            root.focused = false;
+            root.keyboard-focus = false;
             root.cancel-press();
-            root.focus-observed(false);
+            if (was-focused) { root.focus-observed(false); }
         }
         key-pressed(event) => {
             root.keyboard-focus = true;
@@ -176,6 +205,14 @@ export component KitPressable inherits Rectangle {
         clicked => {
             if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
         }
+    }
+    // Not a control, tab stop or pointer target. It preserves ancestor key
+    // routing after a focused action becomes ineligible.
+    routing := FocusScope {
+        width: 0px; height: 0px;
+        focus-on-tab-navigation: false;
+        focus-on-click: false;
+        accessible-role: none;
     }
     if root.focus-visible || root.focus-indicated: FocusOutline {
         ring: root.focus-ring; radius: root.corner-radius;
