@@ -769,7 +769,7 @@
     "fr": {
       "summary": "Éditeur de couleur avec texte hexadécimal, champs de canaux et curseurs.",
       "usage": "Définissez `accepted-color: SrgbColorView` et la politique alpha ; l’échantillon et l’hexadécimal canonique dérivent de cette valeur. Le composant possède son brouillon natif, valide les octets et émet `chosen(SrgbColorView)`. Utilisez `SrgbColor::try_from` à la frontière Rust. Le popup applique ou annule un brouillon privé ; le sélecteur complet édite aussi les canaux. Le mode contrôlé émet une couleur proposée.",
-      "behavior": "L’exemple accepte les couleurs hexadécimales opaques et les canaux de 0 à 255. Annuler restaure la couleur enregistrée au début du geste. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
+      "behavior": "L’exemple accepte les couleurs hexadécimales opaques et les canaux de 0 à 255. Échap pendant un geste de curseur de canal restaure la couleur enregistrée au début de ce geste. Hors geste de pointeur, il conserve la couleur courante et remonte au parent. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
       "label": "Sélecteur de couleur",
       "seoTitle": "Sélecteur de couleur pour Slint",
       "related": [
@@ -780,7 +780,7 @@
     "en": {
       "summary": "Color editor with hex text, channel inputs and channel sliders.",
       "usage": "Set `accepted-color: SrgbColorView` and the alpha policy; the swatch and canonical hex default to this value. The component owns its native draft, validates channel bytes and emits `chosen(SrgbColorView)`. Use `SrgbColor::try_from` at the Rust boundary. The field popup applies or cancels a private draft; the full picker also edits individual channels. Controlled ownership emits a proposed color.",
-      "behavior": "The example accepts opaque hex colors and channel values from 0 to 255. Cancel restores the color saved at gesture start. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
+      "behavior": "The example accepts opaque hex colors and channel values from 0 to 255. Escape during a channel slider gesture restores the color saved at that gesture’s start. Outside a pointer gesture it leaves the current color unchanged and bubbles to the parent. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
       "label": "Color Picker",
       "seoTitle": "Color Picker for Slint",
       "related": [
@@ -3447,7 +3447,7 @@
     "fr": {
       "summary": "Curseur à deux poignées pour une sélection de plage locale ou contrôlée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Échap annule le geste actif. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
       "label": "Curseur de plage",
       "seoTitle": "Curseur de plage pour Slint",
       "related": [
@@ -3457,7 +3457,7 @@
     "en": {
       "summary": "Two-thumb slider with local or controlled range selection.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. Escape cancels an active gesture. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
       "label": "Range Slider",
       "seoTitle": "Range Slider for Slint",
       "related": [
@@ -3981,7 +3981,7 @@
     "fr": {
       "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Échap annule le geste actif. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -3992,7 +3992,7 @@
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. Escape cancels an active gesture. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
