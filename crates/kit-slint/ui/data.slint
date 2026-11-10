@@ -8,7 +8,8 @@ import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess } from "contracts.slint";
-import { CheckState } from "shared-contracts.slint";
+import { CheckState, TextPurpose, HtmlInputKind, Ownership } from "shared-contracts.slint";
+import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
 import { CheckMark } from "choice.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
@@ -44,7 +45,7 @@ export struct TableColumn { token: int, label: string, sortable: bool, sort: Dat
 // `FieldSpec` that parses, validates and displays it ("" for plain text)
 // and `access` whether Enter opens the editor.
 export enum TableCellKind { text, badge, check, field }
-export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string }
+export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
 enum ColumnStep { previous, next }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
@@ -240,6 +241,7 @@ component TableCellView inherits Rectangle {
     // The editing session of the table is on this cell.
     in property <bool> editing;
     in property <string> editor-name;
+    in property <string> rejection;
     in property <int> commit-request;
     in property <bool> pointed;
     callback point-requested();
@@ -290,6 +292,7 @@ component TableCellView inherits Rectangle {
         key-pressed(event) => {
             if (event.text == Key.Escape) { root.cancel-requested(); return accept; }
             if (event.text == Key.Tab || event.text == Key.Backtab) {
+                root.error-changed("");
                 editor.commit();
                 root.step-requested(event.modifiers.shift || event.text == Key.Backtab ? ColumnStep.previous : ColumnStep.next);
                 return accept;
@@ -301,14 +304,38 @@ component TableCellView inherits Rectangle {
             theme: root.theme; control-size: root.control-size;
             accessible-name: root.editor-name;
             text <=> root.draft;
+            // The table owns acceptance until its host verdict succeeds.
+            ownership: Ownership.controlled;
             spec-key: root.cell.spec;
+            input-type: root.cell.constrained && root.cell.constraints.kind == HtmlInputKind.number ? InputType.decimal : InputType.text;
+            input-kind: root.cell.constrained ? root.cell.constraints.kind : HtmlInputKind.text;
+            purpose: root.cell.constrained && root.cell.constraints.kind == HtmlInputKind.email ? TextPurpose.email : root.cell.constrained && root.cell.constraints.kind == HtmlInputKind.url ? TextPurpose.url : TextPurpose.plain;
+            required: root.cell.constrained && root.cell.constraints.required;
+            min-length: root.cell.constrained ? root.cell.constraints.min-length : -1;
+            max-length: root.cell.constrained ? root.cell.constraints.max-length : -1;
+            min: root.cell.constrained ? root.cell.constraints.min : "";
+            max: root.cell.constrained ? root.cell.constraints.max : "";
+            step: root.cell.constrained ? root.cell.constraints.step : "";
+            default-value: root.cell.constrained ? root.cell.constraints.default-value : "";
+            pattern: root.cell.constrained ? root.cell.constraints.pattern : "";
+            pattern-enabled: root.cell.constrained && root.cell.constraints.pattern-enabled;
+            multiple: root.cell.constrained && root.cell.constraints.multiple;
+            number-format: root.cell.constraints.number-format;
+            validation-twelve-hour: root.cell.constraints.twelve-hour;
+            custom-validity: root.rejection != "" ? root.rejection : root.cell.constrained ? root.cell.constraints.custom-error : "";
+            key-pressed(event) => {
+                // A prior host rejection is a result, not a permanent rule.
+                // Recheck the unchanged draft when the host allows a retry.
+                if (event.text == Key.Return) { root.error-changed(""); }
+                return KitKeyResult.reject;
+            }
             text-alignment: root.text-alignment();
             // The row has no room under the editor: the host reads the
             // error from the table instead.
             show-validation-message: false;
             init => { self.take-focus(); self.select-all(); }
             private property <int> request: root.commit-request;
-            changed request => { if (root.editing) { self.commit(); } }
+            changed request => { if (root.editing) { root.error-changed(""); self.commit(); } }
             committed(commit) => { root.committed(commit, self.has-focus); }
             edited(text) => { root.error-changed(""); }
             invalid => { root.error-changed(self.field-state.error != "" ? self.field-state.error : self.validation-message); }
@@ -373,6 +400,8 @@ export component KitDataTable inherits Rectangle {
     // column's `FieldSpec::accept`. The host fences it with the generation
     // and republishes the row; the table paints nothing from it.
     callback cell-committed(int,int,int,FieldCommit);
+    callback validate-edit(int,int,int,FieldCommit) -> string;
+    validate-edit(row, column, generation, commit) => { return ""; }
     public function take-focus() {if(root.interactive){keys.focus();}}
     public function edit-active() { if (!root.edit-open && KitFieldService.ready && root.active-cell-editable()) { root.begin-edit(); } }
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
@@ -638,13 +667,17 @@ export component KitDataTable inherits Rectangle {
                     focus-indicated: keys.has-focus && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
                     editing: root.edits-cell(row, root.columns[column-index]);
                     editor-name: root.columns[column-index].label + ", " + root.row-name(row);
+                    rejection: root.edit-error;
                     draft <=> root.edit-draft;
                     commit-request: root.edit-commit-request;
                     editor-focus-changed(focused) => { root.edit-focused = focused; }
                     committed(commit, focused) => {
                         if (root.edits-cell(row, root.columns[column-index])) {
-                            root.end-edit(focused);
-                            root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                            let rejection = root.validate-edit(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                            if (rejection == "") {
+                                root.end-edit(focused);
+                                root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
+                            } else { root.edit-error = rejection; }
                         }
                     }
                     cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true); } }

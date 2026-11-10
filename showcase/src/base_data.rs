@@ -267,11 +267,19 @@ impl Catalogue {
                             ),
                             // The stock is edited in place through the
                             // integer codec installed under `stock`.
-                            CellContent::typed_field(
-                                stock_key(),
-                                &FieldSpec::integer(),
-                                Some(&i64::from(p.stock)),
+                            CellContent::constrained_field(
+                                p.stock.to_string(),
+                                slint_kit::CellCodec::Spec(stock_key()),
                                 FieldAccess::Editable,
+                                ui::KitInputConstraints {
+                                    kind: ui::HtmlInputKind::Number,
+                                    required: true,
+                                    min: "0".into(),
+                                    max: u32::MAX.to_string().into(),
+                                    min_length: -1,
+                                    max_length: -1,
+                                    ..Default::default()
+                                },
                             ),
                         ]),
                         selected: self.selected == Some(p.id),

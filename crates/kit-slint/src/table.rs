@@ -51,6 +51,7 @@ pub enum CellContent {
         text: SharedString,
         codec: CellCodec,
         access: FieldAccess,
+        constraints: Option<ui::KitInputConstraints>,
     },
 }
 
@@ -79,6 +80,7 @@ impl CellContent {
             text: text.into(),
             codec: CellCodec::PlainText,
             access,
+            constraints: None,
         }
     }
     /// A field holding a typed value, formatted once by the codec that the
@@ -95,6 +97,22 @@ impl CellContent {
             text: value.map_or_else(SharedString::default, |value| spec.format(value).into()),
             codec: CellCodec::Spec(key),
             access,
+            constraints: None,
+        }
+    }
+    /// A constrained editor using the shared HTML engine and native numeric filtering.
+    /// Use -1 for absent min/max lengths, as on KitTextField.
+    pub fn constrained_field(
+        text: impl Into<SharedString>,
+        codec: CellCodec,
+        access: FieldAccess,
+        constraints: ui::KitInputConstraints,
+    ) -> Self {
+        Self::Field {
+            text: text.into(),
+            codec,
+            access,
+            constraints: Some(constraints),
         }
     }
 }
@@ -123,8 +141,11 @@ impl From<CellContent> for ui::TableCell {
                 text,
                 codec,
                 access,
+                constraints,
             } => Self {
                 kind: ui::TableCellKind::Field,
+                constrained: constraints.is_some(),
+                constraints: constraints.unwrap_or_default(),
                 text,
                 access: access.into(),
                 spec: match codec {

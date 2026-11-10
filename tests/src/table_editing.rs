@@ -661,6 +661,7 @@ fn field_cells_project_once_and_format_their_typed_value() {
         CellContent::Field {
             text: "x".into(),
             codec: CellCodec::PlainText,
+            constraints: None,
             access: FieldAccess::Editable
         }
     );
@@ -876,4 +877,303 @@ fn table_fields_refuse_to_open_before_the_field_service_is_installed() {
     key(&window, Key::Return);
     assert!(!window.get_table_editing());
     assert!(editors(&window).is_empty());
+}
+
+fn constrained_records() -> Vec<TableRow> {
+    let mut records = records();
+    records[0].content = table_cells([
+        CellContent::text("Field notes"),
+        CellContent::constrained_field(
+            "12",
+            CellCodec::Spec(quantity_key()),
+            FieldAccess::Editable,
+            ui::KitInputConstraints {
+                kind: ui::HtmlInputKind::Number,
+                required: true,
+                min: "0".into(),
+                max: "20".into(),
+                min_length: -1,
+                max_length: -1,
+                ..Default::default()
+            },
+        ),
+    ]);
+    records
+}
+
+#[test]
+fn constrained_cells_filter_numbers_and_keep_rejected_domain_values_open() {
+    let records = constrained_records();
+    let Editing {
+        window, commits, ..
+    } = editing(records);
+    open(&window, 1);
+    text(&window, "x");
+    assert_eq!(
+        labelled(&window, "Quantity, Field notes")
+            .accessible_value()
+            .as_deref(),
+        Some("12")
+    );
+    text(&window, "25");
+    key(&window, Key::Return);
+    assert!(window.get_table_editing());
+    assert!(commits.borrow().is_empty());
+    key(&window, Key::Escape);
+    key(&window, Key::F2);
+    text(&window, "8");
+    window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+    key(&window, Key::Return);
+    assert!(window.get_table_editing());
+    assert_eq!(window.get_table_edit_error(), "The record is locked");
+    assert!(commits.borrow().is_empty());
+}
+
+#[test]
+fn constrained_host_rejections_can_retry_the_same_draft_without_retyping() {
+    let Editing {
+        window, commits, ..
+    } = editing(constrained_records());
+    let submit: [fn(&BaseDataFixture); 3] = [
+        |window| key(window, Key::Return),
+        |window| key(window, Key::Tab),
+        |window| window.invoke_commit_table(),
+    ];
+    for submit in submit {
+        open(&window, 1);
+        text(&window, "8");
+        let locked = Rc::new(std::cell::Cell::new(true));
+        let observed = locked.clone();
+        let verdicts = Rc::new(std::cell::Cell::new(0));
+        let observed_verdicts = verdicts.clone();
+        window.on_validate_table_edit(move |_, _, _, _| {
+            observed_verdicts.set(observed_verdicts.get() + 1);
+            if observed.get() {
+                "The record is locked".into()
+            } else {
+                "".into()
+            }
+        });
+        submit(&window);
+        flush();
+        assert!(window.get_table_editing());
+        assert!(commits.borrow().is_empty());
+        assert_eq!(verdicts.get(), 1);
+        locked.set(false);
+        submit(&window);
+        flush();
+        assert!(!window.get_table_editing());
+        assert_eq!(verdicts.get(), 2);
+        assert_eq!(commits.borrow().len(), 1);
+        assert_eq!(commits.borrow()[0].3.value.text.as_str(), "8");
+        commits.borrow_mut().clear();
+    }
+}
+
+#[test]
+fn constrained_cells_preserve_the_default_step_base_and_persistent_custom_error() {
+    let mut rows = records();
+    let constraints = ui::KitInputConstraints {
+        kind: ui::HtmlInputKind::Number,
+        default_value: "1".into(),
+        step: "2".into(),
+        min_length: -1,
+        max_length: -1,
+        ..Default::default()
+    };
+    rows[0].content = table_cells([
+        CellContent::text("Field notes"),
+        CellContent::constrained_field(
+            "3",
+            CellCodec::PlainText,
+            FieldAccess::Editable,
+            constraints.clone(),
+        ),
+    ]);
+    let Editing {
+        window, commits, ..
+    } = editing(rows);
+    open(&window, 1);
+    text(&window, "2");
+    key(&window, Key::Return);
+    assert!(
+        window.get_table_editing(),
+        "the step base is 1, so 2 is invalid"
+    );
+    assert!(commits.borrow().is_empty());
+    key(&window, Key::Escape);
+    key(&window, Key::F2);
+    text(&window, "5");
+    key(&window, Key::Return);
+    assert!(!window.get_table_editing());
+    assert_eq!(commits.borrow().len(), 1);
+    commits.borrow_mut().clear();
+    let mut rows = records();
+    rows[0].content = table_cells([
+        CellContent::text("Field notes"),
+        CellContent::constrained_field(
+            "3",
+            CellCodec::PlainText,
+            FieldAccess::Editable,
+            ui::KitInputConstraints {
+                custom_error: "Approval is pending".into(),
+                ..constraints
+            },
+        ),
+    ]);
+    window.set_rows(ModelRc::new(VecModel::from(rows)));
+    open(&window, 1);
+    for _ in 0..2 {
+        key(&window, Key::Return);
+        assert!(window.get_table_editing());
+        assert_eq!(window.get_table_edit_error(), "Approval is pending");
+        assert!(commits.borrow().is_empty());
+    }
+}
+
+#[test]
+fn constrained_email_and_url_cells_and_rust_acceptance_reject_arbitrary_nonempty_text() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    for (kind, initial, invalid, valid) in [
+        (
+            ui::HtmlInputKind::Email,
+            "initial@example.test",
+            "not-an-email",
+            "ada@example.test",
+        ),
+        (
+            ui::HtmlInputKind::Url,
+            "https://initial.example.test",
+            "not-a-url",
+            "https://example.test/path",
+        ),
+    ] {
+        let constraints = ui::KitInputConstraints {
+            kind,
+            required: true,
+            min_length: -1,
+            max_length: -1,
+            ..Default::default()
+        };
+        let mut rows = records();
+        rows[0].content = table_cells([
+            CellContent::text("Field notes"),
+            CellContent::text("12"),
+            CellContent::constrained_field(
+                initial,
+                CellCodec::PlainText,
+                FieldAccess::Editable,
+                constraints.clone(),
+            ),
+        ]);
+        window.set_rows(ModelRc::new(VecModel::from(rows)));
+        window.set_table_active(0);
+        open(&window, 2);
+        text(&window, invalid);
+        key(&window, Key::Return);
+        assert!(window.get_table_editing());
+        assert!(!window.get_table_edit_error().is_empty());
+        assert!(commits.borrow().is_empty());
+        let forged = FieldCommit {
+            value: ui::FieldValue {
+                present: true,
+                text: invalid.into(),
+            },
+            constraints: constraints.clone(),
+            ..Default::default()
+        };
+        assert!(
+            owner_spec().accept(forged).is_err(),
+            "Rust acceptance must enforce intrinsic constraints too"
+        );
+        let valid_commit = FieldCommit {
+            value: ui::FieldValue {
+                present: true,
+                text: valid.into(),
+            },
+            constraints,
+            ..Default::default()
+        };
+        assert!(owner_spec().accept(valid_commit).is_ok());
+        key(&window, Key::Escape);
+        key(&window, Key::F2);
+        text(&window, valid);
+        key(&window, Key::Return);
+        assert!(!window.get_table_editing());
+        assert_eq!(
+            commits.borrow().last().unwrap().3.value.text.as_str(),
+            valid
+        );
+        commits.borrow_mut().clear();
+    }
+}
+#[test]
+fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_theme_and_scale() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install_field_specs(
+        &window,
+        [
+            FieldSpec::integer().named(quantity_key()),
+            owner_spec().named(owner_key()),
+        ],
+    )
+    .unwrap();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(constrained_records())));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let commits = Rc::new(RefCell::new(0));
+    let observed = commits.clone();
+    window.on_cell_committed(move |_, _, _, _| *observed.borrow_mut() += 1);
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.on_validate_table_edit(|_, _, _, _| "".into());
+            window.invoke_focus_table();
+            open(&window, 1);
+            text(&window, "25");
+            key(&window, Key::Return);
+            assert!(window.get_table_editing());
+            assert!(!window.get_table_edit_error().is_empty());
+            let editor = editors(&window).remove(0);
+            let row = delegates(&window, "KitDataTable").remove(0);
+            assert!(
+                editor.absolute_position().y >= row.absolute_position().y
+                    && editor.absolute_position().y + editor.size().height
+                        <= row.absolute_position().y + row.size().height
+            );
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-constraints-intrinsic-{name}-{scale}"),
+            );
+            key(&window, Key::Escape);
+            key(&window, Key::F2);
+            text(&window, "8");
+            window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+            key(&window, Key::Return);
+            assert!(window.get_table_editing());
+            assert_eq!(window.get_table_edit_error(), "The record is locked");
+            assert_eq!(*commits.borrow(), 0);
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-constraints-domain-{name}-{scale}"),
+            );
+            key(&window, Key::Escape);
+        }
+    }
 }

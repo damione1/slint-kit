@@ -47,6 +47,8 @@ export component BaseDataFixture inherits Window {
     callback sort-requested(int);
     callback resize-requested(int, length);
     callback cell-committed(int, int, int, FieldCommit);
+    callback validate-table-edit(int, int, int, FieldCommit) -> string;
+    validate-table-edit(row, column, generation, commit) => { return ""; }
     public function edit-table() { table.edit-active(); }
     public function commit-table() { table.commit-edit(); }
     public function cancel-table() { table.cancel-edit(); }
@@ -68,6 +70,7 @@ export component BaseDataFixture inherits Window {
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
+            validate-edit(row,column,generation,commit) => { return root.validate-table-edit(row,column,generation,commit); }
             cell-committed(row, column, generation, commit) => { root.cell-committed(row, column, generation, commit); }
         }
         content := KitContentList {

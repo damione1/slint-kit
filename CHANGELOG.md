@@ -5,6 +5,9 @@
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
 - Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
 
+- Validate intrinsic table field constraints with the shared HTML engine and let hosts reject a commit while retaining its draft. **Breaking:** `CellContent::Field` gains optional `constraints`.
+- Valide les contraintes intrinsèques des cellules avec le moteur HTML partagé et permet de refuser une validation en conservant le brouillon. **Rupture :** `CellContent::Field` reçoit un champ optionnel `constraints`.
+
 - Preserve selected, striped and text presentation when table interaction is blocked; unavailable records retain their own disabled appearance.
 
 - Initialize selection controllers created after window installation, including conditional controls and popup content, without requiring an options mutation.
