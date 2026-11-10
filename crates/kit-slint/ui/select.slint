@@ -498,8 +498,8 @@ export component KitSelect inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
-            private property <int> published-page-rows <=> root.measured-popup-page-rows;
-            published-page-rows: self.page-rows;
+            init => { root.measured-popup-page-rows = self.page-rows; }
+            changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             theme: root.theme;
             state: root.state;
             row-height: root.row-height;

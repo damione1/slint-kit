@@ -1229,8 +1229,8 @@ export component KitCombobox inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
-            private property <int> published-page-rows <=> root.measured-popup-page-rows;
-            published-page-rows: self.page-rows;
+            init => { root.measured-popup-page-rows = self.page-rows; }
+            changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             theme: root.theme; state: root.state; query <=> root.query;
             row-height: root.row-height;
             searchable: false; search-label: root.label;
