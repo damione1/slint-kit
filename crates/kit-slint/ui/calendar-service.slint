@@ -22,6 +22,8 @@ export struct CalendarProjection {
 }
 export global KitCalendarService {
     in-out property <bool> ready;
+    in-out property <CivilDateView> today;
+    pure callback initial-focus(CalendarView) -> CivilDateView;
     pure callback range-choose(CalendarView, DateRangeDraft, CivilDateView, string, string) -> DateRangeUpdate;
     pure callback range-project(CalendarView, DateRangeDraft, [string]) -> CalendarProjection;
     pure callback range-valid(CalendarView, DateRangeView, string, string) -> bool;

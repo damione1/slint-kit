@@ -145,3 +145,14 @@ Horizontal wheel scrolling changes a table viewport without changing the active 
 Select and MultiSelect distinguish `label` (stable accessible name), `placeholder` (empty hint) and `value-label` (accessible current value). No extra visible label row is inserted; compose `KitFieldLabel` for a caption and connect its focus request to `take-focus()`. **Migration:** stop putting the selected display value or field name in `placeholder`. Set the name with `label`; for explicit `rows`/`state` projections, supply `selected-label` instead. An available empty option label stays empty. An unavailable controlled choice displays `unavailable-label` and `theme.icons.warning` without changing the host selection.
 
 MultiSelect defaults to a count-and-label summary of its chips. Localize `KitStrings.multi-selection-count-format` (`{count}`), `multi-selection-value-format` (`{count}`/`{labels}`), and `selection-label-separator`; `select-label`, `multi-select-label`, the Select/MultiSelect placeholders, `combobox-placeholder` and `selection-unavailable-label` are window defaults. Per-component `value-label` can override the summary without changing membership. A controlled removal updates it after host acknowledgment. Combobox publishes `placeholder` separately from its stable `label`, defaulting the hint to `KitStrings.combobox-placeholder`. Its accessible value is nonempty native `text`, otherwise the accepted `selected-label`; preserve the native editor’s draft value while editing and its accepted selected-label projection independently of search results.
+
+Set a window-local calendar clock explicitly after `install` and before `show`:
+
+```rust
+let zone = slint_kit::TimeZoneId::new("America/Toronto")?;
+let today = slint_kit::refresh_calendar_today(&app, zone)?;
+```
+
+For deterministic/replayed time use `set_calendar_today_at(&app, zone, instant)` instead. Both helpers validate the projected civil date before changing `KitCalendarService.today`; they add no timer and infer no system zone. Refresh at your date rollover. Each calendar/picker may override `today`. Empty initial focus chooses today (or a stored value), then `DateConstraints::nearest_allowed` inside the bounds; ties prefer the future. Blocked intervals are skipped and wholly blocked weekdays return no eligible date, so long unavailable spans are not scanned day by day. A calendar with no allowed date remains browsable but cannot accept a date. Without a supplied today or opt-in clock, the deterministic fallback remains January2000. Updating today marks that date without replacing a user-navigated focused value.
+
+`Instant::from_unix_seconds` validates stored Unix seconds. `TimeZoneId::local_at` converts that typed instant to a civil date and time in an explicit zone and rejects civil years outside 1–9999; neither helper reads a clock or infers a system zone. Preserve the instant when an overlap projects two occurrences to the same local value.

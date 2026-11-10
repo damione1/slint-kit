@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership, WeekStart, CalendarConfigurationState } from "@kit";
+import { KitCalendar, KitCalendarService, CalendarDay, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership, WeekStart, CalendarConfigurationState } from "@kit";
 export component CalendarServiceFixture inherits Window {
     width: 1000px; height: 740px;
     in property <KitTheme> theme: KitThemes.light;
@@ -102,5 +102,31 @@ export component WeekdayHeaderFixture inherits Window {
         selected <=> root.selected; focused <=> root.calendar-focused;
         weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
         chosen(date) => { root.chosen-date = date; }
+    }
+}
+
+export component CalendarTodayFixture inherits Window {
+    width: 800px; height: 1300px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <string> min;
+    in property <string> max;
+    in property <[WeekStart]> unavailable-weekdays;
+    in property <CivilDateView> explicit-today;
+    in property <bool> override-today;
+    in-out property <CivilDateView> accepted-date;
+    out property <CivilDateView> date-today: date.today;
+    out property <CivilDateView> range-today: range.today;
+    out property <CivilDateView> date-focus: date.focused;
+    out property <CivilDateView> range-focus: range.focused;
+    out property <[CalendarDay]> date-days: date.days;
+    public function open-date() { date.open = true; }
+    public function close-date() { date.open = false; }
+    public function focus-range() { range.take-focus(); }
+    out property <[CalendarDay]> range-days: range.days;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        date := KitDatePicker {today: root.override-today ? root.explicit-today : KitCalendarService.today; accepted-date <=> root.accepted-date; theme: root.theme; label: "Date"; min: root.min; max: root.max; unavailable-weekdays: root.unavailable-weekdays;}
+        range := KitDateRangePicker {theme: root.theme; min: root.min; max: root.max; unavailable-weekdays: root.unavailable-weekdays;}
     }
 }
