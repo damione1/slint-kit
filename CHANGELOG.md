@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Preserve completed macOS compiler caches when a later CI documentation check fails.
+- Conserve les caches de compilation macOS terminés lorsqu’un contrôle documentaire ultérieur de CI échoue.
+
 - Add optional roving table-header navigation, localized header context and public sort/resize commands, including empty tables.
 - Ajoute une navigation optionnelle par curseur d’en-tête de tableau, un contexte localisable et des commandes de tri/redimensionnement, y compris sans lignes.
 
