@@ -647,15 +647,25 @@ impl DateRangeController {
         rules: DateRangeRules,
         date: CivilDate,
     ) -> Result<RangeSelection, ParseIssue> {
-        match draft {
-            RangeSelection::ChoosingStart => {}
+        // Availability may change while a completed or provisional range is stored.
+        // Recover at the next valid choice instead of trapping the user in old state.
+        let draft = match draft {
+            RangeSelection::ChoosingStart => RangeSelection::ChoosingStart,
             RangeSelection::ChoosingEnd { start } => {
-                rules.dates().validate(start)?;
+                if rules.dates().validate(start).is_ok() {
+                    RangeSelection::ChoosingEnd { start }
+                } else {
+                    RangeSelection::ChoosingStart
+                }
             }
             RangeSelection::Complete(range) => {
-                rules.validate(range)?;
+                if rules.validate(range).is_ok() {
+                    RangeSelection::Complete(range)
+                } else {
+                    RangeSelection::ChoosingStart
+                }
             }
-        }
+        };
         let mut controller = Self {
             accepted: None,
             draft,
@@ -934,5 +944,31 @@ mod tests {
         assert!(range.choose(date(2026, 1, 31)).is_err());
         range.cancel();
         assert_eq!(range.draft(), RangeSelection::Complete(original));
+    }
+    #[test]
+    fn a_range_draft_invalidated_by_new_constraints_restarts_from_a_valid_choice() {
+        let old = DateRange::new(date(2026, 10, 1), date(2026, 10, 3)).unwrap();
+        let minimum = date(2026, 10, 5);
+        let rules = DateRangeRules::new(
+            DateConstraints::new(Some(
+                NumericBounds::new(minimum, date(2026, 10, 31)).unwrap(),
+            )),
+            None,
+        );
+        for draft in [
+            RangeSelection::Complete(old),
+            RangeSelection::ChoosingEnd { start: old.start() },
+        ] {
+            let next = DateRangeController::reduce(draft, rules.clone(), minimum).unwrap();
+            assert_eq!(next, RangeSelection::ChoosingEnd { start: minimum });
+            assert!(
+                DateRangeController::reduce(draft, rules.clone(), old.start()).is_err(),
+                "new choices still obey the new constraints"
+            );
+            assert_eq!(
+                DateRangeController::reduce(next, rules.clone(), date(2026, 10, 6)).unwrap(),
+                RangeSelection::Complete(DateRange::new(minimum, date(2026, 10, 6)).unwrap())
+            );
+        }
     }
 }

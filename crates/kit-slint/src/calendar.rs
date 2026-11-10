@@ -148,7 +148,10 @@ fn parse(view: &ui::CalendarView) -> Result<CalendarController, ParseIssue> {
         .with_unavailable_ranges(ranges);
     CalendarController::from_state(
         CalendarState {
-            selected: optional_date(view.selected.clone())?,
+            // The stored value remains host-owned even when availability changes.
+            // Invalid old selection must not prevent projecting or choosing a replacement.
+            selected: optional_date(view.selected.clone())?
+                .filter(|date| constraints.validate(*date).is_ok()),
             focused: view.focused.clone().try_into()?,
         },
         constraints,
