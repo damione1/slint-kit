@@ -205,3 +205,5 @@ Lors de la migration d’un littéral de thème complet, ajoutez chaque champ `K
 `KitSurface` et `KitCard` conservent la peinture de leur Rectangle hérité. Leur `SurfaceRecipe` applique le fond, la bordure, le rayon et l’élévation, puis seulement `shadow.offset-y`, `shadow.blur` et `shadow.color`. Ces deux composants ne peignent ni `ambient-shadow` ni `shadow.spread`. Une valeur explicite de `elevation` différente de `recipe.elevation` choisit l’ombre principale dans le thème. `KitDialogPanel` utilise la composition élevée qui peint les deux couches d’ombre et leurs spreads.
 
 La `size` explicite de l’avatar est exacte et les initiales suivent son diamètre. Les préréglages `AvatarSize.compact/medium/large` suivent le texte ; leurs tailles et le ratio des initiales appartiennent à geometry. Un avatar vide lit theme.icons.avatar avec un nom de repli localisable. Les décorations de statut utilisent @children.
+
+Le `tone` de l’avatar choisit une palette neutre/accent/statut, avec accent par défaut. Les tons de statut combinent fonds subtils et encres lisibles.

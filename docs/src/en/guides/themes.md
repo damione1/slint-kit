@@ -205,3 +205,5 @@ When migrating a complete theme literal, add every `KitGeometry` field in both m
 `KitSurface` and `KitCard` retain their inherited Rectangle painting. Their `SurfaceRecipe` applies fill, border, radius and elevation, and only `shadow.offset-y`, `shadow.blur` and `shadow.color`. `ambient-shadow` and `shadow.spread` are not painted by these two components. An explicit `elevation` different from `recipe.elevation` selects the main shadow from the theme. `KitDialogPanel` uses the elevated composition, which paints both recipe shadow layers with their spreads.
 
 Avatar explicit `size` is exact and its initials follow the diameter. Use `AvatarSize.compact/medium/large` for text-scaled presets; their dimensions and initials ratio live in geometry. An empty avatar uses theme.icons.avatar and a localizable fallback label. Status decorations enter through @children.
+
+Avatar `tone` selects the existing neutral/accent/status palette while its default remains accent. Status tones use subtle fills and readable foregrounds.

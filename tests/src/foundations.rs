@@ -632,6 +632,15 @@ fn avatars_honor_explicit_small_sizes_scale_initials_and_name_fallbacks() {
                 "status children paint outside the avatar image clip"
             );
 
+            assert!(
+                snapshot.as_slice().iter().any(|p| (p.r, p.g, p.b)
+                    == (
+                        theme.success_subtle.red(),
+                        theme.success_subtle.green(),
+                        theme.success_subtle.blue()
+                    )),
+                "success avatar paints its semantic tone"
+            );
             let ink_height = |x: u32, y: u32, width: u32, height: u32| {
                 let mut first = height;
                 let mut last = 0;
@@ -717,6 +726,83 @@ fn avatars_honor_explicit_small_sizes_scale_initials_and_name_fallbacks() {
                     disabled_file
                         .write_all(&[pixel.r, pixel.g, pixel.b])
                         .unwrap();
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn avatar_semantic_tones_render_their_palette_in_both_themes_and_text_scales() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = AvatarSizingFixture::new().unwrap();
+    window.show().unwrap();
+    for (mode, base) in [
+        ("light", window.get_theme()),
+        ("dark", window.global::<ui::KitThemes>().get_dark()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            for (tone, expected) in [
+                (Tone::Neutral, theme.surface),
+                (Tone::Accent, theme.accent_subtle),
+                (Tone::Success, theme.success_subtle),
+                (Tone::Warning, theme.warning_subtle),
+                (Tone::Danger, theme.danger_subtle),
+                (Tone::Information, theme.information_subtle),
+            ] {
+                window.set_avatar_tone(tone);
+                slint::platform::update_timers_and_animations();
+                let avatar = i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+                    &window,
+                    "Positive profile",
+                )
+                .next()
+                .unwrap();
+                let origin = avatar.absolute_position();
+                let extent = avatar.size();
+                let snapshot = window.window().take_snapshot().unwrap();
+                let width = usize::try_from(snapshot.width()).unwrap();
+                assert!(
+                    snapshot
+                        .as_slice()
+                        .iter()
+                        .enumerate()
+                        .any(|(index, pixel)| {
+                            let x = f64::from(u32::try_from(index % width).unwrap()) + 0.5;
+                            let y = f64::from(u32::try_from(index / width).unwrap()) + 0.5;
+                            x > f64::from(origin.x) + 1.
+                                && x < f64::from(origin.x + extent.width) - 1.
+                                && y > f64::from(origin.y) + 1.
+                                && y < f64::from(origin.y + extent.height) - 1.
+                                && (pixel.r, pixel.g, pixel.b)
+                                    == (expected.red(), expected.green(), expected.blue())
+                        }),
+                    "{mode}/{scale}/{tone:?} paints its semantic fill inside the avatar"
+                );
+                if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                    use std::io::Write;
+                    std::fs::create_dir_all(&directory).unwrap();
+                    let path = std::path::PathBuf::from(directory)
+                        .join(format!("avatar-tone-{mode}-{scale}-{tone:?}.ppm"));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    write!(
+                        file,
+                        "P6\n{} {}\n255\n",
+                        snapshot.width(),
+                        snapshot.height()
+                    )
+                    .unwrap();
+                    for pixel in snapshot.as_slice() {
+                        file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                    }
                 }
             }
         }

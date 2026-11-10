@@ -188,3 +188,5 @@ Constraint-bearing text, choice, select, file and date/time controls use non-foc
 Surface/Card retain Rectangle painting: SurfaceRecipe applies fill/border/radius/elevation and main shadow offset-y/blur/color; ambient-shadow and shadow.spread are not painted there. Explicit elevation different from recipe.elevation selects the main theme shadow. DialogPanel uses the existing elevated composition with both layers and their spreads.
 
 `KitAvatar.size` is an exact diameter, including 24px. `avatar-size: AvatarSize.compact/medium/large` defaults scale with text; explicit sizes remain fixed. Initials scale with diameter, empty avatars use theme.icons.avatar, and @children supplies status decorations. Complete geometry/icon literals include avatar preset/ratio fields and the avatar glyph role.
+
+Avatar `tone` uses the shared Tone enum (accent by default) and the theme’s subtle fills with readable foregrounds.

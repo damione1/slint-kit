@@ -5,6 +5,8 @@
 - Breaking: choice, select, file and composed date/time `report-validity()` calls now report errors without moving focus. Use the new `focus-if-invalid()` helper for an explicit focus request; zoned date/time reporting collects both parts and focus projections read their native editors directly.
 - Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 
+- Add semantic avatar tones using existing theme fills and contrast-preserving foregrounds; accent remains the default.
+
 - Record the successful macOS arm64 headless check, starters and complete documentation applications at [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661); native, IME and screen-reader qualification remains separate.
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.
 - Preserve completed macOS compiler caches when a later CI documentation check fails.
@@ -165,6 +167,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Ajoute les tons sémantiques d’avatar via les fonds du thème et des encres contrastées ; accent reste le choix par défaut.
 
 - Respecte les petites tailles d’avatar, adapte les initiales au diamètre et ajoute préréglages agrandis, glyphe de repli du thème, nom accessible de repli et composition du statut. Rupture : les littéraux geometry complets exigent avatar-compact/avatar-large/avatar-initials-ratio et les jeux d’icônes complets exigent avatar.
 
