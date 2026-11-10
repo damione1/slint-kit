@@ -142,12 +142,13 @@ export component KitStat inherits VerticalLayout {
     in property <string> description;
     in property <IconGlyph> leading-icon;
     in property <Tone> tone: Tone.neutral;
+    private property <color> tone-ink: root.tone == Tone.neutral ? root.theme.text-primary : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.theme.information;
     spacing: root.theme.spacing.unit; vertical-stretch: 0;
     HorizontalLayout { spacing: root.theme.spacing.unit * 2;
-        if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; glyph: root.leading-icon; ink: root.theme.accent; }
+        if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; glyph: root.leading-icon; ink: root.tone-ink; }
         Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; vertical-alignment: center; }
     }
-    Text { text: root.value; color: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+    Text { text: root.value; color: root.tone-ink; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
     if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 export component KitChatBubble inherits HorizontalLayout {
