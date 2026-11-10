@@ -240,14 +240,13 @@ export component KitSwitch inherits KitPressable {
 
 // One tab target. Rust owns stable keys, skip-disabled and reconciliation;
 // the translator is reused by radio, segmented, toggle and rating surfaces.
+enum ChoiceKeyPolicy { axis, radio, grid }
 component ChoiceKeyboard inherits FocusScope {
     min-width: 0px; preferred-width: 0px; max-width: 100000px; horizontal-stretch: 1;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <bool> activate-on-return: true;
-    in property <bool> both-arrow-axes: false;
-    in property <bool> wrapped-grid: false;
+    in property <ChoiceKeyPolicy> policy: ChoiceKeyPolicy.axis;
     callback navigate(NavigationStep);
     callback activate();
     private property <bool> held;
@@ -265,16 +264,16 @@ component ChoiceKeyboard inherits FocusScope {
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.RightArrow && (root.direction == ChoiceDirection.horizontal || root.both-arrow-axes)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
-        if (event.text == Key.LeftArrow && (root.direction == ChoiceDirection.horizontal || root.both-arrow-axes)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
-        if (event.text == Key.DownArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.next); return accept; }
-        if (event.text == Key.UpArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.previous); return accept; }
-        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.horizontal && root.wrapped-grid) { root.navigate(NavigationStep.page-next); return accept; }
-        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.horizontal && root.wrapped-grid) { root.navigate(NavigationStep.page-previous); return accept; }
-        if (event.text == Key.Space || (root.activate-on-return && event.text == Key.Return)) { if (!root.held) { root.held = true; root.activate(); } return accept; }
+        if (event.text == Key.RightArrow && (root.direction == ChoiceDirection.horizontal || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
+        if (event.text == Key.LeftArrow && (root.direction == ChoiceDirection.horizontal || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && (root.direction == ChoiceDirection.vertical || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(NavigationStep.next); return accept; }
+        if (event.text == Key.UpArrow && (root.direction == ChoiceDirection.vertical || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.horizontal && root.policy == ChoiceKeyPolicy.grid) { root.navigate(NavigationStep.page-next); return accept; }
+        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.horizontal && root.policy == ChoiceKeyPolicy.grid) { root.navigate(NavigationStep.page-previous); return accept; }
+        if (event.text == Key.Space || (root.policy != ChoiceKeyPolicy.radio && event.text == Key.Return)) { if (!root.held) { root.held = true; root.activate(); } return accept; }
         return reject;
     }
-    key-released(event) => { if (event.text == Key.Space || (root.activate-on-return && event.text == Key.Return)) { root.held = false; return accept; } return reject; }
+    key-released(event) => { if (event.text == Key.Space || (root.policy != ChoiceKeyPolicy.radio && event.text == Key.Return)) { root.held = false; return accept; } return reject; }
     focus-lost(reason) => { root.held = false; }
 }
 
@@ -326,7 +325,7 @@ export component KitRadioGroup inherits Rectangle {
     vertical-stretch: 0;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
-        activate-on-return: false; both-arrow-axes: true;
+        policy: ChoiceKeyPolicy.radio;
         navigate(step) => { root.handle-navigate(step); }
         activate => { root.handle-activate(root.active-token, root.generation); }
         // Box layouts measure horizontal and vertical constraints separately,
@@ -489,7 +488,7 @@ export component KitSegmentedControl inherits Rectangle {
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
-        wrapped-grid: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count;
+        policy: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count ? ChoiceKeyPolicy.grid : ChoiceKeyPolicy.axis;
         navigate(step) => { root.handle-navigate(step); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { checks.note-edit(); root.handle-activate(root.active-token, root.generation); } }
         choices := VerticalLayout {
@@ -523,7 +522,9 @@ export component KitSegmentedControl inherits Rectangle {
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
-        selection.navigate(step);
+        if (step == NavigationStep.page-previous) { selection.previous-row(root.column-count); }
+        else if (step == NavigationStep.page-next) { selection.next-row(root.column-count); }
+        else { selection.navigate(step); }
         if (root.access == FieldAccess.editable && selection.state.active.present) {
             selection.activate(selection.state.active.token, selection.state.generation);
         }

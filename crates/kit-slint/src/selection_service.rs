@@ -293,6 +293,24 @@ where
         )
         .session
     });
+    service.on_previous_row(|rows, current, columns, ownership| {
+        let Ok(columns) = usize::try_from(columns) else {
+            return current;
+        };
+        reduce(
+            &rows,
+            current,
+            ownership,
+            SelectEvent::PreviousRow { columns },
+        )
+        .session
+    });
+    service.on_next_row(|rows, current, columns, ownership| {
+        let Ok(columns) = usize::try_from(columns) else {
+            return current;
+        };
+        reduce(&rows, current, ownership, SelectEvent::NextRow { columns }).session
+    });
     service.on_typeahead_active(|current, timestamp| {
         let Ok(now_ms) = u64::try_from(timestamp) else {
             return false;

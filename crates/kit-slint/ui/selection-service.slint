@@ -29,6 +29,8 @@ export global KitSelectionService {
     pure callback reconcile([OptionRow], SelectionSession, Ownership, SelectionRetention) -> SelectionSession;
     pure callback open([OptionRow], SelectionSession, Ownership) -> SelectionSession;
     pure callback navigate([OptionRow], SelectionSession, NavigationStep, int, Ownership) -> SelectionSession;
+    pure callback previous-row([OptionRow], SelectionSession, int, Ownership) -> SelectionSession;
+    pure callback next-row([OptionRow], SelectionSession, int, Ownership) -> SelectionSession;
     pure callback dismiss([OptionRow], SelectionSession, CloseReason, Ownership) -> SelectionSession;
     pure callback activate([OptionRow], SelectionSession, int, int, Ownership) -> SelectionTransition;
     pure callback typeahead([OptionRow], SelectionSession, string, int, Ownership) -> SelectionSession;
@@ -124,6 +126,12 @@ export component KitSelection inherits Rectangle {
     }
     public function navigate-by(step: NavigationStep, rows: int) {
         if (KitSelectionService.ready) { root.apply(KitSelectionService.navigate(root.rows, root.current-session, step, rows, root.ownership)); }
+    }
+    public function previous-row(columns: int) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.previous-row(root.rows, root.current-session, columns, root.ownership)); }
+    }
+    public function next-row(columns: int) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.next-row(root.rows, root.current-session, columns, root.ownership)); }
     }
     public function activate(token: int, generation: int) {
         if (!KitSelectionService.ready || root.source-generation < 0 || root.gesture-generation < 0 || root.gesture-source-generation != root.source-generation || root.gesture-query != root.query) { return; }

@@ -703,8 +703,21 @@ fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carous
     window.set_nav_flow(slint_kit::ui::ChoiceFlow::LeftToRight);
     window.invoke_focus_segments();
     key(&window, Key::DownArrow);
-    assert_eq!(window.get_segments_selected(), banana);
+    assert_eq!(
+        window.get_segments_selected(),
+        apricot,
+        "Down keeps the rendered column despite the disabled second cell"
+    );
     key(&window, Key::UpArrow);
+    assert_eq!(window.get_segments_selected(), apple);
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::RightToLeft);
+    key(&window, Key::UpArrow);
+    assert_eq!(
+        window.get_segments_selected(),
+        apricot,
+        "RTL vertical wrapping keeps the same visual column"
+    );
+    key(&window, Key::DownArrow);
     assert_eq!(window.get_segments_selected(), apple);
 
     // KitToggleGroup supports vertical direction and wraps.

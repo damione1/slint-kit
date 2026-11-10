@@ -78,6 +78,12 @@ pub enum SelectEvent<K> {
         step: NavigationStep,
         page_size: usize,
     },
+    PreviousRow {
+        columns: usize,
+    },
+    NextRow {
+        columns: usize,
+    },
     Activate(K),
     Dismiss(DismissReason),
     Typeahead {
@@ -129,6 +135,8 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
         },
         SelectEvent::Open
         | SelectEvent::Navigate { .. }
+        | SelectEvent::PreviousRow { .. }
+        | SelectEvent::NextRow { .. }
         | SelectEvent::Activate(_)
         | SelectEvent::Dismiss(_)
         | SelectEvent::Typeahead { .. } => match removal_policy {
@@ -174,6 +182,14 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
         }
         SelectEvent::Navigate { step, page_size } => {
             controller.navigate(step, page_size);
+            None
+        }
+        SelectEvent::PreviousRow { columns } => {
+            controller.previous_row(columns);
+            None
+        }
+        SelectEvent::NextRow { columns } => {
+            controller.next_row(columns);
             None
         }
         SelectEvent::Activate(key) => controller.activate(&key),
@@ -461,6 +477,66 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         };
         self.state.active = Some(self.options[available[next]].key.clone());
         self.reset_typeahead();
+    }
+
+    /// Move within the rendered source column, preserving disabled cell slots.
+    /// Missing cells in a partial last row are skipped. Wrapping stays in the
+    /// same column; an entirely disabled column leaves the active key intact.
+    pub fn next_row(&mut self, columns: usize) {
+        let Some(current) = self.active_source_index() else {
+            return;
+        };
+        let columns = columns.max(1);
+        let column = current % columns;
+        let mut candidates = (column..self.options.len()).step_by(columns);
+        let next = candidates
+            .clone()
+            .find(|&i| i > current && !self.options[i].disabled)
+            .or_else(|| {
+                if self.wrap {
+                    candidates.find(|&i| !self.options[i].disabled)
+                } else {
+                    None
+                }
+            });
+        self.apply_row_navigation(next);
+    }
+
+    pub fn previous_row(&mut self, columns: usize) {
+        let Some(current) = self.active_source_index() else {
+            return;
+        };
+        let columns = columns.max(1);
+        let column = current % columns;
+        let mut candidates = (column..self.options.len()).step_by(columns).rev();
+        let next = candidates
+            .clone()
+            .find(|&i| i < current && !self.options[i].disabled)
+            .or_else(|| {
+                if self.wrap {
+                    candidates.find(|&i| !self.options[i].disabled)
+                } else {
+                    None
+                }
+            });
+        self.apply_row_navigation(next);
+    }
+
+    fn active_source_index(&self) -> Option<usize> {
+        if !self.state.open {
+            return None;
+        }
+        let active = self.state.active.as_ref()?;
+        self.options.iter().position(|row| &row.key == active)
+    }
+
+    fn apply_row_navigation(&mut self, next: Option<usize>) {
+        if self.state.open {
+            if let Some(next) = next {
+                self.state.active = Some(self.options[next].key.clone());
+            }
+            self.reset_typeahead();
+        }
     }
 
     pub fn activate(&mut self, key: &K) -> Option<SelectionIntent<K>> {
@@ -854,6 +930,60 @@ mod tests {
             assert_eq!(reduced.session.selection.active, Some(2));
             assert!(reduced.intent.is_none());
         }
+    }
+
+    #[test]
+    fn grid_rows_preserve_source_columns_disabled_slots_and_partial_rows() {
+        let mut options = (0..5)
+            .map(|key| SelectOption::new(key, key.to_string()))
+            .collect::<Vec<_>>();
+        options[1].disabled = true;
+        let mut controller = SelectController::new(options.clone(), Some(0), Ownership::Local);
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            None,
+            "closed sessions do not move"
+        );
+        controller.open();
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(2),
+            "disabled column one does not shift column zero"
+        );
+        controller.next_row(2);
+        assert_eq!(controller.state().active, Some(4));
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(4),
+            "without wrap, the column clamps"
+        );
+        controller.set_wrap(true);
+        controller.next_row(2);
+        assert_eq!(controller.state().active, Some(0));
+        controller.previous_row(2);
+        assert_eq!(controller.state().active, Some(4));
+        options[2].disabled = true;
+        controller.reconcile(options.clone()).unwrap();
+        controller.previous_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(0),
+            "disabled rows are skipped in the same column"
+        );
+        let mut right = SelectController::new(options, Some(3), Ownership::Local);
+        right.set_wrap(true);
+        right.open();
+        right.next_row(2);
+        assert_eq!(
+            right.state().active,
+            Some(3),
+            "the missing final cell and disabled first cell cannot move columns"
+        );
+        right.previous_row(2);
+        assert_eq!(right.state().active, Some(3));
     }
 
     #[test]
