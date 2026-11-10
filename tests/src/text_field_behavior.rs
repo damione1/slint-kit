@@ -74,3 +74,15 @@ fn untouched_programmatic_short_text_respects_html_dirty_state() {
     slint::platform::update_timers_and_animations();
     assert!(!app.get_error_visible());
 }
+#[test]
+fn reporting_invalid_fields_does_not_move_focus() {
+    let app = fixture();
+    app.set_required(true);
+    app.invoke_blur_field();
+    slint::platform::update_timers_and_animations();
+    assert!(!app.invoke_report());
+    assert!(!app.get_has_focus());
+    assert!(app.get_error_visible());
+    assert!(app.invoke_focus_invalid());
+    assert!(app.get_has_focus());
+}

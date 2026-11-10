@@ -108,7 +108,8 @@ export component KitTextField inherits KitField {
     out property <bool> touched: checks.touched;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
-    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function report-validity() -> bool { return checks.report-validity(); }
+    public function focus-if-invalid() -> bool { if (root.will-validate && !root.validity.valid) { root.take-focus(); return true; } return false; }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     public function reset-field() { root.text = root.default-value; root.field-state = {accepted: {present: root.default-value != "", text: root.default-value}, draft: root.default-value}; root.synchronize-length-limit(); checks.reset-validation(); root.edited(root.text); root.synchronize-length-limit(); }

@@ -12,6 +12,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Breaking: text-field `report-validity()` reports without taking focus; use `focus-if-invalid()` for explicit focus control.
+- Rupture : `report-validity()` des champs texte signale sans prendre le focus ; utilisez `focus-if-invalid()` pour le déplacer explicitement.
+
 - Avoid unchanged blur commits and honor HTML dirty state and validation timing for text fields. Breaking: `KitFieldService.reduce` now takes the actual user-edit flag.
 - Évite les engagements au flou sans changement et respecte l’état modifié HTML et le moment de validation. Rupture : `KitFieldService.reduce` reçoit désormais l’indicateur réel de saisie.
 
