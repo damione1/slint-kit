@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership, WeekStart } from "@kit";
+import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership, WeekStart, CalendarConfigurationState } from "@kit";
 export component CalendarServiceFixture inherits Window {
     width: 1000px; height: 740px;
     in property <KitTheme> theme: KitThemes.light;
@@ -60,8 +60,9 @@ export component CalendarConstraintFixture inherits Window {
     in property <string> min;
     in property <string> max;
     in property <[WeekStart]> unavailable-weekdays;
+    out property <CalendarConfigurationState> configuration-state: calendar.configuration-state;
     background: root.theme.canvas;
-    KitCalendar {
+    calendar := KitCalendar {
         x: 24px; y: 24px; width: 700px; height: self.preferred-height;
         theme: root.theme; week-start: root.week-start;
         selected <=> root.selected; min: root.min; max: root.max; unavailable-weekdays: root.unavailable-weekdays;

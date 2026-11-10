@@ -9,13 +9,14 @@ import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { KitStrings } from "strings.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
+import { KitStrings } from "strings.slint";
 import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess } from "contracts.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
 
-import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
-export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
+import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, CalendarConfigurationState, KitCalendarService } from "calendar-service.slint";
+export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, CalendarConfigurationState, KitCalendarService } from "calendar-service.slint";
 import { WeekStart, Ownership, CommitPolicy } from "shared-contracts.slint";
 import { FieldCommit } from "field-service.slint";
 import { DateRangePhase, DateRangeDraft } from "calendar-service.slint";
@@ -48,6 +49,8 @@ export component KitCalendar inherits Rectangle {
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     private property <CalendarView> view: { selected: root.selected, focused: root.focused, today: root.today, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.month-names) : {active-index: -1};
+    out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
+    in property <string> configuration-message: KitStrings.calendar-configuration-error;
     callback chosen(CivilDateView);
     public function move(direction: CalendarNavigation) {
         if (root.access == FieldAccess.disabled) { return; }
@@ -105,13 +108,13 @@ export component KitCalendar inherits Rectangle {
     min-width: 7 * root.cell-height;
     preferred-width: 448px;
     max-width: Math.max(448px,7 * root.cell-height);
-    preferred-height: root.theme.spacing.unit * 2 + root.cell-height * 8;
+    preferred-height: content.preferred-height;
     vertical-stretch: 0;
     accessible-role: groupbox;
     accessible-label: root.label + ": " + (root.active-index >= 0 && root.active-index < root.days.length ? root.days[root.active-index].accessible-label : root.title);
     accessible-description: root.navigation-help + (root.active-index >= 0 && root.active-index < root.days.length && !root.day-allowed(root.days[root.active-index]) ? " " + root.unavailable-label : "");
     forward-focus: keyboard;
-    VerticalLayout {
+    content := VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
@@ -164,6 +167,9 @@ export component KitCalendar inherits Rectangle {
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.accept-day(chosen); } }
                 Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: day.selected || day.today ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
+        }
+        if root.configuration-state == CalendarConfigurationState.invalid: KitFieldError {
+            theme: root.theme; text: root.configuration-message;
         }
     }
 }
@@ -219,6 +225,8 @@ export component KitDatePicker inherits Rectangle {
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     private property <CalendarView> view: {selected: root.accepted-date, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges};
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.month-names) : {active-index: -1};
+    out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
+    in property <string> configuration-message: KitStrings.calendar-configuration-error;
     callback chosen(CivilDateView);
     callback cleared();
     public function accept-date(date: CivilDateView) {
@@ -302,6 +310,7 @@ export component KitDatePicker inherits Rectangle {
         }
         if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
+        if !root.open && root.configuration-state == CalendarConfigurationState.invalid: KitFieldError { theme: root.theme; text: root.configuration-message; }
         if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     }
     popup := PopupWindow {
@@ -309,7 +318,7 @@ export component KitDatePicker inherits Rectangle {
         close-policy: close-on-click-outside;
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
-            calendar := KitCalendar { ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
+            calendar := KitCalendar { configuration-message: root.configuration-message; ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 chosen(date) => { root.accept-date(date); }
                 choose(day) => { root.choose(day); root.open = false; }
@@ -342,6 +351,8 @@ export component KitDateRangePicker inherits Rectangle {
     private property <bool> rejected;
     private property <CalendarView> view: { focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.range-project(root.view, root.draft, root.month-names) : {active-index: -1};
+    out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
+    in property <string> configuration-message: KitStrings.calendar-configuration-error;
     callback chosen(DateRangeView);
     function choose-date(date: CivilDateView) {
         if (root.access != FieldAccess.editable || !KitCalendarService.ready) { return; }
@@ -390,12 +401,12 @@ export component KitDateRangePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? root.choose-start-label : root.phase == DateRangePhase.choosing-end ? root.choose-end-label : root.ready-label) : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; accessible-live-region: polite; }
-        calendar := KitCalendar { focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
+        calendar := KitCalendar { configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
             KitButton { theme: root.theme; control-size: root.control-size; text: root.cancel-label; disabled: root.access == FieldAccess.disabled; intent: ButtonIntent.quiet; activated => { root.cancel(); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; intent: ButtonIntent.primary; disabled: root.access != FieldAccess.editable || root.phase != DateRangePhase.complete || root.error != ""; activated => { root.apply(); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; intent: ButtonIntent.primary; disabled: root.access != FieldAccess.editable || root.phase != DateRangePhase.complete || root.error != "" || root.configuration-state == CalendarConfigurationState.invalid; activated => { root.apply(); } }
         }
     }
 }

@@ -236,3 +236,102 @@ fn an_invalid_stored_range_can_be_replaced_even_after_cancel_restores_it() {
     assert_eq!(window.get_selected().start.day, 5);
     assert_eq!(window.get_selected().end.day, 6);
 }
+
+#[test]
+fn invalid_date_configuration_keeps_a_disabled_grid_and_a_localized_diagnostic() {
+    use crate::CalendarConstraintFixture;
+    use i_slint_backend_testing::{
+        ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions,
+    };
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = CalendarConstraintFixture::new().unwrap();
+    slint_kit::install(&window);
+    let message = "Configuration du calendrier invalide";
+    window
+        .global::<slint_kit::ui::KitStrings>()
+        .set_calendar_configuration_error(message.into());
+    window.show().unwrap();
+    for (mode, base) in [
+        window.get_theme(),
+        window.global::<slint_kit::ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            for (case, minimum, maximum) in [
+                ("minimum", "not-a-date", "2026-10-31"),
+                ("maximum", "2026-10-01", "2026-13-01"),
+                ("inverted", "2026-10-31", "2026-10-01"),
+            ] {
+                window.set_min(minimum.into());
+                window.set_max(maximum.into());
+                slint::platform::update_timers_and_animations();
+                assert_eq!(
+                    window.get_configuration_state(),
+                    slint_kit::ui::CalendarConfigurationState::Invalid
+                );
+                assert_eq!(
+                    ElementQuery::from_root(&window)
+                        .match_inherits("CalendarOption")
+                        .find_all()
+                        .len(),
+                    42
+                );
+                assert!(
+                    ElementHandle::find_by_accessible_label(&window, message)
+                        .next()
+                        .is_some()
+                );
+                let old = window.get_selected();
+                let unavailable = ElementHandle::find_by_accessible_label(&window, "2026-10-07")
+                    .next()
+                    .unwrap();
+                assert_eq!(unavailable.accessible_enabled(), Some(false));
+                unavailable.invoke_accessible_default_action();
+                assert_eq!(
+                    window.get_selected(),
+                    old,
+                    "a displayed fallback grid cannot bypass invalid date configuration"
+                );
+                if let Some(dir) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                    use std::io::Write;
+                    let image = window.window().take_snapshot().unwrap();
+                    std::fs::create_dir_all(&dir).unwrap();
+                    let path = std::path::PathBuf::from(dir)
+                        .join(format!("calendar-configuration-{case}-{mode}-{scale}.ppm"));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    write!(file, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                    for p in image.as_slice() {
+                        file.write_all(&[p.r, p.g, p.b]).unwrap();
+                    }
+                }
+            }
+            window.set_min("2026-10-01".into());
+            window.set_max("2026-10-31".into());
+            slint::platform::update_timers_and_animations();
+            assert_eq!(
+                window.get_configuration_state(),
+                slint_kit::ui::CalendarConfigurationState::Valid
+            );
+            assert!(
+                ElementHandle::find_by_accessible_label(&window, message)
+                    .next()
+                    .is_none()
+            );
+            ElementHandle::find_by_accessible_label(&window, "2026-10-06")
+                .next()
+                .unwrap()
+                .invoke_accessible_default_action();
+            assert_eq!(window.get_selected().day, 6);
+        }
+    }
+}
