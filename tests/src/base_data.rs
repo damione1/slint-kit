@@ -768,3 +768,48 @@ fn document_editor_actions_accept_localized_labels() {
         assert!(labelled(&window, label).size().width > 0.);
     }
 }
+
+#[test]
+fn blocking_a_table_preserves_row_selection_and_striping_presentation() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_columns(columns());
+    let mut records = rows(1, 3);
+    records[0].selected = true;
+    window.set_rows(ModelRc::new(VecModel::from(records)));
+    window.show().unwrap();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            let before = window.window().take_snapshot().unwrap();
+            window.set_table_interactive(false);
+            let after = window.window().take_snapshot().unwrap();
+            assert_eq!(
+                before.as_bytes(),
+                after.as_bytes(),
+                "inert table paint must remain stable"
+            );
+            assert_eq!(
+                labelled(&window, "Product 1").accessible_enabled(),
+                Some(false)
+            );
+            crate::choice_presentation::save_capture(
+                &after,
+                &format!("table-inert-{name}-{scale}"),
+            );
+            window.set_table_interactive(true);
+        }
+    }
+}

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Preserve selected, striped and text presentation when table interaction is blocked; unavailable records retain their own disabled appearance.
+
 - Initialize selection controllers created after window installation, including conditional controls and popup content, without requiring an options mutation.
 - Initialise les contrôleurs de sélection créés après installation de la fenêtre, y compris les contrôles conditionnels et popups, sans exiger de mutation des options.
 
