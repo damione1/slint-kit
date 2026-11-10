@@ -265,14 +265,34 @@ mod tests {
         }
     }
     #[test]
-    fn typing_is_strict_while_formatted_paste_can_be_normalized() {
+    fn typing_and_paste_share_separators_without_weakening_typed_acceptance() {
         for text in ["123", "+", "\u{8}", "\u{f700}"] {
             assert!(phone_insertion(text));
         }
-        for text in ["Ada", " ", "-", "()", "123 456", "e", "１２"] {
+        for text in ["Ada", "e", "１２", "123/456", "123\n456"] {
             assert!(!phone_insertion(text));
         }
-        assert_eq!(normalize_phone("(514) 555-0123").unwrap(), "5145550123");
+        let rules = PhoneRules::exact(PhoneNumberMode::National, 10).unwrap();
+        for separator in [" ", "\u{a0}", "\u{202f}", "-", "(", ")", "."] {
+            let text = format!("514{separator}5550123");
+            assert!(phone_insertion(&text), "{text}");
+            assert_eq!(normalize_phone(&text).unwrap(), "5145550123");
+            assert_eq!(
+                rules.validate(&text).unwrap().unwrap().as_str(),
+                "5145550123"
+            );
+        }
+        // Insertion filtering permits partial drafts; typed acceptance still
+        // enforces prefix, digit bounds and unsupported characters.
+        for text in [
+            "+5145550123",
+            "514",
+            "51455501234",
+            "514 Ada 5550123",
+            "514/5550123",
+        ] {
+            assert!(rules.validate(text).is_err(), "{text}");
+        }
         assert!(normalize_phone("514 Ada 5550123").is_err());
     }
 }
