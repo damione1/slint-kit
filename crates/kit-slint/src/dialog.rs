@@ -107,11 +107,11 @@ impl<L: Copy + Eq, T: Copy + Ord> Session<L, T> {
         let target = &self.targets[&key];
         target.spec.enabled
             && match target.spec.layer {
-                None => self.overlays.is_empty(),
+                None => self.overlays.topmost_modal().is_none(),
                 Some(key) => {
                     let layer = self.layer(key).expect("registered modal layer");
                     self.overlays
-                        .topmost()
+                        .topmost_modal()
                         .is_some_and(|top| top.id == layer.id)
                         && match layer.activity {
                             DialogActivity::Ready => true,
@@ -143,12 +143,14 @@ impl<L: Copy + Eq, T: Copy + Ord> Session<L, T> {
         Some(request)
     }
     fn recover_focus(&mut self) -> Option<DialogFocusRequest<L>> {
-        let top = self.overlays.topmost()?.id;
-        let (key, scope) = self
+        let top = self.overlays.topmost_modal()?;
+        let top_id = top.id;
+        let scope = top.focus_scope.expect("registered modal scope");
+        let key = self
             .layers
             .iter()
-            .find(|layer| layer.id == top)
-            .map(|layer| (layer.spec.key, layer.scope))
+            .find(|layer| layer.id == top_id)
+            .map(|layer| layer.spec.key)
             .expect("registered modal layer");
         if self
             .targets
@@ -354,6 +356,7 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
                 parent.map(|key| s.layer(key).expect("registered modal parent").id),
                 true,
             );
+            spec.focus_scope = Some(scope);
             spec.restore_focus = Some(s.targets[&opener].handle);
             s.overlays.push(spec).ok()?;
             s.focus.push_trap(scope).expect("registered modal scope");
@@ -382,12 +385,14 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
             match s.overlays.close(id, reason) {
                 CloseResult::Closed(closed) => {
                     for spec in &closed {
+                        if let Some(scope) = spec.focus_scope {
+                            s.focus.pop_trap(scope);
+                        }
                         let layer = s
                             .layers
                             .iter_mut()
                             .find(|layer| layer.id == spec.id)
                             .expect("registered modal layer");
-                        s.focus.pop_trap(layer.scope);
                         layer.activity = DialogActivity::Ready;
                     }
                     s.sync();
@@ -396,13 +401,11 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
                         .and_then(|spec| spec.restore_focus)
                         .into_iter()
                         .collect::<Vec<_>>();
-                    let fallback = s.overlays.topmost().map_or(WINDOW, |top| {
-                        s.layers
-                            .iter()
-                            .find(|layer| layer.id == top.id)
-                            .expect("registered layer")
-                            .scope
-                    });
+                    let fallback = s
+                        .overlays
+                        .topmost_modal()
+                        .and_then(|top| top.focus_scope)
+                        .unwrap_or(WINDOW);
                     let request = s.focus.restore(&preferred, fallback)?;
                     s.current = Some(request.target);
                     Some(request)
@@ -453,13 +456,11 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
             let displaced = !enabled && s.current == Some(target.handle);
             s.sync();
             if displaced {
-                let scope = s.overlays.topmost().map_or(WINDOW, |top| {
-                    s.layers
-                        .iter()
-                        .find(|layer| layer.id == top.id)
-                        .expect("registered layer")
-                        .scope
-                });
+                let scope = s
+                    .overlays
+                    .topmost_modal()
+                    .and_then(|top| top.focus_scope)
+                    .unwrap_or(WINDOW);
                 let request = s.focus.restore(&[], scope)?;
                 s.current = Some(request.target);
                 return Some(request);

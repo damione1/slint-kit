@@ -256,14 +256,19 @@ impl FocusRegistry {
         targets.into_iter().map(|t| t.handle).collect()
     }
     /// The innermost active trap determines the cycle, including custom targets
-    /// registered in descendant scopes. An empty scope produces no fake focus.
+    /// registered in descendant scopes. A requested scope inside that trap is
+    /// respected; an empty scope produces no fake focus.
     pub fn cycle(
         &mut self,
         scope: FocusScopeId,
         current: Option<FocusHandle>,
         direction: FocusDirection,
     ) -> Option<FocusRequest> {
-        let scope = self.active_trap().unwrap_or(scope);
+        let scope = match self.active_trap() {
+            Some(trap) if self.in_scope(scope, trap) => scope,
+            Some(trap) => trap,
+            None => scope,
+        };
         let targets = self.eligible_in(scope);
         if targets.is_empty() {
             return None;
@@ -291,7 +296,11 @@ impl FocusRegistry {
                 return Some(request);
             }
         }
-        let scope = self.active_trap().unwrap_or(fallback_scope);
+        let scope = match self.active_trap() {
+            Some(trap) if self.in_scope(fallback_scope, trap) => fallback_scope,
+            Some(trap) => trap,
+            None => fallback_scope,
+        };
         for handle in self.eligible_in(scope) {
             if let Some(request) = self.request(handle) {
                 return Some(request);
@@ -318,6 +327,12 @@ mod tests {
         let custom = r.register(FocusId(4), popup, 0, true);
         r.push_trap(dialog).unwrap();
         assert!(r.request(background).is_none());
+        assert_eq!(
+            r.cycle(popup, None, FocusDirection::Forward)
+                .unwrap()
+                .target,
+            custom
+        );
         assert_eq!(
             r.cycle(root, Some(a), FocusDirection::Forward)
                 .unwrap()

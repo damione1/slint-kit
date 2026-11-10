@@ -695,6 +695,24 @@ mod tests {
         nested_key(window, Key::DownArrow);
         assert!(window.get_select_state().open);
         assert_eq!(harness.stack.borrow().len(), 2);
+        assert_eq!(
+            harness.stack.borrow().topmost_modal().map(|spec| spec.id),
+            Some(kit_core::OverlayId(1))
+        );
+        harness
+            .stack
+            .borrow_mut()
+            .set_busy(kit_core::OverlayId(2), true);
+        window.invoke_dismiss_dialog(CloseReason::Escape);
+        assert!(
+            window.get_dialog_state().open && window.get_select_state().open,
+            "busy child blocks direct parent dismissal"
+        );
+        assert_eq!(harness.stack.borrow().len(), 2);
+        harness
+            .stack
+            .borrow_mut()
+            .set_busy(kit_core::OverlayId(2), false);
         nested_key(window, Key::Escape);
         slint::platform::update_timers_and_animations();
         assert!(!window.get_select_state().open);
