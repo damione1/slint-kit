@@ -325,6 +325,8 @@ fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements
         window.set_ownership(ownership);
         let apricot_ref = choices.selection(&Destination::Apricot).unwrap();
         window.set_combo_selected(apricot_ref.clone());
+        // A host projection becomes displayed after the UI processes its changed handlers.
+        slint::platform::update_timers_and_animations();
         assert_eq!(window.get_combo_selected_label(), "Apricot");
         assert!(window.get_combo_validity().valid);
 
@@ -424,9 +426,14 @@ fn combobox_inline_editing_respects_min_query_length_debounce_custom_value_and_c
 #[test]
 fn remote_labels_do_not_replace_a_focused_native_draft_or_its_undo_and_outside_focus_destination() {
     let (window, choices) = fixture();
-    window.set_combo_selected(choices.selection(&Destination::Apricot).unwrap());
+    let accepted = choices.selection(&Destination::Apricot).unwrap();
+    window.set_combo_selected(accepted.clone());
+    window.set_acknowledged(accepted);
+    slint::platform::update_timers_and_animations();
     window.invoke_focus_combo();
-    key(&window, Key::End);
+    for _ in 0.."Apricot".len() {
+        key(&window, Key::RightArrow);
+    }
     window
         .window()
         .dispatch_event(WindowEvent::KeyPressed { text: "x".into() });
@@ -516,5 +523,36 @@ fn exposed_combobox_expand_action_is_idempotent_and_respects_access_guards() {
         combo.invoke_accessible_expand_action();
         assert!(!window.get_combo_state().open);
         assert_eq!(window.get_combo_open_requests(), 1);
+    }
+}
+
+#[test]
+fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen() {
+    for ownership in [
+        slint_kit::ui::Ownership::Local,
+        slint_kit::ui::Ownership::Controlled,
+    ] {
+        let (window, choices) = fixture();
+        window.set_ownership(ownership);
+        let accepted = choices.selection(&Destination::Apricot).unwrap();
+        let weak = window.as_weak();
+        let replacement = choices.clone();
+        window.on_combo_chosen(move |row| {
+            let window = weak.unwrap();
+            window.set_combo_selected(slint_kit::ui::SelectionRef {
+                present: true,
+                token: row.token,
+            });
+            replacement
+                .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+                .unwrap();
+        });
+        window.invoke_focus_combo();
+        key(&window, Key::DownArrow);
+        assert!(window.get_combo_state().open);
+        key(&window, Key::Return);
+        assert_eq!(window.get_combo_selected(), accepted);
+        assert_eq!(window.get_combo_selected_label(), "Apricot");
+        assert!(!window.get_combo_state().open);
     }
 }
