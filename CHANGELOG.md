@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Publish logical item positions/counts and orientation across selection/navigation/choice composites, name popup list scopes, and delegate nonvirtual active-choice focus through stable typed identity projections. Native editor focus and virtualization are preserved. Virtualized active-row delegation and device screen-reader qualification remain outstanding; tabs examples now label their public Slint tab-panel content.
+- Publie les positions/totaux logiques et l’orientation des composites de sélection/navigation/choix, nomme les scopes de liste et délègue le focus des choix actifs non virtualisés via des projections d’identité typée stable. Le focus éditeur natif et la virtualisation sont conservés. La délégation des lignes actives virtualisées et la qualification par lecteur d’écran restent à faire ; les exemples d’onglets nomment leur contenu Slint public tab-panel.
+
 - Publish expandable state and accessible expansion actions on select triggers, Collapse and Accordion; shared Select/Combobox/MultiSelect composition inherits the fix. Expand requests opening idempotently and preserves access and controlled-state guards. The pinned macOS AccessKit bridge still lacks native expanded/Expand exports.
 - Publie l’état développable et l’action accessible Développer sur les déclencheurs de sélection, Collapse et Accordion ; Select/Combobox/MultiSelect héritent du correctif partagé. Développer demande l’ouverture de façon idempotente et conserve les protections d’accès et d’état contrôlé. Le pont AccessKit macOS épinglé n’exporte toujours pas l’état développé ni Développer.
 

@@ -73,6 +73,9 @@ export component KitMenu inherits Rectangle {
     changed state => { root.ensure-active-visible(); }
     accessible-role: AccessibleRole.list;
     accessible-label: root.accessible-name;
+    accessible-enabled: root.interactive;
+    accessible-item-count: root.rows.length;
+    accessible-orientation: Orientation.vertical;
     preferred-height: min(320px, root.rows.length * root.row-height);
     min-width: 100px;
     forward-focus: keyboard;
@@ -87,11 +90,13 @@ export component KitMenu inherits Rectangle {
         typeahead(text) => { root.handle-typeahead(text); }
         list := ListView {
             theme: root.theme;
+            accessible-label: root.accessible-name; accessible-item-count: root.rows.length;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-            for row in root.rows: KitNavigationAction {
+            for row[index] in root.rows: KitNavigationAction {
                 disabled: !root.interactive || row.disabled;
                 theme: root.theme; control-size: root.control-size;
                 option-data: row;
+                accessible-item-index: index; accessible-item-count: root.rows.length;
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
                 focus-indicated: root.has-focus && self.active;
@@ -166,6 +171,11 @@ export component KitMenuBar inherits Rectangle {
     }
     accessible-role: navigation;
     accessible-label: root.accessible-name;
+    accessible-enabled: root.interactive;
+    private property <int> accessible-active-index: KitSelectionService.ready ? KitSelectionService.option-index(root.rows, root.state.active, root.state.generation) : -1;
+    accessible-delegate-focus: root.interactive ? root.accessible-active-index : -1;
+    accessible-item-count: root.rows.length;
+    accessible-orientation: Orientation.horizontal;
     min-height: KitMetrics.row-height(root.theme, root.control-size);
     preferred-height: self.min-height;
     vertical-stretch: 0;
@@ -190,9 +200,10 @@ export component KitMenuBar inherits Rectangle {
                 height: viewport.visible-height;
                 spacing: root.theme.spacing.unit;
                 alignment: start;
-                for row in root.rows: KitNavigationAction {
+                for row[index] in root.rows: KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
                     option-data: row;
+                    accessible-item-index: index; accessible-item-count: root.rows.length;
                     disabled: !root.interactive || row.disabled;
                     control-width: ControlWidth.intrinsic;
                     active: root.state.active.present && root.state.active.token == row.token;
@@ -254,6 +265,11 @@ export component KitTabs inherits Rectangle {
     private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
+    accessible-enabled: root.interactive;
+    private property <int> accessible-active-index: KitSelectionService.ready ? KitSelectionService.option-index(root.rows, root.state.active, root.state.generation) : -1;
+    accessible-delegate-focus: root.interactive ? root.accessible-active-index : -1;
+    accessible-item-count: root.rows.length;
+    accessible-orientation: Orientation.horizontal;
     // Reserve the horizontal gutter without clipping the tab row.
     min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
     preferred-height: self.min-height;
@@ -279,9 +295,10 @@ export component KitTabs inherits Rectangle {
                 height: viewport.visible-height;
                 spacing: root.theme.spacing.unit;
                 alignment: start;
-                for row in root.rows: tab-action := KitNavigationAction {
+                for row[index] in root.rows: tab-action := KitNavigationAction {
                     theme: root.theme; control-size: root.control-size;
                     option-data: row;
+                    accessible-item-index: index; accessible-item-count: root.rows.length;
                     disabled: !root.interactive || row.disabled;
                     accessible-role: tab;
                     control-width: ControlWidth.intrinsic;

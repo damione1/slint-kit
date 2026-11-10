@@ -25,6 +25,7 @@ export component Example inherits Window {
             theme: root.theme; options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Choisi : " + row.label; }
         }
         KitCard { theme: root.theme;
+            accessible-role: tab-panel; accessible-label: control.selected-label;
             KitBadge { theme: root.theme; leading-icon: root.theme.icons.check; text: control.selected.token == 11 ? "APERÇU DU PROJET" : control.selected.token == 25 ? "DERNIÈRES NOUVELLES" : "PRÉFÉRENCES"; tone: Tone.accent; }
             Text { text: control.selected.token == 11 ? "Une vision plus claire de la suite" : control.selected.token == 25 ? "Le projet avance" : "Un espace à votre image"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
             Text { text: control.selected.token == 11 ? "La collection d’automne prend forme. La recherche est terminée, les prototypes sont prêts et l’équipe prépare sa prochaine revue." : control.selected.token == 25 ? "Today · Elliot shared the updated prototypes.\nYesterday · Darlene completed the accessibility review.\nMonday · Angela added three research notes." : "Notifications · Email and desktop enabled\nVisibility · Shared with your team\nLanguage · English"; color: root.theme.text-secondary; wrap: word-wrap; }

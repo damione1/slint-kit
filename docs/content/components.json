@@ -897,7 +897,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Le scope clavier de la liste possède un ancêtre liste nommé ; l’éditeur natif de recherche conserve son rôle, son focus, son curseur et sa sélection. La délégation à la ligne active des listes virtualisées n’est pas revendiquée : Slint1.18.1 délègue par ordinal d’enfant accessible instancié, pas par index global du modèle. Aucun décalage de viewport deviné ni copie sémantique non virtualisée n’est utilisé. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "label": "Searchable combobox",
@@ -958,7 +958,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. The popup keyboard scope has a named list ancestor; the native search editor retains its own role, focus, caret and selection. Active-row delegation in virtualized lists is not claimed: Slint1.18.1 delegates by instantiated accessible-child ordinal, not the global model index. No guessed viewport offset or nonvirtual semantic copy is used. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitContainer": {
@@ -2876,7 +2876,8 @@
       ],
       "label": "Menu",
       "seoTitle": "Menu pour Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Le scope clavier de la liste possède un ancêtre liste nommé ; l’éditeur natif de recherche conserve son rôle, son focus, son curseur et sa sélection. La délégation à la ligne active des listes virtualisées n’est pas revendiquée : Slint1.18.1 délègue par ordinal d’enfant accessible instancié, pas par index global du modèle. Aucun décalage de viewport deviné ni copie sémantique non virtualisée n’est utilisé. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Vertical menu with virtualized options and controlled navigation.",
@@ -2888,7 +2889,8 @@
       ],
       "label": "Menu",
       "seoTitle": "Menu for Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. The popup keyboard scope has a named list ancestor; the native search editor retains its own role, focus, caret and selection. Active-row delegation in virtualized lists is not claimed: Slint1.18.1 delegates by instantiated accessible-child ordinal, not the global model index. No guessed viewport offset or nonvirtual semantic copy is used. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitMenuBar": {
@@ -2902,7 +2904,8 @@
         "KitMenu",
         "KitTabs"
       ],
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "label": "Menu Bar",
@@ -2914,7 +2917,8 @@
         "KitMenu",
         "KitTabs"
       ],
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitMoneyField": {
@@ -3017,7 +3021,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Le scope clavier de la liste possède un ancêtre liste nommé ; l’éditeur natif de recherche conserve son rôle, son focus, son curseur et sa sélection. La délégation à la ligne active des listes virtualisées n’est pas revendiquée : Slint1.18.1 délègue par ordinal d’enfant accessible instancié, pas par index global du modèle. Aucun décalage de viewport deviné ni copie sémantique non virtualisée n’est utilisé. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
@@ -3068,7 +3072,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. The popup keyboard scope has a named list ancestor; the native search editor retains its own role, focus, caret and selection. Active-row delegation in virtualized lists is not claimed: Slint1.18.1 delegates by instantiated accessible-child ordinal, not the global model index. No guessed viewport offset or nonvirtual semantic copy is used. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitNavigationAction": {
@@ -3080,7 +3084,8 @@
         "KitOption"
       ],
       "label": "Action de navigation",
-      "seoTitle": "Action de navigation pour Slint"
+      "seoTitle": "Action de navigation pour Slint",
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. En composition personnalisée, liez l’index/total hérités sur chaque ligne et le total sur son parent accessible nommé. Un délégué de focus est un ordinal des enfants accessibles réels de ce parent : ce n’est pas nécessairement l’index du modèle. Conservez les éditeurs natifs accessibles en tant que tels."
     },
     "en": {
       "summary": "Labeled navigation action built on a stable-identity option.",
@@ -3090,7 +3095,8 @@
         "KitOption"
       ],
       "label": "Navigation Action",
-      "seoTitle": "Navigation Action for Slint"
+      "seoTitle": "Navigation Action for Slint",
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. For custom composition, bind the inherited index/count on each row and the total on its named accessible parent. A focus delegate is an ordinal of that parent’s actual accessible children: it is not necessarily the model index. Keep native text editors accessible in their own right."
     }
   },
   "KitNotificationButton": {
@@ -3293,7 +3299,8 @@
         "KitNavigationAction"
       ],
       "label": "Option",
-      "seoTitle": "Option pour Slint"
+      "seoTitle": "Option pour Slint",
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. En composition personnalisée, liez l’index/total hérités sur chaque ligne et le total sur son parent accessible nommé. Un délégué de focus est un ordinal des enfants accessibles réels de ce parent : ce n’est pas nécessairement l’index du modèle. Conservez les éditeurs natifs accessibles en tant que tels."
     },
     "en": {
       "summary": "Customizable option row that captures identity when pressing begins.",
@@ -3304,7 +3311,8 @@
         "KitNavigationAction"
       ],
       "label": "Option",
-      "seoTitle": "Option for Slint"
+      "seoTitle": "Option for Slint",
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. For custom composition, bind the inherited index/count on each row and the total on its named accessible parent. A focus delegate is an ordinal of that parent’s actual accessible children: it is not necessarily the model index. Keep native text editors accessible in their own right."
     }
   },
   "KitOtpField": {
@@ -3591,7 +3599,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Exclusive choice group with a shared keyboard target.",
@@ -3644,7 +3653,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitRangeSlider": {
@@ -3678,7 +3688,8 @@
       "seoTitle": "Évaluation pour Slint",
       "related": [
         "KitSegmentedControl"
-      ]
+      ],
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Score selection with an explicit clear action.",
@@ -3688,7 +3699,8 @@
       "seoTitle": "Rating for Slint",
       "related": [
         "KitSegmentedControl"
-      ]
+      ],
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitResetButton": {
@@ -3829,7 +3841,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
@@ -3872,7 +3885,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitSelect": {
@@ -3968,7 +3982,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Le scope clavier de la liste possède un ancêtre liste nommé ; l’éditeur natif de recherche conserve son rôle, son focus, son curseur et sa sélection. La délégation à la ligne active des listes virtualisées n’est pas revendiquée : Slint1.18.1 délègue par ordinal d’enfant accessible instancié, pas par index global du modèle. Aucun décalage de viewport deviné ni copie sémantique non virtualisée n’est utilisé. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Popup selector with search, keyboard navigation and virtualized options.",
@@ -4062,7 +4076,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. The popup keyboard scope has a named list ancestor; the native search editor retains its own role, focus, caret and selection. Active-row delegation in virtualized lists is not claimed: Slint1.18.1 delegates by instantiated accessible-child ordinal, not the global model index. No guessed viewport offset or nonvirtual semantic copy is used. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitSelectKeyboard": {
@@ -4079,7 +4093,8 @@
       "seoTitle": "Clavier de sélection pour Slint",
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
-      }
+      },
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. En composition personnalisée, liez l’index/total hérités sur chaque ligne et le total sur son parent accessible nommé. Un délégué de focus est un ordinal des enfants accessibles réels de ce parent : ce n’est pas nécessairement l’index du modèle. Conservez les éditeurs natifs accessibles en tant que tels."
     },
     "en": {
       "summary": "Shared keyboard translator for composed selectors and menus.",
@@ -4094,7 +4109,8 @@
       "seoTitle": "Select Keyboard for Slint",
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
-      }
+      },
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. For custom composition, bind the inherited index/count on each row and the total on its named accessible parent. A focus delegate is an ordinal of that parent’s actual accessible children: it is not necessarily the model index. Keep native text editors accessible in their own right."
     }
   },
   "KitSelectSurface": {
@@ -4111,7 +4127,8 @@
       "seoTitle": "Surface de sélection pour Slint",
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
-      }
+      },
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Le scope clavier de la liste possède un ancêtre liste nommé ; l’éditeur natif de recherche conserve son rôle, son focus, son curseur et sa sélection. La délégation à la ligne active des listes virtualisées n’est pas revendiquée : Slint1.18.1 délègue par ordinal d’enfant accessible instancié, pas par index global du modèle. Aucun décalage de viewport deviné ni copie sémantique non virtualisée n’est utilisé. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Popup surface combining native search, keyboard handling and active-option visibility.",
@@ -4126,7 +4143,8 @@
       "seoTitle": "Select Surface for Slint",
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
-      }
+      },
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. The popup keyboard scope has a named list ancestor; the native search editor retains its own role, focus, caret and selection. Active-row delegation in virtualized lists is not claimed: Slint1.18.1 delegates by instantiated accessible-child ordinal, not the global model index. No guessed viewport offset or nonvirtual semantic copy is used. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitSelectTrigger": {
@@ -4454,7 +4472,8 @@
       ],
       "label": "Onglets",
       "seoTitle": "Onglets pour Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les onglets publient l’orientation horizontale. Composez le contenu choisi avec le rôle Slint hérité `accessible-role: tab-panel` et un libellé issu de `selected-label` ; Slint1.18.1 n’expose pas de propriété de relation `accessible-controls`. Les onglets ne possèdent pas le contenu applicatif du panneau. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
@@ -4466,7 +4485,8 @@
       ],
       "label": "Tabs",
       "seoTitle": "Tabs for Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Tabs publish horizontal orientation. Compose the selected content with the inherited Slint `accessible-role: tab-panel` and a label from `selected-label`; Slint1.18.1 exposes no `accessible-controls` relationship property. The tabs do not own application panel content. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitTagInput": {
@@ -5373,7 +5393,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les lignes publient `accessible-item-index` depuis zéro dans le modèle logique affiché et `accessible-item-count` pour l’ensemble complet, lignes désactivées comprises. Les jetons stables restent l’identité ; filtrage et réordonnancement actualisent les positions sans changer la sélection acceptée. Ce sont des propriétés d’accessibilité héritées de Slint, pas de nouvelles clés de sélection. Les groupes non virtualisés délèguent le focus d’assistance à la ligne active disponible via `accessible-delegate-focus` de Slint ; la projection suit l’ordre réel des enfants, choix inversés ou repliés compris. Une identité ambiguë ou désactivée n’a pas de délégué. Installez le kit une fois par fenêtre. Le focus natif du clavier/éditeur ne change pas. Les tests logiciels ne qualifient ni VoiceOver, ni NVDA, ni une autre technologie d’assistance."
     },
     "en": {
       "summary": "Group of actions with local or controlled multiple selection.",
@@ -5410,7 +5431,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Rows publish zero-based `accessible-item-index` in the displayed logical model and `accessible-item-count` for the complete set, including disabled rows. Stable tokens remain identity; filtering and reordering update positions without changing the accepted selection. These are inherited Slint accessibility properties, not new selection keys. Nonvirtual groups delegate assistive focus to the current enabled row through Slint’s `accessible-delegate-focus`; the projection follows actual child order, including mirrored/wrapped choices. Disabled or ambiguous identity has no delegate. Install the kit once per window. Native keyboard/editor focus is unchanged. Software tests do not qualify VoiceOver, NVDA or another assistive technology."
     }
   },
   "KitTooltip": {

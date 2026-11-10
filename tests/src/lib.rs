@@ -7,6 +7,7 @@ mod ui {
 pub use ui::*;
 mod accessible_expansion;
 mod column_widths;
+mod composite_accessibility;
 mod dialog_composition;
 mod direction;
 mod foundation_render;

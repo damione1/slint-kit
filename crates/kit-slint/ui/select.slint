@@ -156,6 +156,12 @@ export component KitSelectTrigger inherits KitPressable {
 }
 
 export component KitSelectSurface inherits Rectangle {
+    // A named accessible ancestor for the non-editor keyboard scope. Native
+    // search focus stays on TextInput, never delegated to a painted option.
+    accessible-role: list;
+    accessible-label: root.search-label;
+    accessible-orientation: Orientation.vertical;
+    accessible-item-count: root.rows.length;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <SelectState> state: selection.state;
     in property <length> row-height: 48px;
@@ -449,6 +455,7 @@ export component KitSelect inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
+            accessible-item-count: root.rows.length;
             theme: root.theme;
             state: root.state;
             row-height: root.row-height;
@@ -462,8 +469,10 @@ export component KitSelect inherits Rectangle {
             tab-navigation(reverse) => { return root.advance-tab(reverse); }
             query-edited(text) => { root.handle-query-edited(text); }
             options := ListView {
+                accessible-label: root.placeholder; accessible-item-count: root.rows.length;
                 theme: root.theme;
-                for row in root.rows: KitOption {
+                for row[index] in root.rows: KitOption {
+                    accessible-item-index: index; accessible-item-count: root.rows.length;
                     theme: root.theme;
                     option-data: row;
                     height: root.row-height;

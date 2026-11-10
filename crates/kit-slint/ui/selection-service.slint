@@ -18,6 +18,8 @@ export struct RatingView { present: bool, step: int, scale: int }
 export struct MultipleTransition { selected: [SelectionRef], accepted: bool, added: bool }
 
 export global KitSelectionService {
+    pure callback option-index([OptionRow], SelectionRef, int) -> int;
+    pure callback choice-index([ChoiceRow], int) -> int;
     pure callback rating-options(int) -> [OptionRow];
     pure callback multiple-choices([OptionRow], [SelectionRef]) -> [ChoiceRow];
     pure callback chips([OptionRow], [SelectionRef]) -> [ChipRow];

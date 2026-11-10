@@ -1,0 +1,111 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenu, KitMenuBar, KitTabs, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitRating, KitSelect, KitCombobox, KitMultiSelect, KitSelectSurface, KitOption, KitTheme, KitThemes, ChoiceDirection, ChoiceFlow, Ownership, FieldAccess, OptionRow, SelectionRef, RatingView } from "@kit";
+export enum AccessibleComposite { menu, menu-bar, tabs, radio, segments, toggles, rating, select, combobox, multiple, surface }
+export component CompositeAccessibilityFixture inherits Window {
+    width: 840px; height: 820px;
+    background: root.theme.canvas;
+    in property <AccessibleComposite> control;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <int> columns: 3;
+    in-out property <SelectionRef> selected;
+    in-out property <RatingView> score: {scale: 5};
+    in-out property <string> query <=> combo.query;
+    out property <int> menu-active: menu.state.active.token;
+    out property <int> menu-active-index: menu.state.active-index;
+    out property <int> bar-active: bar.state.active.token;
+    out property <int> tabs-active: tabs.state.active.token;
+    out property <int> radio-active: radio.active-token;
+    out property <int> segments-active: segments.active-token;
+    out property <int> toggles-active: toggles.active-token;
+    out property <int> bar-delegate: bar.accessible-delegate-focus;
+    out property <int> tabs-delegate: tabs.accessible-delegate-focus;
+    out property <int> radio-delegate: radio.accessible-delegate-focus;
+    out property <int> segments-delegate: segments.accessible-delegate-focus;
+    out property <int> toggles-delegate: toggles.accessible-delegate-focus;
+    in-out property <string> reference-text: "native";
+    out property <bool> reference-focused: reference.has-focus;
+    callback chosen(OptionRow);
+    public function focus-reference() { reference.focus(); }
+    public function focus-current() {
+        if (root.control == AccessibleComposite.menu) { menu.take-focus(); }
+        else if (root.control == AccessibleComposite.menu-bar) { bar.take-focus(); }
+        else if (root.control == AccessibleComposite.tabs) { tabs.take-focus(); }
+        else if (root.control == AccessibleComposite.radio) { radio.take-focus(); }
+        else if (root.control == AccessibleComposite.segments) { segments.take-focus(); }
+        else if (root.control == AccessibleComposite.toggles) { toggles.take-focus(); }
+        else if (root.control == AccessibleComposite.select) { select.take-focus(); }
+        else if (root.control == AccessibleComposite.combobox) { combo.take-focus(); }
+        else if (root.control == AccessibleComposite.multiple) { multiple.take-focus(); }
+        else if (root.control == AccessibleComposite.surface) { surface.take-focus(); }
+    }
+    menu := KitMenu { x: 20px; y: 20px; width: 800px; height: 640px;
+        visible: root.control == AccessibleComposite.menu; theme: root.theme; options: root.control == AccessibleComposite.menu ? root.options : [];
+        interactive: root.access == FieldAccess.editable; accessible-name: "Accessible menu";
+        ownership: root.ownership; selected <=> root.selected; chosen(row) => { root.chosen(row); }
+    }
+    bar := KitMenuBar { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.menu-bar; theme: root.theme; options: root.control == AccessibleComposite.menu-bar ? root.options : [];
+        interactive: root.access == FieldAccess.editable; accessible-name: "Accessible actions";
+        ownership: root.ownership; selected <=> root.selected; chosen(row) => { root.chosen(row); }
+    }
+    tabs := KitTabs { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.tabs; theme: root.theme; options: root.control == AccessibleComposite.tabs ? root.options : [];
+        interactive: root.access == FieldAccess.editable; accessible-name: "Accessible tabs";
+        ownership: root.ownership; selected <=> root.selected; chosen(row) => { root.chosen(row); }
+    }
+    radio := KitRadioGroup { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.radio; theme: root.theme; options: root.control == AccessibleComposite.radio ? root.options : [];
+        access: root.access; label: "Accessible radios"; direction: root.direction; flow: root.flow;
+        ownership: root.ownership; selected <=> root.selected; chosen(row) => { root.chosen(row); }
+    }
+    segments := KitSegmentedControl { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.segments; theme: root.theme; options: root.control == AccessibleComposite.segments ? root.options : [];
+        access: root.access; label: "Accessible segments"; direction: root.direction; flow: root.flow; columns: root.columns;
+        ownership: root.ownership; selected <=> root.selected; chosen(row) => { root.chosen(row); }
+    }
+    toggles := KitToggleGroup { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.toggles; theme: root.theme; options: root.control == AccessibleComposite.toggles ? root.options : [];
+        access: root.access; label: "Accessible toggles";
+        ownership: root.ownership;
+    }
+    rating := KitRating { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.rating; theme: root.theme;
+        access: root.access; label: "Accessible rating"; ownership: root.ownership; value <=> root.score;
+    }
+    select := KitSelect { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.select; theme: root.theme; options: root.control == AccessibleComposite.select ? root.options : [];
+        access: root.access; placeholder: "Accessible select"; ownership: root.ownership; selected <=> root.selected;
+    }
+    combo := KitCombobox { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.combobox; theme: root.theme; options: root.control == AccessibleComposite.combobox ? root.options : [];
+        access: root.access; label: "Accessible combobox"; ownership: root.ownership; selected <=> root.selected;
+    }
+    multiple := KitMultiSelect { x: 20px; y: 20px; width: 800px; height: self.preferred-height;
+        visible: root.control == AccessibleComposite.multiple; theme: root.theme; options: root.control == AccessibleComposite.multiple ? root.options : [];
+        access: root.access; placeholder: "Accessible multiple"; ownership: root.ownership;
+    }
+    surface := KitSelectSurface { x: 20px; y: 20px; width: 800px; height: 640px;
+        visible: root.control == AccessibleComposite.surface; theme: root.theme; options: root.control == AccessibleComposite.surface ? root.options : [];
+        searchable: false; search-label: "Standalone options"; ownership: root.ownership;
+        VerticalLayout {
+            alignment: start;
+            for row[index] in surface.rows: KitOption {
+                option-data: row; theme: root.theme;
+                accessible-item-index: index; accessible-item-count: surface.rows.length;
+                active: surface.state.active.present && surface.state.active.token == row.token;
+                selected: surface.selected.present && surface.selected.token == row.token;
+                activate(token, generation) => { surface.choose-option(token, generation); }
+                Text { text: row.label; color: root.theme.text-primary; font-size: root.theme.typography.size-control * root.theme.text-scale; }
+            }
+        }
+    }
+    reference := TextInput { x: 20px; y: 740px; width: 800px; height: 40px;
+        text <=> root.reference-text; accessible-label: "Native editing reference";
+    }
+}

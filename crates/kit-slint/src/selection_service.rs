@@ -191,12 +191,57 @@ fn reduce(
     }
 }
 
+// These are presentation positions, never application identity. Parse token
+// identity at this UI boundary, reject ambiguity, then project the current
+// model position; a stale/disabled option has no delegated focus target.
+fn option_index(rows: &[ui::OptionRow], active: ui::SelectionRef, generation: i32) -> i32 {
+    let Some(active) = selection(active) else {
+        return -1;
+    };
+    let Some(options) = options(rows) else {
+        return -1;
+    };
+    if rows.first().is_none_or(|row| row.generation != generation) {
+        return -1;
+    }
+    options
+        .iter()
+        .position(|row| row.key == active && !row.disabled)
+        .and_then(|index| i32::try_from(index).ok())
+        .unwrap_or(-1)
+}
+fn choice_index(rows: &[ui::ChoiceRow], active: i32) -> i32 {
+    let Some(active) = ChoiceToken::new(active) else {
+        return -1;
+    };
+    let mut identities = HashSet::with_capacity(rows.len());
+    let mut position = None;
+    for (index, row) in rows.iter().enumerate() {
+        let Some(token) = ChoiceToken::new(row.token) else {
+            return -1;
+        };
+        if !identities.insert(token) {
+            return -1;
+        }
+        if token == active && !row.disabled {
+            position = Some(index);
+        }
+    }
+    position
+        .and_then(|index| i32::try_from(index).ok())
+        .unwrap_or(-1)
+}
+
 pub(crate) fn install_selection<W>(window: &W)
 where
     W: ComponentHandle,
     for<'a> ui::KitSelectionService<'a>: slint::Global<'a, W>,
 {
     let service = window.global::<ui::KitSelectionService>();
+    service.on_option_index(|rows, active, generation| {
+        option_index(&tracked(&rows), active, generation)
+    });
+    service.on_choice_index(|rows, active| choice_index(&tracked(&rows), active));
     if service.get_ready() {
         return;
     }
