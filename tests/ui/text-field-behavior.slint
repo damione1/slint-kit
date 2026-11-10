@@ -12,6 +12,8 @@ export component TextFieldBehaviorFixture inherits Window {
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <CommitPolicy> policy: CommitPolicy.on-change-when-valid;
     in property <bool> required;
+    in property <string> placeholder;
+    in property <string> description;
     in property <string> spec-key;
     out property <string> validation-message: field.validation-message;
     in property <int> minimum: -1;
@@ -42,6 +44,7 @@ export component TextFieldBehaviorFixture inherits Window {
             escape-behavior: root.escape-behavior;
             key-pressed(event) => { root.key-observed(); return root.intercept-key ? accept : reject; }
             cancelled => { root.cancelled(); }
+            placeholder: root.placeholder; description: root.description;
             label: "Name"; text <=> root.text;
             spec-key: root.spec-key; commit-policy: root.policy; required: root.required;
             min-length: root.minimum; validation-timing: root.timing;

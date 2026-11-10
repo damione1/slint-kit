@@ -22,6 +22,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Preserve text-field help alongside accessible errors, expose placeholder/required/count/pending descriptions and localisable visible required text; document Slint accessibility and mobile input limits.
+- Préserve l’aide avec les erreurs accessibles, expose espace réservé/obligation/compteur/vérification et l’indication d’obligation localisable ; documente les limites Slint d’accessibilité et saisie mobile.
+
 - Count text graphemes automatically and offer localisable count/maximum/remaining displays with HTML-compatible UTF-16 limits and a warning threshold.
 - Compte automatiquement les graphèmes et propose les formats compte/maximum/reste localisables avec les limites UTF-16 HTML et un seuil d’avertissement.
 

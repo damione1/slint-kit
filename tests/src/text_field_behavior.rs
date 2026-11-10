@@ -214,3 +214,22 @@ fn character_count_defaults_to_graphemes_without_host_wiring() {
     key(&app, "a👩‍👩‍👧‍👦e\u{301}");
     assert_eq!(app.get_count(), 3);
 }
+#[test]
+fn accessible_hint_keeps_help_and_required_text_when_invalid() {
+    use i_slint_backend_testing::ElementHandle;
+    let app = fixture();
+    app.set_required(true);
+    app.set_description("Use your legal name".into());
+    app.set_placeholder("Ada".into());
+    app.invoke_report();
+    let editor = ElementHandle::find_by_accessible_label(&app, "Name")
+        .find(|element| {
+            element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)
+        })
+        .unwrap();
+    assert_eq!(editor.accessible_placeholder_text().as_deref(), Some("Ada"));
+    let description = editor.accessible_description().unwrap();
+    assert!(description.contains("Use your legal name"));
+    assert!(description.contains("Required"));
+    assert!(description.contains("Please fill out this field."));
+}

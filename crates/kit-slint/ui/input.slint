@@ -66,6 +66,8 @@ export component KitTextField inherits KitField {
     in property <string> intrinsic-error;
     private property <bool> formatted-at-rest: !root.has-focus && root.text != "" && root.display-text != root.text;
     in property <bool> required;
+    in property <bool> show-required-indicator: true;
+    in property <string> required-label: KitStrings.required-label;
     in property <bool> multiple;
     in property <int> min-length: -1;
     in property <int> max-length: -1;
@@ -224,7 +226,7 @@ export component KitTextField inherits KitField {
     private property <bool> action-visible: !root.multiline && (root.purpose == TextPurpose.password || (root.purpose == TextPurpose.search && root.text != ""));
     private property <length> editor-height: root.multiline ? Math.max(root.line-height * Math.max(1, root.min-lines), root.resize-policy == ResizePolicy.auto-grow ? Math.min(measure.preferred-height, root.line-height * Math.max(root.min-lines, root.max-lines)) : 0px) : Math.max(root.line-height, KitMetrics.control-height(root.theme, root.control-size) - 2 * root.padding-block);
     if root.label != "": KitFieldLabel {
-        theme: root.theme; text: root.label; access: root.access;
+        theme: root.theme; text: root.label; access: root.access; required: root.required; show-required-indicator: root.show-required-indicator; required-label: root.required-label;
         focus-requested => { root.take-focus(); }
     }
     surface := KitInputGroup {
@@ -330,7 +332,8 @@ export component KitTextField inherits KitField {
                         accessible-enabled: root.access != FieldAccess.disabled;
                         accessible-label: root.accessible-name;
                         accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
-                        accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
+                        accessible-placeholder-text: root.placeholder;
+                        accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.validation == ValidationPresentation.checking ? root.checking-label : "");
                         key-pressed(event) => {
                             if (self.preedit-text == "") {
                                 if (root.key-pressed(event) == accept) { return accept; }
@@ -486,7 +489,7 @@ export component KitTextField inherits KitField {
         }
     }
     if root.show-validation-message && root.effective-validation == ValidationPresentation.invalid && root.effective-error != "": KitFieldError { theme: root.theme; text: root.effective-error; }
-    if root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.checking-label; }
+    if root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.checking-label; accessible-role: AccessibleRole.text; accessible-live-region: polite; }
     if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count-text; color: root.character-count-warning ? root.theme.warning : root.theme.text-secondary; }
 }

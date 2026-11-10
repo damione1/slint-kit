@@ -153,14 +153,15 @@ fn structural_phone_errors_are_shown_before_host_business_errors() {
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Phone"))
         .find_first()
         .unwrap();
-    assert_eq!(
-        editor.accessible_description().as_deref(),
-        Some("Enter exactly 10 digits.")
-    );
+    let description = editor.accessible_description().unwrap();
+    assert!(description.starts_with("Enter exactly 10 digits."));
+    assert!(!description.contains("Phone already used"));
     view.set_draft("0612345678".into());
     assert!(!view.invoke_report());
-    assert_eq!(
-        editor.accessible_description().as_deref(),
-        Some("Phone already used")
+    assert!(
+        editor
+            .accessible_description()
+            .unwrap()
+            .starts_with("Phone already used")
     );
 }
