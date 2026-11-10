@@ -404,8 +404,10 @@ mod tests {
             Some(FocusScopeId(1))
         );
 
-        let mut locked = OverlayPolicy::default();
-        locked.escape = false;
+        let locked = OverlayPolicy {
+            escape: false,
+            ..OverlayPolicy::default()
+        };
         assert!(stack.set_policy(OverlayId(1), locked));
         assert_eq!(stack.get(OverlayId(1)).unwrap().policy, locked);
         assert_eq!(stack.iter().map(|s| s.id.0).collect::<Vec<_>>(), [1, 2]);
