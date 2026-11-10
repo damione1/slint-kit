@@ -109,3 +109,110 @@ fn filled_button_accepts_its_bounded_viewport_with_a_long_label_and_double_text(
         "intrinsic mode retains the natural label width"
     );
 }
+
+#[test]
+fn wrapping_button_grows_for_its_text_without_changing_native_activation_guards() {
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    use std::{cell::Cell, rc::Rc};
+    i_slint_backend_testing::init_no_event_loop();
+    let app = ButtonWrapFixture::new().unwrap();
+    let count = Rc::new(Cell::new(0));
+    let observed = count.clone();
+    app.on_activated(move || observed.set(observed.get() + 1));
+    app.show().unwrap();
+    let buttons = ElementQuery::from_root(&app)
+        .match_inherits("KitButton")
+        .find_all();
+    assert_eq!(buttons.len(), 3);
+    let wrapped = &buttons[1];
+    assert!(wrapped.size().height > buttons[0].size().height);
+    assert!(wrapped.size().height + 0.1 >= app.get_content_height() + 2. * app.get_padding_block());
+    assert!(
+        buttons[2].size().height > buttons[0].size().height,
+        "an explicit line break grows an intrinsic button"
+    );
+    let initial = wrapped.size();
+    app.invoke_take_focus();
+    assert!(app.get_focused());
+    for key in [Key::Return, Key::Space] {
+        app.window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        app.window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+    }
+    assert_eq!(count.get(), 2);
+    let position = wrapped.absolute_position();
+    let point = slint::LogicalPosition::new(
+        position.x + initial.width / 2.,
+        position.y + initial.height - 1.,
+    );
+    app.window().dispatch_event(WindowEvent::PointerPressed {
+        position: point,
+        button: PointerEventButton::Left,
+    });
+    app.window().dispatch_event(WindowEvent::PointerReleased {
+        position: point,
+        button: PointerEventButton::Left,
+    });
+    assert_eq!(
+        count.get(),
+        3,
+        "the extra multiline height belongs to the pointer target"
+    );
+    app.set_busy(true);
+    assert_eq!(wrapped.size(), initial, "busy preserves the label geometry");
+    wrapped.invoke_accessible_default_action();
+    assert_eq!(count.get(), 3);
+    app.set_busy(false);
+    app.set_disabled(true);
+    assert_eq!(wrapped.size(), initial);
+    wrapped.invoke_accessible_default_action();
+    assert_eq!(count.get(), 3);
+    assert_eq!(
+        wrapped.accessible_label().as_deref(),
+        Some("Save all workspace changes before leaving")
+    );
+}
+
+#[test]
+fn multiline_button_fits_bounded_widths_in_both_themes_and_at_double_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = ButtonWrapFixture::new().unwrap();
+    app.show().unwrap();
+    for (dark, base) in [(false, app.get_theme()), (true, app.get_dark())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            theme.reduced_motion = true;
+            app.set_theme(theme);
+            let mut narrow_height = None;
+            for width in [180., 280., 450.] {
+                app.set_available_width(width);
+                let buttons = ElementQuery::from_root(&app)
+                    .match_inherits("KitButton")
+                    .find_all();
+                let wrapped = &buttons[1];
+                assert!((wrapped.size().width - width).abs() < 1.);
+                assert!(
+                    wrapped.size().height + 0.1
+                        >= app.get_content_height() + 2. * app.get_padding_block()
+                );
+                if let Some(height) = narrow_height {
+                    assert!(wrapped.size().height <= height + 0.1);
+                }
+                narrow_height = Some(wrapped.size().height);
+                let snapshot = app.window().take_snapshot().unwrap();
+                crate::choice_presentation::save_capture(
+                    &snapshot,
+                    &format!("button-wrap-{dark}-{scale}-{width}"),
+                );
+            }
+        }
+    }
+}

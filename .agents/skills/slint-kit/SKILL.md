@@ -234,3 +234,5 @@ For wrapped `KitSegmentedControl` grids, Up/Down preserve the rendered column an
 `SelectBinding::navigate(step, page_rows)` requires the current `Option<NonZeroUsize>` capacity for every event; `None` rejects PageUp/PageDown while preserving ordinary navigation. `navigate_page` takes an explicit `NonZeroUsize`. The legacy `bind_select!` window must expose `select-page-rows` from the active component. Slint `page-rows: 0` is unmeasured, so page keys reject without a selection proposal until layout supplies a positive measurement.
 
 `KeyedModel` generation tags are local, positive Slint interaction fences with a documented wrap after `i32::MAX`; never persist them as record versions. Removed row tokens are not recycled. Handle `ModelError::IdentityExhausted` from `new`, `replace` or `insert` without publishing a partial replacement.
+
+KitButton.text-wrap defaults to TextWrap.no-wrap. Use word-wrap/char-wrap with a bounded width or ControlWidth.fill and leave height intrinsic for multiline labels and enlarged text. Explicit line breaks also grow the label. All lines remain one action with one accessible name; busy preserves its size.

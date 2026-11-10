@@ -224,6 +224,7 @@ export component KitPressable inherits Rectangle {
 
 export component KitButton inherits KitPressable {
     in property <string> text;
+    in property <TextWrap> text-wrap: no-wrap;
     in property <IconGlyph> leading-icon;
     in property <IconGlyph> trailing-icon;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
@@ -234,8 +235,11 @@ export component KitButton inherits KitPressable {
     private property <length> trailing-width: root.has-trailing ? root.icon-size + root.icon-gap : 0px;
     private property <length> side-reserve: max(root.leading-width, root.trailing-width);
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    private property <length> natural-width: max(root.preferred-height, label.preferred-width + 2 * root.side-reserve + 2 * root.padding-inline);
-    min-width: root.control-width == ControlWidth.fill ? 0px : root.natural-width;
+    min-height: root.text-wrap == TextWrap.no-wrap
+        ? max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block)
+        : max(root.recipe.height, label.preferred-height + 2 * root.padding-block);
+    private property <length> natural-width: max(max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block), label.preferred-width + 2 * root.side-reserve + 2 * root.padding-inline);
+    min-width: root.control-width == ControlWidth.fill || root.text-wrap != TextWrap.no-wrap ? 0px : root.natural-width;
     preferred-width: root.natural-width;
     // Pressable injects these children into its padded content rectangle.
     // `parent` here is still the lexical Button, so use the content dimensions
@@ -252,11 +256,12 @@ export component KitButton inherits KitPressable {
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         horizontal-alignment: center;
         vertical-alignment: center;
-        overflow: elide;
+        wrap: root.text-wrap;
+        overflow: root.text-wrap == TextWrap.no-wrap ? TextOverflow.elide : TextOverflow.clip;
     }
     if root.recipe.underline && !root.busy: link-rule := Rectangle {
         x: label.x + (label.width - self.width) / 2;
-        y: label.y + (label.height + root.text-size) / 2 + root.theme.spacing.unit / 2;
+        y: label.y + (label.height + (root.text-wrap == TextWrap.no-wrap ? root.text-size : label.preferred-height)) / 2 + root.theme.spacing.unit / 2;
         width: min(label.width, label.preferred-width);
         height: root.theme.shape.border-width;
         background: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
