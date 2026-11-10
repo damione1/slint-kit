@@ -5,6 +5,7 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod accessible_expansion;
 mod column_widths;
 mod dialog_composition;
 mod direction;

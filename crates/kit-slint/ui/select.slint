@@ -110,9 +110,11 @@ export component KitSelectTrigger inherits KitPressable {
     disabled: root.access == FieldAccess.disabled;
     border-color: root.hovered && !root.state.open ? root.field.hover-border : root.recipe.border;
     accessible-role: combobox;
+    accessible-expandable: true;
     accessible-expanded: root.state.open;
+    accessible-action-expand => { root.request-open(); }
     accessible-read-only: root.access == FieldAccess.read-only;
-    function request-open() { if (root.access == FieldAccess.editable) { root.handle-open-requested(); } }
+    function request-open() { if (root.access == FieldAccess.editable && !root.disabled && !root.busy && !root.state.open) { root.handle-open-requested(); } }
     activated => {
         if (root.state.open) { root.handle-dismiss(CloseReason.trigger-toggle); }
         else { root.request-open(); }
