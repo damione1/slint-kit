@@ -141,3 +141,17 @@ Entrée implicite monoligne attend le callback d’acceptation natif. Entrée mu
 Utilisez `KitFormErrorSummary` pour `FormProjection.errors` et le port d’erreur de chaque contrôle pour son message. `valid` combine validité HTML et rejet serveur ; `dirty` agrège les instantanés ; `submitting` suit le ticket actif. Pour un `TextInput` personnalisé, reliez explicitement accepted à `form.submit()`. Initialisez `install(&window)` une fois avant l’affichage.
 
 Un choix personnalisé basé sur `KitPressable` peut activer `form-submit-on-return` ; le hook clavier de l’hôte garde la priorité. Les boutons d’action ordinaires la désactivent et exécutent leur propre action.
+
+### Moment de validation des choix
+
+`validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions admissibles ou `on-submit` pour le signalement explicite. Affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai ; `validation-message` peut être non vide avant interaction. `check-validity()` conserve la présentation, `report-validity()` révèle les erreurs sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions en lecture seule/désactivées et changements de sélection programmatiques n’en sont pas.
+
+Pour Checkbox, Switch, RadioGroup, SegmentedControl, ToggleGroup, Select, Combobox, MultiSelect et TagInput, le formulaire choisit l’emplacement du message. MultiSelect et TagInput n’ajoutent plus de ligne d’erreur interne. Conservez les erreurs métier existantes comme TagInput.error dans le même message du formulaire avec une priorité explicite. `has-focus` sur MultiSelect/TagInput inclut les puces et le popup associé ; un déplacement interne n’est pas un blur. Les champs textuels exposent la même projection de contrainte `error-visible` en conservant leur message intégré et le contrat de présentation `validation-visible`.
+
+```slint
+import { KitField, KitSelect, KitFieldError, ValidationTiming } from "@kit";
+KitField {
+    choice := KitSelect { required: true; validation-timing: ValidationTiming.on-blur; }
+    if choice.error-visible: KitFieldError { text: choice.validation-message; }
+}
+```

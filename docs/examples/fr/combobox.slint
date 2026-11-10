@@ -1,4 +1,4 @@
-import { KitKeyResult } from "@kit";
+import { KitFieldError, ValidationTiming, KitKeyResult } from "@kit";
 import { KitMetrics, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 import { KitCombobox, KitTheme, KitThemes, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SearchPresentation } from "@kit";
@@ -30,7 +30,7 @@ export component Example inherits Window {
         alignment: start;
         Text { text: "Trouvez votre espace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Saisissez dans le champ en ligne pour filtrer les espaces, ou parcourez-les avec les flèches."; color: root.theme.text-secondary; wrap: word-wrap; }
-        workspace := KitCombobox { theme: root.theme;
+        workspace := KitCombobox { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme;
             label: "Espace de travail";
             placeholder: "Rechercher un espace…";
             clearable: true;
@@ -40,6 +40,7 @@ export component Example inherits Window {
             search-state: SearchPresentation.ready;
             tab-navigation(reverse) => { return KitKeyResult.reject; }
         }
+        if workspace.error-visible: KitFieldError { theme: root.theme; text: workspace.validation-message; }
         selected-label-view := Text { text: "Espace accepté : " + workspace.selected-label; color: root.theme.text-primary; }
     }
 }

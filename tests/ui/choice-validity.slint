@@ -1,0 +1,96 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCheckbox, KitSwitch, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitMultiSelect, KitTagInput, KitCombobox, KitSelect, KitTextField, KitFieldError, KitTheme, KitThemes, ValidationTiming, Ownership, FieldAccess, OptionRow, ChipRow, SelectionRef } from "@kit";
+export enum ValidationChoice { checkbox, switch, radio, segmented, toggle, multi, tags, combo, select }
+export component ChoiceValidityFixture inherits Window {
+    width: 800px; height: 1500px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in-out property <[SelectionRef]> multi-selected <=> multi.selected;
+    in property <ValidationTiming> timing: ValidationTiming.on-blur;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <string> custom-error;
+    in property <[ChipRow]> tag-chips;
+    in property <[OptionRow]> options: [{token: 1, generation: 1, label: "Available"}, {token: 2, generation: 1, label: "Blocked", disabled: true}];
+    in-out property <int> proposals;
+    out property <bool> sentinel-focused: sentinel.has-focus;
+    out property <bool> multi-focused: multi.has-focus;
+    out property <bool> tags-focused: tags.has-focus;
+    out property <bool> combo-focused: combo.has-focus;
+    out property <bool> select-focused: select.has-focus;
+    out property <bool> multi-open: multi.state.open;
+    out property <bool> combo-open: combo.state.open;
+    out property <bool> select-open: select.state.open;
+    out property <bool> text-error: sentinel.error-visible;
+    public function outside() { sentinel.take-focus(); }
+    public function focus-choice(control: ValidationChoice) {
+        if (control == ValidationChoice.checkbox) { checkbox.take-focus(); }
+        else if (control == ValidationChoice.switch) { switch.take-focus(); }
+        else if (control == ValidationChoice.radio) { radio.take-focus(); }
+        else if (control == ValidationChoice.segmented) { segmented.take-focus(); }
+        else if (control == ValidationChoice.toggle) { toggle.take-focus(); }
+        else if (control == ValidationChoice.multi) { multi.take-focus(); }
+        else if (control == ValidationChoice.tags) { tags.take-focus(); }
+        else if (control == ValidationChoice.combo) { combo.take-focus(); }
+        else if (control == ValidationChoice.select) { select.take-focus(); }
+    }
+    public function reset-choice(control: ValidationChoice) {
+        if (control == ValidationChoice.checkbox) { checkbox.reset-validation(); }
+        else if (control == ValidationChoice.switch) { switch.reset-validation(); }
+        else if (control == ValidationChoice.radio) { radio.reset-validation(); }
+        else if (control == ValidationChoice.segmented) { segmented.reset-validation(); }
+        else if (control == ValidationChoice.toggle) { toggle.reset-validation(); }
+        else if (control == ValidationChoice.multi) { multi.reset-validation(); }
+        else if (control == ValidationChoice.tags) { tags.reset-validation(); }
+        else if (control == ValidationChoice.combo) { combo.reset-validation(); }
+        else if (control == ValidationChoice.select) { select.reset-validation(); }
+    }
+    public function report-choice(control: ValidationChoice) -> bool {
+        if (control == ValidationChoice.checkbox) { return checkbox.report-validity(); }
+        else if (control == ValidationChoice.switch) { return switch.report-validity(); }
+        else if (control == ValidationChoice.radio) { return radio.report-validity(); }
+        else if (control == ValidationChoice.segmented) { return segmented.report-validity(); }
+        else if (control == ValidationChoice.toggle) { return toggle.report-validity(); }
+        else if (control == ValidationChoice.multi) { return multi.report-validity(); }
+        else if (control == ValidationChoice.tags) { return tags.report-validity(); }
+        else if (control == ValidationChoice.combo) { return combo.report-validity(); }
+        else if (control == ValidationChoice.select) { return select.report-validity(); }
+        return true;
+    }
+    public function check-choice(control: ValidationChoice) -> bool {
+        if (control == ValidationChoice.checkbox) { return checkbox.check-validity(); }
+        else if (control == ValidationChoice.switch) { return switch.check-validity(); }
+        else if (control == ValidationChoice.radio) { return radio.check-validity(); }
+        else if (control == ValidationChoice.segmented) { return segmented.check-validity(); }
+        else if (control == ValidationChoice.toggle) { return toggle.check-validity(); }
+        else if (control == ValidationChoice.multi) { return multi.check-validity(); }
+        else if (control == ValidationChoice.tags) { return tags.check-validity(); }
+        else if (control == ValidationChoice.combo) { return combo.check-validity(); }
+        else if (control == ValidationChoice.select) { return select.check-validity(); }
+        return true;
+    }
+    out property <[bool]> errors: [checkbox.error-visible, switch.error-visible, radio.error-visible, segmented.error-visible, toggle.error-visible, multi.error-visible, tags.error-visible, combo.error-visible, select.error-visible];
+    out property <[string]> messages: [checkbox.validation-message, switch.validation-message, radio.validation-message, segmented.validation-message, toggle.validation-message, multi.validation-message, tags.validation-message, combo.validation-message, select.validation-message];
+    background: root.theme.canvas;
+    VerticalLayout { spacing: 8px; padding: 16px; alignment: start;
+        sentinel := KitTextField { theme: root.theme; label: "Outside"; required: true; }
+        checkbox := KitCheckbox { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; label: "Checkbox"; toggled(value) => { root.proposals += 1; } }
+        if checkbox.error-visible: KitFieldError { theme: root.theme; text: checkbox.validation-message; }
+        switch := KitSwitch { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; label: "Switch"; toggled(value) => { root.proposals += 1; } }
+        if switch.error-visible: KitFieldError { theme: root.theme; text: switch.validation-message; }
+        radio := KitRadioGroup { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; label: "RadioGroup"; chosen(row) => { root.proposals += 1; } }
+        if radio.error-visible: KitFieldError { theme: root.theme; text: radio.validation-message; }
+        segmented := KitSegmentedControl { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; label: "SegmentedControl"; chosen(row) => { root.proposals += 1; } }
+        if segmented.error-visible: KitFieldError { theme: root.theme; text: segmented.validation-message; }
+        toggle := KitToggleGroup { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; selection-changed(row, added) => { root.proposals += 1; } }
+        if toggle.error-visible: KitFieldError { theme: root.theme; text: toggle.validation-message; }
+        multi := KitMultiSelect { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; selection-changed(row, added) => { root.proposals += 1; } }
+        if multi.error-visible: KitFieldError { theme: root.theme; text: multi.validation-message; }
+        tags := KitTagInput { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; label: "TagInput"; chips: root.tag-chips; create-requested(text) => { root.proposals += 1; } }
+        if tags.error-visible: KitFieldError { theme: root.theme; text: tags.validation-message; }
+        combo := KitCombobox { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; label: "Combobox"; chosen(row) => { root.proposals += 1; } }
+        if combo.error-visible: KitFieldError { theme: root.theme; text: combo.validation-message; }
+        select := KitSelect { theme: root.theme; required: true; custom-validity: root.custom-error; validation-timing: root.timing; access: root.access; ownership: root.ownership; options: root.options; chosen(row) => { root.proposals += 1; } placeholder: "Select"; }
+        if select.error-visible: KitFieldError { theme: root.theme; text: select.validation-message; }
+    }
+}

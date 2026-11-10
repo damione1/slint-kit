@@ -3,13 +3,13 @@ import { KitFieldService, SliderSpec, DecimalRangeView, SliderAccessibleValue, R
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
-import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
+import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
 import { FocusOutline } from "focus.slint";
-import { KitFieldLabel, KitFieldError } from "field.slint";
+import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
@@ -120,10 +120,12 @@ export component CheckMark inherits Rectangle {
 export component KitCheckbox inherits KitPressable {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -132,6 +134,7 @@ export component KitCheckbox inherits KitPressable {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.checkbox; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         checked: root.state == CheckState.checked;
         invalid => { root.invalid(); }
@@ -176,10 +179,12 @@ export component KitCheckbox inherits KitPressable {
 export component KitSwitch inherits KitPressable {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -188,6 +193,7 @@ export component KitSwitch inherits KitPressable {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.checkbox; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         checked: root.checked;
         invalid => { root.invalid(); }
@@ -286,10 +292,12 @@ component ChoiceKeyboard inherits FocusScope {
 export component KitRadioGroup inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -298,6 +306,7 @@ export component KitRadioGroup inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.radio; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         checked: KitFormValidation.ready && KitFormValidation.count-selected(root.rows) > 0;
         invalid => { root.invalid(); }
@@ -333,7 +342,7 @@ export component KitRadioGroup inherits Rectangle {
         direction: root.direction; flow: root.flow; access: root.access;
         policy: ChoiceKeyPolicy.radio;
         navigate(step) => { root.handle-navigate(step); }
-        activate => { root.handle-activate(root.active-token, root.generation); }
+        activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.handle-activate(root.active-token, root.generation); } }
         // Box layouts measure horizontal and vertical constraints separately,
         // so wrapping labels do not feed Flexbox height back into window width.
         vertical := VerticalLayout {
@@ -389,7 +398,7 @@ export component KitRadioGroup inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true; wrap: root.wrap;
-        chosen(row) => { root.chosen(row); }
+        chosen(row) => { checks.note-edit(); root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
         selection.navigate(step);
@@ -399,7 +408,10 @@ export component KitRadioGroup inherits Rectangle {
         root.navigate(step);
     }
     function handle-activate(token: int, generation: int) {
-        if (root.access == FieldAccess.editable) { selection.activate(token, generation); }
+        if (root.access == FieldAccess.editable) {
+            if (root.options.length == 0 && generation == root.generation && KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, token)) { checks.note-edit(); }
+            selection.activate(token, generation);
+        }
         root.activate(token, generation);
     }
 
@@ -439,10 +451,12 @@ component SegmentedOption inherits ChoiceOption {
 export component KitSegmentedControl inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -451,6 +465,7 @@ export component KitSegmentedControl inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.radio; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         checked: KitFormValidation.ready && KitFormValidation.count-selected(root.rows) > 0;
         invalid => { root.invalid(); }
@@ -496,7 +511,7 @@ export component KitSegmentedControl inherits Rectangle {
         direction: root.direction; flow: root.flow; access: root.access;
         policy: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count ? ChoiceKeyPolicy.grid : ChoiceKeyPolicy.axis;
         navigate(step) => { root.handle-navigate(step); }
-        activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { checks.note-edit(); root.handle-activate(root.active-token, root.generation); } }
+        activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.handle-activate(root.active-token, root.generation); } }
         choices := VerticalLayout {
             width: root.width; height: self.preferred-height;
             padding: root.choice.group-padding;
@@ -512,7 +527,7 @@ export component KitSegmentedControl inherits Rectangle {
                     icons: root.icons;
                     theme: root.theme; control-size: root.control-size;
                     focus-indicated: keyboard.focus-visible && root.active-token == self.option-data.token;
-                    activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.handle-activate(token,generation); } }
+                    activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
                 }
             }
         }
@@ -525,7 +540,7 @@ export component KitSegmentedControl inherits Rectangle {
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
         wrap: root.wrap; page-rows: root.column-count;
-        chosen(row) => { root.chosen(row); }
+        chosen(row) => { checks.note-edit(); root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
         if (step == NavigationStep.page-previous) { selection.previous-row(root.column-count); }
@@ -537,7 +552,10 @@ export component KitSegmentedControl inherits Rectangle {
         root.navigate(step);
     }
     function handle-activate(token: int, generation: int) {
-        if (root.access == FieldAccess.editable) { selection.activate(token, generation); }
+        if (root.access == FieldAccess.editable) {
+            if (root.options.length == 0 && generation == root.generation && KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, token)) { checks.note-edit(); }
+            selection.activate(token, generation);
+        }
         root.activate(token, generation);
     }
 
@@ -548,10 +566,12 @@ export component KitSegmentedControl inherits Rectangle {
 export component KitToggleGroup inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -560,6 +580,7 @@ export component KitToggleGroup inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.select; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         selected-count: KitFormValidation.ready ? KitFormValidation.count-selected(root.rows) : 0;
         invalid => { root.invalid(); }
@@ -595,7 +616,7 @@ export component KitToggleGroup inherits Rectangle {
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { selection.navigate(step); root.navigate(step); }
-        activate => { checks.note-edit(); root.toggle-option(root.active-token, root.generation); }
+        activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.toggle-option(root.active-token, root.generation); } }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
@@ -613,7 +634,7 @@ export component KitToggleGroup inherits Rectangle {
                 border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
                 focus-indicated: keyboard.focus-visible && root.active-token == option.display-choice.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
-                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggle-option(token,generation); } }
+                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.toggle-option(token,generation); } }
                 // Children are injected into the padded pressable content, but
                 // their lexical parent is the option. Match the measured width.
                 option-label := Text { width: max(0px, option.width - 2 * option.padding-inline); height: max(0px, option.height - 2 * option.padding-block); text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
@@ -647,10 +668,13 @@ export component KitToggleGroup inherits Rectangle {
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
         options: root.options; ownership: root.ownership; limit: root.selection-limit; persistent: true; wrap: root.wrap;
-        changed-selection(row, added) => { root.selection-changed(row, added); }
+        changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
     }
     function toggle-option(token: int, generation: int) {
-        if (root.access == FieldAccess.editable) { selection.activate(token, generation); root.toggled(token, generation); }
+        if (root.access == FieldAccess.editable) {
+            if (root.options.length == 0 && generation == root.generation && KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, token)) { checks.note-edit(); }
+            selection.activate(token, generation); root.toggled(token, generation);
+        }
     }
 }
 
@@ -788,10 +812,12 @@ export component KitChipButton inherits KitPressable {
 export component KitMultiSelect inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -800,6 +826,7 @@ export component KitMultiSelect inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.select; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         selected-count: root.chips.length;
         invalid => { root.invalid(); }
@@ -824,6 +851,9 @@ export component KitMultiSelect inherits Rectangle {
     callback query-edited(string);
     callback remove-requested(int);
     vertical-stretch: 0;
+    private property <SelectionRef> focused-chip;
+    out property <bool> has-focus: selector.has-focus || root.focused-chip.present;
+    changed has-focus => { if (!root.has-focus && !root.state.open && !selector.popup-visible && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { selector.take-focus(); }
     changed access => { selector.cancel-press(); if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); } }
     VerticalLayout {
@@ -837,14 +867,21 @@ export component KitMultiSelect inherits Rectangle {
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
                 min-width: 0px; horizontal-stretch: 0;
                 text: chip.label; accessible-name: chip.label;
+                private property <ChipRow> focus-identity: chip;
+                changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
+                focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
             }
         }
         if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip {
-                theme: root.theme; chip: chip; disabled: !chip.removable || root.access != FieldAccess.editable;
-                remove-requested(token) => { if (root.access == FieldAccess.editable) { selection.remove(token); root.remove-requested(token); } }
+                theme: root.theme; chip: chip;
+                private property <ChipRow> focus-identity: chip;
+                changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
+                focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
+                disabled: !chip.removable || root.access != FieldAccess.editable;
+                remove-requested(token) => { if (root.access == FieldAccess.editable) { selector.take-focus(); if (root.options.length == 0) { checks.note-edit(); } selection.remove(token); root.remove-requested(token); } }
             }
         }
         selector := KitSelect {
@@ -854,15 +891,19 @@ export component KitMultiSelect inherits Rectangle {
             typeahead-timeout-ms: root.typeahead-timeout-ms;
             // The chips carry the selection, so this composite owns the constraint.
             validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+            error-message: checks.show-error ? checks.validation-message : "";
             open-requested => { if (root.access == FieldAccess.editable) { selection.open(); root.open-requested(); } }
             navigate(step) => { if (root.access == FieldAccess.editable) { selection.navigate(step); root.navigate(step); } }
-            activate(token,generation) => { if (root.access == FieldAccess.editable) { selection.activate(token,generation); root.activate(token,generation); } }
+            activate(token,generation) => { if (root.access == FieldAccess.editable) {
+                let row = KitSelectionService.source(root.rows, token);
+                if (KitSelectionService.ready && root.options.length == 0 && generation == root.state.generation && row.token == token && !row.disabled) { checks.note-edit(); }
+                selection.activate(token,generation); root.activate(token,generation);
+            } }
             dismiss(reason) => { selection.dismiss(reason); root.dismiss(reason); }
             typeahead(text) => { if (root.access == FieldAccess.editable) { selection.typeahead(text); root.typeahead(text); } }
             tab-navigation(reverse) => { return root.tab-navigation(reverse); }
             query-edited(text) => { if (root.access == FieldAccess.editable) { selection.query = text; root.query-edited(text); } }
         }
-        if checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
@@ -872,17 +913,19 @@ export component KitMultiSelect inherits Rectangle {
     selection := KitMultipleSelection {
         options: root.options; ownership: root.ownership; limit: root.selection-limit;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
-        changed-selection(row, added) => { root.selection-changed(row, added); }
+        changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
     }
 }
 
 export component KitTagInput inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -891,6 +934,7 @@ export component KitTagInput inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.select; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         selected-count: root.chips.length;
         invalid => { root.invalid(); }
@@ -906,6 +950,9 @@ export component KitTagInput inherits Rectangle {
     callback edited(string);
     callback create-requested(string);
     callback remove-requested(int);
+    private property <SelectionRef> focused-chip;
+    out property <bool> has-focus: editor.has-focus || root.focused-chip.present;
+    changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { editor.take-focus(); }
     vertical-stretch: 0;
     VerticalLayout {
@@ -914,16 +961,26 @@ export component KitTagInput inherits Rectangle {
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
-            for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
+            for chip in root.chips: KitChip {
+                theme: root.theme; chip: chip;
+                private property <ChipRow> focus-identity: chip;
+                changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
+                focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
+                disabled: root.access != FieldAccess.editable || !chip.removable;
+                remove-requested(token) => { if (root.access == FieldAccess.editable) { editor.take-focus(); checks.note-edit(); root.remove-requested(token); } }
+            }
         }
         editor := KitTextField {
             implicit-form-submit: false;
-            theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; text <=> root.text;
+            theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label;
+            show-validation-message: false;
+            error: root.error != "" ? root.error : checks.show-error ? checks.validation-message : "";
+            validation: root.error != "" || checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+            text <=> root.text;
             placeholder: "Type a tag, then press Enter";
-            edited(text) => { root.edited(text); }
-            commit-requested(text) => { if (root.access == FieldAccess.editable) { root.create-requested(text); } }
+            edited(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); } root.edited(text); }
+            commit-requested(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.create-requested(text); } }
         }
-        if checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
 }
 
@@ -932,10 +989,12 @@ export component KitTagInput inherits Rectangle {
 export component KitCombobox inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -944,6 +1003,7 @@ export component KitCombobox inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.select; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity: root.custom-validity != "" ? root.custom-validity : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : ""; required-message: root.required-message;
         selected-count: (root.state.selected.present && root.state.selection-availability != SelectionAvailability.unavailable) || (root.allow-custom-value && root.text != "") ? 1 : 0;
         invalid => { root.invalid(); }
@@ -1007,7 +1067,8 @@ export component KitCombobox inherits Rectangle {
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-enabled: root.access != FieldAccess.disabled;
     accessible-description: KitStrings.join-description(checks.show-error ? checks.validation-message : root.status-text, root.required ? KitStrings.required-label : "");
-    out property <bool> has-focus: editor.has-focus || trigger.has-focus;
+    private property <bool> popup-focused;
+    out property <bool> has-focus: editor.has-focus || trigger.has-focus || root.popup-focused;
     changed selected-label => {
         if (!root.editing-draft) {
             root.syncing-text = true;
@@ -1081,6 +1142,7 @@ export component KitCombobox inherits Rectangle {
     }
     function handle-inline-edited(draft: string) {
         if (root.syncing-text || root.access != FieldAccess.editable) { return; }
+        checks.note-edit();
         root.editing-draft = true;
         if (root.allow-custom-value && root.ownership == Ownership.local && root.selected.present && draft != root.selected-label) {
             root.selected = { present: false, token: 0 };
@@ -1159,7 +1221,7 @@ export component KitCombobox inherits Rectangle {
         }
     }
     private property <bool> presented: popup.is-open;
-    changed presented => { if (!root.presented && root.state.open) { root.handle-dismiss(CloseReason.host-closed); } }
+    changed presented => { if (!root.presented) { root.popup-focused = false; if (root.state.open) { root.handle-dismiss(CloseReason.host-closed); } } }
     editor := KitTextField {
         implicit-form-submit: false;
         width: root.width;
@@ -1238,8 +1300,9 @@ export component KitCombobox inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
-            init => { root.measured-popup-page-rows = self.page-rows; }
+            init => { root.measured-popup-page-rows = self.page-rows; root.popup-focused = self.has-focus; }
             changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
+            focus-observed(focused) => { root.popup-focused = focused; }
             theme: root.theme; state: root.state; query <=> root.query;
             row-height: root.row-height;
             searchable: false; search-label: root.label;
@@ -1324,6 +1387,7 @@ export component KitCombobox inherits Rectangle {
         options: root.options; ownership: root.ownership; retention: root.retention; persistent: false;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => {
+            checks.note-edit();
             debounce-timer.running = false;
             root.editing-draft = false;
             root.syncing-text = true;
@@ -1334,7 +1398,12 @@ export component KitCombobox inherits Rectangle {
         }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
-    function handle-activate(token: int, generation: int) { if (root.access != FieldAccess.editable) { return; } selection.activate(token, generation); root.activate(token, generation); }
+    function handle-activate(token: int, generation: int) {
+        if (root.access != FieldAccess.editable) { return; }
+        let row = KitSelectionService.source(root.rows, token);
+        if (KitSelectionService.ready && root.options.length == 0 && generation == root.state.generation && row.token == token && !row.disabled) { checks.note-edit(); }
+        selection.activate(token, generation); root.activate(token, generation);
+    }
     function handle-dismiss(reason: CloseReason) {
         if (root.editing-draft && (reason == CloseReason.escape || reason == CloseReason.outside-press || reason == CloseReason.host-closed)) {
             if (root.allow-custom-value && reason != CloseReason.escape) { root.commit-custom-value(); }

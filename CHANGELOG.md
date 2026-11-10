@@ -26,6 +26,8 @@
 
 - **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
 - **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.
+- Expose uniform choice `validation-timing`/`error-visible`, native chip/editor/popup focus groups, and the inherited text-field constraint visibility alias. **Breaking:** MultiSelect and TagInput no longer render their error text internally; render `KitFieldError` in the form, gated by `error-visible`, and render any TagInput business `error` there with explicit precedence.
+- Expose `validation-timing`/`error-visible` uniformes pour les choix, le focus natif des groupes puces/éditeur/popup et l’alias de visibilité de contrainte hérité des champs textuels. **Rupture :** MultiSelect et TagInput n’affichent plus leur texte d’erreur en interne ; affichez un `KitFieldError` dans le formulaire conditionné par `error-visible`, ainsi que l’erreur métier TagInput `error` avec priorité explicite.
 
 - Publish expandable state and accessible expansion actions on select triggers, Collapse and Accordion; shared Select/Combobox/MultiSelect composition inherits the fix. Expand requests opening idempotently and preserves access and controlled-state guards. The pinned macOS AccessKit bridge still lacks native expanded/Expand exports.
 - Publie l’état développable et l’action accessible Développer sur les déclencheurs de sélection, Collapse et Accordion ; Select/Combobox/MultiSelect héritent du correctif partagé. Développer demande l’ouverture de façon idempotente et conserve les protections d’accès et d’état contrôlé. Le pont AccessKit macOS épinglé n’exporte toujours pas l’état développé ni Développer.

@@ -141,3 +141,17 @@ Single-line implicit Enter waits for the native editor’s accepted callback. Mu
 Use `KitFormErrorSummary` for `FormProjection.errors` and each control’s error port for its field message. `valid` combines current HTML validity and server rejection; `dirty` aggregates field snapshots; `submitting` follows the active coordinator ticket. For custom `TextInput`, wire its accepted callback to `form.submit()` explicitly. Initialize `install(&window)` once before showing it.
 
 Custom choice skins based on `KitPressable` can enable `form-submit-on-return`; its host key hook still runs first. Ordinary action buttons keep that option disabled and run their own action.
+
+### Choice validation timing
+
+`validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. Render a host-owned `KitFieldError` only when `error-visible` is true; `validation-message` can already be nonempty while pristine. `check-validity()` leaves presentation unchanged, `report-validity()` reveals errors without moving focus, and `reset-validation()` clears interaction flags. Controlled proposals count as edits before acknowledgment; read-only/disabled actions and programmatic selection changes do not.
+
+For Checkbox, Switch, RadioGroup, SegmentedControl, ToggleGroup, Select, Combobox, MultiSelect and TagInput, the form owns the message placement. MultiSelect and TagInput no longer add an internal error row. Keep existing domain errors such as TagInput.error in the same host message with explicit precedence. `has-focus` on MultiSelect/TagInput includes chips and the owned popup; moving within the group is not blur. Text-based fields expose the same `error-visible` constraint projection while retaining their built-in message and `validation-visible` presentation contract.
+
+```slint
+import { KitField, KitSelect, KitFieldError, ValidationTiming } from "@kit";
+KitField {
+    choice := KitSelect { required: true; validation-timing: ValidationTiming.on-blur; }
+    if choice.error-visible: KitFieldError { text: choice.validation-message; }
+}
+```

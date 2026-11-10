@@ -2,7 +2,6 @@
 import { KitForm, KitTextField, KitEmailField, KitDateField, KitCheckbox, CheckState, KitButton, KitFieldError, KitTheme, KitThemes } from "@kit";
 export component Example inherits Window {
     in-out property <KitTheme> theme: KitThemes.light;
-    in-out property <bool> consent-reported;
     background: root.theme.canvas;
     preferred-width: 520px; preferred-height: 680px;
     callback submit-requested();
@@ -15,7 +14,6 @@ export component Example inherits Window {
                 let email-valid = email.report-validity();
                 let birth-valid = birth.report-validity();
                 let consent-valid = consent.report-validity();
-                root.consent-reported = true;
                 if (!name-valid) { name.focus-if-invalid(); }
                 else if (!email-valid) { email.focus-if-invalid(); }
                 else if (!birth-valid) { birth.focus-if-invalid(); }
@@ -25,13 +23,13 @@ export component Example inherits Window {
             submit-requested => { root.submit-requested(); }
             reset-requested => {
                 name.reset-field(); email.reset-field(); birth.reset-field();
-                consent.state = CheckState.unchecked; consent.reset-validation(); root.consent-reported = false;
+                consent.state = CheckState.unchecked; consent.reset-validation();
             }
             name := KitTextField { theme: root.theme; label: "Nom"; required: true; required-message: "Ce champ est obligatoire."; }
             email := KitEmailField { theme: root.theme; label: "Courriel"; required: true; required-message: "Ce champ est obligatoire."; }
             birth := KitDateField { theme: root.theme; label: "Date de naissance"; required: true; required-message: "Ce champ est obligatoire."; }
             consent := KitCheckbox { theme: root.theme; label: "Accepter les conditions"; required: true; required-message: "Ce champ est obligatoire."; }
-            if root.consent-reported && !consent.validity.valid: KitFieldError { theme: root.theme; text: consent.validation-message; }
+            if consent.error-visible: KitFieldError { theme: root.theme; text: consent.validation-message; }
             HorizontalLayout {
                 alignment: start;
                 KitButton { theme: root.theme; text: "Envoyer"; activated => { form.submit(); } }
