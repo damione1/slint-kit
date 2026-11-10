@@ -371,7 +371,35 @@
         "KitRadioGroup"
       ],
       "label": "Case à cocher",
-      "seoTitle": "Case à cocher pour Slint"
+      "seoTitle": "Case à cocher pour Slint",
+      "properties": {
+        "state": {
+          "effect": "`unchecked`, `checked` ou `mixed`, lié dans les deux sens. L’activation bascule entre `unchecked` et `checked` ; `mixed` est une vraie troisième valeur que l’hôte fixe et que le contrôle ne ramène jamais à faux.",
+          "default": "`CheckState.unchecked`.",
+          "states": "Sous `Ownership.controlled`, le contrôle émet `toggled(CheckState)` et l’hôte écrit `state`. `accessible-checked` le suit ; `mixed` est décrit comme partiellement sélectionné.",
+          "example": "KitCheckbox {\n    label: \"Tout sélectionner\";\n    state: CheckState.mixed;\n    toggled(suivant) => { root.tout-selectionner(suivant == CheckState.checked); }\n}"
+        },
+        "ownership": {
+          "effect": "`local` : une activation met `state` à jour et le rapporte par `toggled`. `controlled` : `toggled` est une proposition et `state` attend l’hôte.",
+          "default": "`Ownership.local`.",
+          "example": "KitCheckbox {\n    label: \"Me prévenir\";\n    ownership: Ownership.controlled;\n    state: root.prevenir ? CheckState.checked : CheckState.unchecked;\n    toggled(suivant) => { root.prevenir-propose(suivant); }\n}"
+        },
+        "access": {
+          "effect": "`read-only` garde la case focalisable et lisible mais l’activation ne change rien et la description indique la lecture seule ; `disabled` atténue case et libellé et refuse le focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitCheckbox {\n    label: \"Conditions acceptées\";\n    state: CheckState.checked;\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "Le texte à côté de la case, coupé en fin de ligne si besoin, et le nom accessible de la case ; toute la rangée est la cible du clic.",
+          "default": "`\"\"`.",
+          "example": "KitCheckbox {\n    label: \"Mémoriser cet appareil\";\n}"
+        },
+        "required": {
+          "effect": "Exige `checked` pour le moteur partagé (nature HTML `checkbox`) ; `mixed` ne le satisfait pas. Le message `required-message` apparaît après la perte du focus ou `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitCheckbox {\n    label: \"J’accepte les conditions\";\n    required: true;\n    required-message: \"Acceptez les conditions pour continuer.\";\n}"
+        }
+      }
     },
     "en": {
       "summary": "Controlled checkbox with a genuine mixed state.",
@@ -382,7 +410,35 @@
         "KitRadioGroup"
       ],
       "label": "Checkbox",
-      "seoTitle": "Checkbox for Slint"
+      "seoTitle": "Checkbox for Slint",
+      "properties": {
+        "state": {
+          "effect": "`unchecked`, `checked` or `mixed`, two-way. Activation toggles between `unchecked` and `checked`; `mixed` is a real third value the host sets and the control never coerces it to false.",
+          "default": "`CheckState.unchecked`.",
+          "states": "Under `Ownership.controlled` the control emits `toggled(CheckState)` and the host writes `state`. `accessible-checked` follows it; `mixed` is described as partially selected.",
+          "example": "KitCheckbox {\n    label: \"Select all\";\n    state: CheckState.mixed;\n    toggled(next) => { root.select-all(next == CheckState.checked); }\n}"
+        },
+        "ownership": {
+          "effect": "`local`: an activation updates `state` and reports it through `toggled`. `controlled`: `toggled` is a proposal and `state` waits for the host.",
+          "default": "`Ownership.local`.",
+          "example": "KitCheckbox {\n    label: \"Notify me\";\n    ownership: Ownership.controlled;\n    state: root.notify ? CheckState.checked : CheckState.unchecked;\n    toggled(next) => { root.notify-proposed(next); }\n}"
+        },
+        "access": {
+          "effect": "`read-only` keeps the box focusable and readable but activation changes nothing and the description says read only; `disabled` dims the box and label and refuses focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitCheckbox {\n    label: \"Terms accepted\";\n    state: CheckState.checked;\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "The wrapping text beside the box and the accessible name of the checkbox; the whole row is the press target.",
+          "default": "`\"\"`.",
+          "example": "KitCheckbox {\n    label: \"Remember this device\";\n}"
+        },
+        "required": {
+          "effect": "Requires `checked` for the shared engine (HTML `checkbox` kind); `mixed` does not satisfy it. The message `required-message` shows after blur or `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitCheckbox {\n    label: \"I accept the terms\";\n    required: true;\n    required-message: \"Accept the terms to continue.\";\n}"
+        }
+      }
     }
   },
   "KitChip": {
@@ -539,7 +595,49 @@
       "related": [
         "KitSelect",
         "KitMultiSelect"
-      ]
+      ],
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` en Rust : chaque `OptionRow` porte un `token` stable, la `generation` de la source, un `label`, une `description` et `disabled`. L’instance les filtre par `query` dans `rows` et y résout `selected`.",
+          "default": "Vide : le déclencheur affiche `placeholder` et le popup n’a aucune ligne.",
+          "example": "KitCombobox {\n    label: \"Responsable\";\n    options: root.personnes;\n    chosen(ligne) => { root.responsable-choisi(ligne); }\n}"
+        },
+        "selected": {
+          "effect": "L’option choisie sous forme de `SelectionRef`, liée dans les deux sens, indépendante du texte de recherche : effacer `query` la conserve. `chosen(OptionRow)` rapporte la ligne complète.",
+          "default": "Absente (`present: false`).",
+          "states": "Un jeton absent de `options` rend la sélection `unavailable` et fait d’`unavailable-label` le message de contrainte ; sous `Ownership.controlled`, l’hôte l’écrit pour acquitter.",
+          "example": "KitCombobox {\n    options: root.personnes;\n    selected: { present: true, token: 7 };\n}"
+        },
+        "query": {
+          "effect": "Texte de l’éditeur de recherche du popup, lié dans les deux sens. Il filtre `rows` localement (libellé ou description, insensible à la casse) et `query-edited(string)` permet à l’hôte de lancer une recherche distante et de remplacer `options` ; l’éditeur garde curseur, sélection et IME natifs.",
+          "default": "`\"\"`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+        },
+        "search-state": {
+          "effect": "Où en est la recherche de l’application : `idle`, `loading` (le popup vide affiche « Searching… »), `ready` ou `failed` (le popup vide affiche `status-text`).",
+          "default": "`SearchPresentation.idle`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    search-state: root.recherche-en-cours ? SearchPresentation.loading : SearchPresentation.ready;\n}"
+        },
+        "status-text": {
+          "effect": "Message affiché dans le popup vide tant que `search-state` vaut `failed`.",
+          "default": "`\"\"`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    search-state: SearchPresentation.failed;\n    status-text: \"L’annuaire est inaccessible.\";\n}"
+        },
+        "label": {
+          "effect": "Nom accessible du déclencheur et de l’éditeur de recherche, affiché dans le déclencheur tant que rien n’est sélectionné. Aucune ligne de libellé visible n’est rendue : composez un `KitFieldLabel` pour en avoir une.",
+          "default": "`\"Search and select\"`.",
+          "example": "KitCombobox {\n    label: \"Client\";\n    options: root.clients;\n}"
+        },
+        "selected-label": {
+          "effect": "Texte affiché dans le déclencheur et dans le champ en lecture seule ; lié par défaut au libellé de l’option sélectionnée et remplaçable pour une projection contrôlée.",
+          "example": "KitCombobox {\n    options: root.clients;\n    selected-label: root.nom-client;\n}"
+        },
+        "access": {
+          "effect": "`read-only` remplace le déclencheur par un champ texte en lecture seule affichant `selected-label` ; `disabled` refuse l’interaction et ferme un popup ouvert.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitCombobox {\n    options: root.clients;\n    selected: root.client;\n    access: FieldAccess.read-only;\n}"
+        }
+      }
     },
     "en": {
       "label": "Searchable combobox",
@@ -550,7 +648,49 @@
       "related": [
         "KitSelect",
         "KitMultiSelect"
-      ]
+      ],
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()` in Rust: each `OptionRow` carries a stable `token`, the source `generation`, a `label`, a `description` and `disabled`. The instance filters them by `query` into `rows` and resolves `selected` against them.",
+          "default": "Empty: the trigger shows `placeholder` and the popup has no row.",
+          "example": "KitCombobox {\n    label: \"Assignee\";\n    options: root.people;\n    chosen(row) => { root.assignee-chosen(row); }\n}"
+        },
+        "selected": {
+          "effect": "The chosen option as a `SelectionRef`, two-way, independent of the search text: clearing `query` keeps it. `chosen(OptionRow)` reports the full row.",
+          "default": "Absent (`present: false`).",
+          "states": "A token missing from `options` makes the selection `unavailable` and `unavailable-label` the constraint message; under `Ownership.controlled` the host writes it to acknowledge.",
+          "example": "KitCombobox {\n    options: root.people;\n    selected: { present: true, token: 7 };\n}"
+        },
+        "query": {
+          "effect": "Text of the live search editor in the popup, two-way. It filters `rows` locally (label or description, case-insensitive) and `query-edited(string)` lets the host run a remote search and replace `options`; the editor keeps native caret, selection and IME.",
+          "default": "`\"\"`.",
+          "example": "KitCombobox {\n    options: root.results;\n    query-edited(text) => { root.search(text); }\n}"
+        },
+        "search-state": {
+          "effect": "Where the application's search stands: `idle`, `loading` (the empty popup says \"Searching…\"), `ready`, or `failed` (the empty popup shows `status-text`).",
+          "default": "`SearchPresentation.idle`.",
+          "example": "KitCombobox {\n    options: root.results;\n    search-state: root.searching ? SearchPresentation.loading : SearchPresentation.ready;\n}"
+        },
+        "status-text": {
+          "effect": "Message shown in the empty popup while `search-state` is `failed`.",
+          "default": "`\"\"`.",
+          "example": "KitCombobox {\n    options: root.results;\n    search-state: SearchPresentation.failed;\n    status-text: \"The directory is unreachable.\";\n}"
+        },
+        "label": {
+          "effect": "Accessible name of the trigger and of the search editor, shown in the trigger while nothing is selected. No visible label row is rendered: compose a `KitFieldLabel` for one.",
+          "default": "`\"Search and select\"`.",
+          "example": "KitCombobox {\n    label: \"Customer\";\n    options: root.customers;\n}"
+        },
+        "selected-label": {
+          "effect": "Text shown in the trigger and in the read-only field; bound to the selected option's label by default and overridable for a controlled projection.",
+          "example": "KitCombobox {\n    options: root.customers;\n    selected-label: root.customer-name;\n}"
+        },
+        "access": {
+          "effect": "`read-only` replaces the trigger by a read-only text field showing `selected-label`; `disabled` refuses interaction and closes an open popup.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitCombobox {\n    options: root.customers;\n    selected: root.customer;\n    access: FieldAccess.read-only;\n}"
+        }
+      }
     }
   },
   "KitContainer": {
@@ -588,7 +728,38 @@
         "KitDataTable",
         "KitScrollArea",
         "KitEmptyState"
-      ]
+      ],
+      "properties": {
+        "items": {
+          "effect": "Les entrées visibles dans l’ordre d’affichage, un `ContentItem` chacune : `token` stable, `title`, `excerpt`, `metadata`, `link-label`, une image `thumbnail` facultative, `selected` et `disabled`. Les lignes sont virtualisées par la vue de liste.",
+          "default": "Vide : `empty-label` s’affiche.",
+          "example": "KitContentList {\n    items: root.articles;\n    activate(jeton, generation) => { root.ouvrir-article(jeton, generation); }\n}"
+        },
+        "generation": {
+          "effect": "La génération de projection publiée avec chaque nouveau `items` ; renvoyée dans `activate(token, generation)` pour que l’hôte refuse un appui armé sous une projection plus ancienne, et un changement annule un appui en cours.",
+          "default": "`0`.",
+          "example": "KitContentList {\n    items: root.articles;\n    generation: root.generation;\n}"
+        },
+        "active-index": {
+          "effect": "Position de l’entrée active, le curseur clavier ; `-1` pour aucune. La changer fait défiler l’entrée dans la vue ; Haut/Bas, Début/Fin et PageUp/PageDown demandent un déplacement par `navigate(NavigationStep)`, et Entrée ou Espace active l’entrée sauf si elle est désactivée.",
+          "default": "`-1`.",
+          "example": "KitContentList {\n    items: root.articles;\n    active-index: root.article-actif;\n    navigate(pas) => { root.deplacer-actif(pas); }\n}"
+        },
+        "label": {
+          "effect": "Nom accessible de la liste (rôle `list`) ; chaque entrée est un `list-item` nommé par son titre et ses métadonnées.",
+          "default": "`\"Articles\"`.",
+          "example": "KitContentList {\n    label: \"Notes de version\";\n    items: root.notes;\n}"
+        },
+        "empty-label": {
+          "effect": "Texte centré dans la liste tant que `items` est vide.",
+          "default": "`\"No articles found\"`.",
+          "example": "KitContentList {\n    items: root.articles;\n    empty-label: \"Rien n’est encore publié.\";\n}"
+        },
+        "scroll-y": {
+          "effect": "Décalage de défilement vertical de la liste, son `content-y` (nul ou négatif).",
+          "example": "liste := KitContentList { items: root.articles; }\nText { text: \"Défilé de \" + Math.round(-liste.scroll-y / 1px) + \" px\"; }"
+        }
+      }
     },
     "en": {
       "label": "Content list",
@@ -600,7 +771,38 @@
         "KitDataTable",
         "KitScrollArea",
         "KitEmptyState"
-      ]
+      ],
+      "properties": {
+        "items": {
+          "effect": "The visible entries in display order, one `ContentItem` each: stable `token`, `title`, `excerpt`, `metadata`, `link-label`, an optional `thumbnail` image, `selected` and `disabled`. Rows are virtualized by the list view.",
+          "default": "Empty: `empty-label` is shown.",
+          "example": "KitContentList {\n    items: root.articles;\n    activate(token, generation) => { root.open-article(token, generation); }\n}"
+        },
+        "generation": {
+          "effect": "The projection generation published with each new `items`; echoed in `activate(token, generation)` so the host refuses a press armed under an older projection, and a change cancels a pending press.",
+          "default": "`0`.",
+          "example": "KitContentList {\n    items: root.articles;\n    generation: root.generation;\n}"
+        },
+        "active-index": {
+          "effect": "Position of the active entry, the keyboard cursor; `-1` for none. Changing it scrolls the entry into view; Up/Down, Home/End and PageUp/PageDown request moves through `navigate(NavigationStep)`, and Enter or Space activates the entry unless it is disabled.",
+          "default": "`-1`.",
+          "example": "KitContentList {\n    items: root.articles;\n    active-index: root.active-article;\n    navigate(step) => { root.move-active(step); }\n}"
+        },
+        "label": {
+          "effect": "Accessible name of the list (`list` role); each entry is a `list-item` named by its title and metadata.",
+          "default": "`\"Articles\"`.",
+          "example": "KitContentList {\n    label: \"Release notes\";\n    items: root.notes;\n}"
+        },
+        "empty-label": {
+          "effect": "Text centered in the list while `items` is empty.",
+          "default": "`\"No articles found\"`.",
+          "example": "KitContentList {\n    items: root.articles;\n    empty-label: \"Nothing published yet.\";\n}"
+        },
+        "scroll-y": {
+          "effect": "Vertical scroll offset of the list, as its `content-y` (zero or negative).",
+          "example": "list := KitContentList { items: root.articles; }\nText { text: \"Scrolled \" + Math.round(-list.scroll-y / 1px) + \" px\"; }"
+        }
+      }
     }
   },
   "KitDataTable": {
@@ -612,7 +814,94 @@
       "behavior": "Le tableau affiche l’ordre fourni par le modèle ; cliquer sur un en-tête ne le trie pas automatiquement. Modifier `active-index` rend cette ligne visible. Définissez `empty-label` pour un modèle vide et `interactive: false` pendant qu’une modale bloque le tableau. Une colonne avec `sortable: false` affiche un en-tête statique. Le texte accessible est localisable : `sort-ascending-label` et `sort-descending-label` (joints au libellé de colonne par « , ») et `unnamed-row-label` pour une ligne sans cellule. L’arbre accessible expose ce que Slint 1.18.1 sait exprimer : le conteneur est une `table`, un en-tête triable est un `button` dont l’action par défaut, le pointeur et le clavier suivent la même règle `disabled`, un en-tête statique est un `text` sans action ni état activé, et chaque ligne est un `list-item` dont `accessible-item-selected` reflète `selected`. Le focus reste sur le tableau, la ligne active est ajoutée au libellé accessible du tableau (`label : première cellule`) et la sélection reste sur les lignes : les trois ne sont jamais confondus. Slint 1.18.1 n’a pas de rôle ligne, cellule ou en-tête de colonne : le curseur de cellule est nommé dans le libellé du tableau (`libellé : ligne, colonne`) plutôt qu’exposé comme cellule, et les tests headless prouvent ce contrat sans qualifier un lecteur d’écran. Chaque colonne porte sa politique de largeur dans `TableColumn.width` (`ColumnWidth`) ; elle suit donc le `token` stable de la colonne lors d’un réordonnancement. `sizing: ColumnSizing.fill` (par défaut) part de `basis`, ne descend jamais sous `minimum-column-width` du tableau ni sous son propre `minimum`, et partage l’espace restant à parts égales avec les autres colonnes `fill` ; `ColumnSizing.fixed` vaut exactement `basis`, borné par les limites de la colonne, et ne grandit jamais. `ceiling: ColumnCeiling.bounded` fait de `maximum` un plafond pour la croissance et le redimensionnement ; `unbounded` (par défaut) n’en a pas : la grille s’élargit et défile horizontalement. Les longueurs sont des pixels logiques, non mis à l’échelle par le thème. En-têtes et cellules partagent les mêmes contraintes et restent alignés à toute largeur ; l’en-tête suit le défilement horizontal (`scroll-x`). L’espace restant une fois chaque colonne à son maximum reste vide au bord de fin. Une colonne `resizable: true` affiche une poignée à son bord de fin : un glissement au pointeur prévisualise la largeur, puis émet au relâchement un seul `resize-requested(token, width)` déjà borné à `[minimum, maximum]` ; la poignée est un arrêt de tabulation après son en-tête, où Gauche/Droite (ou Bas/Haut) changent la largeur d’un pas défini par la recette de poignée du thème, Début va au minimum et Fin à un maximum borné. C’est un `spinbox` accessible nommé `libellé, resize-label` (par défaut `width`) dont la valeur, le minimum, le pas et le maximum borné sont en pixels logiques, avec les actions incrémenter et décrémenter ; `interactive: false` la désactive. Le tableau ne peint rien à partir de la demande : appliquez-la en modifiant la politique de la colonne (en général `fixed` à la largeur reçue). Les changements de largeur et d’ordre ne touchent ni les jetons des lignes, ni la sélection, ni la ligne active. Une ligne typée peint chaque cellule selon son `TableCellKind` : `text` se rend comme une cellule de chaîne, `badge` est un `KitBadge` avec le `tone` de la cellule, et `check` est une marque de case en lecture seule pour `CheckState.unchecked`, `.checked` ou `.mixed` ; le `text` de la cellule est le libellé accessible d’un badge ou d’une marque, l’hôte choisit donc les mots lus. Badges et marques suivent l’alignement de la colonne ; une ligne désactivée atténue son texte et ses marques, un badge conserve son ton. Lorsqu’une ligne fournit à la fois `cells` et `content`, `content` est rendu et `cells` est ignoré ; le nom accessible de la ligne est le texte de sa première cellule, sous l’une ou l’autre forme. Les cellules typées sont peintes par le kit dans la ligne virtualisée : Slint 1.18.1 refuse `@children` et les emplacements de slot dans un élément répété et garde les composants dynamiques expérimentaux ; le kit ne propose donc pas de gabarit de cellule fourni par l’appelant. Gauche/Droite déplacent un curseur de cellule dans la ligne active (`active-column`, -1 pour la ligne entière) : l’anneau passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne. Entrée sur une cellule `field` modifiable ouvre l’unique éditeur sur place du tableau, un `KitTextField` nommé `colonne, ligne` dont l’éditeur natif possède caret, sélection, annulation et IME, la valeur acceptée étant sélectionnée ; Entrée sur toute autre cellule active la ligne comme avant, et Espace l’active toujours. Le brouillon vit dans l’éditeur et reste distinct de la valeur acceptée : Entrée valide un brouillon acceptable et rend le clavier au tableau, Échap l’abandonne, Tab et Maj+Tab valident et déplacent le curseur vers la cellule suivante ou précédente, et la perte du focus valide un brouillon acceptable ou abandonne un brouillon inacceptable. Un brouillon refusé par le codec ou les contraintes reste dans l’éditeur avec la présentation invalide et son message dans `edit-error` ; il n’est jamais validé. `access: read-only` montre la valeur sans éditeur, `disabled` la montre atténuée, une ligne désactivée ne s’édite jamais, et `interactive: false` n’ouvre ni ne conserve d’éditeur. Le commit nomme le jeton de ligne, le jeton de colonne et la `generation` armée au début de l’édition, jamais des positions ; un tri ou un filtre pendant l’édition ne peut donc pas le rediriger : une nouvelle génération ferme l’éditeur sans valider, et `KeyedModel::cell_commits` rejette un commit armé sous une ancienne. Seule la cellule éditée du viewport monte un éditeur ; une ligne sortie du viewport garde sa session et son brouillon dans le tableau et remontre l’éditeur à son retour. Les cellules à cocher restent en lecture seule, et aucun chiffre de performance ou de mémoire n’est promis.",
       "related": [
         "KitContentList"
-      ]
+      ],
+      "properties": {
+        "interactive": {
+          "effect": "Si le tableau accepte les actions clavier, pointeur et accessibles. Désactivé, la portée de touches, les en-têtes triables, les lignes et les poignées de redimensionnement sont inactifs et un éditeur de cellule ouvert se ferme sans valider. Utilisez-le pendant qu’une modale bloque le tableau.",
+          "default": "`true`.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    rows: root.lignes;\n    interactive: !root.dialogue-ouvert;\n}"
+        },
+        "columns": {
+          "effect": "Le modèle de colonnes, un `TableColumn` par colonne : `token` stable, `label`, `sortable`, `sort` (`DataSortDirection`, peint comme indicateur et énoncé dans le nom de l’en-tête), `alignment` et la politique de largeur `width` (`ColumnWidth`). Le tableau peint l’ordre et l’état de tri fournis ; il ne réordonne ni ne trie jamais lui-même.",
+          "default": "Vide : aucune cellule d’en-tête ni grille.",
+          "constraints": "Un en-tête `sortable` est un bouton qui émet `sort-requested(token)` ; un en-tête statique est du texte. Une politique de largeur `resizable` ajoute une poignée qui émet `resize-requested(token, width)` ; appliquez-la en changeant le `width` de la colonne.",
+          "example": "KitDataTable {\n    columns: [\n        { token: 1, label: \"Nom\", sortable: true, sort: DataSortDirection.ascending },\n        { token: 2, label: \"Budget\", alignment: DataAlignment.trailing, width: { sizing: ColumnSizing.fixed, basis: 120px } },\n    ];\n    rows: root.lignes;\n}"
+        },
+        "rows": {
+          "effect": "Les lignes visibles dans l’ordre d’affichage, issues de `KeyedModel::model()` : `token`, `cells` (chaînes) ou `content` (`TableCell` typées), `selected` et `disabled`. La vue de liste les virtualise : seules les lignes du viewport sont instanciées.",
+          "default": "Vide : `empty-label` s’affiche sous l’en-tête.",
+          "constraints": "Une cellule par colonne dans l’ordre des colonnes ; lorsqu’une ligne porte à la fois `cells` et `content`, `content` est peint. Une ligne désactivée ne peut être ni activée ni éditée ; une ligne sélectionnée prend le remplissage de sélection.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    rows: [\n        { token: 10, cells: [\"Atlas\", \"42 000\"], selected: true },\n        { token: 11, cells: [\"Borealis\", \"17 500\"], disabled: true },\n    ];\n}"
+        },
+        "generation": {
+          "effect": "La génération de projection publiée par l’hôte avec chaque nouveau `rows` (`KeyedModel::bind` la fixe). Elle est renvoyée dans `activate` et `cell-committed`, de sorte que `KeyedModel::accept` et `cell_commits` refusent un geste armé sous une projection plus ancienne ; un changement annule un appui de ligne en cours et ferme un éditeur ouvert sans valider.",
+          "default": "`0`.",
+          "example": "KitDataTable {\n    rows: root.lignes;\n    generation: root.generation;\n    activate(jeton, generation) => { root.ouvrir-ligne(jeton, generation); }\n}"
+        },
+        "active-index": {
+          "effect": "Position de la ligne active dans `rows`, le curseur clavier ; `-1` pour aucune. La changer fait défiler la ligne dans la vue et ajoute sa première cellule au libellé accessible du tableau. L’hôte la relie à une clé stable avec `KeyedModel::navigation` ou `bind_active`.",
+          "default": "`-1`.",
+          "states": "Haut/Bas, Début/Fin et PageUp/PageDown demandent un déplacement par `navigate(NavigationStep)` ; le tableau ne déplace pas l’index lui-même. Entrée et Espace agissent sur la ligne active ; une ligne désactivée n’est pas activée.",
+          "example": "KitDataTable {\n    rows: root.lignes;\n    active-index: root.ligne-active;\n    navigate(pas) => { root.deplacer-active(pas); }\n}"
+        },
+        "label": {
+          "effect": "Nom accessible du tableau (rôle `table`). La première cellule de la ligne active et, lorsqu’un curseur de cellule est posé, le libellé de la colonne active y sont ajoutés, séparés par « : » et « , ».",
+          "default": "`\"Data table\"`.",
+          "example": "KitDataTable {\n    label: \"Projets\";\n    rows: root.lignes;\n}"
+        },
+        "empty-label": {
+          "effect": "Texte centré sous l’en-tête tant que `rows` est vide.",
+          "default": "`\"No matching records\"`.",
+          "example": "KitDataTable {\n    rows: root.lignes;\n    empty-label: \"Aucun projet ne correspond à ce filtre.\";\n}"
+        },
+        "sort-ascending-label": {
+          "effect": "Mot localisé joint au libellé de colonne par « , » dans le nom accessible d’un en-tête trié en ordre croissant ; le kit n’en construit aucune phrase.",
+          "default": "`\"ascending\"`.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    sort-ascending-label: \"croissant\";\n    sort-descending-label: \"décroissant\";\n}"
+        },
+        "sort-descending-label": {
+          "effect": "Mot localisé joint au libellé de colonne par « , » dans le nom accessible d’un en-tête trié en ordre décroissant.",
+          "default": "`\"descending\"`.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    sort-descending-label: \"décroissant\";\n}"
+        },
+        "unnamed-row-label": {
+          "effect": "Nom accessible d’une ligne qui n’a aucune cellule.",
+          "default": "`\"Row\"`.",
+          "example": "KitDataTable {\n    rows: root.lignes;\n    unnamed-row-label: \"Ligne\";\n}"
+        },
+        "resize-label": {
+          "effect": "Mot joint au libellé de colonne par « , » pour le nom accessible de la poignée de redimensionnement d’une colonne, exposée comme `spinbox` dont la valeur est la largeur en pixels logiques.",
+          "default": "`\"width\"`.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    resize-label: \"largeur\";\n}"
+        },
+        "minimum-column-width": {
+          "effect": "Plancher de chaque colonne `fill`, sous lequel elle ne rétrécit jamais même lorsque la grille déborde et défile horizontalement ; une colonne `fixed` n’utilise que ses propres bornes. La valeur par défaut suit l’échelle de texte du thème ; une valeur fixée ici ne la suit pas.",
+          "default": "`140px * theme.text-scale`.",
+          "example": "KitDataTable {\n    columns: root.colonnes;\n    minimum-column-width: 96px;\n}"
+        },
+        "active-column": {
+          "effect": "Le curseur de cellule dans la ligne active, lié dans les deux sens : `-1` est la ligne entière, sinon une position de colonne. Gauche et Droite le déplacent, l’anneau de focus passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne ; Entrée sur une cellule `field` modifiable ouvre alors l’éditeur sur place.",
+          "default": "`-1`.",
+          "states": "C’est un curseur de vue, pas une identité applicative : le commit d’une cellule éditée nomme les jetons de ligne et de colonne, jamais cette position.",
+          "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nText { text: tableau.active-column < 0 ? \"Ligne\" : tableau.columns[tableau.active-column].label; }"
+        },
+        "scroll-y": {
+          "effect": "Décalage de défilement vertical de la liste de lignes, le `content-y` de la vue de liste (nul ou négatif), pour un indicateur externe ou pour restaurer une position.",
+          "example": "tableau := KitDataTable { rows: root.lignes; }\nText { text: \"Défilé de \" + Math.round(-tableau.scroll-y / 1px) + \" px\"; }"
+        },
+        "scroll-x": {
+          "effect": "Décalage de défilement horizontal de la grille lorsque les minimums de colonnes dépassent le viewport ; l’en-tête le suit pour que l’en-tête et les cellules restent alignés.",
+          "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nText { visible: tableau.scroll-x < 0px; text: \"D’autres colonnes à gauche\"; }"
+        },
+        "editing": {
+          "effect": "Vrai tant qu’un éditeur de cellule est ouvert sur une cellule `field`. La session se termine sur Entrée, Échap, Tab, la perte du focus, une nouvelle `generation` ou `interactive: false`.",
+          "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nKitButton { text: \"Enregistrer\"; disabled: tableau.editing; }"
+        },
+        "edit-error": {
+          "effect": "Message du dernier commit refusé de l’éditeur de cellule ouvert, issu du codec ou des contraintes HTML ; `\"\"` tant que le brouillon est acceptable ou non essayé, et après la fermeture de l’éditeur. La ligne n’a pas de place pour lui : l’hôte l’affiche où il convient.",
+          "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nKitFieldError { text: tableau.edit-error; }"
+        }
+      }
     },
     "en": {
       "label": "Data table",
@@ -622,7 +911,94 @@
       "behavior": "The table renders the supplied row order; clicking a header does not sort it automatically. Changing `active-index` reveals that row. Set `empty-label` for an empty model and `interactive: false` while a modal blocks the table. A column with `sortable: false` shows a static header label. Accessible text is localizable: `sort-ascending-label` and `sort-descending-label` (joined to the column label with \", \") and `unnamed-row-label` for a row without cells. The accessible tree exposes what Slint 1.18.1 can express: the container is a `table`, a sortable header is a `button` whose default action, pointer and keyboard activation follow one `disabled` rule, a static header is `text` with no action and no enabled state, and each row is a `list-item` whose `accessible-item-selected` mirrors `selected`. Focus stays on the table, the active row is appended to the table's accessible label (`label: first cell`), and selection stays on the rows, so the three are never confused. Slint 1.18.1 has no row, cell or column-header roles: the cell cursor is named in the table's label (`label: row, column`) rather than exposed as a cell, and the headless tests prove this contract without qualifying a screen reader. Each column carries its width policy in `TableColumn.width` (`ColumnWidth`), so the policy follows the column's stable `token` through reordering. `sizing: ColumnSizing.fill` (the default) starts at `basis`, never drops below the table's `minimum-column-width` or the column's own `minimum`, and shares the remaining space equally with the other fill columns; `ColumnSizing.fixed` is exactly `basis`, clamped to the column's bounds, and never grows. `ceiling: ColumnCeiling.bounded` makes `maximum` a ceiling for growth and resizing; `unbounded` (the default) has none, so the grid widens and scrolls horizontally. Lengths are logical pixels and are not scaled by the theme. Header and row cells share the same constraints, so they stay aligned at every width, and the header follows the horizontal scroll (`scroll-x`). Space left after every column reached its maximum stays empty at the trailing edge. A column with `resizable: true` shows a handle at its trailing edge: a pointer drag previews the width live and, on release, emits one `resize-requested(token, width)` already clamped to `[minimum, maximum]`; the handle is a tab stop after its header, where Left/Right (or Down/Up) step the width by the theme's column-handle step, Home goes to the minimum and End to a bounded maximum. It is an accessible `spinbox` named `label, resize-label` (default `width`) whose value, minimum, step and bounded maximum are logical pixels, with increment and decrement actions; `interactive: false` disables it. The table paints nothing from the request: apply it by changing the column's policy (usually `fixed` at the reported width). Width and order changes never touch row tokens, selection or the active row. A typed row paints each cell by its `TableCellKind`: `text` renders as a string cell does, `badge` is a `KitBadge` with the cell's `tone`, and `check` is a read-only check mark for `CheckState.unchecked`, `.checked` or `.mixed`; the cell's `text` is the accessible label of a badge or a check mark, so the host chooses the words a reader gets. Badges and marks follow the column alignment; a disabled row dims its text and check marks while a badge keeps its tone. When a row carries both `cells` and `content`, `content` is rendered and `cells` is ignored; the row's accessible name is the first cell's text in either form. Typed cells are painted by the kit inside the virtualized row: Slint 1.18.1 rejects `@children` and slot placeholders inside a repeated element and keeps dynamic components experimental, so the kit does not offer caller-supplied cell templates. Left/Right move a cell cursor inside the active row (`active-column`, -1 for the whole row): the ring moves from the row to the cell and the table's accessible label names the column. Enter on an editable `field` cell opens the table's one in-place editor, a `KitTextField` named `column, row` whose native editor owns caret, selection, undo and IME, with the accepted value selected; Enter on any other cell activates the row as before, and Space always does. The draft lives in the editor and stays distinct from the accepted value: Enter commits an acceptable draft and returns the keyboard to the table, Escape discards it, Tab and Shift+Tab commit and move the cursor to the next or previous cell, and losing focus commits an acceptable draft or drops an unacceptable one. A draft the codec or the constraints reject stays in the editor with the invalid presentation and its message in `edit-error`; it is never committed. `access: read-only` shows the value without an editor, `disabled` shows it dimmed, a disabled row never edits, and `interactive: false` neither opens nor keeps an editor. The commit names the row token, the column token and the `generation` armed when editing began, never positions, so a sort or filter during editing cannot redirect it: a new generation closes the editor without committing, and `KeyedModel::cell_commits` rejects a commit armed under an old one. Only the edited viewport cell mounts an editor; a row scrolled away keeps its session and draft in the table and shows the editor again when it returns. Check cells stay read-only, and no performance or memory figure is claimed.",
       "related": [
         "KitContentList"
-      ]
+      ],
+      "properties": {
+        "interactive": {
+          "effect": "Whether the table takes keyboard, pointer and accessible actions. Off, the key scope, sortable headers, rows and resize handles are disabled and an open cell editor closes without committing. Use it while a modal blocks the table.",
+          "default": "`true`.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    rows: root.rows;\n    interactive: !root.dialog-open;\n}"
+        },
+        "columns": {
+          "effect": "The column model, one `TableColumn` per column: stable `token`, `label`, `sortable`, `sort` (`DataSortDirection`, painted as the indicator and spoken in the header name), `alignment` and the `width` policy (`ColumnWidth`). The table paints the given order and sort state; it never reorders or sorts by itself.",
+          "default": "Empty: no header cell and no grid.",
+          "constraints": "A `sortable` header is a button that emits `sort-requested(token)`; a static header is text. A `resizable` width policy adds a handle that emits `resize-requested(token, width)`; apply it by changing the column's `width`.",
+          "example": "KitDataTable {\n    columns: [\n        { token: 1, label: \"Name\", sortable: true, sort: DataSortDirection.ascending },\n        { token: 2, label: \"Budget\", alignment: DataAlignment.trailing, width: { sizing: ColumnSizing.fixed, basis: 120px } },\n    ];\n    rows: root.rows;\n}"
+        },
+        "rows": {
+          "effect": "The visible rows in display order, from `KeyedModel::model()`: `token`, `cells` (strings) or `content` (typed `TableCell`s), `selected` and `disabled`. The list view virtualizes them, so only viewport rows are instantiated.",
+          "default": "Empty: `empty-label` is shown under the header.",
+          "constraints": "One cell per column in column order; when a row carries both `cells` and `content`, `content` is painted. A disabled row cannot be activated or edited; a selected row takes the selection fill.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    rows: [\n        { token: 10, cells: [\"Atlas\", \"42 000\"], selected: true },\n        { token: 11, cells: [\"Borealis\", \"17 500\"], disabled: true },\n    ];\n}"
+        },
+        "generation": {
+          "effect": "The projection generation the host publishes with each new `rows` (`KeyedModel::bind` sets it). It is echoed in `activate` and `cell-committed`, so `KeyedModel::accept` and `cell_commits` can refuse a gesture armed under an older projection; a change cancels a pending row press and closes an open editor without committing.",
+          "default": "`0`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    generation: root.generation;\n    activate(token, generation) => { root.open-row(token, generation); }\n}"
+        },
+        "active-index": {
+          "effect": "Position of the active row in `rows`, the keyboard cursor; `-1` for none. Changing it scrolls the row into view and appends its first cell to the table's accessible label. The host maps it to a stable key with `KeyedModel::navigation` or `bind_active`.",
+          "default": "`-1`.",
+          "states": "Up/Down, Home/End and PageUp/PageDown request moves through `navigate(NavigationStep)`; the table does not move the index itself. Enter and Space act on the active row; a disabled row is not activated.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    active-index: root.active-row;\n    navigate(step) => { root.move-active(step); }\n}"
+        },
+        "label": {
+          "effect": "Accessible name of the table (`table` role). The active row's first cell and, when a cell cursor is set, the active column label are appended to it, separated by `: ` and `, `.",
+          "default": "`\"Data table\"`.",
+          "example": "KitDataTable {\n    label: \"Projects\";\n    rows: root.rows;\n}"
+        },
+        "empty-label": {
+          "effect": "Text centered under the header while `rows` is empty.",
+          "default": "`\"No matching records\"`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    empty-label: \"No project matches this filter.\";\n}"
+        },
+        "sort-ascending-label": {
+          "effect": "Localized word joined to the column label with `, ` in the accessible name of a header sorted ascending; the kit builds no sentence from it.",
+          "default": "`\"ascending\"`.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    sort-ascending-label: \"ascending\";\n    sort-descending-label: \"descending\";\n}"
+        },
+        "sort-descending-label": {
+          "effect": "Localized word joined to the column label with `, ` in the accessible name of a header sorted descending.",
+          "default": "`\"descending\"`.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    sort-descending-label: \"descending\";\n}"
+        },
+        "unnamed-row-label": {
+          "effect": "Accessible name of a row that has no cell at all.",
+          "default": "`\"Row\"`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    unnamed-row-label: \"Row\";\n}"
+        },
+        "resize-label": {
+          "effect": "Word joined to the column label with `, ` for the accessible name of a column's resize handle, exposed as a `spinbox` whose value is the width in logical pixels.",
+          "default": "`\"width\"`.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    resize-label: \"width\";\n}"
+        },
+        "minimum-column-width": {
+          "effect": "Floor of every `fill` column, below which it never shrinks even when the grid overflows and scrolls horizontally; a `fixed` column uses only its own bounds. The default follows the theme text scale; a value set here does not.",
+          "default": "`140px * theme.text-scale`.",
+          "example": "KitDataTable {\n    columns: root.columns;\n    minimum-column-width: 96px;\n}"
+        },
+        "active-column": {
+          "effect": "The cell cursor inside the active row, two-way: `-1` is the whole row, otherwise a column position. Left and Right move it, the focus ring moves from the row to the cell and the table's accessible label names the column; Enter on an editable field cell then opens the in-place editor.",
+          "default": "`-1`.",
+          "states": "It is a view cursor, not application identity: the commit of an edited cell names row and column tokens, never this position.",
+          "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { text: table.active-column < 0 ? \"Row\" : table.columns[table.active-column].label; }"
+        },
+        "scroll-y": {
+          "effect": "Vertical scroll offset of the row list, as the list view's `content-y` (zero or negative), for an external indicator or to restore a position.",
+          "example": "table := KitDataTable { rows: root.rows; }\nText { text: \"Scrolled \" + Math.round(-table.scroll-y / 1px) + \" px\"; }"
+        },
+        "scroll-x": {
+          "effect": "Horizontal scroll offset of the grid when the column minimums exceed the viewport; the header follows it so header and cells stay aligned.",
+          "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { visible: table.scroll-x < 0px; text: \"More columns to the left\"; }"
+        },
+        "editing": {
+          "effect": "True while a cell editor is open on a `field` cell. The session ends on Enter, Escape, Tab, focus loss, a new `generation` or `interactive: false`.",
+          "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nKitButton { text: \"Save\"; disabled: table.editing; }"
+        },
+        "edit-error": {
+          "effect": "Message of the last rejected commit of the open cell editor, from the codec or the HTML constraints; `\"\"` while the draft is acceptable or untried, and after the editor closes. The row has no room for it, so the host shows it where it fits.",
+          "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nKitFieldError { text: table.edit-error; }"
+        }
+      }
     }
   },
   "KitDateField": {
@@ -1786,7 +2162,38 @@
         "KitChip"
       ],
       "label": "Sélection multiple",
-      "seoTitle": "Sélection multiple pour Slint"
+      "seoTitle": "Sélection multiple pour Slint",
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` en Rust : chaque `OptionRow` porte un `token` stable, la `generation` de la source, un `label`, une `description` et `disabled`. L’instance les filtre par `query` dans `rows` et y résout `selected`.",
+          "default": "Vide : le déclencheur affiche `placeholder` et le popup n’a aucune ligne.",
+          "example": "KitMultiSelect {\n    options: root.etiquettes;\n    selection-changed(ligne, ajoutee) => { root.etiquette-basculee(ligne, ajoutee); }\n}"
+        },
+        "selected": {
+          "effect": "Les options sélectionnées sous forme de `[SelectionRef]`, liées dans les deux sens ; `selection-changed(OptionRow, bool)` rapporte chaque ajout (`true`) ou retrait (`false`), et `Choices::selections` convertit la liste en clés métier.",
+          "default": "Vide.",
+          "example": "KitMultiSelect {\n    options: root.etiquettes;\n    selected: [{ present: true, token: 1 }, { present: true, token: 4 }];\n}"
+        },
+        "selection-limit": {
+          "effect": "Nombre maximal d’options sélectionnées ; une bascule qui le dépasserait est refusée et `selection-changed` n’est pas émis.",
+          "default": "`0` : aucune limite.",
+          "example": "KitMultiSelect {\n    options: root.garnitures;\n    selection-limit: 3;\n}"
+        },
+        "chips": {
+          "effect": "Les options sélectionnées sous forme de `ChipRow { token, label, removable }` affichées au-dessus du déclencheur ; en retirer une émet `remove-requested(token)`. Liées par défaut à la projection de l’instance.",
+          "example": "etiquettes := KitMultiSelect { options: root.etiquettes; }\nText { text: etiquettes.chips.length + \" sélectionnées\"; }"
+        },
+        "placeholder": {
+          "effect": "Texte du déclencheur tant que le popup est fermé ; les puces portent la sélection, il ne change donc pas avec elle.",
+          "default": "`\"Add a selection\"`.",
+          "example": "KitMultiSelect {\n    options: root.etiquettes;\n    placeholder: \"Ajouter une étiquette\";\n}"
+        },
+        "access": {
+          "effect": "`read-only` affiche les puces comme champs texte en lecture seule sans retrait et ne s’ouvre jamais ; `disabled` refuse l’interaction et ferme un popup ouvert.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitMultiSelect {\n    options: root.etiquettes;\n    selected: root.selection-etiquettes;\n    access: FieldAccess.read-only;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
@@ -1798,7 +2205,38 @@
         "KitChip"
       ],
       "label": "Multi Select",
-      "seoTitle": "Multi Select for Slint"
+      "seoTitle": "Multi Select for Slint",
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()` in Rust: each `OptionRow` carries a stable `token`, the source `generation`, a `label`, a `description` and `disabled`. The instance filters them by `query` into `rows` and resolves `selected` against them.",
+          "default": "Empty: the trigger shows `placeholder` and the popup has no row.",
+          "example": "KitMultiSelect {\n    options: root.tags;\n    selection-changed(row, added) => { root.tag-toggled(row, added); }\n}"
+        },
+        "selected": {
+          "effect": "The selected options as `[SelectionRef]`, two-way; `selection-changed(OptionRow, bool)` reports each addition (`true`) or removal (`false`), and `Choices::selections` maps the list to domain keys.",
+          "default": "Empty.",
+          "example": "KitMultiSelect {\n    options: root.tags;\n    selected: [{ present: true, token: 1 }, { present: true, token: 4 }];\n}"
+        },
+        "selection-limit": {
+          "effect": "Maximum number of selected options; a toggle that would exceed it is refused and `selection-changed` is not emitted.",
+          "default": "`0`: no limit.",
+          "example": "KitMultiSelect {\n    options: root.toppings;\n    selection-limit: 3;\n}"
+        },
+        "chips": {
+          "effect": "The selected options as `ChipRow { token, label, removable }` shown above the trigger; removing one emits `remove-requested(token)`. Bound to the instance's projection by default.",
+          "example": "tags := KitMultiSelect { options: root.tags; }\nText { text: tags.chips.length + \" selected\"; }"
+        },
+        "placeholder": {
+          "effect": "Trigger text while the popup is closed; the chips carry the selection, so it does not change with it.",
+          "default": "`\"Add a selection\"`.",
+          "example": "KitMultiSelect {\n    options: root.tags;\n    placeholder: \"Add a tag\";\n}"
+        },
+        "access": {
+          "effect": "`read-only` shows the chips as read-only text fields with no removal and never opens; `disabled` refuses interaction and closes an open popup.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitMultiSelect {\n    options: root.tags;\n    selected: root.tag-selection;\n    access: FieldAccess.read-only;\n}"
+        }
+      }
     }
   },
   "KitNavigationAction": {
@@ -1881,7 +2319,50 @@
         "KitKeypad"
       ],
       "label": "Compteur numérique",
-      "seoTitle": "Compteur numérique pour Slint"
+      "seoTitle": "Compteur numérique pour Slint",
+      "properties": {
+        "text": {
+          "effect": "Le brouillon natif du champ décimal interne, lié dans les deux sens. Les boutons de pas le réécrivent par `step-number` et valident aussitôt le résultat ; la frappe suit les mêmes règles que `KitDecimalField`.",
+          "default": "`\"\"`.",
+          "example": "KitNumberStepper {\n    label: \"Invités\";\n    text: \"2\";\n    min: \"1\";\n    max: \"8\";\n}"
+        },
+        "min": {
+          "effect": "Borne inférieure de la valeur, en texte. Le moteur HTML signale `range-underflow` en dessous, et un pas ne descend jamais plus bas : le résultat se cale sur le plus bas pas dans la plage.",
+          "default": "`\"\"` : aucune borne inférieure.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    min: \"1\";\n}"
+        },
+        "max": {
+          "effect": "Borne supérieure de la valeur, en texte. Le moteur HTML signale `range-overflow` au-dessus, et un pas ne monte jamais plus haut.",
+          "default": "`\"\"` : aucune borne supérieure.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    max: \"99\";\n}"
+        },
+        "step": {
+          "effect": "Valeur d’un appui sur un bouton et granularité de la vérification de pas HTML, depuis la base `min` (sinon `default-value`, sinon zéro). `\"any\"` désactive la vérification de pas et les boutons ne font alors rien.",
+          "default": "`\"1\"`.",
+          "example": "KitNumberStepper {\n    label: \"Opacité\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
+        },
+        "can-increment": {
+          "effect": "Si le bouton d’incrément est actif ; passez-le à faux à un plafond métier. La frappe et `step-number` ne sont pas concernés.",
+          "default": "`true`.",
+          "states": "Les deux boutons sont désactivés lorsque `access` n’est pas `editable`.",
+          "example": "in property <int> stock;\nKitNumberStepper {\n    label: \"Quantité\";\n    can-increment: root.stock > 0;\n}"
+        },
+        "can-decrement": {
+          "effect": "Si le bouton de décrément est actif ; passez-le à faux à un plancher métier. La frappe et `step-number` ne sont pas concernés.",
+          "default": "`true`.",
+          "example": "KitNumberStepper {\n    label: \"Quantité\";\n    text: \"1\";\n    can-decrement: false;\n}"
+        },
+        "access": {
+          "effect": "`editable`, `read-only` ou `disabled` pour l’éditeur et les deux boutons ensemble : la lecture seule garde sélection et copie natives, désactivé atténue tout et refuse le focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitNumberStepper {\n    label: \"Places\";\n    text: \"4\";\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "Affiche un `KitFieldLabel` au-dessus de la rangée lorsqu’il n’est pas vide ; cliquer dessus donne le focus à l’éditeur, et il nomme l’éditeur pour les technologies d’assistance.",
+          "default": "`\"\"` : aucune ligne de libellé ni nom accessible.",
+          "example": "KitNumberStepper {\n    label: \"Passagers\";\n}"
+        }
+      }
     },
     "en": {
       "summary": "Decimal input with increment and decrement requests.",
@@ -1894,7 +2375,50 @@
         "KitKeypad"
       ],
       "label": "Number Stepper",
-      "seoTitle": "Number Stepper for Slint"
+      "seoTitle": "Number Stepper for Slint",
+      "properties": {
+        "text": {
+          "effect": "The native draft of the inner decimal field, two-way. The step buttons rewrite it through `step-number` and commit the result at once; typing follows the same rules as `KitDecimalField`.",
+          "default": "`\"\"`.",
+          "example": "KitNumberStepper {\n    label: \"Guests\";\n    text: \"2\";\n    min: \"1\";\n    max: \"8\";\n}"
+        },
+        "min": {
+          "effect": "Lower bound of the value, as text. The HTML engine reports `range-underflow` below it, and a step never goes below it: the result snaps to the lowest step inside the range.",
+          "default": "`\"\"`: no lower bound.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    min: \"1\";\n}"
+        },
+        "max": {
+          "effect": "Upper bound of the value, as text. The HTML engine reports `range-overflow` above it, and a step never goes above it.",
+          "default": "`\"\"`: no upper bound.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    max: \"99\";\n}"
+        },
+        "step": {
+          "effect": "Amount of one button press and granularity of the HTML step check, from the base `min` (else `default-value`, else zero). `\"any\"` disables the step check and the buttons then do nothing.",
+          "default": "`\"1\"`.",
+          "example": "KitNumberStepper {\n    label: \"Opacity\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
+        },
+        "can-increment": {
+          "effect": "Whether the increment button is enabled; set it false at a business ceiling. Typing and `step-number` are unaffected.",
+          "default": "`true`.",
+          "states": "Both buttons are disabled when `access` is not `editable`.",
+          "example": "in property <int> stock;\nKitNumberStepper {\n    label: \"Quantity\";\n    can-increment: root.stock > 0;\n}"
+        },
+        "can-decrement": {
+          "effect": "Whether the decrement button is enabled; set it false at a business floor. Typing and `step-number` are unaffected.",
+          "default": "`true`.",
+          "example": "KitNumberStepper {\n    label: \"Quantity\";\n    text: \"1\";\n    can-decrement: false;\n}"
+        },
+        "access": {
+          "effect": "`editable`, `read-only` or `disabled` for the editor and both buttons together: read-only keeps native selection and copy, disabled dims everything and refuses focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitNumberStepper {\n    label: \"Seats\";\n    text: \"4\";\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "Shows a `KitFieldLabel` above the row when nonempty; clicking it focuses the editor, and it names the editor for assistive technology.",
+          "default": "`\"\"`: no label row and no accessible name.",
+          "example": "KitNumberStepper {\n    label: \"Passengers\";\n}"
+        }
+      }
     }
   },
   "KitOption": {
@@ -1932,7 +2456,14 @@
         "KitKeypad"
       ],
       "label": "Champ code à usage unique",
-      "seoTitle": "Champ code à usage unique pour Slint"
+      "seoTitle": "Champ code à usage unique pour Slint",
+      "properties": {
+        "slots": {
+          "effect": "Nombre de caractères du code. Il fixe `min-length` et `max-length` à la même valeur, un segment de soulignement par case, une cellule monospace par caractère et la largeur intrinsèque du champ ; `pattern` vaut `[0-9]*` et `length-policy` vaut `limit`.",
+          "default": "`6`.",
+          "example": "KitOtpField {\n    label: \"Code de vérification\";\n    slots: 4;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Native one-time code input with configurable regex validation, visible slots and optional password masking.",
@@ -1944,7 +2475,14 @@
         "KitKeypad"
       ],
       "label": "OTP Field",
-      "seoTitle": "OTP Field for Slint"
+      "seoTitle": "OTP Field for Slint",
+      "properties": {
+        "slots": {
+          "effect": "Number of code characters. It sets `min-length` and `max-length` to the same value, one underline segment per slot, a monospace cell per character and the intrinsic width of the field; `pattern` is `[0-9]*` and `length-policy` is `limit`.",
+          "default": "`6`.",
+          "example": "KitOtpField {\n    label: \"Verification code\";\n    slots: 4;\n}"
+        }
+      }
     }
   },
   "KitPagination": {
@@ -2123,7 +2661,45 @@
         "KitToggleGroup"
       ],
       "label": "Groupe de boutons radio",
-      "seoTitle": "Groupe de boutons radio pour Slint"
+      "seoTitle": "Groupe de boutons radio pour Slint",
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` : `token` stable, `generation`, `label`, `description`, `disabled`. Chaque ligne devient un bouton radio ; les flèches sautent les lignes désactivées.",
+          "default": "Vide : aucun bouton radio n’est rendu.",
+          "example": "KitRadioGroup {\n    label: \"Livraison\";\n    options: root.options-livraison;\n    chosen(ligne) => { root.livraison-choisie(ligne); }\n}"
+        },
+        "selected": {
+          "effect": "L’option cochée sous forme de `SelectionRef`, liée dans les deux sens. Les flèches déplacent et choisissent en même temps tant que le groupe est modifiable ; `chosen(OptionRow)` rapporte la ligne.",
+          "default": "Absente (`present: false`).",
+          "states": "Sous `Ownership.controlled`, `chosen` est une proposition et l’hôte écrit `selected`.",
+          "example": "KitRadioGroup {\n    options: root.options-livraison;\n    selected: { present: true, token: 1 };\n}"
+        },
+        "direction": {
+          "effect": "`vertical` empile les boutons et navigue avec Haut et Bas ; `horizontal` les aligne en rangée et navigue avec Gauche et Droite. Il fixe aussi `accessible-orientation`.",
+          "default": "`ChoiceDirection.vertical`.",
+          "example": "KitRadioGroup {\n    options: root.tailles;\n    direction: ChoiceDirection.horizontal;\n}"
+        },
+        "flow": {
+          "effect": "Sens de lecture d’un groupe horizontal : `right-to-left` dispose les lignes depuis la droite et inverse les touches Gauche et Droite. Il ne réordonne pas un groupe vertical.",
+          "default": "`ChoiceFlow.left-to-right`.",
+          "example": "KitRadioGroup {\n    options: root.tailles;\n    direction: ChoiceDirection.horizontal;\n    flow: ChoiceFlow.right-to-left;\n}"
+        },
+        "label": {
+          "effect": "Nom accessible du groupe radio. Aucune ligne de libellé visible n’est rendue : composez un `KitFieldLabel` ou une légende de `KitFieldSet` pour en avoir une.",
+          "default": "`\"\"`.",
+          "example": "KitRadioGroup {\n    label: \"Mode de paiement\";\n    options: root.modes;\n}"
+        },
+        "access": {
+          "effect": "`read-only` garde le groupe focalisable mais flèches et clics ne choisissent rien ; `disabled` atténue les boutons et retire le groupe de l’ordre de focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitRadioGroup {\n    options: root.modes;\n    selected: root.mode;\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Exige une ligne cochée pour le moteur partagé (nature HTML `radio`) : sinon `validity.value-missing` avec `required-message`, affiché après la perte du focus ou `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitRadioGroup {\n    options: root.modes;\n    required: true;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Exclusive choice group with a shared keyboard target.",
@@ -2134,7 +2710,45 @@
         "KitToggleGroup"
       ],
       "label": "Radio Group",
-      "seoTitle": "Radio Group for Slint"
+      "seoTitle": "Radio Group for Slint",
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()`: stable `token`, `generation`, `label`, `description`, `disabled`. Each row becomes a radio button; disabled rows are skipped by the arrows.",
+          "default": "Empty: no radio is rendered.",
+          "example": "KitRadioGroup {\n    label: \"Shipping\";\n    options: root.shipping-options;\n    chosen(row) => { root.shipping-chosen(row); }\n}"
+        },
+        "selected": {
+          "effect": "The checked option as a `SelectionRef`, two-way. Arrow keys move and choose at once while the group is editable; `chosen(OptionRow)` reports the row.",
+          "default": "Absent (`present: false`).",
+          "states": "Under `Ownership.controlled`, `chosen` is a proposal and the host writes `selected`.",
+          "example": "KitRadioGroup {\n    options: root.shipping-options;\n    selected: { present: true, token: 1 };\n}"
+        },
+        "direction": {
+          "effect": "`vertical` stacks the radios and navigates with Up and Down; `horizontal` lays them in a row and navigates with Left and Right. It also sets `accessible-orientation`.",
+          "default": "`ChoiceDirection.vertical`.",
+          "example": "KitRadioGroup {\n    options: root.sizes;\n    direction: ChoiceDirection.horizontal;\n}"
+        },
+        "flow": {
+          "effect": "Reading direction of a horizontal group: `right-to-left` lays the rows out from the right and swaps the Left and Right keys. It does not reorder a vertical group.",
+          "default": "`ChoiceFlow.left-to-right`.",
+          "example": "KitRadioGroup {\n    options: root.sizes;\n    direction: ChoiceDirection.horizontal;\n    flow: ChoiceFlow.right-to-left;\n}"
+        },
+        "label": {
+          "effect": "Accessible name of the radio group. No visible label row is rendered: compose a `KitFieldLabel` or a `KitFieldSet` legend for one.",
+          "default": "`\"\"`.",
+          "example": "KitRadioGroup {\n    label: \"Payment method\";\n    options: root.methods;\n}"
+        },
+        "access": {
+          "effect": "`read-only` keeps the group focusable but arrows and clicks choose nothing; `disabled` dims the radios and removes the group from the focus order.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitRadioGroup {\n    options: root.methods;\n    selected: root.method;\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Requires one checked row for the shared engine (HTML `radio` kind): otherwise `validity.value-missing` with `required-message`, shown after blur or `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitRadioGroup {\n    options: root.methods;\n    required: true;\n}"
+        }
+      }
     }
   },
   "KitRangeSlider": {
@@ -2288,7 +2902,34 @@
         "KitRating"
       ],
       "label": "Sélecteur segmenté",
-      "seoTitle": "Sélecteur segmenté pour Slint"
+      "seoTitle": "Sélecteur segmenté pour Slint",
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` ; chaque ligne est un segment, et les flèches sautent les lignes désactivées.",
+          "default": "Vide : aucun segment n’est rendu.",
+          "example": "KitSegmentedControl {\n    label: \"Vue\";\n    options: root.vues;\n    chosen(ligne) => { root.vue-choisie(ligne); }\n}"
+        },
+        "selected": {
+          "effect": "Le segment actif sous forme de `SelectionRef`, lié dans les deux sens ; les flèches déplacent et choisissent en même temps tant que le contrôle est modifiable, et `chosen(OptionRow)` rapporte la ligne.",
+          "default": "Absent (`present: false`).",
+          "example": "KitSegmentedControl {\n    options: root.vues;\n    selected: { present: true, token: 0 };\n}"
+        },
+        "columns": {
+          "effect": "Segments par rangée d’un groupe horizontal ; il passe à la ligne après ce nombre. Un groupe vertical empile toujours.",
+          "default": "`max(1, rows.length)` : une seule rangée.",
+          "example": "KitSegmentedControl {\n    options: root.jours;\n    columns: 4;\n}"
+        },
+        "icons": {
+          "effect": "Glyphes décoratifs par jeton stable (`ChoiceIcon { token, glyph }`) ; ils suivent leur ligne lors d’un réordonnancement et ne remplacent pas le libellé de la ligne comme nom accessible.",
+          "default": "Vide.",
+          "example": "KitSegmentedControl {\n    options: root.vues;\n    icons: [{ token: 0, glyph: self.theme.icons.check }, { token: 1, glyph: self.theme.icons.search }];\n}"
+        },
+        "direction": {
+          "effect": "`horizontal` dispose les segments en rangées et navigue avec Gauche et Droite ; `vertical` les empile dans l’ordre source et navigue avec Haut et Bas.",
+          "default": "`ChoiceDirection.horizontal`.",
+          "example": "KitSegmentedControl {\n    options: root.etapes;\n    direction: ChoiceDirection.vertical;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
@@ -2300,7 +2941,34 @@
         "KitRating"
       ],
       "label": "Segmented Control",
-      "seoTitle": "Segmented Control for Slint"
+      "seoTitle": "Segmented Control for Slint",
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()`; each row is one segment, and disabled rows are skipped by the arrows.",
+          "default": "Empty: no segment is rendered.",
+          "example": "KitSegmentedControl {\n    label: \"View\";\n    options: root.views;\n    chosen(row) => { root.view-chosen(row); }\n}"
+        },
+        "selected": {
+          "effect": "The active segment as a `SelectionRef`, two-way; arrows move and choose at once while editable, and `chosen(OptionRow)` reports the row.",
+          "default": "Absent (`present: false`).",
+          "example": "KitSegmentedControl {\n    options: root.views;\n    selected: { present: true, token: 0 };\n}"
+        },
+        "columns": {
+          "effect": "Segments per row of a horizontal group; it wraps after that many. A vertical group always stacks.",
+          "default": "`max(1, rows.length)`: one row.",
+          "example": "KitSegmentedControl {\n    options: root.weekdays;\n    columns: 4;\n}"
+        },
+        "icons": {
+          "effect": "Decorative glyphs by stable token (`ChoiceIcon { token, glyph }`); they follow their row through reordering and do not replace the row label as accessible name.",
+          "default": "Empty.",
+          "example": "KitSegmentedControl {\n    options: root.views;\n    icons: [{ token: 0, glyph: self.theme.icons.check }, { token: 1, glyph: self.theme.icons.search }];\n}"
+        },
+        "direction": {
+          "effect": "`horizontal` lays the segments in rows and navigates with Left and Right; `vertical` stacks them in source order and navigates with Up and Down.",
+          "default": "`ChoiceDirection.horizontal`.",
+          "example": "KitSegmentedControl {\n    options: root.steps;\n    direction: ChoiceDirection.vertical;\n}"
+        }
+      }
     }
   },
   "KitSelect": {
@@ -2314,7 +2982,81 @@
         "KitSelectSurface"
       ],
       "label": "Liste déroulante",
-      "seoTitle": "Liste déroulante pour Slint"
+      "seoTitle": "Liste déroulante pour Slint",
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` en Rust : chaque `OptionRow` porte un `token` stable, la `generation` de la source, un `label`, une `description` et `disabled`. L’instance les filtre par `query` dans `rows` et y résout `selected`.",
+          "default": "Vide : le déclencheur affiche `placeholder` et le popup n’a aucune ligne.",
+          "example": "KitSelect {\n    options: root.pays;\n    chosen(ligne) => { root.pays-choisi(ligne); }\n}"
+        },
+        "selected": {
+          "effect": "L’option choisie sous forme de `SelectionRef { present, token }`, liée dans les deux sens : liez-la pour présélectionner ou lire le choix. `chosen(OptionRow)` rapporte la ligne complète et `Choices::accept` retourne la clé métier.",
+          "default": "Absente (`present: false`).",
+          "states": "Un jeton sélectionné absent de `options` passe `state.selection-availability` à `unavailable` : le déclencheur affiche une marque, `unavailable-label` devient le message de contrainte et le contrôle reste invalide tant que l’hôte ne corrige pas la sélection. Sous `Ownership.controlled`, l’hôte l’écrit pour acquitter une proposition.",
+          "example": "KitSelect {\n    options: root.tailles;\n    selected: { present: true, token: 2 };\n}"
+        },
+        "ownership": {
+          "effect": "`local` : un choix met `selected` à jour aussitôt et `chosen` le rapporte. `controlled` : `chosen` est une proposition ; `selected` garde sa valeur tant que l’hôte ne la fixe pas.",
+          "default": "`Ownership.local`.",
+          "example": "KitSelect {\n    options: root.forfaits;\n    ownership: Ownership.controlled;\n    selected: root.forfait;\n    chosen(ligne) => { root.forfait-propose(ligne); }\n}"
+        },
+        "rows": {
+          "effect": "La projection affichée dans le popup : `options` réduites par `query` (correspondance insensible à la casse sur le libellé ou la description) sous la génération de geste courante. Liée par défaut à la projection propre de l’instance ; ne la fixez que pour une projection contrôlée explicite.",
+          "example": "liste := KitSelect { options: root.villes; }\nText { text: liste.rows.length + \" résultats\"; }"
+        },
+        "state": {
+          "effect": "Le `SelectState` de l’instance : `open`, `active` (le curseur clavier), `selected`, `active-index`, `generation` et `selection-availability`. Lié par défaut au contrôleur propre de l’instance ; ne le fixez que pour une projection contrôlée explicite.",
+          "example": "liste := KitSelect { options: root.villes; }\nText { text: liste.state.open ? \"Ouvert\" : \"Fermé\"; }"
+        },
+        "placeholder": {
+          "effect": "Texte du déclencheur tant que rien n’est sélectionné, et nom accessible du déclencheur. Donnez-lui la question à laquelle le contrôle répond.",
+          "default": "Le libellé sélectionné s’il existe, sinon `\"Choose an option\"`.",
+          "example": "KitSelect {\n    options: root.regions;\n    placeholder: \"Région\";\n}"
+        },
+        "unavailable-label": {
+          "effect": "Le message lorsque `selected` pointe vers un jeton absent de `options` : il devient la validité personnalisée du contrôle et la description accessible du déclencheur.",
+          "default": "`\"Selected option is unavailable\"`.",
+          "example": "KitSelect {\n    options: root.agents;\n    unavailable-label: \"Cet agent a quitté l’équipe.\";\n}"
+        },
+        "access": {
+          "effect": "`editable`, `read-only` ou `disabled`. Un contrôle en lecture seule ou désactivé ne s’ouvre, ne navigue ni ne choisit jamais ; un popup ouvert se ferme quand l’accès quitte `editable` ; un déclencheur désactivé n’est pas focalisable et rapporte sinon `accessible-read-only`.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitSelect {\n    options: root.forfaits;\n    selected: root.forfait;\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Exige une sélection présente et disponible pour le moteur partagé (nature HTML `select`) : sinon `validity.value-missing` est levé avec `required-message`, affiché après la perte du focus ou `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    options: root.roles;\n    required: true;\n    required-message: \"Choisissez un rôle.\";\n}"
+        },
+        "popup-height": {
+          "effect": "Hauteur maximale du popup ; la liste est plus courte lorsque les lignes tiennent.",
+          "default": "`320px`.",
+          "example": "KitSelect {\n    options: root.pays;\n    popup-height: 480px;\n}"
+        },
+        "row-height": {
+          "effect": "Hauteur de chaque ligne d’option dans le popup.",
+          "default": "`max(48px, 32px * text-scale)` : au moins 48 pixels logiques, croissant avec l’échelle de texte du thème.",
+          "example": "KitSelect {\n    options: root.pays;\n    row-height: 56px;\n}"
+        },
+        "query": {
+          "effect": "Le texte de recherche saisi dans l’éditeur du popup, lié dans les deux sens : il filtre `rows` et `query-edited(string)` rapporte chaque changement. Effacez-le pour revoir toutes les options.",
+          "default": "`\"\"`.",
+          "example": "KitSelect {\n    options: root.pays;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+        },
+        "selected-label": {
+          "effect": "Libellé de l’option sélectionnée, résolu dans `options` par jeton ; `\"\"` quand rien n’est sélectionné.",
+          "example": "forfait := KitSelect { options: root.forfaits; }\nText { text: forfait.selected-label; }"
+        },
+        "popup-visible": {
+          "effect": "Si la fenêtre popup native est présentée. Elle suit `state.open` et se ferme sur un clic extérieur, Échap, Tab, un choix et lorsque `access` quitte `editable` ; `dismiss(CloseReason)` nomme la cause.",
+          "example": "liste := KitSelect { options: root.villes; }\nRectangle { opacity: liste.popup-visible ? 0.5 : 1; }"
+        },
+        "validation": {
+          "effect": "Présentation demandée par un composite ; `KitMultiSelect` y transmet sa propre contrainte. L’échec de la contrainte propre du contrôle ou une sélection indisponible peint la présentation invalide quoi qu’il en soit.",
+          "default": "`ValidationPresentation.pristine`.",
+          "example": "in property <bool> conflit-forfait;\nKitSelect {\n    options: root.forfaits;\n    validation: root.conflit-forfait ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Popup selector with search, keyboard navigation and virtualized options.",
@@ -2326,7 +3068,81 @@
         "KitSelectSurface"
       ],
       "label": "Select",
-      "seoTitle": "Select for Slint"
+      "seoTitle": "Select for Slint",
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()` in Rust: each `OptionRow` carries a stable `token`, the source `generation`, a `label`, a `description` and `disabled`. The instance filters them by `query` into `rows` and resolves `selected` against them.",
+          "default": "Empty: the trigger shows `placeholder` and the popup has no row.",
+          "example": "KitSelect {\n    options: root.countries;\n    chosen(row) => { root.country-chosen(row); }\n}"
+        },
+        "selected": {
+          "effect": "The chosen option as a `SelectionRef { present, token }`, two-way: bind it to preselect or to read the choice. `chosen(OptionRow)` reports the full row and `Choices::accept` returns the domain key.",
+          "default": "Absent (`present: false`).",
+          "states": "A selected token missing from `options` turns `state.selection-availability` to `unavailable`: the trigger shows a mark, `unavailable-label` becomes the constraint message and the control stays invalid until the host fixes the selection. Under `Ownership.controlled` the host writes it to acknowledge a proposal.",
+          "example": "KitSelect {\n    options: root.sizes;\n    selected: { present: true, token: 2 };\n}"
+        },
+        "ownership": {
+          "effect": "`local`: a choice updates `selected` at once and `chosen` reports it. `controlled`: `chosen` is a proposal; `selected` keeps its value until the host sets it.",
+          "default": "`Ownership.local`.",
+          "example": "KitSelect {\n    options: root.plans;\n    ownership: Ownership.controlled;\n    selected: root.plan;\n    chosen(row) => { root.plan-proposed(row); }\n}"
+        },
+        "rows": {
+          "effect": "The projection shown in the popup: `options` reduced by `query` (case-insensitive match on label or description) under the current gesture generation. Bound to the instance's own projection by default; set it only for an explicit controlled projection.",
+          "example": "list := KitSelect { options: root.cities; }\nText { text: list.rows.length + \" matches\"; }"
+        },
+        "state": {
+          "effect": "The `SelectState` of the instance: `open`, `active` (the keyboard cursor), `selected`, `active-index`, `generation` and `selection-availability`. Bound to the instance's own controller by default; set it only for an explicit controlled projection.",
+          "example": "list := KitSelect { options: root.cities; }\nText { text: list.state.open ? \"Open\" : \"Closed\"; }"
+        },
+        "placeholder": {
+          "effect": "Text of the trigger while nothing is selected, and the accessible name of the trigger. Set it to the question the control answers.",
+          "default": "The selected label when there is one, otherwise `\"Choose an option\"`.",
+          "example": "KitSelect {\n    options: root.regions;\n    placeholder: \"Region\";\n}"
+        },
+        "unavailable-label": {
+          "effect": "The message when `selected` points to a token absent from `options`: it becomes the custom validity of the control and the accessible description of the trigger.",
+          "default": "`\"Selected option is unavailable\"`.",
+          "example": "KitSelect {\n    options: root.agents;\n    unavailable-label: \"This agent left the team.\";\n}"
+        },
+        "access": {
+          "effect": "`editable`, `read-only` or `disabled`. Read-only and disabled controls never open, navigate or choose; an open popup closes when access leaves `editable`; a disabled trigger is not focusable and reports `accessible-read-only` otherwise.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitSelect {\n    options: root.plans;\n    selected: root.plan;\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Requires a present and available selection for the shared engine (HTML `select` kind): otherwise `validity.value-missing` is set with `required-message`, shown after blur or `report-validity()`.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    options: root.roles;\n    required: true;\n    required-message: \"Choose a role.\";\n}"
+        },
+        "popup-height": {
+          "effect": "Maximum height of the popup; the list is shorter when the rows fit.",
+          "default": "`320px`.",
+          "example": "KitSelect {\n    options: root.countries;\n    popup-height: 480px;\n}"
+        },
+        "row-height": {
+          "effect": "Height of each option row in the popup.",
+          "default": "`max(48px, 32px * text-scale)`: at least 48 logical pixels, growing with the theme text scale.",
+          "example": "KitSelect {\n    options: root.countries;\n    row-height: 56px;\n}"
+        },
+        "query": {
+          "effect": "The search text typed in the popup's search editor, two-way: it filters `rows` and `query-edited(string)` reports each change. Clear it to show every option again.",
+          "default": "`\"\"`.",
+          "example": "KitSelect {\n    options: root.countries;\n    query-edited(text) => { root.search(text); }\n}"
+        },
+        "selected-label": {
+          "effect": "Label of the selected option, resolved in `options` by token; `\"\"` when nothing is selected.",
+          "example": "plan := KitSelect { options: root.plans; }\nText { text: plan.selected-label; }"
+        },
+        "popup-visible": {
+          "effect": "Whether the native popup window is presented. It follows `state.open` and closes on outside click, Escape, Tab, a choice and when `access` leaves `editable`; `dismiss(CloseReason)` names the cause.",
+          "example": "list := KitSelect { options: root.cities; }\nRectangle { opacity: list.popup-visible ? 0.5 : 1; }"
+        },
+        "validation": {
+          "effect": "Presentation a composite asks for; `KitMultiSelect` passes its own constraint through it. The control's own constraint failure or an unavailable selection paints the invalid presentation regardless.",
+          "default": "`ValidationPresentation.pristine`.",
+          "example": "in property <bool> plan-conflict;\nKitSelect {\n    options: root.plans;\n    validation: root.plan-conflict ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n}"
+        }
+      }
     }
   },
   "KitSelectKeyboard": {
@@ -2606,7 +3422,30 @@
         "KitPressable"
       ],
       "label": "Interrupteur",
-      "seoTitle": "Interrupteur pour Slint"
+      "seoTitle": "Interrupteur pour Slint",
+      "properties": {
+        "checked": {
+          "effect": "Si l’interrupteur est activé, lié dans les deux sens ; l’activation l’inverse et `toggled(bool)` rapporte la valeur suivante.",
+          "default": "`false`.",
+          "states": "Sous `Ownership.controlled`, l’hôte écrit `checked` après `toggled`. `accessible-checked` le suit.",
+          "example": "KitSwitch {\n    label: \"Mode sombre\";\n    checked: true;\n    toggled(actif) => { root.mode-sombre-change(actif); }\n}"
+        },
+        "ownership": {
+          "effect": "`local` : une activation met `checked` à jour et le rapporte. `controlled` : `toggled` est une proposition et `checked` attend l’hôte.",
+          "default": "`Ownership.local`.",
+          "example": "KitSwitch {\n    label: \"Synchronisation\";\n    ownership: Ownership.controlled;\n    checked: root.synchronisation-active;\n    toggled(actif) => { root.synchronisation-proposee(actif); }\n}"
+        },
+        "access": {
+          "effect": "`read-only` garde l’interrupteur focalisable et montre sa valeur en tons atténués sans la changer ; `disabled` l’atténue et refuse le focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitSwitch {\n    label: \"Géré par la politique\";\n    checked: true;\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "Le texte à côté de la piste et le nom accessible de l’interrupteur ; toute la rangée est la cible du clic.",
+          "default": "`\"\"`.",
+          "example": "KitSwitch {\n    label: \"Notifications par courriel\";\n}"
+        }
+      }
     },
     "en": {
       "summary": "Controlled switch for a boolean preference.",
@@ -2616,7 +3455,30 @@
         "KitPressable"
       ],
       "label": "Switch",
-      "seoTitle": "Switch for Slint"
+      "seoTitle": "Switch for Slint",
+      "properties": {
+        "checked": {
+          "effect": "Whether the switch is on, two-way; activation flips it and `toggled(bool)` reports the next value.",
+          "default": "`false`.",
+          "states": "Under `Ownership.controlled` the host writes `checked` after `toggled`. `accessible-checked` follows it.",
+          "example": "KitSwitch {\n    label: \"Dark mode\";\n    checked: true;\n    toggled(on) => { root.dark-mode-changed(on); }\n}"
+        },
+        "ownership": {
+          "effect": "`local`: an activation updates `checked` and reports it. `controlled`: `toggled` is a proposal and `checked` waits for the host.",
+          "default": "`Ownership.local`.",
+          "example": "KitSwitch {\n    label: \"Sync\";\n    ownership: Ownership.controlled;\n    checked: root.sync-enabled;\n    toggled(on) => { root.sync-proposed(on); }\n}"
+        },
+        "access": {
+          "effect": "`read-only` keeps the switch focusable and shows its value in muted tones without changing it; `disabled` dims it and refuses focus.",
+          "default": "`FieldAccess.editable`.",
+          "example": "KitSwitch {\n    label: \"Managed by policy\";\n    checked: true;\n    access: FieldAccess.read-only;\n}"
+        },
+        "label": {
+          "effect": "The text beside the track and the accessible name of the switch; the whole row is the press target.",
+          "default": "`\"\"`.",
+          "example": "KitSwitch {\n    label: \"Email notifications\";\n}"
+        }
+      }
     }
   },
   "KitTabs": {
@@ -2677,7 +3539,34 @@
         "KitTextField"
       ],
       "label": "Champ téléphone",
-      "seoTitle": "Champ téléphone pour Slint"
+      "seoTitle": "Champ téléphone pour Slint",
+      "properties": {
+        "number-mode": {
+          "effect": "Les formes acceptées : `national` (chiffres seulement, sans `+`), `international` (`+` puis des chiffres) ou `either`. Le moteur partagé refuse les autres caractères à la frappe et au collage, et `phone-message` explique la forme attendue.",
+          "default": "`PhoneNumberMode.either`.",
+          "example": "KitTelephoneField {\n    label: \"Téléphone\";\n    number-mode: PhoneNumberMode.national;\n    expected-digits: 10;\n}"
+        },
+        "min-digits": {
+          "effect": "Plus petit nombre de chiffres accepté ; `phone-length-message` rapporte la plage. Ignoré lorsque `expected-digits` est défini.",
+          "default": "`1`.",
+          "example": "KitTelephoneField {\n    label: \"Téléphone\";\n    number-mode: PhoneNumberMode.international;\n    min-digits: 8;\n    max-digits: 15;\n}"
+        },
+        "max-digits": {
+          "effect": "Plus grand nombre de chiffres accepté ; `phone-length-message` rapporte la plage. Ignoré lorsque `expected-digits` est défini.",
+          "default": "`15`.",
+          "example": "KitTelephoneField {\n    label: \"Téléphone\";\n    max-digits: 12;\n}"
+        },
+        "expected-digits": {
+          "effect": "Nombre exact de chiffres ; lorsqu’il est non nul, il remplace `min-digits` et `max-digits` et `phone-length-message` le nomme.",
+          "default": "`0` : aucune longueur exacte.",
+          "example": "KitTelephoneField {\n    label: \"Téléphone\";\n    expected-digits: 10;\n}"
+        },
+        "display-mask": {
+          "effect": "Masque peint au repos par-dessus les chiffres, `#` par chiffre et tout autre caractère comme séparateur, par exemple `\"## ## ## ## ##\"`. La valeur (`value`, `validation-text`) reste des chiffres avec un `+` initial facultatif ; `format-error` rapporte un masque que le moteur ne peut pas appliquer.",
+          "default": "`\"\"` : les chiffres s’affichent tels que saisis.",
+          "example": "KitTelephoneField {\n    label: \"Téléphone\";\n    number-mode: PhoneNumberMode.national;\n    expected-digits: 10;\n    display-mask: \"## ## ## ## ##\";\n}"
+        }
+      }
     },
     "en": {
       "summary": "Strict phone field with configurable digit counts, a display mask and a separator-free value.",
@@ -2688,7 +3577,34 @@
         "KitTextField"
       ],
       "label": "Telephone Field",
-      "seoTitle": "Telephone Field for Slint"
+      "seoTitle": "Telephone Field for Slint",
+      "properties": {
+        "number-mode": {
+          "effect": "Which forms are accepted: `national` (digits only, no `+`), `international` (`+` then digits) or `either`. The shared engine rejects other characters at typing and paste, and `phone-message` explains the expected form.",
+          "default": "`PhoneNumberMode.either`.",
+          "example": "KitTelephoneField {\n    label: \"Phone\";\n    number-mode: PhoneNumberMode.national;\n    expected-digits: 10;\n}"
+        },
+        "min-digits": {
+          "effect": "Smallest number of digits accepted; `phone-length-message` reports the range. Ignored when `expected-digits` is set.",
+          "default": "`1`.",
+          "example": "KitTelephoneField {\n    label: \"Phone\";\n    number-mode: PhoneNumberMode.international;\n    min-digits: 8;\n    max-digits: 15;\n}"
+        },
+        "max-digits": {
+          "effect": "Largest number of digits accepted; `phone-length-message` reports the range. Ignored when `expected-digits` is set.",
+          "default": "`15`.",
+          "example": "KitTelephoneField {\n    label: \"Phone\";\n    max-digits: 12;\n}"
+        },
+        "expected-digits": {
+          "effect": "Exact number of digits; when nonzero it replaces `min-digits` and `max-digits` and `phone-length-message` names it.",
+          "default": "`0`: no exact length.",
+          "example": "KitTelephoneField {\n    label: \"Phone\";\n    expected-digits: 10;\n}"
+        },
+        "display-mask": {
+          "effect": "Mask painted at rest over the digits, `#` per digit and any other character as a separator, for example `\"## ## ## ## ##\"`. The value (`value`, `validation-text`) stays digits with an optional leading `+`; `format-error` reports a mask the engine cannot apply.",
+          "default": "`\"\"`: digits are shown as typed.",
+          "example": "KitTelephoneField {\n    label: \"Phone\";\n    number-mode: PhoneNumberMode.national;\n    expected-digits: 10;\n    display-mask: \"###-###-####\";\n}"
+        }
+      }
     }
   },
   "KitTextArea": {
@@ -2726,7 +3642,206 @@
         "KitSearchField"
       ],
       "label": "Champ texte",
-      "seoTitle": "Champ texte pour Slint"
+      "seoTitle": "Champ texte pour Slint",
+      "properties": {
+        "text": {
+          "effect": "Le brouillon natif, lié dans les deux sens au `TextInput` de l’éditeur : il change à chaque frappe, collage ou validation IME et peut contenir une valeur incomplète. La valeur acceptée vit dans `field-state.accepted` et `accepted-text` : lisez `text` pour le brouillon et `committed(FieldCommit)` pour la valeur.",
+          "default": "`\"\"` (brouillon vide).",
+          "states": "En lecture seule, sélection, curseur et copie natifs restent disponibles mais l’édition est refusée ; désactivé, le champ refuse le focus. Sans focus, lorsqu’un codec formate la valeur acceptée, la projection formatée (`display-text`) est peinte par-dessus le brouillon inchangé.",
+          "constraints": "Avec `length-policy: TextLengthPolicy.limit` et `max-length >= 0`, le texte au-delà de la limite (unités UTF-16) est retiré de l’édition native une fois `slint_kit::install` exécuté.",
+          "example": "KitTextField {\n    label: \"Nom affiché\";\n    text: \"Ada\";\n    edited(brouillon) => { debug(brouillon); }\n}"
+        },
+        "label": {
+          "effect": "Affiche un `KitFieldLabel` au-dessus de l’éditeur lorsqu’il n’est pas vide ; cliquer dessus donne le focus à l’éditeur. C’est aussi le nom accessible de l’éditeur, sauf si `accessible-name` le remplace.",
+          "default": "`\"\"` : aucune ligne de libellé n’est rendue ; définissez alors `accessible-name` pour que l’éditeur reste nommé.",
+          "states": "Le libellé suit `access` : atténué lorsque désactivé, inchangé en lecture seule.",
+          "example": "KitEmailField {\n    label: \"Courriel professionnel\";\n}"
+        },
+        "description": {
+          "effect": "Texte d’aide rendu sous l’éditeur dans un `KitFieldDescription` lorsqu’il n’est pas vide. C’est la description accessible de l’éditeur tant que le champ n’est pas invalide ; le message d’erreur la remplace alors.",
+          "default": "`\"\"` : aucune ligne d’aide.",
+          "example": "KitPasswordField {\n    label: \"Mot de passe\";\n    description: \"Au moins 12 caractères.\";\n    min-length: 12;\n}"
+        },
+        "error": {
+          "effect": "Message décidé par l’application, affiché dans un `KitFieldError` sous l’éditeur lorsque `validation` vaut `ValidationPresentation.invalid`. Il entre dans le moteur de contraintes partagé comme validité personnalisée : `validity.custom-error` est levé et `validation-message` le reprend.",
+          "default": "`\"\"`.",
+          "states": "Ignoré tant que `validation` n’est pas `invalid`. Une contrainte HTML en échec, une erreur de codec rapportée dans `field-state.error` ou un `custom-validity` non vide a priorité sur lui. `show-validation-message: false` masque la ligne et garde la présentation invalide.",
+          "example": "in property <bool> nom-pris;\nKitTextField {\n    label: \"Identifiant\";\n    validation: root.nom-pris ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n    error: \"Ce nom est déjà utilisé.\";\n}"
+        },
+        "placeholder": {
+          "effect": "Indication peinte dans l’éditeur tant que `text` est vide et qu’aucune composition IME n’est en cours ; elle suit `text-alignment` et la police de l’éditeur. Ce n’est jamais le nom accessible : utilisez `label` ou `accessible-name`.",
+          "default": "`\"\"`.",
+          "example": "KitSearchField {\n    placeholder: \"Rechercher un projet\";\n    accessible-name: \"Recherche\";\n}"
+        },
+        "access": {
+          "effect": "Qui peut changer la valeur : `editable`, `read-only` ou `disabled`. Pilote à la fois l’éditeur, le libellé, la recette de surface et le moteur de contraintes.",
+          "default": "`FieldAccess.editable`.",
+          "states": "`read-only` : sélection, curseur et copie natifs restent ; édition, validation et `step-number` sont refusés ; la surface prend le ton du canevas et `will-validate` devient faux, comme `readonly` en HTML. `disabled` : l’éditeur refuse focus et pointeur, libellé et texte sont atténués, `accessible-enabled` est faux et rien ne se valide.",
+          "example": "KitTextField {\n    label: \"Référence\";\n    text: \"FAC-2026-0042\";\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Déclare la valeur obligatoire pour le moteur de contraintes HTML partagé : une valeur vide lève `validity.value-missing` et `validation-message` devient `required-message`.",
+          "default": "`false`.",
+          "states": "Affiché selon `validation-timing` ou après `report-validity()` ; non évalué tant que le champ est en lecture seule ou désactivé.",
+          "example": "KitTextField {\n    label: \"Entreprise\";\n    required: true;\n    required-message: \"Saisissez le nom de l’entreprise.\";\n}"
+        },
+        "min-length": {
+          "effect": "Longueur minimale de la valeur pour le moteur de contraintes, comptée en unités UTF-16 comme `minlength` en HTML ; une valeur non vide plus courte lève `validity.too-short` avec `too-short-message`.",
+          "default": "`-1` : aucun minimum.",
+          "constraints": "S’applique aux natures de saisie texte, comme en HTML ; nombres et dates l’ignorent.",
+          "example": "KitTextField {\n    label: \"Pseudonyme\";\n    min-length: 3;\n    max-length: 24;\n}"
+        },
+        "max-length": {
+          "effect": "Longueur maximale de la valeur en unités UTF-16, comme `maxlength` en HTML. Avec `length-policy: TextLengthPolicy.validate`, une valeur plus longue lève seulement `validity.too-long` avec `too-long-message` ; avec `TextLengthPolicy.limit`, l’édition native est coupée à la limite.",
+          "default": "`-1` : aucun maximum.",
+          "example": "KitTextArea {\n    label: \"Résumé\";\n    max-length: 280;\n    show-character-count: true;\n}"
+        },
+        "length-policy": {
+          "effect": "Comment `max-length` est appliqué. `validate` signale `too-long` et laisse intacts l’édition native, l’historique d’annulation et la composition IME ; `limit` retire le dépassement de l’éditeur par ses API publiques d’annulation, de texte et de sélection, ce qui peut effacer l’entrée d’annulation native de l’édition refusée.",
+          "default": "`TextLengthPolicy.validate`.",
+          "constraints": "`limit` exige le moteur partagé installé par `slint_kit::install` ; tant qu’il n’est pas prêt, l’éditeur reste en lecture seule pour qu’aucun texte non borné ne passe. `KitOtpField` utilise `limit`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    max-length: 8;\n    length-policy: TextLengthPolicy.limit;\n}"
+        },
+        "pattern": {
+          "effect": "Expression régulière que la valeur entière doit respecter, avec la sémantique de `pattern` en HTML (syntaxe ECMAScript `v`, ancrée sur toute la valeur) ; un écart lève `validity.pattern-mismatch` avec `pattern-message`. `pattern-enabled` vaut `pattern != \"\"` par défaut.",
+          "default": "`\"\"` : aucun motif.",
+          "constraints": "Compilé par le moteur partagé ; un motif qui ne compile pas est rapporté dans `pattern-error`. Non appliqué à un champ multiligne, comme HTML ne l’applique pas à une zone de texte. Avec `purpose: email` et `multiple`, chaque adresse doit correspondre.",
+          "example": "KitTextField {\n    label: \"Code postal\";\n    pattern: \"[A-Z][0-9][A-Z] [0-9][A-Z][0-9]\";\n    pattern-message: \"Utilisez le format A1A 1A1.\";\n}"
+        },
+        "min": {
+          "effect": "Borne inférieure d’une valeur numérique, de date ou d’heure, écrite en texte dans la forme canonique de la nature de saisie (par exemple `\"0\"` ou `\"2026-01-01\"`) ; une valeur plus petite lève `validity.range-underflow` avec `underflow-message`. C’est aussi la base de la vérification de `step` et de `step-number`.",
+          "default": "`\"\"` : aucune borne inférieure.",
+          "constraints": "Lu par le moteur HTML pour les natures nombre, date, mois, semaine, heure et date-heure ; les natures texte l’ignorent. L’analyseur d’un `FieldSpec` garde ses propres bornes métier.",
+          "example": "KitIntegerField {\n    label: \"Places\";\n    min: \"1\";\n    max: \"500\";\n}"
+        },
+        "max": {
+          "effect": "Borne supérieure d’une valeur numérique, de date ou d’heure, en texte dans la forme canonique de la nature de saisie ; une valeur plus grande lève `validity.range-overflow` avec `overflow-message`. Une plage horaire dont `max` précède `min` passe minuit, comme en HTML.",
+          "default": "`\"\"` : aucune borne supérieure.",
+          "example": "KitDecimalField {\n    label: \"Remise (%)\";\n    min: \"0\";\n    max: \"100\";\n}"
+        },
+        "step": {
+          "effect": "Granularité d’une valeur numérique, de date ou d’heure, en texte : une valeur qui n’est pas la base (`min`, sinon `default-value`, sinon zéro) plus un nombre entier de pas lève `validity.step-mismatch` avec `step-message` ; `\"any\"` désactive la vérification. `step-number(direction)` et les boutons de `KitNumberStepper` déplacent le brouillon d’un pas sans jamais sortir de `[min, max]`.",
+          "default": "`\"\"` : le pas par défaut de la nature, 1 pour les nombres. `KitIntegerField` fixe `\"1\"` ; `KitDecimalField` et ses variantes fixent `\"any\"`.",
+          "example": "KitDecimalField {\n    label: \"Poids (kg)\";\n    min: \"0\";\n    step: \"0.5\";\n}"
+        },
+        "default-value": {
+          "effect": "La valeur que `reset-field()` rétablit comme brouillon et comme valeur acceptée, avec un état de validation remis à zéro. C’est aussi la base de la vérification de `step` quand `min` est vide, comme l’attribut `value` en HTML. Elle n’initialise pas `text`.",
+          "default": "`\"\"`.",
+          "example": "KitQuantityField {\n    label: \"Quantité\";\n    default-value: \"1\";\n    text: \"1\";\n}"
+        },
+        "commit-policy": {
+          "effect": "Quand un brouillon acceptable devient la valeur acceptée et que `committed(FieldCommit)` est émis : `on-blur` à la perte du focus ou sur Entrée, `on-submit` seulement sur Entrée ou `commit()`, `on-change-when-valid` à chaque édition qui passe les contraintes et le codec.",
+          "default": "`CommitPolicy.on-blur`.",
+          "states": "Un brouillon refusé par les contraintes ou le codec n’est jamais validé : `field-state.error` porte le message et `invalid()` est émis. `cancel-edit()` rétablit le dernier brouillon accepté.",
+          "example": "KitTextField {\n    label: \"Étiquette\";\n    commit-policy: CommitPolicy.on-change-when-valid;\n    committed(commit) => { root.etiquette-changee(commit); }\n}"
+        },
+        "ownership": {
+          "effect": "Qui possède la valeur acceptée. `local` : le champ accepte lui-même le brouillon et `committed` rapporte la nouvelle valeur. `controlled` : `committed` est une proposition ; la valeur acceptée reste inchangée tant que l’hôte n’appelle pas `acknowledge(FieldValue)`.",
+          "default": "`Ownership.local`.",
+          "example": "KitTextField {\n    label: \"Titre\";\n    ownership: Ownership.controlled;\n    committed(commit) => { root.titre-propose(commit); }\n}"
+        },
+        "spec-key": {
+          "effect": "Nomme un `FieldSpec<T, E>` installé en Rust avec `install_field_specs`. Le codec valide le brouillon à la validation (son message arrive dans `field-state.error`), formate la valeur acceptée au repos (`display-text`) et voyage dans `FieldCommit.spec`, de sorte que `spec.accept(commit)` refuse un commit destiné à un autre champ.",
+          "default": "`\"\"` : texte brut avec les seules contraintes HTML.",
+          "constraints": "La clé est une donnée applicative, indépendante de la position du champ ; `FieldSpecKey::new` refuse une clé vide. Appelez `slint_kit::install` et `install_field_specs` avant d’afficher la fenêtre.",
+          "example": "KitTextField {\n    label: \"Courriel professionnel\";\n    spec-key: \"contact\";\n    committed(commit) => { root.contact-change(commit); }\n}"
+        },
+        "field-state": {
+          "effect": "L’état partagé du champ : `accepted` (présence et texte de la valeur acceptée), `draft`, `dirty` et `touched`, `error` du dernier commit refusé, `committed` pour la dernière transition et `value`, le candidat de cette transition.",
+          "default": "Initialisé depuis `text` à la création : valeur acceptée et brouillon valent tous deux le texte initial.",
+          "states": "Mis à jour par les actions d’édition, de perte de focus, de soumission et d’annulation tant que le champ est modifiable ; `acknowledge(FieldValue)` remplace `accepted` sous `Ownership.controlled` ; `reset-field()` rétablit `default-value`.",
+          "example": "code := KitTextField {\n    label: \"Code\";\n    spec-key: \"code\";\n}\nText { text: code.field-state.error; }"
+        },
+        "accepted-text": {
+          "effect": "Le texte de la dernière valeur acceptée, `field-state.accepted.text`, comme chaîne simple pour les liaisons ; il ne change pas pendant que l’utilisateur modifie le brouillon.",
+          "default": "Le `text` initial.",
+          "example": "nom := KitTextField { label: \"Nom\"; text: \"Ada\"; }\nText { text: \"Enregistré : \" + nom.accepted-text; }"
+        },
+        "validation": {
+          "effect": "La présentation demandée par l’application : `pristine`, `checking` (un indicateur d’activité dans la surface et `checking-label` sous l’éditeur, pour une vérification asynchrone), `valid` ou `invalid` (bordure et anneau de focus en couleur danger, `error` affiché).",
+          "default": "`ValidationPresentation.pristine`.",
+          "states": "Une contrainte HTML en échec ou une erreur de codec impose la présentation invalide quelle que soit cette valeur. `valid` n’a pas de rendu distinct dans la recette de champ livrée.",
+          "example": "in property <bool> verification-en-cours;\nKitTextField {\n    label: \"Identifiant\";\n    validation: root.verification-en-cours ? ValidationPresentation.checking : ValidationPresentation.pristine;\n}"
+        },
+        "validation-timing": {
+          "effect": "Quand une contrainte HTML en échec devient visible sans `report-validity()` : `on-blur` une fois le champ quitté (`touched`), `on-input` dès qu’il est modifié (`dirty`), `on-submit` seulement après `report-validity()`. Une erreur définitive, comme un caractère impossible dans un courriel, apparaît dès que le champ est modifié.",
+          "default": "`ValidationTiming.on-blur`.",
+          "example": "KitEmailField {\n    label: \"Courriel\";\n    validation-timing: ValidationTiming.on-input;\n}"
+        },
+        "custom-validity": {
+          "effect": "Message qui rend la valeur invalide jusqu’à son effacement, comme `setCustomValidity` : `validity.custom-error` est levé et `validation-message` le reprend. `set-custom-validity(message)` l’écrit ; il a priorité sur l’erreur intrinsèque et sur `error`.",
+          "default": "`\"\"` : aucune erreur personnalisée.",
+          "example": "in property <bool> slug-pris;\nKitTextField {\n    label: \"Slug\";\n    custom-validity: root.slug-pris ? \"Ce slug est déjà utilisé.\" : \"\";\n}"
+        },
+        "validity": {
+          "effect": "Indicateurs de validité à la HTML de la valeur courante : `valid`, `value-missing`, `type-mismatch`, `pattern-mismatch`, `too-long`, `too-short`, `range-underflow`, `range-overflow`, `step-mismatch`, `bad-input` et `custom-error`, calculés par le moteur partagé à partir des contraintes et de `validation-text`.",
+          "states": "Non évalués tant que `will-validate` est faux (lecture seule ou désactivé) ; `validation-ready` indique si le moteur partagé est installé.",
+          "example": "courriel := KitEmailField { label: \"Courriel\"; required: true; }\nText { text: courriel.validity.value-missing ? \"Obligatoire\" : \"\"; }"
+        },
+        "validation-message": {
+          "effect": "Le message de la première contrainte en échec, dans l’ordre personnalisée, requise, type, motif, trop court, trop long, sous le minimum, au-dessus du maximum, pas, saisie invalide, pris dans la propriété `*-message` correspondante ; `\"\"` tant que la valeur est valide ou non validée. La ligne `KitFieldError` intégrée l’affiche lorsque `show-validation-message` est vrai.",
+          "example": "code := KitTextField { label: \"Code\"; pattern: \"[0-9]{6}\"; }\nText { text: code.validation-message; }"
+        },
+        "show-validation-message": {
+          "effect": "Si la ligne `KitFieldError` intégrée est rendue sous l’éditeur. Désactivée, la présentation invalide et la description accessible sont conservées et l’hôte affiche le message ailleurs, comme `KitDataTable` pour son éditeur de cellule et `KitNumberStepper` pour sa propre ligne.",
+          "default": "`true`.",
+          "example": "champ := KitTextField {\n    label: \"Montant\";\n    show-validation-message: false;\n}\nKitFieldError { text: champ.validation-message; }"
+        },
+        "purpose": {
+          "effect": "L’intention sémantique du texte. Elle choisit la nature de contrainte HTML par `input-kind` (`email`, `url`, `telephone`, `password`, `search`), le masquage natif d’un mot de passe et son bouton de révélation, le bouton d’effacement d’une recherche, les indications de méthode de saisie (`plain` reçoit majuscules de phrase, correction et complétion automatiques ; les autres aucune) et l’icône de recherche de tête par défaut.",
+          "default": "`TextPurpose.plain`. Les champs nommés la fixent : `KitEmailField` → `email`, `KitUrlField` → `url`, `KitTelephoneField` → `telephone`, `KitPasswordField` → `password`, `KitSearchField` → `search`.",
+          "constraints": "`email` et `url` n’acceptent pas un texte non vide quelconque : le moteur partagé vérifie la syntaxe de l’adresse ou de l’URL absolue, et `email-message` ou `url-message` porte le message.",
+          "example": "KitTextField {\n    label: \"Site web\";\n    purpose: TextPurpose.url;\n}"
+        },
+        "input-type": {
+          "effect": "Le filtrage natif des touches de l’éditeur, l’`InputType` de Slint. `decimal` refuse les lettres à la frappe et au collage une fois le moteur partagé prêt, conserve signes et décimales incomplètes et donne `number` à `input-kind` ; `password` masque le texte.",
+          "default": "`InputType.text`. Les champs numériques fixent `InputType.decimal`.",
+          "constraints": "Le filtrage ne façonne que le brouillon ; analyse, bornes et arithmétique exacte restent au moteur HTML et au `FieldSpec`.",
+          "example": "KitTextField {\n    label: \"Montant\";\n    input-type: InputType.decimal;\n    min: \"0\";\n}"
+        },
+        "control-size": {
+          "effect": "Hauteur, remplissage, taille d’icône et taille de police de la surface, d’après les métriques de densité du thème ; partagée par tous les contrôles du kit pour qu’une rangée de champs et de boutons reste alignée.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitTextField {\n    label: \"Filtre\";\n    control-size: ControlSize.compact;\n}"
+        },
+        "decoration": {
+          "effect": "La surface que le `KitInputGroup` dessine autour de l’éditeur : `boxed` dessine la boîte bordée de la recette de champ ; `underlined` seulement une ligne basse, divisée en `underline-segments` parties (`KitOtpField` en utilise une par case).",
+          "default": "`FieldDecoration.boxed`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.underlined;\n}"
+        },
+        "prefix": {
+          "effect": "Texte secondaire dans la surface, avant l’éditeur, dans la police de l’éditeur et le ton secondaire. Il ne fait partie ni de `text` ni de la valeur validée ; utilisez `leading-icon` pour un glyphe.",
+          "default": "`\"\"`.",
+          "example": "KitMoneyField {\n    label: \"Prix\";\n    prefix: \"$\";\n}"
+        },
+        "suffix": {
+          "effect": "Texte secondaire dans la surface, après l’éditeur, dans la police de l’éditeur et le ton secondaire ; ni partie de `text` ni de la valeur. `KitPercentField` fixe `\"%\"` ; un champ de durée nomme ici son unité.",
+          "default": "`\"\"`.",
+          "example": "KitDurationField {\n    label: \"Délai\";\n    suffix: \"secondes\";\n}"
+        },
+        "line-mode": {
+          "effect": "`single-line` garde une ligne, valide sur Entrée et défile horizontalement. `multiline` coupe les mots en fin de ligne, laisse Entrée insérer un saut de ligne au lieu de valider, défile verticalement et dimensionne l’éditeur d’après `min-lines`, `max-lines` et `resize-policy`. `KitTextArea` fixe `multiline`.",
+          "default": "`TextLineMode.single-line`.",
+          "constraints": "Un champ multiligne se valide comme une zone de texte HTML : `pattern` n’est pas appliqué, et les boutons de révélation et d’effacement ne sont pas affichés.",
+          "example": "KitTextField {\n    label: \"Notes\";\n    line-mode: TextLineMode.multiline;\n    min-lines: 2;\n}"
+        },
+        "resize-policy": {
+          "effect": "Comment un éditeur multiligne prend sa hauteur : `fixed` affiche `min-lines` lignes et défile à l’intérieur ; `auto-grow` grandit avec le texte jusqu’à `max-lines`, puis défile. `KitTextArea` fixe `auto-grow`.",
+          "default": "`ResizePolicy.fixed`.",
+          "example": "KitTextArea {\n    label: \"Commentaire\";\n    resize-policy: ResizePolicy.fixed;\n    min-lines: 4;\n}"
+        },
+        "min-lines": {
+          "effect": "Lignes qu’un éditeur multiligne affiche toujours (au moins une ligne est conservée).",
+          "default": "`3`.",
+          "constraints": "Ignoré en mode une ligne.",
+          "example": "KitTextArea {\n    label: \"Adresse\";\n    min-lines: 2;\n    max-lines: 4;\n}"
+        },
+        "max-lines": {
+          "effect": "Lignes jusqu’auxquelles un éditeur multiligne grandit sous `ResizePolicy.auto-grow` avant de défiler ; jamais moins que `min-lines`.",
+          "default": "`8`.",
+          "example": "KitTextArea {\n    label: \"Description\";\n    max-lines: 12;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Single-line native text input with a label and validation feedback.",
@@ -2738,7 +3853,206 @@
         "KitSearchField"
       ],
       "label": "Text Field",
-      "seoTitle": "Text Field for Slint"
+      "seoTitle": "Text Field for Slint",
+      "properties": {
+        "text": {
+          "effect": "The native editing draft, bound two-way to the editor's `TextInput`: it changes on every keystroke, paste and IME commit and may hold an incomplete value. The accepted value lives in `field-state.accepted` and `accepted-text`, so read `text` for the draft and `committed(FieldCommit)` for the value.",
+          "default": "`\"\"` (empty draft).",
+          "states": "Read-only keeps native selection, caret and copy but refuses edits; disabled refuses focus. While the field has no focus and a codec formats the accepted value, the formatted projection (`display-text`) is painted over the unchanged draft.",
+          "constraints": "With `length-policy: TextLengthPolicy.limit` and `max-length >= 0`, text beyond the limit (UTF-16 code units) is removed from the native edit once `slint_kit::install` has run.",
+          "example": "KitTextField {\n    label: \"Display name\";\n    text: \"Ada\";\n    edited(draft) => { debug(draft); }\n}"
+        },
+        "label": {
+          "effect": "Shows a `KitFieldLabel` above the editor when nonempty; clicking it focuses the editor. It is also the accessible name of the editor unless `accessible-name` overrides it.",
+          "default": "`\"\"`: no label row is rendered, so set `accessible-name` to keep the editor named.",
+          "states": "The label follows `access`: dimmed when disabled, unchanged when read-only.",
+          "example": "KitEmailField {\n    label: \"Work email\";\n}"
+        },
+        "description": {
+          "effect": "Help text rendered under the editor as a `KitFieldDescription` when nonempty. It is the accessible description of the editor while the field is not invalid; the error message replaces it then.",
+          "default": "`\"\"`: no help row.",
+          "example": "KitPasswordField {\n    label: \"Password\";\n    description: \"At least 12 characters.\";\n    min-length: 12;\n}"
+        },
+        "error": {
+          "effect": "A message decided by the application, shown as a `KitFieldError` under the editor when `validation` is `ValidationPresentation.invalid`. It enters the shared constraint engine as a custom validity, so `validity.custom-error` is set and `validation-message` repeats it.",
+          "default": "`\"\"`.",
+          "states": "Ignored while `validation` is not `invalid`. A failing HTML constraint, a codec error reported in `field-state.error` or a nonempty `custom-validity` takes precedence over it. `show-validation-message: false` hides the row and keeps the invalid presentation.",
+          "example": "in property <bool> name-taken;\nKitTextField {\n    label: \"Username\";\n    validation: root.name-taken ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n    error: \"This name is already used.\";\n}"
+        },
+        "placeholder": {
+          "effect": "Hint painted inside the editor while `text` is empty and no IME composition is in progress; it follows `text-alignment` and the editor font. It is never the accessible name: use `label` or `accessible-name` for that.",
+          "default": "`\"\"`.",
+          "example": "KitSearchField {\n    placeholder: \"Search projects\";\n    accessible-name: \"Search\";\n}"
+        },
+        "access": {
+          "effect": "Who may change the value: `editable`, `read-only` or `disabled`. It drives the editor, the label, the surface recipe and the constraint engine at once.",
+          "default": "`FieldAccess.editable`.",
+          "states": "`read-only`: native selection, caret and copy stay; edits, commits and `step-number` are refused; the surface takes the canvas tone and `will-validate` becomes false, as with HTML `readonly`. `disabled`: the editor refuses focus and pointer, label and text are dimmed, `accessible-enabled` is false and nothing validates.",
+          "example": "KitTextField {\n    label: \"Reference\";\n    text: \"INV-2026-0042\";\n    access: FieldAccess.read-only;\n}"
+        },
+        "required": {
+          "effect": "Declares the value mandatory for the shared HTML constraint engine: an empty value sets `validity.value-missing` and `validation-message` becomes `required-message`.",
+          "default": "`false`.",
+          "states": "Shown according to `validation-timing` or after `report-validity()`; not evaluated while the field is read-only or disabled.",
+          "example": "KitTextField {\n    label: \"Company\";\n    required: true;\n    required-message: \"Enter the company name.\";\n}"
+        },
+        "min-length": {
+          "effect": "Minimum length of the value for the constraint engine, counted in UTF-16 code units like HTML `minlength`; a shorter nonempty value sets `validity.too-short` with `too-short-message`.",
+          "default": "`-1`: no minimum.",
+          "constraints": "Applies to the text input kinds, as in HTML; numbers and dates ignore it.",
+          "example": "KitTextField {\n    label: \"Nickname\";\n    min-length: 3;\n    max-length: 24;\n}"
+        },
+        "max-length": {
+          "effect": "Maximum length of the value in UTF-16 code units, like HTML `maxlength`. Under `length-policy: TextLengthPolicy.validate` a longer value only sets `validity.too-long` with `too-long-message`; under `TextLengthPolicy.limit` the native edit is cut at the limit.",
+          "default": "`-1`: no maximum.",
+          "example": "KitTextArea {\n    label: \"Summary\";\n    max-length: 280;\n    show-character-count: true;\n}"
+        },
+        "length-policy": {
+          "effect": "How `max-length` is enforced. `validate` reports `too-long` and leaves the native edit, undo history and IME composition alone; `limit` removes the overflow from the editor through its public undo, text and selection APIs, which can discard the native undo entry of the rejected edit.",
+          "default": "`TextLengthPolicy.validate`.",
+          "constraints": "`limit` needs the shared engine installed by `slint_kit::install`; until it is ready the editor stays read-only so no unbounded text slips through. `KitOtpField` uses `limit`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    max-length: 8;\n    length-policy: TextLengthPolicy.limit;\n}"
+        },
+        "pattern": {
+          "effect": "A regular expression the whole value must match, with HTML `pattern` semantics (ECMAScript `v` syntax, anchored to the full value); a mismatch sets `validity.pattern-mismatch` with `pattern-message`. `pattern-enabled` defaults to `pattern != \"\"`.",
+          "default": "`\"\"`: no pattern.",
+          "constraints": "Compiled by the shared engine; a pattern that does not compile is reported in `pattern-error`. Not applied to a multiline field, as HTML does not apply it to a text area. With `purpose: email` and `multiple`, every address must match.",
+          "example": "KitTextField {\n    label: \"Postal code\";\n    pattern: \"[A-Z][0-9][A-Z] [0-9][A-Z][0-9]\";\n    pattern-message: \"Use the A1A 1A1 format.\";\n}"
+        },
+        "min": {
+          "effect": "Lower bound of a numeric, date or time value, written as text in the canonical form of the input kind (for example `\"0\"` or `\"2026-01-01\"`); a smaller value sets `validity.range-underflow` with `underflow-message`. It is also the base of the `step` check and of `step-number`.",
+          "default": "`\"\"`: no lower bound.",
+          "constraints": "Read by the HTML engine for the number, date, month, week, time and date-time kinds; text kinds ignore it. The parser of a `FieldSpec` keeps its own domain bounds.",
+          "example": "KitIntegerField {\n    label: \"Seats\";\n    min: \"1\";\n    max: \"500\";\n}"
+        },
+        "max": {
+          "effect": "Upper bound of a numeric, date or time value, as text in the canonical form of the input kind; a larger value sets `validity.range-overflow` with `overflow-message`. A time range with `max` before `min` crosses midnight, as in HTML.",
+          "default": "`\"\"`: no upper bound.",
+          "example": "KitDecimalField {\n    label: \"Discount (%)\";\n    min: \"0\";\n    max: \"100\";\n}"
+        },
+        "step": {
+          "effect": "Granularity of a numeric, date or time value, as text: a value that is not the base (`min`, else `default-value`, else zero) plus a whole number of steps sets `validity.step-mismatch` with `step-message`; `\"any\"` disables the check. `step-number(direction)` and the buttons of `KitNumberStepper` move the draft by one step and never leave `[min, max]`.",
+          "default": "`\"\"`: the default step of the kind, 1 for numbers. `KitIntegerField` sets `\"1\"`; `KitDecimalField` and its variants set `\"any\"`.",
+          "example": "KitDecimalField {\n    label: \"Weight (kg)\";\n    min: \"0\";\n    step: \"0.5\";\n}"
+        },
+        "default-value": {
+          "effect": "The value `reset-field()` restores as draft and accepted value, with a cleared validation state. It is also the base of the `step` check when `min` is empty, as the HTML `value` attribute is. It does not initialize `text`.",
+          "default": "`\"\"`.",
+          "example": "KitQuantityField {\n    label: \"Quantity\";\n    default-value: \"1\";\n    text: \"1\";\n}"
+        },
+        "commit-policy": {
+          "effect": "When an acceptable draft becomes the accepted value and `committed(FieldCommit)` fires: `on-blur` when the editor loses focus or on Enter, `on-submit` only on Enter or `commit()`, `on-change-when-valid` on each edit that passes the constraints and the codec.",
+          "default": "`CommitPolicy.on-blur`.",
+          "states": "A draft the constraints or the codec reject is never committed: `field-state.error` carries the message and `invalid()` fires. `cancel-edit()` restores the last accepted draft.",
+          "example": "KitTextField {\n    label: \"Tag\";\n    commit-policy: CommitPolicy.on-change-when-valid;\n    committed(commit) => { root.tag-changed(commit); }\n}"
+        },
+        "ownership": {
+          "effect": "Who owns the accepted value. `local`: the field accepts the draft itself and `committed` reports the new value. `controlled`: `committed` is a proposal; the accepted value stays as it was until the host calls `acknowledge(FieldValue)`.",
+          "default": "`Ownership.local`.",
+          "example": "KitTextField {\n    label: \"Title\";\n    ownership: Ownership.controlled;\n    committed(commit) => { root.title-proposed(commit); }\n}"
+        },
+        "spec-key": {
+          "effect": "Names a `FieldSpec<T, E>` installed in Rust with `install_field_specs`. The codec validates the draft at commit time (its message lands in `field-state.error`), formats the accepted value at rest (`display-text`) and travels in `FieldCommit.spec`, so `spec.accept(commit)` refuses a commit meant for another field.",
+          "default": "`\"\"`: plain text with the HTML constraints only.",
+          "constraints": "The key is application data, independent of the field's position; `FieldSpecKey::new` rejects an empty key. Call `slint_kit::install` and `install_field_specs` before the window shows.",
+          "example": "KitTextField {\n    label: \"Work email\";\n    spec-key: \"contact\";\n    committed(commit) => { root.contact-changed(commit); }\n}"
+        },
+        "field-state": {
+          "effect": "The shared field state: `accepted` (presence and text of the accepted value), `draft`, `dirty` and `touched`, `error` of the last refused commit, `committed` for the last transition and `value`, the candidate of that transition.",
+          "default": "Initialized from `text` at creation: accepted value and draft both equal the initial text.",
+          "states": "Updated by the edit, blur, submit and cancel actions while the field is editable; `acknowledge(FieldValue)` replaces `accepted` under `Ownership.controlled`; `reset-field()` restores `default-value`.",
+          "example": "code := KitTextField {\n    label: \"Code\";\n    spec-key: \"code\";\n}\nText { text: code.field-state.error; }"
+        },
+        "accepted-text": {
+          "effect": "The text of the last accepted value, `field-state.accepted.text`, as a plain string for bindings; it does not change while the user edits the draft.",
+          "default": "The initial `text`.",
+          "example": "name := KitTextField { label: \"Name\"; text: \"Ada\"; }\nText { text: \"Saved: \" + name.accepted-text; }"
+        },
+        "validation": {
+          "effect": "The presentation the application asks for: `pristine`, `checking` (a spinner in the surface and `checking-label` under the editor, for an asynchronous check), `valid`, or `invalid` (danger border and focus ring, `error` shown).",
+          "default": "`ValidationPresentation.pristine`.",
+          "states": "A failing HTML constraint or a codec error forces the invalid presentation whatever this value is. `valid` has no distinct rendering in the shipped field recipe.",
+          "example": "in property <bool> checking-name;\nKitTextField {\n    label: \"Username\";\n    validation: root.checking-name ? ValidationPresentation.checking : ValidationPresentation.pristine;\n}"
+        },
+        "validation-timing": {
+          "effect": "When a failing HTML constraint becomes visible without `report-validity()`: `on-blur` once the field was left (`touched`), `on-input` as soon as it was edited (`dirty`), `on-submit` only after `report-validity()`. A definitive error, such as an impossible email character, shows as soon as the field is dirty.",
+          "default": "`ValidationTiming.on-blur`.",
+          "example": "KitEmailField {\n    label: \"Email\";\n    validation-timing: ValidationTiming.on-input;\n}"
+        },
+        "custom-validity": {
+          "effect": "A message that makes the value invalid until it is cleared, like `setCustomValidity`: `validity.custom-error` is set and `validation-message` repeats it. `set-custom-validity(message)` writes it; it takes precedence over the intrinsic error and over `error`.",
+          "default": "`\"\"`: no custom error.",
+          "example": "in property <bool> slug-taken;\nKitTextField {\n    label: \"Slug\";\n    custom-validity: root.slug-taken ? \"This slug is already used.\" : \"\";\n}"
+        },
+        "validity": {
+          "effect": "HTML-style validity flags of the current value: `valid`, `value-missing`, `type-mismatch`, `pattern-mismatch`, `too-long`, `too-short`, `range-underflow`, `range-overflow`, `step-mismatch`, `bad-input` and `custom-error`, computed by the shared engine from the constraints and `validation-text`.",
+          "states": "Not evaluated while `will-validate` is false (read-only or disabled); `validation-ready` reports whether the shared engine is installed.",
+          "example": "email := KitEmailField { label: \"Email\"; required: true; }\nText { text: email.validity.value-missing ? \"Required\" : \"\"; }"
+        },
+        "validation-message": {
+          "effect": "The message of the first failing constraint, in the order custom, required, type, pattern, too short, too long, underflow, overflow, step, bad input, taken from the matching `*-message` property; `\"\"` while the value is valid or not validated. The built-in `KitFieldError` row shows it when `show-validation-message` is true.",
+          "example": "code := KitTextField { label: \"Code\"; pattern: \"[0-9]{6}\"; }\nText { text: code.validation-message; }"
+        },
+        "show-validation-message": {
+          "effect": "Whether the built-in `KitFieldError` row renders under the editor. Off, the invalid presentation and the accessible description are kept and the host shows the message elsewhere, as `KitDataTable` does for its cell editor and `KitNumberStepper` for its own row.",
+          "default": "`true`.",
+          "example": "field := KitTextField {\n    label: \"Amount\";\n    show-validation-message: false;\n}\nKitFieldError { text: field.validation-message; }"
+        },
+        "purpose": {
+          "effect": "The semantic purpose of the text. It selects the HTML constraint kind through `input-kind` (`email`, `url`, `telephone`, `password`, `search`), the native masking of a password and its reveal button, the clear button of a search, the input-method hints (`plain` gets sentence capitalization, auto-correct and auto-complete; the others none) and the default leading search icon.",
+          "default": "`TextPurpose.plain`. The named fields set it: `KitEmailField` → `email`, `KitUrlField` → `url`, `KitTelephoneField` → `telephone`, `KitPasswordField` → `password`, `KitSearchField` → `search`.",
+          "constraints": "`email` and `url` do not accept arbitrary nonempty text: the shared engine checks the address or absolute-URL syntax, and `email-message` or `url-message` carries the message.",
+          "example": "KitTextField {\n    label: \"Homepage\";\n    purpose: TextPurpose.url;\n}"
+        },
+        "input-type": {
+          "effect": "The native key filtering of the editor, Slint's `InputType`. `decimal` rejects letters on typing and on paste once the shared engine is ready, keeps signs and incomplete decimals and sets `input-kind` to `number`; `password` masks the text.",
+          "default": "`InputType.text`. The number fields set `InputType.decimal`.",
+          "constraints": "Filtering shapes the draft only; parsing, bounds and exact arithmetic stay with the HTML engine and the `FieldSpec`.",
+          "example": "KitTextField {\n    label: \"Amount\";\n    input-type: InputType.decimal;\n    min: \"0\";\n}"
+        },
+        "control-size": {
+          "effect": "Height, padding, icon size and font size of the surface, from the theme's density metrics; shared by every control of the kit so a row of fields and buttons stays aligned.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitTextField {\n    label: \"Filter\";\n    control-size: ControlSize.compact;\n}"
+        },
+        "decoration": {
+          "effect": "The surface the `KitInputGroup` draws around the editor: `boxed` draws the bordered box of the field recipe; `underlined` draws only a bottom line, split into `underline-segments` parts (`KitOtpField` uses one per slot).",
+          "default": "`FieldDecoration.boxed`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.underlined;\n}"
+        },
+        "prefix": {
+          "effect": "Secondary text inside the surface, before the editor, in the editor font and the secondary tone. It is neither part of `text` nor of the validated value; use `leading-icon` for a glyph.",
+          "default": "`\"\"`.",
+          "example": "KitMoneyField {\n    label: \"Price\";\n    prefix: \"$\";\n}"
+        },
+        "suffix": {
+          "effect": "Secondary text inside the surface, after the editor, in the editor font and the secondary tone; neither part of `text` nor of the value. `KitPercentField` sets `\"%\"`; a duration field names its unit here.",
+          "default": "`\"\"`.",
+          "example": "KitDurationField {\n    label: \"Timeout\";\n    suffix: \"seconds\";\n}"
+        },
+        "line-mode": {
+          "effect": "`single-line` keeps one line, commits on Enter and scrolls horizontally. `multiline` wraps words, lets Enter insert a line break instead of committing, scrolls vertically and sizes the editor from `min-lines`, `max-lines` and `resize-policy`. `KitTextArea` sets `multiline`.",
+          "default": "`TextLineMode.single-line`.",
+          "constraints": "A multiline field validates as an HTML text area: `pattern` is not applied, and the reveal and clear buttons are not shown.",
+          "example": "KitTextField {\n    label: \"Notes\";\n    line-mode: TextLineMode.multiline;\n    min-lines: 2;\n}"
+        },
+        "resize-policy": {
+          "effect": "How a multiline editor takes its height: `fixed` shows `min-lines` lines and scrolls inside; `auto-grow` grows with the text up to `max-lines`, then scrolls. `KitTextArea` sets `auto-grow`.",
+          "default": "`ResizePolicy.fixed`.",
+          "example": "KitTextArea {\n    label: \"Comment\";\n    resize-policy: ResizePolicy.fixed;\n    min-lines: 4;\n}"
+        },
+        "min-lines": {
+          "effect": "Lines a multiline editor always shows (at least one line is kept).",
+          "default": "`3`.",
+          "constraints": "Ignored in single-line mode.",
+          "example": "KitTextArea {\n    label: \"Address\";\n    min-lines: 2;\n    max-lines: 4;\n}"
+        },
+        "max-lines": {
+          "effect": "Lines a multiline editor grows to under `ResizePolicy.auto-grow` before it scrolls; never fewer than `min-lines`.",
+          "default": "`8`.",
+          "example": "KitTextArea {\n    label: \"Description\";\n    max-lines: 12;\n}"
+        }
+      }
     }
   },
   "KitTimeField": {
@@ -2869,7 +4183,29 @@
       "related": [
         "KitRadioGroup",
         "KitMultiSelect"
-      ]
+      ],
+      "properties": {
+        "options": {
+          "effect": "Les lignes source, issues de `Choices<K>::model()` ; chaque ligne est un bouton à bascule, enfoncé tant qu’il est sélectionné.",
+          "default": "Vide : aucun bouton n’est rendu.",
+          "example": "KitToggleGroup {\n    label: \"Mise en forme\";\n    options: root.styles;\n    selection-changed(ligne, ajoutee) => { root.style-bascule(ligne, ajoutee); }\n}"
+        },
+        "selected": {
+          "effect": "Les boutons enfoncés sous forme de `[SelectionRef]`, liés dans les deux sens ; `selection-changed(OptionRow, bool)` rapporte chaque changement et `toggled(token, generation)` le geste brut.",
+          "default": "Vide.",
+          "example": "KitToggleGroup {\n    options: root.styles;\n    selected: [{ present: true, token: 0 }];\n}"
+        },
+        "selection-limit": {
+          "effect": "Nombre maximal de boutons enfoncés ; une bascule au-delà est refusée.",
+          "default": "`0` : aucune limite.",
+          "example": "KitToggleGroup {\n    options: root.jours;\n    selection-limit: 2;\n}"
+        },
+        "label": {
+          "effect": "Nom accessible du groupe (rôle `groupbox`). Aucune ligne de libellé visible n’est rendue.",
+          "default": "`\"\"`.",
+          "example": "KitToggleGroup {\n    label: \"Jours\";\n    options: root.jours;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Group of actions with local or controlled multiple selection.",
@@ -2880,7 +4216,29 @@
       "related": [
         "KitRadioGroup",
         "KitMultiSelect"
-      ]
+      ],
+      "properties": {
+        "options": {
+          "effect": "The source rows, from `Choices<K>::model()`; each row is one toggle button that is pressed while selected.",
+          "default": "Empty: no toggle is rendered.",
+          "example": "KitToggleGroup {\n    label: \"Formatting\";\n    options: root.styles;\n    selection-changed(row, added) => { root.style-toggled(row, added); }\n}"
+        },
+        "selected": {
+          "effect": "The pressed toggles as `[SelectionRef]`, two-way; `selection-changed(OptionRow, bool)` reports each change and `toggled(token, generation)` the raw gesture.",
+          "default": "Empty.",
+          "example": "KitToggleGroup {\n    options: root.styles;\n    selected: [{ present: true, token: 0 }];\n}"
+        },
+        "selection-limit": {
+          "effect": "Maximum number of pressed toggles; a toggle beyond it is refused.",
+          "default": "`0`: no limit.",
+          "example": "KitToggleGroup {\n    options: root.days;\n    selection-limit: 2;\n}"
+        },
+        "label": {
+          "effect": "Accessible name of the group (`groupbox` role). No visible label row is rendered.",
+          "default": "`\"\"`.",
+          "example": "KitToggleGroup {\n    label: \"Days\";\n    options: root.days;\n}"
+        }
+      }
     }
   },
   "KitTooltip": {

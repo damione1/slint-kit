@@ -12,6 +12,7 @@ import { mockups } from './src/assets/component-mockups.js';
 import { iconSnippet } from './src/assets/lucide-gallery.js';
 import { writeSearchIndexes } from './scripts/search-index.mjs';
 import { loadProject } from './scripts/project.mjs';
+import ui from './src/_data/ui.js';
 export default function (eleventyConfig) {
   const outputDirectory = process.env.DOCS_SITE_STAGE || '_site';
   const lucide = lucideCatalogue();
@@ -133,6 +134,20 @@ export default function (eleventyConfig) {
     return [locale, { filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image.readUInt32BE(16), height: image.readUInt32BE(20) }];
   })));
   eleventyConfig.addFilter('prose', text => markdown.render(text || ''));
+  eleventyConfig.addFilter('proseInline', text => markdown.renderInline(text || ''));
+  // The declared default of a property, as one Markdown table cell: an inline
+  // initializer verbatim, "—" for the zero value, and a pointer to the source
+  // for a composite expression; an `out` property is computed, not defaulted.
+  // A pipe is escaped after rendering so the table row keeps its cells.
+  eleventyConfig.addFilter('declaredDefault', (property, locale) => {
+    if (property.direction === 'out') return '—';
+    switch (property.default.kind) {
+      case 'none': return '—';
+      case 'elided': return `<em>${ui[locale].sourceDefault}</em>`;
+      case 'inline': return markdown.renderInline('`' + property.default.text + '`').replaceAll('|', '\\|');
+      default: throw new Error(`Unknown declared default kind: ${property.default.kind}`);
+    }
+  });
   eleventyConfig.addFilter('componentByName', name => inventory.find(c => c.name === name));
   eleventyConfig.addFilter('example', (slug, locale = 'en') => fs.readFileSync(path.join('examples', locale === 'fr' ? 'fr' : '', `${slug}.slint`), 'utf8'));
   eleventyConfig.addFilter('whereFamily', (components, family) => components.filter(c => c.family === family));
