@@ -419,7 +419,7 @@ fn slider_cancel_is_distinct_from_commit_and_read_only_blocks_edits() {
     window.on_slider_started(move || observed.set(observed.get() + 1));
     window.invoke_focus_slider();
     key(&window, Key::Escape);
-    assert_eq!(cancelled.get(), 1);
+    assert_eq!(cancelled.get(), 0, "Escape has no active gesture to cancel");
     assert_eq!(committed.get(), 0);
     let slider = element(&window, "Volume");
     let origin = slider.absolute_position();
@@ -458,7 +458,7 @@ fn slider_cancel_is_distinct_from_commit_and_read_only_blocks_edits() {
         });
     assert_eq!(
         cancelled.get(),
-        2,
+        1,
         "an access change cancels the active gesture"
     );
     assert_eq!(
