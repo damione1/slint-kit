@@ -824,7 +824,7 @@ export component KitMultiSelect inherits Rectangle {
         spacing: KitMetrics.label-gap(root.theme);
         if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitTextField {
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
@@ -834,7 +834,7 @@ export component KitMultiSelect inherits Rectangle {
         }
         if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip; disabled: !chip.removable || root.access != FieldAccess.editable;
                 remove-requested(token) => { if (root.access == FieldAccess.editable) { selection.remove(token); root.remove-requested(token); } }
@@ -906,7 +906,7 @@ export component KitTagInput inherits Rectangle {
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
         }
         editor := KitTextField {
