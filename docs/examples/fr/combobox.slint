@@ -20,7 +20,7 @@ export component Example inherits Window {
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in property <[OptionRow]> options: [{ token: 11, generation: 1, label: "Personnel", description: "", disabled: false }, { token: 25, generation: 1, label: "Partagé", description: "", disabled: false }, { token: 39, generation: 1, label: "Archives", description: "", disabled: false }, { token: 53, generation: 1, label: "Studio de design", description: "", disabled: false }, { token: 67, generation: 1, label: "Ingénierie", description: "", disabled: false }, { token: 81, generation: 1, label: "Marketing", description: "", disabled: false }, { token: 95, generation: 1, label: "Labo de recherche", description: "", disabled: false }, { token: 109, generation: 1, label: "Communauté", description: "", disabled: false }];
+    in property <[OptionRow]> options: [{ token: 11, generation: 1, label: "Personnel", description: "Notes et brouillons privés", disabled: false }, { token: 25, generation: 1, label: "Partagé", description: "Documents d’équipe", disabled: false }, { token: 39, generation: 1, label: "Archives", description: "Projets terminés", disabled: false }, { token: 53, generation: 1, label: "Studio de design", description: "Systèmes UI et jetons", disabled: false }, { token: 67, generation: 1, label: "Ingénierie", description: "Architecture et versions", disabled: false }, { token: 81, generation: 1, label: "Marketing", description: "Campagnes et lancements", disabled: false }, { token: 95, generation: 1, label: "Labo de recherche", description: "Études utilisateurs", disabled: false }, { token: 109, generation: 1, label: "Communauté", description: "Discussions publiques", disabled: false }];
 
     in-out property <string> query;
 
@@ -29,9 +29,11 @@ export component Example inherits Window {
         spacing: 16px;
         alignment: start;
         Text { text: "Trouvez votre espace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        Text { text: "Recherchez parmi huit espaces ou parcourez-les avec les flèches."; color: root.theme.text-secondary; wrap: word-wrap; }
+        Text { text: "Saisissez dans le champ en ligne pour filtrer les espaces, ou parcourez-les avec les flèches."; color: root.theme.text-secondary; wrap: word-wrap; }
         workspace := KitCombobox { theme: root.theme;
             label: "Espace de travail";
+            placeholder: "Rechercher un espace…";
+            clearable: true;
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Choisi : " + row.label; }
 
             query <=> root.query;

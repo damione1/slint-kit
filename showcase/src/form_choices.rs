@@ -5,8 +5,8 @@ use slint::ComponentHandle;
 use slint_kit::{
     CheckState, DecimalStep, DecimalValue, DismissReason, MultiSelectController, NavigationStep,
     NumericBounds, OrderedRange, Ownership, ParseIssue, RangeController, Rating, RatingScale,
-    SearchController, SearchState, SelectBinding, SelectController, SelectOption, SelectProjection,
-    SelectionAvailability, SelectionIntent, StepDirection,
+    RemovalPolicy, SearchController, SearchState, SelectBinding, SelectController, SelectOption,
+    SelectProjection, SelectionAvailability, SelectionIntent, StepDirection,
 };
 use std::{cell::RefCell, convert::Infallible, hash::Hash, rc::Rc, time::Duration};
 
@@ -816,6 +816,7 @@ fn install_suggestions(window: &ui::Showcase) {
             }
         },
     );
+    binding.set_removal_policy(RemovalPolicy::Retain);
     let choice = selected.clone();
     binding.on_intent(move |intent| match intent {
         SelectionIntent::Commit(key) => *choice.borrow_mut() = Some(key),
