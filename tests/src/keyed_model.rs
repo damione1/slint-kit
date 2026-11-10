@@ -187,11 +187,15 @@ fn table_rows_follow_their_key_through_keyboard_selection_sorting_and_filtering(
     let window = base_data::fixture();
     window.set_columns(slint::ModelRc::new(slint::VecModel::from(vec![
         ui::TableColumn {
+            visibility: Default::default(),
+            source: Default::default(),
             token: 1,
             label: "Project".into(),
             ..Default::default()
         },
         ui::TableColumn {
+            visibility: Default::default(),
+            source: Default::default(),
             token: 2,
             label: "Tasks".into(),
             sortable: true,

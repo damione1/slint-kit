@@ -136,7 +136,12 @@ fn columns(
 ) -> Vec<ui::TableColumn> {
     Column::ALL
         .into_iter()
-        .map(|column| ui::TableColumn {
+        .enumerate()
+        .map(|(index, column)| ui::TableColumn {
+            visibility: Default::default(),
+            source: slint_kit::ColumnDataIndex::try_from(index)
+                .expect("bounded example column index")
+                .into(),
             token: column.token(),
             label: column.label(language).into(),
             sortable: true,

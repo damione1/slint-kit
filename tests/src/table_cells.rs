@@ -16,6 +16,8 @@ const DONE: i32 = 8;
 
 fn column(token: i32, label: &str, alignment: DataAlignment, width: ColumnWidth) -> TableColumn {
     TableColumn {
+        visibility: Default::default(),
+        source: Default::default(),
         token,
         label: label.into(),
         sortable: false,

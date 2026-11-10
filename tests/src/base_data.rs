@@ -118,6 +118,8 @@ fn columns() -> ModelRc<TableColumn> {
 pub(crate) fn column_set() -> Vec<TableColumn> {
     vec![
         TableColumn {
+            visibility: Default::default(),
+            source: Default::default(),
             token: 17,
             label: "Product".into(),
             sortable: true,
@@ -126,6 +128,8 @@ pub(crate) fn column_set() -> Vec<TableColumn> {
             width: ColumnWidth::default(),
         },
         TableColumn {
+            visibility: Default::default(),
+            source: Default::default(),
             token: 91,
             label: "Quantity".into(),
             sortable: false,
