@@ -10,6 +10,9 @@ export component BaseDataFixture inherits Window {
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <ControlSize> table-size: ControlSize.medium;
     in property <length> table-height: 240px;
+    in property <length> content-height: 250px;
+    in property <length> document-height: 320px;
+    in property <TextViewAccess> document-access: TextViewAccess.edit-line;
     in property <[TableColumn]> columns;
     in property <[TableRow]> rows;
     in property <[ContentItem]> items;
@@ -21,6 +24,7 @@ export component BaseDataFixture inherits Window {
     in property <string> table-ascending-label: "ascending";
     in property <string> table-descending-label: "descending";
     in property <int> table-generation: 1;
+    in property <int> content-generation: 1;
     in property <int> line-generation: 1;
     in property <int> table-active: -1;
     in-out property <int> table-active-column <=> table.active-column;
@@ -41,6 +45,9 @@ export component BaseDataFixture inherits Window {
     in property <string> document-save-label: "Save line";
     in property <string> document-copy-label: "Copy";
     in-out property <string> pasted;
+    out property <int> table-page-rows: table.page-rows;
+    out property <int> content-page-rows: content.page-rows;
+    out property <int> line-page-rows: document.page-rows;
     out property <length> table-scroll: table.scroll-y;
     out property <length> table-scroll-x: table.scroll-x;
     out property <length> table-width: table.width;
@@ -91,15 +98,15 @@ export component BaseDataFixture inherits Window {
             cell-committed(row, column, generation, commit) => { root.cell-committed(row, column, generation, commit); }
         }
         content := KitContentList {
-            theme: root.theme; height: 250px; items: root.items; generation: 1; active-index: root.content-active;
+            theme: root.theme; height: root.content-height; items: root.items; generation: root.content-generation; active-index: root.content-active;
             label: "Articles fixture";
             empty-label: root.content-empty-label;
             navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
             activate(token,generation) => { root.content-activated(token,generation); }
         }
         document := KitVirtualTextView {
-            theme: root.theme; height: 320px; lines: root.lines; generation: root.line-generation; active-index: root.line-active;
-            access: TextViewAccess.edit-line; line-draft <=> root.line-draft; error: root.line-error;
+            theme: root.theme; height: root.document-height; lines: root.lines; generation: root.line-generation; active-index: root.line-active;
+            access: root.document-access; line-draft <=> root.line-draft; error: root.line-error;
             label: "Document fixture"; editor-label: root.document-editor-label; save-label: root.document-save-label; copy-label: root.document-copy-label;
             navigate(step) => { root.navigate(DataFixtureCollection.document,step); }
             select-line(token,generation) => { root.line-selected(token,generation); }

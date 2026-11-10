@@ -1160,3 +1160,236 @@ fn roving_headers_after_disabling_an_individual_header_do_not_restore_stale_focu
     key(&window, Key::Return);
     assert_eq!(sorted.get(), 2, "the new shared cursor can sort normally");
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+struct PageRecord(usize);
+
+#[test]
+fn page_keys_follow_all_collection_viewports_after_resize_and_text_scaling() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint_kit::KeyedModel;
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(columns());
+    let table_model = KeyedModel::new(
+        rows(1, 100)
+            .into_iter()
+            .enumerate()
+            .map(|(index, row)| (PageRecord(index), row)),
+    )
+    .unwrap();
+    let content_model = KeyedModel::new(
+        items(100)
+            .into_iter()
+            .enumerate()
+            .map(|(index, row)| (PageRecord(index), row)),
+    )
+    .unwrap();
+    let line_model = KeyedModel::new(
+        lines(100)
+            .into_iter()
+            .enumerate()
+            .map(|(index, row)| (PageRecord(index), row)),
+    )
+    .unwrap();
+    table_model.bind(
+        &window,
+        BaseDataFixture::set_rows,
+        BaseDataFixture::set_table_generation,
+        BaseDataFixture::set_table_active,
+    );
+    content_model.bind(
+        &window,
+        BaseDataFixture::set_items,
+        BaseDataFixture::set_content_generation,
+        BaseDataFixture::set_content_active,
+    );
+    line_model.bind(
+        &window,
+        BaseDataFixture::set_lines,
+        BaseDataFixture::set_line_generation,
+        BaseDataFixture::set_line_active,
+    );
+    let table_navigation = table_model.navigation(&window, BaseDataFixture::get_table_page_rows);
+    let content_navigation =
+        content_model.navigation(&window, BaseDataFixture::get_content_page_rows);
+    let line_navigation = line_model.navigation(&window, BaseDataFixture::get_line_page_rows);
+    window.on_navigate(move |collection, step| match collection {
+        DataFixtureCollection::Table => table_navigation(step),
+        DataFixtureCollection::Content => content_navigation(step),
+        DataFixtureCollection::Document => line_navigation(step),
+    });
+    window.show().unwrap();
+    window
+        .window()
+        .set_size(slint::LogicalSize::new(960., 1700.));
+    let mut density_changed_page = false;
+    for (theme_name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            let mut small_pages = None;
+            for large in [false, true] {
+                window.set_table_size(ControlSize::Medium);
+                window.set_table_height(if large { 400. } else { 240. });
+                window.set_content_height(if large { 500. } else { 250. });
+                window.set_document_height(if large { 500. } else { 320. });
+                window.set_document_access(TextViewAccess::EditLine);
+                slint::platform::update_timers_and_animations();
+                window.window().take_snapshot().unwrap();
+                let pages = [
+                    window.get_table_page_rows(),
+                    window.get_content_page_rows(),
+                    window.get_line_page_rows(),
+                ];
+                assert!(pages.iter().all(|page| *page > 0));
+                if let Some(previous) = small_pages {
+                    for (current, previous) in pages.into_iter().zip(previous) {
+                        assert!(
+                            current > previous,
+                            "a larger viewport must expose a larger page"
+                        );
+                    }
+                } else {
+                    small_pages = Some(pages);
+                }
+                for (collection, name, page) in [
+                    (DataFixtureCollection::Table, "table", pages[0]),
+                    (DataFixtureCollection::Content, "content", pages[1]),
+                    (DataFixtureCollection::Document, "document", pages[2]),
+                ] {
+                    match collection {
+                        DataFixtureCollection::Table => {
+                            table_model.navigate(slint_kit::NavigationStep::First, 1);
+                            window.invoke_focus_table();
+                        }
+                        DataFixtureCollection::Content => {
+                            content_model.navigate(slint_kit::NavigationStep::First, 1);
+                            window.invoke_focus_content();
+                        }
+                        DataFixtureCollection::Document => {
+                            line_model.navigate(slint_kit::NavigationStep::First, 1);
+                            window.invoke_focus_document();
+                        }
+                    }
+                    slint::platform::update_timers_and_animations();
+                    window.window().take_snapshot().unwrap();
+                    key(&window, Key::PageDown);
+                    slint::platform::update_timers_and_animations();
+                    let snapshot = window.window().take_snapshot().unwrap();
+                    let actual = match collection {
+                        DataFixtureCollection::Table => table_model.active_index(),
+                        DataFixtureCollection::Content => content_model.active_index(),
+                        DataFixtureCollection::Document => line_model.active_index(),
+                    };
+                    assert_eq!(
+                        actual, page,
+                        "{name} PageDown must use its current visible page"
+                    );
+                    if large {
+                        crate::choice_presentation::save_capture(
+                            &snapshot,
+                            &format!("collection-page-{name}-{theme_name}-{scale}"),
+                        );
+                    }
+                    key(&window, Key::PageUp);
+                    slint::platform::update_timers_and_animations();
+                    let actual = match collection {
+                        DataFixtureCollection::Table => table_model.active_index(),
+                        DataFixtureCollection::Content => content_model.active_index(),
+                        DataFixtureCollection::Document => line_model.active_index(),
+                    };
+                    assert_eq!(actual, 0, "{name} PageUp must use the same viewport page");
+                }
+                if large {
+                    window.set_table_size(ControlSize::Compact);
+                    slint::platform::update_timers_and_animations();
+                    window.window().take_snapshot().unwrap();
+                    let compact_page = window.get_table_page_rows();
+                    let compact_row_height =
+                        f64::from(delegates(&window, "KitDataTable")[0].size().height);
+                    let compact_viewport_height = f64::from(
+                        ElementHandle::find_by_element_id(&window, "KitDataTable::list")
+                            .next()
+                            .unwrap()
+                            .query_descendants()
+                            .match_type_name("Flickable")
+                            .find_first()
+                            .unwrap()
+                            .size()
+                            .height,
+                    );
+                    assert!(compact_row_height > 0. && compact_viewport_height > 0.);
+                    assert_eq!(
+                        f64::from(compact_page),
+                        (compact_viewport_height / compact_row_height)
+                            .floor()
+                            .max(1.)
+                    );
+                    table_model.navigate(slint_kit::NavigationStep::First, 1);
+                    window.invoke_focus_table();
+                    key(&window, Key::PageDown);
+                    let compact_destination = table_model.active_index();
+                    assert_eq!(compact_destination, compact_page);
+                    window.set_table_size(ControlSize::Comfortable);
+                    slint::platform::update_timers_and_animations();
+                    window.window().take_snapshot().unwrap();
+                    let comfortable_page = window.get_table_page_rows();
+                    let comfortable_row_height =
+                        f64::from(delegates(&window, "KitDataTable")[0].size().height);
+                    let comfortable_viewport_height = f64::from(
+                        ElementHandle::find_by_element_id(&window, "KitDataTable::list")
+                            .next()
+                            .unwrap()
+                            .query_descendants()
+                            .match_type_name("Flickable")
+                            .find_first()
+                            .unwrap()
+                            .size()
+                            .height,
+                    );
+                    assert!(comfortable_row_height > compact_row_height);
+                    assert!(comfortable_viewport_height > 0.);
+                    assert_eq!(
+                        f64::from(comfortable_page),
+                        (comfortable_viewport_height / comfortable_row_height)
+                            .floor()
+                            .max(1.)
+                    );
+                    assert!(compact_page >= comfortable_page);
+                    table_model.navigate(slint_kit::NavigationStep::First, 1);
+                    window.invoke_focus_table();
+                    key(&window, Key::PageDown);
+                    let comfortable_destination = table_model.active_index();
+                    assert_eq!(comfortable_destination, comfortable_page);
+                    if compact_page > comfortable_page {
+                        assert_ne!(compact_destination, comfortable_destination);
+                        density_changed_page = true;
+                    }
+                }
+                let edit_pages = window.get_line_page_rows();
+                window.set_document_access(TextViewAccess::ReadOnly);
+                slint::platform::update_timers_and_animations();
+                window.window().take_snapshot().unwrap();
+                assert!(
+                    window.get_line_page_rows() > edit_pages,
+                    "hiding the edit footer must enlarge the document page"
+                );
+            }
+        }
+    }
+    assert!(
+        density_changed_page,
+        "at least one density change must alter the page and actual navigation distance"
+    );
+}

@@ -125,7 +125,7 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
         model.update_active(token, generation, |row| row.title = "stale".into()),
         None
     );
-    model.navigate(slint_kit::NavigationStep::Next);
+    model.navigate(slint_kit::NavigationStep::Next, 1);
     assert_eq!(
         model.update_active(token, model.generation(), |row| row.title =
             "wrong line".into()),
@@ -133,7 +133,7 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
     );
     assert_eq!(model.active_row().unwrap().title, "second");
     drop(first);
-    model.navigate(slint_kit::NavigationStep::Previous);
+    model.navigate(slint_kit::NavigationStep::Previous, 1);
     assert_eq!(second.get_email_text(), "edited");
 }
 
@@ -206,7 +206,7 @@ fn table_rows_follow_their_key_through_keyboard_selection_sorting_and_filtering(
         crate::BaseDataFixture::set_table_generation,
         crate::BaseDataFixture::set_table_active,
     );
-    let navigate = model.navigation();
+    let navigate = model.navigation(&window, crate::BaseDataFixture::get_table_page_rows);
     window.on_navigate(move |collection, step| match collection {
         DataFixtureCollection::Table => navigate(step),
         DataFixtureCollection::Content | DataFixtureCollection::Document => {}
@@ -329,4 +329,38 @@ fn domain_updates_preserve_generation_and_can_reenable_or_remove_disabled_record
     assert!(model.remove_by_key(&Record(1)));
     assert_eq!(model.get(&Record(1)), None);
     assert!(!model.is_empty());
+}
+
+#[test]
+fn page_navigation_reads_the_current_window_getter_and_does_not_retain_it() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = crate::AutonomousFixture::new().unwrap();
+    let weak = window.as_weak();
+    let model = KeyedModel::new((0..100).map(|index| (Record(index), row("row")))).unwrap();
+    let navigate = model.navigation(&window, crate::AutonomousFixture::get_active);
+    model.navigate(slint_kit::NavigationStep::First, 1);
+    window.set_active(4);
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(model.active_index(), 4);
+    window.set_active(11);
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(model.active_index(), 15);
+    window.set_active(3);
+    navigate(ui::NavigationStep::PagePrevious);
+    assert_eq!(model.active_index(), 12);
+    window.set_active(-5);
+    navigate(ui::NavigationStep::PagePrevious);
+    assert_eq!(
+        model.active_index(),
+        11,
+        "an unmeasured page still moves one row"
+    );
+    drop(window);
+    assert!(weak.upgrade().is_none());
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(
+        model.active_index(),
+        11,
+        "a dropped view receives no navigation"
+    );
 }

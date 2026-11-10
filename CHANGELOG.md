@@ -9,6 +9,8 @@
 - Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 
 - Add semantic avatar tones using existing theme fills and contrast-preserving foregrounds; accent remains the default.
+- Expose actual collection page sizes and a weak-window navigation binding; PageUp/PageDown examples and showcase use the current viewport instead of fixed row counts. **Breaking:** `KeyedModel::navigate` now requires `page_rows`, and `navigation` requires a window and page getter; the explicit `navigate_page` alias remains.
+- Expose la taille réelle des pages de collection et un branchement faible de navigation ; les exemples et la galerie utilisent le viewport courant pour PageUp/PageDown plutôt qu’un nombre fixe de lignes. **Rupture :** `KeyedModel::navigate` exige désormais `page_rows`, et `navigation` exige une fenêtre et son getter de page ; l’alias explicite `navigate_page` reste disponible.
 
 - Record the successful macOS arm64 headless check, starters and complete documentation applications at [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661); native, IME and screen-reader qualification remains separate.
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.

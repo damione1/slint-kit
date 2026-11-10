@@ -408,8 +408,10 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         self.accept(token, generation)?;
         self.remove(token)
     }
-    pub fn navigate(&self, step: NavigationStep) {
-        self.navigate_page(step, 10);
+    /// Navigate with an explicit current viewport capacity for page keys.
+    /// Non-page steps ignore the capacity; zero capacity advances one row.
+    pub fn navigate(&self, step: NavigationStep, page_rows: usize) {
+        self.navigate_page(step, page_rows);
     }
     /// Navigate by the view's current visible row count for page keys.
     pub fn navigate_page(&self, step: NavigationStep, page_rows: usize) {
@@ -471,9 +473,23 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         drop(state);
         self.publish();
     }
-    pub fn navigation(&self) -> impl Fn(ui::NavigationStep) + 'static {
+    /// Bind navigation to the view's current page size without retaining its window.
+    /// Read `page_rows` on each key so resizing, text scaling and density changes
+    /// affect the next PageUp/PageDown immediately. Values below one mean one row.
+    pub fn navigation<W: ComponentHandle + 'static>(
+        &self,
+        window: &W,
+        page_rows: fn(&W) -> i32,
+    ) -> impl Fn(ui::NavigationStep) + 'static {
         let model = self.clone();
-        move |step| model.navigate(step.into())
+        let window = window.as_weak();
+        move |step| {
+            if let Some(window) = window.upgrade() {
+                let page = usize::try_from(page_rows(&window).max(1))
+                    .expect("positive page rows fit usize");
+                model.navigate(step.into(), page);
+            }
+        }
     }
     /// Connect the collection projection through explicit setters. No naming
     /// convention or strong reference to the application window is required.

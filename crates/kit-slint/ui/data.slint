@@ -451,6 +451,7 @@ export component KitDataTable inherits Rectangle {
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
     public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.cancelled); } }
     private property <int> edit-commit-request;
+    out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y: list.content-y;
     out property <length> scroll-x: list.content-x;
     // Whether a cell editor is open, and the error of its last rejected
@@ -819,6 +820,7 @@ export component KitContentList inherits Rectangle {
     in property <string> empty-label:"No articles found";
     callback activate(int,int);callback navigate(NavigationStep);
     public function take-focus(){keys.focus();}
+    out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y:list.content-y;
     private property <length> row-height:max(132px,116px * root.theme.text-scale);
     changed active-index => {
@@ -884,6 +886,7 @@ export component KitVirtualTextView inherits Rectangle {
     in property <string> copy-label:"Copy";
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
     public function take-focus(){keys.focus();}
+    out property <int> page-rows: max(1, floor(list.visible-height / root.line-height));
     out property <length> scroll-y:list.content-y;
     private property <length> line-height:max(32px,24px * root.theme.text-scale + 8px);
     private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;

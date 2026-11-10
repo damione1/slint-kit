@@ -186,7 +186,7 @@ pub fn create_app(language: ui::TableLanguage) -> Result<ui::TableApp, slint::Pl
     let headers = Rc::new(VecModel::from(columns(language, None)));
     app.set_columns(ModelRc::from(headers.clone()));
     app.set_selection_label(catalogue.selection_label(language).into());
-    app.on_navigate(model.navigation());
+    app.on_navigate(model.navigation(&app, ui::TableApp::get_page_rows));
     app.on_activate(model.activation({
         let (weak, catalogue) = (app.as_weak(), catalogue.clone());
         move |id| {
@@ -285,7 +285,7 @@ mod tests {
         assert_eq!(model.active_index(), 2);
 
         // Navigation skips the archived row; descending order follows the key.
-        model.navigate(slint_kit::NavigationStep::Last);
+        model.navigate(slint_kit::NavigationStep::Last, 1);
         assert_eq!(model.active_index(), 2);
         by_tasks();
         assert_eq!(names(&model), ["Cedar", "Atlas", "Delta", "Boreal"]);

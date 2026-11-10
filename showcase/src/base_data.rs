@@ -577,15 +577,16 @@ pub fn install(window: &ui::Showcase) {
         }
     });
     let weak = window.as_weak();
-    global.on_navigate(move |collection, step| {
+    global.on_navigate(move |collection, step, page_rows| {
         let Some(window) = weak.upgrade() else {
             return;
         };
         let global = window.global::<ui::DataExamples>();
         let mut data = state.borrow_mut();
+        let page = usize::try_from(page_rows.max(1)).expect("positive page rows fit usize");
         match collection {
             ui::DataCollection::Table => {
-                if let Some(index) = navigate(data.active(), data.visible.len(), step, 7) {
+                if let Some(index) = navigate(data.active(), data.visible.len(), step, page) {
                     data.select(index);
                     data.publish(&window);
                 }
@@ -596,14 +597,14 @@ pub fn install(window: &ui::Showcase) {
                         .and_then(|id| number(id.0, data.articles.row_count())),
                     data.articles.row_count(),
                     step,
-                    3,
+                    page,
                 ) {
                     drop(data);
                     global.invoke_article_open(index as i32 + 1, 1);
                 }
             }
             ui::DataCollection::Document => {
-                if let Some(index) = navigate(data.line, data.lines.row_count(), step, 10) {
+                if let Some(index) = navigate(data.line, data.lines.row_count(), step, page) {
                     data.choose_line(index, &window);
                 }
             }

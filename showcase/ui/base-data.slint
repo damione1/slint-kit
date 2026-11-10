@@ -18,7 +18,7 @@ export global DataExamples {
     in-out property <string> query;
     in-out property <string> table-status;
     callback query-edited(string);callback sort(int);callback table-select(int,int);callback table-resize(int,length);callback table-cell-committed(int,int,int,FieldCommit);
-    callback navigate(DataCollection,NavigationStep);
+    callback navigate(DataCollection,NavigationStep,int);
     in-out property <[ContentItem]> articles;
     in-out property <int> article-active:-1;
     in-out property <string> article-status:"Choose a story to open its preview.";
@@ -46,7 +46,7 @@ export component DataGallery inherits VerticalLayout {
         PreviewAnchor { height: 0px; target: PreviewTarget.table; }
         KitCardHeader {theme:root.theme;title:"Data table";description:"Search and sort ten thousand records. Selection stays with the record when its position changes.";}
         KitSearchField {theme:root.theme;control-size:root.control-size;label:"Find a product";placeholder:"Search title or category";text<=>DataExamples.query;edited(query)=>{DataExamples.query-edited(query);}}
-        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step);}sort-requested(column)=>{DataExamples.sort(column);}resize-requested(column,width)=>{DataExamples.table-resize(column,width);}cell-committed(row,column,generation,commit)=>{DataExamples.table-cell-committed(row,column,generation,commit);}}
+        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step,self.page-rows);}sort-requested(column)=>{DataExamples.sort(column);}resize-requested(column,width)=>{DataExamples.table-resize(column,width);}cell-committed(row,column,generation,commit)=>{DataExamples.table-cell-committed(row,column,generation,commit);}}
         Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
     KitCard {theme:root.theme;
@@ -56,7 +56,7 @@ export component DataGallery inherits VerticalLayout {
             private property <bool> stacked: root.theme.text-scale > 1 || self.width < root.theme.spacing.unit * 160;
             private property <length> column-width: self.stacked ? self.width : max(0px,(self.width - KitMetrics.section-gap(root.theme)) / 2);
             flex-direction: self.stacked ? column : row; flex-wrap: no-wrap; spacing: KitMetrics.section-gap(root.theme); cross-axis-alignment: start;
-            articles := KitContentList { theme: root.theme; items: DataExamples.articles; generation: 1; active-index: DataExamples.article-active; width: article-columns.column-width; height: 440px; activate(token,generation) => { DataExamples.article-open(token,generation); } navigate(step) => { DataExamples.navigate(DataCollection.articles,step); } }
+            articles := KitContentList { theme: root.theme; items: DataExamples.articles; generation: 1; active-index: DataExamples.article-active; width: article-columns.column-width; height: 440px; activate(token,generation) => { DataExamples.article-open(token,generation); } navigate(step) => { DataExamples.navigate(DataCollection.articles,step,self.page-rows); } }
             preview-panel := VerticalLayout {
                 private property <ArticlePreview> observed-preview: DataExamples.preview;
                 changed observed-preview => { if (article-columns.stacked && DataExamples.preview-state == ArticlePreviewState.open) { PreviewExamples.reveal(self.absolute-position.y,0px); } }
@@ -77,7 +77,7 @@ export component DataGallery inherits VerticalLayout {
     }
     KitCard {theme:root.theme;
         KitCardHeader {theme:root.theme;title:"Virtual text view";description:"Browse fifty thousand lines in a virtualized view. Edit the selected line with the native editor; the rest of the document stays in the model.";}
-        KitVirtualTextView {theme:root.theme;access:TextViewAccess.edit-line;lines:DataExamples.lines;generation:DataExamples.line-generation;active-index:DataExamples.line-active;line-draft<=>DataExamples.line-draft;error:DataExamples.line-error;preferred-height:420px;navigate(step)=>{DataExamples.navigate(DataCollection.document,step);}select-line(token,generation)=>{DataExamples.line-select(token,generation);}commit-line(token,generation,text)=>{DataExamples.line-commit(token,generation,text);}copy-requested(token,generation)=>{DataExamples.line-copy(token,generation);}}
+        KitVirtualTextView {theme:root.theme;access:TextViewAccess.edit-line;lines:DataExamples.lines;generation:DataExamples.line-generation;active-index:DataExamples.line-active;line-draft<=>DataExamples.line-draft;error:DataExamples.line-error;preferred-height:420px;navigate(step)=>{DataExamples.navigate(DataCollection.document,step,self.page-rows);}select-line(token,generation)=>{DataExamples.line-select(token,generation);}commit-line(token,generation,text)=>{DataExamples.line-commit(token,generation,text);}copy-requested(token,generation)=>{DataExamples.line-copy(token,generation);}}
         Text {text:DataExamples.line-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
 }

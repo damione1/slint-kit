@@ -190,3 +190,4 @@ Surface/Card retain Rectangle painting: SurfaceRecipe applies fill/border/radius
 `KitAvatar.size` is an exact diameter, including 24px. `avatar-size: AvatarSize.compact/medium/large` defaults scale with text; explicit sizes remain fixed. Initials scale with diameter, empty avatars use theme.icons.avatar, and @children supplies status decorations. Complete geometry/icon literals include avatar preset/ratio fields and the avatar glyph role.
 
 Avatar `tone` uses the shared Tone enum (accent by default) and the theme’s subtle fills with readable foregrounds.
+Use each collection’s read-only `page-rows` for PageUp/PageDown. Expose it through a window getter and bind `model.navigation(&window, Window::get_page_rows)` so resizing, density, text scale and edit-footer changes affect the next key without retaining the window. Direct controllers pass that current value to `navigate_page`; every navigation binding now requires that context.
