@@ -315,47 +315,51 @@ fn accordion_local_expansion_and_controlled_proposals_wait_for_acknowledgment() 
     );
 }
 
+fn assert_combobox_retains_remote_page(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let apricot_ref = choices.selection(&Destination::Apricot).unwrap();
+    window.set_combo_selected(apricot_ref.clone());
+    // A host projection becomes displayed after the UI processes its changed handlers.
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert!(window.get_combo_validity().valid);
+
+    // Simulate remote search replacing the options with a page that omits Apricot.
+    choices
+        .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+        .unwrap();
+    assert_eq!(
+        choices.selection(&Destination::Apricot),
+        Some(apricot_ref.clone()),
+        "Choices retains stable token for known keys across remote pages"
+    );
+    assert_eq!(
+        choices.label(&Destination::Apricot).as_deref(),
+        Some("Apricot")
+    );
+    assert_eq!(window.get_combo_state().selected, apricot_ref);
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert_eq!(
+        window.get_combo_state().selection_availability,
+        slint_kit::ui::SelectionAvailability::Available
+    );
+    assert!(window.get_combo_validity().valid);
+
+    // Returning to a page that includes Apricot preserves its original token.
+    choices.replace(options()).unwrap();
+    assert_eq!(choices.selection(&Destination::Apricot), Some(apricot_ref));
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+}
+
 #[test]
-fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements() {
-    for ownership in [
-        slint_kit::ui::Ownership::Local,
-        slint_kit::ui::Ownership::Controlled,
-    ] {
-        let (window, choices) = fixture();
-        window.set_ownership(ownership);
-        let apricot_ref = choices.selection(&Destination::Apricot).unwrap();
-        window.set_combo_selected(apricot_ref.clone());
-        // A host projection becomes displayed after the UI processes its changed handlers.
-        slint::platform::update_timers_and_animations();
-        assert_eq!(window.get_combo_selected_label(), "Apricot");
-        assert!(window.get_combo_validity().valid);
+fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements_local() {
+    assert_combobox_retains_remote_page(slint_kit::ui::Ownership::Local);
+}
 
-        // Simulate remote search replacing the options with a page that omits Apricot.
-        choices
-            .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
-            .unwrap();
-        assert_eq!(
-            choices.selection(&Destination::Apricot),
-            Some(apricot_ref.clone()),
-            "Choices retains stable token for known keys across remote pages"
-        );
-        assert_eq!(
-            choices.label(&Destination::Apricot).as_deref(),
-            Some("Apricot")
-        );
-        assert_eq!(window.get_combo_state().selected, apricot_ref);
-        assert_eq!(window.get_combo_selected_label(), "Apricot");
-        assert_eq!(
-            window.get_combo_state().selection_availability,
-            slint_kit::ui::SelectionAvailability::Available
-        );
-        assert!(window.get_combo_validity().valid);
-
-        // Returning to a page that includes Apricot preserves its original token.
-        choices.replace(options()).unwrap();
-        assert_eq!(choices.selection(&Destination::Apricot), Some(apricot_ref));
-        assert_eq!(window.get_combo_selected_label(), "Apricot");
-    }
+#[test]
+fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements_controlled() {
+    assert_combobox_retains_remote_page(slint_kit::ui::Ownership::Controlled);
 }
 
 #[test]
@@ -470,6 +474,11 @@ fn remote_labels_do_not_replace_a_focused_native_draft_or_its_undo_and_outside_f
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Renamed"))
         .find_first()
         .unwrap();
+    // Slint PopupWindow consumes the outside press while dismissing its child popup.
+    // A subsequent click reaches the intended parent control and must retain that focus.
+    outside.mock_single_click(slint::platform::PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(!window.get_combo_state().open);
     outside.mock_single_click(slint::platform::PointerEventButton::Left);
     slint::platform::update_timers_and_animations();
     assert!(!window.get_combo_focused());
@@ -526,33 +535,38 @@ fn exposed_combobox_expand_action_is_idempotent_and_respects_access_guards() {
     }
 }
 
-#[test]
-fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen() {
-    for ownership in [
-        slint_kit::ui::Ownership::Local,
-        slint_kit::ui::Ownership::Controlled,
-    ] {
-        let (window, choices) = fixture();
-        window.set_ownership(ownership);
-        let accepted = choices.selection(&Destination::Apricot).unwrap();
-        let weak = window.as_weak();
-        let replacement = choices.clone();
-        window.on_combo_chosen(move |row| {
-            let window = weak.unwrap();
-            window.set_combo_selected(slint_kit::ui::SelectionRef {
-                present: true,
-                token: row.token,
-            });
-            replacement
-                .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
-                .unwrap();
+fn assert_combobox_reentrant_remote_choice(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let accepted = choices.selection(&Destination::Apricot).unwrap();
+    let weak = window.as_weak();
+    let replacement = choices.clone();
+    window.on_combo_chosen(move |row| {
+        let window = weak.unwrap();
+        window.set_combo_selected(slint_kit::ui::SelectionRef {
+            present: true,
+            token: row.token,
         });
-        window.invoke_focus_combo();
-        key(&window, Key::DownArrow);
-        assert!(window.get_combo_state().open);
-        key(&window, Key::Return);
-        assert_eq!(window.get_combo_selected(), accepted);
-        assert_eq!(window.get_combo_selected_label(), "Apricot");
-        assert!(!window.get_combo_state().open);
-    }
+        replacement
+            .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+            .unwrap();
+    });
+    window.invoke_focus_combo();
+    key(&window, Key::DownArrow);
+    assert!(window.get_combo_state().open);
+    key(&window, Key::DownArrow); // skip the disabled row to Apricot
+    key(&window, Key::Return);
+    assert_eq!(window.get_combo_selected(), accepted);
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert!(!window.get_combo_state().open);
+}
+
+#[test]
+fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen_local() {
+    assert_combobox_reentrant_remote_choice(slint_kit::ui::Ownership::Local);
+}
+
+#[test]
+fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen_controlled() {
+    assert_combobox_reentrant_remote_choice(slint_kit::ui::Ownership::Controlled);
 }
