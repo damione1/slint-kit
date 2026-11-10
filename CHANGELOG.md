@@ -5,6 +5,9 @@
 - Place sortable table headers and resize handles before the body in keyboard tab order, matching their visual order.
 - Place les en-têtes triables et les poignées de tableau avant le corps dans l’ordre de tabulation, comme à l’écran.
 
+- Keep textarea scrollbar hit areas inside their themed gutter so mouse drags reach the native editor and select text.
+- Contient la zone de la barre du textarea dans sa gouttière thémée pour que les glissements sélectionnent le texte natif.
+
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
 - Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
 - Clear disabled action focus and its outline once, preserving busy focus and preventing focus from returning on reenabling.

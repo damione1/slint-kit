@@ -51,6 +51,8 @@ The HTML constraint engine enforces intrinsic email, URL, numeric, date and othe
 
 `access: FieldAccess.read-only` retains native text selection and prevents acceptance. Disabled controls reject interaction. Native caret, selection, undo and IME stay in the underlying TextInput. Headless tests exercise public input paths; they do not qualify physical keyboards, composition engines or screen readers on every platform.
 
+Multiline fields keep mouse drags for native text selection. Their vertical scrollbar stays in a theme-sized gutter; wheel scrolling remains available when the text overflows.
+
 ## Shared options and composition
 
 Fields already include `label`, `description`, `error`, validation and accessible naming. `leading-icon` and `trailing-icon` are decorative `IconGlyph` values; they do not replace a textual accessible name. Presentation options such as `decoration`, `corner-radius`, padding and text size preserve the native editor and shared validation.

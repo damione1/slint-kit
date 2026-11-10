@@ -276,9 +276,10 @@ export component KitTextField inherits KitField {
                 font-family: root.theme.typography.family; font-size: root.text-size;
                 vertical-alignment: center; horizontal-stretch: 0;
             }
-            Rectangle {
+            context-area := Rectangle {
                 horizontal-stretch: 1; clip: true;
                 viewport := Flickable {
+                    x: 0px; y: 0px;
                     interactive: root.multiline;
                     mouse-drag-pan-enabled: false;
                     width: parent.width - (root.multiline ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
@@ -443,7 +444,9 @@ export component KitTextField inherits KitField {
                 }
                 if root.multiline: KitScrollBar {
                     theme: root.theme; enabled: root.access != FieldAccess.disabled;
-                    x: parent.width - self.width; height: parent.height;
+                    x: context-area.width - KitThemes.scroll-bar-recipe(root.theme).thickness;
+                    height: context-area.height;
+                    width: KitThemes.scroll-bar-recipe(root.theme).thickness;
                     maximum: viewport.content-height - viewport.height;
                     page-size: viewport.height; value <=> viewport.content-y;
                 }

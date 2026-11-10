@@ -51,6 +51,8 @@ Le moteur de contraintes HTML applique les règles intrinsèques des courriels, 
 
 `access: FieldAccess.read-only` conserve la sélection native du texte et interdit l’acceptation. Un contrôle désactivé refuse l’interaction. Curseur, sélection, annulation et IME restent dans le TextInput natif. Les tests sans écran exercent les chemins publics d’entrée ; ils ne qualifient pas tous les claviers physiques, moteurs de composition ou lecteurs d’écran.
 
+Les champs multilignes réservent les glissements de souris à la sélection native. Leur barre verticale reste dans une gouttière dimensionnée par le thème ; la molette défile lorsque le texte déborde.
+
 ## Options partagées et composition
 
 Les champs incluent déjà `label`, `description`, `error`, validation et nom accessible. `leading-icon` et `trailing-icon` sont des `IconGlyph` décoratifs ; ils ne remplacent pas le nom accessible textuel. Les options de présentation telles que `decoration`, `corner-radius`, marges et taille du texte conservent éditeur natif et validation partagée.

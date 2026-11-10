@@ -10,6 +10,7 @@ export component TextFieldBehaviorFixture inherits Window {
     callback key-observed();
     callback handle-key(KeyEvent) -> KitKeyResult;
     in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <CommitPolicy> policy: CommitPolicy.on-change-when-valid;
     in property <bool> required;
@@ -51,6 +52,43 @@ export component TextFieldBehaviorFixture inherits Window {
             min-length: root.minimum; validation-timing: root.timing;
             committed(value) => { root.committed(value); }
             invalid => { root.invalid(); }
+        }
+    }
+}
+
+export component NativeTextHitFixture inherits Window {
+    width: 600px; height: 400px;
+    default-font-size: 14px;
+    background: KitThemes.light.canvas;
+    in property <string> text;
+    out property <int> direct-cursor: direct.cursor-position-byte-offset;
+    out property <int> direct-anchor: direct.anchor-position-byte-offset;
+    out property <int> wrapped-cursor: wrapped.cursor-position-byte-offset;
+    out property <int> wrapped-anchor: wrapped.anchor-position-byte-offset;
+    out property <int> scrolled-cursor: scrolled.cursor-position-byte-offset;
+    out property <int> scrolled-anchor: scrolled.anchor-position-byte-offset;
+    direct := TextInput {
+        x: 24px; y: 24px; width: 552px; height: 60px;
+        text: root.text; single-line: false; wrap: word-wrap;
+        accessible-label: "Direct"; color: KitThemes.light.text-primary;
+    }
+    TouchArea {
+        x: 24px; y: 120px; width: 552px; height: 60px;
+        wrapped := TextInput {
+            text: root.text; single-line: false; wrap: word-wrap;
+            accessible-label: "Wrapped"; color: KitThemes.light.text-primary;
+        }
+    }
+    TouchArea {
+        x: 24px; y: 216px; width: 552px; height: 60px;
+        viewport := Flickable {
+            interactive: true; mouse-drag-pan-enabled: false;
+            content-width: self.width; content-height: 300px;
+            scrolled := TextInput {
+                width: viewport.width; height: viewport.content-height;
+                text: root.text; single-line: false; wrap: word-wrap;
+                accessible-label: "Scrolled"; color: KitThemes.light.text-primary;
+            }
         }
     }
 }

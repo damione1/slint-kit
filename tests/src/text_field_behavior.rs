@@ -88,9 +88,20 @@ fn reporting_invalid_fields_does_not_move_focus() {
 }
 #[test]
 fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
-    use i_slint_backend_testing::{ElementHandle, ElementQuery};
+    use i_slint_backend_testing::{
+        ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions,
+    };
     use slint::platform::PointerEventButton;
-    let app = fixture();
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = TextFieldBehaviorFixture::new().unwrap();
+    kit_slint::install(&app);
+    app.show().unwrap();
+    app.invoke_focus_field();
     app.set_multiline(true);
     app.set_text(
         (0..20)
@@ -98,31 +109,68 @@ fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
             .collect::<String>()
             .into(),
     );
-    slint::platform::update_timers_and_animations();
-    let editor = ElementHandle::find_by_accessible_label(&app, "Name")
-        .find(|element| {
-            element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)
-        })
-        .unwrap();
-    let bounds = editor.absolute_position();
-    let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
-    let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
-    app.window().dispatch_event(WindowEvent::PointerPressed {
-        position: start,
-        button: PointerEventButton::Left,
-    });
-    app.window()
-        .dispatch_event(WindowEvent::PointerMoved { position: end });
-    app.window().dispatch_event(WindowEvent::PointerReleased {
-        position: end,
-        button: PointerEventButton::Left,
-    });
-    assert!(
-        ElementQuery::from_root(&app)
-            .match_inherits("KitScrollBar")
-            .find_first()
-            .is_some()
-    );
+    for (name, base) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            app.invoke_focus_field();
+            app.invoke_selection(5, 5);
+            slint::platform::update_timers_and_animations();
+            // Render the actual glyph layout before pointer hit-testing.
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("textarea-before-{name}-{scale}"),
+            );
+            let editor = ElementHandle::find_by_accessible_label(&app, "Name")
+                .find(|element| {
+                    element.accessible_role()
+                        == Some(i_slint_backend_testing::AccessibleRole::TextInput)
+                })
+                .unwrap();
+            let bounds = editor.absolute_position();
+            let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
+            let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
+            app.window()
+                .dispatch_event(WindowEvent::PointerMoved { position: start });
+            app.window().dispatch_event(WindowEvent::PointerPressed {
+                position: start,
+                button: PointerEventButton::Left,
+            });
+            app.window()
+                .dispatch_event(WindowEvent::PointerMoved { position: end });
+            app.window().dispatch_event(WindowEvent::PointerReleased {
+                position: end,
+                button: PointerEventButton::Left,
+            });
+            assert_ne!(
+                app.get_cursor(),
+                app.get_anchor(),
+                "mouse drag selects a native text range ({name}/{scale})"
+            );
+            assert_eq!(
+                editor.absolute_position().y,
+                bounds.y,
+                "mouse drag must not pan the text viewport ({name}/{scale})"
+            );
+            let scrollbar = ElementQuery::from_root(&app)
+                .match_inherits("KitScrollBar")
+                .find_first()
+                .unwrap();
+            assert!(scrollbar.size().width > 0.);
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("textarea-drag-{name}-{scale}"),
+            );
+            assert!(
+                scrollbar.absolute_position().x >= bounds.x + editor.size().width,
+                "the scrollbar stays in its gutter ({name}/{scale}): bar={:?}/{:?}, editor={bounds:?}/{:?}",
+                scrollbar.absolute_position(),
+                scrollbar.size(),
+                editor.size()
+            );
+        }
+    }
 }
 #[test]
 fn selection_insertion_and_history_forward_to_the_same_native_editor() {
@@ -248,4 +296,68 @@ fn public_kit_key_result_can_be_returned_from_a_rust_text_field_hook() {
     assert_eq!(app.get_text().as_str(), "");
     key(&app, "y");
     assert_eq!(app.get_text().as_str(), "y");
+}
+
+#[test]
+fn native_text_pointer_reference_preserves_selection_through_plain_wrappers() {
+    use i_slint_backend_testing::{
+        AccessibleRole, ElementHandle, TestingBackend, TestingBackendOptions,
+    };
+    use slint::platform::PointerEventButton;
+    #[derive(Clone, Copy, Debug)]
+    enum Probe {
+        Direct,
+        Wrapped,
+        Scrolled,
+    }
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = NativeTextHitFixture::new().unwrap();
+    app.set_text(
+        (0..20)
+            .map(|_| "A selectable overflowing line\n")
+            .collect::<String>()
+            .into(),
+    );
+    app.show().unwrap();
+    let snapshot = app.window().take_snapshot().unwrap();
+    crate::choice_presentation::save_capture(&snapshot, "native-text-pointer-reference");
+    let mut results = Vec::new();
+    for (probe, label) in [
+        (Probe::Direct, "Direct"),
+        (Probe::Wrapped, "Wrapped"),
+        (Probe::Scrolled, "Scrolled"),
+    ] {
+        let editor = ElementHandle::find_by_accessible_label(&app, label)
+            .find(|e| e.accessible_role() == Some(AccessibleRole::TextInput))
+            .unwrap();
+        let origin = editor.absolute_position();
+        let start = slint::LogicalPosition::new(origin.x + 4., origin.y + 8.);
+        let end = slint::LogicalPosition::new(origin.x + 140., origin.y + 30.);
+        app.window()
+            .dispatch_event(WindowEvent::PointerMoved { position: start });
+        app.window().dispatch_event(WindowEvent::PointerPressed {
+            position: start,
+            button: PointerEventButton::Left,
+        });
+        app.window()
+            .dispatch_event(WindowEvent::PointerMoved { position: end });
+        app.window().dispatch_event(WindowEvent::PointerReleased {
+            position: end,
+            button: PointerEventButton::Left,
+        });
+        let offsets = match probe {
+            Probe::Direct => (app.get_direct_cursor(), app.get_direct_anchor()),
+            Probe::Wrapped => (app.get_wrapped_cursor(), app.get_wrapped_anchor()),
+            Probe::Scrolled => (app.get_scrolled_cursor(), app.get_scrolled_anchor()),
+        };
+        results.push((probe, offsets));
+    }
+    for (probe, (cursor, anchor)) in results {
+        assert_ne!(cursor, anchor, "native {probe:?} pointer reference");
+    }
 }
