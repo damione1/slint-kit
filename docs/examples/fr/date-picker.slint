@@ -17,9 +17,11 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Choisir une date";
     callback chosen(CivilDateView);
+    callback cleared();
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         field := KitDatePicker {
+            clearable: true; clear-label: "Effacer la date";
             label: "Rendez-vous"; description: "Date civile, sans fuseau horaire";
             placeholder: "AAAA-MM-JJ"; calendar-button-label: "Calendrier"; calendar-accessible-name: "Ouvrir le calendrier du rendez-vous";
             month-names: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
@@ -30,6 +32,7 @@ export component Example inherits Window {
             unavailable-weekdays: [WeekStart.saturday, WeekStart.sunday];
             unavailable-ranges: [{start: {year: 2026, month: 10, day: 13}, end: {year: 2026, month: 10, day: 15}}];
             chosen(date) => { root.chosen(date); }
+            cleared => { root.cleared(); }
         }
     }
 }
