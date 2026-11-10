@@ -1,6 +1,6 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { DropCapability, KitButton, KitFileDropZone, KitTheme, KitThemes } from "@kit";
+import { DropCapability, KitFileDropZone, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -15,7 +15,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "File Drop Zone"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitFileDropZone { theme: root.theme; capability: DropCapability.unsupported; } KitButton { theme: root.theme; text: "Choose files…"; activated => { root.status = "Action requested"; } }
+        KitFileDropZone { label: "Choose or drop files"; unsupported-label: "Choose files (drag and drop is unavailable)"; description: "PDF or text documents"; browse-requested => { root.status = "File browse requested"; } theme: root.theme; capability: DropCapability.unsupported; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

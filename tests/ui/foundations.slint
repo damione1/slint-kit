@@ -73,3 +73,21 @@ export component DisabledActionFocusFixture inherits Window {
         }
     }
 }
+
+import { KitFileDropZone, FieldAccess, DropCapability } from "@kit";
+export component DropZoneFixture inherits Window {
+    width: 420px; height: 240px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access;
+    background: root.theme.canvas;
+    callback browse();
+    callback child-activated();
+    in property <bool> composed-action;
+    out property <bool> focused: zone.has-focus;
+    public function focus-zone() { zone.take-focus(); }
+    VerticalLayout { padding: 24px; alignment: start;
+        zone := KitFileDropZone { theme: root.theme; access: root.access; capability: DropCapability.available; label: "Choose or drop documents"; description: "PDF and text files"; browse-requested => { root.browse(); }
+            if root.composed-action: KitButton { theme: root.theme; text: "Additional action"; activated => { root.child-activated(); } }
+        }
+    }
+}

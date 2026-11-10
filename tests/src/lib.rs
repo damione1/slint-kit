@@ -7,6 +7,7 @@ mod ui {
 pub use ui::*;
 mod column_widths;
 mod dialog_composition;
+mod foundation_render;
 mod foundations;
 mod keyboard_scope;
 mod preview;

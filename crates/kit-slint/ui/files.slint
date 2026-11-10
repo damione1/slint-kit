@@ -2,8 +2,8 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
-import { KitIcon } from "icons.slint";
-import { KitButton } from "button.slint";
+import { KitIcon, IconGlyph } from "icons.slint";
+import { KitButton, KitPressable } from "button.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
 import { KitStrings } from "strings.slint";
@@ -193,21 +193,43 @@ export component KitFileDropZone inherits Rectangle {
     in property <string> label: "Drop files here";
     in property <string> unsupported-label: "Drag and drop is unavailable; use Choose files.";
     in property <string> error;
+    in property <string> description;
+    in property <IconGlyph> leading-icon: root.theme.icons.article;
+    callback browse-requested();
+    out property <bool> has-focus: action.has-focus;
+    public function take-focus() { action.take-focus(); }
     callback can-drop(DropEvent) -> DragAction;
     callback dropped(DropEvent) -> DragAction;
     in property <bool> host-drag-hovered;
     out property <bool> drag-hovered: drop.has-drag || root.host-drag-hovered;
-    min-height: max(100px, 64px * root.theme.text-scale);
+    min-height: max(max(100px, 64px * root.theme.text-scale), content.preferred-height);
+    preferred-height: root.min-height;
     vertical-stretch: 0;
     border-radius: root.theme.shape.radius-container;
     border-width: root.drag-hovered ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
-    border-color: root.error != "" ? root.theme.danger : root.drag-hovered ? root.theme.accent : root.theme.border-subtle;
-    background: root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.drag-hovered ? root.theme.hover : root.theme.canvas;
-    accessible-role: groupbox;
-    accessible-label: root.capability == DropCapability.available ? root.label : root.unsupported-label;
-    VerticalLayout {
+    border-color: root.error != "" ? root.theme.danger : root.drag-hovered ? root.theme.accent : action.hovered ? root.theme.border-strong : root.theme.border-subtle;
+    background: root.access == FieldAccess.disabled ? root.theme.disabled-fill : root.drag-hovered ? root.theme.hover : action.pressed ? action.recipe.pressed-fill : action.hovered ? action.recipe.hover-fill : root.theme.canvas;
+    accessible-role: none;
+    action := KitPressable {
+        theme: root.theme; control-size: root.control-size;
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        corner-radius: root.border-radius;
+        intent: ButtonIntent.quiet;
+        background: transparent; border-width: 0px;
+        accessible-name: root.capability == DropCapability.available ? root.label : root.unsupported-label;
+        accessible-description: root.description;
+        disabled: root.access != FieldAccess.editable;
+        activated => { root.browse-requested(); }
+    }
+    content := VerticalLayout {
         padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 2;
-        Text { text: root.capability == DropCapability.available ? root.label : root.unsupported-label; color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
+        if root.leading-icon.stroke != "" || root.leading-icon.fill != "": HorizontalLayout {
+            alignment: center;
+            KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.access == FieldAccess.read-only ? root.theme.text-secondary : root.theme.accent; }
+        }
+        Text { accessible-role: none; text: root.capability == DropCapability.available ? root.label : root.unsupported-label; color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center; wrap: word-wrap; }
+        if root.description != "": Text { accessible-role: none; text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; horizontal-alignment: center; }
+        @children
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
     }
     drop := DropArea {

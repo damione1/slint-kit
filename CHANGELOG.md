@@ -29,6 +29,7 @@
 
 - Check complete downloadable applications against registry crates before a release documentation build and against local sources in CI. Development guides disclose unreleased APIs and link the immutable 0.7.2 registry example.
 
+- Make file drop zones browseable by click, Enter, Space and assistive activation. Add description, icon and child composition while preserving disabled/read-only guards.
 
 - Parent native file and directory dialogs to their Slint window, with framework-independent parent-provider APIs that retain no window reference while awaiting results.
 
@@ -136,6 +137,10 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Vérifie les applications complètes téléchargeables contre les crates publiées avant de construire la documentation de release et contre les sources locales en CI. Les guides de développement signalent les API non publiées et relient l’exemple crates.io immuable 0.7.2.
+
+- Rend les zones de dépôt activables au clic, avec Entrée/Espace et par les technologies d’assistance. Ajoute description, icône et composition d’enfants, en conservant les gardes de lecture seule et de désactivation.
 
 - Attache les boîtes de fichiers et dossiers natives à leur fenêtre Slint, avec des API de parent indépendantes du framework qui ne conservent pas de référence à la fenêtre pendant l’attente.
 

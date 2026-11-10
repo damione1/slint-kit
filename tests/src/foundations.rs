@@ -332,3 +332,67 @@ fn disabling_an_action_clears_observed_focus_without_restoring_it_on_enable() {
     slint::platform::update_timers_and_animations();
     assert!(window.get_fallback_focused());
 }
+
+#[test]
+fn drop_zone_browse_supports_pointer_keyboard_and_accessibility_and_honors_access() {
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    use std::{cell::Cell, rc::Rc};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = DropZoneFixture::new().unwrap();
+    let count = Rc::new(Cell::new(0));
+    let result = count.clone();
+    window.on_browse(move || result.set(result.get() + 1));
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    let zone = i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+        &window,
+        "Choose or drop documents",
+    )
+    .next()
+    .unwrap();
+    assert_eq!(
+        zone.accessible_description().as_deref(),
+        Some("PDF and text files")
+    );
+    zone.mock_single_click(PointerEventButton::Left);
+    assert_eq!(count.get(), 1);
+    window.invoke_focus_zone();
+    for key in [Key::Return, Key::Space] {
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+    }
+    assert_eq!(count.get(), 3);
+    zone.invoke_accessible_default_action();
+    assert_eq!(count.get(), 4);
+    let children = Rc::new(Cell::new(0));
+    let child_count = children.clone();
+    window.on_child_activated(move || child_count.set(child_count.get() + 1));
+    window.set_composed_action(true);
+    slint::platform::update_timers_and_animations();
+    i_slint_backend_testing::ElementHandle::find_by_accessible_label(&window, "Additional action")
+        .next()
+        .unwrap()
+        .mock_single_click(PointerEventButton::Left);
+    assert_eq!(
+        children.get(),
+        1,
+        "composed child retains its own activation"
+    );
+    assert_eq!(count.get(), 4, "child activation does not browse");
+    window.set_composed_action(false);
+    for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {
+        window.set_access(access);
+        slint::platform::update_timers_and_animations();
+        zone.mock_single_click(PointerEventButton::Left);
+        zone.invoke_accessible_default_action();
+        assert_eq!(
+            count.get(),
+            4,
+            "non-editable zone ignores browse activation"
+        );
+    }
+}

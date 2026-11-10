@@ -1633,24 +1633,70 @@
     "fr": {
       "summary": "Cible de dépôt dont la disponibilité suit les capacités de l’application hôte.",
       "usage": "Activez la fonctionnalité `native` de la façade et créez `FilePickerBinding` avec les setters explicites de ses ports. Connectez ses handlers de parcours/suppression ou d’effacement, puis recevez des ressources typées avec `on_selection`. Les requêtes utilisent des fenêtres faibles et des gardes de génération. Pour les dépôts natifs sur la fenêtre, activez `native-winit` et appelez `install_winit_drop` ; la capacité est explicite et les plateformes indisponibles refusent l’opération. Le pont winit traite les dépôts de la fenêtre ; les callbacks de chemins exigent aussi un backend compatible.",
-      "behavior": "Le pont Winit gère les chemins sur macOS et Windows. Les autres moteurs et le navigateur affichent une absence de prise en charge ; le dépôt externe exige un hôte natif.",
+      "behavior": "Le pont Winit gère les chemins sur macOS et Windows. Les autres moteurs et le navigateur affichent une absence de prise en charge ; le dépôt externe exige un hôte natif. Clic, Entrée, Espace et action d’accessibilité émettent browse-requested, même si le dépôt natif est indisponible. Raccordez-le au parcours du sélecteur. Lecture seule et désactivation bloquent parcours et dépôt. description, leading-icon et @children composent le contenu ; les enfants interactifs gardent leurs actions.",
       "related": [
         "KitFilePicker",
         "KitFileList"
       ],
       "label": "Zone de dépôt de fichiers",
-      "seoTitle": "Zone de dépôt de fichiers pour Slint"
+      "seoTitle": "Zone de dépôt de fichiers pour Slint",
+      "properties": {
+        "description": {
+          "effect": "Texte d’aide affiché et description accessible de l’action.",
+          "default": "`\"\"`.",
+          "example": "KitFileDropZone { description: \"PDF\"; }"
+        },
+        "leading-icon": {
+          "effect": "Glyphe du thème placé au-dessus du libellé.",
+          "default": "`theme.icons.article`.",
+          "example": "KitFileDropZone { leading-icon: KitGlyphs.check(); }"
+        },
+        "has-focus": {
+          "effect": "Indique le focus de l’action de parcours ; lecture seule et désactivation le retirent.",
+          "default": "Output.",
+          "example": "Text { text: zone.has-focus ? \"Focused\" : \"\"; }"
+        }
+      },
+      "callbacks": {
+        "browse-requested": "Demande le parcours après clic, Entrée, Espace ou action d’assistance ; ne sélectionne aucun fichier seul."
+      },
+      "functions": {
+        "take-focus": "Donne le focus à l’action si l’accès est modifiable."
+      }
     },
     "en": {
       "summary": "Drop target whose availability follows the host’s file-drop capability.",
       "usage": "Enable the facade `native` feature and create `FilePickerBinding` with explicit property setters in its ports. Connect its browse/remove or clear handlers, then receive typed handles through `on_selection`. Requests use weak windows and generation guards. For native window drops enable `native-winit` and call `install_winit_drop`; capability is explicit and unavailable platforms fail closed. The winit bridge handles drops for the window; direct path-drop callbacks still require a supported backend.",
-      "behavior": "The Winit bridge handles macOS and Windows file paths. Other backends and the browser show unsupported; external drop needs a native host.",
+      "behavior": "The Winit bridge handles macOS and Windows file paths. Other backends and the browser show unsupported; external drop needs a native host. Click, Enter, Space or the accessibility default action emits browse-requested, even when native drag/drop is unsupported. Bind it to the picker browse handler. Read-only/disabled access blocks browse and drop. description, leading-icon and @children provide presentation; interactive children retain their own actions.",
       "related": [
         "KitFilePicker",
         "KitFileList"
       ],
       "label": "File Drop Zone",
-      "seoTitle": "File Drop Zone for Slint"
+      "seoTitle": "File Drop Zone for Slint",
+      "properties": {
+        "description": {
+          "effect": "Visible helper text and accessible description of the browse action.",
+          "default": "`\"\"`.",
+          "example": "KitFileDropZone { description: \"PDF\"; }"
+        },
+        "leading-icon": {
+          "effect": "Theme glyph above the action label.",
+          "default": "`theme.icons.article`.",
+          "example": "KitFileDropZone { leading-icon: KitGlyphs.check(); }"
+        },
+        "has-focus": {
+          "effect": "Reports browse action focus; read-only and disabled access clear it.",
+          "default": "Output.",
+          "example": "Text { text: zone.has-focus ? \"Focused\" : \"\"; }"
+        }
+      },
+      "callbacks": {
+        "browse-requested": "Requests browsing after click, Enter, Space or assistive activation; does not select files itself."
+      },
+      "functions": {
+        "take-focus": "Focuses the browse action when access is editable."
+      }
     }
   },
   "KitFileList": {
