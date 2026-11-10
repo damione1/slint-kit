@@ -79,6 +79,7 @@ contract_enums! {
     }
     SecretVisibility => "SecretVisibility" { Hidden => "hidden", Revealed => "revealed" }
     StepDirection => "StepDirection" { Increment => "increment", Decrement => "decrement" }
+    NumberStepStatus => "NumberStepStatus" { Unavailable => "unavailable", Unchanged => "unchanged", Stepped => "stepped" }
     FieldAccess => "FieldAccess" {
         Editable => "editable", ReadOnly => "read-only", Disabled => "disabled",
     }

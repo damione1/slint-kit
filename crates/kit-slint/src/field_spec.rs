@@ -26,6 +26,25 @@ fn decimal_draft(value: DecimalValue, locale: NumberLocale) -> String {
         .replace('.', &locale.decimal_separator().to_string())
 }
 
+/// Slint has no sum types: the outcome splits into its status and the text
+/// that only a `stepped` status carries.
+fn step_result(outcome: NumberStepOutcome) -> ui::NumberStepResult {
+    match outcome {
+        NumberStepOutcome::Unavailable => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Unavailable,
+            text: Default::default(),
+        },
+        NumberStepOutcome::Unchanged => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Unchanged,
+            text: Default::default(),
+        },
+        NumberStepOutcome::Stepped(text) => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Stepped,
+            text: text.into(),
+        },
+    }
+}
+
 type SpecParser<T> = Rc<dyn Fn(&str) -> DraftValue<T>>;
 type SpecFormatter<T> = Rc<dyn Fn(&T) -> String>;
 type SpecValidator<T, E> = Rc<dyn Fn(&T) -> Result<(), E>>;
@@ -422,12 +441,35 @@ where
             .and_then(|key| display_codecs.get(&key))
             .map_or(text.clone(), |codec| (codec.display)(text.as_str()).into())
     });
-    service.on_step_number(|text, constraints, direction| {
+    service.on_step_number(|text, constraints, direction, count| {
         let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
-        let direction = direction.into();
-        rules
-            .step_number(text.as_str(), direction)
-            .map_or(text, Into::into)
+        // The page size is an `int` in Slint; only a positive count is a step.
+        let Some(count) = u32::try_from(count)
+            .ok()
+            .and_then(std::num::NonZeroU32::new)
+        else {
+            return step_result(NumberStepOutcome::Unavailable);
+        };
+        step_result(rules.step_number(
+            text.as_str(),
+            NumberStep::Steps {
+                direction: direction.into(),
+                count,
+            },
+        ))
+    });
+    service.on_step_number_to_bound(|text, constraints, direction| {
+        let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
+        step_result(rules.step_number(text.as_str(), NumberStep::Bound(direction.into())))
+    });
+    service.on_number_range(|constraints| {
+        let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
+        let projection = rules.number_range_projection();
+        ui::NumberRangeView {
+            minimum: projection.minimum.unwrap_or(f32::NEG_INFINITY),
+            maximum: projection.maximum.unwrap_or(f32::INFINITY),
+            step: projection.step.unwrap_or(0.0),
+        }
     });
     service.on_reduce(
         move |state, action, text, constraints, policy, ownership, spec, user_edited, messages| {

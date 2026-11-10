@@ -3,8 +3,8 @@ import { TextEditMenu } from "text-edit-menu.slint";
 import { OptionRow } from "contracts.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
-import { FieldState, FieldValue, FieldCommit, KitFieldService } from "field-service.slint";
-import { FieldAction, CommitPolicy, Ownership, StepDirection } from "shared-contracts.slint";
+import { FieldState, FieldValue, FieldCommit, KitFieldService, NumberStepResult, NumberRangeView } from "field-service.slint";
+import { FieldAction, CommitPolicy, Ownership, StepDirection, NumberStepStatus } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, OptionRecipe, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe } from "theme.slint";
 import { KitScrollBar } from "scroll.slint";
@@ -78,7 +78,47 @@ export component KitTextField inherits KitField {
         if (root.field-state.committed) { root.committed({value: root.field-state.value, constraints: checks.constraints, spec: root.spec-key}); }
         else if (action == FieldAction.submit && root.field-state.error != "") { root.invalid(); }
     }
-    public function step-number(direction: StepDirection) { if (KitFieldService.ready && root.access == FieldAccess.editable) { root.text = KitFieldService.step-number(root.text, checks.constraints, direction); root.reduce-field(FieldAction.submit); } }
+    // Pointer stepping (the KitNumberStepper buttons) rewrites the draft and
+    // commits at once; the editor need not have focus. An unavailable or
+    // unchanged step commits the current draft, as before.
+    public function step-number(direction: StepDirection) {
+        if (KitFieldService.ready && root.access == FieldAccess.editable) {
+            let result = KitFieldService.step-number(root.text, checks.constraints, direction, 1);
+            if (result.status == NumberStepStatus.stepped) { root.text = result.text; }
+            root.reduce-field(FieldAction.submit);
+        }
+    }
+    // Keyboard, wheel and accessible stepping share one exact step in Rust and
+    // the native edit path here: the result replaces the selection like typed
+    // text, so `edited`, `value-edited`, dirty tracking, the commit policy and
+    // native undo all apply. A step clamped at a bound edits nothing.
+    private property <bool> number-stepping: root.input-kind == HtmlInputKind.number && root.step != "any" && !root.multiline;
+    // PageUp/PageDown move this many steps; a count below one steps nothing.
+    in property <int> page-steps: 10;
+    // Wheel stepping while the editor has focus; off by default, as on the web.
+    in property <bool> wheel-stepping;
+    // Accessible range of a number field; other kinds project to no bounds.
+    out property <NumberRangeView> number-range: KitFieldService.ready ? KitFieldService.number-range(checks.constraints) : { minimum: 0, maximum: 0, step: 0 };
+    function apply-step(result: NumberStepResult) -> bool {
+        if (result.status == NumberStepStatus.unavailable) { return false; }
+        if (result.status == NumberStepStatus.unchanged) { return true; }
+        if (result.status == NumberStepStatus.stepped && editor.preedit-text == "") {
+            root.take-focus();
+            editor.select-all();
+            KitFieldService.edit-selection(result.text);
+        }
+        return true;
+    }
+    // Returns whether stepping applied to this field (even when clamped), so a
+    // key that did not step stays with the native editor.
+    public function step-by(direction: StepDirection, count: int) -> bool {
+        if (!KitFieldService.ready || !root.number-stepping || root.access != FieldAccess.editable) { return false; }
+        return root.apply-step(KitFieldService.step-number(root.text, checks.constraints, direction, count));
+    }
+    public function step-to-bound(direction: StepDirection) -> bool {
+        if (!KitFieldService.ready || !root.number-stepping || root.access != FieldAccess.editable) { return false; }
+        return root.apply-step(KitFieldService.step-number-to-bound(root.text, checks.constraints, direction));
+    }
     public function commit() { if (root.report-validity()) { root.reduce-field(FieldAction.submit); } }
     public function acknowledge(value: FieldValue) { root.field-state.accepted = value; }
 
@@ -381,6 +421,15 @@ export component KitTextField inherits KitField {
                 pointer-event(event) => {
                     if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
                 }
+                // Opt-in wheel stepping on the focused editor only; an unfocused
+                // field leaves the wheel to the surrounding scroll view.
+                scroll-event(event) => {
+                    if (root.wheel-stepping && editor.has-focus && root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                        if (event.delta-y > 0 && root.step-by(StepDirection.increment, 1)) { return accept; }
+                        if (event.delta-y < 0 && root.step-by(StepDirection.decrement, 1)) { return accept; }
+                    }
+                    return reject;
+                }
                 undo-measure := Text { visible: false; text: root.undo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
                 redo-measure := Text { visible: false; text: root.redo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
                 cut-measure := Text { visible: false; text: root.cut-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
@@ -448,6 +497,16 @@ export component KitTextField inherits KitField {
                         key-pressed(event) => {
                             if (self.preedit-text == "") {
                                 if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
+                                // Spin button keys, after the host hook. Home/End fall back to
+                                // native caret movement when the field has no such bound.
+                                if (root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                                    if (event.text == Key.UpArrow && root.step-by(StepDirection.increment, 1)) { return accept; }
+                                    if (event.text == Key.DownArrow && root.step-by(StepDirection.decrement, 1)) { return accept; }
+                                    if (event.text == Key.PageUp && root.step-by(StepDirection.increment, root.page-steps)) { return accept; }
+                                    if (event.text == Key.PageDown && root.step-by(StepDirection.decrement, root.page-steps)) { return accept; }
+                                    if (event.text == Key.End && root.step-to-bound(StepDirection.increment)) { return accept; }
+                                    if (event.text == Key.Home && root.step-to-bound(StepDirection.decrement)) { return accept; }
+                                }
                                 if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && root.context-menu == TextContextMenu.standard) {
                                     root.open-text-menu({x: root.menu-caret.x + root.text-inset + viewport.content-x, y: root.menu-caret.y + root.line-height + viewport.content-y}); return accept;
                                 }
