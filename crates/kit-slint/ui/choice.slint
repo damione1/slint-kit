@@ -6,7 +6,7 @@ import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
-import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, TypographyRole } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, TypographyRole, ChoiceFlow } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
 import { FocusOutline } from "focus.slint";
 import { KitFieldLabel, KitFieldError } from "field.slint";
@@ -20,7 +20,7 @@ import { ListView } from "scroll.slint";
 import { CheckState, RangeThumb, Ownership } from "shared-contracts.slint";
 export { CheckState, RangeThumb } from "shared-contracts.slint";
 export enum ChoiceDirection { horizontal, vertical }
-export enum ChoiceFlow { left-to-right, right-to-left }
+export { ChoiceFlow } from "theme.slint";
 export enum SearchPresentation { idle, loading, ready, failed }
 export { ChoiceRow } from "contracts.slint";
 import { ChoiceRow } from "contracts.slint";
@@ -301,7 +301,7 @@ export component KitRadioGroup inherits Rectangle {
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
-    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <ChoiceFlow> flow: root.theme.direction;
     in property <string> label;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
@@ -459,7 +459,7 @@ export component KitSegmentedControl inherits Rectangle {
     // Vertical segments stack in source order and navigate with Up and Down.
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     // Horizontal reading direction; it does not reorder vertical segments.
-    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <ChoiceFlow> flow: root.theme.direction;
     in property <string> label;
     callback navigate(NavigationStep);
     callback activate(int, int);

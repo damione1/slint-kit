@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 import { ElevatedSurface } from "elevation.slint";
 export { DialogState, CloseReason } from "contracts.slint";
@@ -87,6 +87,7 @@ export component KitDialogFooter inherits Rectangle {
     preferred-height: root.min-height;
     vertical-stretch: 0;
     actions := FlexboxLayout {
+        flex-direction: root.theme.direction == ChoiceFlow.right-to-left ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
         width: root.width; height: self.preferred-height;
         spacing: root.theme.spacing.unit * 2;
         alignment: end;

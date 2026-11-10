@@ -213,3 +213,15 @@ Avatar `tone` selects the existing neutral/accent/status palette while its defau
 
 
 KitSteps retains spacing as a public input; its Rectangle container uses internal horizontal/vertical layouts. Move former inherited layout padding to a surrounding layout.
+
+
+## Right-to-left presentation
+
+Set `theme.direction: ChoiceFlow.right-to-left` for logical leading/trailing icons, badge labels, scrollbar gutters and chat start/end sides. Step markers follow the same direction. Choices inherit it as their default `flow`, which still accepts a local override. The shipped themes default to left-to-right; complete custom `KitTheme` literals must include direction.
+
+Slint 1.18.1 has no general layout-direction or automatic layout mirroring property. This setting mirrors kit-positioned chrome; it does not rewrite your `@children` layouts, reverse data order, change horizontal scroll coordinates, or transform supplied glyphs. Arrange application layouts explicitly and use appropriate directional icons. Native text shaping, selection, caret and bidirectional behavior remain Slint’s; qualify Arabic/Hebrew editing and assistive technology on the target backend.
+
+Theme direction does not add a general Slint mirroring service: native text and focus traversal keep engine behavior, caller child layouts remain explicit, and scroll coordinates retain the documented positive-content/negative-offset convention.
+
+
+`ScrollFrame` is a public `@kit` composition primitive for a finite two-axis viewport. Supply `content-width` and `content-height`; its children retain native editing. Observe negative `content-x/y`, `visible-width/height` and the relative physical `viewport-x` to align external headers. It supplies themed gutters, policies and `scrolled`, with no viewport keyboard role. `enabled` gates bars/direct panning, while native wheel scrolling remains available. `KitScrollArea` remains the complete vertical wrapper. RTL table headers and cell reveal use this same measured viewport origin.

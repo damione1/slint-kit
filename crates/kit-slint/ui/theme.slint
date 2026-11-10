@@ -6,6 +6,7 @@ import { LucideIcons } from "icons/lucide/all.slint";
 export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph, avatar: IconGlyph }
 export enum ControlSize { compact, medium, comfortable }
 export enum AvatarSize { compact, medium, large }
+export enum ChoiceFlow { left-to-right, right-to-left }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
@@ -70,7 +71,7 @@ export struct KitTheme {
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
     spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
-    reduced-motion: bool, text-scale: float,
+    reduced-motion: bool, text-scale: float, direction: ChoiceFlow,
 }
 
 export struct ButtonRecipe {
@@ -229,7 +230,7 @@ export global KitThemes {
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
         },
-        reduced-motion: false, text-scale: 1,
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
     };
     out property <KitTheme> dark: {
         // Raised surfaces (popovers, dialogs) keep the card tone, as shadcn's
@@ -281,7 +282,7 @@ export global KitThemes {
             busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
         },
-        reduced-motion: false, text-scale: 1,
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
     };
     // How far an outline extends beyond its host; inside rings extend nowhere.
     public pure function focus-outset(ring: KitFocusRing) -> length {

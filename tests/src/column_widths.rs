@@ -609,3 +609,141 @@ fn unnamed_rows_and_resizers_use_current_localized_names_and_keep_their_actions(
         }
     }
 }
+
+#[test]
+fn table_header_body_and_cell_reveal_share_the_measured_viewport_in_each_direction() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint_kit::{CellContent, FieldAccess};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        fixed(600.),
+        fixed(600.),
+    ))));
+    window.set_rows(ModelRc::new(VecModel::from(
+        (1..=200)
+            .map(|token| TableRow {
+                token,
+                content: slint_kit::table_cells([
+                    CellContent::text(format!("Row {token}")),
+                    CellContent::field("Original", FieldAccess::Editable),
+                ]),
+                ..Default::default()
+            })
+            .collect::<Vec<_>>(),
+    )));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        window.window().take_snapshot().unwrap()
+    };
+    frame();
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    let viewport = table
+        .query_descendants()
+        .match_type_name("Flickable")
+        .find_first()
+        .unwrap();
+    let body_cells = || {
+        delegates(&window, "KitDataTable")
+            .remove(0)
+            .query_descendants()
+            .match_id("KitDataTable::content-cell")
+            .find_all()
+    };
+    let assert_aligned = || {
+        let headers = header_cells(&window);
+        let cells = body_cells();
+        assert_eq!(headers.len(), 2);
+        assert_eq!(cells.len(), 2);
+        for (header, cell) in headers.iter().zip(&cells) {
+            assert!(near(
+                header.absolute_position().x,
+                cell.absolute_position().x
+            ));
+            assert!(near(header.size().width, cell.size().width));
+        }
+    };
+    for (name, base) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            for (flow_name, direction) in [
+                ("ltr", ui::ChoiceFlow::LeftToRight),
+                ("rtl", ui::ChoiceFlow::RightToLeft),
+            ] {
+                let mut theme = base.clone();
+                theme.text_scale = scale;
+                theme.direction = direction;
+                theme.reduced_motion = true;
+                window.set_theme(theme);
+                window.invoke_restore_table_scroll(0., 0.);
+                window.set_table_active_column(-1);
+                window.invoke_focus_table();
+                frame();
+                let left = viewport.absolute_position().x;
+                let right = left + viewport.size().width;
+                assert!(viewport.size().width < table.size().width);
+                if direction == ui::ChoiceFlow::RightToLeft {
+                    assert!(left > table.absolute_position().x + 1.);
+                } else {
+                    assert!(near(left, table.absolute_position().x));
+                }
+                assert_aligned();
+                key(&window, Key::RightArrow);
+                key(&window, Key::RightArrow);
+                frame();
+                assert_eq!(window.get_table_active_column(), 1);
+                assert!(window.get_table_scroll_x() < 0.);
+                assert_aligned();
+                key(&window, Key::LeftArrow);
+                frame();
+                assert_eq!(window.get_table_active_column(), 0);
+                assert_aligned();
+                let first = body_cells().remove(0);
+                assert!(first.absolute_position().x >= left - 1.);
+                assert!(near(first.absolute_position().x, left));
+                key(&window, Key::RightArrow);
+                frame();
+                assert_aligned();
+                let last = body_cells().remove(1);
+                assert!(last.absolute_position().x + last.size().width <= right + 1.);
+                key(&window, Key::F2);
+                frame();
+                assert!(window.get_table_editing());
+                let editor = table
+                    .query_descendants()
+                    .match_type_name("TextInput")
+                    .match_predicate(|e| e.accessible_label().as_deref() == Some("Quantity, Row 1"))
+                    .find_first()
+                    .unwrap();
+                assert!(editor.absolute_position().x >= left - 1.);
+                assert!(editor.absolute_position().x + editor.size().width <= right + 1.);
+                super::base_data::text(&window, "Viewport caret");
+                frame();
+                assert_eq!(editor.accessible_value().as_deref(), Some("Viewport caret"));
+                assert_eq!(window.get_table_edit_draft(), "Viewport caret");
+                crate::choice_presentation::save_capture(
+                    &frame(),
+                    &format!("table-viewport-{flow_name}-{name}-{scale}"),
+                );
+                key(&window, Key::Escape);
+                frame();
+                assert!(!window.get_table_editing());
+            }
+        }
+    }
+}

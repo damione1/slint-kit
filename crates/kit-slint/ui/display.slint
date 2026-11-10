@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
@@ -35,8 +35,8 @@ export component KitBadge inherits Rectangle {
     border-width: root.theme.shape.border-width;
     border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.information ? root.theme.information : root.theme.border-subtle;
     accessible-role: AccessibleRole.text; accessible-label: root.text;
-    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
-    label := Text { x: root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;
+    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.inset-x - self.width : root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
+    label := Text { x: root.theme.direction == ChoiceFlow.right-to-left ? root.inset-x : root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;
         color: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
         font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
     }
@@ -124,6 +124,7 @@ export component KitCardBody inherits VerticalLayout {
     spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0; @children }
 export component KitCardFooter inherits FlexboxLayout {
     in property <KitTheme> theme: KitThemeContext.current;
+    flex-direction: root.theme.direction == ChoiceFlow.right-to-left ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
     spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; vertical-stretch: 0; @children }
 
 export component KitHero inherits Rectangle {
@@ -176,10 +177,10 @@ export component KitChatBubble inherits HorizontalLayout {
     in property <string> text;
     in property <string> metadata;
     vertical-stretch: 0;
-    if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    if (root.side == ChatSide.end) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
     VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
         Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        Rectangle {
+        bubble := Rectangle {
             background: root.side == ChatSide.end ? root.theme.accent : root.theme.surface;
             border-radius: root.theme.shape.radius-container;
             // Received messages are surfaces, not hover states. Their edge
@@ -192,7 +193,7 @@ export component KitChatBubble inherits HorizontalLayout {
         }
         if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
-    if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    if (root.side == ChatSide.start) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
 }
 export component KitSkeleton inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -271,6 +272,7 @@ component StepItem inherits Rectangle {
     in property <string> state-label;
     callback step-requested(int, int);
     private property <bool> horizontal: root.orientation == Orientation.horizontal;
+    private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
     private property <bool> unavailable: root.disabled || (root.interactive && !root.entry.enabled);
     private property <int> press-token;
     private property <int> press-generation;
@@ -292,26 +294,26 @@ component StepItem inherits Rectangle {
         activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
         activated => { root.step-requested(root.press-token, root.press-generation); }
     }
-    if root.connectors && !root.horizontal && (root.ordinal + 1 < root.total): Rectangle {
-        x: (root.marker-size - self.width) / 2;
+    if root.connectors && !root.horizontal && root.ordinal + 1 < root.total: vertical-connector := Rectangle {
+        x: root.rtl ? root.width - (root.marker-size + self.width) / 2 : (root.marker-size - self.width) / 2;
         y: root.marker-size + root.theme.spacing.unit * root.theme.text-scale;
         width: root.theme.shape.border-width-strong;
         height: max(0px, root.height + root.gap - root.theme.spacing.unit * root.theme.text-scale - self.y);
         background: root.theme.border-subtle;
     }
-    if root.connectors && root.horizontal && (root.ordinal > 0): Rectangle {
+    if root.connectors && root.horizontal && (root.rtl ? root.ordinal + 1 < root.total : root.ordinal > 0): leading-connector := Rectangle {
         x: -root.gap / 2; y: (root.marker-size - self.height) / 2;
         width: max(0px, (root.width - root.marker-size) / 2 - root.theme.spacing.unit * root.theme.text-scale + root.gap / 2);
         height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
     }
-    if root.connectors && root.horizontal && (root.ordinal + 1 < root.total): Rectangle {
+    if root.connectors && root.horizontal && (root.rtl ? root.ordinal > 0 : root.ordinal + 1 < root.total): trailing-connector := Rectangle {
         x: (root.width + root.marker-size) / 2 + root.theme.spacing.unit * root.theme.text-scale;
         y: (root.marker-size - self.height) / 2;
         width: max(0px, root.width + root.gap / 2 - self.x);
         height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
     }
     marker := Rectangle {
-        x: root.horizontal ? (root.width - self.width) / 2 : 0px; y: 0px;
+        x: root.horizontal ? (root.width - self.width) / 2 : root.rtl ? root.width - self.width : 0px; y: 0px;
         width: root.marker-size; height: self.width; border-radius: self.width / 2;
         background: root.entry.state == StepState.current || root.entry.state == StepState.complete ? root.theme.accent : root.entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
         border-width: root.theme.shape.border-width;
@@ -322,7 +324,7 @@ component StepItem inherits Rectangle {
     }
     if !root.interactive: Rectangle { accessible-role: text; accessible-label: root.name; accessible-description: root.entry.description; }
     labels := VerticalLayout {
-        x: root.horizontal ? 0px : root.marker-size + root.gap;
+        x: root.horizontal || root.rtl ? 0px : root.marker-size + root.gap;
         y: root.horizontal ? root.marker-size + root.gap : 0px;
         width: root.horizontal ? root.width : max(0px, root.width - root.marker-size - root.gap);
         height: self.preferred-height;
@@ -375,7 +377,7 @@ export component KitSteps inherits Rectangle {
         x: 0px; y: 0px; width: root.width; height: self.preferred-height;
         spacing: root.spacing; alignment: start;
         for entry[index] in (root.orientation == Orientation.horizontal ? root.entries : []): StepItem {
-            private property <int> source-index: index;
+            private property <int> source-index: root.theme.direction == ChoiceFlow.right-to-left ? root.entries.length - 1 - index : index;
             theme: root.theme; entry: root.entries[self.source-index]; ordinal: self.source-index; total: root.entries.length;
             orientation: root.orientation; interactive: root.interactive; disabled: root.disabled;
             connectors: root.connectors; gap: root.spacing; state-label: root.state-label(self.entry.state);

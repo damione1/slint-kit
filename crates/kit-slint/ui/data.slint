@@ -603,8 +603,9 @@ export component KitDataTable inherits Rectangle {
         root.reveal-active();
     }
     function reveal-cell(x: length, width: length) {
-        if (x < root.absolute-position.x) { list.content-x += root.absolute-position.x - x; }
-        else if (x + width > root.absolute-position.x + list.visible-width) { list.content-x -= x + width - root.absolute-position.x - list.visible-width; }
+        let left = list.absolute-position.x + list.viewport-x;
+        if (x < left) { list.content-x += left - x; }
+        else if (x + width > left + list.visible-width) { list.content-x -= x + width - left - list.visible-width; }
     }
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
@@ -628,9 +629,11 @@ export component KitDataTable inherits Rectangle {
     accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.edit-active(); } }
     accessible-value: root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.rows[root.active-index].content.length > 0 ? (root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(root.rows[root.active-index].content[root.active-column].spec, root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].cells[root.active-column]) : "";
     accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
+    // Keep the scrollbar corner in the header canvas on either side.
+    Rectangle { width: root.width; height: root.row-height; background: root.theme.canvas; }
     header := Rectangle {
-        y: 0px;
-        width: root.width; height: root.row-height; background: root.theme.canvas; clip: true;
+        x: list.x + list.viewport-x; y: 0px;
+        width: list.visible-width; height: root.row-height; background: root.theme.canvas; clip: true;
         header-cells := HorizontalLayout {
             x: list.content-x; width: root.grid-width; height: root.row-height; spacing: 0px; padding: 0px;
             // Header cells share the flat, square row recipe so a fill never

@@ -199,3 +199,8 @@ Compose text-field actions with the existing KitInputGroupStart/End children; bi
 
 
 Use `KeyedModel<K, StepEntry>` for interactive `KitSteps`, set enabled per row and resolve step-activated(token, generation) through accept. The host owns progression; static remains the default. Steps support orientation, descriptions and optional connectors. TimelineEntry accepts semantic tone and optional decorative glyph; repeat status meaning in text. Complete Rust StepEntry literals include generation/description/enabled; TimelineEntry literals include tone/glyph.
+
+For RTL chrome set KitTheme.direction to the existing ChoiceFlow.right-to-left enum; choices inherit it as flow unless overridden. Leading/trailing button/badge icons, scrollbar gutter, chat sides and steps mirror. Slint1.18.1 has no general layout mirroring: arrange app children explicitly, supply appropriate directional glyphs and qualify native bidirectional editing/accessibility on the target backend. Physical horizontal scroll coordinates remain unchanged. Complete theme literals include direction.
+
+
+Use public `ScrollFrame` from `@kit` for a finite two-axis composition viewport with explicit content dimensions. Its `viewport-x` is the physical origin relative to the frame; align headers/reveal bounds with it and `visible-width`. `content-x/y` remain negative native offsets. It has no viewport keyboard role. `enabled` gates bars/direct panning, while native wheel handling stays available. Use `KitScrollArea` for the complete vertical wrapper.

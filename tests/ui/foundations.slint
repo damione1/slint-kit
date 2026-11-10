@@ -164,3 +164,25 @@ export component JourneyFixture inherits Window {
     }
     KitTimeline { x: 24px; y: 360px; width: 760px; height: self.preferred-height; theme: root.theme; entries: root.events; }
 }
+
+import { KitBadge, KitChatBubble, ChatSide, ChoiceFlow, KitDialogFooter, ScrollFrame } from "@kit";
+export component DirectionFixture inherits Window {
+    width: 720px; height: 760px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <int> actions;
+    background: root.theme.canvas;
+    button := KitButton { x: 24px; y: 24px; width: 360px; height: self.preferred-height; theme: root.theme; text: "Continue";
+        leading-icon: root.theme.icons.plus; trailing-icon: root.theme.icons.chevron-right;
+        activated => { root.actions += 1; }
+    }
+    badge := KitBadge { x: 24px; y: 100px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Available"; leading-icon: root.theme.icons.check; }
+    chat := KitChatBubble { x: 24px; y: 160px; width: 500px; height: self.preferred-height; theme: root.theme; side: ChatSide.start; author: "Amina"; text: "A logical start message"; }
+    scroll := ScrollFrame { x: 24px; y: 330px; width: 400px; height: 220px; theme: root.theme; content-width: 800px; content-height: 600px;
+        Rectangle { width: 800px; height: 600px; background: root.theme.surface; Text { x: 20px; y: 20px; text: "Scrollable content"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } }
+    }
+    footer := KitDialogFooter { x: 24px; y: 580px; width: 500px; height: self.preferred-height; theme: root.theme;
+        KitButton { theme: root.theme; text: "Back"; }
+        KitButton { theme: root.theme; text: "Continue action"; }
+    }
+
+}

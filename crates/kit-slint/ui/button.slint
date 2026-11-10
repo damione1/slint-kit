@@ -1,7 +1,7 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
-import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow } from "theme.slint";
 import { FocusOutline } from "focus.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
@@ -238,8 +238,8 @@ export component KitButton inherits KitPressable {
     // Pressable injects these children into its padded content rectangle.
     // `parent` here is still the lexical Button, so use the content dimensions
     // explicitly rather than counting its padding a second time.
-    if root.has-leading: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
-    if root.has-trailing: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; x: root.width - 2 * root.padding-inline - self.width; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
+    if root.has-leading: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - 2 * root.padding-inline - self.width : 0px; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
+    if root.has-trailing: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? 0px : root.width - 2 * root.padding-inline - self.width; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
     label := Text {
         x: root.side-reserve; y: 0px;
         width: max(0px, root.width - 2 * root.padding-inline - 2 * root.side-reserve);

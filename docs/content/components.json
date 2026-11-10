@@ -153,7 +153,7 @@
     "fr": {
       "summary": "Étiquette non interactive pour une catégorie, un compte ou un état.",
       "usage": "Définissez `text` et choisissez `Tone.neutral`, `.accent`, `.success`, `.warning`, `.danger` ou `.information`. Gardez un libellé explicite pour que la signification ne repose pas uniquement sur la couleur. La propriété optionnelle `leading-icon: IconGlyph` ajoute une icône décorative à côté du texte sans remplacer son libellé accessible.",
-      "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton.",
+      "behavior": "Le badge mesure sa taille à partir du texte et n’occupe pas l’espace restant. Les tons sémantiques utilisent les couleurs du thème sans créer de comportement de bouton. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
       "label": "Badge",
       "seoTitle": "Badge pour Slint",
       "related": [
@@ -164,7 +164,7 @@
     "en": {
       "summary": "Non-interactive label for a category, count or status.",
       "usage": "Set `text` and choose `Tone.neutral`, `.accent`, `.success`, `.warning`, `.danger` or `.information`. Keep an explicit label so meaning does not depend on color alone. Optional `leading-icon: IconGlyph` adds a decorative icon beside the text without replacing its accessible label.",
-      "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior.",
+      "behavior": "The badge sizes itself from its text and does not consume remaining space. Semantic tones use theme colors without adding button behavior. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
       "label": "Badge",
       "seoTitle": "Badge for Slint",
       "related": [
@@ -203,7 +203,7 @@
       "seoTitle": "Bouton Slint avec callback Rust",
       "summary": "Bouton Slint avec libellé, état occupé et callback d’activation.",
       "usage": "Définissez `text`, puis traitez `activated` pour lancer votre action. Activez `busy` pendant son exécution ; utilisez `control-width: ControlWidth.fill` pour remplir une cellule du layout. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus. Ajoutez `leading-icon` et `trailing-icon` comme valeurs typées `IconGlyph` ; les glyphes vides ne réservent aucun espace. Les icônes sont décoratives et le contrôle conserve son nom accessible textuel.",
-      "behavior": "Entrée active le bouton à l’appui ; Espace l’active au relâchement. `busy` et `disabled` bloquent l’activation. Le libellé conserve sa largeur mesurée sous l’indicateur d’activité et fournit le nom accessible si `accessible-name` est vide. Avec une icône de début ou de fin, une réserve égale des deux côtés centre le libellé dans tout le bouton ; la largeur intrinsèque inclut cette réserve. busy-label donne la description accessible pendant l’attente. Les indicateurs suivent le rythme du thème et restent fixes lorsque les mouvements sont réduits. ButtonIntent.success, warning et information suivent leur palette aux états repos/survol/appui et les encres on-* dédiées ; destructive utilise on-danger indépendamment de on-accent. ButtonIntent.link dessine une action textuelle accentuée soulignée, avec états transparents et hauteur d’une ligne. Cela reste un bouton : traitez activated pour choisir la navigation ou un autre effet. ButtonRecipe.underline pilote la décoration ; les protections disabled et busy restent partagées.",
+      "behavior": "Entrée active le bouton à l’appui ; Espace l’active au relâchement. `busy` et `disabled` bloquent l’activation. Le libellé conserve sa largeur mesurée sous l’indicateur d’activité et fournit le nom accessible si `accessible-name` est vide. Avec une icône de début ou de fin, une réserve égale des deux côtés centre le libellé dans tout le bouton ; la largeur intrinsèque inclut cette réserve. busy-label donne la description accessible pendant l’attente. Les indicateurs suivent le rythme du thème et restent fixes lorsque les mouvements sont réduits. ButtonIntent.success, warning et information suivent leur palette aux états repos/survol/appui et les encres on-* dédiées ; destructive utilise on-danger indépendamment de on-accent. ButtonIntent.link dessine une action textuelle accentuée soulignée, avec états transparents et hauteur d’une ligne. Cela reste un bouton : traitez activated pour choisir la navigation ou un autre effet. ButtonRecipe.underline pilote la décoration ; les protections disabled et busy restent partagées. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
       "related": [
         "KitIconButton",
         "KitFormButton"
@@ -214,7 +214,7 @@
       "seoTitle": "Slint button with a Rust callback",
       "summary": "Slint button with a text label, busy state and activation callback.",
       "usage": "Set `text`, then handle `activated` to run your action. Set `busy` while the action is pending; use `control-width: ControlWidth.fill` to fill a layout cell. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control. Add `leading-icon` and `trailing-icon` as typed `IconGlyph` values; empty glyphs reserve no space. Icons are decorative and the control keeps its text accessible name.",
-      "behavior": "Enter activates on press; Space activates on release. `busy` and `disabled` block activation. The label keeps its measured width while the busy indicator is shown, and supplies the accessible name unless `accessible-name` is set. With either leading or trailing icons, equal side space keeps the text centered in the whole button; intrinsic width includes that reserve. busy-label supplies the accessible description while busy. Button progress marks animate with the theme timing and stay static under reduced motion. ButtonIntent.success, warning and information use their status palette for rest/hover/pressed states and dedicated on-* foreground tokens; destructive uses on-danger independently of on-accent. ButtonIntent.link draws an underlined accent text action with transparent states and inline text-line geometry. It remains a button: handle activated to choose navigation or another effect. ButtonRecipe.underline controls the decoration; disabled and busy guards remain shared.",
+      "behavior": "Enter activates on press; Space activates on release. `busy` and `disabled` block activation. The label keeps its measured width while the busy indicator is shown, and supplies the accessible name unless `accessible-name` is set. With either leading or trailing icons, equal side space keeps the text centered in the whole button; intrinsic width includes that reserve. busy-label supplies the accessible description while busy. Button progress marks animate with the theme timing and stay static under reduced motion. ButtonIntent.success, warning and information use their status palette for rest/hover/pressed states and dedicated on-* foreground tokens; destructive uses on-danger independently of on-accent. ButtonIntent.link draws an underlined accent text action with transparent states and inline text-line geometry. It remains a button: handle activated to choose navigation or another effect. ButtonRecipe.underline controls the decoration; disabled and busy guards remain shared. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
       "related": [
         "KitIconButton",
         "KitFormButton"
@@ -349,7 +349,7 @@
     "fr": {
       "summary": "Ligne d’actions de carte pouvant se replier sur plusieurs lignes.",
       "usage": "Placez les boutons, liens ou métadonnées comme enfants après le corps de la carte. Gardez l’ordre de lecture cohérent avec la priorité des actions.",
-      "behavior": "Le pied utilise `FlexboxLayout` avec retour à la ligne et un espacement de 8 px. Il conserve sa hauteur naturelle lorsque la largeur change.",
+      "behavior": "Le pied utilise `FlexboxLayout` avec retour à la ligne et un espacement de 8 px. Il conserve sa hauteur naturelle lorsque la largeur change. Les actions suivent theme.direction ; l’ordre de déclaration reste l’ordre des identités et du clavier.",
       "label": "Pied de carte",
       "seoTitle": "Pied de carte pour Slint",
       "related": [
@@ -360,7 +360,7 @@
     "en": {
       "summary": "Card action row that can wrap onto multiple lines.",
       "usage": "Place buttons, links or metadata as children after the card body. Keep reading order consistent with action priority.",
-      "behavior": "The footer uses wrapping `FlexboxLayout` with 8 px spacing. It retains its natural height as width changes.",
+      "behavior": "The footer uses wrapping `FlexboxLayout` with 8 px spacing. It retains its natural height as width changes. Footer actions follow theme.direction; declaration order remains the keyboard/action identity order.",
       "label": "Card Footer",
       "seoTitle": "Card Footer for Slint",
       "related": [
@@ -419,7 +419,7 @@
     "fr": {
       "summary": "Message de conversation avec auteur et métadonnées.",
       "usage": "Définissez `author`, `text` et `metadata`, puis `ChatSide.start` ou `.end` selon l’origine du message. Composez plusieurs bulles dans une liste adaptée à la taille de l’historique.",
-      "behavior": "Le côté final utilise la couleur d’accent et le côté initial un fond secondaire. Les textes reviennent à la ligne ; aucune gestion de conversation ou de réseau n’est intégrée.",
+      "behavior": "Le côté final utilise la couleur d’accent et le côté initial un fond secondaire. Les textes reviennent à la ligne ; aucune gestion de conversation ou de réseau n’est intégrée. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
       "label": "Bulle de conversation",
       "seoTitle": "Bulle de conversation pour Slint",
       "related": [
@@ -430,7 +430,7 @@
     "en": {
       "summary": "Conversation message with author and metadata.",
       "usage": "Set `author`, `text` and `metadata`, then choose `ChatSide.start` or `.end` according to message origin. Compose bubbles in a list suited to the history size.",
-      "behavior": "The end side uses the accent color and the start side a secondary background. Text wraps; no conversation or networking logic is included.",
+      "behavior": "The end side uses the accent color and the start side a secondary background. Text wraps; no conversation or networking logic is included. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
       "label": "Chat Bubble",
       "seoTitle": "Chat Bubble for Slint",
       "related": [
@@ -1549,7 +1549,7 @@
     "fr": {
       "summary": "Emplacement de fin pour les actions d’un dialogue.",
       "usage": "Placez les boutons dans l’ordre de lecture et reliez leurs actions au contrôleur du dialogue. Utilisez `busy` ou `disabled` sur les actions pendant une opération.",
-      "behavior": "Les actions sont alignées à la fin et passent à la ligne dans l’ordre de lecture quand leurs largeurs naturelles ne tiennent plus, y compris avec le texte agrandi. L’espacement et la hauteur minimale suivent theme.spacing.unit (8 px et 48 px dans le thème par défaut) ; le pied grandit avec le contenu et ne ferme pas automatiquement la modale.",
+      "behavior": "Les actions sont alignées à la fin et passent à la ligne dans l’ordre de lecture quand leurs largeurs naturelles ne tiennent plus, y compris avec le texte agrandi. L’espacement et la hauteur minimale suivent theme.spacing.unit (8 px et 48 px dans le thème par défaut) ; le pied grandit avec le contenu et ne ferme pas automatiquement la modale. Les actions suivent theme.direction ; l’ordre de déclaration reste l’ordre des identités et du clavier.",
       "label": "Actions de dialogue",
       "seoTitle": "Actions de dialogue pour Slint",
       "related": [
@@ -1560,7 +1560,7 @@
     "en": {
       "summary": "Trailing slot for dialog actions.",
       "usage": "Place buttons in reading order and connect their actions to the dialog controller. Use `busy` or `disabled` on actions during an operation.",
-      "behavior": "Actions align to the end and wrap in reading order when their natural widths no longer fit, including enlarged text. Spacing and minimum height read theme.spacing.unit (8 px and 48 px in the default theme); the footer grows to the wrapped content and does not close the modal automatically.",
+      "behavior": "Actions align to the end and wrap in reading order when their natural widths no longer fit, including enlarged text. Spacing and minimum height read theme.spacing.unit (8 px and 48 px in the default theme); the footer grows to the wrapped content and does not close the modal automatically. Footer actions follow theme.direction; declaration order remains the keyboard/action identity order.",
       "label": "Dialog Footer",
       "seoTitle": "Dialog Footer for Slint",
       "related": [
@@ -3390,8 +3390,8 @@
   "KitScrollArea": {
     "fr": {
       "summary": "Zone de défilement vertical pour une colonne de contenu.",
-      "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible et `scroll-to-start()` pour revenir au début.",
-      "behavior": "La colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Ce conteneur ne virtualise pas ses enfants. Par défaut, la barre verticale réserve un espace stable même quand la politique as-needed la masque ; visible-width exclut cet espace. Activez overlay-scrollbars uniquement si le contenu protège lui-même son bord de fin. Choisissez `pan-policy: children-first` pour des contrôles glissables dans le viewport : un enfant qui capture l’appui garde tout le geste ; glisser le fond ou le texte déplace directement le contenu, sans inertie. Molette, barres et révélation du focus restent disponibles. La politique `native` par défaut conserve l’arbitrage tactile et l’inertie Slint ; `mouse-drag-pan-enabled` règle le glissement du fond à la souris dans les deux modes.",
+      "usage": "Allouez un viewport fini depuis le parent et ajoutez les enfants dans l’ordre de lecture. Utilisez `reveal(top, bottom)` pour rendre un élément visible et `scroll-to-start()` pour revenir au début. Importez ScrollFrame depuis @kit. Donnez une largeur/hauteur finie, liez content-width/content-height au canevas et placez les enfants dedans. KitScrollArea reste le conteneur vertical complet.",
+      "behavior": "La colonne suit la largeur visible et grandit verticalement ; la barre horizontale est désactivée. Ce conteneur ne virtualise pas ses enfants. Par défaut, la barre verticale réserve un espace stable même quand la politique as-needed la masque ; visible-width exclut cet espace. Activez overlay-scrollbars uniquement si le contenu protège lui-même son bord de fin. Choisissez `pan-policy: children-first` pour des contrôles glissables dans le viewport : un enfant qui capture l’appui garde tout le geste ; glisser le fond ou le texte déplace directement le contenu, sans inertie. Molette, barres et révélation du focus restent disponibles. La politique `native` par défaut conserve l’arbitrage tactile et l’inertie Slint ; `mouse-drag-pan-enabled` règle le glissement du fond à la souris dans les deux modes. Pour la primitive publique distincte ScrollFrame : La gouttière verticale stable suit theme.direction ; viewport-x est son origine physique relative à la primitive et visible-width/height excluent les gouttières réservées. content-x/y sont les décalages natifs négatifs. Les politiques de barres, overlay-scrollbars et pan-policy règlent la composition. enabled désactive les barres et le déplacement direct du fond ; la molette native du Flickable reste disponible. Aucun rôle accessible ni action clavier de viewport n’est ajouté : composez-les explicitement ou utilisez une collection complète.",
       "label": "Zone de défilement",
       "seoTitle": "Zone de défilement pour Slint",
       "related": [
@@ -3401,8 +3401,8 @@
     },
     "en": {
       "summary": "Vertical scrolling area for a content column.",
-      "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region and `scroll-to-start()` to return to the beginning.",
-      "behavior": "The column follows the visible width and grows vertically; horizontal scrolling is disabled. This container does not virtualize its children. By default, the vertical scrollbar reserves a stable gutter even when hidden by the as-needed policy; visible-width excludes this space. Set overlay-scrollbars to true only when content independently protects its trailing edge. Select `pan-policy: children-first` for draggable controls inside the viewport: a child that claims the press keeps the whole gesture, while dragging background or text pans directly without inertia. Wheel scrolling, scrollbars and focus reveal remain available. The default `native` policy keeps Slint touch arbitration and inertia; `mouse-drag-pan-enabled` applies to background mouse dragging in either mode.",
+      "usage": "Allocate a finite viewport from the parent and add children in reading order. Use `reveal(top, bottom)` to show a region and `scroll-to-start()` to return to the beginning. Import ScrollFrame from @kit. Give it a finite width/height, bind content-width/content-height to your canvas and place children in it. KitScrollArea remains the complete vertical content wrapper.",
+      "behavior": "The column follows the visible width and grows vertically; horizontal scrolling is disabled. This container does not virtualize its children. By default, the vertical scrollbar reserves a stable gutter even when hidden by the as-needed policy; visible-width excludes this space. Set overlay-scrollbars to true only when content independently protects its trailing edge. Select `pan-policy: children-first` for draggable controls inside the viewport: a child that claims the press keeps the whole gesture, while dragging background or text pans directly without inertia. Wheel scrolling, scrollbars and focus reveal remain available. The default `native` policy keeps Slint touch arbitration and inertia; `mouse-drag-pan-enabled` applies to background mouse dragging in either mode. For the separate public ScrollFrame composition primitive: The stable vertical gutter follows theme.direction; viewport-x is the physical origin relative to this frame and visible-width/height exclude reserved gutters. content-x/y are native negative offsets. Scrollbar policy, overlay-scrollbars and pan-policy configure composition. enabled disables bars and direct background panning; native Flickable wheel handling remains available. There is no viewport keyboard action or accessible role: compose those explicitly or use a complete collection.",
       "label": "Scroll Area",
       "seoTitle": "Scroll Area for Slint",
       "related": [
@@ -3953,7 +3953,7 @@
     "fr": {
       "summary": "Indicateur d’étapes avec états explicites de progression.",
       "usage": "Fournissez les lignes StepEntry avec KeyedModel<K, StepEntry> pour des étapes interactives, activez interactive et traitez step-activated(token, generation). Chaque ligne contient label, description, state et enabled. Gardez interactive à false pour un indicateur statique. Traduisez le groupe et les états current/complete/error/pending avec KitStrings ou les propriétés de l’instance.",
-      "behavior": "Le numéro visuel suit l’ordre des entrées, tandis que le token reste l’identité de l’étape. Les étapes terminées affichent une coche et les libellés accessibles incluent l’état. orientation choisit une disposition verticale ou horizontale ; connectors masque les liaisons si voulu. Ajoutez description et enabled à StepEntry, activez interactive et résolvez step-activated(token, generation) avec KeyedModel<K, StepEntry>::accept. L’hôte gère la progression ; le kit fournit pointeur/Entrée/Espace/Tab et refuse les gestes désactivés ou remplacés. Sa hauteur intrinsèque suit tout le contenu dans les deux orientations, descriptions et texte agrandi compris.",
+      "behavior": "Le numéro visuel suit l’ordre des entrées, tandis que le token reste l’identité de l’étape. Les étapes terminées affichent une coche et les libellés accessibles incluent l’état. orientation choisit une disposition verticale ou horizontale ; connectors masque les liaisons si voulu. Ajoutez description et enabled à StepEntry, activez interactive et résolvez step-activated(token, generation) avec KeyedModel<K, StepEntry>::accept. L’hôte gère la progression ; le kit fournit pointeur/Entrée/Espace/Tab et refuse les gestes désactivés ou remplacés. Sa hauteur intrinsèque suit tout le contenu dans les deux orientations, descriptions et texte agrandi compris. Les positions logiques leading/trailing et start/end suivent theme.direction (ChoiceFlow), de gauche à droite par défaut. Cela reflète les éléments du kit ; les textes natifs et les dispositions des enfants applicatifs conservent le comportement Slint.",
       "label": "Étapes",
       "seoTitle": "Étapes pour Slint",
       "related": [
@@ -3964,7 +3964,7 @@
     "en": {
       "summary": "Step indicator with explicit progress states.",
       "usage": "Supply StepEntry rows through KeyedModel<K, StepEntry> for interactive steps, set interactive: true and handle step-activated(token, generation). Each row contains label, description, state and enabled. Keep interactive false for a static progress indicator. Localize the group and current/complete/error/pending labels through KitStrings or per-instance overrides.",
-      "behavior": "The visual number follows entry order while the token remains step identity. Completed steps show a check, and accessible labels include state. orientation chooses vertical or horizontal layout; connectors can be hidden. Add description and enabled to each StepEntry, opt into interactive, and resolve step-activated(token, generation) with KeyedModel<K, StepEntry>::accept. The host controls progression; the kit supplies native pointer/Enter/Space/Tab button behavior and rejects disabled or replaced gestures. Its intrinsic height follows all step content in either orientation, including descriptions and enlarged text.",
+      "behavior": "The visual number follows entry order while the token remains step identity. Completed steps show a check, and accessible labels include state. orientation chooses vertical or horizontal layout; connectors can be hidden. Add description and enabled to each StepEntry, opt into interactive, and resolve step-activated(token, generation) with KeyedModel<K, StepEntry>::accept. The host controls progression; the kit supplies native pointer/Enter/Space/Tab button behavior and rejects disabled or replaced gestures. Its intrinsic height follows all step content in either orientation, including descriptions and enlarged text. Logical leading/trailing and start/end placement follows theme.direction (ChoiceFlow); the default is left-to-right. This mirrors kit chrome, while native text and application child layouts retain Slint behavior.",
       "label": "Steps",
       "seoTitle": "Steps for Slint",
       "related": [

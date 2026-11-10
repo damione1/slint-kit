@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
+import { KitChatBubble, ChatSide, KitTheme, KitThemes, KitButton, ChoiceFlow } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitChatBubble — exemple";
     preferred-width: 520px;
-    preferred-height: 460px * root.theme.text-scale;
+    preferred-height: 540px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -19,6 +19,7 @@ export component Example inherits Window {
         KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Elliot Alderson"; text: "L’espace de travail est prêt à être relu."; metadata: "Aujourd’hui, 09:30"; }
         KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Elliot Alderson"; text: "Pouvez-vous vérifier les paramètres du projet ?"; metadata: "Aujourd’hui, 09:31"; }
         KitChatBubble { theme: root.theme; side: ChatSide.end; author: "Vous"; text: "Oui, je les vérifie cet après-midi."; metadata: "Aujourd’hui, 09:32 · Distribué"; }
+        KitButton { theme: root.theme; text: "Inverser la disposition"; activated => { root.theme.direction = root.theme.direction == ChoiceFlow.left-to-right ? ChoiceFlow.right-to-left : ChoiceFlow.left-to-right; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

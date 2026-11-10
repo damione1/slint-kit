@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, ScrollBarRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, ScrollBarRecipe, ChoiceFlow } from "theme.slint";
 
 // Pointer affordance for one axis of a scrolled viewport. `value` follows
 // Flickable's convention: 0 at the start and -maximum at the end. Like the
@@ -94,8 +94,8 @@ export component KitScrollBar inherits Rectangle {
 export enum ScrollPanPolicy { native, children-first }
 
 // Themed replacement for the std-widgets ScrollView: a Flickable with
-// KitScrollBar gutters on its trailing edges. Internal to the kit; public
-// containers forward the parts of this API they support.
+// KitScrollBar gutters on its logical trailing edges. Public composition
+// primitive; callers supply content dimensions and finite viewport geometry.
 export component ScrollFrame {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <bool> enabled: true;
@@ -104,6 +104,8 @@ export component ScrollFrame {
     in property <bool> overlay-scrollbars: false;
     private property <length> vertical-gutter: root.overlay-scrollbars || root.vertical-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
     private property <length> horizontal-gutter: root.overlay-scrollbars || root.horizontal-scrollbar-policy == ScrollBarPolicy.always-off ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness;
+    // Physical viewport origin relative to this composition frame.
+    out property <length> viewport-x: flickable.absolute-position.x - root.absolute-position.x;
     out property <length> visible-width <=> flickable.width;
     out property <length> visible-height <=> flickable.height;
     in-out property <length> content-width <=> flickable.content-width;
@@ -128,7 +130,7 @@ export component ScrollFrame {
     // own grab then pans without stealing a slider/button's existing grab.
     // Keep the Flickable ancestor for wheel scrolling and native focus reveal.
     pan := TouchArea {
-        x: 0px; y: 0px;
+        x: root.theme.direction == ChoiceFlow.right-to-left ? root.vertical-gutter : 0px; y: 0px;
         width: max(0px,root.width - root.vertical-gutter);
         height: max(0px,root.height - root.horizontal-gutter);
         enabled: root.enabled && root.pan-policy == ScrollPanPolicy.children-first;
@@ -166,7 +168,7 @@ export component ScrollFrame {
         theme: root.theme;
         enabled: root.enabled;
         orientation: Orientation.vertical;
-        x: max(0px, root.width - self.width);
+        x: root.theme.direction == ChoiceFlow.right-to-left ? 0px : max(0px, root.width - self.width);
         y: 0px;
         width: KitThemes.scroll-bar-recipe(root.theme).thickness;
         height: max(0px, root.height - (root.overlay-scrollbars ? (horizontal-bar.visible ? horizontal-bar.height : 0px) : root.horizontal-gutter));
@@ -178,7 +180,7 @@ export component ScrollFrame {
         theme: root.theme;
         enabled: root.enabled;
         orientation: Orientation.horizontal;
-        x: 0px;
+        x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - self.width : 0px;
         y: max(0px, root.height - self.height);
         width: max(0px, root.width - (root.overlay-scrollbars ? (vertical-bar.visible ? vertical-bar.width : 0px) : root.vertical-gutter));
         height: KitThemes.scroll-bar-recipe(root.theme).thickness;

@@ -275,3 +275,109 @@ fn journey_layouts_and_semantic_markers_render_in_both_themes_and_text_scales() 
         }
     }
 }
+
+#[test]
+fn rtl_steps_mirror_markers_preserve_typed_activation_and_stop_vertical_connectors() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = JourneyFixture::new().unwrap();
+    let steps = slint_kit::KeyedModel::new([
+        (StepId(101), row("Account", ui::StepState::Complete, true)),
+        (StepId(203), row("Workspace", ui::StepState::Current, true)),
+        (StepId(305), row("Invite", ui::StepState::Pending, true)),
+    ])
+    .unwrap();
+    window.set_entries(steps.model());
+    let accepted = Rc::new(RefCell::new(Vec::new()));
+    window.on_step_requested({
+        let steps = steps.clone();
+        let accepted = accepted.clone();
+        move |token, generation| {
+            if let Some(key) = steps.accept(token, generation) {
+                accepted.borrow_mut().push(key);
+            }
+        }
+    });
+    window.show().unwrap();
+    for (mode, base) in [
+        ("light", window.get_theme()),
+        ("dark", window.global::<ui::KitThemes>().get_dark()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            theme.direction = ui::ChoiceFlow::RightToLeft;
+            window.set_theme(theme);
+            for (layout, orientation) in [
+                ("vertical", slint::language::Orientation::Vertical),
+                ("horizontal", slint::language::Orientation::Horizontal),
+            ] {
+                window.set_orientation(orientation);
+                slint::platform::update_timers_and_animations();
+                let first = named(&window, "Account, complete");
+                let second = named(&window, "Workspace, current step");
+                if orientation == slint::language::Orientation::Horizontal {
+                    assert!(
+                        first.absolute_position().x > second.absolute_position().x,
+                        "first logical step is on the right"
+                    );
+                } else {
+                    let mut markers = ElementQuery::from_root(&window)
+                        .match_id("StepItem::marker")
+                        .find_all();
+                    let mut connectors = ElementQuery::from_root(&window)
+                        .match_id("StepItem::vertical-connector")
+                        .find_all();
+                    markers.sort_by(|a, b| {
+                        a.absolute_position().y.total_cmp(&b.absolute_position().y)
+                    });
+                    connectors.sort_by(|a, b| {
+                        a.absolute_position().y.total_cmp(&b.absolute_position().y)
+                    });
+                    assert_eq!(markers.len(), 3);
+                    assert_eq!(connectors.len(), 2);
+                    for index in 0..2 {
+                        let line = &connectors[index];
+                        let previous = &markers[index];
+                        let next = &markers[index + 1];
+                        assert!(
+                            line.absolute_position().y
+                                >= previous.absolute_position().y + previous.size().height
+                        );
+                        assert!(
+                            line.absolute_position().y + line.size().height
+                                <= next.absolute_position().y
+                        );
+                        assert!(
+                            (line.absolute_position().x + line.size().width / 2.
+                                - previous.absolute_position().x
+                                - previous.size().width / 2.)
+                                .abs()
+                                < 1.
+                        );
+                    }
+                }
+                let before = accepted.borrow().len();
+                first.invoke_accessible_default_action();
+                assert_eq!(accepted.borrow().len(), before + 1);
+                assert_eq!(accepted.borrow().last(), Some(&StepId(101)));
+                if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                    use std::io::Write;
+                    let image = window.window().take_snapshot().unwrap();
+                    std::fs::create_dir_all(&directory).unwrap();
+                    let path = std::path::PathBuf::from(directory)
+                        .join(format!("journeys-rtl-{layout}-{mode}-{scale}.ppm"));
+                    let mut file = std::fs::File::create(path).unwrap();
+                    write!(file, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                    for pixel in image.as_slice() {
+                        file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                    }
+                }
+            }
+        }
+    }
+}

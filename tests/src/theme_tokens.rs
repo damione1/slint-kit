@@ -26,6 +26,7 @@ enum Token {
     Elevation(ElevationLevel),
     // Both ring styles are real geometry: no variant stands for "unset".
     RingStyle,
+    Direction,
     // A zero shadow spread is real geometry (Tailwind's sm and xs key layers),
     // so a forgotten spread cannot be told apart; the literals name every one.
     Spread,
@@ -40,7 +41,7 @@ impl Token {
             Token::Text(value) => value.is_empty(),
             Token::Flag(value) => !*value,
             Token::Elevation(level) => *level == ElevationLevel::None,
-            Token::RingStyle | Token::Spread => false,
+            Token::RingStyle | Token::Direction | Token::Spread => false,
         }
     }
 }
@@ -132,6 +133,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         icons: _,
         reduced_motion,
         text_scale,
+        direction: _,
     } = theme;
     let mut tokens: Vec<(String, Token)> = [
         ("canvas", canvas),
@@ -355,6 +357,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
 
     tokens.push(("reduced-motion".into(), Token::Flag(reduced_motion)));
     tokens.push(("text-scale".into(), Token::Float(text_scale)));
+    tokens.push(("direction".into(), Token::Direction));
     tokens
 }
 

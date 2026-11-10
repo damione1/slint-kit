@@ -213,3 +213,15 @@ Le `tone` de l’avatar choisit une palette neutre/accent/statut, avec accent pa
 
 
 KitSteps conserve spacing comme entrée publique ; son conteneur Rectangle utilise des dispositions horizontale/verticale internes. Déplacez l’ancien padding hérité vers une disposition parente.
+
+
+## Présentation de droite à gauche
+
+Définissez `theme.direction: ChoiceFlow.right-to-left` pour les icônes leading/trailing, les badges, les gouttières de défilement et les côtés start/end du chat. Les repères d’étapes suivent cette direction. Les choix en héritent comme `flow` par défaut, toujours remplaçable localement. Les thèmes fournis restent de gauche à droite ; les littéraux complets de `KitTheme` doivent inclure direction.
+
+Slint 1.18.1 ne propose pas de direction générale ni de reflet automatique des dispositions. Ce réglage reflète les éléments positionnés par le kit ; il ne réécrit pas les dispositions de vos `@children`, n’inverse pas les données, ne modifie pas les coordonnées du défilement horizontal et ne transforme pas les glyphes fournis. Disposez les enfants explicitement et choisissez des icônes directionnelles adaptées. La composition, la sélection, le curseur et le comportement bidirectionnel des textes natifs restent ceux de Slint ; qualifiez la saisie arabe/hébraïque et les technologies d’assistance sur le backend cible.
+
+La direction du thème n’ajoute pas de service général de reflet Slint : textes et parcours de focus natifs conservent le comportement du moteur, les dispositions enfants restent explicites et les coordonnées de défilement gardent la convention contenu positif/décalage négatif documentée.
+
+
+`ScrollFrame` est une primitive publique `@kit` pour composer un viewport fini à deux axes. Fournissez `content-width` et `content-height` ; les enfants gardent leur édition native. Observez `content-x/y` négatifs, `visible-width/height` et l’origine physique relative `viewport-x` pour aligner les en-têtes externes. Elle fournit gouttières, politiques et `scrolled`, sans rôle clavier de viewport. `enabled` contrôle barres et déplacement direct ; la molette native reste disponible. `KitScrollArea` reste le conteneur vertical complet. Les en-têtes et la révélation des cellules du tableau RTL utilisent cette même origine mesurée.
