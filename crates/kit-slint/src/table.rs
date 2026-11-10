@@ -20,6 +20,11 @@ impl From<CheckState> for ui::CheckState {
 /// A canonical cell-data index, independent of visible column order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ColumnDataIndex(i32);
+impl ColumnDataIndex {
+    pub(crate) fn from_projection(index: i32) -> Option<Self> {
+        (index >= 0).then_some(Self(index))
+    }
+}
 impl TryFrom<usize> for ColumnDataIndex {
     type Error = std::num::TryFromIntError;
     fn try_from(index: usize) -> Result<Self, Self::Error> {
