@@ -203,3 +203,54 @@ fn combobox_renders_descriptions_loading_with_results_custom_geometry_and_end_re
         "end-reached fires when visible rows reach the end of the list"
     );
 }
+
+#[test]
+fn combobox_defaults_follow_theme_metrics_and_window_strings_with_the_native_editor_focused() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::platform::{Key, WindowEvent};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = crate::ComboboxDefaultsFixture::new().unwrap();
+    slint_kit::install(&app);
+    app.global::<crate::ui::KitStrings>()
+        .set_busy_label("Chargement…".into());
+    app.show().unwrap();
+    app.invoke_focus_editor();
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::DownArrow.into(),
+    });
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::DownArrow.into(),
+    });
+    let mut normal_height = 0.;
+    for (name, base) in [("light", app.get_theme()), ("dark", app.get_dark())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            slint::platform::update_timers_and_animations();
+            assert_eq!(app.get_loading_label(), "Chargement…");
+            assert!(app.get_editor_focused());
+            assert!(
+                (app.get_popup_height()
+                    - 6. * app.get_row_height()
+                    - 2. * app.get_expected_inset())
+                .abs()
+                    < 0.01
+            );
+            if scale == 1. {
+                normal_height = app.get_row_height();
+            } else {
+                assert!(app.get_row_height() > normal_height);
+            }
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("combobox-defaults-{name}-{scale}"),
+            );
+        }
+    }
+}

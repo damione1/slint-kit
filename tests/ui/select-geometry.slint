@@ -28,3 +28,26 @@ export component SelectGeometryFixture inherits Window {
         popup-height: root.popup-height; row-height: root.row-height;
     }
 }
+
+import { KitTheme, KitThemes, KitMetrics, KitStrings } from "@kit";
+export component ComboboxDefaultsFixture inherits Window {
+    width: 520px; height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <length> row-height: combo.row-height;
+    out property <length> popup-height: combo.popup-height;
+    out property <length> expected-inset: KitMetrics.popover-inset(root.theme);
+    out property <string> loading-label: combo.loading-label;
+    out property <bool> editor-focused: combo.has-focus;
+    public function focus-editor() { combo.take-focus(); }
+    background: root.theme.canvas;
+    combo := KitCombobox {
+        x: 24px; y: 24px; width: parent.width - 48px;
+        theme: root.theme; label: "Directory";
+        search-state: SearchPresentation.loading;
+        options: [
+            {token: 41, generation: 1, label: "Workspace", description: "Shared workspace", disabled: false},
+            {token: 42, generation: 1, label: "Archive", description: "Older workspace", disabled: false},
+        ];
+    }
+}
