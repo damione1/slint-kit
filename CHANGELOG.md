@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep accepted verification codes private in the complete OTP example; show only acceptance status and remove code logging.
+- Conserve les codes de vérification acceptés dans l’état privé de l’exemple OTP complet ; n’affiche qu’un statut d’acceptation et supprime leur journalisation.
+
 - Keep password examples’ accepted values private and show only a nonsensitive acceptance status; remove secret output from the complete Rust example.
 - Garde privées les valeurs acceptées des exemples de mot de passe et n’affiche qu’un statut non sensible ; supprime la sortie du secret dans l’exemple Rust complet.
 

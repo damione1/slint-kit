@@ -69,3 +69,17 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   const existing = env.renderString(template, { component: { slug: 'button' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { en: 'Usage.', fr: 'Usage.' } });
   assert.match(existing, /cargo run --locked/);
 });
+
+test('verification-code examples retain typed accepted codes without exposing them in status or logs', () => {
+  const ui = fs.readFileSync(new URL('../quickstart/otp-field/ui/app.slint', import.meta.url), 'utf8');
+  assert.doesNotMatch(ui, /accepted-text|value\.value\.text/);
+  for (const name of ['numeric', 'alpha', 'grouped']) assert.ok(ui.includes(`root.${name}-accepted ?`));
+  const rust = fs.readFileSync(new URL('../quickstart/otp-field/src/main.rs', import.meta.url), 'utf8');
+  for (const name of ['numeric', 'alpha', 'grouped']) {
+    assert.ok(rust.includes(`${name}_code = RefCell::new(None::<OtpValue>)`));
+    assert.ok(rust.includes(`${name}.accept(commit)`));
+    assert.ok(rust.includes(`*${name}_code.borrow_mut() = Some(value)`));
+    assert.ok(rust.includes(`set_${name}_accepted(${name}_code.borrow().is_some())`));
+  }
+  assert.doesNotMatch(rust, /(?:println!|eprintln!|dbg!)\s*\(/);
+});

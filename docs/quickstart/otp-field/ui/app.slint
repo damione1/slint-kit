@@ -8,16 +8,17 @@ export component App inherits Window {
     in-out property <KitTheme> theme <=> KitThemeContext.current;
     title: "Verification codes";
     callback numeric(FieldCommit); callback alpha(FieldCommit); callback grouped(FieldCommit);
+    in-out property <bool> numeric-accepted; in-out property <bool> alpha-accepted; in-out property <bool> grouped-accepted;
     KitStack { inset: LayoutSpace.roomy;
         numeric := KitOtpField { label: "Start with an empty code"; slots: 6; required: true; decoration: FieldDecoration.underlined; validation-timing: ValidationTiming.on-submit; commit-policy: CommitPolicy.on-submit; spec-key: "numeric"; committed(value) => { root.numeric(value); } }
         KitButton { text: "Accept numeric code"; activated => { numeric.commit(); } }
-        KitFieldDescription { text: "Accepted: " + numeric.accepted-text; }
+        KitFieldDescription { text: root.numeric-accepted ? "Numeric code accepted" : "No numeric code accepted yet"; }
         alpha := KitOtpField { label: "Letters and digits"; text: "ABC123"; slots: 6; pattern: "[A-Za-z0-9]*"; required: true; validation-timing: ValidationTiming.on-submit; commit-policy: CommitPolicy.on-submit; spec-key: "alpha"; committed(value) => { root.alpha(value); } }
         KitOtpField { label: "The same code, masked"; text: alpha.text; slots: 6; pattern: "[A-Za-z0-9]*"; input-type: InputType.password; access: FieldAccess.read-only; }
         KitButton { text: "Accept alphanumeric code"; activated => { alpha.commit(); } }
-        KitFieldDescription { text: "Accepted: " + alpha.accepted-text; }
+        KitFieldDescription { text: root.alpha-accepted ? "Alphanumeric code accepted" : "No alphanumeric code accepted yet"; }
         grouped := KitOtpField { label: "Seven-character code, grouped at rest"; description: "Paste the raw code without a separator."; text: "FG76657"; slots: 7; pattern: "[A-Z]{2}[0-9]{5}"; required: true; validation-timing: ValidationTiming.on-submit; commit-policy: CommitPolicy.on-submit; spec-key: "grouped"; committed(value) => { root.grouped(value); } }
         KitButton { text: "Accept grouped code"; activated => { grouped.commit(); } }
-        KitFieldDescription { text: "Accepted raw code: " + grouped.accepted-text; }
+        KitFieldDescription { text: root.grouped-accepted ? "Grouped code accepted" : "No grouped code accepted yet"; }
     }
 }
