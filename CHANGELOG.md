@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
+- Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
+
 - Preserve selected, striped and text presentation when table interaction is blocked; unavailable records retain their own disabled appearance.
 
 - Initialize selection controllers created after window installation, including conditional controls and popup content, without requiring an options mutation.

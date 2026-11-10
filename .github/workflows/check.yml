@@ -64,6 +64,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Immutable released examples are checked alongside the current source.
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@1.99.1
         with:
           components: rustfmt, clippy
