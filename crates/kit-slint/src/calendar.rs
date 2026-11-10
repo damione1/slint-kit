@@ -197,6 +197,7 @@ pub fn calendar_projection(
             |name| format!("{name} {}", month.year()),
         );
     ui::CalendarProjection {
+        configuration_state: ui::CalendarConfigurationState::Valid,
         days: ModelRc::new(VecModel::from(days)),
         active_index,
         title: title.into(),
@@ -204,6 +205,32 @@ pub fn calendar_projection(
         next_enabled: calendar.can_navigate(CalendarMove::NextMonth),
     }
 }
+fn invalid_configuration_projection(
+    view: &ui::CalendarView,
+    names: &ModelRc<slint::SharedString>,
+) -> ui::CalendarProjection {
+    let focused = CivilDate::try_from(view.focused.clone())
+        .unwrap_or_else(|_| CivilDate::new(2000, 1, 1).expect("valid reference date"));
+    let calendar =
+        CalendarController::new(None, focused.year_month(), None, view.week_start.into());
+    let mut projection = calendar_projection(&calendar, None, names);
+    projection.configuration_state = ui::CalendarConfigurationState::Invalid;
+    projection.active_index = -1;
+    projection.previous_enabled = false;
+    projection.next_enabled = false;
+    projection.days = ModelRc::new(VecModel::from(
+        projection
+            .days
+            .iter()
+            .map(|mut day| {
+                day.enabled = false;
+                day
+            })
+            .collect::<Vec<_>>(),
+    ));
+    projection
+}
+
 fn range_rules(
     view: &ui::CalendarView,
     minimum: &str,
@@ -262,10 +289,7 @@ where
     });
     service.on_range_project(|view, draft, names| {
         let Ok(calendar) = parse(&view) else {
-            return ui::CalendarProjection {
-                active_index: -1,
-                ..Default::default()
-            };
+            return invalid_configuration_projection(&view, &names);
         };
         let mut projection = calendar_projection(&calendar, None, &names);
         let Ok(selection) = RangeSelection::try_from(draft) else {
@@ -309,10 +333,7 @@ where
         Ok(calendar) => {
             calendar_projection(&calendar, optional_date(view.today).ok().flatten(), &names)
         }
-        Err(_) => ui::CalendarProjection {
-            active_index: -1,
-            ..Default::default()
-        },
+        Err(_) => invalid_configuration_projection(&view, &names),
     });
     service.on_navigate(|view, direction| {
         let Ok(calendar) = parse(&view) else {

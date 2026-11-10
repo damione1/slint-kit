@@ -359,24 +359,48 @@
     "fr": {
       "summary": "Calendrier grégorien navigable au clavier, avec sélection locale ou contrôlée, règles de disponibilité et libellés localisés.",
       "usage": "Définissez `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` et `unavailable-ranges`. Après un unique `install(&app)`, chaque calendrier possède sa date focalisée et calcule sa grille avec le service pur partagé. Traitez `chosen(CivilDateView)` et convertissez avec `CivilDate::try_from`. `days`, `active-index`, `title` et la disponibilité de navigation restent des ports de projection explicites pour les compositions personnalisées. L’application fournit `month-names`, `weekdays` et les libellés accessibles localisés. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance.",
-      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants.",
+      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période.",
       "label": "Calendrier",
       "seoTitle": "Calendrier pour Slint",
       "related": [
         "KitDatePicker",
         "KitDateRangePicker"
-      ]
+      ],
+      "properties": {
+        "configuration-state": {
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Diagnostic localisé affiché quand la configuration des dates est invalide.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitCalendar { configuration-message: \"Check calendar date bounds\"; }"
+        }
+      }
     },
     "en": {
       "summary": "Keyboard-friendly Gregorian calendar with local or controlled selection, availability rules and localized labels.",
       "usage": "Set `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` and `unavailable-ranges`. After one `install(&app)`, each calendar owns its focused date and computes its grid through the shared pure service. Handle `chosen(CivilDateView)` and convert with `CivilDate::try_from`. `days`, `active-index`, `title` and navigation availability remain explicit projection ports for custom compositions. Localized `month-names`, `weekdays` and accessible labels belong to the application. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned.",
-      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices.",
+      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range.",
       "label": "Calendar",
       "seoTitle": "Calendar for Slint",
       "related": [
         "KitDatePicker",
         "KitDateRangePicker"
-      ]
+      ],
+      "properties": {
+        "configuration-state": {
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Localized diagnostic shown when calendar date configuration is invalid.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitCalendar { configuration-message: \"Check calendar date bounds\"; }"
+        }
+      }
     }
   },
   "KitCard": {
@@ -1519,7 +1543,7 @@
       "seoTitle": "Sélecteur de date pour Slint",
       "summary": "Champ de date ISO éditable, avec calendrier déroulant et règles de réservation communes.",
       "usage": "Fournissez `accepted-date`, les libellés et les mêmes contraintes calendaires que `KitCalendar`. Le popup, le texte natif et le calendrier partagent l’état de cette instance. Traitez `chosen(CivilDateView)` pour la date acceptée ; utilisez `CivilDate::try_from` à la frontière Rust. Le projet complet ne nécessite que l’installation et un callback métier. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-date` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. Une date saisie est acceptée avec Entrée ou lorsque le focus quitte l’éditeur (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; un texte invalide ou indisponible conserve la date acceptée et le brouillon, et une date inchangée ne répète pas `chosen`.",
-      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Un engagement vide facultatif et valide émet cleared() et remet accepted-date à vide en ownership local ; chosen contient toujours une vraie date civile. En mode controlled, la valeur reste inchangée jusqu’à confirmation de l’absence par l’hôte. Une valeur vide requise ou invalide selon custom-validity conserve la valeur acceptée. clearable active l’action native d’effacement en fin de champ ; clear-label localise son nom. clear() modifie le brouillon natif et préserve le curseur, l’annulation et la garde de préédition ; l’acceptation suit commit-policy. commit() demande une acceptation explicite validée. L’initialisation confirme la date acceptée après install sans remplacer un brouillon explicite de l’hôte. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants.",
+      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Un engagement vide facultatif et valide émet cleared() et remet accepted-date à vide en ownership local ; chosen contient toujours une vraie date civile. En mode controlled, la valeur reste inchangée jusqu’à confirmation de l’absence par l’hôte. Une valeur vide requise ou invalide selon custom-validity conserve la valeur acceptée. clearable active l’action native d’effacement en fin de champ ; clear-label localise son nom. clear() modifie le brouillon natif et préserve le curseur, l’annulation et la garde de préédition ; l’acceptation suit commit-policy. commit() demande une acceptation explicite validée. L’initialisation confirme la date acceptée après install sans remplacer un brouillon explicite de l’hôte. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1541,6 +1565,16 @@
           "effect": "Nom accessible de l’action d’effacement.",
           "default": "KitStrings.clear-label",
           "example": "KitDatePicker { clear-label: \"Effacer le rendez-vous\"; }"
+        },
+        "configuration-state": {
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Diagnostic localisé affiché quand la configuration des dates est invalide.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitDatePicker { configuration-message: \"Check calendar date bounds\"; }"
         }
       },
       "callbacks": {
@@ -1552,7 +1586,7 @@
       "seoTitle": "Date Picker for Slint",
       "summary": "Editable ISO date field with a calendar popover and consistent booking constraints.",
       "usage": "Provide `accepted-date`, labels and the same calendar constraints as `KitCalendar`. The popup, native text and calendar share instance state. Handle `chosen(CivilDateView)` for the accepted date; use `CivilDate::try_from` at the Rust boundary. The complete quickstart needs only installation and a business callback. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-date`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. A typed date is accepted on Enter or when focus leaves the editor (`commit-policy`, default `CommitPolicy.on-blur`); invalid or unavailable text keeps the accepted date and the draft, and an unchanged date does not repeat `chosen`.",
-      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. An optional valid empty commit emits cleared() and resets accepted-date for local ownership; chosen always carries a real civil date. Controlled ownership keeps the old value until the host acknowledges absence. Required or custom-invalid empties preserve the accepted value. clearable enables the trailing native clear action; clear-label localizes its name. clear() edits the native draft and preserves its caret/undo/IME guard; acceptance follows commit-policy. commit() requests an explicit validated acceptance. Initialization acknowledges the accepted date after install without replacing an explicit host draft. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices.",
+      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. An optional valid empty commit emits cleared() and resets accepted-date for local ownership; chosen always carries a real civil date. Controlled ownership keeps the old value until the host acknowledges absence. Required or custom-invalid empties preserve the accepted value. clearable enables the trailing native clear action; clear-label localizes its name. clear() edits the native draft and preserves its caret/undo/IME guard; acceptance follows commit-policy. commit() requests an explicit validated acceptance. Initialization acknowledges the accepted date after install without replacing an explicit host draft. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1574,6 +1608,16 @@
           "effect": "Accessible name of the clear action.",
           "default": "KitStrings.clear-label",
           "example": "KitDatePicker { clear-label: \"Clear appointment\"; }"
+        },
+        "configuration-state": {
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Localized diagnostic shown when calendar date configuration is invalid.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitDatePicker { configuration-message: \"Check calendar date bounds\"; }"
         }
       },
       "callbacks": {
@@ -1585,24 +1629,48 @@
     "fr": {
       "summary": "Sélection provisoire d’une période, avec confirmation, annulation et durée de séjour validée par le service partagé.",
       "usage": "Fournissez `selected: DateRangeView` et les contraintes calendaires. Le composant possède les bornes du brouillon, sa phase, la date focalisée et la projection. `chosen(DateRangeView)` n’est émis qu’après l’acceptation d’un intervalle complet et autorisé par Appliquer. Convertissez avec `DateRange::try_from` ; Annuler restaure l’intervalle accepté. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. `min-nights` et `max-nights` bornent la durée exacte en nuits ; une chaîne vide retire la borne correspondante, une contrainte mal formée interdit la confirmation.",
-      "behavior": "L’exemple commence du 19 au 23 octobre et accepte 2 à 14 nuits. Les week-ends et les 13–15 octobre sont indisponibles, même à l’intérieur d’une période dont les extrémités sont valides. Une fin refusée conserve le début ; Cancel restaure la période acceptée. Une période d’un seul jour vaut zéro nuit. La lecture seule permet le parcours sans changer la période ; les contrôles désactivés ne confirment ni n’annulent. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants.",
+      "behavior": "L’exemple commence du 19 au 23 octobre et accepte 2 à 14 nuits. Les week-ends et les 13–15 octobre sont indisponibles, même à l’intérieur d’une période dont les extrémités sont valides. Une fin refusée conserve le début ; Cancel restaure la période acceptée. Une période d’un seul jour vaut zéro nuit. La lecture seule permet le parcours sans changer la période ; les contrôles désactivés ne confirment ni n’annulent. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période.",
       "label": "Sélecteur de plage de dates",
       "seoTitle": "Sélecteur de plage de dates pour Slint",
       "related": [
         "KitDatePicker",
         "KitCalendar"
-      ]
+      ],
+      "properties": {
+        "configuration-state": {
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Diagnostic localisé affiché quand la configuration des dates est invalide.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitDateRangePicker { configuration-message: \"Check calendar date bounds\"; }"
+        }
+      }
     },
     "en": {
       "summary": "Staged date-range selection with explicit Apply/Cancel actions and shared stay-length validation.",
       "usage": "Provide `selected: DateRangeView` and calendar constraints. The component owns its draft endpoints, phase, focused date and range projection. `chosen(DateRangeView)` fires only after Apply accepts a complete allowed interval. Convert the result with `DateRange::try_from`; Cancel restores the accepted interval. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. `min-nights` and `max-nights` constrain the exact stay length; an empty string leaves that endpoint unbounded, and malformed constraints prevent acceptance.",
-      "behavior": "The example starts with October 19–23 selected and accepts stays of 2–14 nights. Weekends and October 13–15 are unavailable, including when they lie between otherwise valid endpoints. A failed end selection preserves the start; Cancel restores the accepted range. A same-day range is zero nights. Read-only calendars browse without changing the range; disabled controls cannot apply or cancel. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices.",
+      "behavior": "The example starts with October 19–23 selected and accepts stays of 2–14 nights. Weekends and October 13–15 are unavailable, including when they lie between otherwise valid endpoints. A failed end selection preserves the start; Cancel restores the accepted range. A same-day range is zero nights. Read-only calendars browse without changing the range; disabled controls cannot apply or cancel. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range.",
       "label": "Date Range Picker",
       "seoTitle": "Date Range Picker for Slint",
       "related": [
         "KitDatePicker",
         "KitCalendar"
-      ]
+      ],
+      "properties": {
+        "configuration-state": {
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "default": "CalendarConfigurationState.unchecked before install",
+          "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
+        },
+        "configuration-message": {
+          "effect": "Localized diagnostic shown when calendar date configuration is invalid.",
+          "default": "KitStrings.calendar-configuration-error",
+          "example": "KitDateRangePicker { configuration-message: \"Check calendar date bounds\"; }"
+        }
+      }
     }
   },
   "KitDateTimeField": {
