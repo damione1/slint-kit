@@ -15,6 +15,8 @@
 
 - Keep textarea scrollbar hit areas inside their themed gutter so mouse drags reach the native editor and select text.
 - Contient la zone de la barre du textarea dans sa gouttière thémée pour que les glissements sélectionnent le texte natif.
+- Wrap dialog footer actions within the available width and grow their natural height, preserving action order at enlarged text.
+- Renvoie les actions de pied de dialogue à la ligne et adapte sa hauteur, en conservant leur ordre avec le texte agrandi.
 
 - Add ButtonIntent.link with underlined accent text, inline geometry and transparent states while retaining shared button semantics and guards. Breaking: exhaustive ButtonIntent matches require Link and complete ButtonRecipe literals require underline.
 

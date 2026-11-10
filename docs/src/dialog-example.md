@@ -13,7 +13,7 @@ eleventyComputed:
 {% if locale == 'fr' %}
 # Composer des dialogues avec retour du focus
 
-Cette application Rust et Slint complète compose deux couches modales à l’intérieur d’une fenêtre avec `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` et `KitFocusTarget`. L’adaptateur `DialogHost` possède la pile de couches (`OverlayStack`) et le registre de focus (`FocusRegistry`) ; Slint affiche l’état publié et relaie les gestes. Ce sont des surfaces composées dans la fenêtre de l’application : le kit ne fournit pas de fenêtre modale système.
+Cette application Rust et Slint complète compose deux couches modales à l’intérieur d’une fenêtre avec `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` et `KitFocusTarget`. L’adaptateur `DialogHost` possède la pile de couches (`OverlayStack`) et le registre de focus (`FocusRegistry`) ; Slint affiche l’état publié et relaie les gestes. Ce sont des surfaces composées dans la fenêtre de l’application : le kit ne fournit pas de fenêtre modale système. Les actions de KitDialogFooter passent à la ligne quand la largeur disponible ou le texte agrandi l’exige.
 
 Ce que l’exemple démontre :
 
@@ -29,7 +29,7 @@ Créez un projet neuf, puis remplacez ses fichiers par les cinq fichiers complet
 {% else %}
 # Compose dialogs with focus return
 
-This complete Rust and Slint application composes two modal layers inside one window with `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` and `KitFocusTarget`. The `DialogHost` adapter owns the layer stack (`OverlayStack`) and focus registry (`FocusRegistry`); Slint shows the published state and relays gestures. These are surfaces composed in the application window: the kit does not provide a system modal window.
+This complete Rust and Slint application composes two modal layers inside one window with `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` and `KitFocusTarget`. The `DialogHost` adapter owns the layer stack (`OverlayStack`) and focus registry (`FocusRegistry`); Slint shows the published state and relays gestures. These are surfaces composed in the application window: the kit does not provide a system modal window. KitDialogFooter actions wrap when the available width or enlarged text requires it.
 
 What the example demonstrates:
 

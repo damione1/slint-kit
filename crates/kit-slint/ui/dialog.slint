@@ -83,8 +83,18 @@ export component KitDialogBody inherits Rectangle {
 }
 export component KitDialogFooter inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
-    min-height: root.theme.spacing.unit * 12;
-    HorizontalLayout { spacing: root.theme.spacing.unit * 2; alignment: end; @children }
+    min-height: max(root.theme.spacing.unit * 12, actions.preferred-height);
+    preferred-height: root.min-height;
+    vertical-stretch: 0;
+    actions := FlexboxLayout {
+        width: root.width; height: self.preferred-height;
+        spacing: root.theme.spacing.unit * 2;
+        alignment: end;
+        cross-axis-alignment: start;
+        cross-axis-line-alignment: start;
+        flex-wrap: wrap;
+        @children
+    }
 }
 
 export { KitFocusTarget } from "focus.slint";

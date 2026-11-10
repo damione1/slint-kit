@@ -274,6 +274,26 @@ fn dialog_factory_initializes_the_real_window() {
     );
 }
 
+fn save_dialog_snapshot(window: &DialogApp, name: &str) {
+    let snapshot = window.window().take_snapshot().unwrap();
+    if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+        use std::io::Write;
+        std::fs::create_dir_all(&directory).unwrap();
+        let path = std::path::PathBuf::from(directory).join(format!("{name}.ppm"));
+        let mut file = std::fs::File::create(path).unwrap();
+        write!(
+            file,
+            "P6\n{} {}\n255\n",
+            snapshot.width(),
+            snapshot.height()
+        )
+        .unwrap();
+        for pixel in snapshot.as_slice() {
+            file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+        }
+    }
+}
+
 #[test]
 fn modal_composition_renders_in_both_themes_and_at_double_text() {
     use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
@@ -283,47 +303,113 @@ fn modal_composition_renders_in_both_themes_and_at_double_text() {
         ..Default::default()
     })))
     .unwrap();
-    let (window, host) = example::create_app_with_host(ui::DialogLanguage::English).unwrap();
-    window.show().unwrap();
-    window
-        .window()
-        .set_size(slint::LogicalSize::new(960., 800.));
-    let themes = [
-        window.get_theme(),
-        window.global::<ui::KitThemes>().get_dark(),
-    ];
-    for (index, base) in themes.into_iter().enumerate() {
-        for scale in [1., 2.] {
-            let mut theme = base.clone();
-            theme.text_scale = scale;
-            window.set_theme(theme);
-            host.open(example::Layer::Archive, example::Target::Toolbar);
-            host.open(example::Layer::Confirm, example::Target::Archive);
-            slint::platform::update_timers_and_animations();
-            let snapshot = window.window().take_snapshot().unwrap();
-            assert!(window.get_confirm().topmost);
-            if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
-                use std::io::Write;
-                std::fs::create_dir_all(&directory).unwrap();
-                let path =
-                    std::path::PathBuf::from(directory).join(format!("dialog-{index}-{scale}.ppm"));
-                let mut file = std::fs::File::create(path).unwrap();
-                write!(
-                    file,
-                    "P6\n{} {}\n255\n",
-                    snapshot.width(),
-                    snapshot.height()
-                )
-                .unwrap();
-                for pixel in snapshot.as_slice() {
-                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+    for (language, locale, panel_name, keep_name, confirm_name) in [
+        (
+            ui::DialogLanguage::English,
+            "en",
+            "Confirm archiving",
+            "Keep project",
+            "Archive now",
+        ),
+        (
+            ui::DialogLanguage::French,
+            "fr",
+            "Confirmer l’archivage",
+            "Conserver le projet",
+            "Archiver maintenant",
+        ),
+    ] {
+        let (window, host) = example::create_app_with_host(language).unwrap();
+        window.show().unwrap();
+        let themes = [
+            window.get_theme(),
+            window.global::<ui::KitThemes>().get_dark(),
+        ];
+        for (index, base) in themes.into_iter().enumerate() {
+            for scale in [1., 2.] {
+                for width in [560., 960.] {
+                    window
+                        .window()
+                        .set_size(slint::LogicalSize::new(width, 800.));
+                    let mut theme = base.clone();
+                    theme.text_scale = scale;
+                    window.set_theme(theme);
+                    slint::platform::update_timers_and_animations();
+                    let toolbar_names = match language {
+                        ui::DialogLanguage::English => {
+                            ["Archive from the toolbar", "Archive from the project card"]
+                        }
+                        ui::DialogLanguage::French => [
+                            "Archiver depuis la barre d’outils",
+                            "Archiver depuis la fiche du projet",
+                        ],
+                    };
+                    for label in toolbar_names {
+                        let action = ElementHandle::find_by_accessible_label(&window, label)
+                            .next()
+                            .unwrap();
+                        let point = action.absolute_position();
+                        let bounds = action.size();
+                        assert!(
+                            point.x >= 0.
+                                && point.x + bounds.width <= width + 1.
+                                && point.y >= 0.
+                                && point.y + bounds.height <= 801.,
+                            "opener stays inside viewport: {locale}/{index}/{scale}/{width}"
+                        );
+                    }
+                    save_dialog_snapshot(
+                        &window,
+                        &format!("dialog-{locale}-{index}-{scale}-{width}-closed"),
+                    );
+                    host.open(example::Layer::Archive, example::Target::Toolbar);
+                    host.open(example::Layer::Confirm, example::Target::Archive);
+                    slint::platform::update_timers_and_animations();
+                    let panel = ElementHandle::find_by_accessible_label(&window, panel_name)
+                        .next()
+                        .unwrap();
+                    let keep = ElementHandle::find_by_accessible_label(&window, keep_name)
+                        .next()
+                        .unwrap();
+                    let confirm = ElementHandle::find_by_accessible_label(&window, confirm_name)
+                        .next()
+                        .unwrap();
+                    let origin = panel.absolute_position();
+                    let size = panel.size();
+                    for button in [&keep, &confirm] {
+                        let point = button.absolute_position();
+                        let bounds = button.size();
+                        assert!(
+                            point.x >= origin.x
+                                && point.y >= origin.y
+                                && point.x + bounds.width <= origin.x + size.width + 1.
+                                && point.y + bounds.height <= origin.y + size.height + 1.,
+                            "footer action stays inside panel: {locale}/{index}/{scale}/{width}"
+                        );
+                    }
+                    let a = keep.absolute_position();
+                    let b = confirm.absolute_position();
+                    let sa = keep.size();
+                    let sb = confirm.size();
+                    assert!(
+                        a.x + sa.width <= b.x + 1.
+                            || b.x + sb.width <= a.x + 1.
+                            || a.y + sa.height <= b.y + 1.
+                            || b.y + sb.height <= a.y + 1.,
+                        "footer actions do not overlap: {locale}/{index}/{scale}/{width}"
+                    );
+                    assert!(window.get_confirm().topmost);
+                    save_dialog_snapshot(
+                        &window,
+                        &format!("dialog-{locale}-{index}-{scale}-{width}"),
+                    );
+                    host.close(
+                        example::Layer::Archive,
+                        slint_kit::DismissReason::Programmatic,
+                    );
+                    slint::platform::update_timers_and_animations();
                 }
             }
-            host.close(
-                example::Layer::Archive,
-                slint_kit::DismissReason::Programmatic,
-            );
-            slint::platform::update_timers_and_animations();
         }
     }
 }
