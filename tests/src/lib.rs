@@ -838,3 +838,5 @@ mod slider_paint;
 mod field_direction;
 
 mod slider_escape;
+
+mod range_coincident;

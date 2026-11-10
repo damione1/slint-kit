@@ -1278,6 +1278,12 @@ export component KitRangeSlider inherits Rectangle {
                 let upper-distance = abs(position - root.upper-position);
                 if (lower-distance < upper-distance) { root.active-thumb = RangeThumb.lower; }
                 if (upper-distance < lower-distance) { root.active-thumb = RangeThumb.upper; }
+                if (root.lower-position == root.upper-position) {
+                    // The press side chooses the thumb that can separate the pair.
+                    // At the shared centre prefer upper, except at the maximum.
+                    root.active-thumb = position < root.lower-position || root.upper-position == 1
+                        ? RangeThumb.lower : RangeThumb.upper;
+                }
                 if (root.active-thumb == RangeThumb.lower) { lower.focus(); } else { upper.focus(); }
                 root.gesture-active = true; root.snapshot = root.value; root.gesture-started(root.active-thumb); root.update-position();
             }

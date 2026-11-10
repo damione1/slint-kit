@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Coincident range slider thumbs now separate with the pointer: the press side chooses the moving thumb, and a press on a coincident endpoint chooses the thumb with room to move.
+- Les poignées coïncidentes du curseur de plage se séparent désormais au pointeur : le côté de l’appui choisit la poignée mobile et un appui sur une borne commune choisit celle qui peut se déplacer.
+
 - Sliders and color-channel sliders now cancel only an active pointer gesture on Escape. Outside a gesture, Escape preserves keyboard edits and host-published values and bubbles to the parent.
 - Les curseurs et curseurs de canaux couleur n’annulent sur Échap qu’un geste de pointeur actif. Hors geste, Échap conserve les modifications au clavier et les valeurs publiées par l’hôte, puis remonte au parent.
 
