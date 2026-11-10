@@ -106,7 +106,7 @@ component TableHeaderContent inherits HorizontalLayout {
     in property <length> inset;
     padding-left: root.inset; padding-right: root.inset; spacing: root.theme.spacing.unit * 1.5;
     alignment: root.column.alignment == DataAlignment.trailing ? end : root.column.alignment == DataAlignment.center ? center : start;
-    Text {horizontal-stretch: 0; max-width: self.preferred-width; text:root.column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-medium;overflow:elide;vertical-alignment:center;}
+    Text {accessible-role: none; horizontal-stretch: 0; max-width: self.preferred-width; text:root.column.label;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);font-weight:root.theme.typography.weight-medium;overflow:elide;vertical-alignment:center;}
     if root.column.sort != DataSortDirection.unsorted: Rectangle {
         width: KitMetrics.icon-size(root.theme, root.control-size); height: parent.height;
         TurningIcon {theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.column.sort == DataSortDirection.descending; rest-glyph: root.theme.icons.chevron-up; turned-glyph: root.theme.icons.chevron-down;ink:root.theme.text-secondary;}
@@ -331,6 +331,8 @@ export component KitDataTable inherits Rectangle {
     // The accessible word of a column's resize handle, joined to the column
     // label with ", ".
     in property <string> resize-label: "width";
+    in property <string> editable-label: "editable";
+    in property <string> read-only-label: "read only";
     // The floor of every `fill` column. A `fixed` column is exactly its
     // basis within its own bounds.
     in property <length> minimum-column-width: 140px * root.theme.text-scale;
@@ -471,6 +473,8 @@ export component KitDataTable inherits Rectangle {
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
     accessible-label: root.label + (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.columns[root.active-column].label : "");
+    accessible-value: root.has-active-cell() ? (root.rows[root.active-index].content.length > 0 ? (root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(root.rows[root.active-index].content[root.active-column].spec, root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].cells[root.active-column]) : "";
+    accessible-description: root.edit-error != "" ? root.edit-error : root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
     keys := DataKeyboard {
         disabled: !root.interactive;
         column-navigation: true;
@@ -609,6 +613,10 @@ export component KitDataTable inherits Rectangle {
         }
     }
     if root.rows.length == 0: Text {y:root.row-height;text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    if keys.has-focus && (root.active-index < 0 || root.active-index >= root.rows.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
+        ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
+    }
+
 }
 
 export component KitContentList inherits Rectangle {
@@ -663,6 +671,10 @@ export component KitContentList inherits Rectangle {
         }
     }
     if root.items.length==0: Text {text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    if keys.has-focus && (root.active-index < 0 || root.active-index >= root.items.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
+        ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
+    }
+
 }
 
 export component KitVirtualTextView inherits Rectangle {
@@ -727,4 +739,8 @@ export component KitVirtualTextView inherits Rectangle {
             if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}
         }
     }
+    if keys.has-focus && (root.active-index < 0 || root.active-index >= root.lines.length || (root.active-index + 1) * root.line-height + list.content-y <= 0px || root.active-index * root.line-height + list.content-y >= list.visible-height): FocusOutline {
+        ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
+    }
+
 }

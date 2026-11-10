@@ -696,3 +696,23 @@ fn editors_and_cell_cursor_fit_the_row_at_every_density_and_text_scale() {
         let _ = name;
     }
 }
+
+#[test]
+fn active_cell_announces_its_value_and_localized_editability() {
+    let Editing { window, .. } = editing(records());
+    window.set_table_active_column(1);
+    assert_eq!(table(&window).accessible_value().as_deref(), Some("12"));
+    assert_eq!(
+        table(&window).accessible_description().as_deref(),
+        Some("editable")
+    );
+    window.set_table_active_column(0);
+    assert_eq!(
+        table(&window).accessible_value().as_deref(),
+        Some("Field notes")
+    );
+    assert_eq!(
+        table(&window).accessible_description().as_deref(),
+        Some("read only")
+    );
+}
