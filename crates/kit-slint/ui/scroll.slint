@@ -17,7 +17,7 @@ export component KitScrollBar inherits Rectangle {
     // Emitted after a pointer drag, track press or wheel changes `value`.
     callback scrolled();
     out property <bool> active: root.enabled && (touch.has-hover || touch.pressed);
-    private property <ScrollBarRecipe> recipe: KitThemes.scroll-bar-recipe(root.theme);
+    in property <ScrollBarRecipe> recipe: KitThemes.scroll-bar-recipe(root.theme);
     private property <bool> horizontal: root.orientation == Orientation.horizontal;
     private property <length> range: max(0px, root.maximum);
     private property <length> track-length: max(0px, (root.horizontal ? root.width : root.height) - 2 * root.recipe.inset);

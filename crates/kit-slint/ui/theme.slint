@@ -50,6 +50,14 @@ export struct KitTypography {
 export struct KitControlDensity { height: length, padding-inline: length, padding-block: length }
 export struct KitSpacing { unit: length, compact: KitControlDensity, medium: KitControlDensity, comfortable: KitControlDensity }
 export struct KitMotion { fast: duration, base: duration, slow: duration }
+export struct KitGeometry {
+    icon-compact: length, icon-medium: length, icon-comfortable: length,
+    choice-compact: length, choice-medium: length, choice-comfortable: length,
+    scroll-thickness: length, scroll-thumb: length, scroll-active-thumb: length, scroll-inset: length, scroll-min-thumb: length,
+    content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
+    busy-mark: length, avatar-size: length, step-marker-minimum: length, step-marker-scaled: length,
+    drop-zone-minimum: length, drop-zone-scaled: length,
+}
 export struct KitTheme {
     canvas: color, surface: color, surface-raised: color,
     text-primary: color, text-secondary: color, placeholder: color,
@@ -60,7 +68,7 @@ export struct KitTheme {
     border-subtle: color, border-strong: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
-    spacing: KitSpacing, motion: KitMotion, icons: KitIconSet,
+    spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
     reduced-motion: bool, text-scale: float,
 }
 
@@ -154,7 +162,7 @@ export global KitMetrics {
     }
     // Tailwind size-3.5/4/5, scaled with text so icons stay legible at 200%.
     public pure function icon-size(theme: KitTheme, size: ControlSize) -> length {
-        return (size == ControlSize.compact ? 14px : size == ControlSize.comfortable ? 20px : 16px) * theme.text-scale;
+        return (size == ControlSize.compact ? theme.geometry.icon-compact : size == ControlSize.comfortable ? theme.geometry.icon-comfortable : theme.geometry.icon-medium) * theme.text-scale;
     }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
@@ -209,6 +217,14 @@ export global KitThemes {
         // duration-150, duration-200 and duration-300.
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
         icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
+        geometry: {
+            icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
+            choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
+            content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
+            busy-mark: 14px, avatar-size: 40px, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+        },
         reduced-motion: false, text-scale: 1,
     };
     out property <KitTheme> dark: {
@@ -253,6 +269,14 @@ export global KitThemes {
         },
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
         icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
+        geometry: {
+            icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
+            choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
+            content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
+            busy-mark: 14px, avatar-size: 40px, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+        },
         reduced-motion: false, text-scale: 1,
     };
     // How far an outline extends beyond its host; inside rings extend nowhere.
@@ -291,7 +315,7 @@ export global KitThemes {
             height: KitMetrics.control-height(theme, size),
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-medium,
             underline: false,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // A borderless control stays flat, like a quiet button.
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: theme.focus,
@@ -319,7 +343,7 @@ export global KitThemes {
             font-size: KitMetrics.font-size(theme, size == ControlSize.comfortable ? TypographyRole.body : TypographyRole.control),
             font-weight: theme.typography.weight-medium,
             underline: intent == ButtonIntent.link,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // Filled intents lift by the theme's control elevation. Outline and
             // quiet controls show their parent through a transparent fill, which
             // a shadow would tint, so they stay flat.
@@ -365,7 +389,7 @@ export global KitThemes {
             border-width: field.border-width, height: field.height, font-size: field.font-size,
             font-weight: theme.typography.weight-regular,
             underline: false,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: field.focus,
         };
@@ -380,7 +404,7 @@ export global KitThemes {
             height: KitMetrics.control-height(theme, size) + theme.spacing.unit * 2,
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-regular,
             underline: false,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: KitThemes.inset-focus(theme),
         };
@@ -397,8 +421,8 @@ export global KitThemes {
         };
     }
     // The box of a checkbox or radio by ControlSize: Tailwind size-4/5/6.
-    public pure function choice-box-size(size: ControlSize) -> length {
-        return size == ControlSize.compact ? 16px : size == ControlSize.comfortable ? 24px : 20px;
+    public pure function choice-box-size(theme: KitTheme, size: ControlSize) -> length {
+        return size == ControlSize.compact ? theme.geometry.choice-compact : size == ControlSize.comfortable ? theme.geometry.choice-comfortable : theme.geometry.choice-medium;
     }
     // Checkbox, radio, switch and slider geometry, sized by ControlSize. Marks,
     // track and thumb derive from the box, so they keep their proportions; a
@@ -406,15 +430,15 @@ export global KitThemes {
     // groups nest their options' control radius inside their own padding.
     public pure function choice-recipe(theme: KitTheme, size: ControlSize) -> ChoiceRecipe {
         return {
-            box-size: KitThemes.choice-box-size(size),
-            box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(size) / 4),
+            box-size: KitThemes.choice-box-size(theme, size),
+            box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(theme, size) / 4),
             mark-stroke: theme.shape.border-width-strong,
-            radio-dot-size: KitThemes.choice-box-size(size) / 2, label-gap: theme.spacing.unit * 2.5,
-            track-width: KitThemes.choice-box-size(size) * 1.9, track-height: KitThemes.choice-box-size(size) + 2px,
-            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(size) + 2px) / 2),
-            thumb-size: KitThemes.choice-box-size(size) - 2px, thumb-inset: 2px,
-            check-size: KitThemes.choice-box-size(size) * 0.7, mixed-width: KitThemes.choice-box-size(size) * 0.6,
-            slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(size) - 4px,
+            radio-dot-size: KitThemes.choice-box-size(theme, size) / 2, label-gap: theme.spacing.unit * 2.5,
+            track-width: KitThemes.choice-box-size(theme, size) * 1.9, track-height: KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong,
+            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong) / 2),
+            thumb-size: KitThemes.choice-box-size(theme, size) - theme.shape.border-width-strong, thumb-inset: theme.shape.border-width-strong,
+            check-size: KitThemes.choice-box-size(theme, size) * 0.7, mixed-width: KitThemes.choice-box-size(theme, size) * 0.6,
+            slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(theme, size) - theme.spacing.unit,
             group-radius: theme.shape.radius-control + theme.spacing.unit * 0.75,
             group-padding: theme.spacing.unit * 0.75, group-gap: theme.spacing.unit * 1.5,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
@@ -459,7 +483,7 @@ export global KitThemes {
     }
     public pure function scroll-bar-recipe(theme: KitTheme) -> ScrollBarRecipe {
         return {
-            thickness: 14px, thumb-thickness: 6px, active-thumb-thickness: 8px, inset: 3px, min-thumb-length: 24px,
+            thickness: theme.geometry.scroll-thickness, thumb-thickness: theme.geometry.scroll-thumb, active-thumb-thickness: theme.geometry.scroll-active-thumb, inset: theme.geometry.scroll-inset, min-thumb-length: theme.geometry.scroll-min-thumb,
             thumb: theme.border-strong, active-thumb: theme.text-secondary, track: transparent, active-track: theme.hover,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
         };

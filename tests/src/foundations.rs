@@ -488,3 +488,86 @@ fn link_buttons_keep_native_activation_and_an_underlined_inline_recipe() {
     link.invoke_accessible_default_action();
     assert_eq!(window.get_link_actions(), 4);
 }
+
+#[test]
+fn public_recipes_and_content_bounds_reach_rendered_geometry() {
+    use i_slint_backend_testing::ElementQuery;
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = RecipeOverrideFixture::new().unwrap();
+    window.show().unwrap();
+    for (index, base) in [
+        window.get_theme(),
+        window.global::<ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            let mut icon = window
+                .global::<ui::KitThemes>()
+                .invoke_icon_recipe(theme.clone(), ui::ControlSize::Medium);
+            icon.size = 31. * scale;
+            window.set_icon_recipe(icon);
+            let mut scroll = window
+                .global::<ui::KitThemes>()
+                .invoke_scroll_bar_recipe(theme.clone());
+            scroll.thickness = 27.;
+            window.set_scroll_recipe(scroll);
+            let mut surface = window
+                .global::<ui::KitThemes>()
+                .invoke_surface_recipe(theme.clone(), SurfaceLevel::Flat);
+            surface.fill = slint::Color::from_rgb_u8(11, 100, 50).into();
+            surface.radius = 17.;
+            window.set_surface_recipe(surface);
+            window.set_card_level(SurfaceLevel::Overlay);
+            slint::platform::update_timers_and_animations();
+            let find = |kind: &str| {
+                ElementQuery::from_root(&window)
+                    .match_inherits(kind)
+                    .find_first()
+                    .unwrap()
+            };
+            assert_eq!(find("KitIcon").size().width, 31. * scale);
+            assert_eq!(find("KitScrollBar").size().width, 27.);
+            let content = ElementQuery::from_root(&window)
+                .match_id("RecipeOverrideFixture::bounded-body")
+                .find_first()
+                .unwrap();
+            assert_eq!(content.size().width, 140.);
+            assert_eq!(window.get_card_recipe().radius, theme.shape.radius_overlay);
+            assert_eq!(window.get_card_recipe().elevation, theme.elevation.overlay);
+            let snapshot = window.window().take_snapshot().unwrap();
+            assert!(
+                snapshot
+                    .as_slice()
+                    .iter()
+                    .any(|p| (p.r, p.g, p.b) == (11, 100, 50))
+            );
+            if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(directory)
+                    .join(format!("recipes-{index}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(
+                    file,
+                    "P6\n{} {}\n255\n",
+                    snapshot.width(),
+                    snapshot.height()
+                )
+                .unwrap();
+                for pixel in snapshot.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+            }
+        }
+    }
+}

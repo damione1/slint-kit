@@ -108,3 +108,20 @@ export component ButtonPaletteFixture inherits Window {
         link := KitButton { theme: root.theme; intent: ButtonIntent.link; text: "Learn more"; disabled: root.link-disabled; activated => { root.link-actions += 1; } }
     }
 }
+
+import { KitIcon, KitScrollBar, KitSurface, KitCard, KitContainer, IconRecipe, ScrollBarRecipe, SurfaceRecipe, SurfaceLevel, ControlSize } from "@kit";
+export component RecipeOverrideFixture inherits Window {
+    width: 700px; height: 400px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <IconRecipe> icon-recipe: KitThemes.icon-recipe(root.theme, ControlSize.medium);
+    in-out property <ScrollBarRecipe> scroll-recipe: KitThemes.scroll-bar-recipe(root.theme);
+    in-out property <SurfaceRecipe> surface-recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
+    in property <SurfaceLevel> card-level;
+    out property <SurfaceRecipe> card-recipe: card.recipe;
+    background: root.theme.canvas;
+    KitIcon { x: 24px; y: 24px; theme: root.theme; glyph: root.theme.icons.check; recipe: root.icon-recipe; }
+    KitScrollBar { x: 100px; y: 24px; width: self.preferred-width; height: 180px; theme: root.theme; maximum: 300px; page-size: 100px; recipe: root.scroll-recipe; }
+    KitSurface { x: 180px; y: 24px; width: 180px; height: 100px; theme: root.theme; recipe: root.surface-recipe; }
+    card := KitCard { x: 400px; y: 24px; width: 220px; height: self.preferred-height; theme: root.theme; level: root.card-level; Text { text: "Card"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } }
+    KitContainer { x: 24px; y: 250px; width: 600px; height: self.preferred-height; max-content-width: 140px; theme: root.theme; bounded-body := Rectangle { height: 32px; Text { text: "Bounded"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } } }
+}

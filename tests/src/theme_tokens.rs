@@ -127,6 +127,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         focus,
         typography,
         spacing,
+        geometry,
         motion,
         icons: _,
         reduced_motion,
@@ -177,6 +178,55 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     .into_iter()
     .map(|(name, color)| (name.to_owned(), Token::Color(color)))
     .collect();
+
+    let KitGeometry {
+        icon_compact,
+        icon_medium,
+        icon_comfortable,
+        choice_compact,
+        choice_medium,
+        choice_comfortable,
+        scroll_thickness,
+        scroll_thumb,
+        scroll_active_thumb,
+        scroll_inset,
+        scroll_min_thumb,
+        content_reading,
+        content_standard,
+        content_wide,
+        content_fluid,
+        busy_mark,
+        avatar_size,
+        step_marker_minimum,
+        step_marker_scaled,
+        drop_zone_minimum,
+        drop_zone_scaled,
+    } = geometry;
+    for (name, value) in [
+        ("geometry.icon-compact", icon_compact),
+        ("geometry.icon-medium", icon_medium),
+        ("geometry.icon-comfortable", icon_comfortable),
+        ("geometry.choice-compact", choice_compact),
+        ("geometry.choice-medium", choice_medium),
+        ("geometry.choice-comfortable", choice_comfortable),
+        ("geometry.scroll-thickness", scroll_thickness),
+        ("geometry.scroll-thumb", scroll_thumb),
+        ("geometry.scroll-active-thumb", scroll_active_thumb),
+        ("geometry.scroll-inset", scroll_inset),
+        ("geometry.scroll-min-thumb", scroll_min_thumb),
+        ("geometry.content-reading", content_reading),
+        ("geometry.content-standard", content_standard),
+        ("geometry.content-wide", content_wide),
+        ("geometry.content-fluid", content_fluid),
+        ("geometry.busy-mark", busy_mark),
+        ("geometry.avatar-size", avatar_size),
+        ("geometry.step-marker-minimum", step_marker_minimum),
+        ("geometry.step-marker-scaled", step_marker_scaled),
+        ("geometry.drop-zone-minimum", drop_zone_minimum),
+        ("geometry.drop-zone-scaled", drop_zone_scaled),
+    ] {
+        tokens.push((name.to_owned(), Token::Length(value)));
+    }
 
     let KitShape {
         radius_control,
@@ -1542,6 +1592,53 @@ fn link_recipe_is_flat_transparent_accented_and_underlined() {
             assert_eq!(recipe.padding_inline, 0.);
             assert_eq!(recipe.padding_block, 0.);
             assert_eq!(recipe.elevation, ElevationLevel::None);
+        }
+    }
+}
+
+#[test]
+fn custom_geometry_reaches_the_family_recipes() {
+    let window = fixture();
+    for mut theme in [window.get_light(), window.get_dark()] {
+        theme.geometry.icon_medium = 31.;
+        theme.geometry.choice_medium = 33.;
+        theme.geometry.scroll_thickness = 27.;
+        theme.geometry.scroll_thumb = 9.;
+        theme.geometry.scroll_active_thumb = 11.;
+        theme.geometry.scroll_inset = 5.;
+        theme.geometry.scroll_min_thumb = 37.;
+        theme.geometry.busy_mark = 23.;
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            assert_eq!(
+                window
+                    .invoke_icon_glyph(theme.clone(), ControlSize::Medium)
+                    .size,
+                31. * scale
+            );
+            assert_eq!(
+                window
+                    .invoke_choice(theme.clone(), ControlSize::Medium)
+                    .box_size,
+                33.
+            );
+            assert_eq!(
+                window
+                    .invoke_button(theme.clone(), ButtonIntent::Primary, ControlSize::Medium)
+                    .busy_mark_size,
+                23. * scale
+            );
+            let bar = window.invoke_scroll_bar(theme.clone());
+            assert_eq!(
+                (
+                    bar.thickness,
+                    bar.thumb_thickness,
+                    bar.active_thumb_thickness,
+                    bar.inset,
+                    bar.min_thumb_length
+                ),
+                (27., 9., 11., 5., 37.)
+            );
         }
     }
 }

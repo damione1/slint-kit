@@ -12,8 +12,8 @@ export global KitLayoutMetrics {
     public pure function space(theme: KitTheme, value: LayoutSpace) -> length {
         return theme.spacing.unit * (value == LayoutSpace.none ? 0 : value == LayoutSpace.tight ? 1 : value == LayoutSpace.compact ? 2 : value == LayoutSpace.regular ? 4 : value == LayoutSpace.roomy ? 6 : 8);
     }
-    public pure function width-limit(value: ContentWidth) -> length {
-        return value == ContentWidth.reading ? 720px : value == ContentWidth.standard ? 1040px : value == ContentWidth.wide ? 1360px : 100000px;
+    public pure function width-limit(theme: KitTheme, value: ContentWidth) -> length {
+        return value == ContentWidth.reading ? theme.geometry.content-reading : value == ContentWidth.standard ? theme.geometry.content-standard : value == ContentWidth.wide ? theme.geometry.content-wide : theme.geometry.content-fluid;
     }
 }
 
@@ -22,6 +22,7 @@ export global KitLayoutMetrics {
 export component KitContainer inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ContentWidth> content-width: ContentWidth.standard;
+    in property <length> max-content-width: KitLayoutMetrics.width-limit(root.theme, root.content-width);
     in property <LayoutSpace> gutter: LayoutSpace.regular;
     in property <LayoutSpace> gap: LayoutSpace.regular;
     out property <length> available-width: body.width;
@@ -31,7 +32,7 @@ export component KitContainer inherits Rectangle {
     preferred-height: body.preferred-height;
     body := VerticalLayout {
         y: 0px;
-        width: min(max(0px, root.width - 2 * KitLayoutMetrics.space(root.theme, root.gutter)), KitLayoutMetrics.width-limit(root.content-width));
+        width: min(max(0px, root.width - 2 * KitLayoutMetrics.space(root.theme, root.gutter)), root.max-content-width);
         x: (root.width - self.width) / 2;
         height: self.preferred-height;
         alignment: start;
@@ -125,14 +126,14 @@ export component KitSurface inherits Rectangle {
     in property <LayoutSpace> gap: LayoutSpace.regular;
     in property <length> corner-radius: root.recipe.radius;
     in property <ElevationLevel> elevation: root.recipe.elevation;
-    private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
     border-radius: root.corner-radius;
     border-width: root.border == SurfaceBorder.subtle ? root.recipe.border-width : 0px;
     border-color: root.recipe.border;
     background: root.recipe.fill;
-    drop-shadow-offset-y: KitThemes.shadow(root.theme, root.elevation).offset-y;
-    drop-shadow-blur: KitThemes.shadow(root.theme, root.elevation).blur;
-    drop-shadow-color: KitThemes.shadow(root.theme, root.elevation).color;
+    drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y;
+    drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur;
+    drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
     vertical-stretch: 0;
     VerticalLayout {
         padding: KitLayoutMetrics.space(root.theme, root.inset);

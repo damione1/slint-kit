@@ -218,7 +218,7 @@
   "KitCard": {
     "fr": {
       "summary": "Surface de carte pour regrouper une unité de contenu.",
-      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
+      "usage": "Composez `KitCardHeader`, `KitCardBody` et `KitCardFooter` comme enfants. Réglez `inset` et `gap` avec `LayoutSpace` plutôt que d’ajouter un second padding. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Choisissez `level` pour une surface plate, surélevée, de dialogue ou de popover. Définissez `recipe` pour définir le fond, la bordure, le rayon, l’élévation et l’ombre principale. Partez de `KitThemes.surface-recipe(theme, level)` ; les champs de structure omis deviennent nuls. Les valeurs explicites de `corner-radius` et `elevation` restent prioritaires. Le Rectangle hérité peint une seule ombre : `shadow.offset-y`, `shadow.blur` et `shadow.color`. `ambient-shadow` et `shadow.spread` n’ont aucun effet ici. Une valeur explicite de `elevation` différente de `recipe.elevation` choisit plutôt ces valeurs d’ombre dans le thème. `KitDialogPanel` utilise la composition élevée avec les deux couches et leurs spreads.",
       "behavior": "La carte possède une bordure, un fond et une hauteur mesurée à partir du contenu. Elle ne capture pas les clics et ne devient pas une action implicitement.",
       "related": [
         "KitCardHeader",
@@ -226,11 +226,23 @@
         "KitCardFooter"
       ],
       "label": "Carte",
-      "seoTitle": "Carte pour Slint"
+      "seoTitle": "Carte pour Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Fond, bordure, rayon et élévation, plus offset-y/blur/color de l’ombre principale. corner-radius et elevation explicites restent prioritaires. Ce composant ne peint ni ambient-shadow ni shadow.spread.",
+          "default": "`KitThemes.surface-recipe(theme, level)`.",
+          "example": "KitCard { recipe: KitThemes.surface-recipe(theme, SurfaceLevel.raised); }"
+        },
+        "level": {
+          "effect": "Choisit la recette de surface par défaut, dont le fond, le rayon et l’élévation.",
+          "default": "`SurfaceLevel.flat`.",
+          "example": "KitCard { level: SurfaceLevel.raised; }"
+        }
+      }
     },
     "en": {
       "summary": "Card surface for grouping a unit of content.",
-      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
+      "usage": "Compose `KitCardHeader`, `KitCardBody` and `KitCardFooter` as children. Set `inset` and `gap` with `LayoutSpace` instead of adding a second padding layer. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. Select `level` for a flat, raised, overlay or popover surface. Set `recipe` to set the fill, border, radius, elevation and main shadow. Start with `KitThemes.surface-recipe(theme, level)`; omitted struct fields become zero. Explicit `corner-radius` and `elevation` still take precedence. The inherited Rectangle paints one shadow: `shadow.offset-y`, `shadow.blur` and `shadow.color`. `ambient-shadow` and `shadow.spread` have no effect here. An explicit `elevation` different from `recipe.elevation` selects those shadow values from the theme instead. `KitDialogPanel` uses the elevated composition with both shadow layers and their spreads.",
       "behavior": "The card owns a border, background and content-measured height. It does not capture clicks or implicitly become an action.",
       "related": [
         "KitCardHeader",
@@ -238,7 +250,19 @@
         "KitCardFooter"
       ],
       "label": "Card",
-      "seoTitle": "Card for Slint"
+      "seoTitle": "Card for Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Surface fill, border, radius and elevation, plus the main shadow offset-y/blur/color. Explicit corner-radius and elevation remain overrides. ambient-shadow and shadow.spread are not painted by this component.",
+          "default": "`KitThemes.surface-recipe(theme, level)`.",
+          "example": "KitCard { recipe: KitThemes.surface-recipe(theme, SurfaceLevel.raised); }"
+        },
+        "level": {
+          "effect": "Selects the default surface recipe, including its fill, radius and elevation.",
+          "default": "`SurfaceLevel.flat`.",
+          "example": "KitCard { level: SurfaceLevel.raised; }"
+        }
+      }
     }
   },
   "KitCardBody": {
@@ -726,25 +750,39 @@
   "KitContainer": {
     "fr": {
       "summary": "Colonne centrée qui borne la largeur de lecture dans l’espace disponible.",
-      "usage": "Choisissez une limite `ContentWidth`, puis `gutter` et `gap` avec `LayoutSpace`. Donnez une largeur finie au parent. Définissez `min-height: self.preferred-height` pour conserver toute la hauteur du contenu.",
+      "usage": "Choisissez une limite `ContentWidth`, puis `gutter` et `gap` avec `LayoutSpace`. Donnez une largeur finie au parent. Définissez `min-height: self.preferred-height` pour conserver toute la hauteur du contenu. max-content-width remplace le plafond prédéfini ; les valeurs par défaut lisent theme.geometry.content-*.",
       "behavior": "La limite de contenu ne devient pas une largeur minimale du conteneur. `available-width` expose la largeur réelle de la colonne, qui garde sa hauteur naturelle.",
       "related": [
         "KitAppShell",
         "KitStack"
       ],
       "label": "Conteneur",
-      "seoTitle": "Conteneur pour Slint"
+      "seoTitle": "Conteneur pour Slint",
+      "properties": {
+        "max-content-width": {
+          "effect": "Borne la colonne enfant dans la largeur disponible sans créer une largeur minimale.",
+          "default": "`KitLayoutMetrics.width-limit(theme, content-width)`.",
+          "example": "KitContainer { max-content-width: theme.geometry.content-reading; }"
+        }
+      }
     },
     "en": {
       "summary": "Centered column that limits reading width within available space.",
-      "usage": "Choose a `ContentWidth` limit, then `gutter` and `gap` using `LayoutSpace`. Give the parent a finite width. Set `min-height: self.preferred-height` when the content should keep its full height.",
+      "usage": "Choose a `ContentWidth` limit, then `gutter` and `gap` using `LayoutSpace`. Give the parent a finite width. Set `min-height: self.preferred-height` when the content should keep its full height. max-content-width overrides the preset cap; default preset widths read theme.geometry.content-*.",
       "behavior": "The content limit does not become the container’s minimum width. `available-width` exposes the column’s actual width, while its height remains natural.",
       "related": [
         "KitAppShell",
         "KitStack"
       ],
       "label": "Container",
-      "seoTitle": "Container for Slint"
+      "seoTitle": "Container for Slint",
+      "properties": {
+        "max-content-width": {
+          "effect": "Caps the child column within the available width without creating a minimum width.",
+          "default": "`KitLayoutMetrics.width-limit(theme, content-width)`.",
+          "example": "KitContainer { max-content-width: theme.geometry.content-reading; }"
+        }
+      }
     }
   },
   "KitContentList": {
@@ -2046,25 +2084,39 @@
   "KitIcon": {
     "fr": {
       "summary": "Parcourez les 1 999 icônes Lucide incluses dans Slint Kit et copiez leur intégration avec KitIcon ou un composant de composition.",
-      "usage": "Définissez `glyph: KitGlyphs.check()`, ou un glyphe Lucide comme `LucideIcons.arrow-up()` importé de `@kit/icons/lucide/all.slint`, et `ink` à partir de la couleur sémantique du thème. Un `IconGlyph` porte une couche `stroke` (tracée), une couche `fill` (remplie, vide sauf si l’icône a des formes pleines) et sa grille `viewbox`. Une icône est décorative par défaut ; quand elle porte un sens que le texte voisin ne donne pas, ajoutez `purpose: IconPurpose.informative` et un `label`. Réglez `stroke-mode: IconStroke.absolute` pour garder la même épaisseur de trait à toutes les tailles. Pour une action sans texte, utilisez `KitIconButton` avec un nom accessible.",
+      "usage": "Définissez `glyph: KitGlyphs.check()`, ou un glyphe Lucide comme `LucideIcons.arrow-up()` importé de `@kit/icons/lucide/all.slint`, et `ink` à partir de la couleur sémantique du thème. Un `IconGlyph` porte une couche `stroke` (tracée), une couche `fill` (remplie, vide sauf si l’icône a des formes pleines) et sa grille `viewbox`. Une icône est décorative par défaut ; quand elle porte un sens que le texte voisin ne donne pas, ajoutez `purpose: IconPurpose.informative` et un `label`. Réglez `stroke-mode: IconStroke.absolute` pour garder la même épaisseur de trait à toutes les tailles. Pour une action sans texte, utilisez `KitIconButton` avec un nom accessible. Définissez `recipe` pour remplacer ensemble la taille, la couleur et le trait par défaut. Partez de `KitThemes.icon-recipe(theme, control-size)` ; les champs de structure omis deviennent nuls. Les tailles prédéfinies lisent `theme.geometry.icon-*` et suivent l’échelle du texte.",
       "behavior": "La taille suit `control-size` (14, 16 ou 20 px) et l’échelle du texte. L’épaisseur du trait est le jeton `shape.icon-stroke` du thème : en unités de grille qui suivent la taille (`IconStroke.scaled`, par défaut) ou en pixels logiques (`IconStroke.absolute`). Les formes pleines sont peintes avec le même `ink`. Une icône décorative est absente de l’arbre d’accessibilité, une icône informative y est une image nommée par `label`. L’icône seule ne fournit ni interaction ni nom d’action.",
       "related": [
         "KitIconButton",
         "KitBadge"
       ],
       "label": "Icônes Lucide",
-      "seoTitle": "Icônes Lucide pour Slint"
+      "seoTitle": "Icônes Lucide pour Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Présentation complète de l’icône ; ink, width et height explicites remplacent les valeurs correspondantes.",
+          "default": "`KitThemes.icon-recipe(theme, control-size)`.",
+          "example": "KitIcon { recipe: KitThemes.icon-recipe(theme, ControlSize.comfortable); }"
+        }
+      }
     },
     "en": {
       "summary": "Browse all 1,999 Lucide icons included in Slint Kit and copy their integration with KitIcon or a composition component.",
-      "usage": "Set `glyph: KitGlyphs.check()`, or a Lucide glyph such as `LucideIcons.arrow-up()` imported from `@kit/icons/lucide/all.slint`, and `ink` from the theme’s semantic color. An `IconGlyph` carries a `stroke` layer, a `fill` layer that is empty unless the icon has filled shapes, and its `viewbox` grid. An icon is decorative by default; when it carries meaning that nearby text does not, add `purpose: IconPurpose.informative` and a `label`. Set `stroke-mode: IconStroke.absolute` to keep the same stroke width at every size. For an action without text, use `KitIconButton` with an accessible name.",
+      "usage": "Set `glyph: KitGlyphs.check()`, or a Lucide glyph such as `LucideIcons.arrow-up()` imported from `@kit/icons/lucide/all.slint`, and `ink` from the theme’s semantic color. An `IconGlyph` carries a `stroke` layer, a `fill` layer that is empty unless the icon has filled shapes, and its `viewbox` grid. An icon is decorative by default; when it carries meaning that nearby text does not, add `purpose: IconPurpose.informative` and a `label`. Set `stroke-mode: IconStroke.absolute` to keep the same stroke width at every size. For an action without text, use `KitIconButton` with an accessible name. Set `recipe` to replace icon size, ink and stroke defaults together. Derive it from `KitThemes.icon-recipe(theme, control-size)`; omitted struct fields become zero. The size presets read `theme.geometry.icon-*` and follow text scale.",
       "behavior": "Its size follows `control-size` (14, 16 or 20 px) and the text scale. The stroke width is the theme’s `shape.icon-stroke` token: in grid units that scale with the icon (`IconStroke.scaled`, the default) or in logical pixels (`IconStroke.absolute`). Filled shapes are painted with the same `ink`. A decorative icon stays out of the accessibility tree; an informative one is an image named by `label`. An icon alone provides neither interaction nor an action name.",
       "related": [
         "KitIconButton",
         "KitBadge"
       ],
       "label": "Lucide icons",
-      "seoTitle": "Lucide icons for Slint"
+      "seoTitle": "Lucide icons for Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Complete icon presentation; explicit ink, width and height override its corresponding defaults.",
+          "default": "`KitThemes.icon-recipe(theme, control-size)`.",
+          "example": "KitIcon { recipe: KitThemes.icon-recipe(theme, ControlSize.comfortable); }"
+        }
+      }
     }
   },
   "KitIconButton": {
@@ -3746,25 +3798,39 @@
   "KitSurface": {
     "fr": {
       "summary": "Surface visuelle unique pour un contenu composé.",
-      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
+      "usage": "Choisissez `SurfaceLevel.flat` ou `.raised`, `SurfaceBorder.none` ou `.subtle`, puis `inset` et `gap`. Placez le contenu dans ses enfants. Réglez `corner-radius` et `elevation` sans recopier une recette. Transmettez `theme` explicitement aux enfants fournis par l’appelant : il ne cascade pas. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Définissez `recipe` pour définir le fond, la bordure, le rayon, l’élévation et l’ombre principale. Partez de `KitThemes.surface-recipe(theme, level)` ; les champs de structure omis deviennent nuls. Les valeurs explicites de `corner-radius` et `elevation` restent prioritaires. Le Rectangle hérité peint une seule ombre : `shadow.offset-y`, `shadow.blur` et `shadow.color`. `ambient-shadow` et `shadow.spread` n’ont aucun effet ici. Une valeur explicite de `elevation` différente de `recipe.elevation` choisit plutôt ces valeurs d’ombre dans le thème. `KitDialogPanel` utilise la composition élevée avec les deux couches et leurs spreads.",
       "behavior": "Elle possède le fond et le padding, sans intercepter le pointeur ni le focus. Composez une action avec `KitPressable` lorsqu’une surface doit être interactive.",
       "related": [
         "KitCard",
         "KitContainer"
       ],
       "label": "Surface",
-      "seoTitle": "Surface pour Slint"
+      "seoTitle": "Surface pour Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Fond, bordure, rayon et élévation, plus offset-y/blur/color de l’ombre principale. corner-radius et elevation explicites restent prioritaires. Ce composant ne peint ni ambient-shadow ni shadow.spread.",
+          "default": "`KitThemes.surface-recipe(theme, level)`.",
+          "example": "KitSurface { recipe: KitThemes.surface-recipe(theme, SurfaceLevel.raised); }"
+        }
+      }
     },
     "en": {
       "summary": "Single painted surface for composed content.",
-      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
+      "usage": "Choose `SurfaceLevel.flat` or `.raised`, `SurfaceBorder.none` or `.subtle`, then `inset` and `gap`. Place content in its children. Set local `corner-radius` and `elevation` without copying a recipe. Pass `theme` explicitly to caller-provided children; it does not cascade. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. Set `recipe` to set the surface fill, border, radius, elevation and main shadow. Start with `KitThemes.surface-recipe(theme, level)`; omitted struct fields become zero. Explicit `corner-radius` and `elevation` still take precedence. The inherited Rectangle paints one shadow: `shadow.offset-y`, `shadow.blur` and `shadow.color`. `ambient-shadow` and `shadow.spread` have no effect here. An explicit `elevation` different from `recipe.elevation` selects those shadow values from the theme instead. `KitDialogPanel` uses the elevated composition with both shadow layers and their spreads.",
       "behavior": "It owns the background and padding without intercepting pointer or focus events. Compose an action with `KitPressable` when a surface should be interactive.",
       "related": [
         "KitCard",
         "KitContainer"
       ],
       "label": "Surface",
-      "seoTitle": "Surface for Slint"
+      "seoTitle": "Surface for Slint",
+      "properties": {
+        "recipe": {
+          "effect": "Surface fill, border, radius and elevation, plus the main shadow offset-y/blur/color. Explicit corner-radius and elevation remain overrides. ambient-shadow and shadow.spread are not painted by this component.",
+          "default": "`KitThemes.surface-recipe(theme, level)`.",
+          "example": "KitSurface { recipe: KitThemes.surface-recipe(theme, SurfaceLevel.raised); }"
+        }
+      }
     }
   },
   "KitSwitch": {
@@ -4920,25 +4986,39 @@
   "KitScrollBar": {
     "fr": {
       "summary": "Barre de défilement thémée pour un viewport que l’application fait défiler.",
-      "usage": "Liez `maximum` à la hauteur du contenu moins la page, `page-size` à la page visible et `value` en liaison bidirectionnelle à `content-y` d’un `Flickable`. Choisissez `orientation` et `policy` (`ScrollBarPolicy`).",
+      "usage": "Liez `maximum` à la hauteur du contenu moins la page, `page-size` à la page visible et `value` en liaison bidirectionnelle à `content-y` d’un `Flickable`. Choisissez `orientation` et `policy` (`ScrollBarPolicy`). Définissez `recipe` pour remplacer ensemble la piste, le pouce, les espacements et la transition. Partez de `KitThemes.scroll-bar-recipe(theme)` ; les champs de structure omis deviennent nuls. Les dimensions globales sont dans `theme.geometry.scroll-*`.",
       "behavior": "Le pouce suit la proportion de page visible ; le glisser, la molette et un appui sur la piste (une page vers le pointeur) bornent la position. Comme la barre std-widgets qu’elle remplace, elle ne prend pas le focus et reste hors de l’arbre d’accessibilité : le clavier et la sémantique appartiennent au viewport.",
       "label": "Barre de défilement",
       "seoTitle": "Barre de défilement pour Slint",
       "related": [
         "KitScrollArea",
         "KitDataTable"
-      ]
+      ],
+      "properties": {
+        "recipe": {
+          "effect": "Présentation complète de la piste et du pouce, dimensions et animation.",
+          "default": "`KitThemes.scroll-bar-recipe(theme)`.",
+          "example": "KitScrollBar { recipe: KitThemes.scroll-bar-recipe(theme); }"
+        }
+      }
     },
     "en": {
       "summary": "Themed scroll bar for a viewport the application scrolls.",
-      "usage": "Bind `maximum` to the content length minus the page, `page-size` to the visible page and `value` two-way to a `Flickable`'s `content-y`. Choose `orientation` and `policy` (`ScrollBarPolicy`).",
+      "usage": "Bind `maximum` to the content length minus the page, `page-size` to the visible page and `value` two-way to a `Flickable`'s `content-y`. Choose `orientation` and `policy` (`ScrollBarPolicy`). Set `recipe` to replace track, thumb, spacing and transition defaults together. Start with `KitThemes.scroll-bar-recipe(theme)`; omitted struct fields become zero. Theme-wide dimensions live in `theme.geometry.scroll-*`.",
       "behavior": "The thumb follows the visible page proportion; dragging, the wheel and a track press (one page toward the pointer) keep the position in bounds. Like the std-widgets bar it replaces, it takes no focus and stays out of the accessibility tree: keyboard and semantics belong to the viewport.",
       "label": "Scroll Bar",
       "seoTitle": "Scroll Bar for Slint",
       "related": [
         "KitScrollArea",
         "KitDataTable"
-      ]
+      ],
+      "properties": {
+        "recipe": {
+          "effect": "Complete track and thumb presentation, dimensions and animation.",
+          "default": "`KitThemes.scroll-bar-recipe(theme)`.",
+          "example": "KitScrollBar { recipe: KitThemes.scroll-bar-recipe(theme); }"
+        }
+      }
     }
   }
 }

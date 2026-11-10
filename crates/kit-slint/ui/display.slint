@@ -52,7 +52,7 @@ export component KitAvatar inherits Rectangle {
     callback activated();
     out property <bool> has-focus: root.interaction == AvatarInteraction.action && action.has-focus;
     public function take-focus() { if (root.interaction == AvatarInteraction.action) { action.take-focus(); } }
-    in property <length> size: 40px;
+    in property <length> size: root.theme.geometry.avatar-size;
     width: max(root.size, KitMetrics.font-size(root.theme, TypographyRole.subtitle) * 2);
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
@@ -82,14 +82,15 @@ export component KitAvatar inherits Rectangle {
 
 export component KitCard inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <SurfaceLevel> level: SurfaceLevel.flat;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    in property <length> corner-radius: root.surface.radius;
-    in property <ElevationLevel> elevation: root.surface.elevation;
-    private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
-    background: root.surface.fill;
-    border-color: root.surface.border; border-width: root.surface.border-width; border-radius: root.corner-radius;
-    drop-shadow-offset-y: KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: KitThemes.shadow(root.theme, root.elevation).color;
+    in property <length> corner-radius: root.recipe.radius;
+    in property <ElevationLevel> elevation: root.recipe.elevation;
+    in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    background: root.recipe.fill;
+    border-color: root.recipe.border; border-width: root.recipe.border-width; border-radius: root.corner-radius;
+    drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     vertical-stretch: 0;
     content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start; @children }
@@ -248,7 +249,7 @@ export component KitSteps inherits VerticalLayout {
     in property <string> pending-label: KitStrings.step-pending;
     spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
     for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
-        Rectangle { width: max(28px,22px * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
+        Rectangle { width: max(root.theme.geometry.step-marker-minimum,root.theme.geometry.step-marker-scaled * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
             background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
             border-width: root.theme.shape.border-width; border-color: entry.state == StepState.error ? root.theme.danger : entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
             if entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
