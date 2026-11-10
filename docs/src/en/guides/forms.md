@@ -65,6 +65,8 @@ Fields already include `label`, `description`, `error`, validation and accessibl
 
 Calendar/date-range composites validate availability as well as HTML bounds. The time-zone field refuses nonexistent times and asks for an explicit occurrence when clocks repeat. Its accepted `ZonedDateTimeCommit` converts to `ResolvedDateTime`; no time zone is inferred from a local date-time.
 
+Typed dates and times follow the same `commit-policy` as text fields. With the default `CommitPolicy.on-blur`, `KitDatePicker` accepts a valid typed date when focus leaves its editor, `KitDateTimeField` accepts the pair when focus leaves both of its editors, and `KitZonedDateTimeField` resolves when focus leaves its date, time and zone editors. Moving between the editors of one group is not a blur. Invalid text keeps the accepted value and the draft, and an unchanged value does not repeat `chosen`.
+
 `on-change-when-valid` emits the final value of each native edit. Arrow keys and modifier keys leave the acceptance state unchanged.
 
 `report-validity()` never moves focus. Report every field first, then call `focus-if-invalid()` only for the first invalid field. This avoids blur side effects while collecting errors.

@@ -806,3 +806,5 @@ mod text_field_behavior;
 mod direct_validation;
 
 mod field_actions;
+
+mod temporal_blur_commit;

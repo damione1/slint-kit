@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDatePicker, KitDateTimeField, KitZonedDateTimeField, KitTextField, KitValidityState, CivilDateView, LocalDateTimeView, ZonedDateTimeCommit, ZonedTimePresentation, CommitPolicy } from "@kit";
+// Three typed temporal controls followed by an ordinary field, so Tab can
+// leave each group through the real focus chain.
+export component TemporalBlurCommitFixture inherits Window {
+    width: 720px; height: 960px;
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    out property <CivilDateView> picked: picker.accepted-date;
+    out property <KitValidityState> picker-validity: picker.validity;
+    in-out property <string> picker-text <=> picker.text;
+    out property <LocalDateTimeView> local-value: local.accepted-value;
+    out property <bool> local-focused: local.editor-focused;
+    in-out property <string> local-date <=> local.date-text;
+    in-out property <string> local-time <=> local.time-text;
+    out property <ZonedTimePresentation> resolution: zoned.resolution;
+    out property <bool> zoned-focused: zoned.editor-focused;
+    in-out property <string> zoned-date <=> zoned.date-text;
+    in-out property <string> zoned-time <=> zoned.time-text;
+    in-out property <string> zoned-zone <=> zoned.zone-text;
+    out property <bool> next-focused: next.has-focus;
+    in-out property <int> invalid-count;
+    callback picker-chosen(CivilDateView);
+    callback local-chosen(LocalDateTimeView);
+    callback zoned-chosen(ZonedDateTimeCommit);
+    public function focus-picker() { picker.take-focus(); }
+    public function focus-local() { local.take-focus(); }
+    public function focus-zoned() { zoned.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        picker := KitDatePicker { label: "Date"; commit-policy: root.commit-policy; accepted-date: {year: 2026, month: 10, day: 19}; chosen(date) => { root.picker-chosen(date); } invalid => { root.invalid-count += 1; } }
+        local := KitDateTimeField { label: "Local"; commit-policy: root.commit-policy; date-text: "2026-10-17"; time-text: "09:30"; chosen(value) => { root.local-chosen(value); } invalid => { root.invalid-count += 1; } }
+        zoned := KitZonedDateTimeField { label: "Zoned"; commit-policy: root.commit-policy; date-text: "2026-11-02"; time-text: "10:30"; zone-text: "America/Toronto"; chosen(value) => { root.zoned-chosen(value); } invalid => { root.invalid-count += 1; } }
+        next := KitTextField { label: "Next"; }
+    }
+}

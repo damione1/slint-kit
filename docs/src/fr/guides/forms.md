@@ -65,6 +65,8 @@ Les champs incluent déjà `label`, `description`, `error`, validation et nom ac
 
 Les composites calendrier/intervalle valident les indisponibilités en plus des bornes HTML. Le champ avec fuseau refuse les heures inexistantes et exige une occurrence explicite lorsqu’une heure se répète. Son `ZonedDateTimeCommit` accepté se convertit en `ResolvedDateTime` ; aucun fuseau n’est déduit d’une date-heure locale.
 
+Les dates et heures saisies suivent la même `commit-policy` que les champs texte. Avec `CommitPolicy.on-blur` par défaut, `KitDatePicker` accepte une date valide lorsque le focus quitte son éditeur, `KitDateTimeField` accepte la paire lorsque le focus quitte ses deux éditeurs et `KitZonedDateTimeField` résout le brouillon lorsque le focus quitte ses éditeurs de date, d’heure et de zone. Passer d’un éditeur à l’autre dans un même groupe n’est pas une perte de focus. Un texte invalide conserve la valeur acceptée et le brouillon, et une valeur inchangée ne répète pas `chosen`.
+
 `on-change-when-valid` émet la valeur finale de chaque édition native. Les flèches et modificateurs ne changent pas l’état d’acceptation.
 
 `report-validity()` ne déplace jamais le focus. Signalez tous les champs, puis appelez `focus-if-invalid()` uniquement sur le premier champ invalide pour éviter les effets secondaires du flou pendant la collecte des erreurs.

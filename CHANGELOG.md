@@ -4,6 +4,8 @@
 
 - Keep accepted verification codes private in the complete OTP example; show only acceptance status and remove code logging.
 - Conserve les codes de vérification acceptés dans l’état privé de l’exemple OTP complet ; n’affiche qu’un statut d’acceptation et supprime leur journalisation.
+- Behavior change: `KitDatePicker`, `KitDateTimeField` and `KitZonedDateTimeField` now expose `commit-policy` and, with the default `on-blur`, accept a valid typed value when focus leaves the control instead of only on Enter. Composed fields commit when focus leaves every editor of the group; invalid text keeps the accepted value and an unchanged value does not repeat `chosen`.
+- Changement de comportement : `KitDatePicker`, `KitDateTimeField` et `KitZonedDateTimeField` exposent `commit-policy` et, avec `on-blur` par défaut, acceptent une valeur saisie valide lorsque le focus quitte le contrôle, et non plus seulement avec Entrée. Les champs composés s’engagent lorsque le focus quitte tous les éditeurs du groupe ; un texte invalide conserve la valeur acceptée et une valeur inchangée ne répète pas `chosen`.
 
 - Keep password examples’ accepted values private and show only a nonsensitive acceptance status; remove secret output from the complete Rust example.
 - Garde privées les valeurs acceptées des exemples de mot de passe et n’affiche qu’un statut non sensible ; supprime la sortie du secret dans l’exemple Rust complet.
