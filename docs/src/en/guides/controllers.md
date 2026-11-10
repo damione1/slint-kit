@@ -51,6 +51,8 @@ Tokens are projections of stable keys, never array positions. `Choices::replace`
 
 `KitSelectKeyboard.move-active(NavigationStep)` and `type-ahead(string)` route custom navigation surfaces through the same session as native keyboard events. Use `choose-option(token, generation)` for activation; keep host input gates on the calling surface.
 
+Choice and navigation composites expose configurable keyboard policies while keeping existing defaults: `wrap` defaults to `true` on `KitRadioGroup`, `KitSegmentedControl`, `KitToggleGroup`, `KitMenu`, `KitMenuBar`, `KitTabs` and `KitCarousel`, and `false` on `KitSelect`, `KitSelectTrigger`, `KitSelectSurface`, `KitSelectKeyboard`, `KitMultiSelect` and `KitCombobox`. Closed `KitSelect` triggers open and move to the first, last or matched option on `Home`, `End` or printable typeahead. `typeahead-timeout-ms` defaults to `700`, accepts spaces inside an active query, and resets on arrow/Home/End/PageUp/PageDown navigation. `PageUp`/`PageDown` step by visible `page-rows` (`viewport-height / row-height`, fallback `7`). `KitTabs.activation` selects `TabActivation.manual` (default) or `.automatic`; `KitToggleGroup` adds `direction` and `flow`; `KitMenuBar`, `KitTabs` and `KitCarousel` inherit `flow: theme.direction`; and `KitCarousel` handles `LeftArrow`/`RightArrow` (mirrored in RTL) plus `Home`/`End`.
+
 ## KeyedModel for host-owned data
 
 `KeyedModel<K, R>` associates a unique typed key with each public row. `R: KeyedRow` defines the kit projection; built-in rows cover table, content, text, chip, file, notification and toast views. `model()` provides a virtualizable model. `replace` rejects duplicate keys before changing anything and retains tokens for surviving keys. Removed tokens are never recycled.
