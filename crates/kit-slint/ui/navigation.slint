@@ -51,7 +51,7 @@ export component KitMenu inherits Rectangle {
     in property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
-    out property <int> page-rows: list.visible-height > 0px ? max(1, Math.floor(list.visible-height / max(1px, root.row-height))) : 7;
+    out property <int> page-rows: list.visible-height > 0px && root.row-height > 0px ? max(1, Math.floor(list.visible-height / root.row-height)) : 0;
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);

@@ -4,7 +4,8 @@
 ///
 /// `ui` is the module containing `slint::include_modules!()`. Its window exposes
 /// `rows`, `select-state` and select-open/navigate/activate/dismiss/query/typeahead
-/// callbacks. Payload conversion remains exhaustive and compile-time checked.
+/// callbacks plus a `select-page-rows` getter projected from the active surface.
+/// Payload conversion remains exhaustive and compile-time checked.
 ///
 /// Deprecated compatibility API: use `Choices` and the component's
 /// `options`/`selected`/`chosen` contract with `slint_kit::install` instead.
@@ -59,6 +60,7 @@ macro_rules! bind_select {
         let target = binding.clone();
         window.on_select_open(move || target.open());
         let target = binding.clone();
+        let weak = window.as_weak();
         window.on_select_navigate(move |step| {
             use $ui::NavigationStep as View;
             let step = match step {
@@ -69,7 +71,12 @@ macro_rules! bind_select {
                 View::PageNext => $crate::__core::NavigationStep::PageNext,
                 View::PagePrevious => $crate::__core::NavigationStep::PagePrevious,
             };
-            target.navigate(step);
+            if let Some(window) = weak.upgrade() {
+                let page_rows = usize::try_from(window.get_select_page_rows())
+                    .ok()
+                    .and_then(std::num::NonZeroUsize::new);
+                target.navigate(step, page_rows);
+            }
         });
         let target = binding.clone();
         window.on_select_activate(move |token, generation| target.activate(token, generation));

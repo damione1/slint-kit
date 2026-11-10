@@ -277,10 +277,9 @@ where
         .session
     });
     service.on_navigate(|rows, current, step, page_rows, ownership| {
-        let page_size = usize::try_from(page_rows)
-            .ok()
-            .filter(|&rows| rows > 0)
-            .unwrap_or(7);
+        let Ok(page_size) = usize::try_from(page_rows) else {
+            return current;
+        };
         reduce(
             &rows,
             current,

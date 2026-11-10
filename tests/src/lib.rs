@@ -257,12 +257,17 @@ mod tests {
             rows.len() < 40,
             "End must preserve bounded row instantiation"
         );
+        let page_rows = window.get_select_page_rows();
+        assert!(
+            page_rows > 1,
+            "mounted popup exposes its actual visible capacity"
+        );
         key(&window, Key::PageUp);
-        assert_eq!(window.get_select_state().active_index, 9992);
+        assert_eq!(window.get_select_state().active_index, 9999 - page_rows);
         key(&window, Key::Home);
         assert_eq!(window.get_select_state().active_index, 0);
         key(&window, Key::PageDown);
-        assert_eq!(window.get_select_state().active_index, 7);
+        assert_eq!(window.get_select_state().active_index, page_rows);
         for character in "Option05000".chars() {
             let text = character.to_string();
             window.window().dispatch_event(WindowEvent::KeyPressed {

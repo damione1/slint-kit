@@ -4,7 +4,7 @@ use kit_core::{
     DismissReason, ModelError, NavigationStep, Ownership, RemovalPolicy, SelectController,
     SelectOption, SelectionAvailability, SelectionIntent,
 };
-use std::{cell::RefCell, collections::HashMap, hash::Hash, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, hash::Hash, num::NonZeroUsize, rc::Rc};
 use web_time::Instant;
 
 #[derive(Clone, Debug)]
@@ -39,7 +39,6 @@ struct Inner<K> {
     query: String,
     rows: Rc<Vec<ProjectedOption>>,
     rows_generation: u64,
-    page_rows: usize,
 }
 
 /// Window-local controller binding. Its publisher should hold a weak window
@@ -87,7 +86,6 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
                 query: String::new(),
                 rows: Rc::new(Vec::new()),
                 rows_generation: 0,
-                page_rows: 7,
             })),
             publish: Rc::new(publish),
             intent: Rc::new(RefCell::new(None)),
@@ -223,12 +221,6 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     pub fn set_wrap(&self, wrap: bool) {
         self.inner.borrow_mut().controller.set_wrap(wrap);
     }
-    pub fn page_rows(&self) -> usize {
-        self.inner.borrow().page_rows
-    }
-    pub fn set_page_rows(&self, page_rows: usize) {
-        self.inner.borrow_mut().page_rows = page_rows.max(1);
-    }
     pub fn typeahead_timeout_ms(&self) -> u64 {
         self.inner.borrow().controller.typeahead_timeout_ms()
     }
@@ -244,20 +236,16 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
             None
         });
     }
-    pub fn navigate(&self, step: NavigationStep) {
-        let page_rows = self.inner.borrow().page_rows;
+    /// Read the current visible capacity from the component for every event.
+    pub fn navigate(&self, step: NavigationStep, page_rows: Option<NonZeroUsize>) {
         self.apply(|c| {
-            c.navigate(step, page_rows);
+            // None is unmeasured: the core rejects PageUp/Down and still permits ordinary navigation.
+            c.navigate(step, page_rows.map_or(0, NonZeroUsize::get));
             None
         });
     }
-    pub fn navigate_page(&self, step: NavigationStep, page_rows: usize) {
-        let page_rows = page_rows.max(1);
-        self.inner.borrow_mut().page_rows = page_rows;
-        self.apply(|c| {
-            c.navigate(step, page_rows);
-            None
-        });
+    pub fn navigate_page(&self, step: NavigationStep, page_rows: NonZeroUsize) {
+        self.navigate(step, Some(page_rows));
     }
     pub fn activate(&self, token: i32, generation: i32) {
         if token < 0 || generation < 0 {
@@ -698,6 +686,33 @@ mod tests {
         assert_eq!(c.selected(), Some(1));
     }
     #[test]
+    fn page_navigation_reads_each_explicit_capacity_and_rejects_unmeasured_pages() {
+        let binding = SelectBinding::new(
+            (0..30)
+                .map(|i| SelectOption::new(i, i.to_string()))
+                .collect(),
+            None,
+            Ownership::Local,
+            |_| {},
+        );
+        binding.open();
+        binding.navigate(NavigationStep::PageNext, None);
+        assert_eq!(binding.snapshot().active_index, 0);
+        assert_eq!(binding.selected(), None);
+        binding.navigate(NavigationStep::PageNext, NonZeroUsize::new(3));
+        assert_eq!(binding.snapshot().active_index, 3);
+        binding.navigate(NavigationStep::PageNext, NonZeroUsize::new(5));
+        assert_eq!(
+            binding.snapshot().active_index,
+            8,
+            "a second event uses the resized viewport instead of cached rows"
+        );
+        binding.navigate(NavigationStep::PagePrevious, None);
+        assert_eq!(binding.snapshot().active_index, 8);
+        assert_eq!(binding.selected(), None);
+    }
+
+    #[test]
     fn model_storage_is_reused_during_navigation_and_callbacks_can_read_state() {
         let c = SelectBinding::new(
             (0..10_000)
@@ -709,7 +724,7 @@ mod tests {
         );
         c.open();
         let rows = c.snapshot().rows;
-        c.navigate(NavigationStep::Last);
+        c.navigate(NavigationStep::Last, None);
         assert!(Rc::ptr_eq(&rows, &c.snapshot().rows));
         let weak = Rc::downgrade(&c.inner);
         c.on_intent(move |_| {

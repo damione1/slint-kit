@@ -827,9 +827,21 @@ fn install_suggestions(window: &ui::Showcase) {
         .global::<ui::FormExamples>()
         .on_suggestion_open(move || target.open());
     let target = binding.clone();
+    let weak = window.as_weak();
     window
         .global::<ui::FormExamples>()
-        .on_suggestion_navigate(move |step| target.navigate(navigation(step)));
+        .on_suggestion_navigate(move |step| {
+            if let Some(window) = weak.upgrade() {
+                let page_rows = usize::try_from(
+                    window
+                        .global::<ui::FormExamples>()
+                        .get_suggestion_page_rows(),
+                )
+                .ok()
+                .and_then(std::num::NonZeroUsize::new);
+                target.navigate(navigation(step), page_rows);
+            }
+        });
     let target = binding.clone();
     window
         .global::<ui::FormExamples>()
@@ -981,9 +993,18 @@ fn install_multi(window: &ui::Showcase) {
         .global::<ui::FormExamples>()
         .on_multi_open(move || target.open());
     let target = binding.clone();
+    let weak = window.as_weak();
     window
         .global::<ui::FormExamples>()
-        .on_multi_navigate(move |step| target.navigate(navigation(step)));
+        .on_multi_navigate(move |step| {
+            if let Some(window) = weak.upgrade() {
+                let page_rows =
+                    usize::try_from(window.global::<ui::FormExamples>().get_multi_page_rows())
+                        .ok()
+                        .and_then(std::num::NonZeroUsize::new);
+                target.navigate(navigation(step), page_rows);
+            }
+        });
     let target = binding.clone();
     window
         .global::<ui::FormExamples>()

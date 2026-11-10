@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess, KitMenuBar, KitTabs, KitCarousel, KitSegmentedControl, KitToggleGroup, TabActivation, ChoiceDirection, ChoiceFlow, KitTextField, KitCheckbox, CheckState } from "@kit";
+import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess, KitMenuBar, KitTabs, KitCarousel, KitSegmentedControl, KitToggleGroup, TabActivation, ChoiceDirection, ChoiceFlow, KitTextField, KitCheckbox, CheckState, KitKeyResult } from "@kit";
 export component SelectionServiceFixture inherits Window {
     width: 800px; height: 1000px;
     in property <[OptionRow]> options;
@@ -106,4 +106,18 @@ export component SelectionServiceFixture inherits Window {
         segments := KitSegmentedControl { theme: root.theme; options: root.options; flow: root.nav-flow; columns: 2; label: "Segments"; }
         toggles := KitToggleGroup { theme: root.theme; options: root.options; direction: root.toggle-direction; flow: root.nav-flow; label: "Toggles"; }
     }
+}
+
+// Fixed public viewport for measuring page changes independently of popups.
+export component SelectionPageFixture inherits Window {
+    width: 400px; height: 500px;
+    in property <[OptionRow]> options;
+    in property <length> menu-height: 180px;
+    out property <int> page-rows: menu.page-rows;
+    out property <SelectState> state: menu.state;
+    out property <SelectState> unmeasured-state: unmeasured.state;
+    public function focus-menu() { menu.take-focus(); }
+    public function unmeasured-page() -> KitKeyResult { return unmeasured.handle-key({text: Key.PageDown}); }
+    unmeasured := KitSelectKeyboard { width: 0px; height: 0px; enabled: false; options: root.options; page-rows: 0; }
+    menu := KitMenu { width: root.width; height: root.menu-height; options: root.options; }
 }

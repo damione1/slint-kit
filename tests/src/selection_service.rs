@@ -802,3 +802,72 @@ fn carousel_navigation_does_not_intercept_native_child_editing_or_form_keys() {
         "the carousel's own focus target still handles navigation"
     );
 }
+
+#[test]
+fn page_navigation_uses_the_resized_visible_viewport_and_rejects_unmeasured_pages() {
+    use crate::SelectionPageFixture;
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = SelectionPageFixture::new().unwrap();
+    slint_kit::install(&window);
+    let choices = Choices::from_options(
+        (0..40)
+            .map(|i| SelectOption::new(i, format!("Item {i}")))
+            .collect(),
+    )
+    .unwrap();
+    window.set_options(choices.model());
+    assert_eq!(
+        window.invoke_unmeasured_page(),
+        slint_kit::ui::KitKeyResult::Reject
+    );
+    assert!(!window.get_unmeasured_state().selected.present);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    window.window().take_snapshot().unwrap();
+    let send = |key: Key| {
+        let text: slint::SharedString = key.into();
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text });
+    };
+    let measured_rows = || {
+        let menu = ElementQuery::from_root(&window)
+            .match_inherits("KitMenu")
+            .find_first()
+            .unwrap();
+        let row = menu
+            .query_descendants()
+            .match_inherits("KitNavigationAction")
+            .find_first()
+            .unwrap();
+        assert!(row.size().height > 0.);
+        (menu.size().height / row.size().height).floor()
+    };
+    let first_page = window.get_page_rows();
+    assert_eq!(f64::from(first_page), f64::from(measured_rows()));
+    assert!(first_page > 1);
+    window.invoke_focus_menu();
+    send(Key::PageDown);
+    assert_eq!(window.get_state().active_index, first_page);
+    window.set_menu_height(300.);
+    slint::platform::update_timers_and_animations();
+    window.window().take_snapshot().unwrap();
+    let second_page = window.get_page_rows();
+    assert_eq!(f64::from(second_page), f64::from(measured_rows()));
+    assert!(second_page > first_page);
+    send(Key::PageDown);
+    assert_eq!(window.get_state().active_index, first_page + second_page);
+    assert!(
+        !window.get_state().selected.present,
+        "navigation never commits a selection"
+    );
+}

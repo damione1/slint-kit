@@ -432,6 +432,15 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
     /// Navigation clamps at edges. Page movement counts eligible options, so
     /// disabled runs cannot strand the active item.
     pub fn navigate(&mut self, step: NavigationStep, page_size: usize) {
+        // Zero means no measured viewport, not an arbitrary page capacity.
+        if page_size == 0
+            && matches!(
+                step,
+                NavigationStep::PageNext | NavigationStep::PagePrevious
+            )
+        {
+            return;
+        }
         if !self.state.open {
             return;
         }
@@ -469,11 +478,9 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
                 }
             }),
             NavigationStep::PageNext => {
-                current.map_or(0, |i| i.saturating_add(page_size.max(1)).min(last))
+                current.map_or(0, |i| i.saturating_add(page_size).min(last))
             }
-            NavigationStep::PagePrevious => {
-                current.map_or(last, |i| i.saturating_sub(page_size.max(1)))
-            }
+            NavigationStep::PagePrevious => current.map_or(last, |i| i.saturating_sub(page_size)),
         };
         self.state.active = Some(self.options[available[next]].key.clone());
         self.reset_typeahead();

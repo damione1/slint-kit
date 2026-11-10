@@ -19,7 +19,7 @@ export component KitSelectKeyboard inherits FocusScope {
     in property <SelectState> state: selection.state;
     in property <bool> dismiss-on-system-back: true;
     in property <bool> wrap: false;
-    in property <int> page-rows: 7;
+    in property <int> page-rows: 0;
     in property <int> typeahead-timeout-ms: 700;
     callback open-requested();
     callback navigate(NavigationStep);
@@ -53,8 +53,8 @@ export component KitSelectKeyboard inherits FocusScope {
             }
             return KitKeyResult.reject;
         }
-        if (event.text == Key.PageDown) { root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
-        if (event.text == Key.PageUp) { root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
+        if (event.text == Key.PageDown) { if (root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
+        if (event.text == Key.PageUp) { if (root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
         if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return KitKeyResult.accept; }
         if (event.text == Key.Back && root.dismiss-on-system-back) { root.handle-dismiss(CloseReason.system-back); return KitKeyResult.accept; }
         if (event.text == Key.Tab || event.text == Key.Backtab) {
@@ -120,7 +120,7 @@ export component KitSelectTrigger inherits KitPressable {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
     in property <bool> wrap: false;
-    in property <int> page-rows: 7;
+    in property <int> page-rows: 0;
     in property <int> typeahead-timeout-ms: 700;
     callback open-requested();
     callback navigate(NavigationStep);
@@ -192,7 +192,7 @@ export component KitSelectSurface inherits Rectangle {
     in property <length> viewport-height: content-box.height;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
-    out property <int> page-rows: root.viewport-height > 0px ? max(1, Math.floor(root.viewport-height / max(1px, root.row-height))) : 7;
+    out property <int> page-rows: root.viewport-height > 0px && root.row-height > 0px ? max(1, Math.floor(root.viewport-height / root.row-height)) : 0;
     in property <bool> searchable: true;
     in property <bool> focus-on-open: true;
     in property <bool> focus-search-on-open: false;
