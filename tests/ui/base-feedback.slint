@@ -112,10 +112,19 @@ export component BaseLayoutFixture inherits Window {
 // A host measures exactly its toasts: no space is reserved below the last one.
 export component ToastHostFixture inherits Window {
     width: 520px; height: 420px;
+    in property <KitTheme> theme: KitThemes.light;
+    callback toast-action(int);
+    callback toast-dismiss(int);
+    callback toast-interaction(int,ToastInteraction,bool);
+    public function blur-toasts() { outside.take-focus(); }
     in property <[ToastEntry]> entries: [{ token: 1, title: "Project archived", message: "Your project can be restored.", action-label: "Undo", severity: AlertSeverity.success, dismissible: true }];
     VerticalLayout {
         alignment: start;
-        host := KitToastHost { entries: root.entries; }
+        host := KitToastHost { theme: root.theme; entries: root.entries;
+            action(token) => { root.toast-action(token); }
+            dismiss(token) => { root.toast-dismiss(token); }
+            interaction(token,source,engaged) => { root.toast-interaction(token,source,engaged); }
+        }
         Text { text: "Below the host"; }
         // Repeated surfaces measure their content, shadow or not.
         cards := VerticalLayout {
@@ -123,6 +132,7 @@ export component ToastHostFixture inherits Window {
             for title in ["Repeated card"]: KitCard { KitCardHeader { title: title; } }
         }
         Text { text: "Below the cards"; }
+        outside := KitButton { theme: root.theme; text: "Outside toasts"; }
     }
 }
 

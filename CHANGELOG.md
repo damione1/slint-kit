@@ -11,6 +11,8 @@
 
 - Color hex/channel drafts now follow host accepted-color and alpha-policy changes while idle, including after earlier edits and controlled acknowledgements. Focused native drafts retain caret and undo until focus leaves.
 - Les brouillons hexadécimaux/canaux suivent désormais les changements de couleur acceptée et de politique alpha hors focus, même après édition ou acquittement contrôlé. Un brouillon natif actif conserve curseur et historique jusqu’à la perte du focus.
+- Preserve surviving toast delegates, keyboard focus and independent hover/focus pauses across queue additions, expiry, dismissal and capacity eviction; use incremental keyed insertion/removal without replacing the toast model.
+- Conserve les délégués de toast survivants, leur focus clavier et leurs pauses indépendantes de survol/focus lors des ajouts, expirations, fermetures et évictions ; applique des insertions/retraits incrémentaux par clé sans remplacer le modèle de toasts.
 
 - Sliders and color-channel sliders now cancel only an active pointer gesture on Escape. Outside a gesture, Escape preserves keyboard edits and host-published values and bubbles to the parent.
 - Les curseurs et curseurs de canaux couleur n’annulent sur Échap qu’un geste de pointeur actif. Hors geste, Échap conserve les modifications au clavier et les valeurs publiées par l’hôte, puis remonte au parent.
