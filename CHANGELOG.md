@@ -56,6 +56,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Hit-test the table cell cursor from resolved pointer geometry, open fields on double-click or F2 and expose edit/commit/cancel commands and an accessible edit action.
+
 - Preserve collection keyboard navigation after a row press is cancelled. Add `KitPressable.focus-on-pointer` so composite rows focus their shared keyboard scope on press.
 
 - Expose the active table cell value and localized editability to accessibility, remove duplicate header text names and retain a container focus indicator when a collection has no visible active row.
@@ -109,6 +111,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Positionne le curseur de cellule par la géométrie du pointeur, ouvre les champs au double-clic ou F2 et expose les commandes d’édition ainsi qu’une action accessible.
 
 - Conserve la navigation clavier des collections après annulation d’un appui. Ajoute `KitPressable.focus-on-pointer` pour donner le focus à la portée clavier commune des lignes.
 

@@ -716,3 +716,117 @@ fn active_cell_announces_its_value_and_localized_editability() {
         Some("read only")
     );
 }
+
+#[test]
+fn plain_text_editor_rendering_keeps_native_editing_in_light_dark_and_large_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_columns(ModelRc::new(VecModel::from(vec![column(OWNER, "Owner")])));
+    window.set_rows(ModelRc::new(VecModel::from(vec![TableRow {
+        token: 1,
+        content: table_cells([CellContent::field("Original", FieldAccess::Editable)]),
+        ..Default::default()
+    }])));
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    window.show().unwrap();
+    let committed = Rc::new(RefCell::new(Vec::new()));
+    let recorded = committed.clone();
+    window.on_cell_committed(move |_, _, _, commit| recorded.borrow_mut().push(commit));
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            for size in [
+                ControlSize::Compact,
+                ControlSize::Medium,
+                ControlSize::Comfortable,
+            ] {
+                window.set_table_size(size);
+                window.invoke_focus_table();
+                key(&window, Key::Return);
+                text(&window, "Native draft");
+                assert_eq!(editors(&window).len(), 1);
+                let snapshot = window.window().take_snapshot().unwrap();
+                crate::choice_presentation::save_capture(
+                    &snapshot,
+                    &format!("table-editor-{name}-{scale}-{size:?}"),
+                );
+                key(&window, Key::Return);
+                assert!(!window.get_table_editing());
+                assert_eq!(
+                    committed.borrow().last().unwrap().value.text,
+                    "Native draft"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn f2_and_public_edit_commands_share_the_native_plain_text_editor() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    window.set_table_active_column(2);
+    key(&window, Key::F2);
+    assert!(window.get_table_editing());
+    text(&window, "Maya");
+    window.invoke_commit_table();
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(commits.borrow().last().unwrap().3.value.text, "Maya");
+    window.invoke_edit_table();
+    flush();
+    assert!(window.get_table_editing());
+    window.invoke_cancel_table();
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(commits.borrow().len(), 1);
+}
+
+#[test]
+fn pointer_cell_cursor_and_double_click_open_the_pointed_field() {
+    use slint::{
+        LogicalPosition,
+        platform::{PointerEventButton, WindowEvent},
+    };
+    let Editing { window, .. } = editing(records());
+    let cell = ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+        .nth(2)
+        .unwrap();
+    let origin = cell.absolute_position();
+    let position = LogicalPosition::new(
+        origin.x + cell.size().width / 2.,
+        origin.y + cell.size().height / 2.,
+    );
+    for _ in 0..2 {
+        window.window().dispatch_event(WindowEvent::PointerPressed {
+            position,
+            button: PointerEventButton::Left,
+        });
+        flush();
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerReleased {
+                position,
+                button: PointerEventButton::Left,
+            });
+        i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+        flush();
+    }
+    assert_eq!(window.get_table_active_column(), 2);
+    assert!(window.get_table_editing());
+    assert_eq!(editors(&window).len(), 1);
+}

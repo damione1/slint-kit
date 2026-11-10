@@ -66,8 +66,10 @@ component DataKeyboard inherits FocusScope {
     callback navigate-column(ColumnStep);
     callback activate();
     callback confirm();
+    callback edit-requested();
     enabled: !root.disabled;
     key-pressed(event) => {
+        if (event.text == Key.F2) { root.edit-requested(); return accept; }
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
         if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
         if (event.text == Key.Home) {root.navigate(NavigationStep.first);return accept;}
@@ -235,6 +237,10 @@ component TableCellView inherits Rectangle {
     // The editing session of the table is on this cell.
     in property <bool> editing;
     in property <string> editor-name;
+    in property <int> commit-request;
+    in property <bool> pointed;
+    callback point-requested();
+    changed pointed => { if (root.pointed) { root.point-requested(); } }
     // The draft of the session, kept by the table so a cell that the
     // viewport recreates shows the same text.
     in-out property <string> draft;
@@ -292,6 +298,8 @@ component TableCellView inherits Rectangle {
             // error from the table instead.
             show-validation-message: false;
             init => { self.take-focus(); self.select-all(); }
+            private property <int> request: root.commit-request;
+            changed request => { if (root.editing) { self.commit(); } }
             committed(commit) => { root.committed(commit, self.has-focus); }
             edited(text) => { root.error-changed(""); }
             invalid => { root.error-changed(self.field-state.error != "" ? self.field-state.error : self.validation-message); }
@@ -342,6 +350,7 @@ export component KitDataTable inherits Rectangle {
     // a column position. Left/Right move it; the table owns it because it
     // is a view cursor, not application identity.
     in-out property <int> active-column: -1;
+    callback cursor-requested(int, int);
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
@@ -355,6 +364,10 @@ export component KitDataTable inherits Rectangle {
     // and republishes the row; the table paints nothing from it.
     callback cell-committed(int,int,int,FieldCommit);
     public function take-focus() {if(root.interactive){keys.focus();}}
+    public function edit-active() { if (!root.edit-open && root.active-cell-editable()) { root.begin-edit(); } }
+    public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
+    public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused); } }
+    private property <int> edit-commit-request;
     out property <length> scroll-y: list.content-y;
     out property <length> scroll-x: list.content-x;
     // Whether a cell editor is open, and the error of its last rejected
@@ -401,7 +414,7 @@ export component KitDataTable inherits Rectangle {
         return root.edit-open && row.token == root.edit-row-token && column.token == root.edit-column-token;
     }
     function confirm-active() {
-        if (root.active-cell-editable()) { root.begin-edit(); }
+        if (root.active-cell-editable()) { root.edit-active(); }
         else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token, root.generation); }
     }
     function step-column(step: ColumnStep) {
@@ -456,6 +469,9 @@ export component KitDataTable inherits Rectangle {
     }
     pure function cell-preferred(column: TableColumn) -> length { return root.previewed(column) ? root.preview-width : root.column-basis(column); }
     pure function cell-stretch(column: TableColumn) -> float { return !root.previewed(column) && column.width.sizing == ColumnSizing.fill ? 1 : 0; }
+    changed active-column => {
+        if (root.active-column < -1 || root.active-column >= root.columns.length) { root.active-column = clamp(root.active-column, -1, root.columns.length - 1); }
+    }
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
         if (root.active-index >= 0) {
@@ -475,11 +491,13 @@ export component KitDataTable inherits Rectangle {
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
     accessible-label: root.label + (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.columns[root.active-column].label : "");
+    accessible-action-default => { root.edit-active(); }
     accessible-value: root.has-active-cell() ? (root.rows[root.active-index].content.length > 0 ? (root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(root.rows[root.active-index].content[root.active-column].spec, root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].cells[root.active-column]) : "";
     accessible-description: root.edit-error != "" ? root.edit-error : root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
     keys := DataKeyboard {
         disabled: !root.interactive;
         column-navigation: true;
+        edit-requested => { root.edit-active(); }
         navigate(step) => {root.navigate(step);}
         navigate-column(step) => {root.step-column(step);}
         activate => {if (root.has-active-row && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
@@ -549,7 +567,7 @@ export component KitDataTable inherits Rectangle {
         theme: root.theme;
         y:root.row-height; height:max(0px,root.height - root.row-height);
         content-width: root.grid-width;
-        for row[index] in root.rows: DataAction {
+        for row[index] in root.rows: row-action := DataAction {
             token:row.token;generation:root.generation;theme:root.theme;
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
@@ -564,6 +582,7 @@ export component KitDataTable inherits Rectangle {
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             focus-requested => {keys.focus();}
+            double-activated => { root.edit-active(); }
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
@@ -574,6 +593,8 @@ export component KitDataTable inherits Rectangle {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
+                    pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
+                    point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     cell: { kind: TableCellKind.text, text: row.cells[column-index] };
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
@@ -590,6 +611,8 @@ export component KitDataTable inherits Rectangle {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
+                    pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
+                    point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     cell: row.content[column-index];
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
@@ -597,6 +620,7 @@ export component KitDataTable inherits Rectangle {
                     editing: root.edits-cell(row, root.columns[column-index]);
                     editor-name: root.columns[column-index].label + ", " + root.row-name(row);
                     draft <=> root.edit-draft;
+                    commit-request: root.edit-commit-request;
                     editor-focus-changed(focused) => { root.edit-focused = focused; }
                     committed(commit, focused) => {
                         if (root.edits-cell(row, root.columns[column-index])) {

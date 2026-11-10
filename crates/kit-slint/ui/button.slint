@@ -53,6 +53,8 @@ export component KitPressable inherits Rectangle {
     out property <bool> pressed: (touch.pressed && root.pointer-armed && touch.has-hover) || root.space-held;
     out property <bool> has-focus: keys.has-focus;
     out property <bool> focus-visible: keys.has-focus && root.keyboard-focus;
+    out property <length> pointer-x: touch.mouse-x;
+    callback double-activated();
     callback activated();
     // Composition hook runs before the public activation notification.
     callback activation-allowed() -> bool;
@@ -169,6 +171,7 @@ export component KitPressable inherits Rectangle {
             }
             if (event.kind == PointerEventKind.cancel) { root.cancel-press(); }
         }
+        double-clicked => { if (!root.disabled && !root.busy) { root.double-activated(); } }
         clicked => {
             if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
         }

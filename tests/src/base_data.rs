@@ -507,11 +507,11 @@ fn focus_active_row_and_selection_are_three_separate_facts() {
     window.invoke_focus_table();
     key(&window, Key::Return);
     assert_eq!(&*activated.borrow(), &[(3, 1)]);
-    // Pointer activation targets the pressed row; it neither moves the host's
-    // active row nor changes the host's selection.
+    // Pointer activation reports a cursor request; the host controls the active
+    // row and selection independently.
     labelled(&window, "Product 2").mock_single_click(PointerEventButton::Left);
     assert_eq!(&*activated.borrow(), &[(3, 1), (2, 1)]);
-    labelled(&window, "Products fixture: Product 3");
+    labelled(&window, "Products fixture: Product 3, Quantity");
     assert_eq!(
         labelled(&window, "Product 2").accessible_item_selected(),
         Some(false)
