@@ -43,10 +43,7 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
 }
 fn error_presentation(error: &HostError) -> (ui::HostRequestPresentation, &'static str) {
     match error {
-        HostError::Unsupported => (
-            ui::HostRequestPresentation::Unsupported,
-            "This platform does not provide this picker.",
-        ),
+        HostError::Unsupported => (ui::HostRequestPresentation::Unsupported, ""),
         HostError::PermissionDenied => (
             ui::HostRequestPresentation::Failed,
             "Permission was denied.",
@@ -418,6 +415,22 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
 mod tests {
     use super::*;
     use slint::Model;
+    #[test]
+    fn unsupported_picker_uses_capability_state_without_a_field_error() {
+        let (state, message) = error_presentation(&HostError::Unsupported);
+        assert_eq!(state, ui::HostRequestPresentation::Unsupported);
+        assert!(
+            message.is_empty(),
+            "the picker renders its capability explanation"
+        );
+        let (state, message) = error_presentation(&HostError::PermissionDenied);
+        assert_eq!(state, ui::HostRequestPresentation::Failed);
+        assert!(
+            !message.is_empty(),
+            "actual failures retain an error message"
+        );
+    }
+
     #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();

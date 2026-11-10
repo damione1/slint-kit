@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Present unavailable native file/directory pickers through their capability state without a duplicate field error.
+
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
 
 - Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented ascending/descending table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
@@ -18,6 +20,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
 
 - Ajoute un formulaire de contact français/anglais avec vérification Turnstile côté serveur, validation bornée, limitation des tentatives et envoi privé par le Worker existant de la documentation. Conserve le texte en cas d’échec et relie le contact depuis l’accueil et les guides.
 
