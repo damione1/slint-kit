@@ -1,4 +1,4 @@
-use crate::{DismissReason, FocusHandle};
+use crate::{DismissReason, FocusHandle, FocusScopeId};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct OverlayId(pub u64);
@@ -37,6 +37,7 @@ pub struct OverlaySpec {
     pub id: OverlayId,
     pub parent: Option<OverlayId>,
     pub modal: bool,
+    pub focus_scope: Option<FocusScopeId>,
     pub restore_focus: Option<FocusHandle>,
     pub policy: OverlayPolicy,
 }
@@ -46,6 +47,7 @@ impl OverlaySpec {
             id,
             parent,
             modal,
+            focus_scope: None,
             restore_focus: None,
             policy: OverlayPolicy::default(),
         }
@@ -89,6 +91,12 @@ struct Entry {
 }
 /// A stack belongs to one window. Each input event is offered exactly once to
 /// its topmost overlay; blocked dismissal never falls through to a parent.
+///
+/// Entries stay ordered from bottom (oldest registration, parents before
+/// descendants) to top (most recently pushed layer). Structural identity
+/// (`id`, `parent`, `modal`, `focus_scope`, `restore_focus`) is fixed when
+/// pushed; in-place mutations only update runtime dismissal state through
+/// [`Self::set_busy`] and [`Self::set_policy`].
 #[derive(Debug, Default)]
 pub struct OverlayStack {
     entries: Vec<Entry>,
@@ -103,11 +111,29 @@ impl OverlayStack {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+    pub fn get(&self, id: OverlayId) -> Option<&OverlaySpec> {
+        self.entries
+            .iter()
+            .find(|e| e.spec.id == id)
+            .map(|e| &e.spec)
+    }
+    /// Iterates open overlays from bottom (oldest parent) to top (most recent layer).
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &OverlaySpec> + ExactSizeIterator {
+        self.entries.iter().map(|e| &e.spec)
+    }
     pub fn topmost(&self) -> Option<&OverlaySpec> {
         self.entries.last().map(|e| &e.spec)
     }
+    /// Highest open overlay with `modal: true`, ignoring non-modal popovers above it.
+    pub fn topmost_modal(&self) -> Option<&OverlaySpec> {
+        self.entries
+            .iter()
+            .rev()
+            .find(|e| e.spec.modal)
+            .map(|e| &e.spec)
+    }
     pub fn contains(&self, id: OverlayId) -> bool {
-        self.entries.iter().any(|e| e.spec.id == id)
+        self.get(id).is_some()
     }
     pub fn push(&mut self, spec: OverlaySpec) -> Result<(), OverlayError> {
         if self.contains(spec.id) {
@@ -133,6 +159,14 @@ impl OverlayStack {
             .find(|e| e.spec.id == id)
             .is_some_and(|e| e.busy)
     }
+    pub fn set_policy(&mut self, id: OverlayId, policy: OverlayPolicy) -> bool {
+        if let Some(e) = self.entries.iter_mut().find(|e| e.spec.id == id) {
+            e.spec.policy = policy;
+            true
+        } else {
+            false
+        }
+    }
     pub fn request_close(&mut self, reason: DismissReason) -> CloseResult {
         let Some(id) = self.topmost().map(|e| e.id) else {
             return CloseResult::Empty;
@@ -140,18 +174,24 @@ impl OverlayStack {
         self.close(id, reason)
     }
     pub fn close(&mut self, id: OverlayId, reason: DismissReason) -> CloseResult {
-        let Some(entry) = self.entries.iter().find(|e| e.spec.id == id) else {
+        if !self.contains(id) {
             return CloseResult::Empty;
-        };
-        if !entry.spec.policy.allows(reason, entry.busy) {
-            return CloseResult::Blocked;
         }
         // Parent registration precedes its descendants, making a single pass
-        // sufficient to collect the entire closing subtree.
+        // sufficient to collect and validate the entire closing subtree before
+        // mutating the stack.
         let mut ids = vec![id];
         for entry in &self.entries {
-            if entry.spec.parent.is_some_and(|p| ids.contains(&p)) {
+            let in_subtree = if entry.spec.id == id {
+                true
+            } else if entry.spec.parent.is_some_and(|p| ids.contains(&p)) {
                 ids.push(entry.spec.id);
+                true
+            } else {
+                false
+            };
+            if in_subtree && !entry.spec.policy.allows(reason, entry.busy) {
+                return CloseResult::Blocked;
             }
         }
         let mut closed = vec![];
@@ -257,5 +297,128 @@ mod tests {
             stack.host_closed();
             assert!(stack.is_empty());
         }
+    }
+    #[test]
+    fn parent_close_is_blocked_atomically_when_descendant_is_busy_or_forbids_reason() {
+        let mut stack = OverlayStack::new();
+        let mut root = OverlaySpec::new(OverlayId(1), None, true);
+        root.restore_focus = Some(FocusHandle {
+            id: crate::FocusId(10),
+            generation: 1,
+        });
+        let mut child = OverlaySpec::new(OverlayId(2), Some(root.id), false);
+        child.restore_focus = Some(FocusHandle {
+            id: crate::FocusId(20),
+            generation: 2,
+        });
+        let mut grandchild = OverlaySpec::new(OverlayId(3), Some(child.id), true);
+        grandchild.restore_focus = Some(FocusHandle {
+            id: crate::FocusId(30),
+            generation: 3,
+        });
+        grandchild.policy.outside_press = false;
+        let mut sibling = OverlaySpec::new(OverlayId(4), None, false);
+        sibling.policy.escape = false;
+        stack.push(root.clone()).unwrap();
+        stack.push(child).unwrap();
+        stack.push(grandchild).unwrap();
+        stack.push(sibling).unwrap();
+
+        assert_eq!(
+            stack.close(OverlayId(1), DismissReason::OutsidePress),
+            CloseResult::Blocked
+        );
+        assert_eq!(
+            stack.iter().map(|s| s.id.0).collect::<Vec<_>>(),
+            [1, 2, 3, 4],
+            "blocked descendant prevents partial parent/child removal"
+        );
+
+        assert!(!stack.set_policy(OverlayId(99), OverlayPolicy::default()));
+        assert!(stack.set_policy(OverlayId(3), OverlayPolicy::default()));
+        stack.set_busy(OverlayId(3), true);
+        assert_eq!(
+            stack.close(OverlayId(1), DismissReason::Escape),
+            CloseResult::Blocked
+        );
+        assert_eq!(
+            stack.close(OverlayId(2), DismissReason::Escape),
+            CloseResult::Blocked
+        );
+        assert_eq!(
+            stack.iter().map(|s| s.id.0).collect::<Vec<_>>(),
+            [1, 2, 3, 4]
+        );
+        assert!(stack.is_busy(OverlayId(3)));
+
+        // Unrelated sibling branch is both busy and policy-blocked for Escape,
+        // yet closing root (1) succeeds once its own subtree allows Escape.
+        stack.set_busy(OverlayId(3), false);
+        stack.set_busy(OverlayId(4), true);
+        let result = stack.close(OverlayId(1), DismissReason::Escape);
+        let CloseResult::Closed(closed) = &result else {
+            panic!("expected root subtree to close");
+        };
+        assert_eq!(closed.iter().map(|s| s.id.0).collect::<Vec<_>>(), [3, 2, 1]);
+        assert_eq!(result.restore_focus(), root.restore_focus);
+        assert_eq!(stack.iter().map(|s| s.id.0).collect::<Vec<_>>(), [4]);
+        assert!(stack.is_busy(OverlayId(4)));
+    }
+    #[test]
+    fn queries_get_iter_topmost_modal_and_policy_mutation_preserve_order() {
+        let mut stack = OverlayStack::new();
+        assert_eq!(stack.topmost_modal(), None);
+        let mut dialog = OverlaySpec::new(OverlayId(1), None, true);
+        dialog.focus_scope = Some(FocusScopeId(1));
+        let popover = OverlaySpec::new(OverlayId(2), Some(dialog.id), false);
+        let mut nested_modal = OverlaySpec::new(OverlayId(3), Some(popover.id), true);
+        nested_modal.focus_scope = Some(FocusScopeId(2));
+        let tooltip = OverlaySpec::new(OverlayId(4), Some(nested_modal.id), false);
+        stack.push(dialog.clone()).unwrap();
+        stack.push(popover.clone()).unwrap();
+        stack.push(nested_modal.clone()).unwrap();
+        stack.push(tooltip.clone()).unwrap();
+
+        assert_eq!(stack.get(OverlayId(2)), Some(&popover));
+        assert_eq!(stack.get(OverlayId(99)), None);
+        assert_eq!(stack.iter().len(), 4);
+        assert_eq!(
+            stack.iter().map(|s| s.id.0).collect::<Vec<_>>(),
+            [1, 2, 3, 4]
+        );
+        assert_eq!(
+            stack.iter().rev().map(|s| s.id.0).collect::<Vec<_>>(),
+            [4, 3, 2, 1]
+        );
+        assert_eq!(stack.topmost(), Some(&tooltip));
+        assert_eq!(stack.topmost_modal(), Some(&nested_modal));
+
+        let CloseResult::Closed(closed) = stack.close(OverlayId(3), DismissReason::Escape) else {
+            panic!("expected nested modal subtree to close");
+        };
+        assert_eq!(closed.iter().map(|s| s.id.0).collect::<Vec<_>>(), [4, 3]);
+        assert_eq!(stack.topmost(), Some(&popover));
+        assert_eq!(stack.topmost_modal(), Some(&dialog));
+        assert_eq!(
+            stack.topmost_modal().and_then(|s| s.focus_scope),
+            Some(FocusScopeId(1))
+        );
+
+        let locked = OverlayPolicy {
+            escape: false,
+            ..OverlayPolicy::default()
+        };
+        assert!(stack.set_policy(OverlayId(1), locked));
+        assert_eq!(stack.get(OverlayId(1)).unwrap().policy, locked);
+        assert_eq!(stack.iter().map(|s| s.id.0).collect::<Vec<_>>(), [1, 2]);
+        assert_eq!(
+            stack.close(OverlayId(1), DismissReason::Escape),
+            CloseResult::Blocked
+        );
+        assert!(matches!(
+            stack.close(OverlayId(1), DismissReason::Programmatic),
+            CloseResult::Closed(_)
+        ));
+        assert_eq!(stack.topmost_modal(), None);
     }
 }

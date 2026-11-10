@@ -167,6 +167,9 @@ fn busy_layer_consumes_escape_back_and_backdrop_until_the_host_completes() {
     assert!(harness.press(Key::Escape), "Escape is consumed");
     assert!(harness.press(Key::Back), "system Back is consumed");
     harness.click(12., 12.);
+    harness
+        .host
+        .close(example::Layer::Archive, slint_kit::DismissReason::Escape);
     assert!(window.get_confirm().busy);
     assert!(window.get_confirm().open && window.get_archive().open);
     assert!(harness.press(Key::Tab));
