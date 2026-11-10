@@ -270,8 +270,12 @@ component TableCellView inherits Rectangle {
     in property <bool> pointed;
     callback point-requested();
     callback reveal-requested(length, length);
+    in property <length> viewport-offset-x;
+    // A manual horizontal scroll moves the viewport, not the column's layout.
+    // Keep cursor reveal tied to column changes and the next cell action.
+    changed viewport-offset-x => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     changed pointed => { if (root.pointed) { root.point-requested(); } }
-    private property <length> reveal-x: root.absolute-position.x;
+    private property <length> reveal-x: root.absolute-position.x - root.viewport-offset-x;
     changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     changed width => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     changed focus-indicated => { if (root.focus-indicated) { root.reveal-requested(root.absolute-position.x, root.width); } }
@@ -796,6 +800,7 @@ export component KitDataTable inherits Rectangle {
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
+                    viewport-offset-x: list.content-x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: { kind: TableCellKind.text, text: self.data-index >= 0 && self.data-index < row.cells.length ? row.cells[self.data-index] : "" };
                     alignment: root.display-columns[column-index].alignment;
@@ -816,6 +821,7 @@ export component KitDataTable inherits Rectangle {
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
+                    viewport-offset-x: list.content-x;
                     private property <int> data-index: root.cell-data-index(column, column-index);
                     cell: self.data-index >= 0 && self.data-index < row.content.length ? row.content[self.data-index] : { kind: TableCellKind.text };
                     alignment: root.display-columns[column-index].alignment;
