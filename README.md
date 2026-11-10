@@ -75,7 +75,7 @@ Try the behavior in a complete project: [reject an invalid email](https://slint-
 
 ## Adoption and scope
 
-The current series is before 1.0 and breaking changes remain possible. The build helper uses Slint’s experimental module compilation; use matching runtime/build releases and the documented Slint version. `KitDataTable` currently displays text cells, and modal surfaces operate inside their host window with application-managed background interaction. The shipped visual system is Tailwind-inspired, with light/dark modes and custom theme values. See [responsibilities and adoption limits](https://slint-kit.dev/guides/why-slint-kit/).
+The current series is before 1.0 and breaking changes remain possible. The build helper uses Slint’s experimental module compilation; use matching runtime/build releases and the documented Slint version. `KitDataTable` displays text, badge and check cells and edits field cells in place, and modal surfaces operate inside their host window with application-managed background interaction. The shipped visual system is Tailwind-inspired, with light/dark modes and custom theme values. See [responsibilities and adoption limits](https://slint-kit.dev/guides/why-slint-kit/).
 
 ## Engineering guarantees
 

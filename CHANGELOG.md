@@ -4,7 +4,7 @@
 
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
 
-- Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented three-way table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
+- Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented ascending/descending table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
 
 - Redesign the bilingual homepage with real component captures, an on-demand Slint demo, integration excerpts and clear installation and licensing paths.
 - Explain Slint Kit's shared interaction and typed domain layer across the bilingual homepage, adoption guide, component catalogue, README and crate entry points. Link runnable behavior examples, distinguish complete controls from composition primitives, document adoption limits and clarify registry installation in the typed example. Correct outdated email/URL validation descriptions and clarify that base components stay free for open-source use, with commercial licensing on request and Slint Kit Pro coming. No public API changes.

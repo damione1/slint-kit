@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The HTML illustration follows the public table example's records and three-way
-// sort. It illustrates keyed selection; the linked application runs Slint/Rust.
+// The HTML illustration follows the public table example's records and its ascending/
+// descending sort. It illustrates keyed selection; the linked application runs Slint/Rust.
 export const heroProjects = Object.freeze([
   Object.freeze({key:101, name:'Atlas', tasks:12, archived:false}),
   Object.freeze({key:203, name:'Boreal', tasks:3, archived:false}),
@@ -14,7 +14,7 @@ export function nextDirection(direction) {
   switch (direction) {
     case SortDirection.Unsorted: return SortDirection.Ascending;
     case SortDirection.Ascending: return SortDirection.Descending;
-    case SortDirection.Descending: return SortDirection.Unsorted;
+    case SortDirection.Descending: return SortDirection.Ascending;
   }
   throw new Error('Unknown table sort direction');
 }

@@ -17,7 +17,7 @@ Cette application Rust et Slint complète raccorde le tri des colonnes, un filtr
 
 Choisissez **Atlas**, puis triez la colonne **Tâches** : Atlas reste sélectionné même s’il change de ligne. Masquez les projets archivés : Atlas reste sélectionné. **Cedar** est archivé et ne peut pas être sélectionné. Un événement provenant d’une ancienne génération est rejeté.
 
-Cet exemple détaille explicitement les clés, générations et publications du modèle pour montrer leur fonctionnement. Pour réutiliser ces mécanismes dans votre application, `KeyedModel<K, Row>` fournit `sorting_by`, `navigation` et `activation` : consultez le [guide des modèles typés](/fr/guides/controllers/). `KitDataTable` affiche des cellules texte ; une grille éditable demande une composition supplémentaire.
+Cet exemple prend le chemin court : `KeyedModel<K, Row>` fournit `sorting_by`, `navigation` et `activation`, et l’application ne réimplémente pas leur logique. La section « Lecture avancée » explique les garanties de clés et de générations ; voir aussi le [guide des modèles typés](/fr/guides/controllers/).
 
 ## Essayer l’application
 
@@ -29,7 +29,7 @@ This complete Rust and Slint application connects column sorting, a filter, keyb
 
 Choose **Atlas**, then sort the **Tasks** column: Atlas stays selected even as it moves to another row. Hide archived projects: Atlas stays selected. **Cedar** is archived and cannot be selected. An event from an old generation is rejected.
 
-This example spells out keys, generations and model publication to show how they work. To reuse those mechanisms in your application, `KeyedModel<K, Row>` supplies `sorting_by`, `navigation` and `activation`: see the [typed model guide](/guides/controllers/). `KitDataTable` displays text cells; an editable grid requires additional composition.
+This example takes the short path: `KeyedModel<K, Row>` supplies `sorting_by`, `navigation` and `activation`, and the application does not re-implement their logic. The "Advanced reading" section explains the key and generation guarantees; see also the [typed model guide](/guides/controllers/).
 
 ## Try the application
 
