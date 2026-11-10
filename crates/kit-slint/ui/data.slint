@@ -71,6 +71,7 @@ component DataKeyboard inherits FocusScope {
     callback edit-requested();
     callback key-event(KeyEvent) -> KitKeyResult;
     enabled: !root.disabled;
+    focus-on-click: false;
     key-pressed(event) => {
         if (root.key-event(event) == KitKeyResult.accept) { return accept; }
         if (event.text == Key.F2) { root.edit-requested(); return accept; }
@@ -539,16 +540,6 @@ export component KitDataTable inherits Rectangle {
     accessible-action-default => { root.edit-active(); }
     accessible-value: root.has-active-cell() ? (root.rows[root.active-index].content.length > 0 ? (root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(root.rows[root.active-index].content[root.active-column].spec, root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].cells[root.active-column]) : "";
     accessible-description: root.edit-error != "" ? root.edit-error : root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
-    keys := DataKeyboard {
-        disabled: !root.interactive;
-        column-navigation: true;
-        key-event(event) => { return root.key-event(event); }
-        edit-requested => { root.edit-active(); }
-        navigate(step) => {root.navigate(step);}
-        navigate-column(step) => {root.step-column(step);}
-        activate => {if (root.has-active-row && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
-        confirm => {root.confirm-active();}
-    }
     header := Rectangle {
         y: 0px;
         width: root.width; height: root.row-height; background: root.theme.canvas; clip: true;
@@ -608,6 +599,16 @@ export component KitDataTable inherits Rectangle {
                 }
             }
         }
+    }
+    keys := DataKeyboard {
+        disabled: !root.interactive;
+        column-navigation: true;
+        key-event(event) => { return root.key-event(event); }
+        edit-requested => { root.edit-active(); }
+        navigate(step) => {root.navigate(step);}
+        navigate-column(step) => {root.step-column(step);}
+        activate => {if (root.has-active-row && !root.rows[root.active-index].disabled) {root.activate(root.rows[root.active-index].token,root.generation);}}
+        confirm => {root.confirm-active();}
     }
     list := ListView {
         theme: root.theme;

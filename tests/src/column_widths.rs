@@ -3,7 +3,7 @@
 //! bounded columns, header/row alignment under horizontal scroll, and the
 //! pointer, keyboard and assistive resize contract. These are headless
 //! contract proofs; they do not qualify a screen reader.
-use super::base_data::{column_set, delegates, fixture, key, labelled, rows};
+use super::base_data::{column_set, delegates, down, fixture, key, labelled, rows, up};
 use super::*;
 use i_slint_backend_testing::{AccessibleRole, ElementHandle, ElementQuery};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -296,10 +296,11 @@ fn keyboard_and_assistive_steps_resize_within_bounds_and_respect_blocking() {
     let grip = handle(&window, "Product, width").expect("resizable column handle");
     assert_eq!(grip.accessible_value_step(), Some(step));
     assert_eq!(grip.accessible_enabled(), Some(true));
-    // Tab order: the table, the sortable header, then its resize handle.
+    // Header controls precede the body in the visual and keyboard order.
     window.invoke_focus_table();
+    down(&window, Key::Shift);
     key(&window, Key::Tab);
-    key(&window, Key::Tab);
+    up(&window, Key::Shift);
     key(&window, Key::RightArrow);
     assert_eq!(&*requested.borrow(), &[(PRODUCT, 200. + step)]);
     key(&window, Key::LeftArrow);

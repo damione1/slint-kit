@@ -370,7 +370,9 @@ fn headers_emit_stable_column_tokens_and_respect_sortability() {
     labelled(&window, "Quantity").mock_single_click(PointerEventButton::Left);
     assert_eq!(&*sorted.borrow(), &[ColumnKey::Product; 2]);
     window.invoke_focus_table();
+    down(&window, Key::Shift);
     key(&window, Key::Tab);
+    up(&window, Key::Shift);
     key(&window, Key::Return);
     assert_eq!(&*sorted.borrow(), &[ColumnKey::Product; 3]);
     key(&window, Key::Tab);
@@ -810,6 +812,75 @@ fn blocking_a_table_preserves_row_selection_and_striping_presentation() {
                 &format!("table-inert-{name}-{scale}"),
             );
             window.set_table_interactive(true);
+        }
+    }
+}
+
+#[test]
+fn header_tab_order_matches_the_visual_order_in_each_theme_and_scale() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let sorted = Rc::new(std::cell::Cell::new(0));
+    let observed = sorted.clone();
+    window.on_sort_requested(move |token| {
+        assert_eq!(token, 17);
+        observed.set(observed.get() + 1);
+    });
+    let navigated = Rc::new(std::cell::Cell::new(0));
+    let observed = navigated.clone();
+    window.on_navigate(move |collection, step| {
+        assert_eq!(collection, DataFixtureCollection::Table);
+        assert_eq!(step, NavigationStep::Next);
+        observed.set(observed.get() + 1);
+    });
+    let mut expected = 0;
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.invoke_focus_table();
+            down(&window, Key::Shift);
+            key(&window, Key::Tab);
+            up(&window, Key::Shift);
+            key(&window, Key::Return);
+            expected += 1;
+            assert_eq!(
+                sorted.get(),
+                expected,
+                "the sortable header precedes the body"
+            );
+            assert_eq!(navigated.get(), expected - 1);
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-tab-order-header-{name}-{scale}"),
+            );
+            key(&window, Key::Tab);
+            key(&window, Key::DownArrow);
+            assert_eq!(
+                navigated.get(),
+                expected,
+                "Tab from the last header enters the body"
+            );
+            assert_eq!(sorted.get(), expected);
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-tab-order-body-{name}-{scale}"),
+            );
         }
     }
 }

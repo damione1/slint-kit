@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Place sortable table headers and resize handles before the body in keyboard tab order, matching their visual order.
+- Place les en-têtes triables et les poignées de tableau avant le corps dans l’ordre de tabulation, comme à l’écran.
+
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
 - Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
 
