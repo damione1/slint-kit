@@ -47,6 +47,9 @@ export component KitMenu inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Menu";
     in property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
+    in property <bool> wrap: true;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: list.visible-height > 0px ? max(1, Math.floor(list.visible-height / max(1px, root.row-height))) : 7;
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
@@ -79,6 +82,10 @@ export component KitMenu inherits Rectangle {
     keyboard := KitSelectKeyboard {
         enabled: root.interactive;
         dismiss-on-system-back: false;
+        wrap: root.wrap;
+        page-rows: root.page-rows;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return selection.is-typeahead-active(); }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
         navigate(step) => { root.handle-navigate(step); }
@@ -130,6 +137,7 @@ export component KitMenu inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
@@ -147,6 +155,8 @@ export component KitMenuBar inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Actions";
+    in property <bool> wrap: true;
+    in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
@@ -173,6 +183,9 @@ export component KitMenuBar inherits Rectangle {
     keyboard := KitSelectKeyboard {
         enabled: root.interactive;
         dismiss-on-system-back: false;
+        wrap: root.wrap;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return selection.is-typeahead-active(); }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
         key-pressed(event) => { return root.handle-key(event) == KitKeyResult.accept ? accept : reject; }
@@ -217,6 +230,7 @@ export component KitMenuBar inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
@@ -234,6 +248,8 @@ export component KitTabs inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Tabs";
+    in property <bool> wrap: true;
+    in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
@@ -262,6 +278,9 @@ export component KitTabs inherits Rectangle {
     keyboard := KitSelectKeyboard {
         enabled: root.interactive;
         dismiss-on-system-back: false;
+        wrap: root.wrap;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return selection.is-typeahead-active(); }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
         key-pressed(event) => { return root.handle-key(event) == KitKeyResult.accept ? accept : reject; }
@@ -318,6 +337,7 @@ export component KitTabs inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }

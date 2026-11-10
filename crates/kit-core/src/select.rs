@@ -36,6 +36,38 @@ pub struct SelectSession<K> {
     pub selection: SelectState<K>,
     pub typeahead: String,
     pub last_typeahead_ms: Option<u64>,
+    pub typeahead_timeout_ms: u64,
+    pub wrap: bool,
+}
+
+impl<K> Default for SelectSession<K> {
+    fn default() -> Self {
+        Self {
+            selection: SelectState {
+                selected: None,
+                active: None,
+                open: false,
+            },
+            typeahead: String::new(),
+            last_typeahead_ms: None,
+            typeahead_timeout_ms: 700,
+            wrap: false,
+        }
+    }
+}
+
+impl<K> SelectSession<K> {
+    pub fn is_typeahead_active(&self, now_ms: u64) -> bool {
+        let timeout_ms = if self.typeahead_timeout_ms == 0 {
+            700
+        } else {
+            self.typeahead_timeout_ms
+        };
+        !self.typeahead.is_empty()
+            && self
+                .last_typeahead_ms
+                .is_some_and(|last| now_ms >= last && now_ms - last < timeout_ms)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -125,6 +157,12 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
     }
     controller.typeahead = session.typeahead;
     controller.last_typeahead_ms = session.last_typeahead_ms;
+    controller.typeahead_timeout_ms = if session.typeahead_timeout_ms == 0 {
+        700
+    } else {
+        session.typeahead_timeout_ms
+    };
+    controller.wrap = session.wrap;
     let intent = match event {
         SelectEvent::Reconcile => {
             controller.reset_typeahead();
@@ -153,6 +191,8 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
             selection: controller.state,
             typeahead: controller.typeahead,
             last_typeahead_ms: controller.last_typeahead_ms,
+            typeahead_timeout_ms: controller.typeahead_timeout_ms,
+            wrap: controller.wrap,
         },
         intent,
     })
@@ -212,6 +252,7 @@ pub struct SelectController<K> {
     typeahead: String,
     last_typeahead_ms: Option<u64>,
     typeahead_timeout_ms: u64,
+    wrap: bool,
 }
 
 impl<K: Clone + Eq + Hash> SelectController<K> {
@@ -239,6 +280,7 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             typeahead: String::new(),
             last_typeahead_ms: None,
             typeahead_timeout_ms: 700,
+            wrap: false,
         };
         result.reconcile_selection();
         Ok(result)
@@ -268,8 +310,23 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         self.removal_policy = policy;
         self.reconcile_selection();
     }
+    pub fn typeahead_timeout_ms(&self) -> u64 {
+        self.typeahead_timeout_ms
+    }
     pub fn set_typeahead_timeout_ms(&mut self, timeout: u64) {
         self.typeahead_timeout_ms = timeout;
+    }
+    pub fn wrap(&self) -> bool {
+        self.wrap
+    }
+    pub fn set_wrap(&mut self, wrap: bool) {
+        self.wrap = wrap;
+    }
+    pub fn is_typeahead_active(&self, now_ms: u64) -> bool {
+        !self.typeahead.is_empty()
+            && self
+                .last_typeahead_ms
+                .is_some_and(|last| now_ms >= last && now_ms - last < self.typeahead_timeout_ms)
     }
 
     /// Acknowledges application state, including in controlled mode.
@@ -381,8 +438,20 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         let next = match step {
             NavigationStep::First => 0,
             NavigationStep::Last => last,
-            NavigationStep::Next => current.map_or(0, |i| i.saturating_add(1).min(last)),
-            NavigationStep::Previous => current.map_or(last, |i| i.saturating_sub(1)),
+            NavigationStep::Next => current.map_or(0, |i| {
+                if self.wrap && i >= last {
+                    0
+                } else {
+                    i.saturating_add(1).min(last)
+                }
+            }),
+            NavigationStep::Previous => current.map_or(last, |i| {
+                if self.wrap && i == 0 {
+                    last
+                } else {
+                    i.saturating_sub(1)
+                }
+            }),
             NavigationStep::PageNext => {
                 current.map_or(0, |i| i.saturating_add(page_size.max(1)).min(last))
             }
@@ -391,6 +460,7 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             }
         };
         self.state.active = Some(self.options[available[next]].key.clone());
+        self.reset_typeahead();
     }
 
     pub fn activate(&mut self, key: &K) -> Option<SelectionIntent<K>> {
@@ -475,6 +545,9 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         if expired {
             self.typeahead.clear();
         }
+        if self.typeahead.is_empty() && text.trim().is_empty() {
+            return;
+        }
         let repeat = !expired && self.typeahead.chars().count() == 1 && self.typeahead == text;
         if !repeat {
             self.typeahead.push_str(&text);
@@ -522,6 +595,8 @@ mod tests {
             },
             typeahead: String::new(),
             last_typeahead_ms: None,
+            typeahead_timeout_ms: 700,
+            wrap: false,
         };
         let first = reduce_selection(
             options.clone(),

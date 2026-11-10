@@ -39,6 +39,7 @@ pub struct MultiSelectController<K> {
     ownership: Ownership,
     limit: Option<usize>,
     active: Option<K>,
+    wrap: bool,
 }
 impl<K: Clone + Eq + Hash> MultiSelectController<K> {
     pub fn new(
@@ -64,7 +65,14 @@ impl<K: Clone + Eq + Hash> MultiSelectController<K> {
             ownership,
             limit,
             active: None,
+            wrap: false,
         })
+    }
+    pub fn wrap(&self) -> bool {
+        self.wrap
+    }
+    pub fn set_wrap(&mut self, wrap: bool) {
+        self.wrap = wrap;
     }
     pub fn selected(&self) -> &[K] {
         &self.selected
@@ -153,20 +161,26 @@ impl<K: Clone + Eq + Hash> MultiSelectController<K> {
             .active
             .as_ref()
             .and_then(|key| enabled.iter().position(|row| *row == key));
+        let last = enabled.len() - 1;
         let next = match step {
             NavigationStep::First => 0,
-            NavigationStep::Last => enabled.len() - 1,
-            NavigationStep::Next => index.map_or(0, |index| (index + 1).min(enabled.len() - 1)),
-            NavigationStep::Previous => {
-                index.map_or(enabled.len() - 1, |index| index.saturating_sub(1))
-            }
-            NavigationStep::PageNext => index
-                .unwrap_or(0)
-                .saturating_add(page.max(1))
-                .min(enabled.len() - 1),
-            NavigationStep::PagePrevious => index
-                .unwrap_or(enabled.len() - 1)
-                .saturating_sub(page.max(1)),
+            NavigationStep::Last => last,
+            NavigationStep::Next => index.map_or(0, |index| {
+                if self.wrap && index >= last {
+                    0
+                } else {
+                    (index + 1).min(last)
+                }
+            }),
+            NavigationStep::Previous => index.map_or(last, |index| {
+                if self.wrap && index == 0 {
+                    last
+                } else {
+                    index.saturating_sub(1)
+                }
+            }),
+            NavigationStep::PageNext => index.unwrap_or(0).saturating_add(page.max(1)).min(last),
+            NavigationStep::PagePrevious => index.unwrap_or(last).saturating_sub(page.max(1)),
         };
         self.active = Some(enabled[next].clone());
         self.active.as_ref()

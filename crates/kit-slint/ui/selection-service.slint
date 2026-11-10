@@ -8,6 +8,8 @@ export struct SelectionSession {
     typeahead: string,
     has-timestamp: bool,
     timestamp: int,
+    typeahead-timeout-ms: int,
+    wrap: bool,
 }
 export struct SelectionTransition {
     session: SelectionSession,
@@ -26,10 +28,11 @@ export global KitSelectionService {
     pure callback project([OptionRow], [OptionRow], SelectionRef, SelectionRef, bool, int, SelectionRetention) -> SelectState;
     pure callback reconcile([OptionRow], SelectionSession, Ownership, SelectionRetention) -> SelectionSession;
     pure callback open([OptionRow], SelectionSession, Ownership) -> SelectionSession;
-    pure callback navigate([OptionRow], SelectionSession, NavigationStep, Ownership) -> SelectionSession;
+    pure callback navigate([OptionRow], SelectionSession, NavigationStep, int, Ownership) -> SelectionSession;
     pure callback dismiss([OptionRow], SelectionSession, CloseReason, Ownership) -> SelectionSession;
     pure callback activate([OptionRow], SelectionSession, int, int, Ownership) -> SelectionTransition;
     pure callback typeahead([OptionRow], SelectionSession, string, int, Ownership) -> SelectionSession;
+    pure callback typeahead-active(SelectionSession, int) -> bool;
     pure callback rows([OptionRow], string, int) -> [OptionRow];
     pure callback choices([OptionRow], SelectionRef) -> [ChoiceRow];
     pure callback disclosures([OptionRow], [SelectionRef]) -> [DisclosureRow];
@@ -53,6 +56,9 @@ export component KitSelection inherits Rectangle {
     in property <Ownership> ownership: Ownership.local;
     in property <SelectionRetention> retention: SelectionRetention.bound-to-options;
     in property <bool> persistent;
+    in property <bool> wrap: false;
+    in property <int> page-rows: 7;
+    in property <int> typeahead-timeout-ms: 700;
     in-out property <SelectionRef> selected;
     in-out property <string> query;
     private property <SelectionSession> session;
@@ -81,7 +87,7 @@ export component KitSelection inherits Rectangle {
         let row = root.options[index];
         return {token: row.token, label: row.label, disabled: row.disabled, selected: root.selected.present && root.selected.token == row.token};
     }
-    private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp };
+    private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp, typeahead-timeout-ms: root.typeahead-timeout-ms, wrap: root.wrap };
     callback chosen(OptionRow);
     function sync-retained-label() {
         if (!root.selected.present) {
@@ -114,7 +120,10 @@ export component KitSelection inherits Rectangle {
         if (KitSelectionService.ready) { root.apply(KitSelectionService.open(root.rows, root.current-session, root.ownership)); }
     }
     public function navigate(step: NavigationStep) {
-        if (KitSelectionService.ready) { root.apply(KitSelectionService.navigate(root.rows, root.current-session, step, root.ownership)); }
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.navigate(root.rows, root.current-session, step, root.page-rows, root.ownership)); }
+    }
+    public function navigate-by(step: NavigationStep, rows: int) {
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.navigate(root.rows, root.current-session, step, rows, root.ownership)); }
     }
     public function activate(token: int, generation: int) {
         if (!KitSelectionService.ready || root.source-generation < 0 || root.gesture-generation < 0 || root.gesture-source-generation != root.source-generation || root.gesture-query != root.query) { return; }
@@ -136,6 +145,9 @@ export component KitSelection inherits Rectangle {
     public function typeahead(text: string) {
         if (KitSelectionService.ready) { root.apply(KitSelectionService.typeahead(root.rows, root.current-session, text, KitSelectionService.timestamp(), root.ownership)); }
     }
+    public function is-typeahead-active() -> bool {
+        return KitSelectionService.ready && root.session.typeahead != "" && KitSelectionService.typeahead-active(root.current-session, KitSelectionService.timestamp());
+    }
 }
 
 // Multiple selection owns a set while reusing the single-selection keyboard
@@ -146,6 +158,9 @@ export component KitMultipleSelection inherits Rectangle {
     in property <Ownership> ownership: Ownership.local;
     in property <int> limit;
     in property <bool> persistent;
+    in property <bool> wrap: false;
+    in property <int> page-rows: 7;
+    in property <int> typeahead-timeout-ms: 700;
     in-out property <[SelectionRef]> selected;
     in-out property <string> query <=> keyboard.query;
     out property <[OptionRow]> rows: keyboard.rows;
@@ -160,6 +175,7 @@ export component KitMultipleSelection inherits Rectangle {
     callback changed-selection(OptionRow, bool);
     keyboard := KitSelection {
         options: root.options; ownership: Ownership.controlled; persistent: root.persistent;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.toggle(row.token, row.generation); }
     }
     function toggle(token: int, generation: int) {
@@ -175,7 +191,9 @@ export component KitMultipleSelection inherits Rectangle {
     }
     public function open() { keyboard.open(); }
     public function navigate(step: NavigationStep) { keyboard.navigate(step); }
+    public function navigate-by(step: NavigationStep, rows: int) { keyboard.navigate-by(step, rows); }
     public function activate(token: int, generation: int) { keyboard.activate(token, generation); }
     public function dismiss(reason: CloseReason) { keyboard.dismiss(reason); }
     public function typeahead(text: string) { keyboard.typeahead(text); }
+    public function is-typeahead-active() -> bool { return keyboard.is-typeahead-active(); }
 }

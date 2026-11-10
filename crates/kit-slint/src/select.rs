@@ -39,6 +39,7 @@ struct Inner<K> {
     query: String,
     rows: Rc<Vec<ProjectedOption>>,
     rows_generation: u64,
+    page_rows: usize,
 }
 
 /// Window-local controller binding. Its publisher should hold a weak window
@@ -86,6 +87,7 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
                 query: String::new(),
                 rows: Rc::new(Vec::new()),
                 rows_generation: 0,
+                page_rows: 7,
             })),
             publish: Rc::new(publish),
             intent: Rc::new(RefCell::new(None)),
@@ -215,6 +217,27 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
             callback(intent);
         }
     }
+    pub fn wrap(&self) -> bool {
+        self.inner.borrow().controller.wrap()
+    }
+    pub fn set_wrap(&self, wrap: bool) {
+        self.inner.borrow_mut().controller.set_wrap(wrap);
+    }
+    pub fn page_rows(&self) -> usize {
+        self.inner.borrow().page_rows
+    }
+    pub fn set_page_rows(&self, page_rows: usize) {
+        self.inner.borrow_mut().page_rows = page_rows.max(1);
+    }
+    pub fn typeahead_timeout_ms(&self) -> u64 {
+        self.inner.borrow().controller.typeahead_timeout_ms()
+    }
+    pub fn set_typeahead_timeout_ms(&self, timeout_ms: u64) {
+        self.inner
+            .borrow_mut()
+            .controller
+            .set_typeahead_timeout_ms(timeout_ms);
+    }
     pub fn open(&self) {
         self.apply(|c| {
             c.open();
@@ -222,8 +245,17 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         });
     }
     pub fn navigate(&self, step: NavigationStep) {
+        let page_rows = self.inner.borrow().page_rows;
         self.apply(|c| {
-            c.navigate(step, 7);
+            c.navigate(step, page_rows);
+            None
+        });
+    }
+    pub fn navigate_page(&self, step: NavigationStep, page_rows: usize) {
+        let page_rows = page_rows.max(1);
+        self.inner.borrow_mut().page_rows = page_rows;
+        self.apply(|c| {
+            c.navigate(step, page_rows);
             None
         });
     }

@@ -308,6 +308,7 @@ export component KitRadioGroup inherits Rectangle {
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     in property <string> label;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
@@ -379,7 +380,7 @@ export component KitRadioGroup inherits Rectangle {
     in-out property <SelectionRef> selected <=> selection.selected;
     callback chosen(OptionRow);
     selection := KitSelection {
-        options: root.options; ownership: root.ownership; persistent: true;
+        options: root.options; ownership: root.ownership; persistent: true; wrap: root.wrap;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
@@ -467,6 +468,7 @@ export component KitSegmentedControl inherits Rectangle {
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     // Horizontal reading direction; it does not reorder vertical segments.
     in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     in property <string> label;
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -512,7 +514,7 @@ export component KitSegmentedControl inherits Rectangle {
     in-out property <SelectionRef> selected <=> selection.selected;
     callback chosen(OptionRow);
     selection := KitSelection {
-        options: root.options; ownership: root.ownership; persistent: true;
+        options: root.options; ownership: root.ownership; persistent: true; wrap: root.wrap;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
@@ -562,6 +564,7 @@ export component KitToggleGroup inherits Rectangle {
     }
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.token;
+    in property <bool> wrap: true;
     in property <string> label;
     callback navigate(NavigationStep);
     callback toggled(int, int);
@@ -607,7 +610,7 @@ export component KitToggleGroup inherits Rectangle {
     in-out property <[SelectionRef]> selected <=> selection.selected;
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
-        options: root.options; ownership: root.ownership; limit: root.selection-limit; persistent: true;
+        options: root.options; ownership: root.ownership; limit: root.selection-limit; persistent: true; wrap: root.wrap;
         changed-selection(row, added) => { root.selection-changed(row, added); }
     }
     function toggle-option(token: int, generation: int) {
@@ -773,6 +776,9 @@ export component KitMultiSelect inherits Rectangle {
     in property <[ChipRow]> chips: selection.chips;
     in property <SelectState> state: selection.state;
     in property <string> placeholder: "Add a selection";
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: selector.page-rows;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -807,6 +813,8 @@ export component KitMultiSelect inherits Rectangle {
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; placeholder: root.placeholder;
             access: root.access;
+            wrap: root.wrap;
+            typeahead-timeout-ms: root.typeahead-timeout-ms;
             // The chips carry the selection, so this composite owns the constraint.
             validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             open-requested => { if (root.access == FieldAccess.editable) { selection.open(); root.open-requested(); } }
@@ -826,6 +834,7 @@ export component KitMultiSelect inherits Rectangle {
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
         options: root.options; ownership: root.ownership; limit: root.selection-limit;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { root.selection-changed(row, added); }
     }
 }
@@ -923,6 +932,9 @@ export component KitCombobox inherits Rectangle {
     in property <length> row-height: max(root.option-recipe.height, KitMetrics.row-height(root.theme, root.control-size)) + KitMetrics.font-size(root.theme, TypographyRole.caption) + 2 * KitMetrics.help-gap(root.theme);
     in property <int> near-end-rows: 3;
     out property <bool> end-near;
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: surface.page-rows;
     in-out property <string> query <=> selection.query;
     in-out property <string> text: root.selected-label;
     callback open-requested();
@@ -1185,12 +1197,15 @@ export component KitCombobox inherits Rectangle {
         x: 0px; y: root.height + root.theme.spacing.unit; width: root.width;
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
-        KitSelectSurface {
+        surface := KitSelectSurface {
             theme: root.theme; state: root.state; query <=> root.query;
             row-height: root.row-height;
             searchable: false; search-label: root.label;
             focus-on-open: false;
             focus-search-on-open: false;
+            wrap: root.wrap;
+            typeahead-timeout-ms: root.typeahead-timeout-ms;
+            check-typeahead-active => { return selection.is-typeahead-active(); }
             empty: root.rows.length == 0;
             empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : "No matching options";
             viewport-height: options.visible-height; scroll-y <=> options.content-y;
@@ -1265,6 +1280,7 @@ export component KitCombobox inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; retention: root.retention; persistent: false;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => {
             debounce-timer.running = false;
             root.editing-draft = false;

@@ -18,25 +18,49 @@ export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailabil
 export component KitSelectKeyboard inherits FocusScope {
     in property <SelectState> state: selection.state;
     in property <bool> dismiss-on-system-back: true;
+    in property <bool> wrap: false;
+    in property <int> page-rows: 7;
+    in property <int> typeahead-timeout-ms: 700;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
     callback tab-navigation(bool) -> KitKeyResult;
+    callback check-typeahead-active() -> bool;
+    check-typeahead-active => { return selection.is-typeahead-active(); }
     private property <bool> activation-held;
+    private property <bool> has-typeahead-timestamp;
+    private property <int> last-typeahead-timestamp;
     focus-on-tab-navigation: false;
-    changed state => { if (!root.state.open) { root.activation-held = false; } }
-    changed enabled => { if (!root.enabled) { root.activation-held = false; } }
+    changed state => { if (!root.state.open) { root.activation-held = false; root.has-typeahead-timestamp = false; } }
+    changed enabled => { if (!root.enabled) { root.activation-held = false; root.has-typeahead-timestamp = false; } }
+    function is-typeahead-active() -> bool {
+        if (!KitSelectionService.ready) { return false; }
+        if (root.check-typeahead-active()) { return true; }
+        if (!root.has-typeahead-timestamp || root.typeahead-timeout-ms <= 0) { return false; }
+        let now = KitSelectionService.timestamp();
+        return now >= root.last-typeahead-timestamp && (now - root.last-typeahead-timestamp) < root.typeahead-timeout-ms;
+    }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
             if (!root.state.open) { root.handle-open-requested(); }
             else { root.handle-navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
             return KitKeyResult.accept;
         }
-        if (!root.state.open) { return KitKeyResult.reject; }
-        if (event.text == Key.Home) { root.handle-navigate(NavigationStep.first); return KitKeyResult.accept; }
-        if (event.text == Key.End) { root.handle-navigate(NavigationStep.last); return KitKeyResult.accept; }
+        if (event.text == Key.Home || event.text == Key.End) {
+            if (!root.state.open) { root.handle-open-requested(); }
+            root.handle-navigate(event.text == Key.Home ? NavigationStep.first : NavigationStep.last);
+            return KitKeyResult.accept;
+        }
+        if (!root.state.open) {
+            if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text > " " && event.text < "\u{f700}") {
+                root.handle-open-requested();
+                root.handle-typeahead(event.text);
+                return KitKeyResult.accept;
+            }
+            return KitKeyResult.reject;
+        }
         if (event.text == Key.PageDown) { root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
         if (event.text == Key.PageUp) { root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
         if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return KitKeyResult.accept; }
@@ -45,7 +69,7 @@ export component KitSelectKeyboard inherits FocusScope {
             root.handle-dismiss(CloseReason.programmatic);
             return root.tab-navigation(event.modifiers.shift || event.text == Key.Backtab);
         }
-        if (event.text == Key.Return || event.text == Key.Space) {
+        if (event.text == Key.Return || (event.text == Key.Space && !root.is-typeahead-active())) {
             if (!root.activation-held) {
                 root.activation-held = true;
                 if (root.state.active.present) { root.handle-activate(root.state.active.token, root.state.generation); }
@@ -76,13 +100,21 @@ export component KitSelectKeyboard inherits FocusScope {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
-    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
-    function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
-    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
-    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
-    function handle-open-requested() { selection.open(); root.open-requested(); }
+    function handle-navigate(step: NavigationStep) { root.has-typeahead-timestamp = false; selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { root.has-typeahead-timestamp = false; selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { root.has-typeahead-timestamp = false; selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) {
+        if (KitSelectionService.ready) {
+            root.has-typeahead-timestamp = true;
+            root.last-typeahead-timestamp = KitSelectionService.timestamp();
+        }
+        selection.typeahead(text);
+        root.typeahead(text);
+    }
+    function handle-open-requested() { root.has-typeahead-timestamp = false; selection.open(); root.open-requested(); }
 
     out property <[OptionRow]> rows: selection.rows;
     public function choose-option(token: int, generation: int) { root.handle-activate(token, generation); }
@@ -99,12 +131,17 @@ export component KitSelectTrigger inherits KitPressable {
     in property <SelectState> state: selection.state;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <bool> wrap: false;
+    in property <int> page-rows: 7;
+    in property <int> typeahead-timeout-ms: 700;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
     callback tab-navigation(bool) -> KitKeyResult;
+    callback check-typeahead-active() -> bool;
+    check-typeahead-active => { return selection.is-typeahead-active(); }
     private property <FieldRecipe> field: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     recipe: KitThemes.trigger-recipe(root.theme, root.field, root.access);
     disabled: root.access == FieldAccess.disabled;
@@ -124,6 +161,10 @@ export component KitSelectTrigger inherits KitPressable {
         width: 0px; height: 0px;
         enabled: false;
         state: root.state;
+        wrap: root.wrap;
+        page-rows: root.page-rows;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return root.check-typeahead-active(); }
         open-requested => { root.request-open(); }
         navigate(step) => { root.handle-navigate(step); }
         activate(token, generation) => { root.handle-activate(token, generation); }
@@ -141,6 +182,7 @@ export component KitSelectTrigger inherits KitPressable {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: false;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
@@ -160,6 +202,9 @@ export component KitSelectSurface inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <length> row-height: 48px;
     in property <length> viewport-height: content-box.height;
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: root.viewport-height > 0px ? max(1, Math.floor(root.viewport-height / max(1px, root.row-height))) : 7;
     in property <bool> searchable: true;
     in property <bool> focus-on-open: true;
     in property <bool> focus-search-on-open: false;
@@ -175,6 +220,8 @@ export component KitSelectSurface inherits Rectangle {
     callback typeahead(string);
     callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
+    callback check-typeahead-active() -> bool;
+    check-typeahead-active => { return selection.is-typeahead-active(); }
     public function take-focus() {
         if (root.searchable && root.focus-search-on-open) { search.focus(); }
         else { keyboard.focus(); }
@@ -200,6 +247,10 @@ export component KitSelectSurface inherits Rectangle {
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
         state: root.state;
+        wrap: root.wrap;
+        page-rows: root.page-rows;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return root.check-typeahead-active(); }
         navigate(step) => { root.handle-navigate(step); root.ensure-active-visible(); }
         activate(token, generation) => { root.handle-activate(token, generation); }
         dismiss(reason) => { root.handle-dismiss(reason); }
@@ -278,6 +329,7 @@ export component KitSelectSurface inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
@@ -362,6 +414,9 @@ export component KitSelect inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <length> popup-height: 320px;
     in property <length> row-height: max(48px, 32px * root.theme.text-scale);
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: surface.page-rows;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -413,6 +468,10 @@ export component KitSelect inherits Rectangle {
         control-size: root.control-size;
         state: root.state;
         access: root.access;
+        wrap: root.wrap;
+        page-rows: root.page-rows;
+        typeahead-timeout-ms: root.typeahead-timeout-ms;
+        check-typeahead-active => { return selection.is-typeahead-active(); }
         validation: root.presented-validation;
         accessible-name: root.placeholder;
         accessible-value: root.trigger-label;
@@ -454,6 +513,9 @@ export component KitSelect inherits Rectangle {
             state: root.state;
             row-height: root.row-height;
             viewport-height: options.visible-height;
+            wrap: root.wrap;
+            typeahead-timeout-ms: root.typeahead-timeout-ms;
+            check-typeahead-active => { return selection.is-typeahead-active(); }
             scroll-y <=> options.content-y;
             empty: root.rows.length == 0;
             navigate(step) => { root.handle-navigate(step); }
@@ -495,6 +557,7 @@ export component KitSelect inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: false;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
