@@ -8,6 +8,8 @@
 - Keep textarea scrollbar hit areas inside their themed gutter so mouse drags reach the native editor and select text.
 - Contient la zone de la barre du textarea dans sa gouttière thémée pour que les glissements sélectionnent le texte natif.
 
+- Add ButtonIntent.link with underlined accent text, inline geometry and transparent states while retaining shared button semantics and guards. Breaking: exhaustive ButtonIntent matches require Link and complete ButtonRecipe literals require underline.
+
 - Add success, warning and information button intents with complete palettes and independent status/destructive foreground tokens. Breaking: complete KitTheme literals must provide on-danger and the new on-*/hover/pressed status fields; exhaustive ButtonIntent matches must handle the three new variants.
 
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
@@ -139,6 +141,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Ajoute ButtonIntent.link : texte accentué souligné, hauteur de ligne et états transparents avec les gardes du bouton. Rupture : les correspondances ButtonIntent exigent Link et les littéraux ButtonRecipe exigent underline.
 
 - Ajoute les intentions de bouton success, warning et information avec palettes complètes et encres de statut/destruction indépendantes. Rupture : les littéraux KitTheme complets doivent fournir on-danger et les champs on-*/hover/pressed de statut ; les correspondances ButtonIntent exhaustives doivent traiter les trois variantes ajoutées.
 

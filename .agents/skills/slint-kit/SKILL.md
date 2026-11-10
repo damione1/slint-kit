@@ -170,3 +170,5 @@ Native facade bindings pass the Slint window parent to file/directory dialogs. S
 For intrinsic cell constraints use `CellContent::constrained_field` and shared `KitInputConstraints` (absent min/max lengths are -1). Number kind enables native filtering. `validate-edit(row, column, generation, commit) -> string` is the synchronous host verdict before a cell closes: return a localized rejection to retain the draft. Enter, Tab and `commit-edit()` retry the unchanged draft against a fresh verdict. Still fence and accept the commit in Rust.
 
 `KitFileDropZone` is a browse action as well as a native drop target. Connect `browse-requested` to the same `FilePickerBinding` browse handler; an unavailable drag/drop capability does not disable browsing. `description`, `leading-icon` and `@children` compose its content; interactive children keep their own actions.
+
+ButtonIntent.link is an underlined accent text action with inline geometry and transparent state fills. It remains a button with shared activation guards; the host chooses navigation. Complete ButtonRecipe literals include underline. Slint1.18.1 has no link accessible role.

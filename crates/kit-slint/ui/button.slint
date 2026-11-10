@@ -252,6 +252,13 @@ export component KitButton inherits KitPressable {
         vertical-alignment: center;
         overflow: elide;
     }
+    if root.recipe.underline && !root.busy: link-rule := Rectangle {
+        x: label.x + (label.width - self.width) / 2;
+        y: label.y + (label.height + root.text-size) / 2 + root.theme.spacing.unit / 2;
+        width: min(label.width, label.preferred-width);
+        height: root.theme.shape.border-width;
+        background: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+    }
     // The label stays in layout while a centered progress mark replaces it.
     // Busy therefore changes neither intrinsic width nor the content center.
     if root.busy: BusyMark { recipe: root.recipe; theme: root.theme; }

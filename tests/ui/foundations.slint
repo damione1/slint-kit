@@ -94,13 +94,17 @@ export component DropZoneFixture inherits Window {
 
 import { ButtonIntent } from "@kit";
 export component ButtonPaletteFixture inherits Window {
-    width: 900px; height: 140px;
+    width: 1040px; height: 140px;
     in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <int> link-actions;
+    in property <bool> link-disabled;
+    public function focus-link() { link.take-focus(); }
     background: root.theme.canvas;
     HorizontalLayout { padding: 24px; spacing: 16px; alignment: start;
         KitButton { theme: root.theme; intent: ButtonIntent.success; text: "Confirm"; }
         KitButton { theme: root.theme; intent: ButtonIntent.warning; text: "Review"; }
         KitButton { theme: root.theme; intent: ButtonIntent.information; text: "Details"; }
         KitButton { theme: root.theme; intent: ButtonIntent.destructive; text: "Delete"; }
+        link := KitButton { theme: root.theme; intent: ButtonIntent.link; text: "Learn more"; disabled: root.link-disabled; activated => { root.link-actions += 1; } }
     }
 }

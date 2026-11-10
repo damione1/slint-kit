@@ -9,7 +9,7 @@ export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
 // control; quiet is borderless (the web's ghost).
-export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information }
+export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information, link }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
 // enums. A level names a shadow; the theme supplies that shadow's geometry.
 export enum ElevationLevel { none, xs, sm, md, lg, xl }
@@ -68,7 +68,7 @@ export struct ButtonRecipe {
     fill: brush, hover-fill: brush, pressed-fill: brush, disabled-fill: brush,
     foreground: color, disabled-foreground: color, border: color,
     radius: length, padding-inline: length, padding-block: length, border-width: length, height: length,
-    font-size: length, font-weight: int,
+    font-size: length, font-weight: int, underline: bool,
     busy-mark-size: length, busy-mark-stroke: length,
     // The control's elevation: the key layer of `elevation`, painted under it.
     elevation: ElevationLevel, shadow: ShadowLayer,
@@ -290,6 +290,7 @@ export global KitThemes {
             radius: theme.shape.radius-control, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size),
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-medium,
+            underline: false,
             busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // A borderless control stays flat, like a quiet button.
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
@@ -301,28 +302,29 @@ export global KitThemes {
             fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
                 : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : intent == ButtonIntent.information ? theme.information
                 : intent == ButtonIntent.secondary ? theme.surface : transparent,
-            hover-fill: intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
+            hover-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
                 : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
-            pressed-fill: intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
+            pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
                 : intent == ButtonIntent.success ? theme.success-pressed : intent == ButtonIntent.warning ? theme.warning-pressed : intent == ButtonIntent.information ? theme.information-pressed : theme.pressed,
-            disabled-fill: intent == ButtonIntent.outline ? transparent : theme.disabled-fill,
-            foreground: intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
+            disabled-fill: intent == ButtonIntent.outline || intent == ButtonIntent.link ? transparent : theme.disabled-fill,
+            foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
                 : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
             disabled-foreground: theme.disabled-text,
             border: intent == ButtonIntent.secondary ? theme.border-subtle : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,
-            padding-inline: KitMetrics.density(theme, size).padding-inline,
-            padding-block: KitMetrics.density(theme, size).padding-block,
+            padding-inline: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-inline,
+            padding-block: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-block,
             border-width: intent == ButtonIntent.secondary || intent == ButtonIntent.outline ? theme.shape.border-width : 0px,
-            height: KitMetrics.density(theme, size).height,
+            height: intent == ButtonIntent.link ? theme.typography.line-height-control * theme.text-scale : KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, size == ControlSize.comfortable ? TypographyRole.body : TypographyRole.control),
             font-weight: theme.typography.weight-medium,
+            underline: intent == ButtonIntent.link,
             busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // Filled intents lift by the theme's control elevation. Outline and
             // quiet controls show their parent through a transparent fill, which
             // a shadow would tint, so they stay flat.
-            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control,
-            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control),
+            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control,
+            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control),
             focus: theme.focus,
         };
     }
@@ -362,6 +364,7 @@ export global KitThemes {
             radius: field.radius, padding-inline: field.padding-inline, padding-block: field.padding-block,
             border-width: field.border-width, height: field.height, font-size: field.font-size,
             font-weight: theme.typography.weight-regular,
+            underline: false,
             busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: field.focus,
@@ -376,6 +379,7 @@ export global KitThemes {
             radius: 0px, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size) + theme.spacing.unit * 2,
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-regular,
+            underline: false,
             busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: KitThemes.inset-focus(theme),

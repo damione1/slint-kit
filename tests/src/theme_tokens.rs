@@ -532,7 +532,7 @@ fn recipes_reproduce_the_default_geometry() {
                 | ButtonIntent::Success
                 | ButtonIntent::Warning
                 | ButtonIntent::Information => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
             };
             assert_eq!(
                 recipe.elevation,
@@ -553,6 +553,7 @@ fn recipes_reproduce_the_default_geometry() {
                 }
                 ButtonIntent::Secondary | ButtonIntent::Outline => (1., theme.hover, theme.pressed),
                 ButtonIntent::Quiet => (0., theme.hover, theme.pressed),
+                ButtonIntent::Link => (0., slint::Color::default(), slint::Color::default()),
             };
             assert_eq!(recipe.border_width, border_width, "{intent:?}");
             // Hover and press read explicit tokens, never a derived darkening.
@@ -1238,7 +1239,7 @@ fn default_themes_use_tailwind_role_radii_density_and_shadows() {
                 | ButtonIntent::Success
                 | ButtonIntent::Warning
                 | ButtonIntent::Information => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
             };
             if lifted {
                 assert_eq!(recipe.elevation, ElevationLevel::Xs, "{intent:?}");
@@ -1523,5 +1524,24 @@ fn destructive_and_status_buttons_use_their_own_foreground_tokens() {
         let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
         assert_eq!(recipe.foreground, expected);
         assert_ne!(recipe.foreground, theme.on_accent);
+    }
+}
+
+#[test]
+fn link_recipe_is_flat_transparent_accented_and_underlined() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        for size in control_sizes() {
+            let recipe = window.invoke_button(theme.clone(), ButtonIntent::Link, size);
+            assert!(recipe.underline);
+            assert_eq!(recipe.foreground, theme.accent);
+            assert_eq!(recipe.fill.color().alpha(), 0);
+            assert_eq!(recipe.hover_fill.color().alpha(), 0);
+            assert_eq!(recipe.pressed_fill.color().alpha(), 0);
+            assert_eq!(recipe.disabled_fill.color().alpha(), 0);
+            assert_eq!(recipe.padding_inline, 0.);
+            assert_eq!(recipe.padding_block, 0.);
+            assert_eq!(recipe.elevation, ElevationLevel::None);
+        }
     }
 }

@@ -450,3 +450,41 @@ fn status_button_palettes_render_in_both_themes_and_text_scales() {
         }
     }
 }
+
+#[test]
+fn link_buttons_keep_native_activation_and_an_underlined_inline_recipe() {
+    use i_slint_backend_testing::{ElementHandle, ElementQuery};
+    use slint::platform::{Key, PointerEventButton, WindowEvent};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ButtonPaletteFixture::new().unwrap();
+    window.show().unwrap();
+    let link = ElementHandle::find_by_accessible_label(&window, "Learn more")
+        .next()
+        .unwrap();
+    let rule = ElementQuery::from_root(&window)
+        .match_id("KitButton::link-rule")
+        .find_first()
+        .unwrap();
+    assert!(rule.size().width > 0. && rule.size().height > 0.);
+    assert!(
+        link.size().height < 30.,
+        "link uses a text line instead of button density"
+    );
+    link.mock_single_click(PointerEventButton::Left);
+    link.invoke_accessible_default_action();
+    window.invoke_focus_link();
+    for key in [Key::Return, Key::Space] {
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+    }
+    assert_eq!(window.get_link_actions(), 4);
+    window.set_link_disabled(true);
+    slint::platform::update_timers_and_animations();
+    link.mock_single_click(PointerEventButton::Left);
+    link.invoke_accessible_default_action();
+    assert_eq!(window.get_link_actions(), 4);
+}
