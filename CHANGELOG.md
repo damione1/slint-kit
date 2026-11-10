@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Derive composed date/time focus from the native editors, including nested zoned fields.
+- Calcule le focus des champs date/heure composés depuis les éditeurs natifs, y compris les champs zonés imbriqués.
+
 - Record the successful macOS arm64 headless check, starters and complete documentation applications at [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661); native, IME and screen-reader qualification remains separate.
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.
 - Preserve completed macOS compiler caches when a later CI documentation check fails.
