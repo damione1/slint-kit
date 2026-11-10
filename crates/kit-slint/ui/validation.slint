@@ -26,6 +26,8 @@ export global KitFormValidation {
     in-out property <int> focus-generation;
     public pure function combine(a: KitValidityState, b: KitValidityState) -> KitValidityState { return {valid: a.valid && b.valid, value-missing: a.value-missing || b.value-missing, type-mismatch: a.type-mismatch || b.type-mismatch, pattern-mismatch: a.pattern-mismatch || b.pattern-mismatch, too-long: a.too-long || b.too-long, too-short: a.too-short || b.too-short, range-underflow: a.range-underflow || b.range-underflow, range-overflow: a.range-overflow || b.range-overflow, step-mismatch: a.step-mismatch || b.step-mismatch, bad-input: a.bad-input || b.bad-input, custom-error: a.custom-error || b.custom-error}; }
 
+    pure callback grapheme-count(string) -> int;
+    pure callback utf16-count(string) -> int;
     pure callback valid-time-zone(string) -> bool;
     pure callback count-selected([ChoiceRow]) -> int;
     pure callback choice-enabled([ChoiceRow], int) -> bool;

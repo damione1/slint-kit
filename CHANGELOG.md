@@ -22,6 +22,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Count text graphemes automatically and offer localisable count/maximum/remaining displays with HTML-compatible UTF-16 limits and a warning threshold.
+- Compte automatiquement les graphèmes et propose les formats compte/maximum/reste localisables avec les limites UTF-16 HTML et un seuil d’avertissement.
+
 - Add an IME-aware text key hook, explicit Escape policies and optional modified-Enter multiline submission.
 - Ajoute un hook clavier respectant la préédition IME, des politiques Échap et l’envoi multiligne optionnel par Entrée modifiée.
 

@@ -208,3 +208,9 @@ fn escape_policy_and_keyboard_hook_run_before_native_editing() {
     key(&app, Key::Escape);
     assert_eq!(*cancelled.borrow(), 1);
 }
+#[test]
+fn character_count_defaults_to_graphemes_without_host_wiring() {
+    let app = fixture();
+    key(&app, "a👩‍👩‍👧‍👦e\u{301}");
+    assert_eq!(app.get_count(), 3);
+}

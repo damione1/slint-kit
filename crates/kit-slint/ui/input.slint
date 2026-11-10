@@ -18,6 +18,7 @@ export { FieldDecoration } from "field.slint";
 
 export enum ResizePolicy { fixed, auto-grow }
 export enum TextLineMode { single-line, multiline }
+export enum CharacterCountFormat { count, of-max, remaining }
 export enum TextEscapeBehavior { bubble, cancel, clear }
 export enum TextContextMenu { standard, disabled }
 export enum TextLengthPolicy { validate, limit }
@@ -149,8 +150,14 @@ export component KitTextField inherits KitField {
     in property <string> suffix;
     in-out property <string> text;
     in property <bool> show-character-count;
-    // Count is supplied by the controller using Unicode grapheme clusters.
-    in property <int> character-count;
+    in property <int> character-count: KitFormValidation.ready ? KitFormValidation.grapheme-count(root.text) : 0;
+    in property <CharacterCountFormat> character-count-format: CharacterCountFormat.count;
+    in property <int> character-count-warning-threshold;
+    private property <int> used-length: KitFormValidation.ready ? KitFormValidation.utf16-count(root.text) : 0;
+    out property <bool> character-count-warning: root.max-length >= 0 && root.used-length >= root.max-length - Math.max(0, root.character-count-warning-threshold);
+    in property <string> character-count-text: root.character-count-format == CharacterCountFormat.count || root.max-length < 0 ? root.character-count + " " + root.character-count-label
+        : root.character-count-format == CharacterCountFormat.of-max ? KitStrings.counter-of-max-template.replace-all("{used}", "" + root.used-length).replace-all("{max}", "" + root.max-length)
+        : KitStrings.counter-remaining-template.replace-all("{remaining}", "" + Math.max(0, root.max-length - root.used-length));
     in property <string> reveal-label: KitStrings.reveal-label;
     in property <string> hide-label: KitStrings.hide-label;
     in property <string> clear-label: root.purpose == TextPurpose.search ? KitStrings.clear-search-label : KitStrings.clear-label;
@@ -481,7 +488,7 @@ export component KitTextField inherits KitField {
     if root.show-validation-message && root.effective-validation == ValidationPresentation.invalid && root.effective-error != "": KitFieldError { theme: root.theme; text: root.effective-error; }
     if root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.checking-label; }
     if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
-    if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count + " " + root.character-count-label; }
+    if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count-text; color: root.character-count-warning ? root.theme.warning : root.theme.text-secondary; }
 }
 export component KitPasswordField inherits KitTextField { purpose: TextPurpose.password; }
 export component KitSearchField inherits KitTextField { purpose: TextPurpose.search; }

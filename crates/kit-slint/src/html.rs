@@ -126,6 +126,13 @@ where
         return;
     }
     let engine = crate::HtmlValidationEngine::default();
+    global.on_grapheme_count(|text| {
+        i32::try_from(crate::__core::grapheme_count(text.as_str()))
+            .expect("Slint string count fits i32")
+    });
+    global.on_utf16_count(|text| {
+        i32::try_from(text.encode_utf16().count()).expect("Slint string count fits i32")
+    });
     global.on_valid_time_zone(|text| crate::__core::TimeZoneId::new(text.as_str()).is_ok());
     global.on_count_selected(|rows| {
         use slint::Model as _;
