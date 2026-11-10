@@ -370,7 +370,7 @@ export component KitDataTable inherits Rectangle {
     // and republishes the row; the table paints nothing from it.
     callback cell-committed(int,int,int,FieldCommit);
     public function take-focus() {if(root.interactive){keys.focus();}}
-    public function edit-active() { if (!root.edit-open && root.active-cell-editable()) { root.begin-edit(); } }
+    public function edit-active() { if (!root.edit-open && KitFieldService.ready && root.active-cell-editable()) { root.begin-edit(); } }
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
     public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused); } }
     private property <int> edit-commit-request;

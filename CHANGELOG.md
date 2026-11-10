@@ -56,6 +56,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Refuse table field editing before the field service is installed, including plain-text cells, instead of opening an editor that cannot commit.
+
 - Reveal the active row before opening its cell editor and scroll the active cell horizontally using resolved layout geometry.
 
 - Hit-test the table cell cursor from resolved pointer geometry, open fields on double-click or F2 and expose edit/commit/cancel commands and an accessible edit action.
@@ -113,6 +115,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Refuse l’édition de cellule avant installation du service, même en texte libre, au lieu d’ouvrir un éditeur incapable de confirmer.
 
 - Révèle la ligne active avant ouverture de l’éditeur et défile horizontalement vers la cellule active à partir de la géométrie résolue.
 
