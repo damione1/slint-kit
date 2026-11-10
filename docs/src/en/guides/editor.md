@@ -106,3 +106,7 @@ The `SLINT_LIVE_PREVIEW` environment variable selects a different Rust code gene
 Slint Kit 0.7.2 reports this limitation during the build instead of emitting Rust that fails with unresolved globals. Remove `SLINT_LIVE_PREVIEW` from the shell, `build.rs` and development scripts, then rebuild. Setting it to `0` or an empty string still selects Slint's live-preview generator; remove the variable entirely. Enabling the `slint/live-preview` Cargo feature alone does not select it.
 
 For runtime inspection, keep `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` with the normal generator. The editor's pure-Slint Live Preview and `slint-viewer` do not need `SLINT_LIVE_PREVIEW`; their static rendering follows the table above.
+
+## Runtime inspection metadata
+
+The build helper follows Slint’s default debug metadata policy. For runtime element inspection with the testing backend or MCP, set `SLINT_EMIT_DEBUG_INFO=1` before building, or pass `slint_kit_build::config().with_debug_info(true)` to `compile_with_config`. Ordinary release builds do not force element names and source locations into the generated application.

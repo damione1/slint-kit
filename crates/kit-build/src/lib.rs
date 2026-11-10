@@ -21,6 +21,7 @@ pub fn ui_directory() -> PathBuf {
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Register the kit while preserving application-specific libraries.
+/// Debug metadata follows Slint defaults, including `SLINT_EMIT_DEBUG_INFO`.
 /// `kit` is reserved; conflicting registrations fail at the boundary.
 pub fn config_with_libraries(
     mut libraries: HashMap<String, PathBuf>,
@@ -29,9 +30,7 @@ pub fn config_with_libraries(
         libraries.insert("kit".into(), ui_directory()).is_none(),
         "kit is a reserved library alias"
     );
-    slint_build::CompilerConfiguration::new()
-        .with_library_paths(libraries)
-        .with_debug_info(true)
+    slint_build::CompilerConfiguration::new().with_library_paths(libraries)
 }
 
 pub fn config() -> slint_build::CompilerConfiguration {
@@ -190,6 +189,44 @@ mod tests {
     #[test]
     fn generated_contracts_match_source() {
         super::verify_contracts().unwrap();
+    }
+
+    #[test]
+    fn consumer_debug_metadata_is_opt_in() {
+        const CHILD: &str = "KIT_TEST_DEBUG_METADATA_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "tests::consumer_debug_metadata_is_opt_in"])
+                .env(CHILD, "1")
+                .env_remove("SLINT_EMIT_DEBUG_INFO")
+                .status()
+                .unwrap();
+            assert!(status.success());
+            return;
+        }
+        let directory =
+            std::env::temp_dir().join(format!("kit-debug-probe-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source = directory.join("debug-probe.slint");
+        std::fs::write(
+            &source,
+            "export component Probe inherits Window { probe := Rectangle {} }",
+        )
+        .unwrap();
+        for (name, configuration, expected) in [
+            ("default", config(), false),
+            ("inspection", config().with_debug_info(true), true),
+        ] {
+            let output = directory.join(format!("{name}.rs"));
+            slint_build::compile_with_output_path(&source, &output, configuration).unwrap();
+            let generated = std::fs::read_to_string(output).unwrap();
+            assert_eq!(
+                generated.contains("Rectangle,Probe::probe,"),
+                expected,
+                "{name} metadata"
+            );
+        }
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

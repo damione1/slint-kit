@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Stop forcing Slint element debug metadata into consumer builds. Runtime inspection follows Slint defaults and can be enabled explicitly; kit interaction fixtures opt in.
+
 - Mark the new Linux CI checks as awaiting their first successful result and align the crate README with the announced desktop platform scope.
 
 - Run the Linux component suite once, exclude it from the remaining workspace tests, and bound the CI job to 45 minutes.
@@ -32,6 +34,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- N’impose plus les métadonnées de débogage Slint aux applications. L’inspection suit les réglages Slint et s’active explicitement ; les fixtures d’interaction du kit l’activent.
 
 - Indique que les nouvelles vérifications CI Linux attendent leur premier succès et aligne le README de la crate sur les plateformes de bureau annoncées.
 

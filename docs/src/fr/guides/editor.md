@@ -106,3 +106,7 @@ La variable d’environnement `SLINT_LIVE_PREVIEW` sélectionne un autre génér
 Slint Kit 0.7.2 signale cette limite pendant le build, au lieu de produire du Rust avec des globals introuvables. Supprimez `SLINT_LIVE_PREVIEW` du shell, de `build.rs` et des scripts de développement, puis recompilez. La définir à `0` ou à une chaîne vide sélectionne toujours le générateur live-preview de Slint : retirez entièrement la variable. Activer uniquement la feature Cargo `slint/live-preview` ne le sélectionne pas.
 
 Pour inspecter l’application à l’exécution, conservez `slint/mcp` et `SLINT_EMIT_DEBUG_INFO=1` avec le générateur normal. Live Preview de l’éditeur et `slint-viewer` n’ont pas besoin de `SLINT_LIVE_PREVIEW` ; leur rendu statique suit le tableau ci-dessus.
+
+## Métadonnées d’inspection à l’exécution
+
+Le helper suit la politique par défaut de Slint pour les métadonnées de débogage. Pour inspecter les éléments avec le backend de test ou MCP, définissez `SLINT_EMIT_DEBUG_INFO=1` avant de compiler, ou passez `slint_kit_build::config().with_debug_info(true)` à `compile_with_config`. Les versions de production ordinaires n’imposent pas les noms d’éléments et les chemins source dans l’application générée.
