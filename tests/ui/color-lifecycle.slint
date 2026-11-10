@@ -17,6 +17,8 @@ export component ColorLifecycleFixture inherits Window {
     in-out property <string> alpha-text <=> picker.alpha-text;
     in-out property <int> field-chosen;
     in-out property <int> picker-chosen;
+    in-out property <int> field-requests;
+    in-out property <int> channel-requests;
     in-out property <SrgbColorView> field-proposal;
     in-out property <SrgbColorView> picker-proposal;
     public function commit-field() { field.commit(); }
@@ -30,12 +32,14 @@ export component ColorLifecycleFixture inherits Window {
             label: "Standalone color"; alpha-mode: root.alpha-mode;
             accepted-color: {red: 1, green: 2, blue: 3, alpha: 255};
             chosen(value) => { root.field-chosen += 1; root.field-proposal = value; }
+            commit-requested(text) => { root.field-requests += 1; }
         }
         picker := KitColorPicker {
             theme: root.theme; ownership: root.ownership; access: root.access;
             label: "Picker color"; alpha-mode: root.alpha-mode;
             accepted-color: {red: 4, green: 5, blue: 6, alpha: 255};
             chosen(value) => { root.picker-chosen += 1; root.picker-proposal = value; }
+            channel-commit-requested(channel,text) => { root.channel-requests += 1; }
         }
         outside := KitButton { theme: root.theme; text: "Outside"; }
     }
