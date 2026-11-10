@@ -39,6 +39,8 @@ export component OtpFixture inherits Window {
     out property <int> masked-cursor: masked-field.cursor-position;
     out property <int> masked-anchor: masked-field.selection-anchor;
     in-out property <int> masked-commits;
+    out property <bool> witness-focused: witness.has-focus;
+    out property <bool> masked-focused: masked-field.has-focus;
     out property <string> witness-text: witness.text;
     out property <int> witness-cursor: witness.cursor-position-byte-offset;
     out property <int> witness-anchor: witness.anchor-position-byte-offset;
@@ -62,7 +64,7 @@ export component OtpFixture inherits Window {
     public function select-witness() { witness.select-all(); }
     public function set-witness-selection(anchor: int, cursor: int) { witness.set-selection-offsets(anchor, cursor); }
     clipboard := TextInput { visible: false; enabled: false; text: root.clipboard-text; }
-    witness := TextInput { visible: false; width: 0px; height: 0px; single-line: true; }
+    witness := TextInput { x: 24px; y: 300px; width: 300px; height: 32px; single-line: true; }
     other := FocusScope { width: 0px; height: 0px; }
     VerticalLayout {
         padding: 24px; spacing: 12px; alignment: start;

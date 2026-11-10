@@ -676,6 +676,8 @@ fn masked_field_waits_for_constraint_bridge_before_accepting_input() {
     assert_eq!(app.get_masked_text(), "AB-12");
     app.set_masked_text("".into());
     kit_slint::install(&app);
+    app.invoke_focus_masked();
+    assert!(app.get_masked_focused());
     key(&app, "AB-1234");
     assert_eq!(app.get_masked_text(), "AB-1234");
 }
@@ -699,6 +701,10 @@ fn masked_field_filters_keystrokes_by_slot_and_preserves_native_caret_selection_
     assert!(app.get_masked_validity().valid);
 
     app.invoke_focus_witness();
+    assert!(
+        app.get_witness_focused(),
+        "the native history witness owns focus"
+    );
     key(&app, "AB-1234");
     assert_eq!(app.get_masked_text(), app.get_witness_text());
     assert_eq!(app.get_masked_cursor(), app.get_witness_cursor());
@@ -780,6 +786,10 @@ fn masked_field_preserves_native_deletion_undo_and_invalid_host_values() {
     app.invoke_focus_masked();
     key(&app, "AB-12");
     app.invoke_focus_witness();
+    assert!(
+        app.get_witness_focused(),
+        "the native deletion witness owns focus"
+    );
     key(&app, "AB-12");
     app.invoke_focus_masked();
     app.invoke_set_masked_selection(0, 2);
