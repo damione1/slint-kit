@@ -95,7 +95,7 @@ export default function (eleventyConfig) {
   for (const file of ['Cargo.toml', 'build.rs', 'ui/table.slint', 'src/main.rs']) {
     eleventyConfig.addPassthroughCopy({ [`table-consumer/${file}`]: `table-consumer/${file}` });
   }
-  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs']) {
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs', 'src/controller.rs']) {
     eleventyConfig.addPassthroughCopy({ [`dialog-consumer/${file}`]: `dialog-consumer/${file}` });
   }
   eleventyConfig.addWatchTarget('../crates/kit-slint/ui');

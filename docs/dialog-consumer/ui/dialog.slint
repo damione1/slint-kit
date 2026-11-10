@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, ButtonIntent, KitTextField, FieldAccess, KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget, DialogState, FocusRequest, CloseReason, KitTheme, KitThemes } from "@kit";
-export { DialogState, FocusRequest, CloseReason }
+import { KitWrap, KitButton, ButtonIntent, KitTextField, FieldAccess, KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget, DialogState, FocusRequest, CloseReason, KitTheme, KitThemes, FocusSlot } from "@kit";
+export { DialogState, FocusRequest, CloseReason, FocusSlot }
 export enum DialogLanguage { english, french }
 // The two modal layers of this window, outer layer first. Each one is a
 // surface rendered inside the window, not a separate system window.
 export enum DialogLayer { archive, confirm }
 // What the host publishes for one focus target: the generation of its
 // registration and whether it may take focus and act right now.
-export struct FocusSlot { generation: int, eligible: bool }
 
 // A button the host addresses by token. `eligible: false` also disables the
 // button, so pointer, keyboard and accessibility activation are all neutral
@@ -25,7 +24,7 @@ component FocusButton inherits KitFocusTarget {
     min-width: button.min-width; preferred-width: button.preferred-width; max-width: self.preferred-width; horizontal-stretch: 0;
     focus-requested => { button.take-focus(); }
     button := KitButton {
-        theme: root.theme; text: root.text; intent: root.intent; busy: root.busy; disabled: !root.eligible;
+        theme: root.theme; text: root.text; intent: root.intent; busy: root.busy; busy-label: root.text; disabled: !root.eligible;
         activated => { root.activated(); }
         focus-observed(focused) => { root.focus-observed(root.token, focused); }
     }
@@ -54,6 +53,10 @@ export component DialogApp inherits Window {
     callback confirm-requested();
     callback focus-next(bool);
     callback focus-changed(int, bool);
+    public function focus-layer(layer: DialogLayer) {
+        if (layer == DialogLayer.archive) { archive-surface.take-scope-focus(); }
+        else { confirm-surface.take-scope-focus(); }
+    }
 
     VerticalLayout {
         padding: 24px;
@@ -61,8 +64,8 @@ export component DialogApp inherits Window {
         alignment: start;
         Text { text: root.french ? "Projet Atlas" : "Atlas project"; color: root.theme.text-primary; font-size: 24px * root.theme.text-scale; font-weight: 600; }
         Text { text: root.french ? "Deux contrôles ouvrent le même dialogue. Fermez-le avec Échap, Retour système, le voile ou un bouton : le focus revient au contrôle qui l’a ouvert." : "Two controls open the same dialog. Close it with Escape, system Back, the backdrop or a button: focus returns to the control that opened it."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
-        HorizontalLayout {
-            spacing: 12px; alignment: start;
+        KitWrap {
+            theme: root.theme; spacing: root.theme.spacing.unit * 3; alignment: start;
             FocusButton { theme: root.theme; token: 1; slot: root.slots[1]; request: root.focus-request; intent: ButtonIntent.primary; text: root.french ? "Archiver depuis la barre d’outils" : "Archive from the toolbar"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
             FocusButton { theme: root.theme; token: 2; slot: root.slots[2]; request: root.focus-request; text: root.french ? "Archiver depuis la fiche du projet" : "Archive from the project card"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
         }
@@ -72,7 +75,7 @@ export component DialogApp inherits Window {
     // Rendered last, so the layers cover the window content: the archive layer,
     // then the nested confirmation above it. Only the topmost layer reacts to
     // Escape, system Back and the backdrop; Tab stays inside it.
-    KitDialogSurface {
+    archive-surface := KitDialogSurface {
         theme: root.theme; state: root.archive;
         dismiss(reason) => { root.dismiss(DialogLayer.archive, reason); }
         focus-next(backward) => { root.focus-next(backward); }
@@ -103,7 +106,7 @@ export component DialogApp inherits Window {
             }
         }
     }
-    KitDialogSurface {
+    confirm-surface := KitDialogSurface {
         theme: root.theme; state: root.confirm;
         dismiss(reason) => { root.dismiss(DialogLayer.confirm, reason); }
         focus-next(backward) => { root.focus-next(backward); }

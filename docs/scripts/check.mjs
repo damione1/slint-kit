@@ -355,7 +355,7 @@ for (const locale of ['en', 'fr']) {
 for (const locale of ['en', 'fr']) {
   const page = fs.readFileSync(path.join(output, localeUrl('guides/dialog-example/', locale), 'index.html'), 'utf8');
   const blocks = [...page.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
-  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs']) {
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs', 'src/controller.rs']) {
     const source = fs.readFileSync(path.join(docs, 'dialog-consumer', file), 'utf8');
     check(blocks.includes(source.trim()), `${locale}: dialog guide must show the complete ${file}`);
     check(fs.readFileSync(path.join(output, 'dialog-consumer', file), 'utf8') === source, `${locale}: dialog download must match displayed source: ${file}`);

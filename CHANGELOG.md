@@ -47,6 +47,8 @@
 
 - Localize file actions/status and step names through window KitStrings with instance overrides and removal-name templates. Native picker bindings accept typed error mappers and preserve platform details.
 
+- Add typed weak-window DialogHost with declarative layers/focus targets, unified eligibility, busy focus, nested traps and restoration. The complete dialog consumer uses it, and window tests now drive that exact controller and its completion timer.
+
 - Animate button busy indicators using theme timing, honor reduced motion, and expose busy-label for an accessible explanation of pending work.
 
 - Protect form-button validation from overridden activated handlers. Breaking: submit buttons now require a validation-requested callback returning true, or explicit form-no-validate; form-action remains the submit/reset notification.
@@ -166,6 +168,7 @@
 
 
 
+- Ajoute DialogHost typé à fenêtre faible avec couches/cibles déclaratives, éligibilité unifiée, focus occupé, pièges imbriqués et restauration. L’exemple complet l’utilise et les tests de fenêtre pilotent ce contrôleur exact ainsi que sa temporisation de fin.
 
 - Anime les indicateurs d’attente des boutons selon le thème, respecte la réduction des mouvements et ajoute busy-label pour expliquer le travail en cours aux technologies d’assistance.
 

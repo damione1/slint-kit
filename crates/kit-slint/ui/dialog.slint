@@ -16,9 +16,13 @@ export component KitDialogSurface inherits Rectangle {
     in property <DialogTabPolicy> tab-policy: DialogTabPolicy.host;
     callback dismiss(CloseReason);
     callback focus-next(bool);
+    // Fallback keyboard scope when a modal contains no eligible control.
+    public function take-scope-focus() {
+        if (root.state.open && root.state.topmost) { keys.focus(); }
+    }
     visible: root.state.open;
     background: root.theme.scrim;
-    FocusScope {
+    keys := FocusScope {
         // Keep the scrim inside the focus scope so it receives the first
         // pointer press instead of the scope consuming it to take focus.
         TouchArea {

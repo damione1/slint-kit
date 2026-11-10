@@ -1310,7 +1310,7 @@
   "KitDialogSurface": {
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
-      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez le focus du contrôle réel à observe_focus. DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés.",
       "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
         "KitDialogPanel",
@@ -1318,11 +1318,14 @@
         "KitDrawer"
       ],
       "label": "Surface modale",
-      "seoTitle": "Surface modale pour Slint"
+      "seoTitle": "Surface modale pour Slint",
+      "functions": {
+        "take-scope-focus": "Donne le focus à la portée clavier de la couche ouverte au sommet, quand aucun contrôle enfant n’est éligible. Le host garde Tab à l’intérieur ; Échap suit la politique d’occupation/fermeture."
+      }
     },
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
-      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward actual control focus through observe_focus. DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled.",
       "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
         "KitDialogPanel",
@@ -1330,7 +1333,10 @@
         "KitDrawer"
       ],
       "label": "Dialog Surface",
-      "seoTitle": "Dialog Surface for Slint"
+      "seoTitle": "Dialog Surface for Slint",
+      "functions": {
+        "take-scope-focus": "Focuses the topmost open layer keyboard scope when no child control is eligible. Host Tab handling keeps focus inside; Escape follows busy/dismiss policy."
+      }
     }
   },
   "KitDirectoryPicker": {
@@ -1776,7 +1782,7 @@
   "KitFocusTarget": {
     "fr": {
       "summary": "Pont entre une cible visuelle réelle et les requêtes du registre de focus.",
-      "usage": "Attribuez un `token` et une `generation` stables. Publiez un nouveau `FocusRequest` depuis Rust à chaque demande, puis relayez `focus-requested` vers `take-focus()` du champ natif.",
+      "usage": "Attribuez un `token` et une `generation` stables. Publiez un nouveau `FocusRequest` depuis Rust à chaque demande, puis relayez `focus-requested` vers `take-focus()` du champ natif. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez le focus du contrôle réel à observe_focus.",
       "behavior": "Une `FocusRequest` ne s’applique que si le token, la génération et l’éligibilité correspondent, une seule fois par identifiant de demande. Une cible recyclée doit changer de génération ; `focus-applied` confirme la demande traitée.",
       "related": [
         "KitFieldLabel",
@@ -1787,7 +1793,7 @@
     },
     "en": {
       "summary": "Bridge between an actual visual target and focus-registry requests.",
-      "usage": "Assign a stable `token` and `generation`. Publish a new `FocusRequest` from Rust for each request, then forward `focus-requested` to the native editor’s `take-focus()`.",
+      "usage": "Assign a stable `token` and `generation`. Publish a new `FocusRequest` from Rust for each request, then forward `focus-requested` to the native editor’s `take-focus()`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward actual control focus through observe_focus.",
       "behavior": "A `FocusRequest` applies only when token, generation and eligibility match, once per request identifier. A recycled target must change generation; `focus-applied` acknowledges the processed request.",
       "related": [
         "KitFieldLabel",

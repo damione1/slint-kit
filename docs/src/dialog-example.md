@@ -13,7 +13,7 @@ eleventyComputed:
 {% if locale == 'fr' %}
 # Composer des dialogues avec retour du focus
 
-Cette application Rust et Slint complète compose deux couches modales à l’intérieur d’une fenêtre avec `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` et `KitFocusTarget`. Rust possède la pile de couches (`OverlayStack`) et le registre de focus (`FocusRegistry`) ; Slint affiche l’état publié et relaie les gestes. Ce sont des surfaces composées dans la fenêtre de l’application : le kit ne fournit pas de fenêtre modale système.
+Cette application Rust et Slint complète compose deux couches modales à l’intérieur d’une fenêtre avec `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` et `KitFocusTarget`. L’adaptateur `DialogHost` possède la pile de couches (`OverlayStack`) et le registre de focus (`FocusRegistry`) ; Slint affiche l’état publié et relaie les gestes. Ce sont des surfaces composées dans la fenêtre de l’application : le kit ne fournit pas de fenêtre modale système.
 
 Ce que l’exemple démontre :
 
@@ -25,11 +25,11 @@ Ce que l’exemple démontre :
 
 ## Essayer l’application
 
-Créez un projet neuf, puis remplacez ses fichiers par les quatre fichiers complets ci-dessous. {% if project.registryExamples %}Les paquets viennent de crates.io ; aucun checkout du kit n’est nécessaire.{% else %}Cette édition suit les sources de développement et utilise des API ajoutées après 0.7.2. Les versions 0.7.2 publiées ne compilent pas les sources ci-dessous : utilisez un checkout correspondant du kit et remplacez les dépendances `slint-kit` et `slint-kit-build` du manifeste par des dépendances `path` vers `crates/kit` et `crates/kit-build` de ce checkout. Pour un exemple disponible depuis crates.io, utilisez [les sources immuables du tableau 0.7.2](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), épinglées sur cette version publiée.{% endif %} Les [prérequis natifs](/fr/guides/getting-started/) sont ceux du guide de démarrage.
+Créez un projet neuf, puis remplacez ses fichiers par les cinq fichiers complets ci-dessous. {% if project.registryExamples %}Les paquets viennent de crates.io ; aucun checkout du kit n’est nécessaire.{% else %}Cette édition suit les sources de développement et utilise des API ajoutées après 0.7.2. Les versions 0.7.2 publiées ne compilent pas les sources ci-dessous : utilisez un checkout correspondant du kit et remplacez les dépendances `slint-kit` et `slint-kit-build` du manifeste par des dépendances `path` vers `crates/kit` et `crates/kit-build` de ce checkout. Pour un exemple disponible depuis crates.io, utilisez [les sources immuables du tableau 0.7.2](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), épinglées sur cette version publiée.{% endif %} Les [prérequis natifs](/fr/guides/getting-started/) sont ceux du guide de démarrage.
 {% else %}
 # Compose dialogs with focus return
 
-This complete Rust and Slint application composes two modal layers inside one window with `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` and `KitFocusTarget`. Rust owns the layer stack (`OverlayStack`) and the focus registry (`FocusRegistry`); Slint shows the published state and relays gestures. These are surfaces composed in the application window: the kit does not provide a system modal window.
+This complete Rust and Slint application composes two modal layers inside one window with `KitDialogSurface`, `KitDialogPanel`, `KitDialogHeader`, `KitDialogBody`, `KitDialogFooter` and `KitFocusTarget`. The `DialogHost` adapter owns the layer stack (`OverlayStack`) and focus registry (`FocusRegistry`); Slint shows the published state and relays gestures. These are surfaces composed in the application window: the kit does not provide a system modal window.
 
 What the example demonstrates:
 
@@ -41,7 +41,7 @@ What the example demonstrates:
 
 ## Try the application
 
-Create a fresh project, then replace its files with the four complete files below. {% if project.registryExamples %}Packages come from crates.io; no kit checkout is needed.{% else %}This edition tracks development sources and uses APIs added after 0.7.2. Published 0.7.2 packages cannot compile the sources below: use a matching kit checkout and replace the manifest’s `slint-kit` and `slint-kit-build` dependencies with `path` dependencies pointing to that checkout’s `crates/kit` and `crates/kit-build`. For a registry-ready example, use [the immutable 0.7.2 table sources](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), pinned to that published release.{% endif %} The [native prerequisites](/guides/getting-started/) match the getting-started guide.
+Create a fresh project, then replace its files with the five complete files below. {% if project.registryExamples %}Packages come from crates.io; no kit checkout is needed.{% else %}This edition tracks development sources and uses APIs added after 0.7.2. Published 0.7.2 packages cannot compile the sources below: use a matching kit checkout and replace the manifest’s `slint-kit` and `slint-kit-build` dependencies with `path` dependencies pointing to that checkout’s `crates/kit` and `crates/kit-build`. For a registry-ready example, use [the immutable 0.7.2 table sources](https://github.com/damione1/slint-kit/tree/v0.7.2/docs/table-consumer), pinned to that published release.{% endif %} The [native prerequisites](/guides/getting-started/) match the getting-started guide.
 {% endif %}
 
 ```sh
@@ -57,10 +57,10 @@ cd slint-kit-dialog-example
 
 ## Comment les pièces s’assemblent
 
-- `OverlayStack` reçoit un `OverlaySpec` par couche ouverte, avec son parent et le `FocusHandle` du déclencheur dans `restore_focus`. `close(id, reason)` applique la politique de fermeture (`busy` bloque Échap, Retour et voile, jamais une fermeture programmatique), retire la couche et ses descendantes, et rend les entrées fermées : la dernière porte la cible de restauration.
-- `FocusRegistry` possède une portée par couche. `push_trap(scope)` borne le cycle de Tab à la couche du dessus ; `request(handle)` refuse toute cible inéligible ou hors du piège actif ; `restore(preferred, fallback)` choisit la première cible encore valide. Les handles portent une génération : une cible démontée puis remontée ne peut pas recevoir une requête périmée.
-- Slint reçoit trois projections : un `FocusSlot` par jeton (génération et éligibilité), un `DialogState` par couche (`open`, `topmost`, `busy`) et la `FocusRequest` à appliquer. `KitFocusTarget` applique la requête une seule fois et relaie `focus-requested` vers `take-focus()` du contrôle réel. `KitDialogSurface` ne traite Échap, Retour et le voile que lorsque son état est `topmost`, et capture Tab/Maj+Tab vers `focus-next(bool)` en politique `host`.
-- L’hôte publie après avoir relâché son emprunt : appliquer une requête de focus rappelle `focus-changed`, qui réemprunte la session.
+- `DialogHost<W, L, T>` reçoit des clés typées via `DialogLayerSpec` (parent, premier contrôle) et `DialogFocusSpec` (jeton stable, couche, accès). Déclarez les parents avant les descendants ; une topologie invalide est refusée à la construction.
+- `DialogHostPorts` nomme les setters des trois projections : `FocusSlot`, `DialogState` et `FocusRequest`. Le kit publie l’éligibilité puis les états puis le focus, après avoir relâché son emprunt ; les callbacks de focus peuvent donc rappeler l’hôte.
+- Raccordez `open`, `close`, `cycle` et `observe_focus` aux événements. `set_activity(layer, DialogActivity::Busy(target))` garde uniquement l’action occupée éligible. La fermeture imbriquée restaure une seule fois le déclencheur exact, ou une cible de repli encore éligible.
+- `KitFocusTarget` relaie `focus-requested` au `take-focus()` du contrôle réel. Liez le même `slot.eligible` à son accès/désactivation : le voile seul ne bloque pas les actions d’accessibilité.
 
 L’éligibilité est calculée une fois, dans Rust, puis publiée ; Slint n’en possède pas de copie. Dans cet exemple, l’action occupée reste éligible pendant le travail pour que la couche conserve le focus et consomme Échap et Retour ; ses voisines sont désactivées.
 {% else %}
@@ -71,10 +71,10 @@ L’éligibilité est calculée une fois, dans Rust, puis publiée ; Slint n’e
 
 ## How the pieces fit
 
-- `OverlayStack` receives one `OverlaySpec` per open layer, with its parent and the trigger’s `FocusHandle` in `restore_focus`. `close(id, reason)` applies the dismissal policy (`busy` blocks Escape, Back and the backdrop, never a programmatic close), removes the layer and its descendants, and returns the closed entries: the last one carries the restore target.
-- `FocusRegistry` owns one scope per layer. `push_trap(scope)` bounds the Tab cycle to the topmost layer; `request(handle)` refuses any target that is ineligible or outside the active trap; `restore(preferred, fallback)` picks the first target that is still valid. Handles carry a generation: a target unmounted and mounted again cannot receive a stale request.
-- Slint receives three projections: one `FocusSlot` per token (generation and eligibility), one `DialogState` per layer (`open`, `topmost`, `busy`) and the `FocusRequest` to apply. `KitFocusTarget` applies the request once and relays `focus-requested` to the real control’s `take-focus()`. `KitDialogSurface` handles Escape, Back and the backdrop only while its state is `topmost`, and captures Tab/Shift+Tab into `focus-next(bool)` under the `host` policy.
-- The host publishes after releasing its borrow: applying a focus request calls back into `focus-changed`, which borrows the session again.
+- `DialogHost<W, L, T>` accepts typed identities through `DialogLayerSpec` (parent, first control) and `DialogFocusSpec` (stable token, layer, enabled state). Declare parents before descendants; construction rejects invalid topology.
+- `DialogHostPorts` names the setters for three projections: `FocusSlot`, `DialogState` and `FocusRequest`. The kit publishes eligibility, then states, then focus after releasing its borrow, so focus callbacks may safely re-enter the host.
+- Connect `open`, `close`, `cycle` and `observe_focus` to view events. `set_activity(layer, DialogActivity::Busy(target))` keeps only the busy action eligible. Nested close restores the exact opener once, or an eligible fallback.
+- `KitFocusTarget` relays `focus-requested` to the real control’s `take-focus()`. Bind the same `slot.eligible` to its access/disabled state: a backdrop alone cannot block accessibility actions.
 
 Eligibility is computed once, in Rust, then published; Slint keeps no copy of the rule. In this example the busy action stays eligible during the work so the layer keeps focus and consumes Escape and Back; its neighbours are disabled.
 {% endif %}
@@ -111,6 +111,14 @@ Eligibility is computed once, in Rust, then published; Slint keeps no copy of th
 {{ 'src/main.rs' | dialogSource | safe }}
 ```
 
+## src/controller.rs
+
+[{{ ui[locale].download }} — src/controller.rs](/dialog-consumer/src/controller.rs)
+
+```rust
+{{ 'src/controller.rs' | dialogSource | safe }}
+```
+
 ## {% if locale == 'fr' %}Exécuter et adapter{% else %}Run and adapt{% endif %}
 
 ```sh
@@ -118,13 +126,13 @@ cargo run{% if locale == 'fr' %} -- --fr{% endif %}
 ```
 
 {% if locale == 'fr' %}
-Remplacez la temporisation par votre travail asynchrone réel : marquez la couche `busy` au départ, puis fermez-la par `DismissReason::Programmatic` à l’arrivée du résultat. Ajoutez une couche en déclarant son overlay, sa portée, son parent et son premier contrôle ; ajoutez un contrôle en déclarant son jeton et sa couche. Le compilateur signale chaque `match` à compléter. Avec `tab-policy: DialogTabPolicy.native`, Slint parcourt lui-même les contrôles montés ; l’hôte doit alors désactiver tout l’arrière-plan de la même façon.
+Remplacez la temporisation par votre travail asynchrone réel : marquez la couche `busy` au départ, puis fermez-la par `DismissReason::Programmatic` à l’arrivée du résultat. Ajoutez une couche avec `DialogLayerSpec` et un contrôle avec `DialogFocusSpec` ; utilisez `set_enabled` lorsque son état change. Le compilateur signale chaque `match` à compléter. Avec `tab-policy: DialogTabPolicy.native`, Slint parcourt lui-même les contrôles montés ; l’hôte doit alors désactiver tout l’arrière-plan de la même façon.
 
 Slint {{ project.slint }} ne fournit ni rôle de dialogue, ni état modal, ni propriété permettant de masquer un sous-arbre accessible tout en le gardant visible. Le panneau est annoncé comme `groupbox` avec son nom ; les contrôles couverts restent lisibles dans l’ordre de parcours du lecteur d’écran malgré leur désactivation. Le contrat « arrière-plan neutralisé » concerne les actions, pas l’isolement du parcours accessible.
 
 Les tests du kit prouvent ce contrat sans écran : retour du focus au déclencheur exact, couches imbriquées, Tab/Maj+Tab, Échap/Retour, état occupé et arrière-plan inerte. Ils ne qualifient ni les lecteurs d’écran ni les méthodes de saisie : vérifiez-les sur la plateforme cible. Consultez la [référence KitDialogSurface](/fr/components/dialog-surface/) et la [référence KitFocusTarget](/fr/components/focus-target/) pour l’API complète.
 {% else %}
-Replace the timer with your real asynchronous work: mark the layer `busy` when it starts, then close it with `DismissReason::Programmatic` when the result arrives. Add a layer by declaring its overlay, scope, parent and first control; add a control by declaring its token and layer. The compiler reports every `match` to complete. With `tab-policy: DialogTabPolicy.native`, Slint traverses the mounted controls itself; the host must then disable the whole background in the same way.
+Replace the timer with your real asynchronous work: mark the layer `busy` when it starts, then close it with `DismissReason::Programmatic` when the result arrives. Add a layer with `DialogLayerSpec` and a control with `DialogFocusSpec`; call `set_enabled` when its enabled state changes. The compiler reports every `match` to complete. With `tab-policy: DialogTabPolicy.native`, Slint traverses the mounted controls itself; the host must then disable the whole background in the same way.
 
 Slint {{ project.slint }} exposes no dialog role, modal state, or property that hides an accessible subtree while keeping it visible. The panel is exposed as a named `groupbox`; covered controls remain readable in the screen reader browse order despite being disabled. The inert-background contract covers actions, not isolation of the accessibility browse tree.
 

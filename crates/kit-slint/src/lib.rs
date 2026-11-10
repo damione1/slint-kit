@@ -102,4 +102,8 @@ mod numeric_service;
 mod color_service;
 
 #[cfg(feature = "adapter")]
+mod dialog;
+#[cfg(feature = "adapter")]
+pub use dialog::*;
+#[cfg(feature = "adapter")]
 mod text_edit;
