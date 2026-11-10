@@ -125,7 +125,7 @@ export function scanComponents() {
       }
       collectTypes(signatures);
       const publicTypes = [...relatedTypes.values()].sort((a, b) => a.name.localeCompare(b.name));
-      const family = file.replace('.slint', '');
+      const family = file === 'color-wheel.slint' ? 'color' : file.replace('.slint', '');
       const screenshots = {};
       for (const locale of ['fr', 'en']) {
         const filename = `${slugify(name)}${locale === 'fr' ? '-fr' : ''}.png`;

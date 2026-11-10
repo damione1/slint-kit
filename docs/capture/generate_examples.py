@@ -114,6 +114,7 @@ for name in ['KitFileList','KitFilePicker']:
     add(name, name+' { theme: root.theme; entries: '+file_entries+'; remove-requested(token, generation) => { root.status = "Remove file token " + token; } }', 360)
 add('KitDirectoryPicker', 'KitDirectoryPicker { theme: root.theme; label: "Export folder"; selected-name: "Documents/Project exports"; browse-requested => { root.status = "Host folder request"; } }', 300)
 add('KitFileDropZone', 'KitFileDropZone { theme: root.theme; capability: DropCapability.unsupported; } '+button('Choose files…'), 320)
+add('KitColorWheel', 'KitColorWheel { theme: root.theme; label: "Accent color"; value: root.color; chosen(value) => { root.color = value; } }', 340, 'private property <SrgbColorView> color: {red:124,green:108,blue:240,alpha:255};')
 for name in ['KitColorField','KitColorPicker']:
     attr='text: "#6366F1";' if name=='KitColorField' else 'hex-text: "#6366F1"; red-text: "99"; green-text: "102"; blue-text: "241";'
     add(name, name+' { theme: root.theme; label: "Accent color"; swatch: #6366f1; accepted-color: { red: 99, green: 102, blue: 241, alpha: 255 }; '+attr+' }', 590 if name=='KitColorPicker' else 250)

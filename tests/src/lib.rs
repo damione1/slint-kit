@@ -812,3 +812,6 @@ mod direct_validation;
 mod field_actions;
 
 mod temporal_blur_commit;
+
+mod color_wheel;
+mod slider_paint;

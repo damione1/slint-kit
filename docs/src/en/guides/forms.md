@@ -95,3 +95,7 @@ Compose interactive leading/trailing actions directly inside `KitTextField` with
 
 
 Keep accepted password values in typed application state. Show a nonsensitive acceptance status; never render accepted-text or committed value text beside a password field, and never print the password to logs.
+
+## Controlled color wheel
+
+`KitColorWheel` proposes opaque `SrgbColorView` values at full HSV value. Install the kit once per window, bind `value` and `known`, apply `chosen` to a local draft and submit that draft through your typed Rust boundary. Increase `generation` on rebind to discard held input. Left/right adjust hue, up/down saturation, Enter requests commit and Escape requests cancellation. The owner restores the last accepted value on cancellation. Localize `label`, `unknown-label` and `value-format`, or their `KitStrings.color-wheel-*` defaults. The two-axis control exposes a named focus group and description; native screen-reader editing is not qualified.

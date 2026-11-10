@@ -15,6 +15,7 @@ export struct SliderSpec { minimum: string, maximum: string, step: string }
 export struct DecimalRangeView { lower: string, upper: string }
 export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
+export struct ColorWheelPosition { x: float, y: float, hue: float, saturation: float }
 export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
 // `text` is the next draft only when `status` is `stepped`.
 export struct NumberStepResult { status: NumberStepStatus, text: string }
@@ -22,6 +23,10 @@ export struct NumberStepResult { status: NumberStepStatus, text: string }
 // -inf/+inf and `step="any"` is 0, because Slint always publishes the floats.
 export struct NumberRangeView { minimum: float, maximum: float, step: float }
 export global KitFieldService {
+    pure callback color-wheel-image() -> image;
+    pure callback color-wheel-position(SrgbColorView) -> ColorWheelPosition;
+    pure callback color-wheel(float, float) -> ColorResult;
+    pure callback color-hue(float, float) -> ColorResult;
     pure callback text-menu-options(TextEditLabels, TextEditAvailability) -> [OptionRow];
     pure callback text-menu-command(OptionRow) -> TextEditCommandResult;
     callback text-menu-placement(TextMenuPlacement) -> TextMenuGeometry;

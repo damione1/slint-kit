@@ -5500,5 +5500,117 @@
         }
       }
     }
+  },
+  "KitColorWheel": {
+    "en": {
+      "label": "Color Wheel",
+      "seoTitle": "Controlled RGB color wheel for Slint",
+      "summary": "A hue/saturation wheel that proposes opaque RGB colors.",
+      "usage": "Set value: SrgbColorView, known, access and generation. Install the kit services once per window. Handle chosen(SrgbColorView) as a local draft; the owner submits explicitly. Increase generation on rebind. Read hue for the local editing hue and call choose-hue(float degrees, 0..360) to share it with another control. Known white/gray retains this hue without altering RGB; an explicit hue choice on an unknown color proposes a saturated opaque RGB color. Reset generation or known on replacement; Escape and access changes also discard local hue.",
+      "behavior": "Pointer movement and arrow keys edit hue/saturation at full HSV value. Left/right adjust hue; up/down adjust saturation. Escape cancels, Enter commits the local gesture. Unknown color hides the marker. Read-only and disabled access emit no edits. Generation changes cancel held input. The spectrum is built lazily and shared on the UI thread; pure-Slint previews without install() have no generated spectrum.",
+      "related": [
+        "KitColorPicker",
+        "KitColorField"
+      ],
+      "properties": {
+        "theme": {
+          "effect": "Complete theme used for geometry, focus and disabled presentation."
+        },
+        "access": {
+          "effect": "Editable emits draft proposals; read-only preserves a focusable description; disabled refuses interaction."
+        },
+        "value": {
+          "effect": "Controlled sRGB byte projection. The owner applies chosen values; proposals always have alpha 255 and full HSV value.",
+          "default": "Opaque white; set known: false for an unknown value."
+        },
+        "known": {
+          "effect": "False hides the marker and uses unknown-label; choose-hue establishes a saturated opaque proposal."
+        },
+        "label": {
+          "effect": "Accessible name of the focus group, inherited from KitStrings.color-wheel-label by default."
+        },
+        "generation": {
+          "effect": "Change the epoch when rebinding the editor; this discards a held gesture and local achromatic hue."
+        },
+        "hue": {
+          "effect": "Current local editing hue in degrees. Gray/white can preserve hue without emitting a changed RGB value."
+        },
+        "unknown-label": {
+          "effect": "Description for unknown values; defaults to KitStrings.color-wheel-unknown-label."
+        },
+        "value-format": {
+          "effect": "Accessible description template with {hue} and {saturation}; defaults to KitStrings.color-wheel-value-format."
+        },
+        "value-text": {
+          "effect": "Formatted description of the current known hue/saturation or the unknown-value label."
+        }
+      },
+      "callbacks": {
+        "chosen": "Proposed opaque SrgbColorView; update the controlled draft explicitly.",
+        "gesture-started": "A pointer press or arrow-key adjustment starts local editing.",
+        "committed": "Pointer release or Enter asks the owner to accept the local gesture.",
+        "cancelled": "Escape or pointer cancellation discards local hue; the owner restores its accepted draft."
+      },
+      "functions": {
+        "choose-hue": "Propose a finite hue in 0..360 degrees while editable and installed; gray/white retain local hue without changing RGB."
+      },
+      "states": "Known values show a marker; unknown values hide it. Read-only and disabled controls emit no proposals. Access, generation and known-state changes cancel held input.",
+      "accessibility": "A named keyboard focus group describes both hue and saturation; it does not claim a one-axis numeric slider range. Arrow keys edit the two axes, Enter commits and Escape cancels. All descriptions are localizable through KitStrings or per-instance properties. Headless coverage is not native screen-reader qualification."
+    },
+    "fr": {
+      "label": "Roue de couleur",
+      "seoTitle": "Roue de couleur RGB contrôlée pour Slint",
+      "summary": "Une roue teinte/saturation proposant des couleurs RGB opaques.",
+      "usage": "Fournissez value: SrgbColorView, known, access et generation. Installez les services une fois par fenêtre. Traitez chosen(SrgbColorView) comme un brouillon local ; le propriétaire valide explicitement. Incrémentez generation au changement de source. Lisez hue pour la teinte locale et appelez choose-hue(float degrés, 0..360) depuis un autre contrôle. Blanc/gris connus conservent cette teinte sans changer RGB ; un choix explicite sur couleur inconnue propose une couleur RGB opaque saturée. Réinitialisez generation ou known au remplacement ; Échap et les changements d’accès retirent aussi la teinte locale.",
+      "behavior": "Le pointeur et les flèches modifient teinte/saturation à valeur HSV maximale. Gauche/droite règlent la teinte, haut/bas la saturation. Échap annule, Entrée termine le geste local. Une couleur inconnue masque le marqueur. Lecture seule et désactivation refusent les modifications. Un changement de génération annule le geste tenu. Le spectre est construit à la demande et partagé sur le thread UI ; les aperçus Slint seuls sans install() ne disposent pas du spectre généré.",
+      "related": [
+        "KitColorPicker",
+        "KitColorField"
+      ],
+      "properties": {
+        "theme": {
+          "effect": "Thème complet utilisé pour la géométrie, le focus et la présentation désactivée."
+        },
+        "access": {
+          "effect": "Le mode éditable émet des propositions ; la lecture seule conserve une description focalisable ; le mode désactivé refuse les interactions."
+        },
+        "value": {
+          "effect": "Projection contrôlée des octets sRGB. Le propriétaire applique les valeurs chosen ; les propositions ont un alpha de 255 et une valeur HSV maximale.",
+          "default": "Blanc opaque ; utilisez known: false pour une valeur inconnue."
+        },
+        "known": {
+          "effect": "False masque le marqueur et utilise unknown-label ; choose-hue propose alors une couleur opaque saturée."
+        },
+        "label": {
+          "effect": "Nom accessible du groupe de focus, hérité par défaut de KitStrings.color-wheel-label."
+        },
+        "generation": {
+          "effect": "Changez cette époque lors du changement de source ; elle retire le geste tenu et la teinte achromatique locale."
+        },
+        "hue": {
+          "effect": "Teinte locale actuelle en degrés. Le gris et le blanc peuvent conserver la teinte sans émettre une nouvelle valeur RGB."
+        },
+        "unknown-label": {
+          "effect": "Description des valeurs inconnues ; utilise par défaut KitStrings.color-wheel-unknown-label."
+        },
+        "value-format": {
+          "effect": "Modèle de description accessible avec {hue} et {saturation} ; utilise par défaut KitStrings.color-wheel-value-format."
+        },
+        "value-text": {
+          "effect": "Description formatée de la teinte/saturation connue, ou libellé de valeur inconnue."
+        }
+      },
+      "callbacks": {
+        "chosen": "SrgbColorView opaque proposé ; actualisez explicitement le brouillon contrôlé.",
+        "gesture-started": "Un press du pointeur ou une flèche commence une modification locale.",
+        "committed": "Le relâchement du pointeur ou Entrée demande au propriétaire de confirmer le geste local.",
+        "cancelled": "Échap ou une annulation du pointeur retire la teinte locale ; le propriétaire restaure son brouillon accepté."
+      },
+      "functions": {
+        "choose-hue": "Propose une teinte finie de 0 à 360 degrés en mode éditable après installation ; gris et blanc conservent leur teinte locale sans changement RGB."
+      },
+      "states": "Une valeur connue affiche un marqueur, une valeur inconnue le masque. Lecture seule et désactivation ne proposent aucune modification. Les changements d’accès, de génération et de présence annulent le geste tenu.",
+      "accessibility": "Un groupe de focus clavier nommé décrit teinte et saturation ; il ne prétend pas exposer une plage numérique à un seul axe. Les flèches règlent les deux axes, Entrée confirme et Échap annule. Les descriptions se localisent via KitStrings ou les propriétés de l’instance. Les preuves headless ne qualifient pas un lecteur d’écran natif."
+    }
   }
 }

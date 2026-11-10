@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add the controlled `KitColorWheel` hue/saturation plane with opaque RGB proposals, generation-fenced input, localizable descriptions and lazy shared spectrum rendering. **Breaking:** complete `KitGeometry` literals need the four `color-wheel-*` fields.
+- Ajoute `KitColorWheel`, plan teinte/saturation contrôlé avec propositions RGB opaques, gestes gardés par génération, descriptions localisables et spectre partagé construit à la demande. **Rupture :** les littéraux complets `KitGeometry` exigent les quatre champs `color-wheel-*`.
+- Keep filled slider solid paints inside rounded bounds on the software renderer without changing gradient coordinates; reserve the horizontal scrollbar gutter in the minimum tab height.
+- Contient les remplissages unis des sliders dans leurs coins arrondis sur le moteur logiciel, sans changer les coordonnées des dégradés ; réserve la gouttière horizontale dans la hauteur minimale des onglets.
+
 - Keep accepted verification codes private in the complete OTP example; show only acceptance status and remove code logging.
 - Conserve les codes de vérification acceptés dans l’état privé de l’exemple OTP complet ; n’affiche qu’un statut d’acceptation et supprime leur journalisation.
 - Behavior change: `KitDatePicker`, `KitDateTimeField` and `KitZonedDateTimeField` now expose `commit-policy` and, with the default `on-blur`, accept a valid typed value when focus leaves the control instead of only on Enter. Composed fields commit when focus leaves every editor of the group; invalid text keeps the accepted value and an unchanged value does not repeat `chosen`.

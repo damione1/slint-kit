@@ -206,6 +206,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         step_marker_scaled,
         drop_zone_minimum,
         drop_zone_scaled,
+        color_wheel_minimum,
+        color_wheel_diameter,
+        color_wheel_indicator_size,
+        color_wheel_indicator_border_width,
     } = geometry;
     for (name, value) in [
         ("geometry.icon-compact", icon_compact),
@@ -231,6 +235,16 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("geometry.step-marker-scaled", step_marker_scaled),
         ("geometry.drop-zone-minimum", drop_zone_minimum),
         ("geometry.drop-zone-scaled", drop_zone_scaled),
+        ("geometry.color-wheel-minimum", color_wheel_minimum),
+        ("geometry.color-wheel-diameter", color_wheel_diameter),
+        (
+            "geometry.color-wheel-indicator-size",
+            color_wheel_indicator_size,
+        ),
+        (
+            "geometry.color-wheel-indicator-border-width",
+            color_wheel_indicator_border_width,
+        ),
     ] {
         tokens.push((name.to_owned(), Token::Length(value)));
     }
@@ -1651,6 +1665,75 @@ fn custom_geometry_reaches_the_family_recipes() {
                 ),
                 (27., 9., 11., 5., 37.)
             );
+        }
+    }
+}
+
+#[test]
+fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let tokens = ThemeTokenFixture::new().unwrap();
+    for (name, base) in shipped_themes(&tokens) {
+        for scale in [1., 2.] {
+            for width in [220., 640.] {
+                let window = TabsIndicatorFixture::new().unwrap();
+                let mut theme = base.clone();
+                theme.text_scale = scale;
+                window.set_theme(theme);
+                window.set_available_width(width);
+                window.show().unwrap();
+                slint::platform::update_timers_and_animations();
+                let viewport = ElementQuery::from_root(&window)
+                    .match_type_name("Flickable")
+                    .find_first()
+                    .expect("tabs own a clipped scrolling viewport");
+                let tabs: Vec<ElementHandle> = ElementQuery::from_root(&window)
+                    .match_inherits("KitNavigationAction")
+                    .find_all();
+                // The testing query excludes fully clipped descendants.
+                assert!(!tabs.is_empty());
+                if width == 640. {
+                    assert_eq!(tabs.len(), 3);
+                }
+                let top = viewport.absolute_position().y;
+                let bottom = top + viewport.size().height;
+                for tab in &tabs {
+                    assert!(tab.absolute_position().y >= top - 0.01);
+                    assert!(
+                        tab.absolute_position().y + tab.size().height <= bottom + 0.01,
+                        "complete tab must fit the viewport at scale {scale}, width {width}"
+                    );
+                }
+                let mut state = window.get_state();
+                state.active = SelectionRef {
+                    present: true,
+                    token: 3,
+                };
+                state.active_index = 2;
+                window.set_state(state);
+                slint::platform::update_timers_and_animations();
+                let last = ElementQuery::from_root(&window)
+                    .match_inherits("KitNavigationAction")
+                    .match_predicate(|e| e.accessible_label().as_deref() == Some("Settings"))
+                    .find_first()
+                    .expect("activating the last tab reveals it even when the row overflows");
+                let left = viewport.absolute_position().x;
+                assert!(last.absolute_position().x >= left - 0.01);
+                assert!(
+                    last.absolute_position().x + last.size().width
+                        <= left + viewport.size().width + 0.01
+                );
+                crate::choice_presentation::save_capture(
+                    &window.window().take_snapshot().unwrap(),
+                    &format!("tabs-{name}-{scale}-{width}"),
+                );
+            }
         }
     }
 }

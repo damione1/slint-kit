@@ -1,0 +1,24 @@
+import { KitColorWheel, KitThemes, KitTheme, FieldAccess, SrgbColorView } from "@kit";
+export component ColorWheelFixture inherits Window {
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    width: 260px * root.theme.text-scale; height: 260px * root.theme.text-scale;
+    out property <string> value-text: wheel.value-text;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <int> generation;
+    in-out property <bool> known: true;
+    in-out property <SrgbColorView> value: {red:255,green:0,blue:0,alpha:255};
+    callback chosen(SrgbColorView);
+    callback committed();
+    out property <float> hue: wheel.hue;
+    public function choose-hue(value: float) { wheel.choose-hue(value); }
+    background: root.theme.canvas;
+    wheel := KitColorWheel {
+        theme: root.theme;
+        x: 30px * root.theme.text-scale; y: 30px * root.theme.text-scale; width: 200px * root.theme.text-scale; height: 200px * root.theme.text-scale;
+        access: root.access; generation: root.generation; value: root.value; known: root.known;
+        chosen(value) => { root.value = value; root.known = true; root.chosen(value); }
+        committed => { root.committed(); }
+    }
+}

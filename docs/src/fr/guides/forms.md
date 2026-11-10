@@ -95,3 +95,7 @@ Composez directement les actions de début et de fin dans `KitTextField` avec `K
 
 
 Conservez les mots de passe acceptés dans un état applicatif typé. Affichez seulement un statut d’acceptation non sensible ; ne rendez jamais accepted-text ni le texte de la valeur validée à côté du champ et n’imprimez jamais le mot de passe dans les journaux.
+
+## Roue de couleur contrôlée
+
+`KitColorWheel` propose des `SrgbColorView` opaques à valeur HSV maximale. Installez le kit une fois par fenêtre, liez `value` et `known`, appliquez `chosen` au brouillon local et soumettez ce brouillon à la frontière Rust typée. Incrémentez `generation` au changement de source pour retirer le geste tenu. Gauche/droite règlent la teinte, haut/bas la saturation, Entrée demande confirmation et Échap demande annulation. Le propriétaire restaure la dernière valeur acceptée à l’annulation. Localisez `label`, `unknown-label` et `value-format`, ou leurs valeurs par défaut `KitStrings.color-wheel-*`. Ce contrôle à deux axes expose un groupe de focus nommé et une description ; l’édition par lecteur d’écran natif n’est pas qualifiée.
