@@ -15,6 +15,7 @@
 
 - Parent native file and directory dialogs to their Slint window, with framework-independent parent-provider APIs that retain no window reference while awaiting results.
 
+- Localize file actions/status and step names through window KitStrings with instance overrides and removal-name templates. Native picker bindings accept typed error mappers and preserve platform details.
 
 - Animate button busy indicators using theme timing, honor reduced motion, and expose busy-label for an accessible explanation of pending work.
 
@@ -121,6 +122,7 @@
 
 - Attache les boîtes de fichiers et dossiers natives à leur fenêtre Slint, avec des API de parent indépendantes du framework qui ne conservent pas de référence à la fenêtre pendant l’attente.
 
+- Localise actions/états des fichiers et noms d’étapes via KitStrings de la fenêtre, avec surcharges et modèles de suppression. Les bindings natifs acceptent des mappers d’erreurs typées et conservent les détails système.
 
 - Vérifie les applications complètes téléchargeables contre les crates publiées avant de construire la documentation de release et contre les sources locales en CI. Les guides de développement signalent les API non publiées et relient l’exemple crates.io immuable 0.7.2.
 

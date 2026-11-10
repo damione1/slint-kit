@@ -23,12 +23,36 @@ struct Files {
     requests: HostRequestController<Vec<FileHandle>>,
 }
 type FileHandler = Rc<dyn Fn(Vec<FileHandle>)>;
+type ErrorMapper = Rc<dyn Fn(&HostError) -> SharedString>;
+fn default_error_text(error: &HostError) -> SharedString {
+    let (_, message) = error_presentation(error);
+    match error {
+        HostError::Platform(detail) => format!("{message} {detail}").into(),
+        HostError::Unsupported
+        | HostError::PermissionDenied
+        | HostError::Unavailable
+        | HostError::InvalidResource
+        | HostError::InvalidFilter => message.into(),
+    }
+}
+fn mapped_error(
+    error: &HostError,
+    mapper: &RefCell<ErrorMapper>,
+) -> (ui::HostRequestPresentation, SharedString) {
+    let (state, _) = error_presentation(error);
+    if state == ui::HostRequestPresentation::Unsupported {
+        return (state, SharedString::default());
+    }
+    let mapper = mapper.borrow().clone();
+    (state, mapper(error))
+}
 pub struct FilePickerBinding<W: ComponentHandle + 'static> {
     drop_available: Rc<Cell<bool>>,
     selection_mode: Rc<Cell<FileSelectionMode>>,
     access: Rc<Cell<crate::FieldAccess>>,
     window: slint::Weak<W>,
     ports: Rc<FilePickerPorts<W>>,
+    error_mapper: Rc<RefCell<ErrorMapper>>,
     files: Rc<RefCell<Files>>,
     handler: Rc<RefCell<Option<FileHandler>>>,
 }
@@ -40,6 +64,7 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
             access: self.access.clone(),
             window: self.window.clone(),
             ports: self.ports.clone(),
+            error_mapper: self.error_mapper.clone(),
             files: self.files.clone(),
             handler: self.handler.clone(),
         }
@@ -78,6 +103,7 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             access: Rc::new(Cell::new(crate::FieldAccess::Editable)),
             window: window.as_weak(),
             ports: Rc::new(ports),
+            error_mapper: Rc::new(RefCell::new(Rc::new(default_error_text))),
             files: Rc::new(RefCell::new(Files {
                 handles: vec![],
                 rows: KeyedModel::new([]).expect("empty model"),
@@ -108,11 +134,16 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     pub fn selected(&self) -> Vec<FileHandle> {
         self.files.borrow().handles.clone()
     }
+    /// Map typed host failures to localized UI text. Unsupported remains a
+    /// capability state and never publishes a field error.
+    pub fn set_error_mapper(&self, mapper: impl Fn(&HostError) -> SharedString + 'static) {
+        *self.error_mapper.borrow_mut() = Rc::new(mapper);
+    }
     fn fail(&self, error: HostError) {
         if let Some(window) = self.window.upgrade() {
-            let (state, message) = error_presentation(&error);
+            let (state, message) = mapped_error(&error, &self.error_mapper);
             (self.ports.state)(&window, state);
-            (self.ports.error)(&window, message.into());
+            (self.ports.error)(&window, message);
         }
     }
     fn replace(&self, handles: Vec<FileHandle>) {
@@ -298,6 +329,7 @@ type DirectoryHandler = Rc<dyn Fn(Option<DirectoryHandle>)>;
 pub struct DirectoryPickerBinding<W: ComponentHandle + 'static> {
     window: slint::Weak<W>,
     ports: Rc<DirectoryPickerPorts<W>>,
+    error_mapper: Rc<RefCell<ErrorMapper>>,
     requests: Rc<RefCell<HostRequestController<DirectoryHandle>>>,
     selected: Rc<RefCell<Option<DirectoryHandle>>>,
     handler: Rc<RefCell<Option<DirectoryHandler>>>,
@@ -307,6 +339,7 @@ impl<W: ComponentHandle + 'static> Clone for DirectoryPickerBinding<W> {
         Self {
             window: self.window.clone(),
             ports: self.ports.clone(),
+            error_mapper: self.error_mapper.clone(),
             requests: self.requests.clone(),
             selected: self.selected.clone(),
             handler: self.handler.clone(),
@@ -318,6 +351,7 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
         let result = Self {
             window: window.as_weak(),
             ports: Rc::new(ports),
+            error_mapper: Rc::new(RefCell::new(Rc::new(default_error_text))),
             requests: Rc::new(RefCell::new(HostRequestController::default())),
             selected: Rc::new(RefCell::new(None)),
             handler: Rc::new(RefCell::new(None)),
@@ -333,11 +367,15 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
     pub fn selected(&self) -> Option<DirectoryHandle> {
         self.selected.borrow().clone()
     }
+    /// Localize typed host failures; platform details are available to the mapper.
+    pub fn set_error_mapper(&self, mapper: impl Fn(&HostError) -> SharedString + 'static) {
+        *self.error_mapper.borrow_mut() = Rc::new(mapper);
+    }
     fn fail(&self, error: HostError) {
         if let Some(window) = self.window.upgrade() {
-            let (state, message) = error_presentation(&error);
+            let (state, message) = mapped_error(&error, &self.error_mapper);
             (self.ports.state)(&window, state);
-            (self.ports.error)(&window, message.into());
+            (self.ports.error)(&window, message);
         }
     }
     fn publish(&self, selected: Option<DirectoryHandle>) {
@@ -483,6 +521,41 @@ mod tests {
             !message.is_empty(),
             "actual failures retain an error message"
         );
+    }
+
+    #[test]
+    fn both_picker_bindings_localize_typed_errors_and_preserve_platform_detail() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::KitVirtualTextView::new().unwrap();
+        let files = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: |_, _| {},
+                state: |_, _| {},
+                error: ui::KitVirtualTextView::set_error,
+            },
+        );
+        files.fail(HostError::Platform("device unavailable".into()));
+        assert!(window.get_error().contains("device unavailable"));
+        files.set_error_mapper(|error| format!("Échec : {error:?}").into());
+        files.fail(HostError::PermissionDenied);
+        assert_eq!(window.get_error(), "Échec : PermissionDenied");
+        files.fail(HostError::Unsupported);
+        assert!(window.get_error().is_empty());
+        let directory = DirectoryPickerBinding::new(
+            &window,
+            DirectoryPickerPorts {
+                selected: |_, _| {},
+                state: |_, _| {},
+                error: ui::KitVirtualTextView::set_error,
+            },
+        );
+        directory.set_error_mapper(|error| format!("Dossier : {error:?}").into());
+        directory.fail(HostError::Platform("accès refusé".into()));
+        assert!(window.get_error().starts_with("Dossier : "));
+        assert!(window.get_error().contains("accès refusé"));
+        directory.fail(HostError::Unsupported);
+        assert!(window.get_error().is_empty());
     }
 
     #[test]

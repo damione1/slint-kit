@@ -59,4 +59,10 @@ Check `slint_kit::native::capabilities()` and project its typed results into [Ki
 
 Keep `set_mode` and `set_access` synchronized with the picker when they change. Native drops use these same policies even through the window-wide winit bridge: single selection keeps the last dropped file, multiple selection appends unique locations, and read-only/disabled access ignores the drop.
 
+## Localized built-in text
+
+Set the window’s `KitStrings` once for file browse/remove/status text and step-state names. Every public message property remains an instance override; removal templates accept `{action}` and `{name}` in either order.
+
+`FilePickerBinding::set_error_mapper` and `DirectoryPickerBinding::set_error_mapper` receive the typed `HostError` and return localized `SharedString` text. `HostError::Platform(detail)` retains the platform detail; the default mapper preserves it too. Unsupported capability is represented by the request state and never adds a field error, even with a custom mapper.
+
 The facade bindings provide the Slint window as the native dialog parent. Raw host integrations can call pick_files_with_parent or pick_directory_with_parent with a raw-window-handle provider. Show the window first; parent support depends on the OS/backend (macOS, Windows and Linux XDG). Providers are read before returning the future, preserving weak-window lifetime; native modal behavior still needs target qualification.

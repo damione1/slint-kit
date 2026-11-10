@@ -125,3 +125,79 @@ fn busy_button_animates_unless_motion_is_reduced_and_describes_the_work() {
         }
     }
 }
+
+#[test]
+fn file_and_step_defaults_follow_the_window_strings_once() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = FileLocalizationFixture::new().unwrap();
+    let strings = window.global::<ui::KitStrings>();
+    strings.set_file_choose_one("Choisir un fichier…".into());
+    strings.set_folder_choose("Choisir un dossier…".into());
+    strings.set_folder_clear("Effacer le dossier".into());
+    strings.set_file_remove("Supprimer".into());
+    strings.set_file_remove_template("{name} — {action}".into());
+    strings.set_file_list("Fichiers sélectionnés".into());
+    strings.set_file_unsupported("Sélection indisponible".into());
+    strings.set_selection_cancelled("Sélection annulée".into());
+    strings.set_step_current("étape actuelle".into());
+    strings.set_step_complete("terminé".into());
+    strings.set_step_error("erreur".into());
+    strings.set_step_pending("en attente".into());
+    window.show().unwrap();
+    for (mode, base) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            slint::platform::update_timers_and_animations();
+            for label in [
+                "Choisir un fichier… Pièces jointes",
+                "Choisir un dossier…",
+                "Effacer le dossier",
+                "notes.txt — Supprimer",
+                "Fichiers sélectionnés",
+                "Sélection indisponible",
+                "Sélection annulée",
+                "Préparer, étape actuelle",
+                "Envoyer, terminé",
+                "Vérifier, erreur",
+                "Terminer, en attente",
+            ] {
+                assert!(
+                    i_slint_backend_testing::ElementHandle::find_by_accessible_label(
+                        &window, label
+                    )
+                    .next()
+                    .is_some(),
+                    "missing localized {label}"
+                );
+            }
+            let snapshot = window.window().take_snapshot().unwrap();
+            if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(directory)
+                    .join(format!("localized-files-steps-{mode}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(
+                    file,
+                    "P6\n{} {}\n255\n",
+                    snapshot.width(),
+                    snapshot.height()
+                )
+                .unwrap();
+                for pixel in snapshot.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+            }
+        }
+    }
+}

@@ -6,6 +6,7 @@ import { KitIcon } from "icons.slint";
 import { KitButton } from "button.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
+import { KitStrings } from "strings.slint";
 export { FileSelectionMode } from "shared-contracts.slint";
 
 export enum HostRequestPresentation { idle, pending, cancelled, failed, unsupported }
@@ -14,11 +15,13 @@ export struct FileViewEntry { token: int, generation: int, name: string, detail:
 
 component FileRemoveButton inherits KitButton {
     in property <FileViewEntry> entry;
+    in property <string> remove-label: KitStrings.file-remove;
+    in property <string> remove-accessible-template: KitStrings.file-remove-template;
     callback remove-requested(int,int);
     private property <int> press-token;
     private property <int> press-generation;
-    text: "Remove";
-    accessible-name: "Remove " + root.entry.name;
+    text: root.remove-label;
+    accessible-name: root.remove-accessible-template.replace-all("{action}", root.remove-label).replace-all("{name}", root.entry.name);
     intent: ButtonIntent.quiet;
     activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
     changed entry => { root.cancel-press(); }
@@ -26,13 +29,16 @@ component FileRemoveButton inherits KitButton {
 }
 
 export component KitFileList inherits Rectangle {
+    in property <string> list-label: KitStrings.file-list;
+    in property <string> remove-label: KitStrings.file-remove;
+    in property <string> remove-accessible-template: KitStrings.file-remove-template;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[FileViewEntry]> entries;
     callback remove-requested(int,int);
     accessible-role: list;
-    accessible-label: "Selected files";
+    accessible-label: root.list-label;
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
@@ -54,6 +60,7 @@ export component KitFileList inherits Rectangle {
                 }
                 FileRemoveButton {
                     theme: root.theme; control-size:root.control-size; entry: entry;
+                    remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template;
                     disabled: root.access != FieldAccess.editable || !entry.removable;
                     remove-requested(token,generation) => { root.remove-requested(token,generation); }
                 }
@@ -64,7 +71,7 @@ export component KitFileList inherits Rectangle {
 
 export component KitFilePicker inherits Rectangle {
     in property <bool> required;
-    in property <string> required-message: "Please make a selection.";
+    in property <string> required-message: KitStrings.selection-required-message;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
@@ -91,7 +98,13 @@ export component KitFilePicker inherits Rectangle {
     in property <string> description;
     in property <string> error;
     // Shown when the host reports a failed request without a specific error.
-    in property <string> failed-label: "File selection failed.";
+    in property <string> failed-label: KitStrings.file-failed;
+    in property <string> browse-label: root.mode == FileSelectionMode.single ? KitStrings.file-choose-one : KitStrings.file-choose-many;
+    in property <string> unsupported-label: KitStrings.file-unsupported;
+    in property <string> cancelled-label: KitStrings.selection-cancelled;
+    in property <string> list-label: KitStrings.file-list;
+    in property <string> remove-label: KitStrings.file-remove;
+    in property <string> remove-accessible-template: KitStrings.file-remove-template;
     callback browse-requested(FileSelectionMode);
     callback remove-requested(int,int);
     public function take-focus() { browse.take-focus(); }
@@ -100,25 +113,25 @@ export component KitFilePicker inherits Rectangle {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-medium; wrap: word-wrap; }
         browse := KitButton {
-            theme: root.theme; control-size:root.control-size; text: root.mode == FileSelectionMode.single ? "Choose file…" : "Choose files…";
+            theme: root.theme; control-size:root.control-size; text: root.browse-label;
             accessible-name: self.text + " " + root.label;
             disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported;
             busy: root.request-state == HostRequestPresentation.pending;
             activated => { root.browse-requested(root.mode); }
         }
         if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.unsupported: Text { text: "File selection is unavailable on this platform."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: root.unsupported-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:root.cancelled-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
         if root.request-state == HostRequestPresentation.failed && root.error == "": KitFieldError { theme: root.theme; text: root.failed-label; }
         if root.error == "" && checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
-        KitFileList { theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
+        KitFileList { list-label: root.list-label; remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template; theme: root.theme; control-size:root.control-size; access: root.access; entries: root.entries; remove-requested(token,generation) => { root.remove-requested(token,generation); } }
     }
 }
 
 export component KitDirectoryPicker inherits Rectangle {
     in property <bool> required;
-    in property <string> required-message: "Please make a selection.";
+    in property <string> required-message: KitStrings.selection-required-message;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
@@ -143,7 +156,11 @@ export component KitDirectoryPicker inherits Rectangle {
     in property <string> selected-name;
     in property <string> error;
     // Shown when the host reports a failed request without a specific error.
-    in property <string> failed-label: "Folder selection failed.";
+    in property <string> failed-label: KitStrings.folder-failed;
+    in property <string> browse-label: KitStrings.folder-choose;
+    in property <string> clear-label: KitStrings.folder-clear;
+    in property <string> unsupported-label: KitStrings.folder-unsupported;
+    in property <string> cancelled-label: KitStrings.selection-cancelled;
     callback browse-requested();
     callback clear-requested();
     public function take-focus() { browse.take-focus(); }
@@ -151,14 +168,14 @@ export component KitDirectoryPicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-medium; wrap: word-wrap; }
-        browse := KitButton { theme: root.theme; control-size:root.control-size; text: "Choose folder…"; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
+        browse := KitButton { theme: root.theme; control-size:root.control-size; text: root.browse-label; disabled: root.access != FieldAccess.editable || root.request-state == HostRequestPresentation.unsupported; busy: root.request-state == HostRequestPresentation.pending; activated => { root.browse-requested(); } }
         if root.selected-name != "": HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
             Text { text: root.selected-name; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; vertical-alignment: center; }
-            KitButton { theme: root.theme; control-size:root.control-size; text: "Clear folder"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
+            KitButton { theme: root.theme; control-size:root.control-size; text: root.clear-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { root.clear-requested(); } }
         }
-        if root.request-state == HostRequestPresentation.unsupported: Text { text: "Folder selection is unavailable on this platform."; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        if root.request-state == HostRequestPresentation.cancelled: Text {text:"Selection cancelled.";color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
+        if root.request-state == HostRequestPresentation.unsupported: Text { text: root.unsupported-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+        if root.request-state == HostRequestPresentation.cancelled: Text {text:root.cancelled-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;accessible-live-region:polite;}
         if root.request-state == HostRequestPresentation.failed && root.error == "": KitFieldError { theme: root.theme; text: root.failed-label; }
         if root.error == "" && checks.show-error: KitFieldError { theme: root.theme; text: checks.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }

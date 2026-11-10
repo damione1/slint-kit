@@ -4,6 +4,7 @@ import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, Typog
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
+import { KitStrings } from "strings.slint";
 
 export enum Tone { neutral, accent, success, warning, danger, information }
 export enum AvatarShape { circle, rounded, square }
@@ -241,14 +242,19 @@ export component KitTimeline inherits VerticalLayout {
 export component KitSteps inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[StepEntry]> entries;
+    in property <string> current-label: KitStrings.step-current;
+    in property <string> complete-label: KitStrings.step-complete;
+    in property <string> error-label: KitStrings.step-error;
+    in property <string> pending-label: KitStrings.step-pending;
     spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
     for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
         Rectangle { width: max(28px,22px * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
             background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
             border-width: root.theme.shape.border-width; border-color: entry.state == StepState.error ? root.theme.danger : entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
             if entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
-            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+            if entry.state == StepState.error: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.warning; ink: root.theme.danger; }
+            if entry.state != StepState.complete && entry.state != StepState.error: Text { text: index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
         }
-        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
+        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", " + root.current-label : entry.state == StepState.complete ? ", " + root.complete-label : entry.state == StepState.error ? ", " + root.error-label : ", " + root.pending-label); }
     }
 }

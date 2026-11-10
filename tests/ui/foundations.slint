@@ -16,3 +16,21 @@ export component BusyButtonFixture inherits Window {
     background: root.theme.canvas;
     KitButton { x: 24px; y: 24px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Save"; busy: true; busy-label: "Saving changes"; }
 }
+
+import { KitFilePicker, KitDirectoryPicker, KitSteps, StepState, HostRequestPresentation } from "@kit";
+export component FileLocalizationFixture inherits Window {
+    width: 1000px; height: 800px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 12px; alignment: start;
+        KitFilePicker { theme: root.theme; label: "Pièces jointes"; request-state: HostRequestPresentation.unsupported; entries: [{ token: 1, generation: 1, name: "notes.txt", removable: true }]; }
+        KitDirectoryPicker { theme: root.theme; label: "Destination"; selected-name: "Projet"; request-state: HostRequestPresentation.cancelled; }
+        KitSteps { theme: root.theme; entries: [
+            { token: 1, label: "Préparer", state: StepState.current },
+            { token: 2, label: "Envoyer", state: StepState.complete },
+            { token: 3, label: "Vérifier", state: StepState.error },
+            { token: 4, label: "Terminer", state: StepState.pending },
+        ]; }
+    }
+}
