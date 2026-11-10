@@ -20,6 +20,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Preserve native undo and commit dispatch when clearing text or search fields. Reset/cancel/number steps remain explicit baseline replacements.
+- Préserve l’annulation native et l’engagement lors de l’effacement texte/recherche. Réinitialisation, annulation et pas numériques remplacent explicitement la référence.
+
 - Expose native text selection, insertion, editing history and focus APIs and a localisable context menu.
 - Expose la sélection, l’insertion, l’historique d’édition et le focus natifs ainsi qu’un menu contextuel localisable.
 

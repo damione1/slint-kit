@@ -168,6 +168,7 @@ export component KitTextField inherits KitField {
     public function paste() { if (root.access == FieldAccess.editable) { editor.paste(); } }
     public function undo() { if (root.access == FieldAccess.editable) { editor.undo(); } }
     public function redo() { if (root.access == FieldAccess.editable) { editor.redo(); } }
+    public function clear() { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); editor.select-all(); KitFieldService.edit-selection(""); } }
     public function blur() { editor.clear-focus(); }
     public function set-selection(anchor: int, cursor: int) { editor.set-selection-offsets(anchor, cursor); }
     public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); KitFieldService.edit-selection(text); } }
@@ -447,7 +448,7 @@ export component KitTextField inherits KitField {
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {
-                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); root.value-edited(root.value); root.reduce-field(FieldAction.edit); }
+                        if (root.purpose == TextPurpose.search) { root.clear(); }
                         else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
                         root.take-focus();
                     }

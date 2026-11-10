@@ -140,3 +140,16 @@ fn selection_insertion_and_history_forward_to_the_same_native_editor() {
     app.invoke_redo();
     assert_eq!(app.get_text(), "aXYb");
 }
+#[test]
+fn native_clear_preserves_undo_and_dispatches_one_final_change() {
+    let app = fixture();
+    key(&app, "query");
+    let changes = Rc::new(RefCell::new(Vec::new()));
+    let observed = changes.clone();
+    app.on_committed(move |commit| observed.borrow_mut().push(commit.value.text.to_string()));
+    app.invoke_clear();
+    assert_eq!(app.get_text(), "");
+    assert_eq!(*changes.borrow(), [""]);
+    app.invoke_undo();
+    assert_eq!(app.get_text(), "query");
+}
