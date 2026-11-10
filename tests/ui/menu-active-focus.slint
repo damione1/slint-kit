@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenu, KitTextField, KitTheme, KitThemes, OptionRow, Ownership, SelectionRef } from "@kit";
+export component MenuActiveFocusFixture inherits Window {
+    width: 480px; height: 420px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light-theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <bool> interactive: true;
+    in property <bool> redirect-navigation;
+    in property <Ownership> ownership: Ownership.controlled;
+    in-out property <SelectionRef> selected;
+    in-out property <string> query <=> menu.query;
+    out property <int> active-index: menu.state.active-index;
+    out property <int> active-token: menu.state.active.token;
+    out property <bool> menu-focused: menu.has-focus;
+    out property <bool> active-row-focused: menu.active-row-focused;
+    out property <bool> reference-focused: reference.has-focus;
+    out property <int> reference-anchor: reference.selection-anchor;
+    out property <int> reference-cursor: reference.cursor-position;
+    in-out property <string> reference-text: "native";
+    callback chosen(OptionRow);
+    public function focus-menu() { menu.take-focus(); }
+    public function focus-reference() { reference.take-focus(); }
+    public function select-reference() { reference.set-selection(1, 4); }
+    public function undo-reference() { reference.undo(); }
+    menu := KitMenu {
+        x: 20px; y: 20px; width: 440px; height: 240px;
+        theme: root.theme; options: root.options; interactive: root.interactive;
+        ownership: root.ownership; selected <=> root.selected;
+        accessible-name: "Actions";
+        navigate(step) => { if (root.redirect-navigation) { reference.take-focus(); } }
+        chosen(row) => { root.chosen(row); }
+    }
+    reference := KitTextField {
+        x: 20px; y: 310px; width: 440px;
+        theme: root.theme; text <=> root.reference-text; label: "Native editing reference";
+    }
+}

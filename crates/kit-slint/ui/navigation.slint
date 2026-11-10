@@ -1,5 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitFocusTarget, FocusRequest } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
@@ -58,15 +58,33 @@ export component KitMenu inherits Rectangle {
     callback typeahead(string);
     // Includes a row focused on pointer-down, before its activation is committed.
     // Keep that focus in place: transferring it here would cancel the press.
-    out property <bool> has-focus: root.interactive && (keyboard.has-focus || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation));
+    out property <bool> has-focus: root.interactive && (keyboard.has-focus || (root.focused-navigation-row.present && root.focused-navigation-row.generation == root.state.generation) || (root.focused-row-token >= 0 && root.focused-row-generation == root.state.generation));
     callback focus-observed(bool);
     private property <int> focused-row-token: -1;
     private property <int> focused-row-generation: -1;
-    changed has-focus => { root.focus-observed(root.has-focus); }
-    changed interactive => {
-        if (!root.interactive) { root.focused-row-token = -1; root.focused-row-generation = -1; }
+    // Actual native row focus, distinct from a painted active cursor.
+    out property <bool> active-row-focused: root.interactive && root.state.active.present && ((root.focused-navigation-row.present && root.focused-navigation-row.token == root.state.active.token && root.focused-navigation-row.generation == root.state.generation) || (root.focused-row-token == root.state.active.token && root.focused-row-generation == root.state.generation));
+    private property <FocusRequest> focused-navigation-row;
+    private property <FocusRequest> row-focus-request;
+    private property <int> focus-nonce;
+    function cancel-row-focus() { root.row-focus-request = {}; }
+    function request-active-focus() {
+        // Only an explicit action in this focus group may move native focus.
+        // Host observers run first and can redirect it to an editor instead.
+        if (!root.has-focus || !root.state.active.present || !KitSelectionService.ready) { return; }
+        let next = KitSelectionService.next-generation(root.focus-nonce);
+        if (next < 0) { root.cancel-row-focus(); return; }
+        root.focus-nonce = next;
+        root.row-focus-request = { present: true, token: root.state.active.token, generation: root.state.generation, request: next };
     }
-    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
+    changed has-focus => {
+        if (!root.has-focus) { root.cancel-row-focus(); }
+        root.focus-observed(root.has-focus);
+    }
+    changed interactive => {
+        if (!root.interactive) { root.cancel-row-focus(); root.focused-navigation-row = {}; root.focused-row-token = -1; root.focused-row-generation = -1; }
+    }
+    public function take-focus() { root.cancel-row-focus(); root.focused-navigation-row = {}; if (root.interactive) { keyboard.focus(); } }
     public function ensure-active-visible() {
         if (root.state.active-index < 0) { return; }
         let top = root.state.active-index * root.row-height;
@@ -75,9 +93,15 @@ export component KitMenu inherits Rectangle {
             list.content-y = min(0px, list.visible-height - top - root.row-height);
         }
     }
-    changed state => { root.ensure-active-visible(); }
+    changed state => {
+        if (root.row-focus-request.present && (!root.state.active.present || root.state.active.token != root.row-focus-request.token || root.state.generation != root.row-focus-request.generation)) { root.cancel-row-focus(); }
+        // A pointer-down row owns its viewport until the press completes.
+        if (root.focused-row-token < 0) { root.ensure-active-visible(); }
+    }
     accessible-role: AccessibleRole.list;
     accessible-label: root.accessible-name;
+    accessible-item-count: root.rows.length;
+    accessible-orientation: Orientation.vertical;
     preferred-height: min(320px, root.rows.length * root.row-height);
     min-width: 100px;
     forward-focus: keyboard;
@@ -89,18 +113,21 @@ export component KitMenu inherits Rectangle {
         typeahead-timeout-ms: root.typeahead-timeout-ms;
         check-typeahead-active => { return selection.is-typeahead-active(); }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
-        focus-on-tab-navigation: true;
+        // Row scopes remain outside Tab order. While one owns native focus,
+        // skip this ancestor too so Backtab exits instead of stopping twice.
+        focus-on-tab-navigation: !root.focused-navigation-row.present && root.focused-row-token < 0;
         navigate(step) => { root.handle-navigate(step); }
         activate(token, generation) => { root.handle-activate(token, generation); }
-        dismiss(reason) => { if (reason != CloseReason.programmatic) { root.handle-dismiss(reason); } }
+        dismiss(reason) => { root.cancel-row-focus(); if (reason != CloseReason.programmatic) { root.handle-dismiss(reason); } }
         typeahead(text) => { root.handle-typeahead(text); }
         list := ListView {
             theme: root.theme;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-            for row in root.rows: KitNavigationAction {
+            for row[index] in root.rows: KitNavigationAction {
                 disabled: !root.interactive || row.disabled;
                 theme: root.theme; control-size: root.control-size;
                 option-data: row;
+                accessible-item-index: index; accessible-item-count: root.rows.length;
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
                 focus-indicated: root.has-focus && self.active;
@@ -115,6 +142,8 @@ export component KitMenu inherits Rectangle {
                 }
                 focus-observed(focused) => {
                     if (focused) {
+                        // Pointer focus belongs to the pressable until release.
+                        root.cancel-row-focus();
                         root.focused-row-token = row.token;
                         root.focused-row-generation = row.generation;
                     } else if (root.focused-row-token == row.token && root.focused-row-generation == row.generation) {
@@ -127,6 +156,26 @@ export component KitMenu inherits Rectangle {
                     return KitKeyResult.reject;
                 }
                 activate(token, generation) => { root.take-focus(); root.handle-activate(token, generation); }
+                // This roleless scope is inside the actual materialized
+                // semantic row. AccessKit resolves its nearest accessible
+                // ancestor; no global/realized index or delegation offset is
+                // involved. Rejected keys reach the existing outer translator.
+                navigation-focus := KitFocusTarget {
+                    width: parent.width; height: parent.height;
+                    focus-on-click: false;
+                    token: row.token; generation: row.generation;
+                    request: root.has-focus && !row.disabled && root.state.active.present && root.row-focus-request.token == root.state.active.token && root.row-focus-request.generation == root.state.generation ? root.row-focus-request : {};
+                    focus-observed(token, focused) => { root.focused-navigation-row = focused ? { present: true, token: token, generation: row.generation } : {}; }
+                    focus-applied(token, generation, request) => {
+                        if (root.row-focus-request.present && token == root.row-focus-request.token && generation == root.row-focus-request.generation && request == root.row-focus-request.request) { root.cancel-row-focus(); }
+                    }
+                    // Keep the routing scope enabled so native focus loss is
+                    // observable, including a disable or recycled identity.
+                    private property <bool> menu-interactive: root.interactive;
+                    changed menu-interactive => { if (!self.menu-interactive) { self.clear-focus(); } }
+                    private property <OptionRow> row-identity: row;
+                    changed row-identity => { self.clear-focus(); }
+                }
             }
         }
     }
@@ -142,10 +191,10 @@ export component KitMenu inherits Rectangle {
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
-    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
-    function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
-    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
-    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
+    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); root.request-active-focus(); }
+    function handle-activate(token: int, generation: int) { root.cancel-row-focus(); selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { root.cancel-row-focus(); selection.dismiss(reason); root.dismiss(reason); }
+    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); root.request-active-focus(); }
 
     out property <string> selected-label: selection.selected-label;
 }
