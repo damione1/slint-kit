@@ -12,8 +12,8 @@ export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
 export enum StepState { pending, current, complete, error }
-export struct TimelineEntry { title: string, description: string, metadata: string }
-export struct StepEntry { token: int, label: string, state: StepState }
+export struct TimelineEntry { title: string, description: string, metadata: string, tone: Tone, glyph: IconGlyph }
+export struct StepEntry { token: int, generation: int, label: string, description: string, state: StepState, enabled: bool }
 
 export component KitBadge inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -225,7 +225,7 @@ export component KitTimeline inherits VerticalLayout {
     spacing: root.theme.spacing.unit * 4; vertical-stretch: 0;
     for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
         rail := Rectangle {
-            width: root.theme.spacing.unit * 3 * root.theme.text-scale;
+            width: max(root.theme.spacing.unit * 3 * root.theme.text-scale, entry.glyph.stroke != "" || entry.glyph.fill != "" ? KitMetrics.icon-size(root.theme, ControlSize.compact) : 0px);
             horizontal-stretch: 0;
             // Measure one rendered line, even when the entry's title wraps.
             first-line := Text {
@@ -237,9 +237,11 @@ export component KitTimeline inherits VerticalLayout {
             marker := Rectangle {
                 x: (rail.width - self.width) / 2;
                 y: max(0px, (first-line.preferred-height - self.height) / 2);
-                width: root.theme.spacing.unit * 2 * root.theme.text-scale;
+                width: entry.glyph.stroke != "" || entry.glyph.fill != "" ? KitMetrics.icon-size(root.theme, ControlSize.compact) : root.theme.spacing.unit * 2 * root.theme.text-scale;
                 height: self.width; border-radius: self.width / 2;
-                background: root.theme.accent;
+                private property <color> ink: entry.tone == Tone.neutral ? root.theme.text-secondary : entry.tone == Tone.accent ? root.theme.accent : entry.tone == Tone.success ? root.theme.success : entry.tone == Tone.warning ? root.theme.warning : entry.tone == Tone.danger ? root.theme.danger : root.theme.information;
+                background: entry.glyph.stroke != "" || entry.glyph.fill != "" ? transparent : self.ink;
+                if entry.glyph.stroke != "" || entry.glyph.fill != "": KitIcon { theme: root.theme; glyph: entry.glyph; ink: marker.ink; width: parent.width; height: parent.height; }
             }
             if index + 1 < root.entries.length: connector := Rectangle {
                 x: (rail.width - self.width) / 2;
@@ -256,22 +258,128 @@ export component KitTimeline inherits VerticalLayout {
         }
     }
 }
-export component KitSteps inherits VerticalLayout {
+component StepItem inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <StepEntry> entry;
+    in property <int> ordinal;
+    in property <int> total;
+    in property <Orientation> orientation;
+    in property <bool> interactive;
+    in property <bool> disabled;
+    in property <bool> connectors;
+    in property <length> gap;
+    in property <string> state-label;
+    callback step-requested(int, int);
+    private property <bool> horizontal: root.orientation == Orientation.horizontal;
+    private property <bool> unavailable: root.disabled || (root.interactive && !root.entry.enabled);
+    private property <int> press-token;
+    private property <int> press-generation;
+    private property <string> name: root.entry.label + (root.state-label == "" ? "" : ", " + root.state-label);
+    private property <length> marker-size: max(root.theme.geometry.step-marker-minimum, root.theme.geometry.step-marker-scaled * root.theme.text-scale);
+    preferred-width: root.horizontal ? max(root.marker-size, labels.preferred-width) : root.marker-size + root.gap + labels.preferred-width;
+    min-width: root.marker-size;
+    preferred-height: root.horizontal ? root.marker-size + root.gap + labels.preferred-height : max(root.marker-size, labels.preferred-height);
+    min-height: root.preferred-height;
+    horizontal-stretch: 1; vertical-stretch: 0;
+    changed entry => { action.cancel-press(); }
+    action := KitPressable {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        theme: root.theme; intent: ButtonIntent.quiet;
+        visible: root.interactive; tab-stop: root.interactive;
+        disabled: root.unavailable;
+        accessible-name: root.name; accessible-description: root.entry.description;
+        accessible-item-index: root.ordinal; accessible-item-count: root.total;
+        activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
+        activated => { root.step-requested(root.press-token, root.press-generation); }
+    }
+    if root.connectors && !root.horizontal && (root.ordinal + 1 < root.total): Rectangle {
+        x: (root.marker-size - self.width) / 2;
+        y: root.marker-size + root.theme.spacing.unit * root.theme.text-scale;
+        width: root.theme.shape.border-width-strong;
+        height: max(0px, root.height + root.gap - root.theme.spacing.unit * root.theme.text-scale - self.y);
+        background: root.theme.border-subtle;
+    }
+    if root.connectors && root.horizontal && (root.ordinal > 0): Rectangle {
+        x: -root.gap / 2; y: (root.marker-size - self.height) / 2;
+        width: max(0px, (root.width - root.marker-size) / 2 - root.theme.spacing.unit * root.theme.text-scale + root.gap / 2);
+        height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
+    }
+    if root.connectors && root.horizontal && (root.ordinal + 1 < root.total): Rectangle {
+        x: (root.width + root.marker-size) / 2 + root.theme.spacing.unit * root.theme.text-scale;
+        y: (root.marker-size - self.height) / 2;
+        width: max(0px, root.width + root.gap / 2 - self.x);
+        height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
+    }
+    marker := Rectangle {
+        x: root.horizontal ? (root.width - self.width) / 2 : 0px; y: 0px;
+        width: root.marker-size; height: self.width; border-radius: self.width / 2;
+        background: root.entry.state == StepState.current || root.entry.state == StepState.complete ? root.theme.accent : root.entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
+        border-width: root.theme.shape.border-width;
+        border-color: root.entry.state == StepState.error ? root.theme.danger : root.entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
+        if root.entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
+        if root.entry.state == StepState.error: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.warning; ink: root.theme.danger; }
+        if root.entry.state != StepState.complete && root.entry.state != StepState.error: Text { accessible-role: none; text: root.ordinal + 1; color: root.entry.state == StepState.current ? root.theme.on-accent : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+    }
+    if !root.interactive: Rectangle { accessible-role: text; accessible-label: root.name; accessible-description: root.entry.description; }
+    labels := VerticalLayout {
+        x: root.horizontal ? 0px : root.marker-size + root.gap;
+        y: root.horizontal ? root.marker-size + root.gap : 0px;
+        width: root.horizontal ? root.width : max(0px, root.width - root.marker-size - root.gap);
+        height: self.preferred-height;
+        spacing: root.theme.spacing.unit;
+        Text { text: root.entry.label; accessible-role: AccessibleRole.none;
+            min-width: 0px; horizontal-stretch: 1;
+            color: root.unavailable ? root.theme.disabled-text : root.theme.text-primary;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular;
+            wrap: word-wrap; horizontal-alignment: root.horizontal ? TextHorizontalAlignment.center : TextHorizontalAlignment.start;
+        }
+        if root.entry.description != "": Text { text: root.entry.description; accessible-role: AccessibleRole.none;
+            min-width: 0px; horizontal-stretch: 1;
+            color: root.unavailable ? root.theme.disabled-text : root.theme.text-secondary;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+            wrap: word-wrap; horizontal-alignment: root.horizontal ? TextHorizontalAlignment.center : TextHorizontalAlignment.start;
+        }
+    }
+}
+export component KitSteps inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[StepEntry]> entries;
+    in property <Orientation> orientation: Orientation.vertical;
+    in property <bool> interactive;
+    in property <bool> disabled;
+    in property <bool> connectors: true;
+    in property <string> accessible-name: KitStrings.steps-label;
     in property <string> current-label: KitStrings.step-current;
     in property <string> complete-label: KitStrings.step-complete;
     in property <string> error-label: KitStrings.step-error;
     in property <string> pending-label: KitStrings.step-pending;
-    spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
-    for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
-        Rectangle { width: max(root.theme.geometry.step-marker-minimum,root.theme.geometry.step-marker-scaled * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
-            background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
-            border-width: root.theme.shape.border-width; border-color: entry.state == StepState.error ? root.theme.danger : entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
-            if entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
-            if entry.state == StepState.error: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.warning; ink: root.theme.danger; }
-            if entry.state != StepState.complete && entry.state != StepState.error: Text { text: index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+    in property <length> spacing: root.theme.spacing.unit * 3;
+    callback step-activated(int, int);
+    accessible-role: groupbox; accessible-label: root.accessible-name; accessible-orientation: root.orientation;
+    preferred-width: root.orientation == Orientation.vertical ? vertical.preferred-width : horizontal.preferred-width;
+    preferred-height: root.orientation == Orientation.vertical ? vertical.preferred-height : horizontal.preferred-height;
+    height: self.preferred-height; vertical-stretch: 0;
+    pure function state-label(state: StepState) -> string { return state == StepState.current ? root.current-label : state == StepState.complete ? root.complete-label : state == StepState.error ? root.error-label : root.pending-label; }
+    vertical := VerticalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        spacing: root.spacing; alignment: start;
+        for entry[index] in (root.orientation == Orientation.vertical ? root.entries : []): StepItem {
+            theme: root.theme; entry: entry; ordinal: index; total: root.entries.length;
+            orientation: root.orientation; interactive: root.interactive; disabled: root.disabled;
+            connectors: root.connectors; gap: root.spacing; state-label: root.state-label(entry.state);
+            step-requested(token, generation) => { root.step-activated(token, generation); }
         }
-        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", " + root.current-label : entry.state == StepState.complete ? ", " + root.complete-label : entry.state == StepState.error ? ", " + root.error-label : ", " + root.pending-label); }
+    }
+    horizontal := HorizontalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        spacing: root.spacing; alignment: start;
+        for entry[index] in (root.orientation == Orientation.horizontal ? root.entries : []): StepItem {
+            private property <int> source-index: index;
+            theme: root.theme; entry: root.entries[self.source-index]; ordinal: self.source-index; total: root.entries.length;
+            orientation: root.orientation; interactive: root.interactive; disabled: root.disabled;
+            connectors: root.connectors; gap: root.spacing; state-label: root.state-label(self.entry.state);
+            step-requested(token, generation) => { root.step-activated(token, generation); }
+        }
     }
 }

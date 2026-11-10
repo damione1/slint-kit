@@ -9,6 +9,9 @@
 - Number fields (`KitIntegerField`, `KitDecimalField`, `KitMoneyField`, `KitPercentField`, `KitQuantityField`, `KitDurationField`, `KitNumberStepper`) now follow the spin button pattern: Up/Down step once, PageUp/PageDown step `page-steps` times (default 10), Home/End jump to `min`/`max` when set, with exact decimal arithmetic through the native edit path and the field's commit policy; `step: "any"`, read-only and disabled fields do not step and a clamped step emits no edit. Opt-in `wheel-stepping` steps the focused editor; `step-by`/`step-to-bound` expose the same path. Numeric components expose `accessible-role: spinbox` with range, step and increment/decrement actions. **Breaking:** `HtmlConstraints::step_number` takes a `NumberStep` and returns `NumberStepOutcome`; `KitFieldService.step-number` takes a step count and returns `NumberStepResult`.
 - Les champs numériques (`KitIntegerField`, `KitDecimalField`, `KitMoneyField`, `KitPercentField`, `KitQuantityField`, `KitDurationField`, `KitNumberStepper`) suivent désormais le motif du bouton compteur : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas (10 par défaut), Début/Fin sautent à `min`/`max` lorsqu’ils sont définis, avec une arithmétique décimale exacte via le chemin d’édition natif et la politique de validation du champ ; `step: "any"`, la lecture seule et l’état désactivé ne font rien et un pas bloqué n’émet aucune modification. `wheel-stepping` (optionnel) fait avancer l’éditeur ayant le focus à la molette ; `step-by`/`step-to-bound` exposent le même chemin. Les composants numériques exposent `accessible-role: spinbox` avec plage, pas et actions incrément/décrément. **Rupture :** `HtmlConstraints::step_number` prend un `NumberStep` et retourne `NumberStepOutcome` ; `KitFieldService.step-number` prend un nombre de pas et retourne `NumberStepResult`.
 
+- Add horizontal/vertical steps, descriptions, optional connectors and keyed, generation-fenced step activation with per-row eligibility; add semantic timeline tones and decorative glyphs. Breaking: complete StepEntry literals require generation/description/enabled and TimelineEntry literals require tone/glyph. Timeline markers default to neutral; workflow progression stays host-owned. KitSteps retains spacing but uses a Rectangle with internal layouts: move former inherited layout padding to a surrounding layout.
+
+
 - Keep password examples’ accepted values private and show only a nonsensitive acceptance status; remove secret output from the complete Rust example.
 - Garde privées les valeurs acceptées des exemples de mot de passe et n’affiche qu’un statut non sensible ; supprime la sortie du secret dans l’exemple Rust complet.
 
@@ -188,6 +191,9 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Ajoute étapes horizontales/verticales, descriptions, liaisons et activation par clé/génération avec éligibilité par ligne ; ajoute tons et glyphes décoratifs de chronologie. Rupture : les littéraux StepEntry exigent generation/description/enabled et TimelineEntry tone/glyph. Les repères deviennent neutres par défaut. KitSteps conserve spacing mais son padding hérité doit passer à la disposition parente.
+
 
 - Ajoute les tons sémantiques d’avatar via les fonds du thème et des encres contrastées ; accent reste le choix par défaut.
 

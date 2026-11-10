@@ -145,3 +145,22 @@ export component AvatarSizingFixture inherits Window {
     KitAvatar { x: 220px; y: 24px; theme: root.theme; avatar-size: AvatarSize.compact; accessible-name: "Unknown profile"; disabled: root.disabled; }
     KitAvatar { x: 300px; y: 24px; theme: root.theme; size: 40px; initials: "AM"; tone: root.avatar-tone; accessible-name: "Positive profile"; }
 }
+
+import { KitSteps, KitTimeline, StepEntry, TimelineEntry } from "@kit";
+export component JourneyFixture inherits Window {
+    width: 840px; height: 720px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[StepEntry]> entries;
+    in property <[TimelineEntry]> events;
+    in property <Orientation> orientation: Orientation.vertical;
+    in property <bool> disabled;
+    in property <bool> connectors: true;
+    callback step-requested(int, int);
+    background: root.theme.canvas;
+    KitSteps { x: 24px; y: 24px; width: 760px; theme: root.theme; entries: root.entries;
+        orientation: root.orientation; interactive: true; disabled: root.disabled; connectors: root.connectors;
+        accessible-name: "Setup journey";
+        step-activated(token, generation) => { root.step-requested(token, generation); }
+    }
+    KitTimeline { x: 24px; y: 360px; width: 760px; height: self.preferred-height; theme: root.theme; entries: root.events; }
+}

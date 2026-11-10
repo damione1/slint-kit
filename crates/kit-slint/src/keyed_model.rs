@@ -647,3 +647,16 @@ impl KeyedRow for ui::ToastEntry {
         self.title.to_string()
     }
 }
+
+impl KeyedRow for ui::StepEntry {
+    fn stamp(&mut self, token: i32, generation: i32) {
+        self.token = token;
+        self.generation = generation;
+    }
+    fn enabled(&self) -> bool {
+        self.enabled
+    }
+    fn label(&self) -> String {
+        self.label.to_string()
+    }
+}

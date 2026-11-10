@@ -207,3 +207,9 @@ Lors de la migration d’un littéral de thème complet, ajoutez chaque champ `K
 La `size` explicite de l’avatar est exacte et les initiales suivent son diamètre. Les préréglages `AvatarSize.compact/medium/large` suivent le texte ; leurs tailles et le ratio des initiales appartiennent à geometry. Un avatar vide lit theme.icons.avatar avec un nom de repli localisable. Les décorations de statut utilisent @children.
 
 Le `tone` de l’avatar choisit une palette neutre/accent/statut, avec accent par défaut. Les tons de statut combinent fonds subtils et encres lisibles.
+
+
+`KitSteps.orientation` propose des dispositions verticales et horizontales, avec liaisons facultatives et descriptions par étape. Activez explicitement l’interaction et nommez le groupe. `KitTimeline` utilise le ton sémantique de la ligne pour son repère ou glyphe décoratif ; le ton par défaut est neutre. Les textes doivent porter le sens indépendamment des couleurs ou icônes.
+
+
+KitSteps conserve spacing comme entrée publique ; son conteneur Rectangle utilise des dispositions horizontale/verticale internes. Déplacez l’ancien padding hérité vers une disposition parente.

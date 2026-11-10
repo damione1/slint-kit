@@ -3952,8 +3952,8 @@
   "KitSteps": {
     "fr": {
       "summary": "Indicateur d’étapes avec états explicites de progression.",
-      "usage": "Fournissez des `StepEntry` avec un token stable, un libellé et `StepState.pending`, `.current`, `.complete` ou `.error`. Projetez l’état depuis votre flux métier. Les noms d’action et d’état suivent les valeurs KitStrings de la fenêtre et restent remplaçables par instance. Les noms de suppression utilisent remove-accessible-template avec {action} et {name} ; les étapes utilisent current/complete/error/pending-label.",
-      "behavior": "Le numéro visuel suit l’ordre des entrées, tandis que le token reste l’identité de l’étape. Les étapes terminées affichent une coche et les libellés accessibles incluent l’état.",
+      "usage": "Fournissez les lignes StepEntry avec KeyedModel<K, StepEntry> pour des étapes interactives, activez interactive et traitez step-activated(token, generation). Chaque ligne contient label, description, state et enabled. Gardez interactive à false pour un indicateur statique. Traduisez le groupe et les états current/complete/error/pending avec KitStrings ou les propriétés de l’instance.",
+      "behavior": "Le numéro visuel suit l’ordre des entrées, tandis que le token reste l’identité de l’étape. Les étapes terminées affichent une coche et les libellés accessibles incluent l’état. orientation choisit une disposition verticale ou horizontale ; connectors masque les liaisons si voulu. Ajoutez description et enabled à StepEntry, activez interactive et résolvez step-activated(token, generation) avec KeyedModel<K, StepEntry>::accept. L’hôte gère la progression ; le kit fournit pointeur/Entrée/Espace/Tab et refuse les gestes désactivés ou remplacés. Sa hauteur intrinsèque suit tout le contenu dans les deux orientations, descriptions et texte agrandi compris.",
       "label": "Étapes",
       "seoTitle": "Étapes pour Slint",
       "related": [
@@ -3963,8 +3963,8 @@
     },
     "en": {
       "summary": "Step indicator with explicit progress states.",
-      "usage": "Supply `StepEntry` values with a stable token, label and `StepState.pending`, `.current`, `.complete` or `.error`. Project state from your domain workflow. Built-in action/status names read the window-local KitStrings defaults and remain overridable per instance. File removal names use remove-accessible-template with {action} and {name}; step state names use current/complete/error/pending-label.",
-      "behavior": "The visual number follows entry order while the token remains step identity. Completed steps show a check, and accessible labels include state.",
+      "usage": "Supply StepEntry rows through KeyedModel<K, StepEntry> for interactive steps, set interactive: true and handle step-activated(token, generation). Each row contains label, description, state and enabled. Keep interactive false for a static progress indicator. Localize the group and current/complete/error/pending labels through KitStrings or per-instance overrides.",
+      "behavior": "The visual number follows entry order while the token remains step identity. Completed steps show a check, and accessible labels include state. orientation chooses vertical or horizontal layout; connectors can be hidden. Add description and enabled to each StepEntry, opt into interactive, and resolve step-activated(token, generation) with KeyedModel<K, StepEntry>::accept. The host controls progression; the kit supplies native pointer/Enter/Space/Tab button behavior and rejects disabled or replaced gestures. Its intrinsic height follows all step content in either orientation, including descriptions and enlarged text.",
       "label": "Steps",
       "seoTitle": "Steps for Slint",
       "related": [
@@ -4887,7 +4887,7 @@
     "fr": {
       "summary": "Chronologie verticale de titres, descriptions et métadonnées.",
       "usage": "Fournissez des `TimelineEntry` dans l’ordre souhaité, avec des métadonnées déjà formatées par le contrôleur. Prévoyez la hauteur nécessaire au texte agrandi ou placez la chronologie dans une zone de défilement.",
-      "behavior": "Chaque entrée est reliée par un marqueur et un trait visuels. La vue ne trie pas les événements et ne virtualise pas la collection.",
+      "behavior": "Chaque entrée est reliée par un marqueur et un trait visuels. La vue ne trie pas les événements et ne virtualise pas la collection. Chaque TimelineEntry accepte tone et un glyphe décoratif facultatif ; un glyphe vide conserve le repère circulaire. Le ton par défaut est neutre. Portez le sens dans title/description pour ne pas dépendre de la couleur ni de l’icône décorative.",
       "label": "Chronologie",
       "seoTitle": "Chronologie pour Slint",
       "related": [
@@ -4898,7 +4898,7 @@
     "en": {
       "summary": "Vertical timeline of headings, descriptions and metadata.",
       "usage": "Supply `TimelineEntry` values in the desired order, with metadata already formatted by the controller. Allow height for enlarged text or place the timeline in a scroll area.",
-      "behavior": "Each entry is connected by a visual marker and rule. The view neither sorts events nor virtualizes the collection.",
+      "behavior": "Each entry is connected by a visual marker and rule. The view neither sorts events nor virtualizes the collection. Each TimelineEntry accepts tone and an optional decorative glyph; empty glyphs keep the circular marker. Neutral is the default tone. Put the event meaning in title/description so status does not depend on color or the decorative icon.",
       "label": "Timeline",
       "seoTitle": "Timeline for Slint",
       "related": [

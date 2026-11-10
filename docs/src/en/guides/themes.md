@@ -207,3 +207,9 @@ When migrating a complete theme literal, add every `KitGeometry` field in both m
 Avatar explicit `size` is exact and its initials follow the diameter. Use `AvatarSize.compact/medium/large` for text-scaled presets; their dimensions and initials ratio live in geometry. An empty avatar uses theme.icons.avatar and a localizable fallback label. Status decorations enter through @children.
 
 Avatar `tone` selects the existing neutral/accent/status palette while its default remains accent. Status tones use subtle fills and readable foregrounds.
+
+
+`KitSteps.orientation` supports vertical and horizontal arrangements, with optional connectors and per-step descriptions. Enable interaction explicitly and give the group an accessible name. `KitTimeline` uses the semantic row tone for its marker or decorative glyph; neutral is the default. Labels must carry status meaning independently of color or icons.
+
+
+KitSteps retains spacing as a public input; its Rectangle container uses internal horizontal/vertical layouts. Move former inherited layout padding to a surrounding layout.
