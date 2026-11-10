@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Publish expandable state and accessible expansion actions on select triggers, Collapse and Accordion; shared Select/Combobox/MultiSelect composition inherits the fix. Expand requests opening idempotently and preserves access and controlled-state guards. The pinned macOS AccessKit bridge still lacks native expanded/Expand exports.
+- Publie l’état développable et l’action accessible Développer sur les déclencheurs de sélection, Collapse et Accordion ; Select/Combobox/MultiSelect héritent du correctif partagé. Développer demande l’ouverture de façon idempotente et conserve les protections d’accès et d’état contrôlé. Le pont AccessKit macOS épinglé n’exporte toujours pas l’état développé ni Développer.
+
 - Coincident range slider thumbs now separate with the pointer: the press side chooses the moving thumb, and a press on a coincident endpoint chooses the thumb with room to move.
 - Les poignées coïncidentes du curseur de plage se séparent désormais au pointeur : le côté de l’appui choisit la poignée mobile et un appui sur une borne commune choisit celle qui peut se déplacer.
 - Align calendar weekday headers with every week-start, including date and range pickers. **Breaking:** weekdays models must stay Monday-first; remove any application-side rotation previously used to compensate.

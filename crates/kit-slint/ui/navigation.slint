@@ -346,7 +346,9 @@ export component KitCollapse inherits VerticalLayout {
         disabled: root.disabled;
         control-width: ControlWidth.fill;
         accessible-name: root.title;
+        accessible-expandable: true;
         accessible-expanded: root.expanded;
+        accessible-action-expand => { if (!root.disabled && !root.expanded) { if (root.ownership == Ownership.local) { root.expanded = true; } root.expansion-requested(true); } }
         activated => { let next = !root.expanded; if (root.ownership == Ownership.local) { root.expanded = next; } root.expansion-requested(next); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
@@ -404,7 +406,9 @@ export component KitAccordion inherits VerticalLayout {
             focus-indicated: self.has-focus;
             tab-stop: root.state.active.present ? root.state.active.token == section.disclosure.item.token : true;
             accessible-role: button;
+            accessible-expandable: true;
             accessible-expanded: section.disclosure.expanded;
+            accessible-action-expand => { if (!self.disabled && !section.disclosure.expanded) { root.handle-expansion(section.disclosure.item.token, section.disclosure.item.generation, true, root.mode); } }
             key-event(event) => {
                 if (event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Home || event.text == Key.End) {
                     let previous = root.state.active.token;

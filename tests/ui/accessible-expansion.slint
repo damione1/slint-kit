@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelectTrigger, KitSelect, KitCombobox, KitMultiSelect, KitCollapse, KitAccordion, KitTheme, KitThemes, OptionRow, SelectionRef, Ownership, FieldAccess, ExpansionMode } from "@kit";
+
+export enum ExpansionControl { trigger, select, combobox, multiple, collapse, accordion }
+export component AccessibleExpansionFixture inherits Window {
+    title: "Expansion accessibility witness";
+    width: 720px; height: 720px;
+    in property <ExpansionControl> control: ExpansionControl.trigger;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> busy;
+    in property <ExpansionMode> mode: ExpansionMode.single;
+    in property <[OptionRow]> options;
+    in-out property <bool> opened;
+    in-out property <[SelectionRef]> expanded;
+    in-out property <int> requests;
+    out property <bool> requested;
+    function request-open() { root.requests += 1; root.requested = true; if (root.ownership == Ownership.local) { root.opened = true; } }
+    function request-close() { root.requests += 1; root.requested = false; if (root.ownership == Ownership.local) { root.opened = false; } }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: root.theme.spacing.unit * 4;
+        spacing: root.theme.spacing.unit * 4;
+        alignment: start;
+        if root.control == ExpansionControl.trigger: KitSelectTrigger {
+            theme: root.theme; options: root.options; access: root.access; busy: root.busy;
+            state: {open: root.opened}; accessible-name: "Expandable trigger";
+            open-requested => { root.request-open(); }
+            dismiss(reason) => { root.request-close(); }
+            Text { text: "Expandable trigger"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; }
+        }
+        if root.control == ExpansionControl.select: KitSelect {
+            theme: root.theme; options: root.options; access: root.access;
+            state: {open: root.opened}; placeholder: "Expandable select";
+            open-requested => { root.request-open(); }
+            dismiss(reason) => { root.request-close(); }
+        }
+        if root.control == ExpansionControl.combobox: KitCombobox {
+            theme: root.theme; options: root.options; access: root.access;
+            state: {open: root.opened}; label: "Expandable combobox";
+            open-requested => { root.request-open(); }
+            dismiss(reason) => { root.request-close(); }
+        }
+        if root.control == ExpansionControl.multiple: KitMultiSelect {
+            theme: root.theme; options: root.options; access: root.access;
+            state: {open: root.opened}; placeholder: "Expandable multiple select";
+            open-requested => { root.request-open(); }
+            dismiss(reason) => { root.request-close(); }
+        }
+        if root.control == ExpansionControl.collapse: KitCollapse {
+            theme: root.theme; title: "Expandable details";
+            expanded <=> root.opened; ownership: root.ownership; disabled: root.access != FieldAccess.editable;
+            expansion-requested(expanded) => { root.requests += 1; root.requested = expanded; }
+            Text { text: "Details remain mounted while the disclosure closes."; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; wrap: word-wrap; }
+        }
+        if root.control == ExpansionControl.accordion: KitAccordion {
+            theme: root.theme; options: root.options; ownership: root.ownership;
+            expanded <=> root.expanded; mode: root.mode; interactive: root.access == FieldAccess.editable;
+            expansion-requested(token, generation, expanded, mode) => { root.requests += 1; root.requested = expanded; }
+        }
+    }
+}
