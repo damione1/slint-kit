@@ -239,6 +239,7 @@ export component KitButton inherits KitPressable {
     // before measuring height so intrinsic button height cannot feed that cache
     // back into the measurement's width binding.
     private property <length> measured-width;
+    init => { root.measured-width = root.width; }
     changed width => { root.measured-width = root.width; }
     min-height: max(root.recipe.height, root.text-wrap == TextWrap.no-wrap
         ? root.text-size * 1.4 + 2 * root.padding-block

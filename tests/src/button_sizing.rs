@@ -124,6 +124,10 @@ fn wrapping_button_grows_for_its_text_without_changing_native_activation_guards(
         .match_inherits("KitButton")
         .find_all();
     assert_eq!(buttons.len(), 3);
+    for button in &buttons {
+        let _ = button.size();
+    }
+    slint::platform::update_timers_and_animations();
     let wrapped = &buttons[1];
     assert!(wrapped.size().height > buttons[0].size().height);
     assert!(wrapped.size().height + 0.1 >= app.get_content_height() + 2. * app.get_padding_block());
@@ -198,10 +202,18 @@ fn multiline_button_fits_bounded_widths_in_both_themes_and_at_double_text() {
                     .match_inherits("KitButton")
                     .find_all();
                 let wrapped = &buttons[1];
+                // Resolve the native layout, then deliver the observed-width
+                // change as the next event-loop frame does after resizing.
+                let _ = wrapped.size();
+                slint::platform::update_timers_and_animations();
                 assert!((wrapped.size().width - width).abs() < 1.);
                 assert!(
                     wrapped.size().height + 0.1
-                        >= app.get_content_height() + 2. * app.get_padding_block()
+                        >= app.get_content_height() + 2. * app.get_padding_block(),
+                    "wrapped {:?}, native text {}, padding {}, scale {scale}, width {width}",
+                    wrapped.size(),
+                    app.get_content_height(),
+                    app.get_padding_block()
                 );
                 if let Some(height) = narrow_height {
                     assert!(wrapped.size().height <= height + 0.1);
