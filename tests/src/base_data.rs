@@ -1614,3 +1614,84 @@ fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without
         assert_eq!((probe.y)(&window), 0.);
     }
 }
+
+#[test]
+fn body_cell_cursor_clamps_after_column_removal_and_never_restores_an_obsolete_cell() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    let columns = Rc::new(VecModel::from(column_set()));
+    window.set_columns(ModelRc::from(columns.clone()));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            columns.set_vec(column_set());
+            frame();
+            window.invoke_focus_table();
+            window.set_table_active_column(1);
+            frame();
+            assert_eq!(table.accessible_value().as_deref(), Some("0"));
+            columns.remove(1);
+            let surviving = frame();
+            assert_eq!(window.get_table_active_column(), 0);
+            assert_eq!(table.accessible_value().as_deref(), Some("Product 1"));
+            assert!(!table.accessible_label().unwrap().contains("Quantity"));
+            crate::choice_presentation::save_capture(
+                &surviving,
+                &format!("table-column-clamp-surviving-{name}-{scale}"),
+            );
+            columns.remove(0);
+            let empty = frame();
+            assert_eq!(window.get_table_active_column(), -1);
+            assert_eq!(table.accessible_value().as_deref(), Some(""));
+            assert_eq!(window.get_table_active(), 0);
+            window.invoke_edit_table();
+            frame();
+            assert!(!window.get_table_editing());
+            crate::choice_presentation::save_capture(
+                &empty,
+                &format!("table-column-clamp-empty-{name}-{scale}"),
+            );
+            columns.push(column_set().remove(0));
+            frame();
+            assert_eq!(window.get_table_active_column(), -1);
+            key(&window, Key::RightArrow);
+            frame();
+            assert_eq!(window.get_table_active_column(), 0);
+            assert_eq!(table.accessible_value().as_deref(), Some("Product 1"));
+            columns.push(column_set().remove(1));
+            frame();
+            window.set_table_active_column(100);
+            frame();
+            assert_eq!(window.get_table_active_column(), 1);
+            window.set_table_active_column(-20);
+            frame();
+            assert_eq!(window.get_table_active_column(), -1);
+        }
+    }
+}

@@ -391,11 +391,14 @@ export component KitDataTable inherits Rectangle {
     private property <TableCursorRegion> cursor-region: TableCursorRegion.body;
     private property <int> keyboard-resize-request;
     private property <length> keyboard-resize-delta;
-    private property <int> header-column-count: root.columns.length;
-    changed header-column-count => {
-        if (root.cursor-region == TableCursorRegion.header) {
-            if (root.header-column-count == 0) { root.cursor-region = TableCursorRegion.body; }
-            else { root.active-column = clamp(root.active-column, 0, root.header-column-count - 1); }
+    private property <int> column-count: root.columns.length;
+    changed column-count => {
+        if (root.column-count == 0) {
+            root.cursor-region = TableCursorRegion.body;
+            root.active-column = -1;
+        } else {
+            let first = root.cursor-region == TableCursorRegion.header ? 0 : -1;
+            root.active-column = clamp(root.active-column, first, root.column-count - 1);
         }
     }
     changed header-focus => { root.cursor-region = TableCursorRegion.body; }

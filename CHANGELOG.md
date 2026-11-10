@@ -9,6 +9,9 @@
 - Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 
 - Add semantic avatar tones using existing theme fills and contrast-preserving foregrounds; accent remains the default.
+- Clamp the table body cell cursor when columns are removed, preserving a valid whole-row cursor when the last column disappears.
+- Borne le curseur de cellule du corps lorsque des colonnes sont supprimées, et conserve un curseur de ligne valide lorsque la dernière colonne disparaît.
+
 - Expose collection visible ranges, bounded scroll/restore commands and edge-triggered near-end notifications without moving host selection.
 - Expose les plages visibles de collection, les commandes bornées de défilement/restauration et le signal d’entrée en fin proche sans déplacer la sélection hôte.
 

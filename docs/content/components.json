@@ -1068,7 +1068,7 @@
           "example": "KitDataTable {\n    columns: root.colonnes;\n    minimum-column-width: 96px;\n}"
         },
         "active-column": {
-          "effect": "Le curseur de cellule dans la ligne active, lié dans les deux sens : `-1` est la ligne entière, sinon une position de colonne. Gauche et Droite le déplacent, l’anneau de focus passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne ; Entrée sur une cellule `field` modifiable ouvre alors l’éditeur sur place.",
+          "effect": "Le curseur de cellule dans la ligne active, lié dans les deux sens : `-1` est la ligne entière, sinon une position de colonne. Gauche et Droite le déplacent, l’anneau de focus passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne ; Entrée sur une cellule `field` modifiable ouvre alors l’éditeur sur place. Quand le modèle de colonnes rétrécit, les curseurs du corps et de l’en-tête sont bornés aux positions restantes. Sans colonne, le corps revient au curseur de ligne entière (-1) ; ajouter des colonnes ne restaure pas une cellule obsolète.",
           "default": "`-1`.",
           "states": "C’est un curseur de vue, pas une identité applicative : le commit d’une cellule éditée nomme les jetons de ligne et de colonne, jamais cette position.",
           "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nText { text: tableau.active-column < 0 ? \"Ligne\" : tableau.columns[tableau.active-column].label; }"
@@ -1260,7 +1260,7 @@
           "example": "KitDataTable {\n    columns: root.columns;\n    minimum-column-width: 96px;\n}"
         },
         "active-column": {
-          "effect": "The cell cursor inside the active row, two-way: `-1` is the whole row, otherwise a column position. Left and Right move it, the focus ring moves from the row to the cell and the table's accessible label names the column; Enter on an editable field cell then opens the in-place editor.",
+          "effect": "The cell cursor inside the active row, two-way: `-1` is the whole row, otherwise a column position. Left and Right move it, the focus ring moves from the row to the cell and the table's accessible label names the column; Enter on an editable field cell then opens the in-place editor. When the column model shrinks, both body and header cursors clamp to a surviving position. With no columns the body returns to the whole-row cursor (-1); adding columns does not restore an obsolete cell.",
           "default": "`-1`.",
           "states": "It is a view cursor, not application identity: the commit of an edited cell names row and column tokens, never this position.",
           "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { text: table.active-column < 0 ? \"Row\" : table.columns[table.active-column].label; }"
