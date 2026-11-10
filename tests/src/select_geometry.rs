@@ -236,6 +236,12 @@ fn combobox_defaults_follow_theme_metrics_and_window_strings_with_the_native_edi
             assert_eq!(app.get_loading_label(), "Chargement…");
             assert!(app.get_editor_focused());
             assert!(
+                (app.get_field_height() - app.get_intrinsic_height()).abs() < 0.01,
+                "absolute placement keeps the native field intrinsic rather than filling the window: actual={}, intrinsic={}",
+                app.get_field_height(),
+                app.get_intrinsic_height()
+            );
+            assert!(
                 (app.get_popup_height()
                     - 6. * app.get_row_height()
                     - 2. * app.get_expected_inset())
