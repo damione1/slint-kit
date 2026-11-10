@@ -563,11 +563,11 @@ export component KitDataTable inherits Rectangle {
             // typed `content` when it has any, otherwise its plain `cells`
             // as text cells.
             if row.content.length == 0: HorizontalLayout {spacing:0px; padding: 0px;
-                for cell[column-index] in row.cells: row-cell := TableCellView {
+                for column[column-index] in root.columns: row-cell := TableCellView {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
-                    cell: { kind: TableCellKind.text, text: cell };
+                    cell: { kind: TableCellKind.text, text: row.cells[column-index] };
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
                     focus-indicated: keys.has-focus && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
@@ -579,11 +579,11 @@ export component KitDataTable inherits Rectangle {
                 // Its outcomes are forwarded only while that session is the
                 // open one, so the blur the closing itself provokes cannot
                 // commit a second time or to another cell.
-                for cell[column-index] in row.content: content-cell := TableCellView {
+                for column[column-index] in root.columns: content-cell := TableCellView {
                     min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
-                    cell: cell;
+                    cell: row.content[column-index];
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
                     focus-indicated: keys.has-focus && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);

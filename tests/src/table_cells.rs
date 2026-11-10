@@ -120,8 +120,17 @@ fn typed_rows_paint_badges_and_check_marks_while_string_rows_stay_text() {
     let plain = row(&window, "Product 2");
     assert_eq!(
         descendants(&plain, "KitDataTable::row-cell").len(),
-        2,
-        "string rows keep one text cell per string"
+        3,
+        "string rows keep one text cell per declared column"
+    );
+    let padded = descendants(&plain, "KitDataTable::row-cell").remove(2);
+    assert!(
+        padded
+            .query_descendants()
+            .match_type_name("Text")
+            .find_all()
+            .iter()
+            .all(|text| text.accessible_label().as_deref().unwrap_or("").is_empty())
     );
     assert!(descendants(&plain, "KitDataTable::content-cell").is_empty());
     assert!(components(&plain, "KitBadge").is_empty());

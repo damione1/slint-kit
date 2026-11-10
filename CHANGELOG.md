@@ -27,6 +27,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Lay out every table row against all declared columns: missing cells stay empty and extra cells do not create columns or shift the header grid.
+
 - Ignore stationary column resize clicks, cancel drag previews with Escape or secondary press, enlarge scaled resize targets and expose `autosize-requested(column-token)` on double-click.
 
 - Keep a resizable fixed column above the table minimum so dragging cannot hide its resize handle or change its floor after the host applies a width.
@@ -70,6 +72,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Aligne chaque ligne sur toutes les colonnes déclarées : les cellules absentes restent vides et les cellules supplémentaires ne décalent plus la grille.
 
 - Ignore les clics sans mouvement sur les poignées, annule le glisser avec Échap ou un appui secondaire, agrandit les cibles et expose `autosize-requested(column-token)` au double-clic.
 

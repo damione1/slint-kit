@@ -505,3 +505,23 @@ fn resize_click_does_not_freeze_fill_and_escape_cancels_the_preview() {
     assert!(requested.borrow().is_empty());
     assert!(near(header_cells(&window)[0].size().width, original));
 }
+
+#[test]
+fn sparse_and_extra_cells_always_share_the_complete_header_grid() {
+    let window = fixture();
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        fill(),
+        bounded(fill(), 180., 300.),
+    ))));
+    let mut records = rows(1, 2);
+    records[0].cells = ModelRc::new(VecModel::from(vec!["Short".into()]));
+    records[1].cells = ModelRc::new(VecModel::from(vec![
+        "Full".into(),
+        "Second".into(),
+        "Ignored".into(),
+    ]));
+    window.set_rows(ModelRc::new(VecModel::from(records)));
+    assert_aligned(&window);
+    assert_eq!(row_cells(&window, 0).len(), 2);
+    assert_eq!(row_cells(&window, 1).len(), 2);
+}
