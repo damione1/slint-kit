@@ -1201,7 +1201,7 @@
     "fr": {
       "summary": "Surface de contenu d’un dialogue nommée pour l’accessibilité.",
       "usage": "Placez-la dans `KitDialogSurface` et définissez sa géométrie, son `accessible-name` et sa description. Composez en-tête, corps et pied dans une mise en page enfant.",
-      "behavior": "Elle peint une surface surélevée et consomme les clics qui atteindraient le voile. Elle ne décide ni du placement ni de la politique de fermeture du dialogue.",
+      "behavior": "Elle peint une surface surélevée et consomme les clics qui atteindraient le voile. Elle ne décide ni du placement ni de la politique de fermeture du dialogue. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
         "KitDialogHeader",
         "KitDialogBody",
@@ -1213,7 +1213,7 @@
     "en": {
       "summary": "Dialog content surface with an accessible name.",
       "usage": "Place it inside `KitDialogSurface` and set its geometry, `accessible-name` and description. Compose header, body and footer in a child layout.",
-      "behavior": "It paints a raised surface and consumes clicks that would reach the backdrop. It decides neither dialog placement nor close policy.",
+      "behavior": "It paints a raised surface and consumes clicks that would reach the backdrop. It decides neither dialog placement nor close policy. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
         "KitDialogHeader",
         "KitDialogBody",
@@ -1227,7 +1227,7 @@
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
       "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`.",
-      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette.",
+      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -1239,7 +1239,7 @@
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
       "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`.",
-      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events.",
+      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",

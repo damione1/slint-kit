@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Document Slint 1.18.1 modal accessibility limits: disabled background actions remain readable, and panels expose a named groupbox rather than a dialog/modal role.
+
 - Render success, warning and information stat tones, applying the chosen ink to the value and icon in both themes.
 
 - Apply file selection mode and editable access to native drops, including window-wide winit events. Expose binding setters; single-file drops replace the selection and disabled/read-only drops are ignored.
@@ -46,6 +48,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Documente les limites d’accessibilité modale de Slint 1.18.1 : les actions désactivées restent lisibles et les panneaux exposent un groupbox nommé plutôt qu’un rôle dialogue/modal.
 
 - Rend les tons success, warning et information des statistiques et applique le ton à la valeur et à l’icône dans les deux thèmes.
 

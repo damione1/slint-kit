@@ -120,9 +120,13 @@ cargo run{% if locale == 'fr' %} -- --fr{% endif %}
 {% if locale == 'fr' %}
 Remplacez la temporisation par votre travail asynchrone réel : marquez la couche `busy` au départ, puis fermez-la par `DismissReason::Programmatic` à l’arrivée du résultat. Ajoutez une couche en déclarant son overlay, sa portée, son parent et son premier contrôle ; ajoutez un contrôle en déclarant son jeton et sa couche. Le compilateur signale chaque `match` à compléter. Avec `tab-policy: DialogTabPolicy.native`, Slint parcourt lui-même les contrôles montés ; l’hôte doit alors désactiver tout l’arrière-plan de la même façon.
 
+Slint {{ project.slint }} ne fournit ni rôle de dialogue, ni état modal, ni propriété permettant de masquer un sous-arbre accessible tout en le gardant visible. Le panneau est annoncé comme `groupbox` avec son nom ; les contrôles couverts restent lisibles dans l’ordre de parcours du lecteur d’écran malgré leur désactivation. Le contrat « arrière-plan neutralisé » concerne les actions, pas l’isolement du parcours accessible.
+
 Les tests du kit prouvent ce contrat sans écran : retour du focus au déclencheur exact, couches imbriquées, Tab/Maj+Tab, Échap/Retour, état occupé et arrière-plan inerte. Ils ne qualifient ni les lecteurs d’écran ni les méthodes de saisie : vérifiez-les sur la plateforme cible. Consultez la [référence KitDialogSurface](/fr/components/dialog-surface/) et la [référence KitFocusTarget](/fr/components/focus-target/) pour l’API complète.
 {% else %}
 Replace the timer with your real asynchronous work: mark the layer `busy` when it starts, then close it with `DismissReason::Programmatic` when the result arrives. Add a layer by declaring its overlay, scope, parent and first control; add a control by declaring its token and layer. The compiler reports every `match` to complete. With `tab-policy: DialogTabPolicy.native`, Slint traverses the mounted controls itself; the host must then disable the whole background in the same way.
+
+Slint {{ project.slint }} exposes no dialog role, modal state, or property that hides an accessible subtree while keeping it visible. The panel is exposed as a named `groupbox`; covered controls remain readable in the screen reader browse order despite being disabled. The inert-background contract covers actions, not isolation of the accessibility browse tree.
 
 The kit’s tests prove this contract headlessly: focus return to the exact trigger, nested layers, Tab/Shift+Tab, Escape/Back, busy state and an inert background. They do not qualify screen readers or input methods: verify those on the target platform. See the [KitDialogSurface reference](/components/dialog-surface/) and the [KitFocusTarget reference](/components/focus-target/) for the full API.
 {% endif %}
