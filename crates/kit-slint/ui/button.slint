@@ -235,8 +235,14 @@ export component KitButton inherits KitPressable {
     private property <length> trailing-width: root.has-trailing ? root.icon-size + root.icon-gap : 0px;
     private property <length> side-reserve: max(root.leading-width, root.trailing-width);
     accessible-label: root.accessible-name == "" ? root.text : root.accessible-name;
-    min-height: max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block);
-    preferred-height: max(root.min-height, label-layout.preferred-height + 2 * root.padding-block);
+    // Flexbox resolves both axes through one cache. Observe its resolved width
+    // before measuring height so intrinsic button height cannot feed that cache
+    // back into the measurement's width binding.
+    private property <length> measured-width;
+    changed width => { root.measured-width = root.width; }
+    min-height: max(root.recipe.height, root.text-wrap == TextWrap.no-wrap
+        ? root.text-size * 1.4 + 2 * root.padding-block
+        : measure.preferred-height + 2 * root.padding-block);
     private property <length> natural-width: max(max(root.recipe.height, root.text-size * 1.4 + 2 * root.padding-block), label.preferred-width + 2 * root.side-reserve + 2 * root.padding-inline);
     min-width: root.control-width == ControlWidth.fill || root.text-wrap != TextWrap.no-wrap ? 0px : root.natural-width;
     preferred-width: root.natural-width;
@@ -245,23 +251,24 @@ export component KitButton inherits KitPressable {
     // explicitly rather than counting its padding a second time.
     if root.has-leading: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - 2 * root.padding-inline - self.width : 0px; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
     if root.has-trailing: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? 0px : root.width - 2 * root.padding-inline - self.width; y: (root.height - 2 * root.padding-block - self.height) / 2; opacity: root.busy ? 0 : 1; ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground; }
-    label-layout := HorizontalLayout {
-        x: 0px; y: 0px;
-        width: max(0px, root.width - 2 * root.padding-inline);
+    label := Text {
+        x: root.side-reserve; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - 2 * root.side-reserve);
         height: max(0px, root.height - 2 * root.padding-block);
-        padding-left: root.side-reserve; padding-right: root.side-reserve;
-        label := Text {
-            min-width: 0px;
-            horizontal-stretch: 1;
-            opacity: root.busy ? 0 : 1;
-            text: root.text;
-            color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
-            font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            wrap: root.text-wrap;
-            overflow: root.text-wrap == TextWrap.no-wrap ? TextOverflow.elide : TextOverflow.clip;
-        }
+        opacity: root.busy ? 0 : 1;
+        text: root.text;
+        color: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        wrap: root.text-wrap;
+        overflow: root.text-wrap == TextWrap.no-wrap ? TextOverflow.elide : TextOverflow.clip;
+    }
+    measure := Text {
+        visible: false; accessible-role: none;
+        width: max(0px, root.measured-width - 2 * root.padding-inline - 2 * root.side-reserve);
+        text: root.text; wrap: root.text-wrap;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
     }
     if root.recipe.underline && !root.busy: link-rule := Rectangle {
         x: label.x + (label.width - self.width) / 2;
