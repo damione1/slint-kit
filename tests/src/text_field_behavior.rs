@@ -190,3 +190,21 @@ fn window_strings_localize_constraints_and_typed_codec_failures() {
         "host correction drops stale codec failure"
     );
 }
+#[test]
+fn escape_policy_and_keyboard_hook_run_before_native_editing() {
+    let app = fixture();
+    app.set_escape_behavior(TextEscapeBehavior::Clear);
+    key(&app, "query");
+    key(&app, Key::Escape);
+    assert_eq!(app.get_text(), "");
+    app.set_intercept_key(true);
+    key(&app, "ignored");
+    assert_eq!(app.get_text(), "");
+    app.set_intercept_key(false);
+    app.set_escape_behavior(TextEscapeBehavior::Cancel);
+    let cancelled = Rc::new(RefCell::new(0));
+    let observed = cancelled.clone();
+    app.on_cancelled(move || *observed.borrow_mut() += 1);
+    key(&app, Key::Escape);
+    assert_eq!(*cancelled.borrow(), 1);
+}

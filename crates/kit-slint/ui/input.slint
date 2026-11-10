@@ -18,6 +18,7 @@ export { FieldDecoration } from "field.slint";
 
 export enum ResizePolicy { fixed, auto-grow }
 export enum TextLineMode { single-line, multiline }
+export enum TextEscapeBehavior { bubble, cancel, clear }
 export enum TextContextMenu { standard, disabled }
 export enum TextLengthPolicy { validate, limit }
 
@@ -156,6 +157,9 @@ export component KitTextField inherits KitField {
     in property <string> character-count-label: root.character-count == 1 ? KitStrings.character-singular : KitStrings.character-plural;
     in property <string> checking-label: KitStrings.checking-label;
     out property <bool> has-focus: editor.has-focus;
+    in property <TextEscapeBehavior> escape-behavior: root.purpose == TextPurpose.search ? TextEscapeBehavior.clear : TextEscapeBehavior.bubble;
+    in property <bool> submit-on-modified-enter;
+    callback key-pressed(KeyEvent) -> EventResult;
     callback edited(string);
     // Semantic value, separate from the native draft callback above.
     callback value-edited(string);
@@ -321,6 +325,17 @@ export component KitTextField inherits KitField {
                         accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
                         accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
+                            if (self.preedit-text == "") {
+                                if (root.key-pressed(event) == accept) { return accept; }
+                                if (event.text == Key.Escape) {
+                                    if (root.escape-behavior == TextEscapeBehavior.clear && root.text != "" && root.access == FieldAccess.editable) { root.clear(); return accept; }
+                                    if (root.escape-behavior == TextEscapeBehavior.cancel && root.access == FieldAccess.editable) { root.cancel-edit(); return accept; }
+                                }
+                                if (root.multiline && root.submit-on-modified-enter && event.text == Key.Return && (event.modifiers.control || event.modifiers.meta) && root.access == FieldAccess.editable) {
+                                    if (root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.value); }
+                                    return accept;
+                                }
+                            }
                             root.previous-edit-text = self.text;
                             if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
                                 if (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
