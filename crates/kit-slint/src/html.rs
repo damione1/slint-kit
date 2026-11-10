@@ -140,6 +140,17 @@ macro_rules! init_form_validation {
     }};
 }
 
+// Native offsets can still describe the previous text after a host replacement.
+// Apply the native editor's bounded UTF-8 insertion projection before checking
+// the mask; do not change the native selection or rewrite the draft.
+fn native_mask_offsets(text: &str, anchor: i32, cursor: i32) -> (usize, usize) {
+    let project = |offset: i32| {
+        let offset = usize::try_from(offset.max(0)).expect("nonnegative native byte offset");
+        text.ceil_char_boundary(offset)
+    };
+    (project(anchor), project(cursor))
+}
+
 /// Register the shared HTML constraint engine once for this window.
 pub(crate) fn install_validation<W>(window: &W)
 where
@@ -218,12 +229,7 @@ where
         let Ok(compiled) = mask_insert_engine.mask(mask.as_str()) else {
             return false;
         };
-        let Ok(anchor) = usize::try_from(anchor) else {
-            return false;
-        };
-        let Ok(cursor) = usize::try_from(cursor) else {
-            return false;
-        };
+        let (anchor, cursor) = native_mask_offsets(current.as_str(), anchor, cursor);
         compiled.accepts_key_insertion(current.as_str(), anchor, cursor, inserted.as_str())
     });
     let mask_paste_engine = Rc::clone(&engine);
@@ -231,12 +237,7 @@ where
         let Ok(compiled) = mask_paste_engine.mask(mask.as_str()) else {
             return false;
         };
-        let Ok(anchor) = usize::try_from(anchor) else {
-            return false;
-        };
-        let Ok(cursor) = usize::try_from(cursor) else {
-            return false;
-        };
+        let (anchor, cursor) = native_mask_offsets(current.as_str(), anchor, cursor);
         compiled.accepts_edit(current.as_str(), anchor, cursor, inserted.as_str())
     });
     global.on_phone_insertion(|text| crate::__core::phone_insertion(text.as_str()));
@@ -345,6 +346,16 @@ mod mask_cache_tests {
     use super::HtmlValidationEngine;
     use kit_core::ParseIssue;
     use std::rc::Rc;
+
+    #[test]
+    fn native_offsets_follow_host_text_replacement_before_mask_insertion() {
+        let mask = MaskPattern::compile("AA-####").unwrap();
+        let (anchor, cursor) = super::native_mask_offsets("", 0, 5);
+        assert_eq!((anchor, cursor), (0, 0));
+        assert!(mask.accepts_key_insertion("", anchor, cursor, "AB-1234"));
+        assert_eq!(super::native_mask_offsets("éA", -1, 1), (0, 2));
+        assert_eq!(super::native_mask_offsets("éA", 99, 2), (3, 2));
+    }
 
     #[test]
     fn caches_compiled_masks_and_evicts_oldest_past_sixty_four_entries() {
