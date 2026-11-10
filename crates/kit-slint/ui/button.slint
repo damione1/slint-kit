@@ -34,6 +34,7 @@ export component KitPressable inherits Rectangle {
     // A pressable whose children host an open native editor hands the
     // pointer to them; keyboard activation and focus are unaffected.
     in property <bool> pointer-enabled: true;
+    in property <bool> focus-on-pointer: true;
     // A composite that keeps keyboard focus itself sets this on its active
     // row; the row then paints `focus-ring` as if it held focus.
     in property <bool> focus-indicated;
@@ -152,7 +153,7 @@ export component KitPressable inherits Rectangle {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 root.activation-started();
                 root.pointer-armed = true;
-                keys.focus();
+                if (root.focus-on-pointer) { keys.focus(); }
                 root.keyboard-focus = false;
             }
             if (event.kind == PointerEventKind.cancel) { root.cancel-press(); }

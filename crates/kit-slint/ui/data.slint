@@ -86,14 +86,16 @@ component DataAction inherits KitPressable {
     in property <int> token;
     in property <int> generation;
     callback requested(int,int);
+    callback focus-requested();
     private property <int> armed-token;
     private property <int> armed-generation;
-    activation-started => {root.armed-token = root.token;root.armed-generation = root.generation;}
+    activation-started => {root.armed-token = root.token;root.armed-generation = root.generation;root.focus-requested();}
     changed token => {root.cancel-press();}
     changed generation => {root.cancel-press();}
     activated => {root.requested(root.armed-token,root.armed-generation);}
     control-width: ControlWidth.fill;
     tab-stop: false;
+    focus-on-pointer: false;
     @children
 }
 
@@ -561,6 +563,7 @@ export component KitDataTable inherits Rectangle {
             focus-indicated:keys.has-focus && index == root.active-index && root.active-column < 0;focus-ring:KitThemes.inset-focus(root.theme);
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
+            focus-requested => {keys.focus();}
             requested(token,generation) => {keys.focus();root.activate(token,generation);}
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
@@ -653,6 +656,7 @@ export component KitContentList inherits Rectangle {
             accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
             focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
             background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
+            focus-requested => {keys.focus();}
             requested(token,generation)=>{keys.focus();root.activate(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
                 Rectangle {width:72px; horizontal-stretch:0;
@@ -708,6 +712,7 @@ export component KitVirtualTextView inherits Rectangle {
             focus-indicated:keys.has-focus && index == root.active-index;focus-ring:KitThemes.inset-focus(root.theme);
             accessible-name:line.number + ": " + line.text;
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.lines.length;accessible-item-selectable:true;accessible-item-selected:line.selected;
+            focus-requested => {keys.focus();}
             requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 3;
                 Text {width:64px;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}

@@ -702,3 +702,38 @@ fn table_header_and_document_viewport_start_at_their_top_edge() {
         );
     }
 }
+
+#[test]
+fn dragging_away_from_a_row_preserves_composite_arrow_navigation() {
+    let window = fixture();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    let observed = Rc::new(RefCell::new(Vec::new()));
+    let recorded = observed.clone();
+    window.on_navigate(move |collection, step| recorded.borrow_mut().push((collection, step)));
+    let row = delegates(&window, "KitDataTable").remove(0);
+    let origin = row.absolute_position();
+    let position = LogicalPosition::new(
+        origin.x + row.size().width / 2.,
+        origin.y + row.size().height / 2.,
+    );
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    let outside = LogicalPosition::new(0., 0.);
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position: outside });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position: outside,
+            button: PointerEventButton::Left,
+        });
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        &*observed.borrow(),
+        &[(DataFixtureCollection::Table, NavigationStep::Next)]
+    );
+}
