@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Run the Linux component suite once, exclude it from the remaining workspace tests, and bound the CI job to 45 minutes.
+
 - Keep the dialog consumer on the workspace release and check documentation dependency versions in CI; integration dependencies now inherit workspace versions.
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
@@ -25,6 +27,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Exécute une seule fois la suite des composants sur Linux, l’exclut des autres tests du workspace et limite le job CI à 45 minutes.
 
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 

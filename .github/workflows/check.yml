@@ -28,12 +28,13 @@ jobs:
       - name: Test build helper path handling
         run: cargo test -p slint-kit-build --locked
   linux:
-    # Linux proof: the kit builds and its headless test suite passes on the
-    # Slint testing backend with the software renderer, and clippy accepts the
-    # Linux cfg paths. Formatting, generated files, token lint and quickstart
+    # Linux checks build the kit, exercise the headless component suite on the
+    # Slint testing backend with the software renderer, and check Linux cfg
+    # paths with clippy. Formatting, generated files, token lint and quickstart
     # guards are file-level checks with no platform dependency; the macOS job
     # runs them. Nothing here opens a window, so no display server is needed.
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@1.99.1
@@ -56,7 +57,7 @@ jobs:
       - name: Run the headless component suite
         run: cargo test -p kit-tests --locked
       - name: Test the rest of the workspace
-        run: cargo test --workspace --locked
+        run: cargo test --workspace --exclude kit-tests --locked
       - name: Clippy with warnings denied on Linux targets
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
   desktop:
