@@ -107,6 +107,10 @@ fn reference(value: Option<ChoiceToken>) -> ui::SelectionRef {
     }
 }
 fn session(value: ui::SelectionSession) -> SelectSession<ChoiceToken> {
+    let timeout_ms = u64::try_from(value.typeahead_timeout_ms)
+        .ok()
+        .filter(|&ms| ms > 0)
+        .unwrap_or(700);
     SelectSession {
         selection: SelectState {
             selected: selection(value.state.selected),
@@ -118,6 +122,8 @@ fn session(value: ui::SelectionSession) -> SelectSession<ChoiceToken> {
             .has_timestamp
             .then(|| u64::try_from(value.timestamp).ok())
             .flatten(),
+        typeahead_timeout_ms: timeout_ms,
+        wrap: value.wrap,
     }
 }
 
@@ -206,6 +212,8 @@ fn reduce(
             timestamp: timestamp
                 .map(|value| i32::try_from(value).expect("timestamp entered as i32"))
                 .unwrap_or(0),
+            typeahead_timeout_ms: i32::try_from(result.session.typeahead_timeout_ms).unwrap_or(700),
+            wrap: result.session.wrap,
         },
     }
 }
@@ -268,7 +276,10 @@ where
         )
         .session
     });
-    service.on_navigate(|rows, current, step, ownership| {
+    service.on_navigate(|rows, current, step, page_rows, ownership| {
+        let Ok(page_size) = usize::try_from(page_rows) else {
+            return current;
+        };
         reduce(
             &rows,
             current,
@@ -276,10 +287,42 @@ where
             ui::SelectionRetention::BoundToOptions,
             SelectEvent::Navigate {
                 step: step.into(),
-                page_size: 7,
+                page_size,
             },
         )
         .session
+    });
+    service.on_previous_row(|rows, current, columns, ownership| {
+        let Ok(columns) = usize::try_from(columns) else {
+            return current;
+        };
+        reduce(
+            &rows,
+            current,
+            ownership,
+            ui::SelectionRetention::BoundToOptions,
+            SelectEvent::PreviousRow { columns },
+        )
+        .session
+    });
+    service.on_next_row(|rows, current, columns, ownership| {
+        let Ok(columns) = usize::try_from(columns) else {
+            return current;
+        };
+        reduce(
+            &rows,
+            current,
+            ownership,
+            ui::SelectionRetention::BoundToOptions,
+            SelectEvent::NextRow { columns },
+        )
+        .session
+    });
+    service.on_typeahead_active(|current, timestamp| {
+        let Ok(now_ms) = u64::try_from(timestamp) else {
+            return false;
+        };
+        session(current).is_typeahead_active(now_ms)
     });
     service.on_dismiss(|rows, current, reason, ownership| {
         reduce(

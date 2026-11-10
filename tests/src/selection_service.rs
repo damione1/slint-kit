@@ -623,3 +623,312 @@ fn combobox_public_clear_uses_native_undo_and_one_empty_query_locally() {
 fn combobox_public_clear_uses_native_undo_and_waits_for_controlled_acknowledgment() {
     assert_combobox_native_clear(slint_kit::ui::Ownership::Controlled);
 }
+#[test]
+fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carousel_keys() {
+    let (window, choices) = fixture();
+    let apple = choices.selection(&Destination::Apple).unwrap();
+    let apricot = choices.selection(&Destination::Apricot).unwrap();
+    let banana = choices.selection(&Destination::Banana).unwrap();
+
+    // KitMenu wraps by default and respects wrap=false when configured.
+    window.invoke_focus_first();
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_first_state().active, banana);
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_first_state().active, apple);
+    window.set_first_wrap(false);
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_first_state().active, apple);
+    assert!(window.get_first_page_rows() >= 1);
+
+    // Closed KitSelect opens and moves active on Home, End, and printable typeahead.
+    assert!(!window.get_popup_state().open);
+    window.invoke_focus_popup();
+    key(&window, Key::End);
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, banana);
+    key(&window, Key::Escape);
+    assert!(!window.get_popup_state().open);
+
+    window.invoke_focus_popup();
+    key(&window, Key::Home);
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, apple);
+    key(&window, Key::Escape);
+    assert!(!window.get_popup_state().open);
+
+    window.invoke_focus_popup();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "b".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "b".into() });
+    assert!(window.get_popup_state().open);
+    assert_eq!(window.get_popup_state().active, banana);
+    // Popup capacity is published after its viewport has actually been laid out.
+    let popup = ElementQuery::from_root(&window)
+        .match_inherits("KitSelectSurface")
+        .find_first()
+        .unwrap();
+    assert!(popup.size().height > 0.);
+    slint::platform::update_timers_and_animations();
+    assert!(window.get_popup_page_rows() >= 1);
+    key(&window, Key::Escape);
+
+    // KitTabs supports manual and automatic activation plus RTL flow.
+    window.invoke_focus_tabs();
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_tabs_state().active, apricot);
+    assert!(!window.get_tabs_selected().present);
+    window.set_tab_activation(slint_kit::ui::TabActivation::Automatic);
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_tabs_selected(), banana);
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::RightToLeft);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        window.get_tabs_selected(),
+        apple,
+        "RTL LeftArrow advances to next tab and wraps"
+    );
+
+    // KitMenuBar mirrors Left/Right in RTL flow.
+    window.invoke_focus_menubar();
+    key(&window, Key::LeftArrow);
+    assert_eq!(window.get_menubar_state().active, apricot);
+
+    // KitCarousel handles arrow keys, Home/End, and RTL flow.
+    window.invoke_focus_carousel();
+    key(&window, Key::LeftArrow);
+    assert_eq!(window.get_carousel_state().active, apricot);
+    key(&window, Key::End);
+    assert_eq!(window.get_carousel_state().active, banana);
+    key(&window, Key::Home);
+    assert_eq!(window.get_carousel_state().active, apple);
+
+    // Wrapped 2-column KitSegmentedControl navigates vertically with DownArrow/UpArrow.
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::LeftToRight);
+    window.invoke_focus_segments();
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        window.get_segments_selected(),
+        apricot,
+        "Down keeps the rendered column despite the disabled second cell"
+    );
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_segments_selected(), apple);
+    window.set_nav_flow(slint_kit::ui::ChoiceFlow::RightToLeft);
+    key(&window, Key::UpArrow);
+    assert_eq!(
+        window.get_segments_selected(),
+        apricot,
+        "RTL vertical wrapping keeps the same visual column"
+    );
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_segments_selected(), apple);
+
+    // KitToggleGroup supports vertical direction and wraps.
+    window.set_toggle_direction(slint_kit::ui::ChoiceDirection::Vertical);
+    window.invoke_focus_toggles();
+    key(&window, Key::UpArrow);
+    assert_eq!(window.get_toggles_active(), banana.token);
+}
+
+#[test]
+fn source_reconciliation_clears_typeahead_before_space_activation() {
+    let (window, choices) = fixture();
+    let received = Rc::new(RefCell::new(Vec::new()));
+    let output = received.clone();
+    let source = choices.clone();
+    window.on_first_chosen(move |row| output.borrow_mut().push(source.accept(row).unwrap()));
+    window.invoke_focus_first();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "a".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "a".into() });
+    let generation = window.get_first_state().generation;
+    choices.replace(options()).unwrap();
+    slint::platform::update_timers_and_animations();
+    assert_ne!(window.get_first_state().generation, generation);
+    let active = window.get_first_state().active;
+    key(&window, Key::Space);
+    assert_eq!(
+        received.borrow().len(),
+        1,
+        "Space activates after the canonical query was reset, even within its former timeout"
+    );
+    assert_eq!(window.get_first_state().selected, active);
+}
+
+#[test]
+fn carousel_navigation_does_not_intercept_native_child_editing_or_form_keys() {
+    let (window, _choices) = fixture();
+    let activations = Rc::new(RefCell::new(0));
+    let output = activations.clone();
+    window.on_carousel_activated(move || *output.borrow_mut() += 1);
+    let before = window.get_carousel_state().active;
+    window.invoke_focus_carousel_editor();
+    key(&window, Key::Home);
+    key(&window, Key::LeftArrow);
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "x".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "x".into() });
+    assert_eq!(
+        window.get_carousel_editor_text(),
+        "xab",
+        "the editor retains its native caret and insertion"
+    );
+    assert_eq!(window.get_carousel_state().active, before);
+    window.invoke_focus_carousel_checkbox();
+    key(&window, Key::Return);
+    assert_eq!(
+        window.get_carousel_checkbox_state(),
+        slint_kit::ui::CheckState::Unchecked
+    );
+    assert_eq!(
+        *activations.borrow(),
+        0,
+        "a child's rejected Return must reach the enclosing form without activating a slide"
+    );
+    key(&window, Key::Space);
+    assert_eq!(
+        window.get_carousel_checkbox_state(),
+        slint_kit::ui::CheckState::Checked
+    );
+    assert_eq!(*activations.borrow(), 0);
+    window.invoke_focus_carousel();
+    key(&window, Key::End);
+    assert_ne!(
+        window.get_carousel_state().active,
+        before,
+        "the carousel's own focus target still handles navigation"
+    );
+}
+
+#[test]
+fn page_navigation_uses_the_resized_visible_viewport_and_rejects_unmeasured_pages() {
+    use crate::SelectionPageFixture;
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = SelectionPageFixture::new().unwrap();
+    slint_kit::install(&window);
+    let choices = Choices::from_options(
+        (0..40)
+            .map(|i| SelectOption::new(i, format!("Item {i}")))
+            .collect(),
+    )
+    .unwrap();
+    window.set_options(choices.model());
+    assert_eq!(
+        window.invoke_unmeasured_page(),
+        slint_kit::ui::KitKeyResult::Reject
+    );
+    assert!(!window.get_unmeasured_state().selected.present);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    window.window().take_snapshot().unwrap();
+    let send = |key: Key| {
+        let text: slint::SharedString = key.into();
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text });
+    };
+    let measured_rows = || {
+        let menu = ElementQuery::from_root(&window)
+            .match_inherits("KitMenu")
+            .find_first()
+            .unwrap();
+        let row = menu
+            .query_descendants()
+            .match_inherits("KitNavigationAction")
+            .find_first()
+            .unwrap();
+        assert!(row.size().height > 0.);
+        (menu.size().height / row.size().height).floor()
+    };
+    let first_page = window.get_page_rows();
+    assert_eq!(f64::from(first_page), f64::from(measured_rows()));
+    assert!(first_page > 1);
+    window.invoke_focus_menu();
+    send(Key::PageDown);
+    assert_eq!(window.get_state().active_index, first_page);
+    window.set_menu_height(300.);
+    slint::platform::update_timers_and_animations();
+    window.window().take_snapshot().unwrap();
+    let second_page = window.get_page_rows();
+    assert_eq!(f64::from(second_page), f64::from(measured_rows()));
+    assert!(second_page > first_page);
+    send(Key::PageDown);
+    assert_eq!(window.get_state().active_index, first_page + second_page);
+    assert!(
+        !window.get_state().selected.present,
+        "navigation never commits a selection"
+    );
+}
+
+#[test]
+fn composite_keyboard_focus_renders_in_both_themes_at_large_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = SelectionServiceFixture::new().unwrap();
+    slint_kit::install(&window);
+    let choices = Choices::from_options(options()).unwrap();
+    window.set_options(choices.model());
+    window.show().unwrap();
+    for (dark, base) in [
+        (false, window.get_theme()),
+        (true, window.global::<slint_kit::ui::KitThemes>().get_dark()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(1100., 2200.));
+            window.invoke_focus_carousel();
+            key(&window, Key::End);
+            assert_eq!(
+                window.get_carousel_state().active,
+                choices.selection(&Destination::Banana).unwrap()
+            );
+            slint::platform::update_timers_and_animations();
+            let image = window.window().take_snapshot().unwrap();
+            let carousel = ElementQuery::from_root(&window)
+                .match_inherits("KitCarousel")
+                .find_first()
+                .unwrap();
+            assert!(carousel.size().height > 0.);
+            assert!(carousel.absolute_position().y + carousel.size().height <= 2200.);
+            if let Some(directory) = std::env::var_os("KIT_CONTROL_CAPTURE_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(directory)
+                    .join(format!("composite-keyboard-{dark}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(file, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                for pixel in image.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+            }
+        }
+    }
+}

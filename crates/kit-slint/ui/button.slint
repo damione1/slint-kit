@@ -43,6 +43,7 @@ export component KitPressable inherits Rectangle {
     in property <bool> busy;
     in property <string> busy-label: KitStrings.busy-label;
     in property <bool> tab-stop: true;
+    in property <bool> activate-on-return: true;
     // A pressable whose children host an open native editor hands the
     // pointer to them; keyboard activation and focus are unaffected.
     in property <bool> pointer-enabled: true;
@@ -175,7 +176,7 @@ export component KitPressable inherits Rectangle {
                 if (!root.space-held) { root.activation-started(); root.space-held = true; }
                 return accept;
             }
-            if (event.text == Key.Return) {
+            if (root.activate-on-return && event.text == Key.Return) {
                 if (!root.enter-held) { root.activation-started(); root.enter-held = true; root.activate-once(); }
                 return accept;
             }
@@ -186,7 +187,7 @@ export component KitPressable inherits Rectangle {
                 if (root.space-held) { root.space-held = false; root.activate-once(); }
                 return accept;
             }
-            if (event.text == Key.Return) { root.enter-held = false; return accept; }
+            if (root.activate-on-return && event.text == Key.Return) { root.enter-held = false; return accept; }
             return reject;
         }
     }

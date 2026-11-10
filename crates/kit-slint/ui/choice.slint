@@ -145,6 +145,7 @@ export component KitCheckbox inherits KitPressable {
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
+    activate-on-return: false;
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -199,6 +200,7 @@ export component KitSwitch inherits KitPressable {
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
+    activate-on-return: false;
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -238,11 +240,13 @@ export component KitSwitch inherits KitPressable {
 
 // One tab target. Rust owns stable keys, skip-disabled and reconciliation;
 // the translator is reused by radio, segmented, toggle and rating surfaces.
+enum ChoiceKeyPolicy { axis, radio, grid }
 component ChoiceKeyboard inherits FocusScope {
     min-width: 0px; preferred-width: 0px; max-width: 100000px; horizontal-stretch: 1;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <ChoiceKeyPolicy> policy: ChoiceKeyPolicy.axis;
     callback navigate(NavigationStep);
     callback activate();
     private property <bool> held;
@@ -260,14 +264,16 @@ component ChoiceKeyboard inherits FocusScope {
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.RightArrow && root.direction == ChoiceDirection.horizontal) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
-        if (event.text == Key.LeftArrow && root.direction == ChoiceDirection.horizontal) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
-        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.vertical) { root.navigate(NavigationStep.next); return accept; }
-        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.vertical) { root.navigate(NavigationStep.previous); return accept; }
-        if (event.text == Key.Space || event.text == Key.Return) { if (!root.held) { root.held = true; root.activate(); } return accept; }
+        if (event.text == Key.RightArrow && (root.direction == ChoiceDirection.horizontal || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
+        if (event.text == Key.LeftArrow && (root.direction == ChoiceDirection.horizontal || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && (root.direction == ChoiceDirection.vertical || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(NavigationStep.next); return accept; }
+        if (event.text == Key.UpArrow && (root.direction == ChoiceDirection.vertical || root.policy == ChoiceKeyPolicy.radio)) { root.navigate(NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.horizontal && root.policy == ChoiceKeyPolicy.grid) { root.navigate(NavigationStep.page-next); return accept; }
+        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.horizontal && root.policy == ChoiceKeyPolicy.grid) { root.navigate(NavigationStep.page-previous); return accept; }
+        if (event.text == Key.Space || (root.policy != ChoiceKeyPolicy.radio && event.text == Key.Return)) { if (!root.held) { root.held = true; root.activate(); } return accept; }
         return reject;
     }
-    key-released(event) => { if (event.text == Key.Space || event.text == Key.Return) { root.held = false; return accept; } return reject; }
+    key-released(event) => { if (event.text == Key.Space || (root.policy != ChoiceKeyPolicy.radio && event.text == Key.Return)) { root.held = false; return accept; } return reject; }
     focus-lost(reason) => { root.held = false; }
 }
 
@@ -304,6 +310,7 @@ export component KitRadioGroup inherits Rectangle {
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     in property <string> label;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
@@ -318,6 +325,7 @@ export component KitRadioGroup inherits Rectangle {
     vertical-stretch: 0;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
+        policy: ChoiceKeyPolicy.radio;
         navigate(step) => { root.handle-navigate(step); }
         activate => { root.handle-activate(root.active-token, root.generation); }
         // Box layouts measure horizontal and vertical constraints separately,
@@ -374,7 +382,7 @@ export component KitRadioGroup inherits Rectangle {
     in-out property <SelectionRef> selected <=> selection.selected;
     callback chosen(OptionRow);
     selection := KitSelection {
-        options: root.options; ownership: root.ownership; persistent: true;
+        options: root.options; ownership: root.ownership; persistent: true; wrap: root.wrap;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
@@ -462,6 +470,7 @@ export component KitSegmentedControl inherits Rectangle {
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     // Horizontal reading direction; it does not reorder vertical segments.
     in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     in property <string> label;
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -479,6 +488,7 @@ export component KitSegmentedControl inherits Rectangle {
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
+        policy: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count ? ChoiceKeyPolicy.grid : ChoiceKeyPolicy.axis;
         navigate(step) => { root.handle-navigate(step); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { checks.note-edit(); root.handle-activate(root.active-token, root.generation); } }
         choices := VerticalLayout {
@@ -508,10 +518,13 @@ export component KitSegmentedControl inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; page-rows: root.column-count;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
-        selection.navigate(step);
+        if (step == NavigationStep.page-previous) { selection.previous-row(root.column-count); }
+        else if (step == NavigationStep.page-next) { selection.next-row(root.column-count); }
+        else { selection.navigate(step); }
         if (root.access == FieldAccess.editable && selection.state.active.present) {
             selection.activate(selection.state.active.token, selection.state.generation);
         }
@@ -557,27 +570,32 @@ export component KitToggleGroup inherits Rectangle {
     }
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.token;
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
+    in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     in property <string> label;
     callback navigate(NavigationStep);
     callback toggled(int, int);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
-    preferred-height: max(choices.min-height,choices.preferred-height);
+    preferred-height: root.direction == ChoiceDirection.vertical ? max(vertical-choices.min-height, vertical-choices.preferred-height) : max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
+    accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     out property <bool> has-focus: keyboard.has-focus;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
-        access: root.access;
+        direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { selection.navigate(step); root.navigate(step); }
         activate => { checks.note-edit(); root.toggle-option(root.active-token, root.generation); }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
+            visible: root.direction == ChoiceDirection.horizontal;
             spacing: root.choice.group-gap;
             for index in root.render-count: option := ChoiceOption {
-                private property <ChoiceRow> display-choice: root.render-row(index);
+                private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
                 option-data: option.display-choice; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size; accessible-name: option.display-choice.label;
@@ -595,6 +613,26 @@ export component KitToggleGroup inherits Rectangle {
                 option-label := Text { width: max(0px, option.width - 2 * option.padding-inline); height: max(0px, option.height - 2 * option.padding-block); text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
+        vertical-choices := VerticalLayout {
+            width: root.width; height: self.preferred-height;
+            visible: root.direction == ChoiceDirection.vertical;
+            spacing: root.choice.group-gap;
+            for index in root.render-count: v-option := ChoiceOption {
+                private property <ChoiceRow> display-choice: root.render-row(index);
+                option-data: v-option.display-choice; generation: root.generation; access: root.access;
+                theme: root.theme; control-size: root.control-size; accessible-name: v-option.display-choice.label;
+                control-width: ControlWidth.fill;
+                intent: v-option.display-choice.selected ? ButtonIntent.primary : ButtonIntent.secondary;
+                disabled: v-option.display-choice.disabled || root.access == FieldAccess.disabled;
+                accessible-checked: v-option.display-choice.selected;
+                border-width: root.theme.shape.border-width;
+                border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
+                focus-indicated: keyboard.focus-visible && root.active-token == v-option.display-choice.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
+                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggle-option(token,generation); } }
+                Text { width: max(0px, v-option.width - 2 * v-option.padding-inline); height: max(0px, v-option.height - 2 * v-option.padding-block); text: v-option.display-choice.label; color: v-option.disabled ? v-option.recipe.disabled-foreground : v-option.recipe.foreground; font-family: v-option.theme.typography.family; font-size: v-option.recipe.font-size; font-weight: v-option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+            }
+        }
     }
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
@@ -602,7 +640,7 @@ export component KitToggleGroup inherits Rectangle {
     in-out property <[SelectionRef]> selected <=> selection.selected;
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
-        options: root.options; ownership: root.ownership; limit: root.selection-limit; persistent: true;
+        options: root.options; ownership: root.ownership; limit: root.selection-limit; persistent: true; wrap: root.wrap;
         changed-selection(row, added) => { root.selection-changed(row, added); }
     }
     function toggle-option(token: int, generation: int) {
@@ -768,6 +806,9 @@ export component KitMultiSelect inherits Rectangle {
     in property <[ChipRow]> chips: selection.chips;
     in property <SelectState> state: selection.state;
     in property <string> placeholder: "Add a selection";
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    out property <int> page-rows: selector.page-rows;
     callback open-requested();
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -783,7 +824,7 @@ export component KitMultiSelect inherits Rectangle {
         spacing: KitMetrics.label-gap(root.theme);
         if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitTextField {
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
@@ -793,7 +834,7 @@ export component KitMultiSelect inherits Rectangle {
         }
         if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip; disabled: !chip.removable || root.access != FieldAccess.editable;
                 remove-requested(token) => { if (root.access == FieldAccess.editable) { selection.remove(token); root.remove-requested(token); } }
@@ -802,6 +843,8 @@ export component KitMultiSelect inherits Rectangle {
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; placeholder: root.placeholder;
             access: root.access;
+            wrap: root.wrap;
+            typeahead-timeout-ms: root.typeahead-timeout-ms;
             // The chips carry the selection, so this composite owns the constraint.
             validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             open-requested => { if (root.access == FieldAccess.editable) { selection.open(); root.open-requested(); } }
@@ -821,6 +864,7 @@ export component KitMultiSelect inherits Rectangle {
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
         options: root.options; ownership: root.ownership; limit: root.selection-limit;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { root.selection-changed(row, added); }
     }
 }
@@ -862,7 +906,7 @@ export component KitTagInput inherits Rectangle {
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
         }
         editor := KitTextField {
@@ -918,6 +962,10 @@ export component KitCombobox inherits Rectangle {
     in property <length> row-height: max(root.option-recipe.height, KitMetrics.row-height(root.theme, root.control-size)) + KitMetrics.font-size(root.theme, TypographyRole.caption) + 2 * KitMetrics.help-gap(root.theme);
     in property <int> near-end-rows: 3;
     out property <bool> end-near;
+    in property <bool> wrap: false;
+    in property <int> typeahead-timeout-ms: 700;
+    private property <int> measured-popup-page-rows;
+    out property <int> page-rows: root.state.open ? root.measured-popup-page-rows : 0;
     in-out property <string> query <=> selection.query;
     in-out property <string> text: root.selected-label;
     callback open-requested();
@@ -1180,12 +1228,17 @@ export component KitCombobox inherits Rectangle {
         x: 0px; y: root.height + root.theme.spacing.unit; width: root.width;
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
-        KitSelectSurface {
+        surface := KitSelectSurface {
+            init => { root.measured-popup-page-rows = self.page-rows; }
+            changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             theme: root.theme; state: root.state; query <=> root.query;
             row-height: root.row-height;
             searchable: false; search-label: root.label;
             focus-on-open: false;
             focus-search-on-open: false;
+            wrap: root.wrap;
+            typeahead-timeout-ms: root.typeahead-timeout-ms;
+            check-typeahead-active => { return selection.is-typeahead-active(); }
             empty: root.rows.length == 0;
             empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : "No matching options";
             viewport-height: options.visible-height; scroll-y <=> options.content-y;
@@ -1260,6 +1313,7 @@ export component KitCombobox inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; retention: root.retention; persistent: false;
+        wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => {
             debounce-timer.running = false;
             root.editing-draft = false;

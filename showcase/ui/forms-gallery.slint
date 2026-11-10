@@ -145,11 +145,13 @@ export global FormExamples {
     callback choice-activate(ChoiceExample,int,int);
     callback rating-clear();
     in-out property <[OptionRow]> suggestion-rows;
+    in-out property <int> suggestion-page-rows: 0;
     in-out property <SelectState> suggestion-state;
     in-out property <string> suggestion-label;
     in-out property <SearchPresentation> suggestion-search: SearchPresentation.ready;
     callback suggestion-open(); callback suggestion-navigate(NavigationStep); callback suggestion-activate(int,int); callback suggestion-dismiss(); callback suggestion-query(string); callback suggestion-typeahead(string);
     in-out property <[OptionRow]> multi-rows;
+    in-out property <int> multi-page-rows: 0;
     in-out property <SelectState> multi-state;
     in-out property <[ChipRow]> multi-chips;
     callback multi-open(); callback multi-navigate(NavigationStep); callback multi-activate(int,int); callback multi-dismiss(); callback multi-query(string); callback multi-typeahead(string); callback multi-remove(int);
@@ -515,11 +517,11 @@ export component FormGallery inherits VerticalLayout {
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Search a collaborator or select several reviewers."; }
         KitField { theme: root.theme;
             KitFieldLabel { theme: root.theme; text: "Collaborator"; focus-requested => { collaborator.take-focus(); } }
-            collaborator := KitCombobox {label:"Collaborator";control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
+            collaborator := KitCombobox {label:"Collaborator";control-size:root.control-size;theme:root.theme;rows:FormExamples.suggestion-rows;state:FormExamples.suggestion-state;selected-label:FormExamples.suggestion-label;search-state:FormExamples.suggestion-search;open-requested=>{FormExamples.suggestion-open();}navigate(step)=>{FormExamples.suggestion-page-rows=self.page-rows;FormExamples.suggestion-navigate(step);}activate(token,generation)=>{FormExamples.suggestion-activate(token,generation);}dismiss(reason)=>{FormExamples.suggestion-dismiss();}query-edited(text)=>{FormExamples.suggestion-query(text);}typeahead(text)=>{FormExamples.suggestion-typeahead(text);}}
         }
         KitField { theme: root.theme;
             KitFieldLabel { theme: root.theme; text: "Project reviewers"; focus-requested => { reviewers.take-focus(); } }
-            reviewers := KitMultiSelect {placeholder:"Add project reviewers";control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
+            reviewers := KitMultiSelect {placeholder:"Add project reviewers";control-size:root.control-size;theme:root.theme;rows:FormExamples.multi-rows;state:FormExamples.multi-state;chips:FormExamples.multi-chips;open-requested=>{FormExamples.multi-open();}navigate(step)=>{FormExamples.multi-page-rows=self.page-rows;FormExamples.multi-navigate(step);}activate(token,generation)=>{FormExamples.multi-activate(token,generation);}dismiss(reason)=>{FormExamples.multi-dismiss();}query-edited(text)=>{FormExamples.multi-query(text);}typeahead(text)=>{FormExamples.multi-typeahead(text);}remove-requested(token)=>{FormExamples.multi-remove(token);}}
         }
         KitFieldError {theme:root.theme;text:FormExamples.multi-error;}
     }

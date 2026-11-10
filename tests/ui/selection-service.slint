@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess } from "@kit";
+import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess, KitMenuBar, KitTabs, KitCarousel, KitSegmentedControl, KitToggleGroup, TabActivation, ChoiceDirection, ChoiceFlow, KitTextField, KitCheckbox, CheckState, KitKeyResult } from "@kit";
 export component SelectionServiceFixture inherits Window {
     width: 800px; height: 1000px;
     in property <[OptionRow]> options;
@@ -12,6 +12,10 @@ export component SelectionServiceFixture inherits Window {
     in property <int> combo-min-query-length: 0;
     in property <duration> combo-query-debounce: 0ms;
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> first-wrap: true;
+    in property <TabActivation> tab-activation: TabActivation.manual;
+    in property <ChoiceFlow> nav-flow: ChoiceFlow.left-to-right;
+    in property <ChoiceDirection> toggle-direction: ChoiceDirection.horizontal;
     out property <SelectState> first-state: first.state;
     out property <SelectState> second-state: second.state;
     out property <SelectState> popup-state: popup.state;
@@ -23,7 +27,18 @@ export component SelectionServiceFixture inherits Window {
     in-out property <string> combo-text <=> combo.text;
     in-out property <string> combo-query <=> combo.query;
     out property <KitValidityState> combo-validity: combo.validity;
+    out property <int> popup-page-rows: popup.page-rows;
+    out property <int> first-page-rows: first.page-rows;
     out property <SelectionRef> radio-selected: radio.selected;
+    out property <SelectionRef> tabs-selected: tabs.selected;
+    out property <SelectState> tabs-state: tabs.state;
+    out property <SelectState> menubar-state: menubar.state;
+    out property <SelectState> carousel-state: carousel.state;
+    out property <string> carousel-editor-text: carousel-editor.text;
+    out property <CheckState> carousel-checkbox-state: carousel-checkbox.state;
+    callback carousel-activated();
+    out property <SelectionRef> segments-selected: segments.selected;
+    out property <int> toggles-active: toggles.active-token;
     in-out property <SelectionRef> acknowledged <=> first.selected;
     in-out property <SelectionRef> combo-selected <=> combo.selected;
     in-out property <[SelectionRef]> expanded <=> accordion.expanded;
@@ -51,11 +66,18 @@ export component SelectionServiceFixture inherits Window {
     public function focus-combo() { combo.take-focus(); }
     public function clear-combo() { combo.clear(); }
     public function focus-radio() { radio.take-focus(); }
+    public function focus-tabs() { tabs.take-focus(); }
+    public function focus-menubar() { menubar.take-focus(); }
+    public function focus-carousel() { carousel.take-focus(); }
+    public function focus-carousel-editor() { carousel-editor.take-focus(); }
+    public function focus-carousel-checkbox() { carousel-checkbox.take-focus(); }
+    public function focus-segments() { segments.take-focus(); }
+    public function focus-toggles() { toggles.take-focus(); }
     public function search-first(text: string) { first.query = text; }
     background: root.theme.canvas;
     VerticalLayout {
         HorizontalLayout {
-            first := KitMenu { theme: root.theme; options: root.options; ownership: root.ownership; chosen(row) => { root.first-chosen(row); } }
+            first := KitMenu { theme: root.theme; options: root.options; ownership: root.ownership; wrap: root.first-wrap; chosen(row) => { root.first-chosen(row); } }
             second := KitMenu { theme: root.theme; options: root.options; chosen(row) => { root.second-chosen(row); } }
         }
         popup := KitSelect { theme: root.theme; options: root.options; access: root.access; }
@@ -73,5 +95,29 @@ export component SelectionServiceFixture inherits Window {
         accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; ownership: root.ownership; expansion-changed(row, expanded) => { root.expansion-changed(row, expanded); } }
         local-accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; }
         radio := KitRadioGroup { theme: root.theme; options: root.options; access: root.access; label: "Destination"; }
+        tabs := KitTabs { theme: root.theme; options: root.options; activation: root.tab-activation; flow: root.nav-flow; }
+        menubar := KitMenuBar { theme: root.theme; options: root.options; flow: root.nav-flow; }
+        carousel := KitCarousel {
+            theme: root.theme; options: root.options; flow: root.nav-flow; action-label: "Choose slide";
+            activate(token, generation) => { root.carousel-activated(); }
+            carousel-editor := KitTextField { theme: root.theme; text: "ab"; }
+            carousel-checkbox := KitCheckbox { theme: root.theme; label: "Slide option"; }
+        }
+        segments := KitSegmentedControl { theme: root.theme; options: root.options; flow: root.nav-flow; columns: 2; label: "Segments"; }
+        toggles := KitToggleGroup { theme: root.theme; options: root.options; direction: root.toggle-direction; flow: root.nav-flow; label: "Toggles"; }
     }
+}
+
+// Fixed public viewport for measuring page changes independently of popups.
+export component SelectionPageFixture inherits Window {
+    width: 400px; height: 500px;
+    in property <[OptionRow]> options;
+    in property <length> menu-height: 180px;
+    out property <int> page-rows: menu.page-rows;
+    out property <SelectState> state: menu.state;
+    out property <SelectState> unmeasured-state: unmeasured.state;
+    public function focus-menu() { menu.take-focus(); }
+    public function unmeasured-page() -> KitKeyResult { return unmeasured.handle-key({text: Key.PageDown}); }
+    unmeasured := KitSelectKeyboard { width: 0px; height: 0px; enabled: false; options: root.options; page-rows: 0; }
+    menu := KitMenu { width: root.width; height: root.menu-height; options: root.options; }
 }

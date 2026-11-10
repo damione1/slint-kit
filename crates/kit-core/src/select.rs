@@ -36,6 +36,38 @@ pub struct SelectSession<K> {
     pub selection: SelectState<K>,
     pub typeahead: String,
     pub last_typeahead_ms: Option<u64>,
+    pub typeahead_timeout_ms: u64,
+    pub wrap: bool,
+}
+
+impl<K> Default for SelectSession<K> {
+    fn default() -> Self {
+        Self {
+            selection: SelectState {
+                selected: None,
+                active: None,
+                open: false,
+            },
+            typeahead: String::new(),
+            last_typeahead_ms: None,
+            typeahead_timeout_ms: 700,
+            wrap: false,
+        }
+    }
+}
+
+impl<K> SelectSession<K> {
+    pub fn is_typeahead_active(&self, now_ms: u64) -> bool {
+        let timeout_ms = if self.typeahead_timeout_ms == 0 {
+            700
+        } else {
+            self.typeahead_timeout_ms
+        };
+        !self.typeahead.is_empty()
+            && self
+                .last_typeahead_ms
+                .is_some_and(|last| now_ms >= last && now_ms - last < timeout_ms)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,6 +77,12 @@ pub enum SelectEvent<K> {
     Navigate {
         step: NavigationStep,
         page_size: usize,
+    },
+    PreviousRow {
+        columns: usize,
+    },
+    NextRow {
+        columns: usize,
     },
     Activate(K),
     Dismiss(DismissReason),
@@ -97,6 +135,8 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
         },
         SelectEvent::Open
         | SelectEvent::Navigate { .. }
+        | SelectEvent::PreviousRow { .. }
+        | SelectEvent::NextRow { .. }
         | SelectEvent::Activate(_)
         | SelectEvent::Dismiss(_)
         | SelectEvent::Typeahead { .. } => match removal_policy {
@@ -125,6 +165,12 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
     }
     controller.typeahead = session.typeahead;
     controller.last_typeahead_ms = session.last_typeahead_ms;
+    controller.typeahead_timeout_ms = if session.typeahead_timeout_ms == 0 {
+        700
+    } else {
+        session.typeahead_timeout_ms
+    };
+    controller.wrap = session.wrap;
     let intent = match event {
         SelectEvent::Reconcile => {
             controller.reset_typeahead();
@@ -136,6 +182,14 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
         }
         SelectEvent::Navigate { step, page_size } => {
             controller.navigate(step, page_size);
+            None
+        }
+        SelectEvent::PreviousRow { columns } => {
+            controller.previous_row(columns);
+            None
+        }
+        SelectEvent::NextRow { columns } => {
+            controller.next_row(columns);
             None
         }
         SelectEvent::Activate(key) => controller.activate(&key),
@@ -153,6 +207,8 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
             selection: controller.state,
             typeahead: controller.typeahead,
             last_typeahead_ms: controller.last_typeahead_ms,
+            typeahead_timeout_ms: controller.typeahead_timeout_ms,
+            wrap: controller.wrap,
         },
         intent,
     })
@@ -212,6 +268,7 @@ pub struct SelectController<K> {
     typeahead: String,
     last_typeahead_ms: Option<u64>,
     typeahead_timeout_ms: u64,
+    wrap: bool,
 }
 
 impl<K: Clone + Eq + Hash> SelectController<K> {
@@ -239,6 +296,7 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             typeahead: String::new(),
             last_typeahead_ms: None,
             typeahead_timeout_ms: 700,
+            wrap: false,
         };
         result.reconcile_selection();
         Ok(result)
@@ -268,8 +326,23 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         self.removal_policy = policy;
         self.reconcile_selection();
     }
+    pub fn typeahead_timeout_ms(&self) -> u64 {
+        self.typeahead_timeout_ms
+    }
     pub fn set_typeahead_timeout_ms(&mut self, timeout: u64) {
         self.typeahead_timeout_ms = timeout;
+    }
+    pub fn wrap(&self) -> bool {
+        self.wrap
+    }
+    pub fn set_wrap(&mut self, wrap: bool) {
+        self.wrap = wrap;
+    }
+    pub fn is_typeahead_active(&self, now_ms: u64) -> bool {
+        !self.typeahead.is_empty()
+            && self
+                .last_typeahead_ms
+                .is_some_and(|last| now_ms >= last && now_ms - last < self.typeahead_timeout_ms)
     }
 
     /// Acknowledges application state, including in controlled mode.
@@ -359,6 +432,15 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
     /// Navigation clamps at edges. Page movement counts eligible options, so
     /// disabled runs cannot strand the active item.
     pub fn navigate(&mut self, step: NavigationStep, page_size: usize) {
+        // Zero means no measured viewport, not an arbitrary page capacity.
+        if page_size == 0
+            && matches!(
+                step,
+                NavigationStep::PageNext | NavigationStep::PagePrevious
+            )
+        {
+            return;
+        }
         if !self.state.open {
             return;
         }
@@ -381,16 +463,87 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         let next = match step {
             NavigationStep::First => 0,
             NavigationStep::Last => last,
-            NavigationStep::Next => current.map_or(0, |i| i.saturating_add(1).min(last)),
-            NavigationStep::Previous => current.map_or(last, |i| i.saturating_sub(1)),
+            NavigationStep::Next => current.map_or(0, |i| {
+                if self.wrap && i >= last {
+                    0
+                } else {
+                    i.saturating_add(1).min(last)
+                }
+            }),
+            NavigationStep::Previous => current.map_or(last, |i| {
+                if self.wrap && i == 0 {
+                    last
+                } else {
+                    i.saturating_sub(1)
+                }
+            }),
             NavigationStep::PageNext => {
-                current.map_or(0, |i| i.saturating_add(page_size.max(1)).min(last))
+                current.map_or(0, |i| i.saturating_add(page_size).min(last))
             }
-            NavigationStep::PagePrevious => {
-                current.map_or(last, |i| i.saturating_sub(page_size.max(1)))
-            }
+            NavigationStep::PagePrevious => current.map_or(last, |i| i.saturating_sub(page_size)),
         };
         self.state.active = Some(self.options[available[next]].key.clone());
+        self.reset_typeahead();
+    }
+
+    /// Move within the rendered source column, preserving disabled cell slots.
+    /// Missing cells in a partial last row are skipped. Wrapping stays in the
+    /// same column; an entirely disabled column leaves the active key intact.
+    pub fn next_row(&mut self, columns: usize) {
+        let Some(current) = self.active_source_index() else {
+            return;
+        };
+        let columns = columns.max(1);
+        let column = current % columns;
+        let mut candidates = (column..self.options.len()).step_by(columns);
+        let next = candidates
+            .clone()
+            .find(|&i| i > current && !self.options[i].disabled)
+            .or_else(|| {
+                if self.wrap {
+                    candidates.find(|&i| !self.options[i].disabled)
+                } else {
+                    None
+                }
+            });
+        self.apply_row_navigation(next);
+    }
+
+    pub fn previous_row(&mut self, columns: usize) {
+        let Some(current) = self.active_source_index() else {
+            return;
+        };
+        let columns = columns.max(1);
+        let column = current % columns;
+        let mut candidates = (column..self.options.len()).step_by(columns).rev();
+        let next = candidates
+            .clone()
+            .find(|&i| i < current && !self.options[i].disabled)
+            .or_else(|| {
+                if self.wrap {
+                    candidates.find(|&i| !self.options[i].disabled)
+                } else {
+                    None
+                }
+            });
+        self.apply_row_navigation(next);
+    }
+
+    fn active_source_index(&self) -> Option<usize> {
+        if !self.state.open {
+            return None;
+        }
+        let active = self.state.active.as_ref()?;
+        self.options.iter().position(|row| &row.key == active)
+    }
+
+    fn apply_row_navigation(&mut self, next: Option<usize>) {
+        if self.state.open {
+            if let Some(next) = next {
+                self.state.active = Some(self.options[next].key.clone());
+            }
+            self.reset_typeahead();
+        }
     }
 
     pub fn activate(&mut self, key: &K) -> Option<SelectionIntent<K>> {
@@ -475,6 +628,9 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         if expired {
             self.typeahead.clear();
         }
+        if self.typeahead.is_empty() && text.trim().is_empty() {
+            return;
+        }
         let repeat = !expired && self.typeahead.chars().count() == 1 && self.typeahead == text;
         if !repeat {
             self.typeahead.push_str(&text);
@@ -522,6 +678,8 @@ mod tests {
             },
             typeahead: String::new(),
             last_typeahead_ms: None,
+            typeahead_timeout_ms: 700,
+            wrap: false,
         };
         let first = reduce_selection(
             options.clone(),
@@ -766,6 +924,7 @@ mod tests {
                 },
                 typeahead: "ap".into(),
                 last_typeahead_ms: Some(42),
+                ..Default::default()
             };
             let reduced = reduce_selection_with_policy(
                 vec![SelectOption::new(2, "Banana"), SelectOption::new(3, "Pear")],
@@ -779,5 +938,143 @@ mod tests {
             assert_eq!(reduced.session.selection.active, Some(2));
             assert!(reduced.intent.is_none());
         }
+    }
+
+    #[test]
+    fn grid_rows_preserve_source_columns_disabled_slots_and_partial_rows() {
+        let mut options = (0..5)
+            .map(|key| SelectOption::new(key, key.to_string()))
+            .collect::<Vec<_>>();
+        options[1].disabled = true;
+        let mut controller = SelectController::new(options.clone(), Some(0), Ownership::Local);
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            None,
+            "closed sessions do not move"
+        );
+        controller.open();
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(2),
+            "disabled column one does not shift column zero"
+        );
+        controller.next_row(2);
+        assert_eq!(controller.state().active, Some(4));
+        controller.next_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(4),
+            "without wrap, the column clamps"
+        );
+        controller.set_wrap(true);
+        controller.next_row(2);
+        assert_eq!(controller.state().active, Some(0));
+        controller.previous_row(2);
+        assert_eq!(controller.state().active, Some(4));
+        options[2].disabled = true;
+        controller.reconcile(options.clone()).unwrap();
+        controller.previous_row(2);
+        assert_eq!(
+            controller.state().active,
+            Some(0),
+            "disabled rows are skipped in the same column"
+        );
+        let mut right = SelectController::new(options, Some(3), Ownership::Local);
+        right.set_wrap(true);
+        right.open();
+        right.next_row(2);
+        assert_eq!(
+            right.state().active,
+            Some(3),
+            "the missing final cell and disabled first cell cannot move columns"
+        );
+        right.previous_row(2);
+        assert_eq!(right.state().active, Some(3));
+    }
+
+    #[test]
+    fn configurable_wrap_and_typeahead_timeout_and_internal_spaces_work() {
+        let mut options = vec![
+            SelectOption::new(1, "Apple Pie"),
+            SelectOption::new(2, "Blocked"),
+            SelectOption::new(3, "Apple Tart"),
+        ];
+        options[1].disabled = true;
+        let mut c = SelectController::new(options.clone(), Some(1), Ownership::Local);
+        c.open();
+        assert!(!c.wrap());
+        c.navigate(NavigationStep::Previous, 5);
+        assert_eq!(
+            c.state().active,
+            Some(1),
+            "default wrap=false clamps at start"
+        );
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(c.state().active, Some(3));
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(
+            c.state().active,
+            Some(3),
+            "default wrap=false clamps at end"
+        );
+
+        c.set_wrap(true);
+        assert!(c.wrap());
+        c.navigate(NavigationStep::Next, 5);
+        assert_eq!(
+            c.state().active,
+            Some(1),
+            "wrap=true wraps from last to first"
+        );
+        c.navigate(NavigationStep::Previous, 5);
+        assert_eq!(
+            c.state().active,
+            Some(3),
+            "wrap=true wraps from first to last"
+        );
+
+        // Leading space when no typeahead is active is ignored.
+        assert!(!c.is_typeahead_active(10));
+        c.typeahead(" ", 10);
+        assert!(!c.is_typeahead_active(10));
+
+        // Active typeahead accepts internal spaces within the configured timeout.
+        c.set_typeahead_timeout_ms(1200);
+        assert_eq!(c.typeahead_timeout_ms(), 1200);
+        c.typeahead("apple", 100);
+        assert!(c.is_typeahead_active(900));
+        c.typeahead(" ", 900);
+        c.typeahead("t", 1500);
+        assert_eq!(c.state().active, Some(3));
+        assert!(!c.is_typeahead_active(2800));
+
+        // Pure reducer preserves wrap and typeahead_timeout_ms across transitions.
+        let session = SelectSession {
+            selection: SelectState {
+                selected: Some(1),
+                active: Some(1),
+                open: true,
+            },
+            typeahead: String::new(),
+            last_typeahead_ms: None,
+            typeahead_timeout_ms: 1500,
+            wrap: true,
+        };
+        let wrapped = reduce_selection(
+            options.clone(),
+            session,
+            Ownership::Local,
+            SelectEvent::Navigate {
+                step: NavigationStep::Previous,
+                page_size: 5,
+            },
+        )
+        .unwrap()
+        .session;
+        assert_eq!(wrapped.selection.active, Some(3));
+        assert!(wrapped.wrap);
+        assert_eq!(wrapped.typeahead_timeout_ms, 1500);
     }
 }

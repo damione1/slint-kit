@@ -243,6 +243,11 @@ fn selection_controllers_mounted_after_install_accept_pointer_and_keyboard() {
             PreviewFamily::Select | PreviewFamily::Combobox | PreviewFamily::Multi
         ) {
             vec![Key::DownArrow, Key::Home, Key::Return]
+        } else if matches!(
+            family,
+            PreviewFamily::Radio | PreviewFamily::RadioHorizontal
+        ) {
+            vec![Key::Space]
         } else {
             vec![Key::Return]
         };
