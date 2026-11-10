@@ -15,7 +15,8 @@ export { CalendarNavigation } from "shared-contracts.slint";
 
 import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
 export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarProjection, KitCalendarService } from "calendar-service.slint";
-import { WeekStart, Ownership } from "shared-contracts.slint";
+import { WeekStart, Ownership, CommitPolicy } from "shared-contracts.slint";
+import { FieldCommit } from "field-service.slint";
 import { DateRangePhase, DateRangeDraft } from "calendar-service.slint";
 export { DateRangePhase } from "calendar-service.slint";
 
@@ -178,6 +179,7 @@ export component KitDateField inherits KitTextField {
 // selection apply atomically; opening an overlay never rewrites the draft.
 export component KitDatePicker inherits Rectangle {
     in property <Ownership> ownership: Ownership.local;
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     in property <bool> required;
     in property <string> min;
     in property <string> max;
@@ -212,6 +214,15 @@ export component KitDatePicker inherits Rectangle {
         if (root.ownership == Ownership.local) { root.accepted-date = date; root.text = KitCalendarService.format-date(date); }
         root.focused = date;
         root.chosen(date);
+    }
+    // Enter and blur both reach this path through the editor's field contract,
+    // which already applied the commit policy and the HTML date constraints.
+    // Re-accepting the current date would repeat `chosen` without a change.
+    function accept-typed(commit: FieldCommit) {
+        if (!commit.value.present || !KitCalendarService.ready) { return; }
+        let date = KitCalendarService.parse-date(commit.value.text);
+        if (date == root.accepted-date) { return; }
+        root.accept-date(date);
     }
     in property <[CalendarDay]> days: root.projection.days;
     in property <[string]> weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -254,11 +265,12 @@ export component KitDatePicker inherits Rectangle {
                 error: root.error;
                 invalid => { root.invalid(); }
 
-                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; accepted-date: root.accepted-date;
+                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; accepted-date: root.accepted-date;
                 label: ""; description: ""; placeholder: root.placeholder; accessible-name: root.label; text <=> root.text;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
-                commit-requested(text) => { if (editor.check-validity()) { root.accept-date(KitCalendarService.parse-date(text)); } root.commit-requested(text); }
+                committed(commit) => { root.accept-typed(commit); }
+                commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
             }
             KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
