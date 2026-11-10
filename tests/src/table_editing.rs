@@ -2095,7 +2095,7 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
         token: 101,
         content: table_cells([
             CellContent::text("Canonical project"),
-            CellContent::text("Hidden quantity"),
+            CellContent::field("Hidden quantity", FieldAccess::Editable),
             CellContent::field("Original owner", FieldAccess::Editable),
         ]),
         ..Default::default()
@@ -2122,6 +2122,7 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                 theme.direction = direction;
                 theme.text_scale = scale;
                 window.set_theme(theme);
+                window.on_validate_table_edit(|_, _, _, _| "".into());
                 columns.set_row_data(0, owner.clone());
                 window.invoke_focus_table();
                 window.set_table_active_column(0);
@@ -2177,8 +2178,331 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                         .text,
                     "Original owner"
                 );
+                let before = commits.borrow().len();
+                let did_reopen = Rc::new(std::cell::Cell::new(false));
+                let reopened = did_reopen.clone();
+                let weak = window.as_weak();
+                let source = columns.clone();
+                let mut replacement = owner.clone();
+                replacement.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
+                window.on_validate_table_edit(move |row, column, generation, _| {
+                    assert_eq!((row, column, generation), (101, OWNER, 1));
+                    if !reopened.replace(true) {
+                        let window = weak.upgrade().unwrap();
+                        window.invoke_cancel_table();
+                        source.set_row_data(0, replacement.clone());
+                        window.invoke_edit_table();
+                    }
+                    "".into()
+                });
+                window.invoke_edit_table();
+                window.window().take_snapshot().unwrap();
+                text(&window, "Retired owner draft");
+                key(&window, Key::Return);
+                flush();
+                window.window().take_snapshot().unwrap();
+                assert!(did_reopen.get());
+                assert!(window.get_table_editing());
+                assert_eq!(window.get_table_edit_draft(), "Hidden quantity");
+                assert_eq!(commits.borrow().len(), before);
+                text(&window, "Reopened source");
+                assert_eq!(window.get_table_edit_draft(), "Reopened source");
+                assert!(window.get_table_edit_bounds().valid);
+                crate::choice_presentation::save_capture(
+                    &window.window().take_snapshot().unwrap(),
+                    &format!("table-column-source-reopened-{direction_name}-{name}-{scale}"),
+                );
+                key(&window, Key::Return);
+                flush();
+                assert!(!window.get_table_editing());
+                assert_eq!(commits.borrow().len(), before + 1);
+                let accepted = commits.borrow();
+                let last = accepted.last().unwrap();
+                assert_eq!((last.0, last.1, last.2), (101, OWNER, 1));
+                assert_eq!(last.3.value.text, "Reopened source");
             }
         }
     }
-    assert_eq!(commits.borrow().len(), 8);
+    assert_eq!(commits.borrow().len(), 16);
+}
+
+#[derive(Clone, Copy)]
+enum ReopenDuring {
+    VerdictCurrent,
+    VerdictRetargeted,
+    EndRetargeted,
+}
+fn assert_reentrant_source_reopen(during: ReopenDuring) {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    let columns = Rc::new(VecModel::from(vec![owner.clone()]));
+    window.set_columns(columns.clone().into());
+    let (data_index, original, accepted) = match during {
+        ReopenDuring::VerdictCurrent => (2usize, "Elliot", "Maya"),
+        ReopenDuring::VerdictRetargeted | ReopenDuring::EndRetargeted => (1usize, "12", "7"),
+    };
+    let mut replacement = owner;
+    replacement.source = slint_kit::ColumnDataIndex::try_from(data_index)
+        .unwrap()
+        .into();
+    let did_reopen = Rc::new(std::cell::Cell::new(false));
+    let reopened = did_reopen.clone();
+    let weak = window.as_weak();
+    let reopen = move || {
+        let window = weak.upgrade().unwrap();
+        window.invoke_cancel_table();
+        columns.set_row_data(0, replacement.clone());
+        window.invoke_edit_table();
+    };
+    match during {
+        ReopenDuring::VerdictCurrent | ReopenDuring::VerdictRetargeted => {
+            window.on_validate_table_edit(move |row, column, generation, _| {
+                assert_eq!((row, column, generation), (1, OWNER, 1));
+                if !reopened.replace(true) {
+                    reopen();
+                }
+                "".into()
+            });
+        }
+        ReopenDuring::EndRetargeted => {
+            window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+                assert_eq!((row, column, generation), (1, OWNER, 1));
+                if outcome == ui::TableEditOutcome::Committed && !reopened.replace(true) {
+                    reopen();
+                }
+            });
+        }
+    }
+    open(&window, 0);
+    text(&window, "Retired owner draft");
+    key(&window, Key::Return);
+    flush();
+    assert!(did_reopen.get());
+    assert!(
+        window.get_table_editing(),
+        "the original native callback must leave the reopened session alone"
+    );
+    assert_eq!(editors(&window).len(), 1);
+    assert_eq!(
+        (
+            window.get_table_edit_row(),
+            window.get_table_edit_column(),
+            window.get_table_edit_generation()
+        ),
+        (1, OWNER, 1)
+    );
+    assert_eq!(window.get_table_edit_draft(), original);
+    assert!(
+        commits.borrow().is_empty(),
+        "an older session/source must not propose a value for the new one"
+    );
+    text(&window, accepted);
+    assert_eq!(
+        window.get_table_edit_draft(),
+        accepted,
+        "the fresh editor owns focus and selects its canonical value"
+    );
+    // A reopened native editor must not retain the previous session's undo history.
+    for _ in 0..3 {
+        down(&window, Key::Control);
+        text(&window, "z");
+        up(&window, Key::Control);
+    }
+    assert_eq!(window.get_table_edit_draft(), original);
+    down(&window, Key::Control);
+    text(&window, "a");
+    up(&window, Key::Control);
+    text(&window, accepted);
+    key(&window, Key::Return);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(
+        (
+            commits.borrow()[0].0,
+            commits.borrow()[0].1,
+            commits.borrow()[0].2
+        ),
+        (1, OWNER, 1)
+    );
+    assert_eq!(commits.borrow()[0].3.value.text, accepted);
+    assert_eq!(observed.started.borrow().len(), 2);
+    let row = window.get_rows().row_data(0).unwrap();
+    assert_eq!(row.content.row_data(1).unwrap().text, "12");
+    assert_eq!(row.content.row_data(2).unwrap().text, "Elliot");
+}
+#[test]
+fn a_verdict_cannot_consume_a_reopened_session_at_the_same_public_address_and_source() {
+    assert_reentrant_source_reopen(ReopenDuring::VerdictCurrent);
+}
+#[test]
+fn a_verdict_cannot_redirect_a_commit_into_a_reopened_canonical_source() {
+    assert_reentrant_source_reopen(ReopenDuring::VerdictRetargeted);
+}
+#[test]
+fn an_end_observer_cannot_redirect_a_commit_into_a_reopened_canonical_source() {
+    assert_reentrant_source_reopen(ReopenDuring::EndRetargeted);
+}
+
+#[test]
+fn an_end_observer_hiding_the_original_column_suppresses_the_stale_proposal() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    let columns = Rc::new(VecModel::from(vec![owner.clone()]));
+    window.set_columns(columns.clone().into());
+    let hidden = columns.clone();
+    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+        assert_eq!(
+            (row, column, generation, outcome),
+            (1, OWNER, 1, ui::TableEditOutcome::Committed)
+        );
+        let mut hidden_owner = owner.clone();
+        hidden_owner.visibility = ColumnVisibility::Hidden;
+        hidden.set_row_data(0, hidden_owner);
+    });
+    open(&window, 0);
+    text(&window, "Retired hidden owner");
+    key(&window, Key::Return);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(window.get_table_active_column(), -1);
+    assert!(commits.borrow().is_empty());
+    assert!(editors(&window).is_empty());
+}
+
+#[derive(Clone, Copy)]
+enum EndProjection {
+    ReorderExplicitSource,
+    HidePreviousPositional,
+}
+fn assert_end_projection_keeps_the_original_source(change: EndProjection) {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let initial = columns();
+    let mut original: Vec<_> = (0..initial.row_count())
+        .map(|index| initial.row_data(index).unwrap())
+        .collect();
+    match change {
+        EndProjection::ReorderExplicitSource => {
+            for (index, column) in original.iter_mut().enumerate() {
+                column.source = slint_kit::ColumnDataIndex::try_from(index).unwrap().into();
+            }
+        }
+        EndProjection::HidePreviousPositional => {}
+    }
+    let source = Rc::new(VecModel::from(original));
+    window.set_columns(source.clone().into());
+    let projected = source.clone();
+    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+        assert_eq!(
+            (row, column, generation, outcome),
+            (1, OWNER, 1, ui::TableEditOutcome::Committed)
+        );
+        match change {
+            EndProjection::ReorderExplicitSource => {
+                let mut reordered: Vec<_> = (0..projected.row_count())
+                    .map(|index| projected.row_data(index).unwrap())
+                    .collect();
+                reordered.swap(0, 2);
+                projected.set_vec(reordered);
+            }
+            EndProjection::HidePreviousPositional => {
+                let mut previous = projected.row_data(0).unwrap();
+                previous.visibility = ColumnVisibility::Hidden;
+                projected.set_row_data(0, previous);
+            }
+        }
+    });
+    open(&window, 2);
+    text(&window, "Maya");
+    key(&window, Key::Return);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(
+        commits.borrow().len(),
+        1,
+        "moving an intact source must preserve its accepted proposal"
+    );
+    assert_eq!(
+        (
+            commits.borrow()[0].0,
+            commits.borrow()[0].1,
+            commits.borrow()[0].2
+        ),
+        (1, OWNER, 1)
+    );
+    assert_eq!(commits.borrow()[0].3.value.text, "Maya");
+    let row = window.get_rows().row_data(0).unwrap();
+    assert_eq!(row.content.row_data(2).unwrap().text, "Elliot");
+}
+#[test]
+fn an_end_observer_reordering_a_column_keeps_its_explicit_source_and_commit_token() {
+    assert_end_projection_keeps_the_original_source(EndProjection::ReorderExplicitSource);
+}
+#[test]
+fn an_end_observer_hiding_a_previous_column_keeps_the_original_positional_source() {
+    assert_end_projection_keeps_the_original_source(EndProjection::HidePreviousPositional);
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum ImmediateCommitRequest {
+    Keyboard,
+    Programmatic,
+}
+fn assert_immediate_commit_after_source_replacement(request: ImmediateCommitRequest) {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    let source = Rc::new(VecModel::from(vec![owner.clone()]));
+    window.set_columns(source.clone().into());
+    let verdicts = Rc::new(std::cell::Cell::new(0));
+    let called = verdicts.clone();
+    window.on_validate_table_edit(move |_, _, _, _| {
+        called.set(called.get() + 1);
+        "".into()
+    });
+    open(&window, 0);
+    // This draft is valid under both installed codecs, so only identity
+    // fencing can prevent a stale business verdict.
+    text(&window, "7");
+    owner.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
+    source.set_row_data(0, owner);
+    // Deliberately no timer/frame/flush between replacement and request.
+    match request {
+        ImmediateCommitRequest::Keyboard => key(&window, Key::Return),
+        ImmediateCommitRequest::Programmatic => window.invoke_commit_table(),
+    }
+    flush();
+    assert_eq!(verdicts.get(), 0);
+    assert!(commits.borrow().is_empty());
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::Superseded
+    );
+    if window.get_table_editing() {
+        // If Return reaches the table after supersession, opening the new
+        // source is legitimate; it must start from its canonical value.
+        assert_eq!(request, ImmediateCommitRequest::Keyboard);
+        assert_eq!(window.get_table_edit_draft(), "12");
+        window.invoke_cancel_table();
+    }
+}
+#[test]
+fn an_immediate_keyboard_commit_after_source_replacement_never_calls_a_stale_verdict() {
+    assert_immediate_commit_after_source_replacement(ImmediateCommitRequest::Keyboard);
+}
+#[test]
+fn an_immediate_programmatic_commit_after_source_replacement_never_calls_a_stale_verdict() {
+    assert_immediate_commit_after_source_replacement(ImmediateCommitRequest::Programmatic);
 }
