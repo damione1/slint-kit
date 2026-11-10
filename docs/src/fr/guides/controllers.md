@@ -16,7 +16,7 @@ Les contrôles montés ensuite par `if`, un modèle ou un popup initialisent leu
 
 ## FieldSpec et brouillons natifs
 
-`FieldSpec<T, E>` contient analyseur, format de la valeur acceptée, format d’affichage, validateur métier et format des erreurs. `FieldSpec::codec` convient lorsque l’analyse exprime toute la règle ; `FieldSpec::new` ajoute un type d’erreur et un validateur métier. Les fabriques couvrent texte, courriel, URL, entier, décimal, argent, pourcentage, quantité, valeurs temporelles, téléphone, OTP et masques.
+`FieldSpec<T, E>` contient analyseur, format de la valeur acceptée, format d’affichage, validateur métier et format des erreurs. `FieldSpec::codec` convient lorsque l’analyse exprime toute la règle ; `FieldSpec::new` ajoute un type d’erreur et un validateur métier. Les fabriques couvrent texte, courriel, URL, entier, décimal, argent, pourcentage, quantité, valeurs temporelles, téléphone, OTP et masques (`FieldSpec::masked(MaskPattern::compile("AA-####")?)`, qui partage la grammaire `#`/`A`/`*`/`\` de `KitMaskedField.mask`).
 
 Enregistrez les codecs nommés avec `install_field_specs(&app, specs)` avant l’affichage ; les doublons de `FieldSpecKey` sont rejetés atomiquement. Un codec est une définition partagée immuable. Il ne stocke jamais brouillon ou valeur acceptée d’un composant. `KitFieldService.reduce` reçoit explicitement `FieldState`, action, règles et clé du codec ; les champs conservent eux-mêmes l’état retourné.
 

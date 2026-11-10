@@ -2979,28 +2979,56 @@
   },
   "KitMaskedField": {
     "fr": {
-      "summary": "Champ texte validé selon un masque défini côté application.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs. Les fonctions natives, callbacks, états et règles d’accessibilité communs sont décrits sur KitTextField.",
-      "behavior": "Le masque valide le texte saisi ; l’exemple n’insère pas automatiquement la ponctuation. Les brouillons invalides conservent la valeur acceptée.",
+      "summary": "Champ texte validé et filtré selon un masque déclaratif borné.",
+      "usage": "Importez le composant depuis `@kit`, définissez `mask` (par exemple `\"AA-####\"`), les libellés et les contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. `#` accepte un chiffre ASCII, `A` une lettre ASCII, `*` un caractère alphanumérique ASCII, `\\` échappe le caractère suivant comme littéral et tout autre caractère est un littéral fixe (1 à 256 jetons, avec au moins un emplacement `#`, `A` ou `*`). Pour un codec métier, enregistrez `FieldSpec::masked(MaskPattern::compile(\"AA-####\").unwrap())` avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne le `MaskedValue` validé à Rust. `commit-policy`, `ownership`, `field-state` et `accepted-text` suivent le contrat partagé de `KitTextField`.",
+      "behavior": "Après `slint_kit::install(&app)`, un `mask` valide dérive automatiquement `min-length`, `max-length`, `pattern` et `placeholder` (`_` par emplacement, littéraux conservés), active `TextLengthPolicy.limit` et filtre la frappe et le collage natifs comme préfixe du masque. Pour préserver le curseur, la sélection, la composition IME et l’historique d’annulation natifs de `TextInput`, le champ n’insère pas automatiquement les séparateurs : l’utilisateur saisit ou colle les littéraux aux positions attendues (et `display-text` reste disponible au repos). Avant `install(&app)`, un champ doté d’un `mask` non vide reste en lecture seule ; un `mask` mal formé renseigne `format-error` (`KitStrings.mask-format-message`).",
       "related": [
         "KitTelephoneField",
         "KitOtpField",
         "KitTextField"
       ],
       "label": "Champ avec masque",
-      "seoTitle": "Champ avec masque pour Slint"
+      "seoTitle": "Champ avec masque pour Slint",
+      "properties": {
+        "mask": {
+          "effect": "Grammaire déclarative du masque : `#` (chiffre ASCII), `A` (lettre ASCII), `*` (alphanumérique ASCII), `\\` pour échapper un littéral et tout autre caractère comme littéral. Compile en une passe vers `min-length`, `max-length`, `pattern` HTML complet et `placeholder` (`_` pour chaque emplacement).",
+          "default": "`\"\"` (aucun masque déclaratif).",
+          "states": "Tant que `mask` est non vide et que `slint_kit::install(&window)` n’a pas été appelé, l’éditeur natif reste en lecture seule. Une affectation par l’hôte ou un changement de `mask` conserve le plus long préfixe valide.",
+          "constraints": "Doit contenir entre 1 et 256 jetons et au moins un emplacement non littéral (`#`, `A` ou `*`), sans `\\` final isolé ; sinon `format-error` expose le diagnostic et le brouillon n’est pas filtré.",
+          "example": "KitMaskedField {\n    label: \"Référence\";\n    mask: \"AA-####\";\n    text: \"AB-2048\";\n}"
+        },
+        "format-error": {
+          "effect": "Diagnostic en lecture seule lorsque `mask` est mal formé (vide de slots, plus de 256 jetons ou échappement `\\` incomplet), localisé via `KitStrings.mask-format-message`.",
+          "default": "`\"\"` lorsque `mask` est vide ou valide.",
+          "example": "champ := KitMaskedField {\n    label: \"Référence\";\n    mask: \"AA-####\";\n}\nText {\n    text: champ.format-error;\n}"
+        }
+      }
     },
     "en": {
-      "summary": "Text input validated against a host-defined mask.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs. Shared native editing functions, callbacks, states and accessibility are documented on KitTextField.",
-      "behavior": "The mask validates the entered text; the example does not insert punctuation automatically. Invalid drafts keep the last accepted value.",
+      "summary": "Text input filtered and validated against a bounded declarative mask.",
+      "usage": "Import the component from `@kit`, set `mask` (for example `\"AA-####\"`), labels and constraints, then call `slint_kit::install(&app)` once before showing the window. `#` matches an ASCII digit, `A` an ASCII letter, `*` an ASCII alphanumeric slot, `\\` escapes the next character as a literal, and any other character is a fixed literal (1 to 256 tokens with at least one `#`, `A` or `*` slot). For a domain codec, register `FieldSpec::masked(MaskPattern::compile(\"AA-####\").unwrap())` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated `MaskedValue` to Rust. `commit-policy`, `ownership`, `field-state` and `accepted-text` follow the shared `KitTextField` contract.",
+      "behavior": "After `slint_kit::install(&app)`, a valid `mask` derives `min-length`, `max-length`, full-value HTML `pattern` and `placeholder` (`_` for each slot, literals preserved), enables `TextLengthPolicy.limit`, and filters native typing and paste as a prefix of the mask. To preserve the native `TextInput` caret, selection, IME composition and undo history, the field never auto-inserts separator literals while typing: users type or paste literals at their mask positions (and `display-text` remains available at rest). Before `install(&app)`, a field with a nonempty `mask` stays read-only; an invalid `mask` populates `format-error` (`KitStrings.mask-format-message`).",
       "related": [
         "KitTelephoneField",
         "KitOtpField",
         "KitTextField"
       ],
       "label": "Masked Field",
-      "seoTitle": "Masked Field for Slint"
+      "seoTitle": "Masked Field for Slint",
+      "properties": {
+        "mask": {
+          "effect": "Declarative mask grammar: `#` (ASCII digit), `A` (ASCII letter), `*` (ASCII alphanumeric), `\\` to escape a literal, and any other character as a literal. Compiles once into `min-length`, `max-length`, full-value HTML `pattern` and `placeholder` (`_` per slot).",
+          "default": "`\"\"` (no declarative mask).",
+          "states": "While `mask` is nonempty and `slint_kit::install(&window)` has not run, the native editor remains read-only. Host text assignments and `mask` changes keep the longest valid prefix.",
+          "constraints": "Must contain 1 to 256 tokens and at least one non-literal slot (`#`, `A` or `*`) with no trailing `\\`; otherwise `format-error` reports the diagnostic and the draft stays unmasked.",
+          "example": "KitMaskedField {\n    label: \"Reference\";\n    mask: \"AA-####\";\n    text: \"AB-2048\";\n}"
+        },
+        "format-error": {
+          "effect": "Read-only diagnostic populated when `mask` has invalid syntax (literal-only, over 256 tokens, or a dangling `\\` escape), localized through `KitStrings.mask-format-message`.",
+          "default": "`\"\"` when `mask` is empty or valid.",
+          "example": "field := KitMaskedField {\n    label: \"Reference\";\n    mask: \"AA-####\";\n}\nText {\n    text: field.format-error;\n}"
+        }
+      }
     }
   },
   "KitMenu": {
