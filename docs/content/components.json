@@ -82,7 +82,8 @@
       "seoTitle": "Avatar pour Slint",
       "related": [
         "KitBadge",
-        "KitCard"
+        "KitCard",
+        "KitAvatarGroup"
       ],
       "properties": {
         "avatar-size": {
@@ -120,7 +121,8 @@
       "seoTitle": "Avatar for Slint",
       "related": [
         "KitBadge",
-        "KitCard"
+        "KitCard",
+        "KitAvatarGroup"
       ],
       "properties": {
         "avatar-size": {
@@ -6681,6 +6683,144 @@
           "effect": "Ignore explicitement la validation UI des champs tout en conservant la garde submitting. Associez le chemin Rust correspondant à FormBinding::submit_without_validation."
         }
       }
+    }
+  },
+  "KitAvatarGroup": {
+    "en": {
+      "label": "Avatar group",
+      "seoTitle": "Avatar group for Slint",
+      "summary": "Overlapping profile avatars with bounded visible members, per-member tones and an accessible overflow count.",
+      "usage": "Provide AvatarEntry rows from KeyedModel<K, AvatarEntry> and resolve activated(token, generation) through accept before opening a profile. Set max-visible, avatar-size or exact size, and overlap. interaction defaults to static; action enables the member/overflow buttons. Handle overflow-activated separately.",
+      "behavior": "Only the visible members and optional overflow avatar mount. Replacing rows cancels held gestures; the host model rejects obsolete generations and disabled members. overflow-text and overflow-accessible-name are customizable; defaults use window KitStrings with singular/plural forms. Empty groups have zero intrinsic size. Status decorations on individual KitAvatar controls use its child slot; this bounded group renders its fixed AvatarEntry presentation.",
+      "related": [
+        "KitAvatar",
+        "KitBadge",
+        "KitWrap"
+      ],
+      "properties": {
+        "entries": {
+          "effect": "Typed `AvatarEntry` rows. Use `KeyedModel<K, AvatarEntry>` for process-unique tokens, the current generation and disabled-row acceptance guards. Each row carries label, initials, source, shape, tone and disabled state.",
+          "constraints": "Set shape and tone explicitly when needed; an omitted struct enum field uses its first variant."
+        },
+        "interaction": {
+          "effect": "`AvatarInteraction.static` exposes member images without Tab stops; `.action` exposes independent member buttons.",
+          "constraints": "Static is the default. Member callbacks carry the token and generation captured at activation start."
+        },
+        "overflow-interaction": {
+          "effect": "Controls the overflow avatar independently with the existing `AvatarInteraction` enum.",
+          "constraints": "Defaults to `interaction`."
+        },
+        "avatar-size": {
+          "effect": "Text-scaled avatar diameter preset from `AvatarSize`.",
+          "constraints": "Defaults to medium; an explicit `size` overrides the preset diameter."
+        },
+        "size": {
+          "effect": "Exact diameter of each member and overflow avatar.",
+          "constraints": "Negative lengths clamp to zero. An explicit diameter stays fixed at 200% text, as with KitAvatar."
+        },
+        "overlap": {
+          "effect": "Overlap between adjacent avatars, using theme spacing by default.",
+          "constraints": "Negative values behave as zero; overlap at or above the diameter gives a zero position step."
+        },
+        "max-visible": {
+          "effect": "Maximum number of member rows mounted before the optional overflow avatar.",
+          "constraints": "Defaults to 5; zero or negative values show only overflow when entries are present. This keeps large source models bounded."
+        },
+        "disabled": {
+          "effect": "Disables every member and overflow action and applies the shared avatar disabled presentation.",
+          "constraints": "A row’s disabled state applies to that member independently."
+        },
+        "accessible-name": {
+          "effect": "Accessible group name.",
+          "constraints": "Defaults to the window-local KitStrings.avatar-group-label."
+        },
+        "overflow-text": {
+          "effect": "Visible text of the overflow avatar.",
+          "constraints": "Defaults to `+` followed by overflow-count. Supply compact text for unusually large counts if needed."
+        },
+        "overflow-accessible-name": {
+          "effect": "Full accessible name of the overflow avatar, independent of its compact visible text.",
+          "constraints": "Defaults to localized KitStrings singular/plural templates, with {count} replaced by the hidden count."
+        },
+        "overflow-count": {
+          "effect": "Read-only number of source rows beyond the visible member bound.",
+          "constraints": "Disabled rows still count as members; the host supplies the source order."
+        }
+      },
+      "callbacks": {
+        "activated": "Resolve the captured member token and generation with KeyedModel.accept before acting.",
+        "overflow-activated": "Request to show the hidden members; the host chooses where and how."
+      },
+      "states": "Static members are images; action members and overflow use the shared pointer, keyboard, focus and disabled behavior. Source order remains Tab order in both directions; theme.direction mirrors positions. Empty groups have zero intrinsic geometry.",
+      "accessibility": "Named group with member images or buttons and a separately named overflow. The full overflow name remains available when visible initials are elided. Qualify native screen readers separately."
+    },
+    "fr": {
+      "label": "Groupe d’avatars",
+      "seoTitle": "Groupe d’avatars pour Slint",
+      "summary": "Avatars de profils superposés avec nombre visible borné, tons par membre et compteur accessible des autres profils.",
+      "usage": "Fournissez des AvatarEntry depuis KeyedModel<K, AvatarEntry> et résolvez activated(token, generation) avec accept avant d’ouvrir un profil. Réglez max-visible, avatar-size ou size exacte, et overlap. interaction est static par défaut ; action active les boutons des membres et du compteur. Traitez overflow-activated séparément.",
+      "behavior": "Seuls les membres visibles et le compteur éventuel sont montés. Remplacer les lignes annule les gestes maintenus ; le modèle hôte refuse générations périmées et membres désactivés. overflow-text et overflow-accessible-name sont personnalisables ; KitStrings fournit les formes singulière/plurielle par défaut. Un groupe vide a une taille intrinsèque nulle. Les décorations de statut d’un KitAvatar individuel utilisent son emplacement enfant ; ce groupe borné rend le modèle AvatarEntry fixe.",
+      "related": [
+        "KitAvatar",
+        "KitBadge",
+        "KitWrap"
+      ],
+      "properties": {
+        "entries": {
+          "effect": "Lignes typées `AvatarEntry`. Utilisez `KeyedModel<K, AvatarEntry>` pour des jetons uniques dans le processus, la génération courante et le refus des lignes désactivées. Chaque ligne porte label, initials, source, shape, tone et disabled.",
+          "constraints": "Définissez shape et tone explicitement si nécessaire ; un champ enum omis prend sa première variante."
+        },
+        "interaction": {
+          "effect": "`AvatarInteraction.static` expose des images sans arrêt Tab ; `.action` expose des boutons de membres indépendants.",
+          "constraints": "Static est le défaut. Le callback du membre porte le jeton et la génération capturés au début de l’activation."
+        },
+        "overflow-interaction": {
+          "effect": "Contrôle indépendamment l’avatar du compteur avec l’enum `AvatarInteraction` existante.",
+          "constraints": "Prend `interaction` par défaut."
+        },
+        "avatar-size": {
+          "effect": "Préréglage de diamètre lié à l’échelle du texte, depuis `AvatarSize`.",
+          "constraints": "Medium par défaut ; `size` explicite remplace le diamètre du préréglage."
+        },
+        "size": {
+          "effect": "Diamètre exact de chaque membre et du compteur.",
+          "constraints": "Les longueurs négatives sont bornées à zéro. Un diamètre explicite reste fixe à 200 % du texte, comme KitAvatar."
+        },
+        "overlap": {
+          "effect": "Superposition entre avatars voisins, issue de l’espacement du thème par défaut.",
+          "constraints": "Une valeur négative vaut zéro ; à partir du diamètre, le pas de position devient nul."
+        },
+        "max-visible": {
+          "effect": "Nombre maximal de membres montés avant le compteur facultatif.",
+          "constraints": "5 par défaut ; zéro ou une valeur négative ne montrent que le compteur si la source contient des lignes. Une grande source reste ainsi bornée."
+        },
+        "disabled": {
+          "effect": "Désactive toutes les actions des membres et du compteur avec la présentation désactivée commune aux avatars.",
+          "constraints": "L’état disabled d’une ligne agit séparément sur ce membre."
+        },
+        "accessible-name": {
+          "effect": "Nom accessible du groupe.",
+          "constraints": "KitStrings.avatar-group-label de la fenêtre par défaut."
+        },
+        "overflow-text": {
+          "effect": "Texte visible de l’avatar du compteur.",
+          "constraints": "Par défaut, `+` suivi de overflow-count. Fournissez un texte compact pour les comptes très élevés si nécessaire."
+        },
+        "overflow-accessible-name": {
+          "effect": "Nom accessible complet du compteur, indépendant de son texte visible compact.",
+          "constraints": "Modèles singulier/pluriel localisés de KitStrings par défaut ; {count} est remplacé par le nombre masqué."
+        },
+        "overflow-count": {
+          "effect": "Nombre en lecture seule des lignes au-delà du nombre visible borné.",
+          "constraints": "Les lignes désactivées restent comptées ; l’hôte fournit l’ordre de la source."
+        }
+      },
+      "callbacks": {
+        "activated": "Résolvez le jeton et la génération capturés avec KeyedModel.accept avant d’agir.",
+        "overflow-activated": "Demande d’afficher les membres masqués ; l’hôte choisit où et comment."
+      },
+      "states": "Les membres statiques sont des images ; les membres actifs et le compteur partagent pointeur, clavier, focus et état désactivé. L’ordre source reste l’ordre Tab dans les deux directions ; theme.direction inverse les positions. Un groupe vide a une géométrie intrinsèque nulle.",
+      "accessibility": "Groupe nommé avec images ou boutons de membres et compteur nommé séparément. Le nom complet du compteur reste disponible si le texte visible est élidé. Les lecteurs d’écran natifs doivent être qualifiés séparément."
     }
   }
 }

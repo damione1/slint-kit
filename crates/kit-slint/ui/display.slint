@@ -96,6 +96,64 @@ export component KitAvatar inherits Rectangle {
     @children
 }
 
+export struct AvatarEntry { token: int, generation: int, label: string, initials: string, source: image, shape: AvatarShape, tone: Tone, disabled: bool }
+component AvatarGroupItem inherits KitAvatar {
+    in property <AvatarEntry> entry;
+    in property <bool> group-disabled;
+    source: root.entry.source;
+    initials: root.entry.initials;
+    accessible-name: root.entry.label;
+    shape: root.entry.shape; tone: root.entry.tone;
+    disabled: root.group-disabled || root.entry.disabled;
+    private property <int> press-token;
+    private property <int> press-generation;
+    callback member-requested(int, int);
+    activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
+    changed entry => { root.cancel-press(); }
+    activated => { root.member-requested(root.press-token, root.press-generation); }
+}
+// A bounded presentation of keyed members; the host resolves their identities.
+export component KitAvatarGroup inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <[AvatarEntry]> entries;
+    in property <AvatarInteraction> interaction: AvatarInteraction.static;
+    in property <AvatarInteraction> overflow-interaction: root.interaction;
+    in property <AvatarSize> avatar-size: AvatarSize.medium;
+    in property <length> size: KitMetrics.avatar-size(root.theme, root.avatar-size);
+    in property <length> overlap: root.theme.spacing.unit * 2 * root.theme.text-scale;
+    in property <int> max-visible: 5;
+    in property <bool> disabled;
+    in property <string> accessible-name: KitStrings.avatar-group-label;
+    in property <string> overflow-text: "+" + root.overflow-count;
+    in property <string> overflow-accessible-name: root.overflow-count == 1 ? KitStrings.avatar-more-singular : KitStrings.avatar-more-template.replace-all("{count}", "" + root.overflow-count);
+    out property <int> overflow-count: max(0, root.entries.length - root.visible-count);
+    private property <int> visible-count: min(root.entries.length, max(0, root.max-visible));
+    private property <int> slot-count: root.visible-count + (root.overflow-count > 0 ? 1 : 0);
+    private property <length> extent: max(0px, root.size);
+    private property <length> step: max(0px, root.extent - max(0px, root.overlap));
+    callback activated(int, int);
+    callback overflow-activated();
+    accessible-role: groupbox; accessible-label: root.accessible-name;
+    preferred-width: root.slot-count == 0 ? 0px : root.extent + (root.slot-count - 1) * root.step;
+    preferred-height: root.slot-count == 0 ? 0px : root.extent;
+    width: root.preferred-width; height: root.preferred-height;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    for index in root.visible-count: AvatarGroupItem {
+        x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.extent - index * root.step : index * root.step; y: 0px;
+        theme: root.theme; entry: root.entries[index]; size: root.extent;
+        interaction: root.interaction; group-disabled: root.disabled;
+        member-requested(token, generation) => { root.activated(token, generation); }
+    }
+    if root.overflow-count > 0: KitAvatar {
+        x: root.theme.direction == ChoiceFlow.right-to-left ? 0px : root.visible-count * root.step; y: 0px;
+        theme: root.theme; size: root.extent; initials: root.overflow-text;
+        accessible-name: root.overflow-accessible-name;
+        interaction: root.overflow-interaction; disabled: root.disabled;
+        tone: Tone.neutral;
+        activated => { root.overflow-activated(); }
+    }
+}
+
 export component KitCard inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <SurfaceLevel> level: SurfaceLevel.flat;

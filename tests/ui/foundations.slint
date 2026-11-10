@@ -206,3 +206,22 @@ export component ButtonGroupFixture inherits Window {
         activated(token, generation) => { root.action-requested(token, generation); }
     }
 }
+
+import { KitAvatarGroup, AvatarEntry, AvatarInteraction } from "@kit";
+export component AvatarGroupFixture inherits Window {
+    width: 420px; height: 240px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[AvatarEntry]> entries;
+    in property <bool> disabled;
+    in property <int> max-visible: 2;
+    in property <AvatarInteraction> interaction: AvatarInteraction.action;
+    in property <AvatarInteraction> overflow-interaction: root.interaction;
+    out property <int> overflow-count: group.overflow-count;
+    in-out property <int> overflow-actions;
+    callback member-activated(int, int);
+    background: root.theme.canvas;
+    group := KitAvatarGroup { x: 24px; y: 24px; theme: root.theme; entries: root.entries; max-visible: root.max-visible; interaction: root.interaction; overflow-interaction: root.overflow-interaction; disabled: root.disabled; accessible-name: "Team";
+        activated(token, generation) => { root.member-activated(token, generation); }
+        overflow-activated => { root.overflow-actions += 1; }
+    }
+}

@@ -728,6 +728,23 @@ impl KeyedRow for ui::ButtonGroupEntry {
     }
 }
 
+impl KeyedRow for ui::AvatarEntry {
+    fn stamp(&mut self, token: i32, generation: i32) {
+        self.token = token;
+        self.generation = generation;
+    }
+    fn enabled(&self) -> bool {
+        !self.disabled
+    }
+    fn label(&self) -> String {
+        if self.label.is_empty() {
+            self.initials.to_string()
+        } else {
+            self.label.to_string()
+        }
+    }
+}
+
 #[cfg(test)]
 mod identity_tests {
     use super::*;

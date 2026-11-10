@@ -108,3 +108,23 @@ test('registration form declares its typed schema and business code within fifte
   assert.match(main, /consent: checked/);
   assert.doesNotMatch(main, /FormFieldPorts|on_field_edited|register_view|\.accept\(|pub fn parse/);
 });
+
+test('unreleased component starters do not link to an absent registry example', async () => {
+  const { default: nunjucks } = await import('nunjucks');
+  const env = new nunjucks.Environment();
+  env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
+  const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
+  const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
+  assert.equal(starters['avatar-group'].development, true);
+  assert.equal(starters['avatar-group'].registryExample, false);
+  for (const locale of ['en', 'fr']) {
+    for (const registryExamples of [false, true]) {
+      for (const version of ['0.7.2', '0.7.3']) {
+        const output = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project: { registryExamples, version }, quickstart: { ...starters['avatar-group'], kitVersion: '0.7.2' } });
+        assert(!output.includes('https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/avatar-group'));
+        assert(!output.includes('cargo run --locked'));
+        assert(output.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
+      }
+    }
+  }
+});
