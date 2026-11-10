@@ -526,3 +526,86 @@ fn sparse_and_extra_cells_always_share_the_complete_header_grid() {
     assert_eq!(row_cells(&window, 0).len(), 2);
     assert_eq!(row_cells(&window, 1).len(), 2);
 }
+
+#[test]
+fn unnamed_rows_and_resizers_use_current_localized_names_and_keep_their_actions() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        resizable(bounded(fixed(180.), 140., 220.)),
+        fill(),
+    ))));
+    window.set_rows(ModelRc::new(VecModel::from(vec![TableRow {
+        token: 41,
+        ..Default::default()
+    }])));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let requested = observe_resizes(&window);
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            frame();
+            window.invoke_focus_table();
+            for (row_name, resize_name) in [
+                ("Unnamed row", "column width"),
+                ("Ligne sans nom", "largeur"),
+            ] {
+                window.set_table_unnamed_row_label(row_name.into());
+                window.set_table_resize_label(resize_name.into());
+                frame();
+                assert!(table.accessible_label().unwrap().contains(row_name));
+                assert_eq!(
+                    delegates(&window, "KitDataTable")[0]
+                        .accessible_label()
+                        .as_deref(),
+                    Some(row_name)
+                );
+                let expected = format!("Product, {resize_name}");
+                let grip = handle(&window, &expected)
+                    .expect("a localized name still exposes the resize control");
+                assert!(handle(&window, "Product, width").is_none());
+                let before = requested.borrow().len();
+                grip.invoke_accessible_increment_action();
+                frame();
+                assert_eq!(requested.borrow().len(), before + 1);
+                let (token, width) = requested.borrow()[before];
+                assert_eq!(token, PRODUCT);
+                assert!(width > 180. && width <= 220.);
+                grip.invoke_accessible_decrement_action();
+                frame();
+                assert_eq!(requested.borrow().len(), before + 2);
+                let (token, width) = requested.borrow()[before + 1];
+                assert_eq!(token, PRODUCT);
+                assert!((140.0..180.0).contains(&width));
+            }
+            crate::choice_presentation::save_capture(
+                &frame(),
+                &format!("table-localized-empty-row-{name}-{scale}"),
+            );
+        }
+    }
+}

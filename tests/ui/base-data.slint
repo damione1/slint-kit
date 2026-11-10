@@ -21,6 +21,8 @@ export component BaseDataFixture inherits Window {
     in property <bool> table-interactive: true;
     in property <TableHeaderFocus> table-header-focus: TableHeaderFocus.individual;
     in property <string> table-header-label: "Column headers";
+    in property <string> table-unnamed-row-label: "Row";
+    in property <string> table-resize-label: "width";
     in property <string> table-ascending-label: "ascending";
     in property <string> table-descending-label: "descending";
     in property <int> table-generation: 1;
@@ -109,7 +111,7 @@ export component BaseDataFixture inherits Window {
             theme: root.theme; control-size: root.table-size; height: root.table-height; columns: root.columns; rows: root.rows;
             generation: root.table-generation; active-index: root.table-active;
             interactive: root.table-interactive; header-focus: root.table-header-focus; header-label: root.table-header-label;
-            label: "Products fixture";
+            label: "Products fixture"; unnamed-row-label: root.table-unnamed-row-label; resize-label: root.table-resize-label;
             sort-ascending-label: root.table-ascending-label;
             sort-descending-label: root.table-descending-label;
             key-event(event) => { return root.table-key-event(event); }
