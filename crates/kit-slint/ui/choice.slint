@@ -145,6 +145,7 @@ export component KitCheckbox inherits KitPressable {
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
+    activate-on-return: false;
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -199,6 +200,7 @@ export component KitSwitch inherits KitPressable {
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
     control-width: ControlWidth.fill;
+    activate-on-return: false;
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -243,6 +245,8 @@ component ChoiceKeyboard inherits FocusScope {
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> activate-on-return: true;
+    in property <bool> both-arrow-axes: false;
     callback navigate(NavigationStep);
     callback activate();
     private property <bool> held;
@@ -260,14 +264,14 @@ component ChoiceKeyboard inherits FocusScope {
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.RightArrow && root.direction == ChoiceDirection.horizontal) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
-        if (event.text == Key.LeftArrow && root.direction == ChoiceDirection.horizontal) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
-        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.vertical) { root.navigate(NavigationStep.next); return accept; }
-        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.vertical) { root.navigate(NavigationStep.previous); return accept; }
-        if (event.text == Key.Space || event.text == Key.Return) { if (!root.held) { root.held = true; root.activate(); } return accept; }
+        if (event.text == Key.RightArrow && (root.direction == ChoiceDirection.horizontal || root.both-arrow-axes)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.previous : NavigationStep.next); return accept; }
+        if (event.text == Key.LeftArrow && (root.direction == ChoiceDirection.horizontal || root.both-arrow-axes)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.next); return accept; }
+        if (event.text == Key.UpArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.previous); return accept; }
+        if (event.text == Key.Space || (root.activate-on-return && event.text == Key.Return)) { if (!root.held) { root.held = true; root.activate(); } return accept; }
         return reject;
     }
-    key-released(event) => { if (event.text == Key.Space || event.text == Key.Return) { root.held = false; return accept; } return reject; }
+    key-released(event) => { if (event.text == Key.Space || (root.activate-on-return && event.text == Key.Return)) { root.held = false; return accept; } return reject; }
     focus-lost(reason) => { root.held = false; }
 }
 
@@ -318,6 +322,7 @@ export component KitRadioGroup inherits Rectangle {
     vertical-stretch: 0;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
+        activate-on-return: false; both-arrow-axes: true;
         navigate(step) => { root.handle-navigate(step); }
         activate => { root.handle-activate(root.active-token, root.generation); }
         // Box layouts measure horizontal and vertical constraints separately,

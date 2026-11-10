@@ -308,7 +308,17 @@ fn choice_activation_and_roving_navigation_use_typed_intents() {
     assert!(window.get_radio_focused());
     key(&window, Key::DownArrow);
     assert_eq!(window.get_active_token(), 3);
+    key(&window, Key::LeftArrow);
+    assert_eq!(window.get_active_token(), 1);
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_active_token(), 3);
     key(&window, Key::Return);
+    assert_eq!(
+        activated.get(),
+        None,
+        "Enter falls through on radio groups instead of activating"
+    );
+    key(&window, Key::Space);
     assert_eq!(activated.get(), Some((3, 7)));
 }
 
