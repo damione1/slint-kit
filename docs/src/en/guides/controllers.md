@@ -57,6 +57,8 @@ Choice and navigation composites expose configurable keyboard policies while kee
 
 `KeyedModel<K, R>` associates a unique typed key with each public row. `R: KeyedRow` defines the kit projection; built-in rows cover table, content, text, chip, file, notification and toast views. `model()` provides a virtualizable model. `replace` rejects duplicate keys before changing anything and retains tokens for surviving keys. Removed tokens are never recycled.
 
+Each `KeyedModel` owns a wide generation sequence; its positive Slint tag cycles after `i32::MAX`, cancelling live component gestures on every change. Do not persist a bare generation as a durable version: an arbitrarily old tag can repeat after a complete cycle. Row tokens remain process-unique and never recycled. If the finite token space is exhausted, new/replace/insert return `ModelError::IdentityExhausted` transactionally instead of panicking.
+
 For collection views with explicit ports, `bind` takes the window and setters for rows, generation and active index. The binding retains a weak window. `navigation()` implements shared roving navigation; `activation(handler)` updates `SelectableRow` state and calls the business handler with `K`. Validate other intents through `accept(token, generation)` or `remove_fenced`. Token-only chip callbacks use `remove(token)` with a non-reused token. Changing source content invalidates generation-fenced gestures; do not substitute an index for a key.
 
 The application still chooses data, sorting, filtering, loading and commands. A large model belongs in a virtualized collection control, not repeated visual children. `action`, `event`, `event2` and `event3` connect business callbacks with a weak window and pass a temporary live handle to the handler.

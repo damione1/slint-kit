@@ -90,6 +90,9 @@
 - Add horizontal/vertical steps, descriptions, optional connectors and keyed, generation-fenced step activation with per-row eligibility; add semantic timeline tones and decorative glyphs. Breaking: complete StepEntry literals require generation/description/enabled and TimelineEntry literals require tone/glyph. Timeline markers default to neutral; workflow progression stays host-owned. KitSteps retains spacing but uses a Rectangle with internal layouts: move former inherited layout padding to a surrounding layout.
 
 
+- Keep collection generation sequences local with a documented nonzero Slint tag wrap. Return identity exhaustion from row allocation instead of panicking. **Breaking:** `ModelError` gains `IdentityExhausted`.
+- Garde les séquences de génération locales avec bouclage explicite du jeton Slint non nul. Retourne l’épuisement d’identité au lieu de paniquer. **Rupture :** `ModelError` ajoute `IdentityExhausted`.
+
 - Keep password examples’ accepted values private and show only a nonsensitive acceptance status; remove secret output from the complete Rust example.
 - Garde privées les valeurs acceptées des exemples de mot de passe et n’affiche qu’un statut non sensible ; supprime la sortie du secret dans l’exemple Rust complet.
 
