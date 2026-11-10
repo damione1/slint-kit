@@ -348,7 +348,7 @@ fn an_unbounded_resizable_column_reports_no_maximum_and_grows_the_grid() {
     window.set_columns(ModelRc::from(model.clone()));
     let requested = observe_resizes(&window);
     let grip = handle(&window, "Product, width").expect("resizable column handle");
-    assert_eq!(grip.accessible_value_minimum(), Some(0.));
+    assert_eq!(grip.accessible_value_minimum(), Some(140.));
     assert_eq!(
         grip.accessible_value_maximum(),
         None,
@@ -459,4 +459,24 @@ fn width_and_order_changes_keep_row_identity_and_selection() {
     window.invoke_focus_table();
     key(&window, Key::Return);
     assert_eq!(&*activated.borrow(), &[(2, 1)]);
+}
+
+#[test]
+fn a_fixed_resizable_column_cannot_hide_its_own_handle() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 2))));
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        resizable(fixed(200.)),
+        fill(),
+    ))));
+    let requested = observe_resizes(&window);
+    let grip = handle(&window, "Product, width").unwrap();
+    let start = center(&grip);
+    pointer_down(&window, start);
+    let end = LogicalPosition::new(start.x - 1000., start.y);
+    pointer_move(&window, end);
+    assert!(header_cells(&window)[0].size().width >= 140.);
+    assert!(handle(&window, "Product, width").unwrap().size().width > 0.);
+    pointer_up(&window, end);
+    assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 140.)));
 }

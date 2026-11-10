@@ -428,7 +428,7 @@ export component KitDataTable inherits Rectangle {
     // layout solver then gives both grids the same answer for the same
     // constraints and total width, which keeps them aligned.
     pure function column-floor(column: TableColumn) -> length {
-        return column.width.sizing == ColumnSizing.fill ? max(root.minimum-column-width, column.width.minimum) : max(0px, column.width.minimum);
+        return column.width.sizing == ColumnSizing.fill ? max(root.minimum-column-width, column.width.minimum) : column.width.resizable ? max(root.handle-recipe.width + root.cell-inset, column.width.minimum > 0px ? column.width.minimum : root.minimum-column-width) : max(0px, column.width.minimum);
     }
     pure function column-ceiling(column: TableColumn) -> length {
         return column.width.ceiling == ColumnCeiling.bounded ? max(root.column-floor(column), column.width.maximum) : root.unbounded;
