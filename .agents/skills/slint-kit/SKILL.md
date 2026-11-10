@@ -232,3 +232,5 @@ Select triggers and disclosure buttons publish expandable/expanded semantics. Sl
 For wrapped `KitSegmentedControl` grids, Up/Down preserve the rendered column and skip disabled cells within it. Use `SelectController::{previous_row,next_row}(columns)` or `KitSelection.{previous-row,next-row}(columns)` for custom grids; list PageUp/PageDown has different eligible-row semantics.
 
 `SelectBinding::navigate(step, page_rows)` requires the current `Option<NonZeroUsize>` capacity for every event; `None` rejects PageUp/PageDown while preserving ordinary navigation. `navigate_page` takes an explicit `NonZeroUsize`. The legacy `bind_select!` window must expose `select-page-rows` from the active component. Slint `page-rows: 0` is unmeasured, so page keys reject without a selection proposal until layout supplies a positive measurement.
+
+`KeyedModel` generation tags are local, positive Slint interaction fences with a documented wrap after `i32::MAX`; never persist them as record versions. Removed row tokens are not recycled. Handle `ModelError::IdentityExhausted` from `new`, `replace` or `insert` without publishing a partial replacement.

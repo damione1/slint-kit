@@ -11,18 +11,30 @@ use std::{
     sync::atomic::{AtomicI32, Ordering},
 };
 static NEXT_TOKEN: AtomicI32 = AtomicI32::new(1);
-static NEXT_GENERATION: AtomicI32 = AtomicI32::new(1);
-fn unique(counter: &AtomicI32) -> i32 {
-    let mut value = counter.load(Ordering::Relaxed);
+fn unique(counter: &AtomicI32) -> Result<i32, ModelError> {
+    let mut current = counter.load(Ordering::Relaxed);
     loop {
-        let next = value
+        let next = current
             .checked_add(1)
-            .expect("model identity space exhausted");
-        match counter.compare_exchange_weak(value, next, Ordering::Relaxed, Ordering::Relaxed) {
-            Ok(previous) => return previous,
-            Err(actual) => value = actual,
+            .ok_or(ModelError::IdentityExhausted)?;
+        match counter.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed) {
+            Ok(token) => return Ok(token),
+            Err(observed) => current = observed,
         }
     }
+}
+// Slint's signed int has a finite positive interaction tag space. Each model
+// advances its own wide sequence and cycles that tag deliberately; a busy
+// collection cannot consume another collection's generations. Live gestures
+// are cancelled on every tag change, including the wrap. Removed row tokens
+// remain process-unique and are never recycled.
+fn view_generation(generation: u64) -> i32 {
+    let limit = u64::try_from(i32::MAX).expect("positive i32 bound fits u64");
+    i32::try_from(generation.saturating_sub(1) % limit + 1)
+        .expect("bounded generation tag fits i32")
+}
+fn next_generation(generation: u64) -> u64 {
+    generation.wrapping_add(1).max(1)
 }
 
 /// Public row identity and availability. Tokens are assigned by KeyedModel,
@@ -60,7 +72,7 @@ impl<K: Eq> ActivePublication<K> {
 }
 struct State<K, R> {
     entries: Vec<Entry<K, R>>,
-    generation: i32,
+    generation: u64,
     active: Option<K>,
     indices: HashMap<K, usize>,
 }
@@ -90,7 +102,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         let model = Self {
             state: Rc::new(RefCell::new(State {
                 entries: vec![],
-                generation: unique(&NEXT_GENERATION),
+                generation: 0,
                 active: None,
                 indices: HashMap::new(),
             })),
@@ -103,8 +115,12 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     pub fn model(&self) -> ModelRc<R> {
         self.rows.clone().into()
     }
+    /// Current positive Slint interaction tag, local to this model.
+    ///
+    /// The tag deliberately cycles after `i32::MAX`; it is an interaction fence,
+    /// not a persistent record version. Row tokens are never recycled.
     pub fn generation(&self) -> i32 {
-        self.state.borrow().generation
+        view_generation(self.state.borrow().generation)
     }
     pub fn active_index(&self) -> i32 {
         let state = self.state.borrow();
@@ -171,7 +187,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     }
     pub fn accept(&self, token: i32, generation: i32) -> Option<K> {
         let state = self.state.borrow();
-        if generation != state.generation {
+        if generation != view_generation(state.generation) {
             return None;
         }
         state
@@ -189,6 +205,13 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .map(|entry| entry.key.clone())
     }
     pub fn replace(&self, entries: impl IntoIterator<Item = (K, R)>) -> Result<(), ModelError> {
+        self.replace_allocating(entries, || unique(&NEXT_TOKEN))
+    }
+    fn replace_allocating(
+        &self,
+        entries: impl IntoIterator<Item = (K, R)>,
+        mut allocate: impl FnMut() -> Result<i32, ModelError>,
+    ) -> Result<(), ModelError> {
         let entries = entries.into_iter().collect::<Vec<_>>();
         let mut keys = HashSet::new();
         if entries.iter().any(|(key, _)| !keys.insert(key)) {
@@ -200,24 +223,26 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .iter()
             .map(|entry| (entry.key.clone(), entry.token))
             .collect::<HashMap<_, _>>();
-        state.generation = unique(&NEXT_GENERATION);
-        let generation = state.generation;
-        state.entries = entries
+        let next = next_generation(state.generation);
+        let generation = view_generation(next);
+        let projected = entries
             .into_iter()
             .map(|(key, mut row)| {
-                let token = tokens
-                    .get(&key)
-                    .copied()
-                    .unwrap_or_else(|| unique(&NEXT_TOKEN));
+                let token = match tokens.get(&key).copied() {
+                    Some(token) => token,
+                    None => allocate()?,
+                };
                 row.stamp(token, generation);
-                Entry {
+                Ok(Entry {
                     key,
                     token,
                     row,
                     revision: Rc::new(()),
-                }
+                })
             })
-            .collect();
+            .collect::<Result<Vec<_>, ModelError>>()?;
+        state.generation = next;
+        state.entries = projected;
         state.indices = state
             .entries
             .iter()
@@ -259,8 +284,8 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         state
             .entries
             .sort_by(|left, right| compare(&left.key, &right.key));
-        state.generation = unique(&NEXT_GENERATION);
-        let generation = state.generation;
+        state.generation = next_generation(state.generation);
+        let generation = view_generation(state.generation);
         for entry in &mut state.entries {
             entry.row.stamp(entry.token, generation);
         }
@@ -318,6 +343,14 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         }
     }
     pub fn insert(&self, key: K, row: R) -> Result<(), ModelError> {
+        self.insert_allocating(key, row, || unique(&NEXT_TOKEN))
+    }
+    fn insert_allocating(
+        &self,
+        key: K,
+        row: R,
+        allocate: impl FnOnce() -> Result<i32, ModelError>,
+    ) -> Result<(), ModelError> {
         let mut state = self.state.borrow_mut();
         if state.indices.contains_key(&key) {
             return Err(ModelError::DuplicateKey);
@@ -325,7 +358,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         let index = state.entries.len();
         state.entries.push(Entry {
             key,
-            token: unique(&NEXT_TOKEN),
+            token: allocate()?,
             row,
             revision: Rc::new(()),
         });
@@ -335,8 +368,8 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     }
     fn membership_changed(&self, change: MembershipChange) {
         let mut state = self.state.borrow_mut();
-        state.generation = unique(&NEXT_GENERATION);
-        let generation = state.generation;
+        state.generation = next_generation(state.generation);
+        let generation = view_generation(state.generation);
         for entry in &mut state.entries {
             entry.row.stamp(entry.token, generation);
         }
@@ -387,7 +420,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         let Some(index) = state.indices.get(key).copied() else {
             return false;
         };
-        let generation = state.generation;
+        let generation = view_generation(state.generation);
         let entry = &mut state.entries[index];
         update(&mut entry.row);
         entry.row.stamp(entry.token, generation);
@@ -532,7 +565,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             };
             let state = state.borrow();
             rows(&window, model.into());
-            generation(&window, state.generation);
+            generation(&window, view_generation(state.generation));
             active(
                 &window,
                 state
@@ -692,5 +725,92 @@ impl KeyedRow for ui::ButtonGroupEntry {
     }
     fn label(&self) -> String {
         self.text.to_string()
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    #[test]
+    fn exhausted_token_allocation_is_an_error_and_does_not_wrap() {
+        let counter = AtomicI32::new(i32::MAX - 1);
+        assert_eq!(unique(&counter), Ok(i32::MAX - 1));
+        assert_eq!(unique(&counter), Err(ModelError::IdentityExhausted));
+        assert_eq!(unique(&counter), Err(ModelError::IdentityExhausted));
+        assert_eq!(counter.load(Ordering::Relaxed), i32::MAX);
+    }
+    #[test]
+    fn wrapping_a_live_model_rejects_the_previous_generation() {
+        let model = KeyedModel::new([(1usize, ui::TextLine::default())]).unwrap();
+        model.state.borrow_mut().generation = u64::try_from(i32::MAX).unwrap() - 1;
+        model.replace([(1usize, ui::TextLine::default())]).unwrap();
+        let token = model.rows.row_data(0).unwrap().token;
+        assert_eq!(model.generation(), i32::MAX);
+        assert_eq!(model.accept(token, i32::MAX), Some(1));
+        model.replace([(1usize, ui::TextLine::default())]).unwrap();
+        assert_eq!(model.generation(), 1);
+        assert_eq!(model.accept(token, i32::MAX), None);
+        assert_eq!(model.accept(token, 1), Some(1));
+    }
+    #[test]
+    fn exhausted_replacement_keeps_records_generation_active_identity_and_publication() {
+        let model = KeyedModel::new([(
+            1usize,
+            ui::ContentItem {
+                title: "before".into(),
+                ..Default::default()
+            },
+        )])
+        .unwrap();
+        let before = model.rows.row_data(0).unwrap();
+        model.select(before.token, before.generation).unwrap();
+        let generation = model.generation();
+        let publications = Rc::new(std::cell::Cell::new(0));
+        let observed = publications.clone();
+        model
+            .publish
+            .borrow_mut()
+            .push(Rc::new(move || observed.set(observed.get() + 1)));
+        let counter = AtomicI32::new(i32::MAX - 1);
+        assert_eq!(
+            model.replace_allocating(
+                [
+                    (
+                        1usize,
+                        ui::ContentItem {
+                            title: "replacement".into(),
+                            ..Default::default()
+                        }
+                    ),
+                    (2usize, ui::ContentItem::default()),
+                    (3usize, ui::ContentItem::default()),
+                ],
+                || unique(&counter)
+            ),
+            Err(ModelError::IdentityExhausted)
+        );
+        assert_eq!(model.generation(), generation);
+        assert_eq!(model.len(), 1);
+        assert_eq!(model.active_index(), 0);
+        assert_eq!(model.active_row().unwrap().title, "before");
+        assert_eq!(model.accept(before.token, generation), Some(1));
+        assert_eq!(model.rows.row_data(0).unwrap().title, "before");
+        assert_eq!(publications.get(), 0);
+        assert_eq!(
+            model.insert_allocating(2usize, ui::ContentItem::default(), || unique(&counter)),
+            Err(ModelError::IdentityExhausted)
+        );
+        assert_eq!(model.generation(), generation);
+        assert_eq!(model.len(), 1);
+        assert_eq!(model.active_row().unwrap().title, "before");
+        assert_eq!(publications.get(), 0);
+    }
+
+    #[test]
+    fn model_generation_tags_have_an_explicit_nonzero_wrap() {
+        let last = u64::try_from(i32::MAX).unwrap();
+        assert_eq!(view_generation(last), i32::MAX);
+        assert_eq!(view_generation(last + 1), 1);
+        assert_eq!(next_generation(u64::MAX), 1);
     }
 }

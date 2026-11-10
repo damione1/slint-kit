@@ -244,12 +244,14 @@ pub struct RowToken {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ModelError {
     DuplicateKey,
+    IdentityExhausted,
 }
 
 impl std::fmt::Display for ModelError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::DuplicateKey => f.write_str("select option keys must be unique"),
+            Self::IdentityExhausted => f.write_str("collection identity space is exhausted"),
         }
     }
 }

@@ -368,3 +368,32 @@ fn page_navigation_reads_the_current_window_getter_and_does_not_retain_it() {
         "a dropped view receives no navigation"
     );
 }
+
+#[test]
+fn busy_collections_do_not_advance_another_models_generation_sequence() {
+    let busy = KeyedModel::new([(Record(1), row("busy"))]).unwrap();
+    let idle = KeyedModel::new([(Record(2), row("idle"))]).unwrap();
+    let initial = idle.generation();
+    assert_eq!(
+        busy.generation(),
+        initial,
+        "each model starts its own sequence"
+    );
+    let busy_row = busy.model().row_data(0).unwrap();
+    assert_eq!(
+        idle.accept(busy_row.token, initial),
+        None,
+        "equal generation tags cannot alias another model's row"
+    );
+    for _ in 0..100 {
+        busy.replace([(Record(1), row("busy"))]).unwrap();
+    }
+    assert_eq!(idle.generation(), initial);
+    assert_eq!(busy.generation(), initial + 100);
+    let later = KeyedModel::new([(Record(3), row("later"))]).unwrap();
+    assert_eq!(
+        later.generation(),
+        initial,
+        "a newly created model does not inherit another model's traffic"
+    );
+}

@@ -538,6 +538,7 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
         SelectController::try_new(options.clone(), None, Ownership::Local).map_err(|error| {
             match error {
                 ModelError::DuplicateKey => ChoiceError::DuplicateKey,
+                ModelError::IdentityExhausted => ChoiceError::CapacityExhausted,
             }
         })?;
         let (next, rows) = {
