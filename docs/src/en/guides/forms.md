@@ -43,6 +43,8 @@ app.on_contact_changed(move |commit| {
 
 The HTML constraint engine enforces intrinsic email, URL, numeric, date and other input rules, including `required`, bounds, lengths, pattern and step. Nonempty text is insufficient for email or URL. A custom codec adds domain rules after those shared constraints. `FieldSpec::accept` returns the parsed value; pass that value to business code instead of parsing it again. Do not replace native editing with host-side string rewriting.
 
+Number fields follow the spin button pattern of web number inputs: Up/Down move one `step`, PageUp/PageDown move `page-steps` steps (10 by default), and Home/End jump to `min`/`max` when that bound is set; otherwise they keep their native caret movement. Steps use exact decimal arithmetic on the `min`/`default-value` lattice and replace the draft like typed text, so `edited`, `value-edited`, dirty tracking, native undo and `commit-policy` apply unchanged, and a step clamped at a bound emits nothing. Fields with `step: "any"`, read-only or disabled fields do not step. Set `wheel-stepping: true` to also step the focused editor with the wheel; `step-by` and `step-to-bound` expose the same path to custom buttons. The `KitNumberStepper` buttons still commit each press at once.
+
 ## Drafts and acceptance
 
 `text` remains the native editing draft, including incomplete values. `field-state` exposes accepted value, draft, dirty/touched flags and the last transition; `accepted-text` projects the last accepted text. `committed(FieldCommit)` contains the candidate and the constraints under which it was accepted. A named codec key is application data, independent of visual position.

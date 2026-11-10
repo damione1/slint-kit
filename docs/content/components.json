@@ -1499,24 +1499,26 @@
     "fr": {
       "summary": "Saisie numérique reliée à DecimalValue en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitIntegerField",
         "KitMoneyField"
       ],
       "label": "Champ décimal",
-      "seoTitle": "Champ décimal pour Slint"
+      "seoTitle": "Champ décimal pour Slint",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Numeric text input connected to DecimalValue in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitIntegerField",
         "KitMoneyField"
       ],
       "label": "Decimal Field",
-      "seoTitle": "Decimal Field for Slint"
+      "seoTitle": "Decimal Field for Slint",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitDialogBody": {
@@ -1733,24 +1735,26 @@
     "fr": {
       "summary": "Saisie numérique reliée à DurationValue en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitIntegerField",
         "KitTimeField"
       ],
       "label": "Champ durée",
-      "seoTitle": "Champ durée pour Slint"
+      "seoTitle": "Champ durée pour Slint",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Numeric text input connected to DurationValue in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitIntegerField",
         "KitTimeField"
       ],
       "label": "Duration Field",
-      "seoTitle": "Duration Field for Slint"
+      "seoTitle": "Duration Field for Slint",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitEmailField": {
@@ -2437,24 +2441,26 @@
     "fr": {
       "summary": "Saisie numérique reliée à i64 en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitNumberStepper",
         "KitDecimalField"
       ],
       "label": "Champ entier",
-      "seoTitle": "Champ entier pour Slint"
+      "seoTitle": "Champ entier pour Slint",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Numeric text input connected to i64 in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitNumberStepper",
         "KitDecimalField"
       ],
       "label": "Integer Field",
-      "seoTitle": "Integer Field for Slint"
+      "seoTitle": "Integer Field for Slint",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitIsoWeekField": {
@@ -2589,24 +2595,26 @@
     "fr": {
       "summary": "Champ monétaire Slint avec montants décimaux exacts, règles de devise explicites et édition native, acceptés en valeur Money typée en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitDecimalField",
         "KitQuantityField"
       ],
       "label": "Champ monétaire",
-      "seoTitle": "Champ monétaire Slint et valeurs Rust exactes"
+      "seoTitle": "Champ monétaire Slint et valeurs Rust exactes",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Slint money input with exact decimal amounts, explicit currency rules and native editing, accepted as a typed Money value in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitDecimalField",
         "KitQuantityField"
       ],
       "label": "Money Field",
-      "seoTitle": "Slint money field with exact Rust values"
+      "seoTitle": "Slint money field with exact Rust values",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitMonthField": {
@@ -2807,7 +2815,7 @@
     "fr": {
       "summary": "Saisie décimale avec demandes d’incrémentation et de décrémentation.",
       "usage": "Définissez `min`, `max`, `step`, `text` et éventuellement `spec-key` avec des décimaux exacts. Le kit applique les pas numériques HTML et émet `committed(FieldCommit)`. Enregistrez un `FieldSpec` puis utilisez `spec.accept` pour obtenir un nombre typé. L’ancien `step-requested` est un callback d’observation ; n’appliquez pas un second pas dans l’hôte.",
-      "behavior": "Le service du kit applique chaque pas au décimal exact. La saisie texte utilise le même parseur et la même validation que les autres champs numériques.",
+      "behavior": "Le service du kit applique chaque pas au décimal exact. La saisie texte utilise le même parseur et la même validation que les autres champs numériques. Les boutons réécrivent le brouillon et valident aussitôt. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitIntegerField",
         "KitDecimalField",
@@ -2833,7 +2841,7 @@
           "example": "KitNumberStepper {\n    label: \"Copies\";\n    max: \"99\";\n}"
         },
         "step": {
-          "effect": "Valeur d’un appui sur un bouton et granularité de la vérification de pas HTML, depuis la base `min` (sinon `default-value`, sinon zéro). `\"any\"` désactive la vérification de pas et les boutons ne font alors rien.",
+          "effect": "Valeur d’un appui sur un bouton et granularité de la vérification de pas HTML, depuis la base `min` (sinon `default-value`, sinon zéro). `\"any\"` désactive la vérification de pas et les boutons et les touches de pas ne font alors rien.",
           "default": "`\"1\"`.",
           "example": "KitNumberStepper {\n    label: \"Opacité\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
         },
@@ -2857,17 +2865,28 @@
           "effect": "Affiche un `KitFieldLabel` au-dessus de la rangée lorsqu’il n’est pas vide ; cliquer dessus donne le focus à l’éditeur, et il nomme l’éditeur pour les technologies d’assistance.",
           "default": "`\"\"` : aucune ligne de libellé ni nom accessible.",
           "example": "KitNumberStepper {\n    label: \"Passagers\";\n}"
+        },
+        "page-steps": {
+          "effect": "Nombre de pas que PageUp et PageDown appliquent à l’éditeur ; transmis au champ décimal interne.",
+          "default": "`10`.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    page-steps: 5;\n}"
+        },
+        "wheel-stepping": {
+          "effect": "Si la molette fait avancer l’éditeur ayant le focus d’un pas ; transmis au champ décimal interne.",
+          "default": "`false`.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    wheel-stepping: true;\n}"
         }
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME. Les deux boutons sont nommés par `increment-label`/`decrement-label`."
     },
     "en": {
       "summary": "Decimal input with increment and decrement requests.",
       "usage": "Set exact `min`, `max`, `step`, `text` and optionally `spec-key`. The kit applies HTML numeric stepping internally and emits `committed(FieldCommit)`. Register a `FieldSpec` to receive a typed number with `spec.accept`. Legacy `step-requested` is an observation callback; do not step a second time in the host.",
-      "behavior": "The kit service applies each step to the exact decimal. Text edits use the same parser and validation path as other numeric fields.",
+      "behavior": "The kit service applies each step to the exact decimal. Text edits use the same parser and validation path as other numeric fields. The buttons rewrite the draft and commit at once. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitIntegerField",
         "KitDecimalField",
@@ -2893,7 +2912,7 @@
           "example": "KitNumberStepper {\n    label: \"Copies\";\n    max: \"99\";\n}"
         },
         "step": {
-          "effect": "Amount of one button press and granularity of the HTML step check, from the base `min` (else `default-value`, else zero). `\"any\"` disables the step check and the buttons then do nothing.",
+          "effect": "Amount of one button press and granularity of the HTML step check, from the base `min` (else `default-value`, else zero). `\"any\"` disables the step check and the buttons and the step keys then do nothing.",
           "default": "`\"1\"`.",
           "example": "KitNumberStepper {\n    label: \"Opacity\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
         },
@@ -2917,12 +2936,23 @@
           "effect": "Shows a `KitFieldLabel` above the row when nonempty; clicking it focuses the editor, and it names the editor for assistive technology.",
           "default": "`\"\"`: no label row and no accessible name.",
           "example": "KitNumberStepper {\n    label: \"Passengers\";\n}"
+        },
+        "page-steps": {
+          "effect": "Number of steps PageUp and PageDown move the editor; forwarded to the inner decimal field.",
+          "default": "`10`.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    page-steps: 5;\n}"
+        },
+        "wheel-stepping": {
+          "effect": "Whether the wheel steps the focused editor by one step; forwarded to the inner decimal field.",
+          "default": "`false`.",
+          "example": "KitNumberStepper {\n    label: \"Copies\";\n    wheel-stepping: true;\n}"
         }
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME. The two buttons are labelled by `increment-label`/`decrement-label`."
     }
   },
   "KitOption": {
@@ -3041,24 +3071,26 @@
     "fr": {
       "summary": "Saisie numérique reliée à Percent en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitDecimalField",
         "KitProgress"
       ],
       "label": "Champ pourcentage",
-      "seoTitle": "Champ pourcentage pour Slint"
+      "seoTitle": "Champ pourcentage pour Slint",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Numeric text input connected to Percent in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitDecimalField",
         "KitProgress"
       ],
       "label": "Percent Field",
-      "seoTitle": "Percent Field for Slint"
+      "seoTitle": "Percent Field for Slint",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitPressable": {
@@ -3133,24 +3165,26 @@
     "fr": {
       "summary": "Saisie numérique reliée à Quantity avec Unit::Kilograms en Rust.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur.",
+      "behavior": "Le brouillon reste distinct de la valeur typée acceptée. Une saisie invalide ou incomplète affiche une erreur sans remplacer cette valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus.",
       "related": [
         "KitDecimalField",
         "KitMoneyField"
       ],
       "label": "Champ quantité",
-      "seoTitle": "Champ quantité pour Slint"
+      "seoTitle": "Champ quantité pour Slint",
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME."
     },
     "en": {
       "summary": "Numeric text input connected to Quantity with Unit::Kilograms in Rust.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value.",
+      "behavior": "Draft text stays separate from the accepted typed value. Invalid or incomplete input shows an error without replacing that value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused.",
       "related": [
         "KitDecimalField",
         "KitMoneyField"
       ],
       "label": "Quantity Field",
-      "seoTitle": "Quantity Field for Slint"
+      "seoTitle": "Quantity Field for Slint",
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME."
     }
   },
   "KitRadialProgress": {
@@ -4478,6 +4512,17 @@
           "effect": "Ordre de layout natif en lecture seule pour une partie de fin. Les actions personnalisées gardent leurs noms accessibles et leurs conditions de disponibilité.",
           "default": "`1`.",
           "example": "champ := KitTextField {\n    KitInputGroupEnd { layout-order: champ.trailing-adornment-order; KitButton { text: \"Copier\"; } }\n}"
+        },
+        "page-steps": {
+          "effect": "Nombre de pas que PageUp et PageDown appliquent à un champ numérique, en entier. Haut/Bas déplacent d’un pas ; Début/Fin sautent à `min`/`max` lorsque la borne est définie et gardent sinon leur déplacement natif du curseur. Les touches n’agissent que si `step` n’est pas `\"any\"` et que `access` est éditable ; chaque pas passe par le moteur de pas HTML exact, remplace le brouillon comme une frappe (`edited`, `value-edited`, dirty, annulation native) et suit `commit-policy`. Un pas bloqué à une borne ne modifie rien.",
+          "default": "`10`.",
+          "constraints": "Un nombre inférieur à un ne fait rien. Les flèches modifiées (Control, Meta, Alt) restent à l’éditeur natif, et un `key-pressed` qui retourne `accept` passe avant.",
+          "example": "KitDecimalField {\n    label: \"Opacité\";\n    step: \"0.01\";\n    page-steps: 10;\n    min: \"0\";\n    max: \"1\";\n}"
+        },
+        "wheel-stepping": {
+          "effect": "Si la molette fait avancer un champ numérique ayant le focus : vers le haut incrémente, vers le bas décrémente, d’un pas à chaque fois, par le même chemin que les flèches. Un champ sans focus laisse la molette à sa vue défilante.",
+          "default": "`false`, comme dans les navigateurs.",
+          "example": "KitIntegerField {\n    label: \"Places\";\n    wheel-stepping: true;\n}"
         }
       },
       "callbacks": {
@@ -4508,12 +4553,14 @@
         "cancel-edit": "Restaure le brouillon accepté si le champ est éditable et initialisé, puis émet cancelled. Remplace la référence d’édition native.",
         "acknowledge": "Acquitte la FieldValue acceptée par l’hôte sans réécrire le brouillon actif.",
         "reset-field": "Restaure default-value et l’état accepté, réinitialise la validation puis notifie edited. Remplace l’historique natif.",
-        "step-number": "Applique un pas aux contraintes numériques partagées en arithmétique exacte, puis demande l’acceptation.",
+        "step-number": "Pas par pointeur utilisé par les boutons de `KitNumberStepper` : réécrit le brouillon d’un pas et valide aussitôt, sans exiger le focus de l’éditeur. Clavier, molette et actions accessibles utilisent `step-by`.",
         "check-validity": "Vérifie les contraintes sans changer la visibilité de signalement ; un échec émet invalid.",
         "report-validity": "Révèle les erreurs de contrainte et renvoie la validité sans déplacer le focus.",
         "focus-if-invalid": "Cible ce champ uniquement s’il participe à la validation et est invalide ; renvoie si le focus a été demandé.",
         "set-custom-validity": "Définit un message de contrainte applicative ; une chaîne vide efface cette erreur.",
-        "reset-validation": "Efface la présentation HTML modifié/touché/signalé en conservant brouillon et valeur acceptée."
+        "reset-validation": "Efface la présentation HTML modifié/touché/signalé en conservant brouillon et valeur acceptée.",
+        "step-by": "Avance un champ numérique de `count` pas dans une direction par le chemin d’édition natif, comme Haut/Bas et PageUp/PageDown ; retourne si le pas s’applique (même bloqué à une borne), faux pour les genres texte, `step: \"any\"`, la lecture seule ou l’état désactivé.",
+        "step-to-bound": "Saute à `min` (décrément) ou `max` (incrément) par le chemin d’édition natif, comme Début/Fin ; retourne faux si la borne est absente."
       },
       "accessibility": "Le TextInput natif expose son nom accessible, l’espace réservé, l’état activé/lecture seule et sa valeur. Un mot de passe caché tait sa valeur accessible. La description conserve l’aide avec les erreurs visibles, l’obligation, préfixe/suffixe, compteur et vérifications ; ces dernières demandent une annonce polie. `required-label`, libellés afficher/masquer/effacer, menus et messages de validation héritent des valeurs de fenêtre `KitStrings`, surchargeables par champ. Slint 1.18 ne propose ni états accessibles requis/invalide natifs, ni type de clavier courriel/URL/téléphone, ni remplissage OTP. Le texte descriptif constitue le contournement pris en charge ; les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil physique. Le menu d’édition utilise les rôles liste/élément du kit car Slint 1.18 ne fournit pas les rôles menu/élément de menu. Il s’ouvre par clic droit, Menu ou Maj+F10 et accepte flèches, Début/Fin, Entrée, Échap et Tab ; l’appui tactile prolongé n’est pas fourni. Donnez un accessible-name et une garde d’accès à chaque action personnalisée. Les parties suivent l’ordre Tab natif de déclaration même lorsqu’elles apparaissent au début. L’état d’activité reste associé à l’éditeur natif et annoncé poliment.",
       "states": "Un champ éditable conserve sélection, curseur, annulation et IME. La lecture seule conserve sélection et copie ; un champ désactivé rejette édition et actions. La validation peut être pristine, checking, valid ou invalid ; `validation-timing` régit la visibilité des erreurs HTML/codec et un signalement explicite les révèle immédiatement. `validation-visible` observe cette présentation. Le dévoilement du mot de passe conserve l’éditeur et change `secret-visibility` ; `input-method-hints` règle capitalisation, correction et complétion dans les limites des API Slint. Les actions d’effacement, de révélation et les parties personnalisées gardent leurs états désactivés ; busy peut coexister avec une validation en attente."
@@ -4758,6 +4805,17 @@
           "effect": "Read-only native layout order for a trailing composition part. Custom actions retain their own accessible names and availability.",
           "default": "`1`.",
           "example": "field := KitTextField {\n    KitInputGroupEnd { layout-order: field.trailing-adornment-order; KitButton { text: \"Copy\"; } }\n}"
+        },
+        "page-steps": {
+          "effect": "Number of steps PageUp and PageDown move a number field, as a whole number. Up/Down move one step; Home/End jump to `min`/`max` when that bound is set and otherwise keep their native caret movement. Keys step only while `step` is not `\"any\"` and `access` is editable; every step goes through the exact HTML step engine, replaces the draft like typed text (`edited`, `value-edited`, dirty, native undo) and follows `commit-policy`. A step clamped at a bound edits nothing.",
+          "default": "`10`.",
+          "constraints": "A count below one steps nothing. Modified arrows (Control, Meta, Alt) are left to the native editor, and a `key-pressed` hook that returns `accept` runs first.",
+          "example": "KitDecimalField {\n    label: \"Opacity\";\n    step: \"0.01\";\n    page-steps: 10;\n    min: \"0\";\n    max: \"1\";\n}"
+        },
+        "wheel-stepping": {
+          "effect": "Whether the mouse wheel steps a focused number field: wheel up increments, wheel down decrements, by one step each, through the same step path as the arrow keys. An unfocused field leaves the wheel to its scroll view.",
+          "default": "`false`, as in web browsers.",
+          "example": "KitIntegerField {\n    label: \"Seats\";\n    wheel-stepping: true;\n}"
         }
       },
       "callbacks": {
@@ -4788,12 +4846,14 @@
         "cancel-edit": "Restore the accepted draft when editable and installed, then emit cancelled. This replaces the native editing baseline.",
         "acknowledge": "Acknowledge the host’s accepted FieldValue without rewriting an active draft.",
         "reset-field": "Restore default-value and accepted state, reset validation and notify edited. This replaces native undo history.",
-        "step-number": "Step the shared numeric constraints with exact arithmetic, then request acceptance.",
+        "step-number": "Pointer stepping used by the `KitNumberStepper` buttons: rewrite the draft by one step and commit at once, without needing editor focus. Keyboard, wheel and accessible stepping use `step-by` instead.",
         "check-validity": "Check constraints without changing reporting visibility; failure emits invalid.",
         "report-validity": "Reveal constraint errors and return validity without moving focus.",
         "focus-if-invalid": "Focus this field only if it participates in validation and is invalid; returns whether it requested focus.",
         "set-custom-validity": "Set an application constraint message; an empty string clears that error.",
-        "reset-validation": "Clear HTML dirty/touched/reported presentation while retaining the current draft and accepted value."
+        "reset-validation": "Clear HTML dirty/touched/reported presentation while retaining the current draft and accepted value.",
+        "step-by": "Step a number field by `count` steps in a direction through the native edit path, like Up/Down and PageUp/PageDown; returns whether stepping applied (also when clamped at a bound), false for text kinds, `step: \"any\"`, read-only or disabled fields.",
+        "step-to-bound": "Jump a number field to `min` (decrement) or `max` (increment) through the native edit path, like Home/End; returns false when that bound is absent."
       },
       "accessibility": "The native TextInput exposes its accessible name, placeholder, enabled/read-only state and value. Hidden passwords omit the accessible value. Descriptions retain help alongside visible errors, required text, prefix/suffix, character count and pending checks; pending checks request a polite live announcement. `required-label`, reveal/hide/clear labels, menu labels and validation messages inherit window-local `KitStrings` defaults and can be overridden per field. Slint 1.18 has no native required/invalid accessibility states, email/URL/telephone soft-keyboard type or OTP autofill hint. Text descriptions are the supported workaround; headless coverage does not qualify screen readers, IME or physical devices. The editing popup uses the kit’s accessible list/list-item roles because Slint 1.18 has no menu/menu-item roles. It opens with right-click, Menu or Shift+F10 and supports arrows, Home/End, Enter, Escape and Tab; touch long-press is not provided. Give every custom adornment an accessible-name and its own access guard. Custom parts use native declaration-order Tab navigation even when visually leading. The activity label stays associated with the native editor and is announced politely.",
       "states": "Editable fields preserve selection, caret, undo and IME. Read-only fields remain selectable and copyable; disabled fields reject editing and actions. Validation can be pristine, checking, valid or invalid; `validation-timing` controls HTML/codec error visibility, while explicit reporting reveals errors immediately. `validation-visible` observes that presentation. Password reveal retains the editor and changes `secret-visibility`; `input-method-hints` controls capitalization, autocorrect and autocomplete within Slint’s available input APIs. Optional clear, reveal and custom adornment actions keep their own disabled states; busy and validation checking may coexist."
