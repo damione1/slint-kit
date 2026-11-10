@@ -344,7 +344,7 @@ where
 #[cfg(test)]
 mod mask_cache_tests {
     use super::HtmlValidationEngine;
-    use kit_core::ParseIssue;
+    use kit_core::{MaskPattern, ParseIssue};
     use std::rc::Rc;
 
     #[test]
