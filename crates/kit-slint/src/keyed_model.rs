@@ -41,6 +41,23 @@ struct Entry<K, R> {
     row: R,
     revision: Rc<()>,
 }
+// A row revision exists only together with the key it describes. Initial
+// publication remains distinct from an already-published empty selection.
+enum ActivePublication<K> {
+    Unpublished,
+    Empty,
+    Record { key: K, revision: Rc<()> },
+}
+impl<K: Eq> ActivePublication<K> {
+    fn unchanged<R>(&self, entry: Option<&Entry<K, R>>) -> bool {
+        match self {
+            Self::Unpublished => false,
+            Self::Empty => entry.is_none(),
+            Self::Record { key, revision } => entry
+                .is_some_and(|entry| key == &entry.key && Rc::ptr_eq(revision, &entry.revision)),
+        }
+    }
+}
 struct State<K, R> {
     entries: Vec<Entry<K, R>>,
     generation: i32,
@@ -106,7 +123,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     /// Publish the current row to an editor through a weak window reference.
     /// Multiple views may observe a shared collection independently.
     pub fn bind_active<W: ComponentHandle + 'static>(&self, window: &W, setter: fn(&W, Option<R>)) {
-        let previous: RefCell<Option<(Option<K>, Option<Rc<()>>)>> = RefCell::new(None);
+        let previous = RefCell::new(ActivePublication::Unpublished);
         let window = window.as_weak();
         let state = Rc::downgrade(&self.state);
         self.publish.borrow_mut().push(Rc::new(move || {
@@ -119,21 +136,16 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
                 .as_ref()
                 .and_then(|key| state.indices.get(key))
                 .map(|index| &state.entries[*index]);
-            let identity = (
-                state.active.clone(),
-                entry.map(|entry| entry.revision.clone()),
-            );
-            if previous.borrow().as_ref().is_some_and(|old| {
-                old.0 == identity.0
-                    && match (&old.1, &identity.1) {
-                        (Some(old), Some(current)) => Rc::ptr_eq(old, current),
-                        (None, None) => true,
-                        (None, Some(_)) | (Some(_), None) => false,
-                    }
-            }) {
+            if previous.borrow().unchanged(entry) {
                 return;
             }
-            *previous.borrow_mut() = Some(identity);
+            *previous.borrow_mut() = match entry {
+                Some(entry) => ActivePublication::Record {
+                    key: entry.key.clone(),
+                    revision: entry.revision.clone(),
+                },
+                None => ActivePublication::Empty,
+            };
             let row = entry.map(|entry| entry.row.clone());
             drop(state);
             setter(&window, row);
