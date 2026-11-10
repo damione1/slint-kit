@@ -570,3 +570,56 @@ fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_c
 fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen_controlled() {
     assert_combobox_reentrant_remote_choice(slint_kit::ui::Ownership::Controlled);
 }
+
+fn assert_combobox_native_clear(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let cleared = Rc::new(RefCell::new(0));
+    let observed_clear = cleared.clone();
+    window.on_combo_cleared(move || *observed_clear.borrow_mut() += 1);
+    window.set_combo_selected(choices.selection(&Destination::Apricot).unwrap());
+    slint::platform::update_timers_and_animations();
+    let queries = Rc::new(RefCell::new(Vec::new()));
+    let observed = queries.clone();
+    window.on_combo_query_edited(move |query| observed.borrow_mut().push(query.to_string()));
+    window.invoke_clear_combo();
+    assert_eq!(window.get_combo_text(), "");
+    let accepted_until_ack = match ownership {
+        slint_kit::ui::Ownership::Local => false,
+        slint_kit::ui::Ownership::Controlled => true,
+    };
+    assert_eq!(window.get_combo_selected().present, accepted_until_ack);
+    assert_eq!(*cleared.borrow(), 1);
+    assert_eq!(&*queries.borrow(), &[""]);
+    key(&window, Key::Menu);
+    ElementQuery::from_root(&window)
+        .match_inherits("KitOption")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Undo"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(PointerEventButton::Left);
+    assert_eq!(
+        window.get_combo_text(),
+        "Apricot",
+        "Undo restores the actual native deletion"
+    );
+    window.set_combo_selected(Default::default());
+    assert!(!window.get_combo_selected().present);
+    for access in [
+        slint_kit::ui::FieldAccess::ReadOnly,
+        slint_kit::ui::FieldAccess::Disabled,
+    ] {
+        window.set_access(access);
+        window.invoke_clear_combo();
+        assert_eq!(window.get_combo_text(), "Apricot");
+        assert_eq!(*cleared.borrow(), 1);
+    }
+}
+#[test]
+fn combobox_public_clear_uses_native_undo_and_one_empty_query_locally() {
+    assert_combobox_native_clear(slint_kit::ui::Ownership::Local);
+}
+#[test]
+fn combobox_public_clear_uses_native_undo_and_waits_for_controlled_acknowledgment() {
+    assert_combobox_native_clear(slint_kit::ui::Ownership::Controlled);
+}

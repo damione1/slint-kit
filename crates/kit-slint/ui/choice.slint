@@ -978,19 +978,8 @@ export component KitCombobox inherits Rectangle {
     }
     public function take-focus() { editor.take-focus(); }
     public function clear() {
-        if (root.access != FieldAccess.editable) { return; }
-        debounce-timer.running = false;
-        root.editing-draft = false;
-        root.syncing-text = true;
-        root.text = "";
-        root.query = "";
-        root.syncing-text = false;
-        if (root.ownership == Ownership.local && root.selected.present) {
-            root.selected = { present: false, token: 0 };
-        }
-        root.query-edited("");
-        root.cleared();
-        root.take-focus();
+        // The shared native action owns deletion, undo and composition guards.
+        editor.clear();
     }
     changed access => {
         trigger.cancel-press();
@@ -1144,7 +1133,9 @@ export component KitCombobox inherits Rectangle {
             if (root.ownership == Ownership.local && root.selected.present) {
                 root.selected = { present: false, token: 0 };
             }
-            root.query-edited("");
+            // A zero-debounce native edit already published the empty query.
+            // Otherwise publish immediately after cancelling its pending timer.
+            if (root.query-debounce > 0ms) { root.query-edited(""); }
             root.cleared();
         }
         trigger := KitSelectTrigger {
