@@ -884,3 +884,279 @@ fn header_tab_order_matches_the_visual_order_in_each_theme_and_scale() {
         }
     }
 }
+
+#[test]
+fn roving_headers_sort_resize_and_keep_accessible_context_in_an_empty_table() {
+    let window = fixture();
+    let mut data = column_set();
+    data[0].width = ColumnWidth {
+        sizing: ColumnSizing::Fixed,
+        basis: 200.,
+        resizable: true,
+        ..Default::default()
+    };
+    let columns = Rc::new(VecModel::from(data));
+    window.set_columns(ModelRc::from(columns.clone()));
+    window.set_table_header_focus(ui::TableHeaderFocus::Roving);
+    window.set_table_header_label("En-têtes".into());
+    let sorted = Rc::new(RefCell::new(Vec::new()));
+    let observed = sorted.clone();
+    window.on_sort_requested(move |token| observed.borrow_mut().push(token));
+    let resized = Rc::new(RefCell::new(Vec::new()));
+    let observed = resized.clone();
+    window.on_resize_requested(move |token, width| observed.borrow_mut().push((token, width)));
+    window.invoke_focus_table();
+    key(&window, Key::UpArrow);
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    assert!(
+        table
+            .accessible_label()
+            .unwrap()
+            .contains("En-têtes, Product, ascending")
+    );
+    assert_eq!(table.accessible_value().as_deref(), Some(""));
+    assert_eq!(table.accessible_description().as_deref(), Some(""));
+    key(&window, Key::F2);
+    assert!(!window.get_table_editing());
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    table.invoke_accessible_default_action();
+    assert_eq!(&*sorted.borrow(), &[17, 17, 17]);
+    down(&window, Key::Alt);
+    key(&window, Key::RightArrow);
+    up(&window, Key::Alt);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(
+        &*resized.borrow(),
+        &[(17, 200. + window.get_theme().spacing.unit * 4.)]
+    );
+    key(&window, Key::RightArrow);
+    assert!(
+        table
+            .accessible_label()
+            .unwrap()
+            .contains("En-têtes, Quantity")
+    );
+    key(&window, Key::Return);
+    table.invoke_accessible_default_action();
+    assert_eq!(sorted.borrow().len(), 3, "static headers do not sort");
+    columns.remove(1);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_table_active_column(), 0);
+    window.invoke_resize_table_column(-10000.);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(resized.borrow().last().unwrap().1, 140.);
+    window.set_table_interactive(false);
+    window.invoke_sort_table_column();
+    window.invoke_resize_table_column(40.);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(sorted.borrow().len(), 3);
+    assert_eq!(resized.borrow().len(), 2);
+    window.set_table_interactive(true);
+    columns.remove(0);
+    slint::platform::update_timers_and_animations();
+    assert!(!table.accessible_label().unwrap().contains("En-têtes"));
+    assert!(!window.get_table_editing());
+}
+
+#[test]
+fn roving_headers_render_sortable_and_static_focus_in_each_theme_and_scale() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    window.set_table_active(0);
+    window.set_table_header_focus(ui::TableHeaderFocus::Roving);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    window.window().take_snapshot().unwrap();
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            let ink = theme.text_primary;
+            window.set_theme(theme);
+            slint::platform::update_timers_and_animations();
+            window.window().take_snapshot().unwrap();
+            window.invoke_focus_table();
+            key(&window, Key::UpArrow);
+            key(&window, Key::LeftArrow);
+            slint::platform::update_timers_and_animations();
+            assert_eq!(window.get_table_active_column(), 0);
+            assert_eq!(table.accessible_value().as_deref(), Some(""));
+            let sortable_frame = window.window().take_snapshot().unwrap();
+            let row = delegates(&window, "KitDataTable").remove(0);
+            assert!(row.size().height > 2. && row.size().width > 2.);
+            let left = f64::from(row.absolute_position().x) + 1.;
+            let right = left + f64::from(row.size().width) - 2.;
+            let top = f64::from(row.absolute_position().y) + 1.;
+            let bottom = top + f64::from(row.size().height) - 2.;
+            assert!(top >= 0. && bottom < f64::from(sortable_frame.height()));
+            assert!(left >= 0. && right < f64::from(sortable_frame.width()));
+            crate::choice_presentation::save_capture(
+                &sortable_frame,
+                &format!("table-roving-sortable-{name}-{scale}"),
+            );
+            key(&window, Key::RightArrow);
+            slint::platform::update_timers_and_animations();
+            assert_eq!(window.get_table_active_column(), 1);
+            let static_frame = window.window().take_snapshot().unwrap();
+            crate::choice_presentation::save_capture(
+                &static_frame,
+                &format!("table-roving-static-{name}-{scale}"),
+            );
+            let body_pixels = sortable_frame
+                .as_slice()
+                .iter()
+                .zip(static_frame.as_slice())
+                .enumerate()
+                .filter(|(index, _)| {
+                    let offset = u32::try_from(*index).unwrap();
+                    let y = f64::from(offset / sortable_frame.width());
+                    let x = f64::from(offset % sortable_frame.width());
+                    y >= top && y < bottom && x >= left && x < right
+                })
+                .collect::<Vec<_>>();
+            assert!(!body_pixels.is_empty());
+            let is_ink = |pixel: &slint::Rgba8Pixel| {
+                u32::from(pixel.r.abs_diff(ink.red()))
+                    + u32::from(pixel.g.abs_diff(ink.green()))
+                    + u32::from(pixel.b.abs_diff(ink.blue()))
+                    < 16
+            };
+            assert!(
+                body_pixels.iter().any(|(_, (before, _))| is_ink(before)),
+                "the initial row must actually paint its text at {name} {scale}, bounds {left}..{right}/{top}..{bottom}"
+            );
+            assert!(
+                body_pixels.iter().any(|(_, (_, after))| is_ink(after)),
+                "the row text must survive the header movement at {name} {scale}"
+            );
+            let repeated_frame = window.window().take_snapshot().unwrap();
+            crate::choice_presentation::save_capture(
+                &repeated_frame,
+                &format!("diagnostic-header-repeat-{name}-{scale}"),
+            );
+            assert!(
+                body_pixels
+                    .iter()
+                    .all(|(_, (before, after))| before == after),
+                "body changed at {name} {scale}, row y={top}..{bottom}, scroll={}/{}, repeat={}",
+                window.get_table_scroll(),
+                window.get_table_scroll_x(),
+                static_frame.as_bytes() == repeated_frame.as_bytes()
+            );
+            key(&window, Key::DownArrow);
+            assert_eq!(window.get_table_active(), 0);
+            assert_eq!(table.accessible_value().as_deref(), Some("0"));
+        }
+    }
+}
+
+#[test]
+fn roving_headers_share_one_tab_stop_and_only_the_body_can_open_its_cell_editor() {
+    let window = fixture();
+    window.set_columns(columns());
+    let mut data = rows(1, 1);
+    data[0].content = slint_kit::table_cells([
+        slint_kit::CellContent::field("Editable", slint_kit::FieldAccess::Editable),
+        slint_kit::CellContent::text("7"),
+    ]);
+    window.set_rows(ModelRc::new(VecModel::from(data)));
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    window.set_table_header_focus(ui::TableHeaderFocus::Roving);
+    let navigation = Rc::new(RefCell::new(Vec::new()));
+    let observed = navigation.clone();
+    window.on_navigate(move |collection, step| observed.borrow_mut().push((collection, step)));
+    window.invoke_focus_paste();
+    key(&window, Key::Tab);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        &*navigation.borrow(),
+        &[(DataFixtureCollection::Table, NavigationStep::Next)]
+    );
+    key(&window, Key::UpArrow);
+    key(&window, Key::F2);
+    assert!(
+        !window.get_table_editing(),
+        "the header cursor does not edit the body cell"
+    );
+    key(&window, Key::Tab);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        navigation.borrow().last(),
+        Some(&(DataFixtureCollection::Content, NavigationStep::Next)),
+        "one Tab leaves the whole table from its shared header cursor"
+    );
+    window.invoke_focus_table();
+    key(&window, Key::DownArrow);
+    key(&window, Key::F2);
+    assert!(
+        window.get_table_editing(),
+        "the same column is editable in the body"
+    );
+    key(&window, Key::Escape);
+    assert!(!window.get_table_editing());
+}
+
+#[test]
+fn roving_headers_after_disabling_an_individual_header_do_not_restore_stale_focus() {
+    let window = fixture();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    window.set_table_active(0);
+    let sorted = Rc::new(std::cell::Cell::new(0));
+    let observed = sorted.clone();
+    window.on_sort_requested(move |_| observed.set(observed.get() + 1));
+    window.invoke_focus_table();
+    down(&window, Key::Shift);
+    key(&window, Key::Tab);
+    up(&window, Key::Shift);
+    key(&window, Key::Return);
+    assert_eq!(sorted.get(), 1);
+    window.set_table_interactive(false);
+    slint::platform::update_timers_and_animations();
+    key(&window, Key::Return);
+    key(&window, Key::Space);
+    assert_eq!(sorted.get(), 1);
+    window.set_table_header_focus(ui::TableHeaderFocus::Roving);
+    window.set_table_interactive(true);
+    slint::platform::update_timers_and_animations();
+    key(&window, Key::Return);
+    assert_eq!(
+        sorted.get(),
+        1,
+        "reenabling does not restore the old header focus"
+    );
+    let navigated = Rc::new(std::cell::Cell::new(0));
+    let observed = navigated.clone();
+    window.on_navigate(move |collection, step| {
+        assert_eq!(collection, DataFixtureCollection::Table);
+        assert_eq!(step, NavigationStep::Next);
+        observed.set(observed.get() + 1);
+    });
+    key(&window, Key::Tab);
+    key(&window, Key::DownArrow);
+    assert_eq!(navigated.get(), 1);
+    key(&window, Key::UpArrow);
+    key(&window, Key::Return);
+    assert_eq!(sorted.get(), 2, "the new shared cursor can sort normally");
+}

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add optional roving table-header navigation, localized header context and public sort/resize commands, including empty tables.
+- Ajoute une navigation optionnelle par curseur d’en-tête de tableau, un contexte localisable et des commandes de tri/redimensionnement, y compris sans lignes.
+
 - Place sortable table headers and resize handles before the body in keyboard tab order, matching their visual order.
 - Place les en-têtes triables et les poignées de tableau avant le corps dans l’ordre de tabulation, comme à l’écran.
 

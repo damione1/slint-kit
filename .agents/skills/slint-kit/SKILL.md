@@ -172,3 +172,5 @@ For intrinsic cell constraints use `CellContent::constrained_field` and shared `
 `KitFileDropZone` is a browse action as well as a native drop target. Connect `browse-requested` to the same `FilePickerBinding` browse handler; an unavailable drag/drop capability does not disable browsing. `description`, `leading-icon` and `@children` compose its content; interactive children keep their own actions.
 
 ButtonIntent.link is an underlined accent text action with inline geometry and transparent state fills. It remains a button with shared activation guards; the host chooses navigation. Complete ButtonRecipe literals include underline. Slint1.18.1 has no link accessible role.
+
+Use `TableHeaderFocus.roving` for one table Tab stop; Up from the first row or empty body enters the header cursor, arrows traverse it, Down returns to the body, Enter/Space sorts and Alt+Left/Right requests a bounded resize. Localize `header-label`. The default `individual` mode keeps header controls before the body. Public `sort-active-column()` and `resize-active-column(delta)` use the same guarded stable-token callbacks.

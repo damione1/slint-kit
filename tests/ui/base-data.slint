@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
+import { TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
 export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -15,6 +15,8 @@ export component BaseDataFixture inherits Window {
     in property <string> content-empty-label;
     in property <[TextLine]> lines;
     in property <bool> table-interactive: true;
+    in property <TableHeaderFocus> table-header-focus: TableHeaderFocus.individual;
+    in property <string> table-header-label: "Column headers";
     in property <string> table-ascending-label: "ascending";
     in property <string> table-descending-label: "descending";
     in property <int> table-generation: 1;
@@ -52,6 +54,8 @@ export component BaseDataFixture inherits Window {
     public function edit-table() { table.edit-active(); }
     public function commit-table() { table.commit-edit(); }
     public function cancel-table() { table.cancel-edit(); }
+    public function sort-table-column() { table.sort-active-column(); }
+    public function resize-table-column(delta: length) { table.resize-active-column(delta); }
     public function focus-table() { table.take-focus(); }
     public function focus-content() { content.take-focus(); }
     public function focus-document() { document.take-focus(); }
@@ -61,7 +65,7 @@ export component BaseDataFixture inherits Window {
         table := KitDataTable {
             theme: root.theme; control-size: root.table-size; height: 240px; columns: root.columns; rows: root.rows;
             generation: root.table-generation; active-index: root.table-active;
-            interactive: root.table-interactive;
+            interactive: root.table-interactive; header-focus: root.table-header-focus; header-label: root.table-header-label;
             label: "Products fixture";
             sort-ascending-label: root.table-ascending-label;
             sort-descending-label: root.table-descending-label;
