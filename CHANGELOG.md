@@ -6,6 +6,9 @@
 - Les poignées coïncidentes du curseur de plage se séparent désormais au pointeur : le côté de l’appui choisit la poignée mobile et un appui sur une borne commune choisit celle qui peut se déplacer.
 - Align calendar weekday headers with every week-start, including date and range pickers. **Breaking:** weekdays models must stay Monday-first; remove any application-side rotation previously used to compensate.
 - Aligne les en-têtes du calendrier sur tous les premiers jours de semaine, y compris les sélecteurs de date et de période. **Rupture :** les modèles weekdays restent lundi en premier ; retirez toute rotation applicative utilisée pour compenser l’ancien comportement.
+- Behavior change: valid color hex/channel drafts now accept on blur as well as Enter, without duplicate chosen events. Invalid or incomplete blurred drafts restore accepted text; explicit commit-requested observations stay Enter-only.
+- Changement de comportement : les brouillons couleur hexadécimaux/canaux valides sont acceptés au blur comme sur Entrée, sans chosen en double. Un brouillon invalide ou incomplet retrouve le texte accepté au blur ; les observations commit-requested restent liées à Entrée.
+
 - Color hex/channel drafts now follow host accepted-color and alpha-policy changes while idle, including after earlier edits and controlled acknowledgements. Focused native drafts retain caret and undo until focus leaves.
 - Les brouillons hexadécimaux/canaux suivent désormais les changements de couleur acceptée et de politique alpha hors focus, même après édition ou acquittement contrôlé. Un brouillon natif actif conserve curseur et historique jusqu’à la perte du focus.
 

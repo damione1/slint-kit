@@ -22,5 +22,6 @@ export component Example inherits Window {
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         // Host accepted-color updates refresh idle text; focused native drafts keep their caret and undo.
         control := KitColorField { label: "Accent color"; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; chosen(value) => { root.accent-changed(value); } }
+        // Valid native edits also commit on blur; this button requests an immediate commit.
         KitButton { text: "Apply color"; activated => { control.commit(); } } }
 }

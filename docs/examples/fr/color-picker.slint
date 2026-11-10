@@ -18,5 +18,6 @@ export component Example inherits Window {
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         // Une nouvelle couleur acceptée actualise le texte sans focus ; le brouillon actif garde curseur et historique.
         control := KitColorPicker { label: "Couleur d’accent"; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; chosen(value) => { root.accent-changed(value); } }
+        // Les éditions natives valides se valident aussi au blur ; ce bouton demande une validation immédiate.
         KitButton { text: "Appliquer la couleur"; activated => { control.commit(); } } }
 }

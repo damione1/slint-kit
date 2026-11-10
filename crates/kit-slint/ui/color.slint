@@ -107,7 +107,10 @@ export component KitColorField inherits Rectangle {
                 text <=> root.text;
                 focus-observed(focused) => { if (!focused) { root.sync-text(); } }
                 placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
-                edited(text)=>{root.edited(text);}commit-requested(text)=>{root.commit(); root.commit-requested(text); }cancelled=>{root.cancelled();}
+                edited(text) => { root.edited(text); }
+                committed(value) => { root.commit(); }
+                commit-requested(text) => { root.commit-requested(text); }
+                cancelled => { root.cancelled(); }
             }
             swatch-button := KitPressable {
                 theme: root.theme; control-size: root.control-size;
@@ -221,6 +224,7 @@ component ColorChannelEditor inherits Rectangle {
     }
     callback edited(ColorChannel,string);
     callback commit-requested(ColorChannel,string);
+    callback value-committed(ColorChannel,string);
     callback position-requested(ColorChannel,float);
     callback navigate(ColorChannel,NavigationStep);
     callback gesture-started(ColorChannel);
@@ -232,6 +236,7 @@ component ColorChannelEditor inherits Rectangle {
         editor := KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
             focus-observed(focused) => { if (!focused) { root.sync-text(); } }
             edited(text) => { root.edited(root.channel,text); }
+            committed(value) => { root.value-committed(root.channel,value.value.text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
         }
         KitSlider { theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value-label: root.text;
@@ -277,22 +282,30 @@ export component KitColorPicker inherits Rectangle {
         spacing: root.theme.spacing.unit * 4;
         field := KitColorField { ownership: Ownership.controlled; chosen(value) => { root.accept-color(value); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; accepted-text: root.accepted-color.red; position: root.accepted-color.red / 255;
-            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
+            edited(channel,text) => { root.channel-edited(channel,text); }
+            value-committed(channel,text) => { root.change-channel(channel,text); }
+            commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: "Green"; error: root.green-error; text <=> root.green-text; accepted-text: root.accepted-color.green; position: root.accepted-color.green / 255;
-            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
+            edited(channel,text) => { root.channel-edited(channel,text); }
+            value-committed(channel,text) => { root.change-channel(channel,text); }
+            commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: "Blue"; error: root.blue-error; text <=> root.blue-text; accepted-text: root.accepted-color.blue; position: root.accepted-color.blue / 255;
-            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
+            edited(channel,text) => { root.channel-edited(channel,text); }
+            value-committed(channel,text) => { root.change-channel(channel,text); }
+            commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
         if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: "Alpha"; error: root.alpha-error; text <=> root.alpha-text; accepted-text: root.accepted-color.alpha; position: root.accepted-color.alpha / 255;
-            edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
+            edited(channel,text) => { root.channel-edited(channel,text); }
+            value-committed(channel,text) => { root.change-channel(channel,text); }
+            commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }

@@ -231,3 +231,103 @@ fn controlled_picker_acknowledgement_preserves_the_focused_channel_and_updates_o
     assert_eq!(app.get_red_text(), "12");
     assert_eq!(app.get_hex_text(), "#0C1E2832");
 }
+
+#[test]
+fn typed_hex_and_every_channel_commit_on_tab_without_duplicate_enter_or_unchanged_blur_commits() {
+    let app = fixture();
+    let field = replace(&app, "Standalone color", "#aabbccdd");
+    assert_eq!(app.get_field_color(), color(1, 2, 3, 255));
+    key(&app, Key::Tab);
+    assert_eq!(app.get_field_color(), color(170, 187, 204, 221));
+    assert_eq!(app.get_field_text(), "#AABBCCDD");
+    assert_eq!(app.get_field_chosen(), 1);
+    assert!(field.is_valid());
+    assert_eq!(
+        app.get_field_requests(),
+        0,
+        "blur is not an explicit Enter request"
+    );
+    replace(&app, "Picker color", "#11223344");
+    key(&app, Key::Tab);
+    assert_eq!(app.get_picker_color(), color(17, 34, 51, 68));
+    let mut expected = app.get_picker_color();
+    for (channel, label, value) in [
+        (ui::ColorChannel::Red, "Red", 120),
+        (ui::ColorChannel::Green, "Green", 121),
+        (ui::ColorChannel::Blue, "Blue", 122),
+        (ui::ColorChannel::Alpha, "Alpha", 123),
+    ] {
+        let chosen = app.get_picker_chosen();
+        let editor = replace(&app, label, &value.to_string());
+        key(&app, Key::Tab);
+        match channel {
+            ui::ColorChannel::Red => expected.red = value,
+            ui::ColorChannel::Green => expected.green = value,
+            ui::ColorChannel::Blue => expected.blue = value,
+            ui::ColorChannel::Alpha => expected.alpha = value,
+        }
+        assert_eq!(app.get_picker_color(), expected);
+        assert_eq!(app.get_picker_chosen(), chosen + 1);
+        assert!(editor.is_valid());
+    }
+    assert_eq!(app.get_channel_requests(), 0);
+    replace(&app, "Red", "124");
+    let chosen = app.get_picker_chosen();
+    key(&app, Key::Return);
+    assert_eq!(app.get_picker_chosen(), chosen + 1);
+    assert_eq!(app.get_channel_requests(), 1);
+    key(&app, Key::Tab);
+    assert_eq!(app.get_picker_chosen(), chosen + 1);
+    replace(&app, "Standalone color", "#01020304");
+    key(&app, Key::Return);
+    let chosen = app.get_field_chosen();
+    assert_eq!(app.get_field_requests(), 1);
+    blur(&app);
+    assert_eq!(app.get_field_chosen(), chosen);
+    native(&app, "Standalone color").mock_single_click(PointerEventButton::Left);
+    blur(&app);
+    assert_eq!(app.get_field_chosen(), chosen);
+}
+
+#[test]
+fn invalid_or_incomplete_color_blur_restores_accepted_text_without_a_color_proposal() {
+    let app = fixture();
+    for text in ["#12", "not-a-color", ""] {
+        replace(&app, "Standalone color", text);
+        key(&app, Key::Tab);
+        assert_eq!(app.get_field_color(), color(1, 2, 3, 255));
+        assert_eq!(app.get_field_text(), "#010203FF");
+        assert_eq!(app.get_field_chosen(), 0);
+    }
+    for text in ["", "256", "-1", "12.5", "1e"] {
+        replace(&app, "Red", text);
+        key(&app, Key::Tab);
+        assert_eq!(app.get_picker_color(), color(4, 5, 6, 255));
+        assert_eq!(app.get_red_text(), "4");
+        assert_eq!(app.get_picker_chosen(), 0);
+    }
+}
+
+#[test]
+fn controlled_blur_proposes_once_and_readonly_or_disabled_blur_cannot_publish_a_draft() {
+    let app = fixture();
+    app.set_ownership(ui::Ownership::Controlled);
+    replace(&app, "Standalone color", "#11223344");
+    key(&app, Key::Tab);
+    assert_eq!(app.get_field_chosen(), 1);
+    assert_eq!(app.get_field_proposal(), color(17, 34, 51, 68));
+    assert_eq!(app.get_field_color(), color(1, 2, 3, 255));
+    assert_eq!(app.get_field_text(), "#010203FF");
+    app.set_field_color(color(17, 34, 51, 68));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_field_text(), "#11223344");
+    for access in [ui::FieldAccess::ReadOnly, ui::FieldAccess::Disabled] {
+        app.set_access(ui::FieldAccess::Editable);
+        replace(&app, "Standalone color", "#ABCDEF12");
+        app.set_access(access);
+        blur(&app);
+        assert_eq!(app.get_field_chosen(), 1);
+        assert_eq!(app.get_field_color(), color(17, 34, 51, 68));
+        assert_eq!(app.get_field_text(), "#11223344");
+    }
+}
