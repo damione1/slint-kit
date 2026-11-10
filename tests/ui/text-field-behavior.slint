@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextField, KitTextArea, CommitPolicy, ValidationTiming, FieldCommit, FieldAccess, TextPurpose, FieldState } from "@kit";
+export component TextFieldBehaviorFixture inherits Window {
+    width: 600px; height: 400px;
+    in-out property <string> text;
+    in property <CommitPolicy> policy: CommitPolicy.on-change-when-valid;
+    in property <bool> required;
+    in property <int> minimum: -1;
+    in property <ValidationTiming> timing: ValidationTiming.on-submit;
+    out property <bool> error-visible: field.validation-visible;
+    out property <bool> dirty: field.dirty;
+    out property <bool> has-focus: field.has-focus;
+    callback committed(FieldCommit);
+    callback invalid();
+    public function focus-field() { field.take-focus(); }
+    public function blur-field() { other.focus(); }
+    public function report() -> bool { return field.report-validity(); }
+    public function select-all() { field.select-all(); }
+    other := FocusScope { width: 0px; height: 0px; }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        field := KitTextField {
+            label: "Name"; text <=> root.text;
+            commit-policy: root.policy; required: root.required;
+            min-length: root.minimum; validation-timing: root.timing;
+            committed(value) => { root.committed(value); }
+            invalid => { root.invalid(); }
+        }
+    }
+}

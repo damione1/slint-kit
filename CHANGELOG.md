@@ -6,6 +6,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
+- Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
+
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
 
 - Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented ascending/descending table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.

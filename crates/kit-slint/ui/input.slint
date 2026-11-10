@@ -298,7 +298,6 @@ export component KitTextField inherits KitField {
                         accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
                         accessible-description: root.effective-validation == ValidationPresentation.invalid ? root.effective-error : root.description;
                         key-pressed(event) => {
-                            root.reduce-field(FieldAction.edit);
                             root.previous-edit-text = self.text;
                             if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
                                 if (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
@@ -366,6 +365,7 @@ export component KitTextField inherits KitField {
                                 }
                             }
                             root.previous-edit-text = self.text;
+                            root.reduce-field(FieldAction.edit);
                         }
                         accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
@@ -408,7 +408,7 @@ export component KitTextField inherits KitField {
                     disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.search && root.access == FieldAccess.read-only);
                     accessible-name: root.purpose == TextPurpose.search ? root.clear-label : root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     activated => {
-                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); root.value-edited(root.value); }
+                        if (root.purpose == TextPurpose.search) { root.text = ""; checks.note-edit(); root.edited(""); root.value-edited(root.value); root.reduce-field(FieldAction.edit); }
                         else { root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden; }
                         root.take-focus();
                     }
