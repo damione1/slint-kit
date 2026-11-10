@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelect, KitMultiSelect, KitCombobox, KitTheme, KitThemes, KitStrings, FieldAccess, Ownership, OptionRow, SelectionRef, SelectionAvailability } from "@kit";
+export component SelectionNamesFixture inherits Window {
+    width: 900px; height: 740px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <string> label: KitStrings.select-label;
+    in property <string> placeholder: KitStrings.select-placeholder;
+    in property <string> multi-label: KitStrings.multi-select-label;
+    in-out property <SelectionRef> selected;
+    in-out property <[SelectionRef]> many;
+    out property <SelectionAvailability> availability: single.state.selection-availability;
+    out property <string> single-value: single.value-label;
+    out property <string> multi-value: multiple.value-label;
+    out property <string> combo-text: combo.text;
+    out property <string> combo-query: combo.query;
+    out property <string> combo-label: combo.selected-label;
+    out property <SelectionAvailability> combo-availability: combo.state.selection-availability;
+    public function focus-combo() { combo.take-focus(); }
+    public function separate-combo-query(value: string) { combo.query = value; }
+    callback membership-changed(OptionRow, bool);
+    public function override-single-label(value: string) { single.selected-label = value; }
+    public function override-value-label(value: string) { single.value-label = value; }
+    VerticalLayout {
+        padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 6; alignment: start;
+        single := KitSelect {
+            theme: root.theme; options: root.options; ownership: root.ownership; access: root.access;
+            label: root.label; placeholder: root.placeholder; selected <=> root.selected;
+        }
+        multiple := KitMultiSelect {
+            theme: root.theme; options: root.options; ownership: root.ownership; access: root.access;
+            label: root.multi-label; selected <=> root.many;
+            selection-changed(row, added) => { root.membership-changed(row, added); }
+        }
+        combo := KitCombobox {
+            theme: root.theme; options: root.options; ownership: root.ownership; access: root.access;
+            label: "Contributor"; placeholder: "Search contributors"; selected <=> root.selected;
+        }
+    }
+}

@@ -1,8 +1,13 @@
+import { KitStrings } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitFieldError, ValidationTiming, KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // Développer ouvre seulement ; l’activation ordinaire bascule. Un hôte contrôlé acquitte l’état demandé.
 export component Example inherits Window {
+    init => {
+        KitStrings.multi-selection-count-format = "{count} choix";
+        KitStrings.multi-selection-value-format = "{count} choix : {labels}";
+    }
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
     public function report-validation() -> bool { return field.report-validity(); }
     public function focus-invalid() -> bool { return field.focus-if-invalid(); }
@@ -20,7 +25,7 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Restez au courant"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Choisissez vos canaux de notification. Chaque sélection conserve son identité lorsque la liste visible change."; color: root.theme.text-secondary; wrap: word-wrap; }
-        field := KitMultiSelect { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme; options: root.options; selected <=> root.selected; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        field := KitMultiSelect { required: true; validation-timing: ValidationTiming.on-blur; label: "Canaux de notification"; placeholder: "Ajouter un canal"; theme: root.theme; options: root.options; selected <=> root.selected; selection-changed(row, added) => { root.membership-changed(row, added); } }
         if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         Text { text: root.selected.length + " canaux sélectionnés"; color: root.theme.text-secondary; }
     }

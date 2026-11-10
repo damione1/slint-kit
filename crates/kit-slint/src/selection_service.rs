@@ -227,6 +227,14 @@ where
     if service.get_ready() {
         return;
     }
+    service.on_chip_labels(|model, separator| {
+        let rows = tracked(&model);
+        rows.iter()
+            .map(|row| row.label.as_str())
+            .collect::<Vec<_>>()
+            .join(separator.as_str())
+            .into()
+    });
     service.on_project(
         |source, model, selected, active, open, generation, retention| {
             let source = tracked(&source);

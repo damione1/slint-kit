@@ -904,8 +904,8 @@
           "example": "KitCombobox {\n    options: root.villes;\n    text <=> root.saisie-ville;\n}"
         },
         "placeholder": {
-          "effect": "Texte indicatif affiché dans l’éditeur en ligne lorsque `text` est vide.",
-          "default": "`root.label`.",
+          "effect": "Indication vide de l’éditeur en ligne, également publiée via accessible-placeholder-text ; jamais utilisée comme nom ni valeur.",
+          "default": "`KitStrings.combobox-placeholder` (`\"Search options…\"`).",
           "example": "KitCombobox {\n    label: \"Client\";\n    placeholder: \"Rechercher par nom ou société…\";\n    options: root.clients;\n}"
         },
         "query": {
@@ -973,7 +973,7 @@
           "example": "KitCombobox {\n    options: root.resultats;\n    search-state: SearchPresentation.failed;\n    status-text: \"L’annuaire est inaccessible.\";\n}"
         },
         "label": {
-          "effect": "Nom accessible du combobox et valeur par défaut de `placeholder`. Aucune ligne de libellé visible n’est rendue : composez un `KitFieldLabel` pour en avoir une.",
+          "effect": "Nom accessible stable du combobox, indépendant de l’indication vide et du brouillon natif. Aucune ligne de libellé visible n’est rendue : composez KitFieldLabel pour en avoir une.",
           "default": "`\"Search and select\"`.",
           "example": "KitCombobox {\n    label: \"Client\";\n    options: root.clients;\n}"
         },
@@ -1005,7 +1005,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les champs obligatoires ajoutent KitStrings.required-label localisé aux descriptions du combobox et de l’éditeur natif ; Slint 1.18.1 ne fournit pas de propriété publique accessible-required."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les champs obligatoires ajoutent KitStrings.required-label localisé aux descriptions du combobox et de l’éditeur natif ; Slint 1.18.1 ne fournit pas de propriété publique accessible-required. label nomme le contrôle indépendamment de sa valeur. Le texte choisi est exposé séparément ; un éditeur natif expose son brouillon affiché pendant l’édition. L’indication vide n’est pas une valeur choisie. Conservez la projection selected-label acceptée indépendamment des résultats de query."
     },
     "en": {
       "label": "Editable combobox",
@@ -1041,8 +1041,8 @@
           "example": "KitCombobox {\n    options: root.cities;\n    text <=> root.city-input;\n}"
         },
         "placeholder": {
-          "effect": "Placeholder shown in the inline editor while `text` is empty.",
-          "default": "`root.label`.",
+          "effect": "Empty inline-editor hint, also published as accessible-placeholder-text; never used as the name or value.",
+          "default": "`KitStrings.combobox-placeholder` (`\"Search options…\"`).",
           "example": "KitCombobox {\n    label: \"Customer\";\n    placeholder: \"Search by name or company…\";\n    options: root.customers;\n}"
         },
         "query": {
@@ -1110,7 +1110,7 @@
           "example": "KitCombobox {\n    options: root.results;\n    search-state: SearchPresentation.failed;\n    status-text: \"The directory is unreachable.\";\n}"
         },
         "label": {
-          "effect": "Accessible name of the combobox and default `placeholder` text. No visible label row is rendered: compose a `KitFieldLabel` for one.",
+          "effect": "Stable accessible name of the combobox, independent of its empty hint and native draft. No visible label row is rendered: compose a KitFieldLabel for one.",
           "default": "`\"Search and select\"`.",
           "example": "KitCombobox {\n    label: \"Customer\";\n    options: root.customers;\n}"
         },
@@ -1142,7 +1142,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Required fields use the localized KitStrings.required-label in the combobox and native editor descriptions; Slint 1.18.1 has no public accessible-required property."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Required fields use the localized KitStrings.required-label in the combobox and native editor descriptions; Slint 1.18.1 has no public accessible-required property. label names the control independently of its value. The chosen display text is exposed separately; a native editor exposes its current displayed draft while editing. The empty hint is not a selected value. Preserve the accepted selected-label projection independently of query results."
     }
   },
   "KitContainer": {
@@ -3212,9 +3212,9 @@
           "example": "etiquettes := KitMultiSelect { options: root.etiquettes; }\nText { text: etiquettes.chips.length + \" sélectionnées\"; }"
         },
         "placeholder": {
-          "effect": "Texte du déclencheur tant que le popup est fermé ; les puces portent la sélection, il ne change donc pas avec elle.",
-          "default": "`\"Add a selection\"`.",
-          "example": "KitMultiSelect {\n    options: root.etiquettes;\n    placeholder: \"Ajouter une étiquette\";\n}"
+          "effect": "Indication vide d’ajout. Les puces représentent visuellement les sélections ; l’indication n’est ni le nom ni la valeur accessible.",
+          "default": "`KitStrings.multi-select-placeholder` (`\"Add a selection\"`).",
+          "example": "KitMultiSelect { label: \"Members\"; placeholder: \"Add a member\"; options: root.members; }"
         },
         "access": {
           "effect": "`read-only` affiche les puces comme champs texte en lecture seule sans retrait et ne s’ouvre jamais ; `disabled` refuse l’interaction et ferme un popup ouvert.",
@@ -3230,6 +3230,16 @@
         },
         "has-focus": {
           "effect": "Focus du groupe en lecture seule : éditeur/déclencheur natif, puces et popup associé."
+        },
+        "label": {
+          "effect": "Nom accessible stable du champ, indépendant de l’indication d’ajout et des éléments choisis.",
+          "default": "`KitStrings.multi-select-label` (`\"Selections\"`).",
+          "example": "KitMultiSelect { label: \"Members\"; placeholder: \"Add a member\"; options: root.members; }"
+        },
+        "value-label": {
+          "effect": "Résumé accessible localisable du nombre et des libellés des puces ; vide sans puce. Surchargez la formulation selon l’application. Les formats et le séparateur sont dans KitStrings ; les références stables contrôlent les sélections, pas cette chaîne.",
+          "default": "Calculée depuis `chips` et `KitStrings.multi-selection-count-format` / `multi-selection-value-format` avec `{count}` et `{labels}`.",
+          "example": "KitMultiSelect { label: \"Members\"; options: root.members; value-label: root.localized-membership; }"
         }
       },
       "callbacks": {
@@ -3239,7 +3249,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Le déclencheur partagé nomme le champ depuis label et publie le nombre/libellé des puces comme valeur. Sans sélection, la valeur est vide avec une indication accessible séparée. Une suppression contrôlée change la valeur après acquittement de l’hôte ; les sélections en lecture seule/désactivées restent inchangées. **Rupture :** placeholder ne nomme plus le champ."
     },
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
@@ -3273,9 +3283,9 @@
           "example": "tags := KitMultiSelect { options: root.tags; }\nText { text: tags.chips.length + \" selected\"; }"
         },
         "placeholder": {
-          "effect": "Trigger text while the popup is closed; the chips carry the selection, so it does not change with it.",
-          "default": "`\"Add a selection\"`.",
-          "example": "KitMultiSelect {\n    options: root.tags;\n    placeholder: \"Add a tag\";\n}"
+          "effect": "Empty add-selection hint. Chips represent membership visually; the hint is neither the name nor the accessible value.",
+          "default": "`KitStrings.multi-select-placeholder` (`\"Add a selection\"`).",
+          "example": "KitMultiSelect { label: \"Members\"; placeholder: \"Add a member\"; options: root.members; }"
         },
         "access": {
           "effect": "`read-only` shows the chips as read-only text fields with no removal and never opens; `disabled` refuses interaction and closes an open popup.",
@@ -3291,6 +3301,16 @@
         },
         "has-focus": {
           "effect": "Read-only group focus across the native editor/trigger, chips and owned popup."
+        },
+        "label": {
+          "effect": "Stable accessible field name, independently of the add-selection hint and chosen members.",
+          "default": "`KitStrings.multi-select-label` (`\"Selections\"`).",
+          "example": "KitMultiSelect { label: \"Members\"; placeholder: \"Add a member\"; options: root.members; }"
+        },
+        "value-label": {
+          "effect": "Localizable accessible summary of selected chip count and labels; empty with no chips. Override for application-specific wording. Default templates and the label separator live in KitStrings; membership remains controlled by stable refs, not this string.",
+          "default": "Computed from `chips` and `KitStrings.multi-selection-count-format` / `multi-selection-value-format` using `{count}` and `{labels}`.",
+          "example": "KitMultiSelect { label: \"Members\"; options: root.members; value-label: root.localized-membership; }"
         }
       },
       "callbacks": {
@@ -3300,7 +3320,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. The shared trigger names the field from label and reports the selected chip count/labels as its value. Empty membership reports an empty value with a separate accessible placeholder. Controlled removals change this value only after host acknowledgment; read-only/disabled membership stays unchanged. **Breaking:** placeholder no longer names the field."
     }
   },
   "KitNavigationAction": {
@@ -4231,14 +4251,14 @@
           "example": "liste := KitSelect { options: root.villes; }\nText { text: liste.state.open ? \"Ouvert\" : \"Fermé\"; }"
         },
         "placeholder": {
-          "effect": "Texte du déclencheur tant que rien n’est sélectionné, et nom accessible du déclencheur. Donnez-lui la question à laquelle le contrôle répond.",
-          "default": "Le libellé sélectionné s’il existe, sinon `\"Choose an option\"`.",
-          "example": "KitSelect {\n    options: root.regions;\n    placeholder: \"Région\";\n}"
+          "effect": "Indication vide, publiée via accessible-placeholder-text de Slint. Ce n’est jamais le nom du champ ni sa valeur accessible.",
+          "default": "`KitStrings.select-placeholder` (`\"Choose an option\"`).",
+          "example": "KitSelect { label: \"Workspace\"; placeholder: \"Choose a workspace\"; options: root.workspaces; }"
         },
         "unavailable-label": {
-          "effect": "Le message lorsque `selected` pointe vers un jeton absent de `options` : il devient la validité personnalisée du contrôle et la description accessible du déclencheur.",
-          "default": "`\"Selected option is unavailable\"`.",
-          "example": "KitSelect {\n    options: root.agents;\n    unavailable-label: \"Cet agent a quitté l’équipe.\";\n}"
+          "effect": "Texte visible de remplacement quand l’identité sélectionnée est indisponible ; participe aussi à la validation et à la description accessible. L’avertissement décoratif utilise theme.icons.warning via KitIcon.",
+          "default": "`KitStrings.selection-unavailable-label` (`\"Selected option is unavailable\"`).",
+          "example": "KitSelect { label: \"Agent\"; options: root.agents; unavailable-label: \"This agent left the team.\"; }"
         },
         "access": {
           "effect": "`editable`, `read-only` ou `disabled`. Un contrôle en lecture seule ou désactivé ne s’ouvre, ne navigue ni ne choisit jamais ; un popup ouvert se ferme quand l’accès quitte `editable` ; un déclencheur désactivé n’est pas focalisable et rapporte sinon `accessible-read-only`.",
@@ -4266,8 +4286,9 @@
           "example": "KitSelect {\n    options: root.pays;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
         },
         "selected-label": {
-          "effect": "Libellé de l’option sélectionnée, résolu dans `options` par jeton ; `\"\"` quand rien n’est sélectionné.",
-          "example": "forfait := KitSelect { options: root.forfaits; }\nText { text: forfait.selected-label; }"
+          "effect": "Texte de la sélection courante, lié à selection.selected-label et désormais surchargeable pour rows/state projetés par l’hôte. Une option disponible à libellé vide reste vide.",
+          "default": "`selection.selected-label`.",
+          "example": "KitSelect { label: \"Workspace\"; rows: root.rows; state: root.state; selected-label: root.current-name; }"
         },
         "popup-visible": {
           "effect": "Si la fenêtre popup native est présentée. Elle suit `state.open` et se ferme sur un clic extérieur, Échap, Tab, un choix et lorsque `access` quitte `editable` ; `dismiss(CloseReason)` nomme la cause.",
@@ -4287,6 +4308,16 @@
         },
         "error-message": {
           "effect": "Description accessible d’erreur fournie par un composite avec validation ; le formulaire affiche le texte visible. L’erreur de contrainte visible du contrôle est prioritaire."
+        },
+        "label": {
+          "effect": "Nom accessible stable du champ, séparé de l’indication vide et de l’option courante. Aucune ligne de libellé visible n’est ajoutée ; composez KitFieldLabel si nécessaire.",
+          "default": "`KitStrings.select-label` (`\"Selection\"`).",
+          "example": "KitSelect { label: \"Workspace\"; placeholder: \"Choose a workspace\"; options: root.workspaces; }"
+        },
+        "value-label": {
+          "effect": "Texte de valeur accessible ; reprend par défaut le libellé choisi, jamais l’indication vide. MultiSelect transmet son résumé des sélections via cette propriété de présentation partagée.",
+          "default": "Calculée depuis `state.selected.present` et `selected-label` ; vide sans sélection.",
+          "example": "KitSelect { label: \"Plan\"; options: root.plans; value-label: root.localized-current-plan; }"
         }
       },
       "callbacks": {
@@ -4296,7 +4327,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Le nom du champ est label ; l’indication vide est placeholder et value-label représente la sélection courante. Changer d’option ne renomme jamais le champ. Une sélection contrôlée absente conserve son identité stable et affiche unavailable-label avec l’icône d’avertissement du thème. Donnez des noms propres aux champs. **Rupture :** placeholder n’est plus qu’une indication vide et ne fournit plus le nom accessible ni la valeur ; déplacez le nom vers label et les valeurs externes vers selected-label/value-label."
     },
     "en": {
       "summary": "Popup selector with search, keyboard navigation and virtualized options.",
@@ -4335,14 +4366,14 @@
           "example": "list := KitSelect { options: root.cities; }\nText { text: list.state.open ? \"Open\" : \"Closed\"; }"
         },
         "placeholder": {
-          "effect": "Text of the trigger while nothing is selected, and the accessible name of the trigger. Set it to the question the control answers.",
-          "default": "The selected label when there is one, otherwise `\"Choose an option\"`.",
-          "example": "KitSelect {\n    options: root.regions;\n    placeholder: \"Region\";\n}"
+          "effect": "Empty hint, published through Slint accessible-placeholder-text. It is never the field name or accessible value.",
+          "default": "`KitStrings.select-placeholder` (`\"Choose an option\"`).",
+          "example": "KitSelect { label: \"Workspace\"; placeholder: \"Choose a workspace\"; options: root.workspaces; }"
         },
         "unavailable-label": {
-          "effect": "The message when `selected` points to a token absent from `options`: it becomes the custom validity of the control and the accessible description of the trigger.",
-          "default": "`\"Selected option is unavailable\"`.",
-          "example": "KitSelect {\n    options: root.agents;\n    unavailable-label: \"This agent left the team.\";\n}"
+          "effect": "Visible replacement text when the selected identity is unavailable; also participates in validation and accessible description. The decorative warning uses theme.icons.warning through KitIcon.",
+          "default": "`KitStrings.selection-unavailable-label` (`\"Selected option is unavailable\"`).",
+          "example": "KitSelect { label: \"Agent\"; options: root.agents; unavailable-label: \"This agent left the team.\"; }"
         },
         "access": {
           "effect": "`editable`, `read-only` or `disabled`. Read-only and disabled controls never open, navigate or choose; an open popup closes when access leaves `editable`; a disabled trigger is not focusable and reports `accessible-read-only` otherwise.",
@@ -4370,8 +4401,9 @@
           "example": "KitSelect {\n    options: root.countries;\n    query-edited(text) => { root.search(text); }\n}"
         },
         "selected-label": {
-          "effect": "Label of the selected option, resolved in `options` by token; `\"\"` when nothing is selected.",
-          "example": "plan := KitSelect { options: root.plans; }\nText { text: plan.selected-label; }"
+          "effect": "Current selected display text, bound to selection.selected-label and now overridable for externally projected rows/state. An available option with an empty label remains empty.",
+          "default": "`selection.selected-label`.",
+          "example": "KitSelect { label: \"Workspace\"; rows: root.rows; state: root.state; selected-label: root.current-name; }"
         },
         "popup-visible": {
           "effect": "Whether the native popup window is presented. It follows `state.open` and closes on outside click, Escape, Tab, a choice and when `access` leaves `editable`; `dismiss(CloseReason)` names the cause.",
@@ -4391,6 +4423,16 @@
         },
         "error-message": {
           "effect": "Accessible error description supplied by a composite alongside validation; the host renders the visible text. The control’s own visible constraint error has priority."
+        },
+        "label": {
+          "effect": "Stable accessible name of the field, separate from its empty hint and current option. No visible label row is added; compose KitFieldLabel when needed.",
+          "default": "`KitStrings.select-label` (`\"Selection\"`).",
+          "example": "KitSelect { label: \"Workspace\"; placeholder: \"Choose a workspace\"; options: root.workspaces; }"
+        },
+        "value-label": {
+          "effect": "Accessible value text; defaults to the current selected label, never to the hint. MultiSelect supplies its membership summary through this shared presentation property.",
+          "default": "Computed from `state.selected.present` and `selected-label`; empty when no selection is present.",
+          "example": "KitSelect { label: \"Plan\"; options: root.plans; value-label: root.localized-current-plan; }"
         }
       },
       "callbacks": {
@@ -4400,7 +4442,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. The field name is label; the empty hint is placeholder, and value-label represents the current selection. Changing a choice never renames the field. Missing controlled choices retain their stable identity and display unavailable-label with the themed warning glyph. Use meaningful field-specific labels. **Breaking:** placeholder is now only an empty hint and no longer supplies the accessible name or current value; move the name to label and external display values to selected-label/value-label."
     }
   },
   "KitSelectKeyboard": {
