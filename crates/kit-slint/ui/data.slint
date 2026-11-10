@@ -451,6 +451,18 @@ export component KitDataTable inherits Rectangle {
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
     public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.cancelled); } }
     private property <int> edit-commit-request;
+    in property <int> near-end-rows: 3;
+    out property <int> first-visible-index: root.rows.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.row-height), 0, root.rows.length - 1);
+    out property <int> visible-row-count: root.rows.length == 0 || list.visible-height <= 0px ? 0 : max(0, min(root.rows.length, ceil((list.visible-height - list.content-y) / root.row-height)) - root.first-visible-index);
+    out property <bool> end-near: root.rows.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.rows.length;
+    callback near-end();
+    changed end-near => { if (root.end-near) { root.near-end(); } }
+    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.rows.length * root.row-height - list.visible-height)); }
+    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function set-scroll(x: length, y: length) {
+        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
+        list.content-y = clamp(y, -max(0px, root.rows.length * root.row-height - list.visible-height), 0px);
+    }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y: list.content-y;
     out property <length> scroll-x: list.content-x;
@@ -820,11 +832,25 @@ export component KitContentList inherits Rectangle {
     in property <string> empty-label:"No articles found";
     callback activate(int,int);callback navigate(NavigationStep);
     public function take-focus(){keys.focus();}
+    in property <int> near-end-rows: 3;
+    out property <int> first-visible-index: root.items.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.row-height), 0, root.items.length - 1);
+    out property <int> visible-row-count: root.items.length == 0 || list.visible-height <= 0px ? 0 : max(0, min(root.items.length, ceil((list.visible-height - list.content-y) / root.row-height)) - root.first-visible-index);
+    out property <bool> end-near: root.items.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.items.length;
+    callback near-end();
+    changed end-near => { if (root.end-near) { root.near-end(); } }
+    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.row-height, 0px, max(0px, root.items.length * root.row-height - list.visible-height)); }
+    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function set-scroll(x: length, y: length) {
+        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
+        list.content-y = clamp(y, -max(0px, root.items.length * root.row-height - list.visible-height), 0px);
+    }
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y:list.content-y;
+    out property <length> scroll-x:list.content-x;
     private property <length> row-height:max(132px,116px * root.theme.text-scale);
-    changed active-index => {
-        if (root.active-index >= 0) {
+    changed active-index => { root.reveal-active(); }
+    public function reveal-active() {
+        if (root.active-index >= 0 && root.active-index < root.items.length) {
             if (root.active-index * root.row-height + list.content-y < 0px) {list.content-y = -root.active-index * root.row-height;}
             if ((root.active-index + 1) * root.row-height + list.content-y > list.visible-height) {list.content-y = list.visible-height - (root.active-index + 1) * root.row-height;}
         }
@@ -886,12 +912,26 @@ export component KitVirtualTextView inherits Rectangle {
     in property <string> copy-label:"Copy";
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
     public function take-focus(){keys.focus();}
+    in property <int> near-end-rows: 3;
+    out property <int> first-visible-index: root.lines.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.line-height), 0, root.lines.length - 1);
+    out property <int> visible-row-count: root.lines.length == 0 || list.visible-height <= 0px ? 0 : max(0, min(root.lines.length, ceil((list.visible-height - list.content-y) / root.line-height)) - root.first-visible-index);
+    out property <bool> end-near: root.lines.length > 0 && root.first-visible-index >= 0 && root.first-visible-index + root.visible-row-count + max(0, root.near-end-rows) >= root.lines.length;
+    callback near-end();
+    changed end-near => { if (root.end-near) { root.near-end(); } }
+    public function scroll-to-index(index: int) { list.content-y = -clamp(index * root.line-height, 0px, max(0px, root.lines.length * root.line-height - list.visible-height)); }
+    public function scroll-to-top() { list.content-y = 0px; list.content-x = 0px; }
+    public function set-scroll(x: length, y: length) {
+        list.content-x = clamp(x, -max(0px, list.content-width - list.visible-width), 0px);
+        list.content-y = clamp(y, -max(0px, root.lines.length * root.line-height - list.visible-height), 0px);
+    }
     out property <int> page-rows: max(1, floor(list.visible-height / root.line-height));
     out property <length> scroll-y:list.content-y;
+    out property <length> scroll-x:list.content-x;
     private property <length> line-height:max(32px,24px * root.theme.text-scale + 8px);
     private property <length> edit-height:root.access==TextViewAccess.edit-line ? editor-panel.preferred-height : 0px;
     private property <bool> footer-stacked: root.width < KitMetrics.font-size(root.theme, TypographyRole.control) * 32;
-    changed active-index=>{if(root.active-index>=0){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
+    changed active-index => {root.reveal-active();}
+    public function reveal-active() {if(root.active-index>=0 && root.active-index<root.lines.length){if(root.active-index*root.line-height+list.content-y<0px){list.content-y=-root.active-index*root.line-height;}if((root.active-index+1)*root.line-height+list.content-y>list.visible-height){list.content-y=list.visible-height - (root.active-index+1)*root.line-height;}}}
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
     function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}

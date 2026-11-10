@@ -191,3 +191,5 @@ Surface/Card retain Rectangle painting: SurfaceRecipe applies fill/border/radius
 
 Avatar `tone` uses the shared Tone enum (accent by default) and the theme’s subtle fills with readable foregrounds.
 Use each collection’s read-only `page-rows` for PageUp/PageDown. Expose it through a window getter and bind `model.navigation(&window, Window::get_page_rows)` so resizing, density, text scale and edit-footer changes affect the next key without retaining the window. Direct controllers pass that current value to `navigate_page`; every navigation binding now requires that context.
+
+Observe collection `first-visible-index`/`visible-row-count` separately from the keyed active row. Use `scroll-to-index`, `scroll-to-top`, `reveal-active` and bounded `set-scroll(x,y)`; offsets are signed logical lengths and belong to the saved model identity/order. `near-end()` signals entry into the `near-end-rows` range. If loading another page keeps `end-near` true, continue filling explicitly rather than waiting for another edge.

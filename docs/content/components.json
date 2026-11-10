@@ -845,7 +845,7 @@
       "seoTitle": "Liste de contenus pour Slint",
       "summary": "Liste Slint virtualisée avec titres, extraits et sélection.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives.",
-      "behavior": "Chaque `ContentItem` fournit son titre, sa description, ses métadonnées et une vignette facultative. Les lignes sont rendues dans le viewport. Définissez `empty-label` pour un modèle vide. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité.",
+      "behavior": "Chaque `ContentItem` fournit son titre, sa description, ses métadonnées et une vignette facultative. Les lignes sont rendues dans le viewport. Définissez `empty-label` pour un modèle vide. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité. Lisez la plage visible indépendamment d’active-index. Les commandes de défilement préservent la sélection hôte et bornent les décalages signés au contenu courant. near-end signale une entrée de plage ; si un ajout laisse end-near vrai, l’hôte peut poursuivre le remplissage sans attendre une seconde transition.",
       "related": [
         "KitDataTable",
         "KitScrollArea",
@@ -878,13 +878,42 @@
           "example": "KitContentList {\n    items: root.articles;\n    empty-label: \"Rien n’est encore publié.\";\n}"
         },
         "scroll-y": {
-          "effect": "Décalage de défilement vertical de la liste, son `content-y` (nul ou négatif).",
-          "example": "liste := KitContentList { items: root.articles; }\nText { text: \"Défilé de \" + Math.round(-liste.scroll-y / 1px) + \" px\"; }"
+          "effect": "Décalage vertical courant en pixels logiques, nul en haut et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: articles.scroll-y / 1px;"
         },
         "page-rows": {
           "effect": "Nombre en lecture seule de lignes complètes dans le viewport de défilement réel, au minimum une. Il suit la hauteur, la densité et l’échelle du texte ; l’en-tête de tableau et le pied d’édition du document sont exclus.",
           "example": "text: articles.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Seuil de préchargement en lignes ; les valeurs négatives équivalent à zéro. Le callback near-end est émis à l’entrée de cette plage, sans répétition tant qu’elle reste vraie.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Indice visuel de la première ligne qui croise le viewport, ou -1 si le modèle est vide ou le viewport masqué. C’est une coordonnée, pas une identité applicative.",
+          "example": "text: articles.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Nombre de lignes qui croisent le viewport, y compris les lignes de bord partielles, sans la réserve de virtualisation ; zéro pour un modèle vide ou un viewport masqué.",
+          "example": "text: articles.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Indique en lecture seule que la plage visible est à near-end-rows de la fin du modèle ; faux pour un modèle vide.",
+          "example": "visible: articles.end-near;"
+        },
+        "scroll-x": {
+          "effect": "Décalage horizontal courant en pixels logiques, nul au début et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: articles.scroll-x / 1px;"
         }
+      },
+      "callbacks": {
+        "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte."
+      },
+      "functions": {
+        "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
+        "scroll-to-top": "Remet les deux décalages de contenu à zéro sans changer la sélection ni la ligne active.",
+        "set-scroll": "Restaure les décalages signés scroll-x/scroll-y, dans les bornes du contenu et du viewport courants. Conservez l’identité et l’ordre du modèle avec la sauvegarde.",
+        "reveal-active": "Révèle la ligne active courante sans en sélectionner une autre ; une ligne absente ou hors limites ne produit aucun effet."
       }
     },
     "en": {
@@ -892,7 +921,7 @@
       "seoTitle": "Content list for Slint",
       "summary": "Virtualized Slint list with titles, excerpts and item selection.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions.",
-      "behavior": "Each `ContentItem` supplies its title, description, metadata and optional thumbnail. Rows render within the viewport. Set `empty-label` for an empty model. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias.",
+      "behavior": "Each `ContentItem` supplies its title, description, metadata and optional thumbnail. Rows render within the viewport. Set `empty-label` for an empty model. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias. Read the visible range independently of active-index. Scroll commands preserve host selection and clamp signed offsets to current content bounds. near-end is an edge notification; if appending leaves end-near true, the host may continue filling without waiting for a second edge.",
       "related": [
         "KitDataTable",
         "KitScrollArea",
@@ -925,13 +954,42 @@
           "example": "KitContentList {\n    items: root.articles;\n    empty-label: \"Nothing published yet.\";\n}"
         },
         "scroll-y": {
-          "effect": "Vertical scroll offset of the list, as its `content-y` (zero or negative).",
-          "example": "list := KitContentList { items: root.articles; }\nText { text: \"Scrolled \" + Math.round(-list.scroll-y / 1px) + \" px\"; }"
+          "effect": "Current vertical content offset in logical pixels, zero at the top and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: articles.scroll-y / 1px;"
         },
         "page-rows": {
           "effect": "Read-only number of complete rows in the actual scroll viewport, with a minimum of one. It updates after height, density or text-scale changes; the table header and document edit footer are excluded.",
           "example": "text: articles.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Nonnegative prefetch threshold in rows; negative values behave as zero. The near-end callback fires on entering that range, not repeatedly while it stays true.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Visual index of the first row intersecting the viewport, or -1 for an empty model or hidden viewport. It is geometry, not application identity.",
+          "example": "text: articles.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Number of rows intersecting the viewport, including partially visible edge rows and excluding virtualized overscan; zero for an empty or hidden viewport.",
+          "example": "text: articles.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Read-only indication that the visible range is within near-end-rows of the model end; false for an empty model.",
+          "example": "visible: articles.end-near;"
+        },
+        "scroll-x": {
+          "effect": "Current horizontal content offset in logical pixels, zero at the leading edge and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: articles.scroll-x / 1px;"
         }
+      },
+      "callbacks": {
+        "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host."
+      },
+      "functions": {
+        "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
+        "scroll-to-top": "Reset both content offsets without changing selection or the active row.",
+        "set-scroll": "Restore the signed scroll-x/scroll-y offsets, clamped to the current content and viewport. Keep the model identity/order with a saved snapshot.",
+        "reveal-active": "Reveal the current active row without selecting another one; an absent or out-of-range active row does nothing."
       }
     }
   },
@@ -941,7 +999,7 @@
       "seoTitle": "Tableau Slint virtualisé avec clés de ligne stables",
       "summary": "Tableau Slint virtualisé avec en-têtes de tri et sélection de ligne, relié aux clés Rust stables avec KeyedModel.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives. `sorting_by` reçoit le comparateur de clés métier et alterne le sens du tri ; il conserve sélection et clé active, publie les lignes et invalide les anciens gestes. Les cellules sont des chaînes (`TableRow.cells`) ou des cellules de présentation typées (`TableRow.content: [TableCell]`), une par colonne dans l’ordre des colonnes. Construisez les cellules typées en Rust à partir de l’enum `CellContent` (`text`, `badge(text, Tone)`, `check(CheckState, text)`) avec `table_cells(...)` ; le kit la convertit une seule fois dans la projection plate `TableCell { kind, text, tone, check, access, spec, constrained, constraints }`, de sorte que seuls les champs de chaque `kind` ont un sens. Une cellule `field` est une valeur que l’utilisateur modifie sur place : construisez-la avec `CellContent::field(text, FieldAccess)` pour du texte libre ou `CellContent::typed_field(key, &spec, Some(&value), FieldAccess)` pour une valeur typée, où `key` nomme un `FieldSpec` installé par `install_field_specs` ; le codec formate la valeur acceptée une seule fois, analyse et valide le brouillon dans l’éditeur et garde le chemin Rust via `spec.accept(commit)`. Traitez `cell-committed(row, column, generation, commit)` avec `KeyedModel::cell_commits(|key, column, commit| ...)`, qui rejette un commit dont la génération n’est plus courante, puis republiez la ligne. Utilisez les constructeurs Rust `CellContent` et `table_cells` pour la construction typée. Les littéraux Slint sont la projection de bas niveau : seuls les champs du kind choisi ont un sens, et `content` prime sur `cells`. `CellContent::constrained_field(text, codec, access, KitInputConstraints)` transmet présence, longueurs, motif, bornes, pas et type au même moteur que KitTextField. Utilisez -1 pour les longueurs absentes. Le type number active le filtrage natif ; les types email et URL gardent leurs règles intrinsèques.",
-      "behavior": "Le tableau affiche l’ordre fourni par le modèle ; cliquer sur un en-tête ne le trie pas automatiquement. Modifier `active-index` rend cette ligne visible. Définissez `empty-label` pour un modèle vide et `interactive: false` pendant qu’une modale bloque le tableau. Une colonne avec `sortable: false` affiche un en-tête statique. Le texte accessible est localisable : `sort-ascending-label` et `sort-descending-label` (joints au libellé de colonne par « , ») et `unnamed-row-label` pour une ligne sans cellule. L’arbre accessible expose ce que Slint 1.18.1 sait exprimer : le conteneur est une `table`, un en-tête triable est un `button` dont l’action par défaut, le pointeur et le clavier suivent la même règle `disabled`, un en-tête statique est un `text` sans action ni état activé, et chaque ligne est un `list-item` dont `accessible-item-selected` reflète `selected`. Le focus reste sur le tableau, la ligne active est ajoutée au libellé accessible du tableau (`label : première cellule`) et la sélection reste sur les lignes : les trois ne sont jamais confondus. Slint 1.18.1 n’a pas de rôle ligne, cellule ou en-tête de colonne : le curseur de cellule est nommé dans le libellé du tableau (`libellé : ligne, colonne`) plutôt qu’exposé comme cellule, et les tests headless prouvent ce contrat sans qualifier un lecteur d’écran. Chaque colonne porte sa politique de largeur dans `TableColumn.width` (`ColumnWidth`) ; elle suit donc le `token` stable de la colonne lors d’un réordonnancement. `sizing: ColumnSizing.fill` (par défaut) part de `basis`, ne descend jamais sous `minimum-column-width` du tableau ni sous son propre `minimum`, et partage l’espace restant à parts égales avec les autres colonnes `fill` ; `ColumnSizing.fixed` vaut exactement `basis`, borné par les limites de la colonne, et ne grandit jamais. `ceiling: ColumnCeiling.bounded` fait de `maximum` un plafond pour la croissance et le redimensionnement ; `unbounded` (par défaut) n’en a pas : la grille s’élargit et défile horizontalement. Les longueurs sont des pixels logiques, non mis à l’échelle par le thème. En-têtes et cellules partagent les mêmes contraintes et restent alignés à toute largeur ; l’en-tête suit le défilement horizontal (`scroll-x`). L’espace restant une fois chaque colonne à son maximum reste vide au bord de fin. Une colonne `resizable: true` affiche une poignée à son bord de fin : un glissement au pointeur prévisualise la largeur, puis émet au relâchement un seul `resize-requested(token, width)` déjà borné à `[minimum, maximum]` ; la poignée est un arrêt de tabulation après son en-tête, où Gauche/Droite (ou Bas/Haut) changent la largeur d’un pas défini par la recette de poignée du thème, Début va au minimum et Fin à un maximum borné. C’est un `spinbox` accessible nommé `libellé, resize-label` (par défaut `width`) dont la valeur, le minimum, le pas et le maximum borné sont en pixels logiques, avec les actions incrémenter et décrémenter ; `interactive: false` la désactive. Le tableau ne peint rien à partir de la demande : appliquez-la en modifiant la politique de la colonne (en général `fixed` à la largeur reçue). Les changements de largeur et d’ordre ne touchent ni les jetons des lignes, ni la sélection, ni la ligne active. Une ligne typée peint chaque cellule selon son `TableCellKind` : `text` se rend comme une cellule de chaîne, `badge` est un `KitBadge` avec le `tone` de la cellule, et `check` est une marque de case en lecture seule pour `CheckState.unchecked`, `.checked` ou `.mixed` ; le `text` de la cellule est le libellé accessible d’un badge ou d’une marque, l’hôte choisit donc les mots lus. Badges et marques suivent l’alignement de la colonne ; une ligne désactivée atténue son texte et ses marques, un badge conserve son ton. Lorsqu’une ligne fournit à la fois `cells` et `content`, `content` est rendu et `cells` est ignoré ; le nom accessible de la ligne est le texte de sa première cellule, sous l’une ou l’autre forme. Les cellules typées sont peintes par le kit dans la ligne virtualisée : Slint 1.18.1 refuse `@children` et les emplacements de slot dans un élément répété et garde les composants dynamiques expérimentaux ; le kit ne propose donc pas de gabarit de cellule fourni par l’appelant. Gauche/Droite déplacent un curseur de cellule dans la ligne active (`active-column`, -1 pour la ligne entière) : l’anneau passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne. Entrée sur une cellule `field` modifiable ouvre l’unique éditeur sur place du tableau, un `KitTextField` nommé `colonne, ligne` dont l’éditeur natif possède caret, sélection, annulation et IME, la valeur acceptée étant sélectionnée ; Entrée sur toute autre cellule active la ligne comme avant, et Espace l’active toujours. Le brouillon vit dans l’éditeur et reste distinct de la valeur acceptée : Entrée valide un brouillon acceptable et rend le clavier au tableau, Échap l’abandonne, Tab et Maj+Tab valident et déplacent le curseur vers la cellule suivante ou précédente, et la perte du focus valide un brouillon acceptable ou abandonne un brouillon inacceptable. Un brouillon refusé par le codec ou les contraintes reste dans l’éditeur avec la présentation invalide et son message dans `edit-error` ; il n’est jamais validé. `access: read-only` montre la valeur sans éditeur, `disabled` la montre atténuée, une ligne désactivée ne s’édite jamais, et `interactive: false` n’ouvre ni ne conserve d’éditeur. Le commit nomme le jeton de ligne, le jeton de colonne et la `generation` armée au début de l’édition, jamais des positions ; un tri ou un filtre pendant l’édition ne peut donc pas le rediriger : une nouvelle génération ferme l’éditeur sans valider, et `KeyedModel::cell_commits` rejette un commit armé sous une ancienne. Seule la cellule éditée du viewport monte un éditeur. Si un défilement ou un redimensionnement place cette ligne entièrement hors du viewport, sa session est annulée sans confirmation. La valeur acceptée reste inchangée ; le retour de la ligne ne ressuscite pas un brouillon caché. Les cellules à cocher restent en lecture seule, et aucun chiffre de performance ou de mémoire n’est promis. Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Avec `header-focus: TableHeaderFocus.individual`, les en-têtes triables et leurs poignées de redimensionnement précèdent le corps composite dans l’ordre de Tab, conformément à leur ordre visuel. Les en-têtes statiques n’ajoutent aucun arrêt de tabulation. Le curseur d’en-tête annonce la région localisée et le nom de colonne, sans valeur de cellule ni indication d’édition ; son action accessible trie uniquement une colonne triable. Ce mode fonctionne aussi sans lignes. Identité, brouillon et rectangle mesuré sont observables. Un changement de génération, un tableau bloqué, un enregistrement indisponible ou une autre cellule active termine avec superseded. Une perte de focus sans modification termine avec unchanged ; keep-open conserve le même éditeur natif invalide et son historique d’annulation. Appliquez les mises à jour acceptées via cell-committed et ses gardes ; utilisez edit-ended pour le cycle UI et la récupération du brouillon. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité.",
+      "behavior": "Le tableau affiche l’ordre fourni par le modèle ; cliquer sur un en-tête ne le trie pas automatiquement. Modifier `active-index` rend cette ligne visible. Définissez `empty-label` pour un modèle vide et `interactive: false` pendant qu’une modale bloque le tableau. Une colonne avec `sortable: false` affiche un en-tête statique. Le texte accessible est localisable : `sort-ascending-label` et `sort-descending-label` (joints au libellé de colonne par « , ») et `unnamed-row-label` pour une ligne sans cellule. L’arbre accessible expose ce que Slint 1.18.1 sait exprimer : le conteneur est une `table`, un en-tête triable est un `button` dont l’action par défaut, le pointeur et le clavier suivent la même règle `disabled`, un en-tête statique est un `text` sans action ni état activé, et chaque ligne est un `list-item` dont `accessible-item-selected` reflète `selected`. Le focus reste sur le tableau, la ligne active est ajoutée au libellé accessible du tableau (`label : première cellule`) et la sélection reste sur les lignes : les trois ne sont jamais confondus. Slint 1.18.1 n’a pas de rôle ligne, cellule ou en-tête de colonne : le curseur de cellule est nommé dans le libellé du tableau (`libellé : ligne, colonne`) plutôt qu’exposé comme cellule, et les tests headless prouvent ce contrat sans qualifier un lecteur d’écran. Chaque colonne porte sa politique de largeur dans `TableColumn.width` (`ColumnWidth`) ; elle suit donc le `token` stable de la colonne lors d’un réordonnancement. `sizing: ColumnSizing.fill` (par défaut) part de `basis`, ne descend jamais sous `minimum-column-width` du tableau ni sous son propre `minimum`, et partage l’espace restant à parts égales avec les autres colonnes `fill` ; `ColumnSizing.fixed` vaut exactement `basis`, borné par les limites de la colonne, et ne grandit jamais. `ceiling: ColumnCeiling.bounded` fait de `maximum` un plafond pour la croissance et le redimensionnement ; `unbounded` (par défaut) n’en a pas : la grille s’élargit et défile horizontalement. Les longueurs sont des pixels logiques, non mis à l’échelle par le thème. En-têtes et cellules partagent les mêmes contraintes et restent alignés à toute largeur ; l’en-tête suit le défilement horizontal (`scroll-x`). L’espace restant une fois chaque colonne à son maximum reste vide au bord de fin. Une colonne `resizable: true` affiche une poignée à son bord de fin : un glissement au pointeur prévisualise la largeur, puis émet au relâchement un seul `resize-requested(token, width)` déjà borné à `[minimum, maximum]` ; la poignée est un arrêt de tabulation après son en-tête, où Gauche/Droite (ou Bas/Haut) changent la largeur d’un pas défini par la recette de poignée du thème, Début va au minimum et Fin à un maximum borné. C’est un `spinbox` accessible nommé `libellé, resize-label` (par défaut `width`) dont la valeur, le minimum, le pas et le maximum borné sont en pixels logiques, avec les actions incrémenter et décrémenter ; `interactive: false` la désactive. Le tableau ne peint rien à partir de la demande : appliquez-la en modifiant la politique de la colonne (en général `fixed` à la largeur reçue). Les changements de largeur et d’ordre ne touchent ni les jetons des lignes, ni la sélection, ni la ligne active. Une ligne typée peint chaque cellule selon son `TableCellKind` : `text` se rend comme une cellule de chaîne, `badge` est un `KitBadge` avec le `tone` de la cellule, et `check` est une marque de case en lecture seule pour `CheckState.unchecked`, `.checked` ou `.mixed` ; le `text` de la cellule est le libellé accessible d’un badge ou d’une marque, l’hôte choisit donc les mots lus. Badges et marques suivent l’alignement de la colonne ; une ligne désactivée atténue son texte et ses marques, un badge conserve son ton. Lorsqu’une ligne fournit à la fois `cells` et `content`, `content` est rendu et `cells` est ignoré ; le nom accessible de la ligne est le texte de sa première cellule, sous l’une ou l’autre forme. Les cellules typées sont peintes par le kit dans la ligne virtualisée : Slint 1.18.1 refuse `@children` et les emplacements de slot dans un élément répété et garde les composants dynamiques expérimentaux ; le kit ne propose donc pas de gabarit de cellule fourni par l’appelant. Gauche/Droite déplacent un curseur de cellule dans la ligne active (`active-column`, -1 pour la ligne entière) : l’anneau passe de la ligne à la cellule et le libellé accessible du tableau nomme la colonne. Entrée sur une cellule `field` modifiable ouvre l’unique éditeur sur place du tableau, un `KitTextField` nommé `colonne, ligne` dont l’éditeur natif possède caret, sélection, annulation et IME, la valeur acceptée étant sélectionnée ; Entrée sur toute autre cellule active la ligne comme avant, et Espace l’active toujours. Le brouillon vit dans l’éditeur et reste distinct de la valeur acceptée : Entrée valide un brouillon acceptable et rend le clavier au tableau, Échap l’abandonne, Tab et Maj+Tab valident et déplacent le curseur vers la cellule suivante ou précédente, et la perte du focus valide un brouillon acceptable ou abandonne un brouillon inacceptable. Un brouillon refusé par le codec ou les contraintes reste dans l’éditeur avec la présentation invalide et son message dans `edit-error` ; il n’est jamais validé. `access: read-only` montre la valeur sans éditeur, `disabled` la montre atténuée, une ligne désactivée ne s’édite jamais, et `interactive: false` n’ouvre ni ne conserve d’éditeur. Le commit nomme le jeton de ligne, le jeton de colonne et la `generation` armée au début de l’édition, jamais des positions ; un tri ou un filtre pendant l’édition ne peut donc pas le rediriger : une nouvelle génération ferme l’éditeur sans valider, et `KeyedModel::cell_commits` rejette un commit armé sous une ancienne. Seule la cellule éditée du viewport monte un éditeur. Si un défilement ou un redimensionnement place cette ligne entièrement hors du viewport, sa session est annulée sans confirmation. La valeur acceptée reste inchangée ; le retour de la ligne ne ressuscite pas un brouillon caché. Les cellules à cocher restent en lecture seule, et aucun chiffre de performance ou de mémoire n’est promis. Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Avec `header-focus: TableHeaderFocus.individual`, les en-têtes triables et leurs poignées de redimensionnement précèdent le corps composite dans l’ordre de Tab, conformément à leur ordre visuel. Les en-têtes statiques n’ajoutent aucun arrêt de tabulation. Le curseur d’en-tête annonce la région localisée et le nom de colonne, sans valeur de cellule ni indication d’édition ; son action accessible trie uniquement une colonne triable. Ce mode fonctionne aussi sans lignes. Identité, brouillon et rectangle mesuré sont observables. Un changement de génération, un tableau bloqué, un enregistrement indisponible ou une autre cellule active termine avec superseded. Une perte de focus sans modification termine avec unchanged ; keep-open conserve le même éditeur natif invalide et son historique d’annulation. Appliquez les mises à jour acceptées via cell-committed et ses gardes ; utilisez edit-ended pour le cycle UI et la récupération du brouillon. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité. Lisez la plage visible indépendamment d’active-index. Les commandes de défilement préservent la sélection hôte et bornent les décalages signés au contenu courant. near-end signale une entrée de plage ; si un ajout laisse end-near vrai, l’hôte peut poursuivre le remplissage sans attendre une seconde transition.",
       "related": [
         "KitContentList"
       ],
@@ -1016,12 +1074,12 @@
           "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nText { text: tableau.active-column < 0 ? \"Ligne\" : tableau.columns[tableau.active-column].label; }"
         },
         "scroll-y": {
-          "effect": "Décalage de défilement vertical de la liste de lignes, le `content-y` de la vue de liste (nul ou négatif), pour un indicateur externe ou pour restaurer une position.",
-          "example": "tableau := KitDataTable { rows: root.lignes; }\nText { text: \"Défilé de \" + Math.round(-tableau.scroll-y / 1px) + \" px\"; }"
+          "effect": "Décalage vertical courant en pixels logiques, nul en haut et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: table.scroll-y / 1px;"
         },
         "scroll-x": {
-          "effect": "Décalage de défilement horizontal de la grille lorsque les minimums de colonnes dépassent le viewport ; l’en-tête le suit pour que l’en-tête et les cellules restent alignés.",
-          "example": "tableau := KitDataTable { rows: root.lignes; columns: root.colonnes; }\nText { visible: tableau.scroll-x < 0px; text: \"D’autres colonnes à gauche\"; }"
+          "effect": "Décalage horizontal courant en pixels logiques, nul au début et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: table.scroll-x / 1px;"
         },
         "editing": {
           "effect": "Vrai tant qu’une session native de cellule field est ouverte. Une confirmation explicite valide, Échap, une nouvelle génération, une cellule active indisponible, un tableau bloqué ou une sortie du viewport la ferme avec un résultat typé. La perte du focus suit edit-blur-policy ; un brouillon refusé en keep-open conserve son éditeur natif.",
@@ -1084,6 +1142,22 @@
         "page-rows": {
           "effect": "Nombre en lecture seule de lignes complètes dans le viewport de défilement réel, au minimum une. Il suit la hauteur, la densité et l’échelle du texte ; l’en-tête de tableau et le pied d’édition du document sont exclus.",
           "example": "text: table.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Seuil de préchargement en lignes ; les valeurs négatives équivalent à zéro. Le callback near-end est émis à l’entrée de cette plage, sans répétition tant qu’elle reste vraie.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Indice visuel de la première ligne qui croise le viewport, ou -1 si le modèle est vide ou le viewport masqué. C’est une coordonnée, pas une identité applicative.",
+          "example": "text: table.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Nombre de lignes qui croisent le viewport, y compris les lignes de bord partielles, sans la réserve de virtualisation ; zéro pour un modèle vide ou un viewport masqué.",
+          "example": "text: table.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Indique en lecture seule que la plage visible est à near-end-rows de la fin du modèle ; faux pour un modèle vide.",
+          "example": "visible: table.end-near;"
         }
       },
       "callbacks": {
@@ -1096,7 +1170,8 @@
         "key-event": "Appelé avant les touches intégrées ; retournez accept pour un raccourci traité par l’hôte, sinon reject. Retournez KitKeyResult.accept ou KitKeyResult.reject.",
         "validate-edit": "`(row-token, column-token, generation, FieldCommit) -> string`. Après validation intrinsèque, retournez un message vide pour accepter ou un rejet métier localisé pour conserver l’éditeur et le brouillon. Le callback de confirmation ne suit qu’un verdict accepté.",
         "edit-started": "`(row-token, column-token, generation)` une fois à l’armement de la session, avant le layout de l’éditeur natif. Attendez `edit-bounds.valid` pour sa géométrie mesurée.",
-        "edit-ended": "`(row-token, column-token, generation, outcome: TableEditOutcome, message: string)` une fois après fermeture. Résultats : `committed`, `unchanged`, `cancelled`, `rejected-on-blur`, `superseded`, `viewport-exit`. `message` conserve la dernière erreur de validation. Les identités sont capturées avant les callbacks ; un gestionnaire de fin peut ouvrir une autre cellule sans rediriger l’ancienne confirmation acceptée. La notification de fin précède la proposition `cell-committed` acceptée."
+        "edit-ended": "`(row-token, column-token, generation, outcome: TableEditOutcome, message: string)` une fois après fermeture. Résultats : `committed`, `unchanged`, `cancelled`, `rejected-on-blur`, `superseded`, `viewport-exit`. `message` conserve la dernière erreur de validation. Les identités sont capturées avant les callbacks ; un gestionnaire de fin peut ouvrir une autre cellule sans rediriger l’ancienne confirmation acceptée. La notification de fin précède la proposition `cell-committed` acceptée.",
+        "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte."
       },
       "functions": {
         "take-focus": "Donne le focus au composite s’il est interactif.",
@@ -1105,7 +1180,10 @@
         "commit-edit": "Valide le brouillon natif courant ; les sessions acceptées émettent committed/unchanged, les refus intrinsèques ou métiers conservent l’éditeur. La politique des valeurs inchangées contrôle la proposition cell-committed.",
         "cancel-edit": "Abandonne l’édition courante et émet cancelled ; rend le focus uniquement si l’éditeur le détenait encore.",
         "sort-active-column": "`()` trie la colonne active si elle est triable et le tableau interactif ; l’hôte reçoit son token stable via `sort-requested`.",
-        "resize-active-column": "`(delta: length)` demande la largeur actuelle de l’en-tête plus le delta signé, bornée par les limites de colonne. L’hôte applique `resize-requested(token, width)` ; la commande ne modifie pas le modèle des colonnes."
+        "resize-active-column": "`(delta: length)` demande la largeur actuelle de l’en-tête plus le delta signé, bornée par les limites de colonne. L’hôte applique `resize-requested(token, width)` ; la commande ne modifie pas le modèle des colonnes.",
+        "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
+        "scroll-to-top": "Remet les deux décalages de contenu à zéro sans changer la sélection ni la ligne active.",
+        "set-scroll": "Restaure les décalages signés scroll-x/scroll-y, dans les bornes du contenu et du viewport courants. Conservez l’identité et l’ordre du modèle avec la sauvegarde."
       }
     },
     "en": {
@@ -1113,7 +1191,7 @@
       "seoTitle": "Virtualized Slint data table with stable row keys",
       "summary": "Virtualized Slint data table with sortable headers and row selection, connected to stable Rust keys through KeyedModel.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions. `sorting_by` accepts a business-key comparator and alternates sort direction; it preserves selection and active identity, publishes rows and invalidates old gestures. Cells are plain strings (`TableRow.cells`) or typed presentation cells (`TableRow.content: [TableCell]`), one per column in column order. Build typed cells in Rust from the `CellContent` enum (`text`, `badge(text, Tone)`, `check(CheckState, text)`) with `table_cells(...)`; the kit converts it once into the flat `TableCell { kind, text, tone, check, access, spec, constrained, constraints }` projection, so only the fields of each `kind` carry meaning. A `field` cell is a value the user edits in place: build it with `CellContent::field(text, FieldAccess)` for free text or `CellContent::typed_field(key, &spec, Some(&value), FieldAccess)` for a typed value, where `key` names a `FieldSpec` installed with `install_field_specs`; the codec formats the accepted value once, parses and validates the draft inside the editor and guards the Rust path through `spec.accept(commit)`. Handle `cell-committed(row, column, generation, commit)` with `KeyedModel::cell_commits(|key, column, commit| ...)`, which rejects a commit whose generation is no longer current, then republish the row. Use Rust `CellContent` constructors and `table_cells` for the supported typed construction path. Slint struct literals are the flat escape hatch: only the fields of the selected kind carry meaning, and `content` takes precedence over `cells`. `CellContent::constrained_field(text, codec, access, KitInputConstraints)` forwards required, lengths, pattern, bounds, step and input kind to the same engine as KitTextField. Set absent lengths to -1. Number kind enables native numeric filtering; email and URL kinds keep their intrinsic checks.",
-      "behavior": "The table renders the supplied row order; clicking a header does not sort it automatically. Changing `active-index` reveals that row. Set `empty-label` for an empty model and `interactive: false` while a modal blocks the table. A column with `sortable: false` shows a static header label. Accessible text is localizable: `sort-ascending-label` and `sort-descending-label` (joined to the column label with \", \") and `unnamed-row-label` for a row without cells. The accessible tree exposes what Slint 1.18.1 can express: the container is a `table`, a sortable header is a `button` whose default action, pointer and keyboard activation follow one `disabled` rule, a static header is `text` with no action and no enabled state, and each row is a `list-item` whose `accessible-item-selected` mirrors `selected`. Focus stays on the table, the active row is appended to the table's accessible label (`label: first cell`), and selection stays on the rows, so the three are never confused. Slint 1.18.1 has no row, cell or column-header roles: the cell cursor is named in the table's label (`label: row, column`) rather than exposed as a cell, and the headless tests prove this contract without qualifying a screen reader. Each column carries its width policy in `TableColumn.width` (`ColumnWidth`), so the policy follows the column's stable `token` through reordering. `sizing: ColumnSizing.fill` (the default) starts at `basis`, never drops below the table's `minimum-column-width` or the column's own `minimum`, and shares the remaining space equally with the other fill columns; `ColumnSizing.fixed` is exactly `basis`, clamped to the column's bounds, and never grows. `ceiling: ColumnCeiling.bounded` makes `maximum` a ceiling for growth and resizing; `unbounded` (the default) has none, so the grid widens and scrolls horizontally. Lengths are logical pixels and are not scaled by the theme. Header and row cells share the same constraints, so they stay aligned at every width, and the header follows the horizontal scroll (`scroll-x`). Space left after every column reached its maximum stays empty at the trailing edge. A column with `resizable: true` shows a handle at its trailing edge: a pointer drag previews the width live and, on release, emits one `resize-requested(token, width)` already clamped to `[minimum, maximum]`; the handle is a tab stop after its header, where Left/Right (or Down/Up) step the width by the theme's column-handle step, Home goes to the minimum and End to a bounded maximum. It is an accessible `spinbox` named `label, resize-label` (default `width`) whose value, minimum, step and bounded maximum are logical pixels, with increment and decrement actions; `interactive: false` disables it. The table paints nothing from the request: apply it by changing the column's policy (usually `fixed` at the reported width). Width and order changes never touch row tokens, selection or the active row. A typed row paints each cell by its `TableCellKind`: `text` renders as a string cell does, `badge` is a `KitBadge` with the cell's `tone`, and `check` is a read-only check mark for `CheckState.unchecked`, `.checked` or `.mixed`; the cell's `text` is the accessible label of a badge or a check mark, so the host chooses the words a reader gets. Badges and marks follow the column alignment; a disabled row dims its text and check marks while a badge keeps its tone. When a row carries both `cells` and `content`, `content` is rendered and `cells` is ignored; the row's accessible name is the first cell's text in either form. Typed cells are painted by the kit inside the virtualized row: Slint 1.18.1 rejects `@children` and slot placeholders inside a repeated element and keeps dynamic components experimental, so the kit does not offer caller-supplied cell templates. Left/Right move a cell cursor inside the active row (`active-column`, -1 for the whole row): the ring moves from the row to the cell and the table's accessible label names the column. Enter on an editable `field` cell opens the table's one in-place editor, a `KitTextField` named `column, row` whose native editor owns caret, selection, undo and IME, with the accepted value selected; Enter on any other cell activates the row as before, and Space always does. The draft lives in the editor and stays distinct from the accepted value: Enter commits an acceptable draft and returns the keyboard to the table, Escape discards it, Tab and Shift+Tab commit and move the cursor to the next or previous cell, and losing focus commits an acceptable draft or drops an unacceptable one. A draft the codec or the constraints reject stays in the editor with the invalid presentation and its message in `edit-error`; it is never committed. `access: read-only` shows the value without an editor, `disabled` shows it dimmed, a disabled row never edits, and `interactive: false` neither opens nor keeps an editor. The commit names the row token, the column token and the `generation` armed when editing began, never positions, so a sort or filter during editing cannot redirect it: a new generation closes the editor without committing, and `KeyedModel::cell_commits` rejects a commit armed under an old one. Only the edited viewport cell mounts an editor. When scrolling or resizing moves that row entirely outside the viewport, its session cancels without a commit. The accepted row value stays unchanged; returning the row does not resurrect a hidden draft. Check cells stay read-only, and no performance or memory figure is claimed. Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. With `header-focus: TableHeaderFocus.individual`, sortable headers and their resize handles precede the composite body in Tab order, matching their visual order. Static headers do not add a Tab stop. Roving header focus announces the localized header region and column name, without a body-cell value or editing hint; its accessible default action sorts only sortable columns. This also works with no rows. Session identity, draft and measured bounds are observable. A generation change, blocked table, unavailable record or different active cell ends with superseded. An untouched blur ends unchanged; rejected keep-open blur keeps the same native editor and undo history. Handle accepted record updates through the existing fenced cell-committed path; use edit-ended for UI lifecycle and draft recovery. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias.",
+      "behavior": "The table renders the supplied row order; clicking a header does not sort it automatically. Changing `active-index` reveals that row. Set `empty-label` for an empty model and `interactive: false` while a modal blocks the table. A column with `sortable: false` shows a static header label. Accessible text is localizable: `sort-ascending-label` and `sort-descending-label` (joined to the column label with \", \") and `unnamed-row-label` for a row without cells. The accessible tree exposes what Slint 1.18.1 can express: the container is a `table`, a sortable header is a `button` whose default action, pointer and keyboard activation follow one `disabled` rule, a static header is `text` with no action and no enabled state, and each row is a `list-item` whose `accessible-item-selected` mirrors `selected`. Focus stays on the table, the active row is appended to the table's accessible label (`label: first cell`), and selection stays on the rows, so the three are never confused. Slint 1.18.1 has no row, cell or column-header roles: the cell cursor is named in the table's label (`label: row, column`) rather than exposed as a cell, and the headless tests prove this contract without qualifying a screen reader. Each column carries its width policy in `TableColumn.width` (`ColumnWidth`), so the policy follows the column's stable `token` through reordering. `sizing: ColumnSizing.fill` (the default) starts at `basis`, never drops below the table's `minimum-column-width` or the column's own `minimum`, and shares the remaining space equally with the other fill columns; `ColumnSizing.fixed` is exactly `basis`, clamped to the column's bounds, and never grows. `ceiling: ColumnCeiling.bounded` makes `maximum` a ceiling for growth and resizing; `unbounded` (the default) has none, so the grid widens and scrolls horizontally. Lengths are logical pixels and are not scaled by the theme. Header and row cells share the same constraints, so they stay aligned at every width, and the header follows the horizontal scroll (`scroll-x`). Space left after every column reached its maximum stays empty at the trailing edge. A column with `resizable: true` shows a handle at its trailing edge: a pointer drag previews the width live and, on release, emits one `resize-requested(token, width)` already clamped to `[minimum, maximum]`; the handle is a tab stop after its header, where Left/Right (or Down/Up) step the width by the theme's column-handle step, Home goes to the minimum and End to a bounded maximum. It is an accessible `spinbox` named `label, resize-label` (default `width`) whose value, minimum, step and bounded maximum are logical pixels, with increment and decrement actions; `interactive: false` disables it. The table paints nothing from the request: apply it by changing the column's policy (usually `fixed` at the reported width). Width and order changes never touch row tokens, selection or the active row. A typed row paints each cell by its `TableCellKind`: `text` renders as a string cell does, `badge` is a `KitBadge` with the cell's `tone`, and `check` is a read-only check mark for `CheckState.unchecked`, `.checked` or `.mixed`; the cell's `text` is the accessible label of a badge or a check mark, so the host chooses the words a reader gets. Badges and marks follow the column alignment; a disabled row dims its text and check marks while a badge keeps its tone. When a row carries both `cells` and `content`, `content` is rendered and `cells` is ignored; the row's accessible name is the first cell's text in either form. Typed cells are painted by the kit inside the virtualized row: Slint 1.18.1 rejects `@children` and slot placeholders inside a repeated element and keeps dynamic components experimental, so the kit does not offer caller-supplied cell templates. Left/Right move a cell cursor inside the active row (`active-column`, -1 for the whole row): the ring moves from the row to the cell and the table's accessible label names the column. Enter on an editable `field` cell opens the table's one in-place editor, a `KitTextField` named `column, row` whose native editor owns caret, selection, undo and IME, with the accepted value selected; Enter on any other cell activates the row as before, and Space always does. The draft lives in the editor and stays distinct from the accepted value: Enter commits an acceptable draft and returns the keyboard to the table, Escape discards it, Tab and Shift+Tab commit and move the cursor to the next or previous cell, and losing focus commits an acceptable draft or drops an unacceptable one. A draft the codec or the constraints reject stays in the editor with the invalid presentation and its message in `edit-error`; it is never committed. `access: read-only` shows the value without an editor, `disabled` shows it dimmed, a disabled row never edits, and `interactive: false` neither opens nor keeps an editor. The commit names the row token, the column token and the `generation` armed when editing began, never positions, so a sort or filter during editing cannot redirect it: a new generation closes the editor without committing, and `KeyedModel::cell_commits` rejects a commit armed under an old one. Only the edited viewport cell mounts an editor. When scrolling or resizing moves that row entirely outside the viewport, its session cancels without a commit. The accepted row value stays unchanged; returning the row does not resurrect a hidden draft. Check cells stay read-only, and no performance or memory figure is claimed. Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. With `header-focus: TableHeaderFocus.individual`, sortable headers and their resize handles precede the composite body in Tab order, matching their visual order. Static headers do not add a Tab stop. Roving header focus announces the localized header region and column name, without a body-cell value or editing hint; its accessible default action sorts only sortable columns. This also works with no rows. Session identity, draft and measured bounds are observable. A generation change, blocked table, unavailable record or different active cell ends with superseded. An untouched blur ends unchanged; rejected keep-open blur keeps the same native editor and undo history. Handle accepted record updates through the existing fenced cell-committed path; use edit-ended for UI lifecycle and draft recovery. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias. Read the visible range independently of active-index. Scroll commands preserve host selection and clamp signed offsets to current content bounds. near-end is an edge notification; if appending leaves end-near true, the host may continue filling without waiting for a second edge.",
       "related": [
         "KitContentList"
       ],
@@ -1188,12 +1266,12 @@
           "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { text: table.active-column < 0 ? \"Row\" : table.columns[table.active-column].label; }"
         },
         "scroll-y": {
-          "effect": "Vertical scroll offset of the row list, as the list view's `content-y` (zero or negative), for an external indicator or to restore a position.",
-          "example": "table := KitDataTable { rows: root.rows; }\nText { text: \"Scrolled \" + Math.round(-table.scroll-y / 1px) + \" px\"; }"
+          "effect": "Current vertical content offset in logical pixels, zero at the top and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: table.scroll-y / 1px;"
         },
         "scroll-x": {
-          "effect": "Horizontal scroll offset of the grid when the column minimums exceed the viewport; the header follows it so header and cells stay aligned.",
-          "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { visible: table.scroll-x < 0px; text: \"More columns to the left\"; }"
+          "effect": "Current horizontal content offset in logical pixels, zero at the leading edge and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: table.scroll-x / 1px;"
         },
         "editing": {
           "effect": "True while a native field-cell session is open. A valid explicit commit, Escape, a new generation, unavailable active cell, blocked table or viewport exit closes it with a typed outcome. Focus loss follows edit-blur-policy; a rejected keep-open draft remains in its native editor.",
@@ -1256,6 +1334,22 @@
         "page-rows": {
           "effect": "Read-only number of complete rows in the actual scroll viewport, with a minimum of one. It updates after height, density or text-scale changes; the table header and document edit footer are excluded.",
           "example": "text: table.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Nonnegative prefetch threshold in rows; negative values behave as zero. The near-end callback fires on entering that range, not repeatedly while it stays true.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Visual index of the first row intersecting the viewport, or -1 for an empty model or hidden viewport. It is geometry, not application identity.",
+          "example": "text: table.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Number of rows intersecting the viewport, including partially visible edge rows and excluding virtualized overscan; zero for an empty or hidden viewport.",
+          "example": "text: table.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Read-only indication that the visible range is within near-end-rows of the model end; false for an empty model.",
+          "example": "visible: table.end-near;"
         }
       },
       "callbacks": {
@@ -1268,7 +1362,8 @@
         "key-event": "Runs before built-in table keys; return accept when the host handles a shortcut, otherwise reject. Return KitKeyResult.accept or KitKeyResult.reject.",
         "validate-edit": "`(row-token, column-token, generation, FieldCommit) -> string`. After intrinsic validation, return an empty message to accept, or a localized domain rejection to keep the editor and draft open. The accepted callback runs only after this verdict.",
         "edit-started": "`(row-token, column-token, generation)` once when the session is armed, before the native editor is laid out. Read `edit-bounds.valid` to wait for measured geometry.",
-        "edit-ended": "`(row-token, column-token, generation, outcome: TableEditOutcome, message: string)` once after closure. Outcomes: `committed`, `unchanged`, `cancelled`, `rejected-on-blur`, `superseded`, `viewport-exit`. `message` retains the last validation error. Identity arguments are captured before callbacks; an end handler may open another cell without redirecting the original accepted commit. End notification precedes the accepted `cell-committed` proposal."
+        "edit-ended": "`(row-token, column-token, generation, outcome: TableEditOutcome, message: string)` once after closure. Outcomes: `committed`, `unchanged`, `cancelled`, `rejected-on-blur`, `superseded`, `viewport-exit`. `message` retains the last validation error. Identity arguments are captured before callbacks; an end handler may open another cell without redirecting the original accepted commit. End notification precedes the accepted `cell-committed` proposal.",
+        "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host."
       },
       "functions": {
         "take-focus": "Focus the composite when interactive.",
@@ -1277,7 +1372,10 @@
         "commit-edit": "Validate the current native draft; accepted sessions emit committed/unchanged, while intrinsic and host rejections retain the editor. The unchanged policy controls the cell-committed proposal.",
         "cancel-edit": "Discard the current edit and emit cancelled; return focus only if its editor still owned it.",
         "sort-active-column": "`()` sorts the active column when sortable and interactive; the host receives its stable token through `sort-requested`.",
-        "resize-active-column": "`(delta: length)` requests the current header width plus the signed delta, clamped to the column bounds. The host applies `resize-requested(token, width)`; the command does not mutate the column model."
+        "resize-active-column": "`(delta: length)` requests the current header width plus the signed delta, clamped to the column bounds. The host applies `resize-requested(token, width)`; the command does not mutate the column model.",
+        "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
+        "scroll-to-top": "Reset both content offsets without changing selection or the active row.",
+        "set-scroll": "Restore the signed scroll-x/scroll-y offsets, clamped to the current content and viewport. Keep the model identity/order with a saved snapshot."
       }
     }
   },
@@ -4909,7 +5007,7 @@
       "seoTitle": "Vue de texte virtualisée pour Slint",
       "summary": "Vue de document Slint avec sélection et édition native d’une ligne.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives.",
-      "behavior": "Traitez `select-line` pour charger le brouillon sélectionné et `navigate` pour changer de ligne. `copy-requested` signale une copie. Utilisez `KitTextArea` pour éditer un tampon multiligne complet. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité.",
+      "behavior": "Traitez `select-line` pour charger le brouillon sélectionné et `navigate` pour changer de ligne. `copy-requested` signale une copie. Utilisez `KitTextArea` pour éditer un tampon multiligne complet. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité. Lisez la plage visible indépendamment d’active-index. Les commandes de défilement préservent la sélection hôte et bornent les décalages signés au contenu courant. near-end signale une entrée de plage ; si un ajout laisse end-near vrai, l’hôte peut poursuivre le remplissage sans attendre une seconde transition.",
       "related": [
         "KitTextArea",
         "KitContentList",
@@ -4939,7 +5037,40 @@
         "page-rows": {
           "effect": "Nombre en lecture seule de lignes complètes dans le viewport de défilement réel, au minimum une. Il suit la hauteur, la densité et l’échelle du texte ; l’en-tête de tableau et le pied d’édition du document sont exclus.",
           "example": "text: document.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Seuil de préchargement en lignes ; les valeurs négatives équivalent à zéro. Le callback near-end est émis à l’entrée de cette plage, sans répétition tant qu’elle reste vraie.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Indice visuel de la première ligne qui croise le viewport, ou -1 si le modèle est vide ou le viewport masqué. C’est une coordonnée, pas une identité applicative.",
+          "example": "text: document.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Nombre de lignes qui croisent le viewport, y compris les lignes de bord partielles, sans la réserve de virtualisation ; zéro pour un modèle vide ou un viewport masqué.",
+          "example": "text: document.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Indique en lecture seule que la plage visible est à near-end-rows de la fin du modèle ; faux pour un modèle vide.",
+          "example": "visible: document.end-near;"
+        },
+        "scroll-x": {
+          "effect": "Décalage horizontal courant en pixels logiques, nul au début et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: document.scroll-x / 1px;"
+        },
+        "scroll-y": {
+          "effect": "Décalage vertical courant en pixels logiques, nul en haut et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
+          "example": "text: document.scroll-y / 1px;"
         }
+      },
+      "callbacks": {
+        "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte."
+      },
+      "functions": {
+        "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
+        "scroll-to-top": "Remet les deux décalages de contenu à zéro sans changer la sélection ni la ligne active.",
+        "set-scroll": "Restaure les décalages signés scroll-x/scroll-y, dans les bornes du contenu et du viewport courants. Conservez l’identité et l’ordre du modèle avec la sauvegarde.",
+        "reveal-active": "Révèle la ligne active courante sans en sélectionner une autre ; une ligne absente ou hors limites ne produit aucun effet."
       }
     },
     "en": {
@@ -4947,7 +5078,7 @@
       "seoTitle": "Virtual text view for Slint",
       "summary": "Slint document view with selection and native editing of one line.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions.",
-      "behavior": "Handle `select-line` to load the selected draft and `navigate` to move between lines. `copy-requested` reports a copy action. Use `KitTextArea` for a complete editable multiline buffer. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias.",
+      "behavior": "Handle `select-line` to load the selected draft and `navigate` to move between lines. `copy-requested` reports a copy action. Use `KitTextArea` for a complete editable multiline buffer. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias. Read the visible range independently of active-index. Scroll commands preserve host selection and clamp signed offsets to current content bounds. near-end is an edge notification; if appending leaves end-near true, the host may continue filling without waiting for a second edge.",
       "related": [
         "KitTextArea",
         "KitContentList",
@@ -4977,7 +5108,40 @@
         "page-rows": {
           "effect": "Read-only number of complete rows in the actual scroll viewport, with a minimum of one. It updates after height, density or text-scale changes; the table header and document edit footer are excluded.",
           "example": "text: document.page-rows;"
+        },
+        "near-end-rows": {
+          "effect": "Nonnegative prefetch threshold in rows; negative values behave as zero. The near-end callback fires on entering that range, not repeatedly while it stays true.",
+          "example": "near-end-rows: 5;"
+        },
+        "first-visible-index": {
+          "effect": "Visual index of the first row intersecting the viewport, or -1 for an empty model or hidden viewport. It is geometry, not application identity.",
+          "example": "text: document.first-visible-index;"
+        },
+        "visible-row-count": {
+          "effect": "Number of rows intersecting the viewport, including partially visible edge rows and excluding virtualized overscan; zero for an empty or hidden viewport.",
+          "example": "text: document.visible-row-count;"
+        },
+        "end-near": {
+          "effect": "Read-only indication that the visible range is within near-end-rows of the model end; false for an empty model.",
+          "example": "visible: document.end-near;"
+        },
+        "scroll-x": {
+          "effect": "Current horizontal content offset in logical pixels, zero at the leading edge and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: document.scroll-x / 1px;"
+        },
+        "scroll-y": {
+          "effect": "Current vertical content offset in logical pixels, zero at the top and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
+          "example": "text: document.scroll-y / 1px;"
         }
+      },
+      "callbacks": {
+        "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host."
+      },
+      "functions": {
+        "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
+        "scroll-to-top": "Reset both content offsets without changing selection or the active row.",
+        "set-scroll": "Restore the signed scroll-x/scroll-y offsets, clamped to the current content and viewport. Keep the model identity/order with a saved snapshot.",
+        "reveal-active": "Reveal the current active row without selecting another one; an absent or out-of-range active row does nothing."
       }
     }
   },

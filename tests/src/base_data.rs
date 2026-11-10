@@ -1393,3 +1393,224 @@ fn page_keys_follow_all_collection_viewports_after_resize_and_text_scaling() {
         "at least one density change must alter the page and actual navigation distance"
     );
 }
+
+struct ScrollProbe {
+    name: &'static str,
+    scroll_to: fn(&BaseDataFixture, i32),
+    restore: fn(&BaseDataFixture, f32, f32),
+    top: fn(&BaseDataFixture),
+    reveal: fn(&BaseDataFixture),
+    first: fn(&BaseDataFixture) -> i32,
+    count: fn(&BaseDataFixture) -> i32,
+    page: fn(&BaseDataFixture) -> i32,
+    end_near: fn(&BaseDataFixture) -> bool,
+    x: fn(&BaseDataFixture) -> f32,
+    y: fn(&BaseDataFixture) -> f32,
+    active: fn(&BaseDataFixture) -> i32,
+    set_active: fn(&BaseDataFixture, i32),
+    near_events: Rc<std::cell::Cell<usize>>,
+}
+
+#[test]
+fn collection_scroll_commands_restore_bounded_ranges_and_signal_near_end_without_selecting() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use std::cell::Cell;
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    let counts = [
+        Rc::new(Cell::new(0)),
+        Rc::new(Cell::new(0)),
+        Rc::new(Cell::new(0)),
+    ];
+    let observed = counts.clone();
+    window.on_near_end(move |collection| {
+        let counter = match collection {
+            DataFixtureCollection::Table => &observed[0],
+            DataFixtureCollection::Content => &observed[1],
+            DataFixtureCollection::Document => &observed[2],
+        };
+        counter.set(counter.get() + 1);
+    });
+    let mut headers = column_set();
+    for column in &mut headers {
+        column.width = ColumnWidth {
+            sizing: ColumnSizing::Fixed,
+            basis: 700.,
+            ..Default::default()
+        };
+    }
+    window.set_columns(ModelRc::new(VecModel::from(headers)));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 1000))));
+    window.set_items(ModelRc::new(VecModel::from(items(1000))));
+    window.set_lines(ModelRc::new(VecModel::from(lines(1000))));
+    window.set_table_active(0);
+    window.set_content_active(0);
+    window.set_line_active(0);
+    window.show().unwrap();
+    let probes = [
+        ScrollProbe {
+            name: "table",
+            scroll_to: BaseDataFixture::invoke_scroll_table_to,
+            restore: BaseDataFixture::invoke_restore_table_scroll,
+            top: BaseDataFixture::invoke_table_to_top,
+            reveal: BaseDataFixture::invoke_reveal_table,
+            first: BaseDataFixture::get_table_first_visible,
+            count: BaseDataFixture::get_table_visible_rows,
+            page: BaseDataFixture::get_table_page_rows,
+            end_near: BaseDataFixture::get_table_end_near,
+            x: BaseDataFixture::get_table_scroll_x,
+            y: BaseDataFixture::get_table_scroll,
+            active: BaseDataFixture::get_table_active,
+            set_active: BaseDataFixture::set_table_active,
+            near_events: counts[0].clone(),
+        },
+        ScrollProbe {
+            name: "content",
+            scroll_to: BaseDataFixture::invoke_scroll_content_to,
+            restore: BaseDataFixture::invoke_restore_content_scroll,
+            top: BaseDataFixture::invoke_content_to_top,
+            reveal: BaseDataFixture::invoke_reveal_content,
+            first: BaseDataFixture::get_content_first_visible,
+            count: BaseDataFixture::get_content_visible_rows,
+            page: BaseDataFixture::get_content_page_rows,
+            end_near: BaseDataFixture::get_content_end_near,
+            x: BaseDataFixture::get_content_scroll_x,
+            y: BaseDataFixture::get_content_scroll,
+            active: BaseDataFixture::get_content_active,
+            set_active: BaseDataFixture::set_content_active,
+            near_events: counts[1].clone(),
+        },
+        ScrollProbe {
+            name: "document",
+            scroll_to: BaseDataFixture::invoke_scroll_line_to,
+            restore: BaseDataFixture::invoke_restore_line_scroll,
+            top: BaseDataFixture::invoke_line_to_top,
+            reveal: BaseDataFixture::invoke_reveal_line,
+            first: BaseDataFixture::get_line_first_visible,
+            count: BaseDataFixture::get_line_visible_rows,
+            page: BaseDataFixture::get_line_page_rows,
+            end_near: BaseDataFixture::get_line_end_near,
+            x: BaseDataFixture::get_line_scroll_x,
+            y: BaseDataFixture::get_line_scroll,
+            active: BaseDataFixture::get_line_active,
+            set_active: BaseDataFixture::set_line_active,
+            near_events: counts[2].clone(),
+        },
+    ];
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    for (theme_name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            frame();
+            for probe in &probes {
+                (probe.top)(&window);
+                frame();
+                assert_eq!((probe.first)(&window), 0);
+                (probe.scroll_to)(&window, 500);
+                let snapshot = frame();
+                let offset = (probe.y)(&window);
+                assert!(offset < 0.);
+                assert_eq!((probe.first)(&window), 500);
+                assert!((probe.count)(&window) >= (probe.page)(&window));
+                assert!((probe.count)(&window) <= (probe.page)(&window) + 1);
+                assert_eq!((probe.active)(&window), 0);
+                crate::choice_presentation::save_capture(
+                    &snapshot,
+                    &format!("collection-scroll-{}-{theme_name}-{scale}", probe.name),
+                );
+                (probe.restore)(&window, 0., 0.);
+                frame();
+                assert_eq!((probe.first)(&window), 0);
+                (probe.restore)(&window, -1_000_000., offset);
+                frame();
+                assert_eq!((probe.first)(&window), 500);
+                assert!(((probe.y)(&window) - offset).abs() < 0.01);
+                let horizontal = (probe.x)(&window);
+                assert!(horizontal <= 0.);
+                (probe.restore)(&window, 0., 0.);
+                frame();
+                (probe.restore)(&window, horizontal, offset);
+                frame();
+                assert_eq!((probe.x)(&window), horizontal);
+                (probe.scroll_to)(&window, 950);
+                frame();
+                assert!(!(probe.end_near)(&window));
+                let before = probe.near_events.get();
+                window.set_near_end_rows(100);
+                frame();
+                assert!((probe.end_near)(&window));
+                assert_eq!(probe.near_events.get(), before + 1);
+                window.set_near_end_rows(-1);
+                frame();
+                assert!(!(probe.end_near)(&window));
+                window.set_near_end_rows(3);
+                frame();
+                (probe.scroll_to)(&window, i32::MAX);
+                frame();
+                assert!((probe.end_near)(&window));
+                assert_eq!((probe.first)(&window) + (probe.count)(&window), 1000);
+                let at_end = probe.near_events.get();
+                (probe.scroll_to)(&window, i32::MAX);
+                frame();
+                assert_eq!(
+                    probe.near_events.get(),
+                    at_end,
+                    "near-end is an edge, not repeated polling"
+                );
+                (probe.top)(&window);
+                frame();
+                assert!(!(probe.end_near)(&window));
+                assert_eq!((probe.x)(&window), 0.);
+                assert_eq!((probe.y)(&window), 0.);
+                (probe.scroll_to)(&window, 999);
+                frame();
+                assert_eq!(probe.near_events.get(), at_end + 1);
+                assert_eq!((probe.active)(&window), 0);
+                (probe.scroll_to)(&window, -100);
+                frame();
+                assert_eq!((probe.y)(&window), 0.);
+                (probe.set_active)(&window, 700);
+                frame();
+                (probe.top)(&window);
+                frame();
+                (probe.reveal)(&window);
+                frame();
+                assert!((probe.first)(&window) <= 700);
+                assert!((probe.first)(&window) + (probe.count)(&window) > 700);
+                assert_eq!((probe.active)(&window), 700);
+                (probe.set_active)(&window, 0);
+                frame();
+            }
+        }
+    }
+    window.set_rows(ModelRc::default());
+    window.set_items(ModelRc::default());
+    window.set_lines(ModelRc::default());
+    frame();
+    for probe in &probes {
+        (probe.scroll_to)(&window, i32::MAX);
+        (probe.reveal)(&window);
+        frame();
+        assert_eq!((probe.first)(&window), -1);
+        assert_eq!((probe.count)(&window), 0);
+        assert!(!(probe.end_near)(&window));
+        assert_eq!((probe.y)(&window), 0.);
+    }
+}

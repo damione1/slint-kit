@@ -9,6 +9,9 @@
 - Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 
 - Add semantic avatar tones using existing theme fills and contrast-preserving foregrounds; accent remains the default.
+- Expose collection visible ranges, bounded scroll/restore commands and edge-triggered near-end notifications without moving host selection.
+- Expose les plages visibles de collection, les commandes bornées de défilement/restauration et le signal d’entrée en fin proche sans déplacer la sélection hôte.
+
 - Expose actual collection page sizes and a weak-window navigation binding; PageUp/PageDown examples and showcase use the current viewport instead of fixed row counts. **Breaking:** `KeyedModel::navigate` now requires `page_rows`, and `navigation` requires a window and page getter; the explicit `navigate_page` alias remains.
 - Expose la taille réelle des pages de collection et un branchement faible de navigation ; les exemples et la galerie utilisent le viewport courant pour PageUp/PageDown plutôt qu’un nombre fixe de lignes. **Rupture :** `KeyedModel::navigate` exige désormais `page_rows`, et `navigation` exige une fenêtre et son getter de page ; l’alias explicite `navigate_page` reste disponible.
 

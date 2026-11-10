@@ -1754,3 +1754,82 @@ fn removing_an_edited_column_then_focusing_another_field_keeps_that_destination(
     text(&window, "Destination");
     assert_eq!(window.get_pasted(), "Destination");
 }
+
+#[test]
+fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install_field_specs(
+        &window,
+        [
+            FieldSpec::integer().named(quantity_key()),
+            owner_spec().named(owner_key()),
+        ],
+    )
+    .unwrap();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(
+        (1..=1000)
+            .map(|token| {
+                record(
+                    token,
+                    &format!("Row {token}"),
+                    12,
+                    "Owner",
+                    FieldAccess::Editable,
+                )
+            })
+            .collect::<Vec<_>>(),
+    )));
+    window.set_table_active(0);
+    window.set_table_edit_blur_policy(ui::TableEditBlurPolicy::KeepOpen);
+    window.show().unwrap();
+    flush();
+    window.window().take_snapshot().unwrap();
+    let observed = observe_sessions(&window);
+    let commits = Rc::new(std::cell::Cell::new(0));
+    let count = commits.clone();
+    window.on_cell_committed(move |_, _, _, _| count.set(count.get() + 1));
+    window.invoke_focus_table();
+    open(&window, 1);
+    text(&window, "x");
+    key(&window, Key::Return);
+    let error = window.get_table_edit_error();
+    assert!(!error.is_empty());
+    window.invoke_scroll_table_to(500);
+    flush();
+    window.window().take_snapshot().unwrap();
+    flush();
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
+    assert_eq!(commits.get(), 0);
+    assert_eq!(observed.ended.borrow().len(), 1);
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::ViewportExit
+    );
+    assert_eq!(observed.ended.borrow()[0].message, error.as_str());
+    window.invoke_scroll_table_to(0);
+    flush();
+    window.window().take_snapshot().unwrap();
+    assert!(editors(&window).is_empty());
+    assert_eq!(observed.ended.borrow().len(), 1);
+    assert_eq!(
+        window
+            .get_rows()
+            .row_data(0)
+            .unwrap()
+            .content
+            .row_data(1)
+            .unwrap()
+            .text,
+        "12"
+    );
+}
