@@ -666,6 +666,13 @@ fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carous
         .dispatch_event(WindowEvent::KeyReleased { text: "b".into() });
     assert!(window.get_popup_state().open);
     assert_eq!(window.get_popup_state().active, banana);
+    // Popup capacity is published after its viewport has actually been laid out.
+    let popup = ElementQuery::from_root(&window)
+        .match_inherits("KitSelectSurface")
+        .find_first()
+        .unwrap();
+    assert!(popup.size().height > 0.);
+    slint::platform::update_timers_and_animations();
     assert!(window.get_popup_page_rows() >= 1);
     key(&window, Key::Escape);
 
