@@ -1,3 +1,4 @@
+import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "scroll.slint";
 import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing } from "theme.slint";
@@ -67,10 +68,10 @@ component DataKeyboard inherits FocusScope {
     callback activate();
     callback confirm();
     callback edit-requested();
-    callback key-event(KeyEvent) -> EventResult;
+    callback key-event(KeyEvent) -> KitKeyResult;
     enabled: !root.disabled;
     key-pressed(event) => {
-        if (root.key-event(event) == accept) { return accept; }
+        if (root.key-event(event) == KitKeyResult.accept) { return accept; }
         if (event.text == Key.F2) { root.edit-requested(); return accept; }
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
         if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
@@ -359,7 +360,7 @@ export component KitDataTable inherits Rectangle {
     // is a view cursor, not application identity.
     in-out property <int> active-column: -1;
     callback cursor-requested(int, int);
-    callback key-event(KeyEvent) -> EventResult;
+    callback key-event(KeyEvent) -> KitKeyResult;
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);

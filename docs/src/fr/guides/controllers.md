@@ -78,3 +78,10 @@ Un clic sans mouvement ne redimensionne pas une colonne. Échap ou un appui seco
 Les cellules utilisent l’éditeur natif. Un clic choisit ligne et curseur de cellule, un double-clic ou F2 ouvre un champ modifiable, Entrée confirme, Échap annule et Tab valide avant déplacement. `edit-active()`, `commit-edit()` et `cancel-edit()` exposent ces opérations à l’hôte. Installez le kit une fois par fenêtre, même pour le texte libre. `active-index` et `active-column` sont des curseurs de vue ; l’identité de confirmation reste `(row-token, column-token, generation, FieldCommit)`. Lisez `edit-error` pour un rejet du codec ou d’une contrainte HTML. La cellule accessible expose sa valeur et l’indication localisée `editable-label` / `read-only-label` ; la preuve headless ne qualifie pas un lecteur d’écran.
 
 Traduisez l’édition de document avec `editor-label`, `editor-placeholder`, `save-label` et `copy-label` ; leurs valeurs par défaut restent anglaises.
+
+
+### Raccourcis clavier depuis Rust
+
+Les hooks clavier publics renvoient `KitKeyResult`, enum de présentation commune exportée par `@kit` et `slint_kit::ui::KitKeyResult`. Depuis Rust, retournez `KitKeyResult::Accept` pour consommer un raccourci ou `Reject` pour préserver le comportement intégré. Les liaisons Slint utilisent `KitKeyResult.accept` et `.reject` ; le kit les convertit à la frontière native `FocusScope` ou `TextInput`. N’utilisez ni le `EventResult` sans rapport du backend winit, ni les API privées de Slint.
+
+Ce résultat concerne `KitTextField.key-pressed`, `KitDataTable.key-event`, le hook hérité `KitPressable.key-event`, `tab-navigation` des sélecteurs et leurs fonctions publiques de navigation `handle-key`. Le hook d’un champ s’exécute seulement sans préédition IME active. Laissez passer le texte et la navigation ordinaires pour conserver sélection, annulation et IME natifs.

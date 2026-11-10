@@ -745,7 +745,7 @@ fn table_key_hook_can_handle_a_shortcut_before_builtin_navigation() {
     let recorded = handled.clone();
     window.on_table_key_event(move |event| {
         recorded.borrow_mut().push(event.text);
-        crate::DataFixtureKeyResult::Accept
+        slint_kit::ui::KitKeyResult::Accept
     });
     let navigated = Rc::new(RefCell::new(Vec::new()));
     let recorded = navigated.clone();

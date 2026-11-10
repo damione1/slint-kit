@@ -1,3 +1,4 @@
+import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitSelectSurface, KitOption, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes, KitSurface, KitCardHeader, KitIcon } from "@kit";
@@ -25,7 +26,7 @@ export component Example inherits Window {
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Chosen: " + row.label; }
             theme: root.theme; height: 240px; searchable: true; query <=> root.query;
             search-label: "Find destination"; focus-search-on-open: true;
-            tab-navigation(reverse) => { return reject; }
+            tab-navigation(reverse) => { return KitKeyResult.reject; }
             VerticalLayout {
                 alignment: start;
                 for row in control.rows: KitOption {

@@ -1,3 +1,4 @@
+import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { FieldState, FieldValue, FieldCommit, KitFieldService } from "field-service.slint";
 import { FieldAction, CommitPolicy, Ownership, StepDirection } from "shared-contracts.slint";
@@ -168,7 +169,7 @@ export component KitTextField inherits KitField {
     out property <bool> has-focus: editor.has-focus;
     in property <TextEscapeBehavior> escape-behavior: root.purpose == TextPurpose.search ? TextEscapeBehavior.clear : TextEscapeBehavior.bubble;
     in property <bool> submit-on-modified-enter;
-    callback key-pressed(KeyEvent) -> EventResult;
+    callback key-pressed(KeyEvent) -> KitKeyResult;
     callback edited(string);
     // Semantic value, separate from the native draft callback above.
     callback value-edited(string);
@@ -336,7 +337,7 @@ export component KitTextField inherits KitField {
                         accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.validation == ValidationPresentation.checking ? root.checking-label : "");
                         key-pressed(event) => {
                             if (self.preedit-text == "") {
-                                if (root.key-pressed(event) == accept) { return accept; }
+                                if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
                                 if (event.text == Key.Escape) {
                                     if (root.escape-behavior == TextEscapeBehavior.clear && root.text != "" && root.access == FieldAccess.editable) { root.clear(); return accept; }
                                     if (root.escape-behavior == TextEscapeBehavior.cancel && root.access == FieldAccess.editable) { root.cancel-edit(); return accept; }

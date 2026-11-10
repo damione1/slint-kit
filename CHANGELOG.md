@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Expose one public `KitKeyResult` enum for keyboard hooks so Rust handlers can accept or reject events without private Slint types. Convert only at native event boundaries. **Breaking:** text-field `key-pressed`, table/pressable `key-event`, selector `tab-navigation` and public selector/navigation `handle-key` return `KitKeyResult`; Slint handlers use qualified `.accept`/`.reject` variants.
+
 
 - Check complete downloadable applications against registry crates before a release documentation build and against local sources in CI. Development guides disclose unreleased APIs and link the immutable 0.7.2 registry example.
 

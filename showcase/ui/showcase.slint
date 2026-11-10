@@ -1,3 +1,4 @@
+import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -311,7 +312,7 @@ export component Showcase inherits Window {
                                 dismiss(reason) => { root.select-dismiss(reason); }
                                 query-edited(query) => { root.select-query(query); }
                                 typeahead(text) => { root.select-typeahead(text); }
-                                tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                                tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? KitKeyResult.accept : KitKeyResult.reject; }
                             }
 
                     Text { text: "Selected: " + root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
@@ -347,7 +348,7 @@ export component Showcase inherits Window {
                                     activate(token,generation) => { root.select-activate(token,generation); }
                                     dismiss(reason) => { root.select-dismiss(reason); }
                                     typeahead(text) => { root.select-typeahead(text); }
-                                    tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                                    tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? KitKeyResult.accept : KitKeyResult.reject; }
                                     HorizontalLayout { spacing: 12px;
                                         Avatar { theme: root.theme; initials: "P"; }
                                         VerticalLayout { spacing: 4px;
@@ -475,7 +476,7 @@ export component Showcase inherits Window {
                             activate(token, generation) => { root.select-activate(token, generation); }
                             dismiss(reason) => { root.select-dismiss(reason); }
                             typeahead(text) => { root.select-typeahead(text); }
-                            tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                            tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? KitKeyResult.accept : KitKeyResult.reject; }
                                 HorizontalLayout { spacing: 12px; Text { text: root.selected-label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; } KitIcon { glyph: KitGlyphs.chevron-down(); ink: root.theme.text-secondary; } }
                             }
                         }
@@ -542,7 +543,7 @@ export component Showcase inherits Window {
             dismiss(reason) => { root.select-dismiss(reason); }
             query-edited(query) => { root.select-query(query); }
             typeahead(text) => { root.select-typeahead(text); }
-                            tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                            tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? KitKeyResult.accept : KitKeyResult.reject; }
             VerticalLayout {
                 spacing: 4px;
                 HorizontalLayout {

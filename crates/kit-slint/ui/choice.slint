@@ -1,3 +1,4 @@
+import { KitKeyResult } from "keyboard.slint";
 import { KitFieldService, SliderSpec, DecimalRangeView } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
@@ -764,7 +765,7 @@ export component KitMultiSelect inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
     callback remove-requested(int);
     vertical-stretch: 0;
@@ -903,7 +904,7 @@ export component KitCombobox inherits Rectangle {
     callback dismiss(CloseReason);
     callback typeahead(string);
     callback query-edited(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     private property <bool> opened: root.state.open;
     private property <bool> tab-restore-complete;
     private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
@@ -922,7 +923,7 @@ export component KitCombobox inherits Rectangle {
         visible: root.access == FieldAccess.read-only; theme: root.theme; control-size: root.control-size;
         access: FieldAccess.read-only; text: root.selected-label; accessible-name: root.label;
     }
-    function advance-tab(reverse: bool) -> EventResult {
+    function advance-tab(reverse: bool) -> KitKeyResult {
         popup.close(); trigger.take-focus(); root.tab-restore-complete = true;
         return root.tab-navigation(reverse);
     }

@@ -233,3 +233,19 @@ fn accessible_hint_keeps_help_and_required_text_when_invalid() {
     assert!(description.contains("Required"));
     assert!(description.contains("Please fill out this field."));
 }
+
+#[test]
+fn public_kit_key_result_can_be_returned_from_a_rust_text_field_hook() {
+    let app = fixture();
+    app.on_handle_key(|event| {
+        if event.text == "x" {
+            slint_kit::ui::KitKeyResult::Accept
+        } else {
+            slint_kit::ui::KitKeyResult::Reject
+        }
+    });
+    key(&app, "x");
+    assert_eq!(app.get_text().as_str(), "");
+    key(&app, "y");
+    assert_eq!(app.get_text().as_str(), "y");
+}

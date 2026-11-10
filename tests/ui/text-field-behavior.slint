@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTextField, KitTextArea, CommitPolicy, ValidationTiming, FieldCommit, FieldAccess, TextPurpose, FieldState, TextLineMode, TextEscapeBehavior, KitTheme, KitThemes } from "@kit";
+import { KitKeyResult, KitTextField, KitTextArea, CommitPolicy, ValidationTiming, FieldCommit, FieldAccess, TextPurpose, FieldState, TextLineMode, TextEscapeBehavior, KitTheme, KitThemes } from "@kit";
 export component TextFieldBehaviorFixture inherits Window {
     width: 600px; height: 400px;
     in-out property <string> text;
@@ -8,6 +8,7 @@ export component TextFieldBehaviorFixture inherits Window {
     in property <bool> intercept-key;
     callback cancelled();
     callback key-observed();
+    callback handle-key(KeyEvent) -> KitKeyResult;
     in-out property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <CommitPolicy> policy: CommitPolicy.on-change-when-valid;
@@ -42,7 +43,7 @@ export component TextFieldBehaviorFixture inherits Window {
         field := KitTextField {
             theme: root.theme; line-mode: root.multiline ? TextLineMode.multiline : TextLineMode.single-line;
             escape-behavior: root.escape-behavior;
-            key-pressed(event) => { root.key-observed(); return root.intercept-key ? accept : reject; }
+            key-pressed(event) => { root.key-observed(); return root.intercept-key ? KitKeyResult.accept : root.handle-key(event); }
             cancelled => { root.cancelled(); }
             placeholder: root.placeholder; description: root.description;
             label: "Name"; text <=> root.text;

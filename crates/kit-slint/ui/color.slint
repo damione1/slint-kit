@@ -1,3 +1,4 @@
+import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe } from "theme.slint";
@@ -106,7 +107,7 @@ export component KitColorField inherits Rectangle {
                 recipe: KitThemes.icon-button-recipe(root.theme,root.control-size);
                 border-width: root.theme.shape.border-width; border-color: root.theme.border-subtle;
                 activated => { root.open-picker(); }
-                key-event(event) => { if (event.text == Key.Escape && root.picker-open) { root.cancel-picker(); return accept; } return reject; }
+                key-event(event) => { if (event.text == Key.Escape && root.picker-open) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; }
                 Rectangle {x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y;border-radius:max(0px,swatch-button.corner-radius - root.theme.spacing.unit);background:root.swatch;}
             }
         }
@@ -151,7 +152,7 @@ export component KitColorField inherits Rectangle {
                             accessible-item-selectable: true; accessible-item-selected: self.chosen;
                             border-width: self.chosen ? root.theme.shape.border-width-strong : root.theme.shape.border-width;
                             border-color: self.chosen ? root.theme.accent : root.theme.border-strong;
-                            key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; }
+                            key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; }
                             accessible-name: "Choose RGB " + choice.red + ", " + choice.green + ", " + choice.blue;
                             activated => { root.draft = {red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}; }
                             Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: max(0px,parent.border-radius - root.theme.spacing.unit); }
@@ -163,8 +164,8 @@ export component KitColorField inherits Rectangle {
                     if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: "Alpha"; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
                     HorizontalLayout {
                         alignment: end; spacing: root.theme.spacing.unit * 2;
-                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } theme: root.theme; control-size: root.control-size; text: "Cancel"; activated => { root.cancel-picker(); } }
-                        KitButton { theme: root.theme; control-size: root.control-size; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return accept; } return reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
+                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } theme: root.theme; control-size: root.control-size; text: "Cancel"; activated => { root.cancel-picker(); } }
+                        KitButton { theme: root.theme; control-size: root.control-size; text: "Apply color"; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
                     }
                 }
             }

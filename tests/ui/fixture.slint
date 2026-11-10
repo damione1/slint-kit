@@ -1,3 +1,4 @@
+import { KitKeyResult } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitButton, KitPressable, KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitDialogSurface, KitDialogPanel, KitDialogHeader, KitDialogBody, KitDialogFooter, KitFocusTarget, KitTheme, KitThemes, ButtonRecipe, ButtonIntent, ControlSize, OptionRow, SelectionRef, SelectState, FocusRequest, DialogState, NavigationStep, CloseReason } from "@kit";
 import { ListView } from "std-widgets.slint";
@@ -199,7 +200,7 @@ export component NestedFixture inherits Window {
                     dismiss(reason) => { root.select-dismiss(reason); }
                     query-edited(text) => { root.select-query(text); }
                     typeahead(text) => { root.select-typeahead(text); }
-                    tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? accept : reject; }
+                    tab-navigation(reverse) => { return root.select-tab(reverse) == TabDisposition.host-handled ? KitKeyResult.accept : KitKeyResult.reject; }
                 }
                 action := KitButton { text: "Dialog action"; }
             }

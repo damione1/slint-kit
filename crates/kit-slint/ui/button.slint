@@ -1,3 +1,4 @@
+import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
 import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
@@ -60,7 +61,7 @@ export component KitPressable inherits Rectangle {
     callback activation-allowed() -> bool;
     activation-allowed => { return true; }
     callback activation-started();
-    callback key-event(event: KeyEvent) -> EventResult;
+    callback key-event(event: KeyEvent) -> KitKeyResult;
     callback focus-observed(bool);
     private property <bool> space-held;
     private property <bool> enter-held;
@@ -139,7 +140,7 @@ export component KitPressable inherits Rectangle {
         key-pressed(event) => {
             root.keyboard-focus = true;
             if (root.disabled || root.busy) { return reject; }
-            if (root.key-event(event) == accept) { return accept; }
+            if (root.key-event(event) == KitKeyResult.accept) { return accept; }
             if (event.text == Key.Space) {
                 if (!root.space-held) { root.activation-started(); root.space-held = true; }
                 return accept;

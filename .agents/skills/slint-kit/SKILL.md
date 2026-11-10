@@ -158,3 +158,6 @@ Slint 1.18.1 exposes no dialog role, accessible modal state or accessible-subtre
 Connect `KitSubmitButton.validation-requested` to form validity or explicitly set `form-no-validate`; an unconnected submit gate blocks activation. Use `form-action(FormAction)` for submit/reset. Overriding `activated` cannot replace validation.
 
 `KitDataTable` cell editing uses the installed field service, including plain text. Click selects a cell cursor; double-click, F2 and `edit-active()` open an editable field. `commit-edit()` and `cancel-edit()` share keyboard behavior. Fence `cell-committed(row-token, column-token, generation, FieldCommit)` before accepting a codec value. Localize `editable-label` and `read-only-label`.
+
+
+Public keyboard hooks return `KitKeyResult`, exported by `@kit` and `slint_kit::ui::KitKeyResult`. Rust handlers return `Accept`/`Reject`; Slint handlers use `KitKeyResult.accept`/`.reject`. This shared type covers text-field `key-pressed`, table/pressable `key-event`, selector `tab-navigation` and public `handle-key`. The kit maps to native EventResult internally. Do not use the unrelated winit EventResult or private Slint enum paths. Reject ordinary editing/navigation so native text behavior survives; text-field hooks do not intercept active IME preedit.
