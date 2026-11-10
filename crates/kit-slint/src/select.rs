@@ -707,7 +707,9 @@ mod tests {
                 SelectionAvailability::Available
             );
             assert!(calls.borrow().is_empty());
+            c.open();
             let snapshot = c.snapshot();
+            assert!(snapshot.open);
             assert_eq!(snapshot.selected, Some(retained_token));
             assert!(snapshot.rows.iter().all(|row| row.token != retained_token));
             c.activate(retained_token, snapshot.generation);
