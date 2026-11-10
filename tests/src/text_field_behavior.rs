@@ -86,3 +86,20 @@ fn reporting_invalid_fields_does_not_move_focus() {
     assert!(app.invoke_focus_invalid());
     assert!(app.get_has_focus());
 }
+#[test]
+fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
+    use i_slint_backend_testing::{ElementQuery, ElementHandle};
+    use slint::platform::PointerEventButton;
+    let app = fixture();
+    app.set_multiline(true);
+    app.set_text((0..20).map(|_| "A selectable overflowing line\n").collect::<String>().into());
+    slint::platform::update_timers_and_animations();
+    let editor = ElementHandle::find_by_accessible_label(&app, "Name").find(|element| element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)).unwrap();
+    let bounds = editor.absolute_position();
+    let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
+    let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
+    app.window().dispatch_event(WindowEvent::PointerPressed { position: start, button: PointerEventButton::Left });
+    app.window().dispatch_event(WindowEvent::PointerMoved { position: end });
+    app.window().dispatch_event(WindowEvent::PointerReleased { position: end, button: PointerEventButton::Left });
+    assert!(ElementQuery::from_root(&app).match_inherits("KitScrollBar").find_first().is_some());
+}
