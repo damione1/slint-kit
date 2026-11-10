@@ -1,15 +1,17 @@
 import { KitTheme, KitThemeContext, KitFieldDescription, LayoutSpace } from "@kit";
 
-import { KitTextField, KitStack, KitButton, FieldCommit, KitInputGroupEnd, ControlSize, FieldAccess } from "@kit";
+import { KitTextField, KitStack, KitButton, FieldCommit, KitInputGroupEnd, ControlSize, FieldAccess, ChoiceFlow } from "@kit";
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     preferred-width: 520px; preferred-height: 320px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme <=> KitThemeContext.current;
+    in property <ChoiceFlow> flow: root.theme.direction;
     title: "Full name";
     callback committed(FieldCommit);
     KitStack { inset: LayoutSpace.roomy;
         control := KitTextField {
+            flow: root.flow;
             clearable: true;
             label: "Full name"; text: "Elliot Alderson"; required: true; spec-key: "value";
 

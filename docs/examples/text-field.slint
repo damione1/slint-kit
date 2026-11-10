@@ -1,7 +1,7 @@
 import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTextField, KitTheme, KitThemes, KitInputGroupStart, KitInputGroupEnd, KitButton, ControlSize, FieldAccess } from "@kit";
+import { KitTextField, KitTheme, KitThemes, KitInputGroupStart, KitInputGroupEnd, KitButton, ControlSize, FieldAccess, ChoiceFlow } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -12,12 +12,13 @@ export component Example inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
+    in property <ChoiceFlow> flow: root.theme.direction;
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Text Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         // Right-click or Shift+F10 opens native editing commands.
-        field := KitTextField { clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; theme: root.theme; label: "Project name"; select-all-label: "Select all"; text: "Field notes"; committed(value) => { root.status = "Accepted: " + value.value.text; }
+        field := KitTextField { flow: root.flow; clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; theme: root.theme; label: "Project name"; select-all-label: "Select all"; text: "Field notes"; committed(value) => { root.status = "Accepted: " + value.value.text; }
             cleared => { root.status = "Cleared"; }
             KitInputGroupStart { theme: root.theme; layout-order: field.leading-adornment-order;
                 KitButton { theme: root.theme; control-size: ControlSize.compact; text: "@"; accessible-name: "Insert marker"; focus-on-pointer: false; disabled: field.access != FieldAccess.editable; activated => { field.insert-at-cursor("@"); } }

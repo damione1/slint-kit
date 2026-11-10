@@ -6,7 +6,7 @@ import { KitStrings } from "strings.slint";
 import { FieldState, FieldValue, FieldCommit, KitFieldService, NumberStepResult, NumberRangeView } from "field-service.slint";
 import { FieldAction, CommitPolicy, Ownership, StepDirection, NumberStepStatus } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, OptionRecipe, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, OptionRecipe, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe, ChoiceFlow } from "theme.slint";
 import { KitScrollBar } from "scroll.slint";
 import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup, FieldDecoration } from "field.slint";
@@ -206,8 +206,10 @@ export component KitTextField inherits KitField {
     in property <bool> busy;
     in property <string> busy-label: KitStrings.busy-label;
     private property <string> activity-label: KitStrings.join-description(root.busy ? root.busy-label : "", root.validation == ValidationPresentation.checking ? root.checking-label : "");
-    out property <int> leading-adornment-order: -1;
-    out property <int> trailing-adornment-order: 1;
+    in property <ChoiceFlow> flow: root.theme.direction;
+    private property <int> flow-sign: root.flow == ChoiceFlow.right-to-left ? -1 : 1;
+    out property <int> leading-adornment-order: -root.flow-sign;
+    out property <int> trailing-adornment-order: root.flow-sign;
     callback cleared();
     callback secret-visibility-changed(SecretVisibility);
     changed secret-visibility => { root.secret-visibility-changed(root.secret-visibility); }
@@ -229,7 +231,15 @@ export component KitTextField inherits KitField {
     in property <length> text-inset: 0px;
     out property <length> text-cell-width: glyph-measure.preferred-width;
     in property <length> text-letter-spacing: 0px;
-    in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.left;
+    in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.start;
+    // Logical edges follow the explicit kit direction. Slint 1.18.1's software
+    // text layout aliases Start/End to Left/Right, so project physical edges
+    // while preserving explicit Left/Center/Right and the native editor.
+    private property <TextHorizontalAlignment> effective-text-alignment: root.text-alignment == TextHorizontalAlignment.start
+        ? (root.theme.direction == ChoiceFlow.right-to-left ? TextHorizontalAlignment.right : TextHorizontalAlignment.left)
+        : root.text-alignment == TextHorizontalAlignment.end
+            ? (root.theme.direction == ChoiceFlow.right-to-left ? TextHorizontalAlignment.left : TextHorizontalAlignment.right)
+            : root.text-alignment;
     in property <IconGlyph> leading-icon: root.purpose == TextPurpose.search ? root.theme.icons.search : { stroke: "", fill: "", viewbox: 24 };
     in property <IconGlyph> trailing-icon;
     in property <length> corner-radius: root.recipe.radius;
@@ -404,241 +414,251 @@ export component KitTextField inherits KitField {
         }
         editor-row := HorizontalLayout {
             spacing: KitMetrics.inline-gap(root.theme);
-            if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
-            if root.prefix != "": Text {
-                text: root.prefix; color: root.theme.text-secondary;
-                font-family: root.theme.typography.family; font-size: root.text-size;
-                vertical-alignment: center; horizontal-stretch: 0;
-            }
-            context-area := TouchArea {
-                enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
+            native-row := HorizontalLayout {
                 horizontal-stretch: 1;
-                // Bound intrinsic measurement independently of child viewport
-                // geometry, then let the native hit area fill the complete row.
-                min-height: root.editor-height;
-                preferred-height: root.editor-height;
-                mouse-cursor: MouseCursor.text;
-                pointer-event(event) => {
-                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
+                spacing: KitMetrics.inline-gap(root.theme);
+                if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { layout-order: 0; theme: root.theme; control-size: root.control-size; glyph: root.leading-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
+                if root.prefix != "": Text {
+                    layout-order: root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
+                    text: root.prefix; color: root.theme.text-secondary;
+                    font-family: root.theme.typography.family; font-size: root.text-size;
+                    vertical-alignment: center; horizontal-stretch: 0;
                 }
-                // Opt-in wheel stepping on the focused editor only; an unfocused
-                // field leaves the wheel to the surrounding scroll view.
-                scroll-event(event) => {
-                    if (root.wheel-stepping && editor.has-focus && root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
-                        if (event.delta-y > 0 && root.step-by(StepDirection.increment, 1)) { return accept; }
-                        if (event.delta-y < 0 && root.step-by(StepDirection.decrement, 1)) { return accept; }
+                context-area := TouchArea {
+                    layout-order: 2 * root.flow-sign;
+                    enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
+                    horizontal-stretch: 1;
+                    // Bound intrinsic measurement independently of child viewport
+                    // geometry, then let the native hit area fill the complete row.
+                    min-height: root.editor-height;
+                    preferred-height: root.editor-height;
+                    mouse-cursor: MouseCursor.text;
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
                     }
-                    return reject;
-                }
-                undo-measure := Text { visible: false; text: root.undo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                redo-measure := Text { visible: false; text: root.redo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                cut-measure := Text { visible: false; text: root.cut-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                copy-measure := Text { visible: false; text: root.copy-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                paste-measure := Text { visible: false; text: root.paste-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                select-all-measure := Text { visible: false; text: root.select-all-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
-                viewport := Flickable {
-                    x: 0px; y: 0px;
-                    interactive: root.multiline;
-                    mouse-drag-pan-enabled: false;
-                    width: parent.width - (root.multiline ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
-                    content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width, formatted-measure.preferred-width) + 2px + root.text-inset);
-                    content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
-                    glyph-measure := Text { visible: false; text: "0"; font-family: root.text-font-family; font-size: root.text-size; }
-                    measure := Text {
-                        visible: false;
-                        width: viewport.width;
-                        text: root.text == "" ? " " : root.text;
-                        font-family: root.text-font-family; font-size: root.text-size;
-                        wrap: word-wrap;
-                    }
-                    if root.text == "" && editor.preedit-text == "": Text {
-                        // Letter spacing includes an advance after the final
-                        // glyph. Reserve that advance for elision; the viewport
-                        // still clips the ink to the field's visible bounds.
-                        x: root.text-inset; width: Math.max(0px,viewport.width - root.text-inset + root.text-letter-spacing); height: root.multiline ? self.preferred-height : viewport.height;
-                        letter-spacing: root.text-letter-spacing; horizontal-alignment: root.text-alignment;
-                        text: root.placeholder;
-                        color: root.recipe.placeholder;
-                        font-family: root.text-font-family; font-size: root.text-size;
-                        vertical-alignment: root.multiline ? top : center;
-                        wrap: root.multiline ? word-wrap : no-wrap;
-                        overflow: elide;
-                    }
-                    formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-family: root.text-font-family; font-size: root.text-size; }
-                    if root.formatted-at-rest: Text {
-                        text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
-                        font-family: root.text-font-family; font-size: root.text-size; vertical-alignment: center;
-                        horizontal-alignment: root.text-alignment;
-                        color: root.recipe.foreground;
-                    }
-                    editor := TextInput {
-                        x: root.text-inset;
-                        width: root.multiline ? viewport.width : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
-                        height: viewport.content-height;
-                        text <=> root.text;
-                        enabled: root.access != FieldAccess.disabled;
-                        read-only: root.access == FieldAccess.read-only || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
-                        single-line: !root.multiline;
-                        wrap: root.multiline ? word-wrap : no-wrap;
-                        input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
-                        input-method-hints: root.input-method-hints;
-                        color: root.formatted-at-rest ? transparent : root.recipe.foreground;
-                        selection-background-color: root.formatted-at-rest ? transparent : root.recipe.selection;
-                        selection-foreground-color: root.formatted-at-rest ? transparent : root.recipe.on-selection;
-                        font-family: root.text-font-family; font-size: root.text-size;
-                        letter-spacing: root.text-letter-spacing;
-                        horizontal-alignment: root.text-alignment;
-                        vertical-alignment: root.multiline ? top : center;
-                        accessible-enabled: root.access != FieldAccess.disabled;
-                        accessible-label: root.accessible-name;
-                        accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
-                        accessible-placeholder-text: root.placeholder;
-                        accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.activity-label);
-                        key-pressed(event) => {
-                            if (self.preedit-text == "") {
-                                if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
-                                // Spin button keys, after the host hook. Home/End fall back to
-                                // native caret movement when the field has no such bound.
-                                if (root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
-                                    if (event.text == Key.UpArrow && root.step-by(StepDirection.increment, 1)) { return accept; }
-                                    if (event.text == Key.DownArrow && root.step-by(StepDirection.decrement, 1)) { return accept; }
-                                    if (event.text == Key.PageUp && root.step-by(StepDirection.increment, root.page-steps)) { return accept; }
-                                    if (event.text == Key.PageDown && root.step-by(StepDirection.decrement, root.page-steps)) { return accept; }
-                                    if (event.text == Key.End && root.step-to-bound(StepDirection.increment)) { return accept; }
-                                    if (event.text == Key.Home && root.step-to-bound(StepDirection.decrement)) { return accept; }
-                                }
-                                if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && root.context-menu == TextContextMenu.standard) {
-                                    root.open-text-menu({x: root.menu-caret.x + root.text-inset + viewport.content-x, y: root.menu-caret.y + root.line-height + viewport.content-y}); return accept;
-                                }
-                                if (event.text == Key.Escape) {
-                                    if (root.escape-behavior == TextEscapeBehavior.clear && root.text != "" && root.access == FieldAccess.editable) { root.clear(); return accept; }
-                                    if (root.escape-behavior == TextEscapeBehavior.cancel && root.access == FieldAccess.editable) { root.cancel-edit(); return accept; }
-                                }
-                                if (root.multiline && root.submit-on-modified-enter && event.text == Key.Return && (event.modifiers.control || event.modifiers.meta) && root.access == FieldAccess.editable) {
-                                    if (root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.value); }
-                                    return accept;
-                                }
-                            }
-                            root.previous-edit-text = self.text;
-                            if (root.access == FieldAccess.editable && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V")) || (event.modifiers.shift && event.text == Key.Insert))) {
-                                if (!root.paste-allowed()) { return accept; }
-                            } else {
-                                if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
-                                if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
-                                if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
-                            }
-                            return reject;
+                    // Opt-in wheel stepping on the focused editor only; an unfocused
+                    // field leaves the wheel to the surrounding scroll view.
+                    scroll-event(event) => {
+                        if (root.wheel-stepping && editor.has-focus && root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                            if (event.delta-y > 0 && root.step-by(StepDirection.increment, 1)) { return accept; }
+                            if (event.delta-y < 0 && root.step-by(StepDirection.decrement, 1)) { return accept; }
                         }
-                        edited => {
-                            if (root.limiting-edit) { return; }
-                            if (root.length-policy == TextLengthPolicy.limit && root.max-length >= 0 && root.length-limit-ready) {
-                                let limited = KitFormValidation.limit-text-edit(root.previous-edit-text, self.text, root.max-length);
-                                if (limited.text != self.text) {
-                                    root.limiting-edit = true;
-                                    self.undo();
-                                    // Remove the overflowing native undo entry before text
-                                    // assignment: coalesced changes can otherwise leave stale
-                                    // undo offsets. Undo may also group earlier keystrokes,
-                                    // so restore the accepted text and a safe caret position.
-                                    self.text = limited.text;
-                                    self.set-selection-offsets(limited.cursor-byte-offset, limited.cursor-byte-offset);
-                                    root.limiting-edit = false;
-                                    root.previous-edit-text = self.text;
-                                    return;
-                                }
-                            }
-                            root.previous-edit-text = self.text;
-                            checks.note-edit();
-                            let native-edit = self.text;
-                            let limited-at-start = root.length-policy == TextLengthPolicy.limit && root.length-limit-ready;
-                            root.edited(native-edit);
-                            // Bound the semantic payload after synchronous host updates.
-                            root.synchronize-length-limit();
-                            root.value-edited(root.value);
-                            // Both public callbacks belong to one native edit transaction.
-                            // Undo only once, after their final text/constraint updates.
-                            if (limited-at-start || (root.length-policy == TextLengthPolicy.limit && root.length-limit-ready)) {
-                                let maximum = root.length-policy == TextLengthPolicy.limit ? root.max-length : -1;
-                                let final-edit = KitFormValidation.limit-text-edit(self.text, self.text, maximum);
-                                if (final-edit.text != native-edit) {
-                                    root.limiting-edit = true;
-                                    // The host may have supplied text shorter than the native
-                                    // undo entry. Restore its matching snapshot before undo.
-                                    self.text = native-edit;
-                                    self.undo();
-                                    self.text = final-edit.text;
-                                    self.set-selection-offsets(final-edit.cursor-byte-offset, final-edit.cursor-byte-offset);
-                                    root.limiting-edit = false;
-                                }
-                            }
-                            root.previous-edit-text = self.text;
-                            root.reduce-field(FieldAction.edit);
+                        return reject;
+                    }
+                    undo-measure := Text { visible: false; text: root.undo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    redo-measure := Text { visible: false; text: root.redo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    cut-measure := Text { visible: false; text: root.cut-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    copy-measure := Text { visible: false; text: root.copy-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    paste-measure := Text { visible: false; text: root.paste-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    select-all-measure := Text { visible: false; text: root.select-all-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                    viewport := Flickable {
+                        x: 0px; y: 0px;
+                        interactive: root.multiline;
+                        mouse-drag-pan-enabled: false;
+                        width: parent.width - (root.multiline ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
+                        content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width, formatted-measure.preferred-width) + 2px + root.text-inset);
+                        content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
+                        glyph-measure := Text { visible: false; text: "0"; font-family: root.text-font-family; font-size: root.text-size; }
+                        measure := Text {
+                            visible: false;
+                            width: viewport.width;
+                            text: root.text == "" ? " " : root.text;
+                            font-family: root.text-font-family; font-size: root.text-size;
+                            wrap: word-wrap;
                         }
-                        accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
-                        // Do not intercept Enter/Escape before the native IME engine.
-                        cursor-position-changed(position) => {
-                            root.menu-caret = position;
-                            if (root.multiline) {
-                                if (position.y + viewport.content-y < 0px) { viewport.content-y = -position.y; }
-                                else if (position.y + root.line-height + viewport.content-y > viewport.height) { viewport.content-y = viewport.height - position.y - root.line-height; }
-                            } else {
-                                if (position.x + root.text-inset + viewport.content-x < 0px) { viewport.content-x = -position.x - root.text-inset; }
-                                else if (position.x + root.text-inset + 2px + viewport.content-x > viewport.width) { viewport.content-x = viewport.width - position.x - root.text-inset - 2px; }
+                        if root.text == "" && editor.preedit-text == "": Text {
+                            // Letter spacing includes an advance after the final
+                            // glyph. Reserve that advance for elision; the viewport
+                            // still clips the ink to the field's visible bounds.
+                            x: root.text-inset; width: Math.max(0px,viewport.width - root.text-inset + root.text-letter-spacing); height: root.multiline ? self.preferred-height : viewport.height;
+                            letter-spacing: root.text-letter-spacing; horizontal-alignment: root.effective-text-alignment;
+                            text: root.placeholder;
+                            color: root.recipe.placeholder;
+                            font-family: root.text-font-family; font-size: root.text-size;
+                            vertical-alignment: root.multiline ? top : center;
+                            wrap: root.multiline ? word-wrap : no-wrap;
+                            overflow: elide;
+                        }
+                        formatted-measure := Text { visible: false; text: root.formatted-at-rest ? root.display-text : ""; font-family: root.text-font-family; font-size: root.text-size; }
+                        if root.formatted-at-rest: Text {
+                            text: root.display-text; width: Math.max(viewport.width, formatted-measure.preferred-width + 2px); height: viewport.height;
+                            font-family: root.text-font-family; font-size: root.text-size; vertical-alignment: center;
+                            horizontal-alignment: root.effective-text-alignment;
+                            color: root.recipe.foreground;
+                        }
+                        editor := TextInput {
+                            x: root.text-inset;
+                            width: root.multiline ? viewport.width : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
+                            height: viewport.content-height;
+                            text <=> root.text;
+                            enabled: root.access != FieldAccess.disabled;
+                            read-only: root.access == FieldAccess.read-only || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
+                            single-line: !root.multiline;
+                            wrap: root.multiline ? word-wrap : no-wrap;
+                            input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
+                            input-method-hints: root.input-method-hints;
+                            color: root.formatted-at-rest ? transparent : root.recipe.foreground;
+                            selection-background-color: root.formatted-at-rest ? transparent : root.recipe.selection;
+                            selection-foreground-color: root.formatted-at-rest ? transparent : root.recipe.on-selection;
+                            font-family: root.text-font-family; font-size: root.text-size;
+                            letter-spacing: root.text-letter-spacing;
+                            horizontal-alignment: root.effective-text-alignment;
+                            vertical-alignment: root.multiline ? top : center;
+                            accessible-enabled: root.access != FieldAccess.disabled;
+                            accessible-label: root.accessible-name;
+                            accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
+                            accessible-placeholder-text: root.placeholder;
+                            accessible-description: KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(KitStrings.join-description(root.effective-validation == ValidationPresentation.invalid ? root.effective-error : "", root.description), root.required ? root.required-label : ""), root.prefix), root.suffix), root.show-character-count ? root.character-count-text : ""), root.activity-label);
+                            key-pressed(event) => {
+                                if (self.preedit-text == "") {
+                                    if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
+                                    // Spin button keys, after the host hook. Home/End fall back to
+                                    // native caret movement when the field has no such bound.
+                                    if (root.number-stepping && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                                        if (event.text == Key.UpArrow && root.step-by(StepDirection.increment, 1)) { return accept; }
+                                        if (event.text == Key.DownArrow && root.step-by(StepDirection.decrement, 1)) { return accept; }
+                                        if (event.text == Key.PageUp && root.step-by(StepDirection.increment, root.page-steps)) { return accept; }
+                                        if (event.text == Key.PageDown && root.step-by(StepDirection.decrement, root.page-steps)) { return accept; }
+                                        if (event.text == Key.End && root.step-to-bound(StepDirection.increment)) { return accept; }
+                                        if (event.text == Key.Home && root.step-to-bound(StepDirection.decrement)) { return accept; }
+                                    }
+                                    if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && root.context-menu == TextContextMenu.standard) {
+                                        root.open-text-menu({x: root.menu-caret.x + root.text-inset + viewport.content-x, y: root.menu-caret.y + root.line-height + viewport.content-y}); return accept;
+                                    }
+                                    if (event.text == Key.Escape) {
+                                        if (root.escape-behavior == TextEscapeBehavior.clear && root.text != "" && root.access == FieldAccess.editable) { root.clear(); return accept; }
+                                        if (root.escape-behavior == TextEscapeBehavior.cancel && root.access == FieldAccess.editable) { root.cancel-edit(); return accept; }
+                                    }
+                                    if (root.multiline && root.submit-on-modified-enter && event.text == Key.Return && (event.modifiers.control || event.modifiers.meta) && root.access == FieldAccess.editable) {
+                                        if (root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.value); }
+                                        return accept;
+                                    }
+                                }
+                                root.previous-edit-text = self.text;
+                                if (root.access == FieldAccess.editable && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V")) || (event.modifiers.shift && event.text == Key.Insert))) {
+                                    if (!root.paste-allowed()) { return accept; }
+                                } else {
+                                    if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
+                                    if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
+                                    if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
+                                }
+                                return reject;
+                            }
+                            edited => {
+                                if (root.limiting-edit) { return; }
+                                if (root.length-policy == TextLengthPolicy.limit && root.max-length >= 0 && root.length-limit-ready) {
+                                    let limited = KitFormValidation.limit-text-edit(root.previous-edit-text, self.text, root.max-length);
+                                    if (limited.text != self.text) {
+                                        root.limiting-edit = true;
+                                        self.undo();
+                                        // Remove the overflowing native undo entry before text
+                                        // assignment: coalesced changes can otherwise leave stale
+                                        // undo offsets. Undo may also group earlier keystrokes,
+                                        // so restore the accepted text and a safe caret position.
+                                        self.text = limited.text;
+                                        self.set-selection-offsets(limited.cursor-byte-offset, limited.cursor-byte-offset);
+                                        root.limiting-edit = false;
+                                        root.previous-edit-text = self.text;
+                                        return;
+                                    }
+                                }
+                                root.previous-edit-text = self.text;
+                                checks.note-edit();
+                                let native-edit = self.text;
+                                let limited-at-start = root.length-policy == TextLengthPolicy.limit && root.length-limit-ready;
+                                root.edited(native-edit);
+                                // Bound the semantic payload after synchronous host updates.
+                                root.synchronize-length-limit();
+                                root.value-edited(root.value);
+                                // Both public callbacks belong to one native edit transaction.
+                                // Undo only once, after their final text/constraint updates.
+                                if (limited-at-start || (root.length-policy == TextLengthPolicy.limit && root.length-limit-ready)) {
+                                    let maximum = root.length-policy == TextLengthPolicy.limit ? root.max-length : -1;
+                                    let final-edit = KitFormValidation.limit-text-edit(self.text, self.text, maximum);
+                                    if (final-edit.text != native-edit) {
+                                        root.limiting-edit = true;
+                                        // The host may have supplied text shorter than the native
+                                        // undo entry. Restore its matching snapshot before undo.
+                                        self.text = native-edit;
+                                        self.undo();
+                                        self.text = final-edit.text;
+                                        self.set-selection-offsets(final-edit.cursor-byte-offset, final-edit.cursor-byte-offset);
+                                        root.limiting-edit = false;
+                                    }
+                                }
+                                root.previous-edit-text = self.text;
+                                root.reduce-field(FieldAction.edit);
+                            }
+                            accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
+                            // Do not intercept Enter/Escape before the native IME engine.
+                            cursor-position-changed(position) => {
+                                root.menu-caret = position;
+                                if (root.multiline) {
+                                    if (position.y + viewport.content-y < 0px) { viewport.content-y = -position.y; }
+                                    else if (position.y + root.line-height + viewport.content-y > viewport.height) { viewport.content-y = viewport.height - position.y - root.line-height; }
+                                } else {
+                                    if (position.x + root.text-inset + viewport.content-x < 0px) { viewport.content-x = -position.x - root.text-inset; }
+                                    else if (position.x + root.text-inset + 2px + viewport.content-x > viewport.width) { viewport.content-x = viewport.width - position.x - root.text-inset - 2px; }
+                                }
                             }
                         }
                     }
-                }
-                text-menu := PopupWindow {
-                    close-policy: close-on-click-outside;
-                    x: root.menu-geometry.x; y: root.menu-geometry.y;
-                    width: root.menu-geometry.width; height: root.menu-geometry.height;
-                    TextEditMenu {
-                        theme: root.theme; control-size: root.control-size;
-                        options: root.menu-options; opened: root.menu-opened;
-                        chosen(row) => { root.run-text-command(row); }
-                        dismiss(reason) => { root.close-text-menu(); }
-                        tab-navigation(reverse) => { root.close-text-menu(); return KitKeyResult.reject; }
+                    text-menu := PopupWindow {
+                        close-policy: close-on-click-outside;
+                        x: root.menu-geometry.x; y: root.menu-geometry.y;
+                        width: root.menu-geometry.width; height: root.menu-geometry.height;
+                        TextEditMenu {
+                            theme: root.theme; control-size: root.control-size;
+                            options: root.menu-options; opened: root.menu-opened;
+                            chosen(row) => { root.run-text-command(row); }
+                            dismiss(reason) => { root.close-text-menu(); }
+                            tab-navigation(reverse) => { root.close-text-menu(); return KitKeyResult.reject; }
+                        }
+                    }
+                    if root.multiline: KitScrollBar {
+                        theme: root.theme; enabled: root.access != FieldAccess.disabled;
+                        x: context-area.width - KitThemes.scroll-bar-recipe(root.theme).thickness;
+                        height: context-area.height;
+                        width: KitThemes.scroll-bar-recipe(root.theme).thickness;
+                        maximum: viewport.content-height - viewport.height;
+                        page-size: viewport.height; value <=> viewport.content-y;
                     }
                 }
-                if root.multiline: KitScrollBar {
-                    theme: root.theme; enabled: root.access != FieldAccess.disabled;
-                    x: context-area.width - KitThemes.scroll-bar-recipe(root.theme).thickness;
-                    height: context-area.height;
-                    width: KitThemes.scroll-bar-recipe(root.theme).thickness;
-                    maximum: viewport.content-height - viewport.height;
-                    page-size: viewport.height; value <=> viewport.content-y;
+                if root.trailing-icon.stroke != "" || root.trailing-icon.fill != "": KitIcon { layout-order: 3 * root.flow-sign; theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
+                if root.suffix != "": Text {
+                    layout-order: 4 * root.flow-sign; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
+                    text: root.suffix; color: root.theme.text-secondary;
+                    font-family: root.text-font-family; font-size: root.text-size;
+                    vertical-alignment: center; horizontal-stretch: 0;
                 }
-            }
-            if root.trailing-icon.stroke != "" || root.trailing-icon.fill != "": KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.trailing-icon; ink: root.recipe.foreground; cross-axis-self-alignment: center; }
-            if root.suffix != "": Text {
-                text: root.suffix; color: root.theme.text-secondary;
-                font-family: root.text-font-family; font-size: root.text-size;
-                vertical-alignment: center; horizontal-stretch: 0;
-            }
-            // The pending check also has a text description below the field;
-            // the mark is decorative so it is not announced twice.
-            if root.busy || root.validation == ValidationPresentation.checking: KitSpinner {
-                theme: root.theme; label: root.activity-label; accessible-role: none;
-                preferred-width: root.icon.size; preferred-height: root.icon.size;
-                min-width: root.icon.size; min-height: root.icon.size;
-            }
-            if root.clear-visible: InputFieldAction {
-                cross-axis-self-alignment: center;
-                theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
-                label: root.clear-label; glyph: root.theme.icons.close;
-                disabled: root.access != FieldAccess.editable || editor.preedit-text != "";
-                activated => { root.clear(); }
-            }
-            if root.reveal-visible: InputFieldAction {
-                cross-axis-self-alignment: center;
-                theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
-                label: root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
-                glyph: root.secret-visibility == SecretVisibility.hidden ? root.theme.icons.eye : root.theme.icons.eye-hidden;
-                disabled: root.access == FieldAccess.disabled || editor.preedit-text != "";
-                activated => {
-                    if (editor.preedit-text != "") { return; }
-                    root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden;
-                    root.take-focus();
+                // The pending check also has a text description below the field;
+                // the mark is decorative so it is not announced twice.
+                if root.busy || root.validation == ValidationPresentation.checking: KitSpinner {
+                    layout-order: 5 * root.flow-sign;
+                    theme: root.theme; label: root.activity-label; accessible-role: none;
+                    preferred-width: root.icon.size; preferred-height: root.icon.size;
+                    min-width: root.icon.size; min-height: root.icon.size;
+                }
+                if root.clear-visible: InputFieldAction {
+                    layout-order: 6 * root.flow-sign;
+                    cross-axis-self-alignment: center;
+                    theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
+                    label: root.clear-label; glyph: root.theme.icons.close;
+                    disabled: root.access != FieldAccess.editable || editor.preedit-text != "";
+                    activated => { root.clear(); }
+                }
+                if root.reveal-visible: InputFieldAction {
+                    layout-order: 7 * root.flow-sign;
+                    cross-axis-self-alignment: center;
+                    theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
+                    label: root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
+                    glyph: root.secret-visibility == SecretVisibility.hidden ? root.theme.icons.eye : root.theme.icons.eye-hidden;
+                    disabled: root.access == FieldAccess.disabled || editor.preedit-text != "";
+                    activated => {
+                        if (editor.preedit-text != "") { return; }
+                        root.secret-visibility = root.secret-visibility == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden;
+                        root.take-focus();
+                    }
                 }
             }
             // Slint has one children surface. Native layout-order places the

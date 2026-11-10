@@ -2,7 +2,7 @@ import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTextField, KitTheme, KitThemes, KitInputGroupStart, KitInputGroupEnd, KitButton, ControlSize, FieldAccess } from "@kit";
+import { KitTextField, KitTheme, KitThemes, KitInputGroupStart, KitInputGroupEnd, KitButton, ControlSize, FieldAccess, ChoiceFlow } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -13,12 +13,13 @@ export component Example inherits Window {
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
+    in property <ChoiceFlow> flow: root.theme.direction;
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Champ de texte"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         // Clic droit ou Maj+F10 ouvre les commandes d’édition natives.
-        field := KitTextField { clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; required-label: "Obligatoire"; required-message: "Ce champ est obligatoire."; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer le texte"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; select-all-label: "Tout sélectionner"; text: "Notes de terrain"; committed(value) => { root.status = "Accepté : " + value.value.text; }
+        field := KitTextField { flow: root.flow; clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; required-label: "Obligatoire"; required-message: "Ce champ est obligatoire."; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer le texte"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; select-all-label: "Tout sélectionner"; text: "Notes de terrain"; committed(value) => { root.status = "Accepté : " + value.value.text; }
             cleared => { root.status = "Effacé"; }
             KitInputGroupStart { theme: root.theme; layout-order: field.leading-adornment-order;
                 KitButton { theme: root.theme; control-size: ControlSize.compact; text: "@"; accessible-name: "Insérer un repère"; focus-on-pointer: false; disabled: field.access != FieldAccess.editable; activated => { field.insert-at-cursor("@"); } }
