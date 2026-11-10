@@ -83,7 +83,7 @@ export component KitColorWheel inherits Rectangle {
         accessible-role: groupbox;
         accessible-label: root.label;
         accessible-description: root.value-text;
-        accessible-enabled: root.access == FieldAccess.editable;
+        accessible-enabled: root.access != FieldAccess.disabled;
         key-pressed(event) => {
             if (root.access != FieldAccess.editable) { return reject; }
             if (event.text == Key.Escape) { root.dragging = false; root.reset-hue(); root.cancelled(); return accept; }
