@@ -165,12 +165,20 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         (self.ports.error)(&window, SharedString::default());
         let binding = self.clone();
         if slint::spawn_local(async move {
-            let outcome = crate::native::pick_files(FileRequest {
-                selection,
-                filters: vec![],
-                suggested_name: None,
-            })
-            .await;
+            let future = {
+                let Some(window) = binding.window.upgrade() else {
+                    return;
+                };
+                crate::native::pick_files_with_parent(
+                    FileRequest {
+                        selection,
+                        filters: vec![],
+                        suggested_name: None,
+                    },
+                    &window.window().window_handle(),
+                )
+            };
+            let outcome = future.await;
             if binding.window.upgrade().is_none() {
                 return;
             }
@@ -360,7 +368,16 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
         (self.ports.error)(&window, SharedString::default());
         let binding = self.clone();
         if slint::spawn_local(async move {
-            let outcome = crate::native::pick_directory(DirectoryRequest::default()).await;
+            let future = {
+                let Some(window) = binding.window.upgrade() else {
+                    return;
+                };
+                crate::native::pick_directory_with_parent(
+                    DirectoryRequest::default(),
+                    &window.window().window_handle(),
+                )
+            };
+            let outcome = future.await;
             if binding.window.upgrade().is_none() {
                 return;
             }

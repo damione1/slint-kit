@@ -18,3 +18,5 @@ Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies ret
 ## Slint Kit licensing
 
 The base kit components are **forever free for open-source use**, under GPL-3.0-or-later. A commercial license for proprietary applications is coming, on request; **Slint Kit Pro** advanced components are also coming. [Contact the author](https://github.com/damione1/slint-kit/discussions) for availability.
+
+Use `pick_files_with_parent(request, &provider)` and `pick_directory_with_parent(request, &provider)` when the picker belongs to a window. Providers implement `DialogParent` through the raw-window-handle traits. Their handles are copied before returning the future, which retains no provider reference. Facade picker bindings supply the visible Slint window automatically. Parent support depends on the platform/backend; qualify native modal behavior on the target.
