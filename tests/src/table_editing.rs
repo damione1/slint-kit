@@ -830,3 +830,31 @@ fn pointer_cell_cursor_and_double_click_open_the_pointed_field() {
     assert!(window.get_table_editing());
     assert_eq!(editors(&window).len(), 1);
 }
+
+#[test]
+fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
+    let Editing { window, .. } = editing(records());
+    let columns = columns()
+        .iter()
+        .map(|mut column| {
+            column.width = ColumnWidth {
+                sizing: ColumnSizing::Fixed,
+                basis: 500.,
+                ..Default::default()
+            };
+            column
+        })
+        .collect::<Vec<_>>();
+    window.set_columns(ModelRc::new(VecModel::from(columns)));
+    window.set_table_active_column(2);
+    flush();
+    assert!(window.get_table_scroll_x() < 0.);
+    key(&window, Key::F2);
+    let editor = editors(&window).remove(0);
+    let bounds = table(&window);
+    assert!(editor.absolute_position().x >= bounds.absolute_position().x - 1.);
+    assert!(
+        editor.absolute_position().x + editor.size().width
+            <= bounds.absolute_position().x + bounds.size().width + 1.
+    );
+}

@@ -240,7 +240,13 @@ component TableCellView inherits Rectangle {
     in property <int> commit-request;
     in property <bool> pointed;
     callback point-requested();
+    callback reveal-requested(length, length);
     changed pointed => { if (root.pointed) { root.point-requested(); } }
+    private property <length> reveal-x: root.absolute-position.x;
+    changed reveal-x => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    changed width => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    changed focus-indicated => { if (root.focus-indicated) { root.reveal-requested(root.absolute-position.x, root.width); } }
+    changed editing => { if (root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     // The draft of the session, kept by the table so a cell that the
     // viewport recreates shows the same text.
     in-out property <string> draft;
@@ -395,6 +401,7 @@ export component KitDataTable inherits Rectangle {
             && root.rows[root.active-index].content[root.active-column].access == FieldAccess.editable;
     }
     function begin-edit() {
+        root.reveal-active();
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.columns[root.active-column].token;
         root.edit-generation = root.generation;
@@ -471,6 +478,11 @@ export component KitDataTable inherits Rectangle {
     pure function cell-stretch(column: TableColumn) -> float { return !root.previewed(column) && column.width.sizing == ColumnSizing.fill ? 1 : 0; }
     changed active-column => {
         if (root.active-column < -1 || root.active-column >= root.columns.length) { root.active-column = clamp(root.active-column, -1, root.columns.length - 1); }
+        root.reveal-active();
+    }
+    function reveal-cell(x: length, width: length) {
+        if (x < root.absolute-position.x) { list.content-x += root.absolute-position.x - x; }
+        else if (x + width > root.absolute-position.x + list.visible-width) { list.content-x -= x + width - root.absolute-position.x - list.visible-width; }
     }
     changed active-index => {root.reveal-active();}
     public function reveal-active() {
@@ -595,6 +607,7 @@ export component KitDataTable inherits Rectangle {
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
+                    reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     cell: { kind: TableCellKind.text, text: row.cells[column-index] };
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
@@ -613,6 +626,7 @@ export component KitDataTable inherits Rectangle {
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
+                    reveal-requested(x, width) => { root.reveal-cell(x, width); }
                     cell: row.content[column-index];
                     alignment: root.columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
