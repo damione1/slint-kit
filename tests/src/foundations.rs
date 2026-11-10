@@ -396,3 +396,57 @@ fn drop_zone_browse_supports_pointer_keyboard_and_accessibility_and_honors_acces
         );
     }
 }
+
+#[test]
+fn status_button_palettes_render_in_both_themes_and_text_scales() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ButtonPaletteFixture::new().unwrap();
+    window.show().unwrap();
+    for (index, base) in [
+        window.get_theme(),
+        window.global::<ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            slint::platform::update_timers_and_animations();
+            let snapshot = window.window().take_snapshot().unwrap();
+            for expected in [
+                theme.success,
+                theme.warning,
+                theme.information,
+                theme.danger,
+            ] {
+                assert!(snapshot.as_slice().iter().any(|p| p.r == expected.red()
+                    && p.g == expected.green()
+                    && p.b == expected.blue()));
+            }
+            if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(directory)
+                    .join(format!("palette-{index}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(
+                    file,
+                    "P6\n{} {}\n255\n",
+                    snapshot.width(),
+                    snapshot.height()
+                )
+                .unwrap();
+                for pixel in snapshot.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+            }
+        }
+    }
+}

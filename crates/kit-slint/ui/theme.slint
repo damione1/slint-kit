@@ -9,7 +9,7 @@ export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
 // control; quiet is borderless (the web's ghost).
-export enum ButtonIntent { primary, secondary, outline, quiet, destructive }
+export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
 // enums. A level names a shadow; the theme supplies that shadow's geometry.
 export enum ElevationLevel { none, xs, sm, md, lg, xl }
@@ -55,8 +55,8 @@ export struct KitTheme {
     text-primary: color, text-secondary: color, placeholder: color,
     accent: color, on-accent: color, accent-hover: color, accent-pressed: color, accent-subtle: color,
     selection: color, on-selection: color,
-    danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, success-subtle: color,
-    warning: color, warning-subtle: color, information: color, information-subtle: color,
+    danger: color, on-danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, on-success: color, success-hover: color, success-pressed: color, success-subtle: color,
+    warning: color, on-warning: color, warning-hover: color, warning-pressed: color, warning-subtle: color, information: color, on-information: color, information-hover: color, information-pressed: color, information-subtle: color,
     border-subtle: color, border-strong: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
@@ -169,10 +169,10 @@ export global KitThemes {
         accent: #4f46e5 /* indigo-600 */, on-accent: #ffffff /* white */,
         accent-hover: #4338ca /* indigo-700 */, accent-pressed: #3730a3 /* indigo-800 */, accent-subtle: #eef2ff /* indigo-50 */,
         selection: #c7d2fe /* indigo-200 */, on-selection: #0f172a /* slate-900 */,
-        danger: #b91c1c /* red-700 */, danger-hover: #991b1b /* red-800 */, danger-pressed: #7f1d1d /* red-900 */, danger-subtle: #fef2f2 /* red-50 */,
-        success: #16a34a /* green-600 */, success-subtle: #f0fdf4 /* green-50 */,
-        warning: #d97706 /* amber-600 */, warning-subtle: #fffbeb /* amber-50 */,
-        information: #0284c7 /* sky-600 */, information-subtle: #f0f9ff /* sky-50 */,
+        on-danger: #ffffff, danger: #b91c1c /* red-700 */, danger-hover: #991b1b /* red-800 */, danger-pressed: #7f1d1d /* red-900 */, danger-subtle: #fef2f2 /* red-50 */,
+        on-success: #020617, success-hover: #22c55e, success-pressed: #4ade80, success: #16a34a /* green-600 */, success-subtle: #f0fdf4 /* green-50 */,
+        on-warning: #020617, warning-hover: #f59e0b, warning-pressed: #fbbf24, warning: #d97706 /* amber-600 */, warning-subtle: #fffbeb /* amber-50 */,
+        on-information: #020617, information-hover: #0ea5e9, information-pressed: #38bdf8, information: #0284c7 /* sky-600 */, information-subtle: #f0f9ff /* sky-50 */,
         // border-strong outlines controls that a light border would hide:
         // checkboxes, radios, switch and slider tracks, outline buttons.
         border-subtle: #e2e8f0 /* slate-200 */, border-strong: #64748b /* slate-500: visible control boundaries */,
@@ -222,10 +222,10 @@ export global KitThemes {
         accent: #818cf8 /* indigo-400 */, on-accent: #020617 /* slate-950 */,
         accent-hover: #a5b4fc /* indigo-300 */, accent-pressed: #c7d2fe /* indigo-200 */, accent-subtle: #1e1b4b /* indigo-950 */,
         selection: #3730a3 /* indigo-800 */, on-selection: #f8fafc /* slate-50 */,
-        danger: #f87171 /* red-400 */, danger-hover: #fca5a5 /* red-300 */, danger-pressed: #fecaca /* red-200 */, danger-subtle: #450a0a /* red-950 */,
-        success: #4ade80 /* green-400 */, success-subtle: #052e16 /* green-950 */,
-        warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
-        information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
+        on-danger: #020617, danger: #f87171 /* red-400 */, danger-hover: #fca5a5 /* red-300 */, danger-pressed: #fecaca /* red-200 */, danger-subtle: #450a0a /* red-950 */,
+        on-success: #020617, success-hover: #86efac, success-pressed: #bbf7d0, success: #4ade80 /* green-400 */, success-subtle: #052e16 /* green-950 */,
+        on-warning: #020617, warning-hover: #fcd34d, warning-pressed: #fde68a, warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
+        on-information: #020617, information-hover: #7dd3fc, information-pressed: #bae6fd, information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
         border-subtle: #1e293b /* slate-800 */, border-strong: #64748b /* slate-500: visible control boundaries */,
         hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
@@ -299,11 +299,15 @@ export global KitThemes {
     public pure function button-recipe(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe {
         return {
             fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
+                : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : intent == ButtonIntent.information ? theme.information
                 : intent == ButtonIntent.secondary ? theme.surface : transparent,
-            hover-fill: intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover : theme.hover,
-            pressed-fill: intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed : theme.pressed,
+            hover-fill: intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
+                : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
+            pressed-fill: intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
+                : intent == ButtonIntent.success ? theme.success-pressed : intent == ButtonIntent.warning ? theme.warning-pressed : intent == ButtonIntent.information ? theme.information-pressed : theme.pressed,
             disabled-fill: intent == ButtonIntent.outline ? transparent : theme.disabled-fill,
-            foreground: intent == ButtonIntent.primary || intent == ButtonIntent.destructive ? theme.on-accent : theme.text-primary,
+            foreground: intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
+                : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
             disabled-foreground: theme.disabled-text,
             border: intent == ButtonIntent.secondary ? theme.border-subtle : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,

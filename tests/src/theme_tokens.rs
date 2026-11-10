@@ -96,14 +96,24 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         selection,
         on_selection,
         danger,
+        on_danger,
         danger_hover,
         danger_pressed,
         danger_subtle,
         success,
+        on_success,
+        success_hover,
+        success_pressed,
         success_subtle,
         warning,
+        on_warning,
+        warning_hover,
+        warning_pressed,
         warning_subtle,
         information,
+        on_information,
+        information_hover,
+        information_pressed,
         information_subtle,
         border_subtle,
         border_strong,
@@ -137,14 +147,24 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("selection", selection),
         ("on-selection", on_selection),
         ("danger", danger),
+        ("on-danger", on_danger),
         ("danger-hover", danger_hover),
         ("danger-pressed", danger_pressed),
         ("danger-subtle", danger_subtle),
         ("success", success),
+        ("on-success", on_success),
+        ("success-hover", success_hover),
+        ("success-pressed", success_pressed),
         ("success-subtle", success_subtle),
         ("warning", warning),
+        ("on-warning", on_warning),
+        ("warning-hover", warning_hover),
+        ("warning-pressed", warning_pressed),
         ("warning-subtle", warning_subtle),
         ("information", information),
+        ("on-information", on_information),
+        ("information-hover", information_hover),
+        ("information-pressed", information_pressed),
         ("information-subtle", information_subtle),
         ("border-subtle", border_subtle),
         ("border-strong", border_strong),
@@ -303,6 +323,77 @@ fn shipped_themes(window: &ThemeTokenFixture) -> [(&'static str, KitTheme); 2] {
     [("light", window.get_light()), ("dark", window.get_dark())]
 }
 
+/// Complete copies are subject to the same omitted-field zero default as themes.
+#[test]
+fn showcase_and_fixture_theme_literals_copy_every_top_level_field() {
+    use std::collections::BTreeSet;
+    fn fields(source: &str, marker: &str) -> BTreeSet<String> {
+        fn add(result: &mut BTreeSet<String>, segment: &str) {
+            if let Some((key, _)) = segment.split_once(':') {
+                result.insert(key.trim().to_owned());
+            }
+        }
+        let start = source.find(marker).expect("theme declaration");
+        let body = &source[start + source[start..].find('{').unwrap()..];
+        let mut depth = 0;
+        let mut quoted = false;
+        let mut escaped = false;
+        let mut segment = 1;
+        let mut result = BTreeSet::new();
+        for (offset, character) in body.char_indices() {
+            if quoted {
+                if escaped {
+                    escaped = false;
+                } else if character == '\\' {
+                    escaped = true;
+                } else if character == '"' {
+                    quoted = false;
+                }
+                continue;
+            }
+            match character {
+                '"' => quoted = true,
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        add(&mut result, &body[segment..offset]);
+                        break;
+                    }
+                }
+                ',' if depth == 1 => {
+                    add(&mut result, &body[segment..offset]);
+                    segment = offset + 1;
+                }
+                // Source text is an open lexical set; other characters are values.
+                _ => {}
+            }
+        }
+        result
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let declaration =
+        std::fs::read_to_string(root.join("crates/kit-slint/ui/theme.slint")).unwrap();
+    let expected = fields(&declaration, "export struct KitTheme {");
+    for (path, marker) in [
+        (
+            "showcase/ui/showcase.slint",
+            "out property <KitTheme> theme: {",
+        ),
+        (
+            "tests/ui/form-corrections.slint",
+            "private property <KitTheme> theme: {",
+        ),
+    ] {
+        let source = std::fs::read_to_string(root.join(path)).unwrap();
+        assert_eq!(
+            fields(&source, marker),
+            expected,
+            "{path} must copy every theme field explicitly"
+        );
+    }
+}
+
 #[test]
 fn every_shipped_theme_sets_every_token() {
     let window = fixture();
@@ -435,7 +526,12 @@ fn recipes_reproduce_the_default_geometry() {
             assert_eq!(recipe.radius, 6.);
             assert_eq!(recipe.font_weight, theme.typography.weight_medium);
             let lifted = match intent {
-                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
+                ButtonIntent::Primary
+                | ButtonIntent::Secondary
+                | ButtonIntent::Destructive
+                | ButtonIntent::Success
+                | ButtonIntent::Warning
+                | ButtonIntent::Information => true,
                 ButtonIntent::Outline | ButtonIntent::Quiet => false,
             };
             assert_eq!(
@@ -450,6 +546,11 @@ fn recipes_reproduce_the_default_geometry() {
             let (border_width, hover, pressed) = match intent {
                 ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
                 ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
+                ButtonIntent::Success => (0., theme.success_hover, theme.success_pressed),
+                ButtonIntent::Warning => (0., theme.warning_hover, theme.warning_pressed),
+                ButtonIntent::Information => {
+                    (0., theme.information_hover, theme.information_pressed)
+                }
                 ButtonIntent::Secondary | ButtonIntent::Outline => (1., theme.hover, theme.pressed),
                 ButtonIntent::Quiet => (0., theme.hover, theme.pressed),
             };
@@ -1064,16 +1165,16 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
                 theme.accent_pressed,
                 4.5,
             ),
-            ("on-accent/danger", theme.on_accent, theme.danger, 4.5),
+            ("on-danger/danger", theme.on_danger, theme.danger, 4.5),
             (
-                "on-accent/danger-hover",
-                theme.on_accent,
+                "on-danger/danger-hover",
+                theme.on_danger,
                 theme.danger_hover,
                 4.5,
             ),
             (
-                "on-accent/danger-pressed",
-                theme.on_accent,
+                "on-danger/danger-pressed",
+                theme.on_danger,
                 theme.danger_pressed,
                 4.5,
             ),
@@ -1131,7 +1232,12 @@ fn default_themes_use_tailwind_role_radii_density_and_shadows() {
         for intent in button_intents() {
             let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
             let lifted = match intent {
-                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
+                ButtonIntent::Primary
+                | ButtonIntent::Secondary
+                | ButtonIntent::Destructive
+                | ButtonIntent::Success
+                | ButtonIntent::Warning
+                | ButtonIntent::Information => true,
                 ButtonIntent::Outline | ButtonIntent::Quiet => false,
             };
             if lifted {
@@ -1401,4 +1507,21 @@ fn every_theme_token_has_a_reader() {
         unread.is_empty(),
         "theme tokens no component or recipe reads; wire or remove them: {unread:?}"
     );
+}
+
+#[test]
+fn destructive_and_status_buttons_use_their_own_foreground_tokens() {
+    let window = fixture();
+    let mut theme = window.get_light();
+    theme.on_accent = slint::Color::from_rgb_u8(220, 0, 220);
+    for (intent, expected) in [
+        (ButtonIntent::Destructive, theme.on_danger),
+        (ButtonIntent::Success, theme.on_success),
+        (ButtonIntent::Warning, theme.on_warning),
+        (ButtonIntent::Information, theme.on_information),
+    ] {
+        let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
+        assert_eq!(recipe.foreground, expected);
+        assert_ne!(recipe.foreground, theme.on_accent);
+    }
 }

@@ -490,13 +490,7 @@ mod tests {
                     contrast(theme.border_strong, surface)
                 );
             }
-            for intent in [
-                ButtonIntent::Primary,
-                ButtonIntent::Secondary,
-                ButtonIntent::Outline,
-                ButtonIntent::Quiet,
-                ButtonIntent::Destructive,
-            ] {
+            for intent in crate::variants::button_intents() {
                 let recipe = window.invoke_recipe(theme.clone(), intent);
                 for (state, fill) in [
                     ("rest", recipe.fill),

@@ -8,6 +8,8 @@
 - Keep textarea scrollbar hit areas inside their themed gutter so mouse drags reach the native editor and select text.
 - Contient la zone de la barre du textarea dans sa gouttière thémée pour que les glissements sélectionnent le texte natif.
 
+- Add success, warning and information button intents with complete palettes and independent status/destructive foreground tokens. Breaking: complete KitTheme literals must provide on-danger and the new on-*/hover/pressed status fields; exhaustive ButtonIntent matches must handle the three new variants.
+
 - Fetch release history in documentation CI so immutable released examples remain verifiable from a fresh checkout.
 - Récupère l’historique des versions en CI pour vérifier les exemples publiés immuables depuis un checkout neuf.
 - Clear disabled action focus and its outline once, preserving busy focus and preventing focus from returning on reenabling.
@@ -137,6 +139,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Ajoute les intentions de bouton success, warning et information avec palettes complètes et encres de statut/destruction indépendantes. Rupture : les littéraux KitTheme complets doivent fournir on-danger et les champs on-*/hover/pressed de statut ; les correspondances ButtonIntent exhaustives doivent traiter les trois variantes ajoutées.
 
 - Vérifie les applications complètes téléchargeables contre les crates publiées avant de construire la documentation de release et contre les sources locales en CI. Les guides de développement signalent les API non publiées et relient l’exemple crates.io immuable 0.7.2.
 

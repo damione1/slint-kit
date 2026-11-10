@@ -40,7 +40,7 @@ Themed scroll containers reserve a stable gutter for each scrollbar axis whose p
 
 Each component defaults to `KitThemeContext.current`, initially `KitThemes.light`. Assign it once for the window's default presentation. An explicit `theme` overrides that component and its internal controls. Children supplied by the application through `@children` keep their own defaults: pass the parent theme explicitly when composing a themed region. To switch the window default from Rust, re-export `KitThemeContext` from the main Slint file, then call `KitThemeContext::get(&window).set_current(theme)`.
 
-`ButtonIntent` has `primary`, `secondary`, `outline`, `quiet` and `destructive` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
+`ButtonIntent` has `primary`, `secondary`, `outline`, `quiet`, `destructive`, `success`, `warning` and `information` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
 
 Each `AlertSeverity` takes its own subtle background, border and mark from the `information`, `success`, `warning` and `danger` tokens and their `*-subtle` backgrounds, so alerts stay distinguishable without reading their titles. Kit scroll containers, lists and tables draw their bars with [KitScrollBar](/components/scroll-bar/), which follows the theme. A std-widgets `ScrollView` or `ListView` in application code keeps the Slint style and `Palette.color-scheme`.
 
@@ -193,3 +193,5 @@ For sliders in a scrollable modal, opt into `KitScrollArea.pan-policy: children-
 For a custom solid selected control, `KitThemes.selected-inset-focus(theme)` uses the theme’s `on-accent` ink with the shared inside-ring geometry. `KitThemes.inset-focus(theme)` keeps the regular focus color on neutral surfaces.
 
 Button busy marks use `theme.motion.fast` and remain static when `theme.reduced-motion` is true. Set `busy-label` to the localized explanation of pending work; it becomes the button’s accessible description while busy.
+
+Buttons accept `ButtonIntent.success`, `.warning` and `.information`. Their palettes include base/hover/pressed colors and independent `on-success`, `on-warning` and `on-information` inks. Destructive actions read `on-danger`; they do not inherit `on-accent`. When authoring a complete `KitTheme` literal, supply every new palette field; copying a shipped theme and changing named fields avoids zero defaults.
