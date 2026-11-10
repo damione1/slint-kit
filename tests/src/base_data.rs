@@ -737,3 +737,21 @@ fn dragging_away_from_a_row_preserves_composite_arrow_navigation() {
         &[(DataFixtureCollection::Table, NavigationStep::Next)]
     );
 }
+
+#[test]
+fn table_key_hook_can_handle_a_shortcut_before_builtin_navigation() {
+    let window = fixture();
+    let handled = Rc::new(RefCell::new(Vec::new()));
+    let recorded = handled.clone();
+    window.on_table_key_event(move |event| {
+        recorded.borrow_mut().push(event.text);
+        slint::EventResult::Accept
+    });
+    let navigated = Rc::new(RefCell::new(Vec::new()));
+    let recorded = navigated.clone();
+    window.on_navigate(move |collection, step| recorded.borrow_mut().push((collection, step)));
+    window.invoke_focus_table();
+    key(&window, Key::DownArrow);
+    assert_eq!(handled.borrow().len(), 1);
+    assert!(navigated.borrow().is_empty());
+}

@@ -67,8 +67,10 @@ component DataKeyboard inherits FocusScope {
     callback activate();
     callback confirm();
     callback edit-requested();
+    callback key-event(KeyEvent) -> EventResult;
     enabled: !root.disabled;
     key-pressed(event) => {
+        if (root.key-event(event) == accept) { return accept; }
         if (event.text == Key.F2) { root.edit-requested(); return accept; }
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
         if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
@@ -357,6 +359,7 @@ export component KitDataTable inherits Rectangle {
     // is a view cursor, not application identity.
     in-out property <int> active-column: -1;
     callback cursor-requested(int, int);
+    callback key-event(KeyEvent) -> EventResult;
     callback activate(int,int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
@@ -509,6 +512,7 @@ export component KitDataTable inherits Rectangle {
     keys := DataKeyboard {
         disabled: !root.interactive;
         column-navigation: true;
+        key-event(event) => { return root.key-event(event); }
         edit-requested => { root.edit-active(); }
         navigate(step) => {root.navigate(step);}
         navigate-column(step) => {root.step-column(step);}

@@ -865,9 +865,15 @@ fn table_fields_refuse_to_open_before_the_field_service_is_installed() {
     let window = BaseDataFixture::new().unwrap();
     window.set_columns(ModelRc::new(VecModel::from(vec![column(OWNER, "Owner")])));
     window.set_rows(ModelRc::new(VecModel::from(vec![TableRow {
-        token: 1, content: table_cells([CellContent::field("Original", FieldAccess::Editable)]), ..Default::default()
+        token: 1,
+        content: table_cells([CellContent::field("Original", FieldAccess::Editable)]),
+        ..Default::default()
     }])));
-    window.set_table_active(0); window.set_table_active_column(0); window.show().unwrap();
-    window.invoke_focus_table(); key(&window, Key::Return);
-    assert!(!window.get_table_editing()); assert!(editors(&window).is_empty());
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    window.show().unwrap();
+    window.invoke_focus_table();
+    key(&window, Key::Return);
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
 }

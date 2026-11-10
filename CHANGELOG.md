@@ -56,6 +56,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Expose a table key-event callback before built-in navigation so hosts can implement shortcuts.
+
 - Refuse table field editing before the field service is installed, including plain-text cells, instead of opening an editor that cannot commit.
 
 - Reveal the active row before opening its cell editor and scroll the active cell horizontally using resolved layout geometry.
@@ -115,6 +117,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Expose un callback key-event avant la navigation intégrée pour les raccourcis de l’hôte.
 
 - Refuse l’édition de cellule avant installation du service, même en texte libre, au lieu d’ouvrir un éditeur incapable de confirmer.
 
