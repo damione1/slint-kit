@@ -121,8 +121,8 @@ export component KitSelection inherits Rectangle {
         let update = KitSelectionService.activate(root.rows, root.current-session, token, generation, root.ownership);
         let row = KitSelectionService.source(root.options, update.chosen.token);
         if (update.chosen.present) {
-            root.last-chosen-token = row.token;
-            root.last-chosen-label = row.label;
+            root.last-chosen-token = update.chosen.token;
+            root.last-chosen-label = KitSelectionService.label(root.options, update.chosen);
         }
         root.apply(update.session);
         if (update.chosen.present) {
