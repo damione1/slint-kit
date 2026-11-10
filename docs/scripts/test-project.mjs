@@ -24,3 +24,19 @@ test('published guide dependency snippets use the central version', () => {
   }
   assert.match(loadProject().version, /^\d+\.\d+\.\d+$/);
 });
+
+
+test('password examples keep accepted secrets out of visible status and log sinks', () => {
+  for (const locale of ['', 'fr/']) {
+    const source = fs.readFileSync(new URL(`../examples/${locale}password-field.slint`, import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /root\.status\s*=\s*[^;]*(?:value\.value\.text|accepted-text)/);
+    assert.match(source, /root\.status\s*=\s*"(?:Password accepted|Mot de passe accepté)"/);
+  }
+  const ui = fs.readFileSync(new URL('../quickstart/password-field/ui/app.slint', import.meta.url), 'utf8');
+  assert.doesNotMatch(ui, /accepted-text|value\.value\.text/);
+  assert.match(ui, /text:\s*root\.accepted\s*\?/);
+  const rust = fs.readFileSync(new URL('../quickstart/password-field/src/main.rs', import.meta.url), 'utf8');
+  assert.match(rust, /spec\.accept\(commit\)/);
+  assert.match(rust, /Some\(value\)/);
+  assert.doesNotMatch(rust, /(?:println!|eprintln!|dbg!)\s*\([^;]*(?:format\s*\(|&value|\{(?:value|password)[^}]*\})/);
+});

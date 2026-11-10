@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep password examples’ accepted values private and show only a nonsensitive acceptance status; remove secret output from the complete Rust example.
+- Garde privées les valeurs acceptées des exemples de mot de passe et n’affiche qu’un statut non sensible ; supprime la sortie du secret dans l’exemple Rust complet.
+
 - Breaking: choice, select, file and composed date/time `report-validity()` calls now report errors without moving focus. Use the new `focus-if-invalid()` helper for an explicit focus request; zoned date/time reporting collects both parts and focus projections read their native editors directly.
 - Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 

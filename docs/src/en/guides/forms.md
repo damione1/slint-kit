@@ -85,3 +85,6 @@ The [text-field reference](/components/text-field/) explains callback payloads, 
 Constraint-bearing text, choice, file and date/time controls share a non-focusing `report-validity()` and explicit `focus-if-invalid()`. Register reporting separately from focus in a mixed form. Zoned date-time reporting checks both local and zone parts before returning; its focus helper selects the first invalid part. **Behavior change:** choice, file and composed date/time reports no longer move focus automatically.
 
 A read-only file or directory picker can remain a validation candidate while its browse action is inactive. Its focus helper records a request, not confirmation from the platform; keep an editable route available to correct the selection.
+
+
+Keep accepted password values in typed application state. Show a nonsensitive acceptance status; never render accepted-text or committed value text beside a password field, and never print the password to logs.

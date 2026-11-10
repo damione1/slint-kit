@@ -8,6 +8,7 @@ export component App inherits Window {
     in-out property <KitTheme> theme <=> KitThemeContext.current;
     title: "Password";
     callback committed(FieldCommit);
+    in property <bool> accepted;
     KitStack { inset: LayoutSpace.roomy;
         control := KitPasswordField {
             label: "Password"; text: "correct horse battery"; required: true; spec-key: "value";
@@ -15,7 +16,7 @@ export component App inherits Window {
             committed(value) => { root.committed(value); }
         }
         KitButton { text: "Apply"; activated => { control.commit(); } }
-        KitFieldDescription { text: "Accepted: " + control.accepted-text; }
+        KitFieldDescription { text: root.accepted ? "Password accepted" : "No password accepted"; }
         KitButton { text: "Cancel edit"; activated => { control.cancel-edit(); } }
     }
 }

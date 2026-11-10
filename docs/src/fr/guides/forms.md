@@ -85,3 +85,6 @@ La [référence du champ texte](/fr/components/text-field/) explique les payload
 Les contrôles à contraintes de texte, choix, fichiers et date/heure partagent `report-validity()` sans prise de focus et `focus-if-invalid()` explicite. Enregistrez signalement et focus séparément dans un formulaire mixte. Le signalement date/heure avec fuseau vérifie les parties locale et fuseau avant de retourner ; son helper cible la première partie invalide. **Changement de comportement :** les signalements des choix, fichiers et dates/heures composées ne déplacent plus automatiquement le focus.
 
 Un sélecteur de fichier ou de dossier en lecture seule peut rester candidat à la validation alors que son action de parcours est inactive. Son helper exprime une demande de focus sans confirmation par la plateforme ; conservez un parcours modifiable pour corriger la sélection.
+
+
+Conservez les mots de passe acceptés dans un état applicatif typé. Affichez seulement un statut d’acceptation non sensible ; ne rendez jamais accepted-text ni le texte de la valeur validée à côté du champ et n’imprimez jamais le mot de passe dans les journaux.
