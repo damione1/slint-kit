@@ -2,8 +2,8 @@
 #![forbid(unsafe_code)]
 use crate::ui;
 use kit_core::{
-    DismissReason, NavigationStep, Ownership, RemovalPolicy, SelectEvent, SelectOption,
-    SelectSession, SelectState, SelectionIntent, reduce_selection_with_policy,
+    DismissReason, NavigationStep, Ownership, SelectEvent, SelectOption, SelectSession,
+    SelectState, SelectionIntent, reduce_selection_with_policy,
 };
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use std::collections::HashSet;
@@ -48,10 +48,10 @@ impl From<ui::Ownership> for Ownership {
         }
     }
 }
-impl From<ui::SelectionRetention> for RemovalPolicy {
+impl From<ui::SelectionRetention> for kit_core::SelectionRetention {
     fn from(value: ui::SelectionRetention) -> Self {
         match value {
-            ui::SelectionRetention::BoundToOptions => Self::Clear,
+            ui::SelectionRetention::BoundToOptions => Self::BoundToOptions,
             ui::SelectionRetention::Retain => Self::Retain,
         }
     }
@@ -178,7 +178,7 @@ fn reduce(
         options,
         session(current),
         ownership.into(),
-        retention.into(),
+        kit_core::SelectionRetention::from(retention).into(),
         event,
     )
     .expect("projection keys validated before reduction");
@@ -238,8 +238,13 @@ where
                 generation,
             );
             state.selection_availability = match (selection(selected), retention) {
-                (None, _) => ui::SelectionAvailability::Absent,
-                (Some(key), _) if source.iter().any(|row| row.token == key.0) => {
+                (None, ui::SelectionRetention::BoundToOptions | ui::SelectionRetention::Retain) => {
+                    ui::SelectionAvailability::Absent
+                }
+                (
+                    Some(key),
+                    ui::SelectionRetention::BoundToOptions | ui::SelectionRetention::Retain,
+                ) if source.iter().any(|row| row.token == key.0) => {
                     ui::SelectionAvailability::Available
                 }
                 (Some(_), ui::SelectionRetention::Retain) => ui::SelectionAvailability::Available,

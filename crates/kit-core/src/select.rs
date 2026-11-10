@@ -1,5 +1,5 @@
-use crate::Ownership;
 use crate::{DismissReason, NavigationStep};
+use crate::{Ownership, SelectionRetention};
 use std::collections::HashSet;
 use std::hash::Hash;
 
@@ -86,8 +86,11 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
     let mut controller = SelectController::try_new(options, None, ownership)?;
     controller.removal_policy = match &event {
         SelectEvent::Reconcile => match (ownership, removal_policy) {
-            (_, RemovalPolicy::Retain) => RemovalPolicy::Retain,
-            (Ownership::Controlled, _) | (_, RemovalPolicy::PreserveUnavailable) => {
+            (Ownership::Local | Ownership::Controlled, RemovalPolicy::Retain) => {
+                RemovalPolicy::Retain
+            }
+            (Ownership::Controlled, RemovalPolicy::Clear | RemovalPolicy::PreserveUnavailable)
+            | (Ownership::Local, RemovalPolicy::PreserveUnavailable) => {
                 RemovalPolicy::PreserveUnavailable
             }
             (Ownership::Local, RemovalPolicy::Clear) => RemovalPolicy::Clear,
@@ -160,6 +163,14 @@ pub enum RemovalPolicy {
     Clear,
     PreserveUnavailable,
     Retain,
+}
+impl From<SelectionRetention> for RemovalPolicy {
+    fn from(value: SelectionRetention) -> Self {
+        match value {
+            SelectionRetention::BoundToOptions => Self::Clear,
+            SelectionRetention::Retain => Self::Retain,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
