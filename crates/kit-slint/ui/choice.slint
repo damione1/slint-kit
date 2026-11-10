@@ -14,7 +14,7 @@ import { KitTextField } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
 import { Tone } from "display.slint";
-import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability } from "contracts.slint";
+import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability, SelectionRetention } from "contracts.slint";
 import { ListView } from "scroll.slint";
 
 import { CheckState, RangeThumb, Ownership } from "shared-contracts.slint";
@@ -22,7 +22,7 @@ export { CheckState, RangeThumb } from "shared-contracts.slint";
 export enum ChoiceDirection { horizontal, vertical }
 export { ChoiceFlow } from "theme.slint";
 export enum SearchPresentation { idle, loading, ready, failed }
-export { ChoiceRow } from "contracts.slint";
+export { ChoiceRow, SelectionRetention } from "contracts.slint";
 import { ChoiceRow } from "contracts.slint";
 export struct ChoiceIcon { token: int, glyph: IconGlyph }
 import { ChipRow } from "contracts.slint";
@@ -997,10 +997,11 @@ export component KitCombobox inherits Rectangle {
 
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
+    in property <SelectionRetention> retention: SelectionRetention.retain;
     in-out property <SelectionRef> selected <=> selection.selected;
     callback chosen(OptionRow);
     selection := KitSelection {
-        options: root.options; ownership: root.ownership; persistent: false;
+        options: root.options; ownership: root.ownership; retention: root.retention; persistent: false;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }

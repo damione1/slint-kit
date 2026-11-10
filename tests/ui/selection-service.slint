@@ -1,23 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitAccordion, KitSelect, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess } from "@kit";
+import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess } from "@kit";
 export component SelectionServiceFixture inherits Window {
     width: 800px; height: 1000px;
     in property <[OptionRow]> options;
     in property <KitTheme> theme: KitThemes.light;
     in property <ExpansionMode> expansion-mode: ExpansionMode.single;
     in property <Ownership> ownership: Ownership.local;
+    in property <SelectionRetention> combo-retention: SelectionRetention.retain;
     in property <FieldAccess> access: FieldAccess.editable;
     out property <SelectState> first-state: first.state;
     out property <SelectState> second-state: second.state;
     out property <SelectState> popup-state: popup.state;
+    out property <SelectState> combo-state: combo.state;
+    out property <string> combo-selected-label: combo.selected-label;
+    out property <KitValidityState> combo-validity: combo.validity;
     out property <SelectionRef> radio-selected: radio.selected;
     in-out property <SelectionRef> acknowledged <=> first.selected;
+    in-out property <SelectionRef> combo-selected <=> combo.selected;
     in-out property <[SelectionRef]> expanded <=> accordion.expanded;
     out property <[SelectionRef]> local-expanded: local-accordion.expanded;
     out property <int> local-expanded-count: local-accordion.expanded.length;
     callback expansion-changed(OptionRow, bool);
     callback first-chosen(OptionRow);
     callback second-chosen(OptionRow);
+    callback combo-chosen(OptionRow);
     callback keyboard-chosen(OptionRow);
     out property <SelectState> keyboard-state: keyboard.state;
     public function move-keyboard(step: NavigationStep) { keyboard.move-active(step); }
@@ -30,6 +36,7 @@ export component SelectionServiceFixture inherits Window {
     public function focus-first() { first.take-focus(); }
     public function focus-second() { second.take-focus(); }
     public function focus-popup() { popup.take-focus(); }
+    public function focus-combo() { combo.take-focus(); }
     public function focus-radio() { radio.take-focus(); }
     public function search-first(text: string) { first.query = text; }
     background: root.theme.canvas;
@@ -39,6 +46,7 @@ export component SelectionServiceFixture inherits Window {
             second := KitMenu { theme: root.theme; options: root.options; chosen(row) => { root.second-chosen(row); } }
         }
         popup := KitSelect { theme: root.theme; options: root.options; access: root.access; }
+        combo := KitCombobox { theme: root.theme; options: root.options; ownership: root.ownership; retention: root.combo-retention; required: true; access: root.access; chosen(row) => { root.combo-chosen(row); } }
         accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; ownership: root.ownership; expansion-changed(row, expanded) => { root.expansion-changed(row, expanded); } }
         local-accordion := KitAccordion { theme: root.theme; options: root.options; mode: root.expansion-mode; }
         radio := KitRadioGroup { theme: root.theme; options: root.options; access: root.access; label: "Destination"; }

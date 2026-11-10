@@ -314,3 +314,44 @@ fn accordion_local_expansion_and_controlled_proposals_wait_for_acknowledgment() 
         "keyboard focus survives expansion and closes the next section"
     );
 }
+
+#[test]
+fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements() {
+    for ownership in [
+        slint_kit::ui::Ownership::Local,
+        slint_kit::ui::Ownership::Controlled,
+    ] {
+        let (window, choices) = fixture();
+        window.set_ownership(ownership);
+        let apricot_ref = choices.selection(&Destination::Apricot).unwrap();
+        window.set_combo_selected(apricot_ref.clone());
+        assert_eq!(window.get_combo_selected_label(), "Apricot");
+        assert!(window.get_combo_validity().valid);
+
+        // Simulate remote search replacing the options with a page that omits Apricot.
+        choices
+            .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+            .unwrap();
+        assert_eq!(
+            choices.selection(&Destination::Apricot),
+            Some(apricot_ref.clone()),
+            "Choices retains stable token for known keys across remote pages"
+        );
+        assert_eq!(
+            choices.label(&Destination::Apricot).as_deref(),
+            Some("Apricot")
+        );
+        assert_eq!(window.get_combo_state().selected, apricot_ref);
+        assert_eq!(window.get_combo_selected_label(), "Apricot");
+        assert_eq!(
+            window.get_combo_state().selection_availability,
+            slint_kit::ui::SelectionAvailability::Available
+        );
+        assert!(window.get_combo_validity().valid);
+
+        // Returning to a page that includes Apricot preserves its original token.
+        choices.replace(options()).unwrap();
+        assert_eq!(choices.selection(&Destination::Apricot), Some(apricot_ref));
+        assert_eq!(window.get_combo_selected_label(), "Apricot");
+    }
+}

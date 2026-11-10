@@ -2,8 +2,8 @@
 #![forbid(unsafe_code)]
 use crate::ui;
 use kit_core::{
-    DismissReason, NavigationStep, Ownership, SelectEvent, SelectOption, SelectSession,
-    SelectState, SelectionIntent, reduce_selection,
+    DismissReason, NavigationStep, Ownership, RemovalPolicy, SelectEvent, SelectOption,
+    SelectSession, SelectState, SelectionIntent, reduce_selection_with_policy,
 };
 use slint::{ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use std::collections::HashSet;
@@ -45,6 +45,14 @@ impl From<ui::Ownership> for Ownership {
         match value {
             ui::Ownership::Local => Self::Local,
             ui::Ownership::Controlled => Self::Controlled,
+        }
+    }
+}
+impl From<ui::SelectionRetention> for RemovalPolicy {
+    fn from(value: ui::SelectionRetention) -> Self {
+        match value {
+            ui::SelectionRetention::BoundToOptions => Self::Clear,
+            ui::SelectionRetention::Retain => Self::Retain,
         }
     }
 }
@@ -155,6 +163,7 @@ fn reduce(
     model: &ModelRc<ui::OptionRow>,
     current: ui::SelectionSession,
     ownership: ui::Ownership,
+    retention: ui::SelectionRetention,
     event: SelectEvent<ChoiceToken>,
 ) -> ui::SelectionTransition {
     let rows = tracked(model);
@@ -165,23 +174,33 @@ fn reduce(
         };
     };
     let generation = current.state.generation;
-    let result = reduce_selection(options, session(current), ownership.into(), event)
-        .expect("projection keys validated before reduction");
+    let result = reduce_selection_with_policy(
+        options,
+        session(current),
+        ownership.into(),
+        retention.into(),
+        event,
+    )
+    .expect("projection keys validated before reduction");
     let chosen = match result.intent {
         Some(SelectionIntent::Commit(token)) => reference(Some(token)),
         Some(SelectionIntent::Clear) | None => ui::SelectionRef::default(),
     };
     let timestamp = result.session.last_typeahead_ms;
+    let mut state = project(
+        &rows,
+        result.session.selection.selected,
+        result.session.selection.active,
+        result.session.selection.open,
+        generation,
+    );
+    if retention == ui::SelectionRetention::Retain && state.selected.present {
+        state.selection_availability = ui::SelectionAvailability::Available;
+    }
     ui::SelectionTransition {
         chosen,
         session: ui::SelectionSession {
-            state: project(
-                &rows,
-                result.session.selection.selected,
-                result.session.selection.active,
-                result.session.selection.open,
-                generation,
-            ),
+            state,
             typeahead: result.session.typeahead.into(),
             has_timestamp: timestamp.is_some(),
             timestamp: timestamp
@@ -200,43 +219,56 @@ where
     if service.get_ready() {
         return;
     }
-    service.on_project(|source, model, selected, active, open, generation| {
-        let source = tracked(&source);
-        let rows = tracked(&model);
-        if options(&source).is_none() || options(&rows).is_none() {
-            return ui::SelectState {
-                active_index: -1,
-                generation: -1,
-                ..Default::default()
-            };
-        }
-        let mut state = project(
-            &rows,
-            selection(selected.clone()),
-            selection(active),
-            open,
-            generation,
-        );
-        state.selection_availability = match selection(selected) {
-            Some(key) if source.iter().any(|row| row.token == key.0) => {
-                ui::SelectionAvailability::Available
+    service.on_project(
+        |source, model, selected, active, open, generation, retention| {
+            let source = tracked(&source);
+            let rows = tracked(&model);
+            if options(&source).is_none() || options(&rows).is_none() {
+                return ui::SelectState {
+                    active_index: -1,
+                    generation: -1,
+                    ..Default::default()
+                };
             }
-            Some(_) => ui::SelectionAvailability::Unavailable,
-            None => ui::SelectionAvailability::Absent,
-        };
-        state
-    });
-    service.on_reconcile(|rows, current, ownership| {
-        reduce(&rows, current, ownership, SelectEvent::Reconcile).session
+            let mut state = project(
+                &rows,
+                selection(selected.clone()),
+                selection(active),
+                open,
+                generation,
+            );
+            state.selection_availability = match (selection(selected), retention) {
+                (None, _) => ui::SelectionAvailability::Absent,
+                (Some(key), _) if source.iter().any(|row| row.token == key.0) => {
+                    ui::SelectionAvailability::Available
+                }
+                (Some(_), ui::SelectionRetention::Retain) => ui::SelectionAvailability::Available,
+                (Some(_), ui::SelectionRetention::BoundToOptions) => {
+                    ui::SelectionAvailability::Unavailable
+                }
+            };
+            state
+        },
+    );
+    service.on_reconcile(|rows, current, ownership, retention| {
+        reduce(&rows, current, ownership, retention, SelectEvent::Reconcile).session
     });
     service.on_open(|rows, current, ownership| {
-        reduce(&rows, current, ownership, SelectEvent::Open).session
+        reduce(
+            &rows,
+            current,
+            ownership,
+            ui::SelectionRetention::BoundToOptions,
+            SelectEvent::Open,
+        )
+        .session
     });
     service.on_navigate(|rows, current, step, ownership| {
         reduce(
             &rows,
             current,
             ownership,
+            ui::SelectionRetention::BoundToOptions,
             SelectEvent::Navigate {
                 step: step.into(),
                 page_size: 7,
@@ -249,6 +281,7 @@ where
             &rows,
             current,
             ownership,
+            ui::SelectionRetention::BoundToOptions,
             SelectEvent::Dismiss(reason.into()),
         )
         .session
@@ -266,7 +299,13 @@ where
                 chosen: ui::SelectionRef::default(),
             };
         }
-        reduce(&rows, current, ownership, SelectEvent::Activate(token))
+        reduce(
+            &rows,
+            current,
+            ownership,
+            ui::SelectionRetention::BoundToOptions,
+            SelectEvent::Activate(token),
+        )
     });
     service.on_typeahead(|rows, current, text, timestamp, ownership| {
         let Ok(now_ms) = u64::try_from(timestamp) else {
@@ -276,6 +315,7 @@ where
             &rows,
             current,
             ownership,
+            ui::SelectionRetention::BoundToOptions,
             SelectEvent::Typeahead {
                 text: text.to_string(),
                 now_ms,

@@ -32,6 +32,7 @@ pub struct SelectProjection {
 type IntentHandler<K> = Rc<dyn Fn(SelectionIntent<K>)>;
 struct Inner<K> {
     controller: SelectController<K>,
+    removal_policy: RemovalPolicy,
     source: Vec<SelectOption<K>>,
     source_index: HashMap<K, i32>,
     query: String,
@@ -70,9 +71,14 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         let mut controller = SelectController::new(options.clone(), selected, ownership);
         // Filtering is a view operation, not removal of the application value.
         controller.set_removal_policy(RemovalPolicy::PreserveUnavailable);
+        let removal_policy = match ownership {
+            Ownership::Local => RemovalPolicy::Clear,
+            Ownership::Controlled => RemovalPolicy::PreserveUnavailable,
+        };
         let result = Self {
             inner: Rc::new(RefCell::new(Inner {
                 controller,
+                removal_policy,
                 source_index: source_index(&options),
                 source: options,
                 query: String::new(),
@@ -86,6 +92,10 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         result.refresh();
         result
     }
+    pub fn set_removal_policy(&self, policy: RemovalPolicy) {
+        self.inner.borrow_mut().removal_policy = policy;
+        self.refresh();
+    }
     pub fn on_intent(&self, callback: impl Fn(SelectionIntent<K>) + 'static) {
         *self.intent.borrow_mut() = Some(Rc::new(callback));
     }
@@ -98,10 +108,14 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         };
         let active = token(&state.active);
         let selected = token(&state.selected);
-        let selection_availability = match (&state.selected, selected) {
-            (None, _) => SelectionAvailability::Absent,
-            (Some(_), Some(_)) => SelectionAvailability::Available,
-            (Some(_), None) => SelectionAvailability::Unavailable,
+        let selection_availability = match (&state.selected, selected, inner.removal_policy) {
+            (None, _, _) => SelectionAvailability::Absent,
+            (Some(_), Some(_), _) | (Some(_), None, RemovalPolicy::Retain) => {
+                SelectionAvailability::Available
+            }
+            (Some(_), None, RemovalPolicy::Clear | RemovalPolicy::PreserveUnavailable) => {
+                SelectionAvailability::Unavailable
+            }
         };
         SelectProjection {
             rows: inner.rows.clone(),
@@ -236,7 +250,7 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     pub fn reconcile(&self, options: Vec<SelectOption<K>>) -> Result<(), ModelError> {
         // Validate all source keys, including rows currently filtered out.
         SelectController::try_new(options.clone(), None, Ownership::Local)?;
-        let removed = {
+        let (removed, retain) = {
             let mut inner = self.inner.borrow_mut();
             let removed = inner
                 .controller
@@ -244,17 +258,23 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
                 .selected
                 .as_ref()
                 .is_some_and(|key| !options.iter().any(|row| &row.key == key));
-            if removed && inner.controller.ownership() == Ownership::Local {
-                inner.controller.set_selected(None);
+            let retain = inner.removal_policy == RemovalPolicy::Retain;
+            match inner.removal_policy {
+                RemovalPolicy::Clear => {
+                    if removed && inner.controller.ownership() == Ownership::Local {
+                        inner.controller.set_selected(None);
+                    }
+                }
+                RemovalPolicy::PreserveUnavailable | RemovalPolicy::Retain => {}
             }
             let filtered = filter(&options, &inner.query);
             inner.controller.reconcile(filtered)?;
             inner.source_index = source_index(&options);
             inner.source = options;
-            removed
+            (removed, retain)
         };
         self.refresh();
-        if removed {
+        if removed && !retain {
             self.emit_intent(SelectionIntent::Clear);
         }
         Ok(())
@@ -304,6 +324,7 @@ impl std::error::Error for ChoiceError {}
 struct ChoiceSource<K> {
     options: Vec<SelectOption<K>>,
     tokens: HashMap<K, i32>,
+    labels: HashMap<K, String>,
     generation: i32,
 }
 
@@ -355,6 +376,7 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
             source: Rc::new(RefCell::new(ChoiceSource {
                 options: Vec::new(),
                 tokens: HashMap::new(),
+                labels: HashMap::new(),
                 generation: 0,
             })),
             model: Rc::new(slint::VecModel::default()),
@@ -377,6 +399,28 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
                 present: true,
                 token: *token,
             })
+    }
+
+    /// Return the last known label for a domain key, even when omitted from the
+    /// current remote result page.
+    pub fn label(&self, key: &K) -> Option<String> {
+        self.source.borrow().labels.get(key).cloned()
+    }
+
+    /// Register or update a known key and label without adding it to the current
+    /// visible page, returning its stable `SelectionRef`.
+    pub fn retain(&self, option: SelectOption<K>) -> Result<crate::ui::SelectionRef, ChoiceError> {
+        let mut source = self.source.borrow_mut();
+        let token = match source.tokens.get(&option.key) {
+            Some(token) => *token,
+            None => choice_identity(&CHOICE_TOKEN)?,
+        };
+        source.tokens.insert(option.key.clone(), token);
+        source.labels.insert(option.key, option.label);
+        Ok(crate::ui::SelectionRef {
+            present: true,
+            token,
+        })
     }
 
     /// Project a set of existing, distinct domain keys for a multiple selector.
@@ -420,14 +464,16 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
         let (next, rows) = {
             let source = self.source.borrow();
             let generation = choice_identity(&CHOICE_GENERATION)?;
-            let mut tokens = HashMap::with_capacity(options.len());
+            let mut tokens = source.tokens.clone();
+            let mut labels = source.labels.clone();
             let mut rows = Vec::with_capacity(options.len());
             for option in &options {
-                let token = match source.tokens.get(&option.key) {
+                let token = match tokens.get(&option.key) {
                     Some(token) => *token,
                     None => choice_identity(&CHOICE_TOKEN)?,
                 };
                 tokens.insert(option.key.clone(), token);
+                labels.insert(option.key.clone(), option.label.clone());
                 rows.push(crate::ui::OptionRow {
                     token,
                     generation,
@@ -440,6 +486,7 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
                 ChoiceSource {
                     options,
                     tokens,
+                    labels,
                     generation,
                 },
                 rows,
@@ -579,5 +626,27 @@ mod tests {
         });
         c.commit();
         assert_eq!(c.selected(), Some(9999));
+    }
+    #[test]
+    fn retain_policy_preserves_selection_and_availability_across_remote_reconcile() {
+        for ownership in [Ownership::Local, Ownership::Controlled] {
+            let c = SelectBinding::new(
+                vec![SelectOption::new(9, "Nine"), SelectOption::new(3, "Three")],
+                Some(9),
+                ownership,
+                |_| {},
+            );
+            c.set_removal_policy(RemovalPolicy::Retain);
+            let calls = Rc::new(RefCell::new(Vec::new()));
+            let captured = calls.clone();
+            c.on_intent(move |intent| captured.borrow_mut().push(intent));
+            c.reconcile(vec![SelectOption::new(4, "Four")]).unwrap();
+            assert_eq!(c.selected(), Some(9));
+            assert_eq!(
+                c.snapshot().selection_availability,
+                SelectionAvailability::Available
+            );
+            assert!(calls.borrow().is_empty());
+        }
     }
 }
