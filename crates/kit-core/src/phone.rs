@@ -130,7 +130,9 @@ pub fn phone_insertion(text: &str) -> bool {
     {
         return true;
     }
-    text.bytes().all(|c| c.is_ascii_digit() || c == b'+')
+    text.chars().all(|c| {
+        c.is_ascii_digit() || matches!(c, '+' | ' ' | '\u{a0}' | '\u{202f}' | '-' | '(' | ')' | '.')
+    })
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PhoneDisplayMask {

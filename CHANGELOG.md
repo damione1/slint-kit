@@ -24,6 +24,9 @@
 - Préserve la sélection par glissement souris dans les zones de texte débordantes et ajoute la barre verticale thémée.
 
 
+- Accept the same visual phone separators during typing and paste while preserving canonical digits.
+- Accepte les mêmes séparateurs téléphoniques en saisie et au collage en conservant les chiffres canoniques.
+
 - Breaking: text-field `report-validity()` reports without taking focus; use `focus-if-invalid()` for explicit focus control.
 - Rupture : `report-validity()` des champs texte signale sans prendre le focus ; utilisez `focus-if-invalid()` pour le déplacer explicitement.
 
