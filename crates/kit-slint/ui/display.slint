@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe } from "theme.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
 import { KitStrings } from "strings.slint";
 
 export enum Tone { neutral, accent, success, warning, danger, information }
+export { AvatarSize } from "theme.slint";
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
@@ -50,22 +51,33 @@ export component KitAvatar inherits Rectangle {
     in property <AvatarInteraction> interaction: AvatarInteraction.static;
     in property <bool> disabled;
     callback activated();
+    callback activation-started();
+    public function cancel-press() { action.cancel-press(); }
     out property <bool> has-focus: root.interaction == AvatarInteraction.action && action.has-focus;
     public function take-focus() { if (root.interaction == AvatarInteraction.action) { action.take-focus(); } }
-    in property <length> size: root.theme.geometry.avatar-size;
-    width: max(root.size, KitMetrics.font-size(root.theme, TypographyRole.subtitle) * 2);
+    in property <AvatarSize> avatar-size: AvatarSize.medium;
+    in property <length> size: KitMetrics.avatar-size(root.theme, root.avatar-size);
+    in property <IconGlyph> fallback-icon: root.theme.icons.avatar;
+    in property <string> fallback-label: KitStrings.avatar-label;
+    private property <string> effective-name: root.accessible-name != "" ? root.accessible-name : root.initials != "" ? root.initials : root.fallback-label;
+    width: max(0px, root.size);
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
     border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? root.theme.shape.radius-control : 0px;
     background: root.theme.accent-subtle;
     border-width: root.theme.shape.border-width; border-color: root.theme.border-strong;
     accessible-role: AccessibleRole.none;
-    if root.interaction == AvatarInteraction.static: Rectangle { accessible-role: image; accessible-label: root.accessible-name; }
+    if root.interaction == AvatarInteraction.static: Rectangle { accessible-role: image; accessible-label: root.effective-name; }
     Rectangle {
         clip: true; border-radius: root.border-radius;
         opacity: root.disabled ? 0.45 : 1;
         if root.source.width > 0: Image { accessible-role: none; width: parent.width; height: parent.height; source: root.source; image-fit: cover; }
-        if root.source.width == 0: Text { accessible-role: none; text: root.initials; color: root.theme.accent; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+        if root.source.width == 0 && root.initials != "": Text { accessible-role: none; text: root.initials; color: root.theme.accent; font-family: root.theme.typography.family; font-size: root.width * root.theme.geometry.avatar-initials-ratio; overflow: elide; font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+        if root.source.width == 0 && root.initials == "": KitIcon {
+            theme: root.theme; glyph: root.fallback-icon; ink: root.theme.accent;
+            width: root.width * root.theme.geometry.avatar-initials-ratio * 1.5; height: self.width;
+            x: (root.width - self.width) / 2; y: (root.height - self.height) / 2;
+        }
     }
     action := KitPressable {
         visible: root.interaction == AvatarInteraction.action;
@@ -74,10 +86,12 @@ export component KitAvatar inherits Rectangle {
         theme: root.theme; intent: ButtonIntent.quiet;
         width: root.width; height: root.height;
         corner-radius: root.border-radius;
-        accessible-name: root.accessible-name;
+        accessible-name: root.effective-name;
         background: self.pressed ? root.theme.accent.transparentize(0.75) : self.hovered ? root.theme.accent.transparentize(0.88) : transparent;
+        activation-started => { root.activation-started(); }
         activated => { root.activated(); }
     }
+    @children
 }
 
 export component KitCard inherits Rectangle {

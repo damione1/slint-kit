@@ -571,3 +571,154 @@ fn public_recipes_and_content_bounds_reach_rendered_geometry() {
         }
     }
 }
+
+#[test]
+fn avatars_honor_explicit_small_sizes_scale_initials_and_name_fallbacks() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = AvatarSizingFixture::new().unwrap();
+    window.show().unwrap();
+    for (index, base) in [
+        window.get_theme(),
+        window.global::<ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme.clone());
+            slint::platform::update_timers_and_animations();
+            let named = |label: &str| {
+                i_slint_backend_testing::ElementHandle::find_by_accessible_label(&window, label)
+                    .next()
+                    .unwrap()
+            };
+            assert_eq!(named("EA").size().width, 24.);
+            assert_eq!(named("Large initials").size().width, 96.);
+            assert_eq!(
+                named("Unknown profile").size().width,
+                theme.geometry.avatar_compact * scale
+            );
+            let snapshot = window.window().take_snapshot().unwrap();
+            let status = i_slint_backend_testing::ElementQuery::from_root(&window)
+                .match_id("AvatarSizingFixture::large-status")
+                .find_first()
+                .unwrap();
+            let decorated = named("Large initials");
+            assert_eq!(
+                status.absolute_position().x + status.size().width,
+                decorated.absolute_position().x + decorated.size().width
+            );
+            assert_eq!(
+                status.absolute_position().y + status.size().height,
+                decorated.absolute_position().y + decorated.size().height
+            );
+            // Keep the status outside the circular ink samples used below.
+            let status_pixel =
+                snapshot.as_slice()[usize::try_from(118 * snapshot.width() + 173).unwrap()];
+            assert_eq!(
+                (status_pixel.r, status_pixel.g, status_pixel.b),
+                (
+                    theme.success.red(),
+                    theme.success.green(),
+                    theme.success.blue()
+                ),
+                "status children paint outside the avatar image clip"
+            );
+
+            let ink_height = |x: u32, y: u32, width: u32, height: u32| {
+                let mut first = height;
+                let mut last = 0;
+                for row in 0..height {
+                    for column in 0..width {
+                        let pixel = snapshot.as_slice()
+                            [usize::try_from((y + row) * snapshot.width() + x + column).unwrap()];
+                        let dx = 2 * i64::from(column) + 1 - i64::from(width);
+                        let dy = 2 * i64::from(row) + 1 - i64::from(height);
+                        let radius = i64::from(width) - 6;
+                        if dx * dx + dy * dy >= radius * radius {
+                            continue;
+                        }
+                        let delta = [
+                            i64::from(theme.accent.red()) - i64::from(theme.accent_subtle.red()),
+                            i64::from(theme.accent.green())
+                                - i64::from(theme.accent_subtle.green()),
+                            i64::from(theme.accent.blue()) - i64::from(theme.accent_subtle.blue()),
+                        ];
+                        let observed = [
+                            i64::from(pixel.r) - i64::from(theme.accent_subtle.red()),
+                            i64::from(pixel.g) - i64::from(theme.accent_subtle.green()),
+                            i64::from(pixel.b) - i64::from(theme.accent_subtle.blue()),
+                        ];
+                        let projection: i64 = observed.iter().zip(delta).map(|(a, b)| a * b).sum();
+                        let full: i64 = delta.iter().map(|v| v * v).sum();
+                        if projection * 10 > full {
+                            first = first.min(row);
+                            last = last.max(row);
+                        }
+                    }
+                }
+                assert!(first < height);
+                last - first + 1
+            };
+            assert!(ink_height(80, 24, 96, 96) >= ink_height(24, 24, 24, 24) * 3);
+            let fallback = i_slint_backend_testing::ElementQuery::from_root(&window)
+                .match_inherits("KitIcon")
+                .find_first()
+                .unwrap();
+            assert!(
+                fallback.size().width > 0.,
+                "an empty avatar paints its theme fallback glyph"
+            );
+            window.set_disabled(true);
+            slint::platform::update_timers_and_animations();
+            let disabled = window.window().take_snapshot().unwrap();
+            assert_ne!(
+                snapshot.as_slice(),
+                disabled.as_slice(),
+                "the fallback glyph shares the avatar disabled presentation"
+            );
+            window.set_disabled(false);
+            slint::platform::update_timers_and_animations();
+
+            if let Some(directory) = std::env::var_os("KIT_FOUNDATION_RENDER_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(&directory)
+                    .join(format!("avatars-{index}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(
+                    file,
+                    "P6\n{} {}\n255\n",
+                    snapshot.width(),
+                    snapshot.height()
+                )
+                .unwrap();
+                for pixel in snapshot.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+                let disabled_path = std::path::PathBuf::from(&directory)
+                    .join(format!("avatars-disabled-{index}-{scale}.ppm"));
+                let mut disabled_file = std::fs::File::create(disabled_path).unwrap();
+                write!(
+                    disabled_file,
+                    "P6\n{} {}\n255\n",
+                    disabled.width(),
+                    disabled.height()
+                )
+                .unwrap();
+                for pixel in disabled.as_slice() {
+                    disabled_file
+                        .write_all(&[pixel.r, pixel.g, pixel.b])
+                        .unwrap();
+                }
+            }
+        }
+    }
+}

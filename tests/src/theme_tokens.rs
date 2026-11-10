@@ -197,6 +197,9 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         content_fluid,
         busy_mark,
         avatar_size,
+        avatar_compact,
+        avatar_large,
+        avatar_initials_ratio,
         step_marker_minimum,
         step_marker_scaled,
         drop_zone_minimum,
@@ -220,6 +223,8 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("geometry.content-fluid", content_fluid),
         ("geometry.busy-mark", busy_mark),
         ("geometry.avatar-size", avatar_size),
+        ("geometry.avatar-compact", avatar_compact),
+        ("geometry.avatar-large", avatar_large),
         ("geometry.step-marker-minimum", step_marker_minimum),
         ("geometry.step-marker-scaled", step_marker_scaled),
         ("geometry.drop-zone-minimum", drop_zone_minimum),
@@ -228,6 +233,10 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         tokens.push((name.to_owned(), Token::Length(value)));
     }
 
+    tokens.push((
+        "geometry.avatar-initials-ratio".into(),
+        Token::Float(avatar_initials_ratio),
+    ));
     let KitShape {
         radius_control,
         radius_container,

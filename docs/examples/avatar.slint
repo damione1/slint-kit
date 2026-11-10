@@ -1,6 +1,6 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { AvatarShape, AvatarInteraction, KitAvatar, KitSurface, KitBadge, Tone, KitTheme, KitThemes } from "@kit";
+import { AvatarShape, AvatarInteraction, AvatarSize, KitAvatar, KitSurface, KitBadge, Tone, KitTheme, KitThemes } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "People and profiles"; preferred-width: 580px; preferred-height: 380px;
@@ -13,7 +13,7 @@ export component Example inherits Window {
         Text { text: "A familiar face for every profile"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         KitSurface { theme: root.theme;
             HorizontalLayout { spacing: 16px;
-                KitAvatar { theme: root.theme; size: 72px; source: @image-url("../quickstart/avatar/ui/assets/fsociety-mask.jpg"); accessible-name: "Open Elliot Alderson’s profile"; interaction: AvatarInteraction.action; activated => { root.demo-status = "Profile requested"; } }
+                KitAvatar { theme: root.theme; size: 72px; source: @image-url("../quickstart/avatar/ui/assets/fsociety-mask.jpg"); accessible-name: "Open Elliot Alderson’s profile"; interaction: AvatarInteraction.action; activated => { root.demo-status = "Profile requested"; } Rectangle { width: root.theme.spacing.unit * 3; height: self.width; x: parent.width - self.width; y: parent.height - self.height; border-radius: self.width / 2; background: root.theme.success; border-width: root.theme.shape.border-width-strong; border-color: root.theme.canvas; accessible-role: image; accessible-label: "Online"; } }
                 VerticalLayout { horizontal-stretch: 1; min-width: 0px; alignment: center; spacing: 6px;
                     Text { text: "Elliot Alderson"; color: root.theme.text-primary; font-size: 18px * root.theme.text-scale; font-weight: 600; }
                     Text { text: "Security engineer · Allsafe"; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
@@ -27,6 +27,7 @@ export component Example inherits Window {
             KitAvatar { theme: root.theme; source: @image-url("../quickstart/avatar/ui/assets/fsociety-mask.jpg"); accessible-name: "Elliot Alderson, fsociety mask"; shape: AvatarShape.rounded; size: 56px; }
             KitAvatar { theme: root.theme; initials: "AM"; accessible-name: "Angela Moss initials"; shape: AvatarShape.square; size: 56px; }
         }
+        HorizontalLayout { alignment: start; spacing: 16px; KitAvatar { theme: root.theme; size: 24px; initials: "EA"; } KitAvatar { theme: root.theme; avatar-size: AvatarSize.compact; fallback-label: "Unassigned profile"; } }
         Text { text: root.demo-status != "" ? root.demo-status : root.status; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
     }
 }

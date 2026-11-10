@@ -3,8 +3,9 @@ import { MonospaceFont } from "fonts/monospace.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { IconGlyph, IconStroke } from "icons/glyph.slint";
 import { LucideIcons } from "icons/lucide/all.slint";
-export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph }
+export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph, avatar: IconGlyph }
 export enum ControlSize { compact, medium, comfortable }
+export enum AvatarSize { compact, medium, large }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
@@ -55,7 +56,7 @@ export struct KitGeometry {
     choice-compact: length, choice-medium: length, choice-comfortable: length,
     scroll-thickness: length, scroll-thumb: length, scroll-active-thumb: length, scroll-inset: length, scroll-min-thumb: length,
     content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
-    busy-mark: length, avatar-size: length, step-marker-minimum: length, step-marker-scaled: length,
+    busy-mark: length, avatar-size: length, avatar-compact: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
     drop-zone-minimum: length, drop-zone-scaled: length,
 }
 export struct KitTheme {
@@ -164,6 +165,9 @@ export global KitMetrics {
     public pure function icon-size(theme: KitTheme, size: ControlSize) -> length {
         return (size == ControlSize.compact ? theme.geometry.icon-compact : size == ControlSize.comfortable ? theme.geometry.icon-comfortable : theme.geometry.icon-medium) * theme.text-scale;
     }
+    public pure function avatar-size(theme: KitTheme, size: AvatarSize) -> length {
+        return (size == AvatarSize.compact ? theme.geometry.avatar-compact : size == AvatarSize.large ? theme.geometry.avatar-large : theme.geometry.avatar-size) * theme.text-scale;
+    }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
         return max(KitMetrics.density(theme, size).height, theme.typography.line-height-control * theme.text-scale + 2 * KitMetrics.density(theme, size).padding-block);
@@ -216,13 +220,13 @@ export global KitThemes {
         },
         // duration-150, duration-200 and duration-300.
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
-        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete(), avatar: LucideIcons.user() },
         geometry: {
             icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
-            busy-mark: 14px, avatar-size: 40px, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
         },
         reduced-motion: false, text-scale: 1,
@@ -268,13 +272,13 @@ export global KitThemes {
             comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
         },
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
-        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete(), avatar: LucideIcons.user() },
         geometry: {
             icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
             choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
             scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
             content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
-            busy-mark: 14px, avatar-size: 40px, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
             drop-zone-minimum: 100px, drop-zone-scaled: 64px,
         },
         reduced-motion: false, text-scale: 1,

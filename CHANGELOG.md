@@ -15,6 +15,8 @@
 - Cancel table edits when their row leaves the viewport, preserving accepted values and preventing hidden or resurrected editors after scrolling or resizing.
 - Annule l’édition de tableau lorsque sa ligne quitte le viewport, conserve la valeur acceptée et évite les éditeurs cachés ou réapparus après défilement ou redimensionnement.
 
+- Honor exact small avatar sizes, scale initials with diameter, add text-scaled size presets, a theme fallback glyph, accessible-name fallback and status child composition. Breaking: complete geometry literals require avatar-compact/avatar-large/avatar-initials-ratio and complete icon sets require avatar.
+
 - Move family geometry into complete KitGeometry theme tokens; expose icon/scrollbar/surface/card recipes, card levels and container width caps. Breaking: complete KitTheme literals require geometry; choice-box-size and width-limit helpers now take a KitTheme argument. Default geometry is preserved.
 
 - Add optional roving table-header navigation, localized header context and public sort/resize commands, including empty tables.
@@ -163,6 +165,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Respecte les petites tailles d’avatar, adapte les initiales au diamètre et ajoute préréglages agrandis, glyphe de repli du thème, nom accessible de repli et composition du statut. Rupture : les littéraux geometry complets exigent avatar-compact/avatar-large/avatar-initials-ratio et les jeux d’icônes complets exigent avatar.
 
 - Déplace la géométrie des familles vers les jetons KitGeometry complets ; expose les recettes icône/barre/surface/carte, niveaux de carte et plafonds de conteneur. Rupture : les littéraux KitTheme complets exigent geometry ; les helpers choice-box-size et width-limit prennent désormais KitTheme. Géométrie par défaut conservée.
 

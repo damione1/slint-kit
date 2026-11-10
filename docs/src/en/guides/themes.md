@@ -203,3 +203,5 @@ Buttons accept `ButtonIntent.success`, `.warning` and `.information`. Their pale
 When migrating a complete theme literal, add every `KitGeometry` field in both modes. `KitThemes.choice-box-size(theme, size)` and `KitLayoutMetrics.width-limit(theme, value)` now take the theme explicitly so local themes are honored.
 
 `KitSurface` and `KitCard` retain their inherited Rectangle painting. Their `SurfaceRecipe` applies fill, border, radius and elevation, and only `shadow.offset-y`, `shadow.blur` and `shadow.color`. `ambient-shadow` and `shadow.spread` are not painted by these two components. An explicit `elevation` different from `recipe.elevation` selects the main shadow from the theme. `KitDialogPanel` uses the elevated composition, which paints both recipe shadow layers with their spreads.
+
+Avatar explicit `size` is exact and its initials follow the diameter. Use `AvatarSize.compact/medium/large` for text-scaled presets; their dimensions and initials ratio live in geometry. An empty avatar uses theme.icons.avatar and a localizable fallback label. Status decorations enter through @children.

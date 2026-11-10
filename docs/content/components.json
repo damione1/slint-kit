@@ -75,24 +75,68 @@
     "fr": {
       "summary": "Représentation d’une personne ou entité par image ou initiales.",
       "usage": "Fournissez `source`, `initials` de repli et un `accessible-name` décrivant l’entité. Choisissez `AvatarShape.circle`, `.rounded` ou `.square` et la taille souhaitée. Définissez `interaction: AvatarInteraction.action` pour une action de profil et traitez `activated` ; gardez la valeur statique par défaut pour identifier une personne. `disabled` bloque l’action et atténue le portrait. `take-focus()` et `has-focus` permettent de restaurer le focus depuis l’hôte.",
-      "behavior": "Une image disponible recouvre la surface ; sinon les initiales sont centrées. La taille minimale suit l’échelle typographique et le contenu est découpé selon la forme. L’exemple combine une illustration originale embarquée du masque fsociety, des initiales et trois formes. L’avatar interactif est un bouton nommé avec états de survol, pression et focus clavier ; l’avatar statique est annoncé comme une image.",
+      "behavior": "Une image disponible recouvre la surface ; sinon les initiales sont centrées. La taille minimale suit l’échelle typographique et le contenu est découpé selon la forme. L’exemple combine une illustration originale embarquée du masque fsociety, des initiales et trois formes. L’avatar interactif est un bouton nommé avec états de survol, pression et focus clavier ; l’avatar statique est annoncé comme une image. La taille explicite est respectée même sous 36px et reste fixe avec le texte agrandi ; les préréglages AvatarSize compact/medium/large suivent text-scale. Les initiales suivent le diamètre réel. Un contenu vide peint fallback-icon depuis theme.icons.avatar ; le nom accessible reprend les initiales puis fallback-label. Composez le statut avec @children. activation-started et cancel-press permettent les collections protégées par identité.",
       "label": "Avatar",
       "seoTitle": "Avatar pour Slint",
       "related": [
         "KitBadge",
         "KitCard"
-      ]
+      ],
+      "properties": {
+        "avatar-size": {
+          "effect": "Préréglage compact, moyen ou grand suivant le texte ; size explicite reste prioritaire.",
+          "default": "`AvatarSize.medium`.",
+          "example": "KitAvatar { avatar-size: AvatarSize.compact; initials: \"EA\"; }"
+        },
+        "size": {
+          "effect": "Diamètre exact de l’avatar ; les initiales et le glyphe de repli suivent ce diamètre.",
+          "default": "`KitMetrics.avatar-size(theme, avatar-size)`.",
+          "example": "KitAvatar { size: 24px; initials: \"EA\"; }"
+        },
+        "fallback-icon": {
+          "effect": "Glyphe du thème affiché en l’absence d’image et d’initiales.",
+          "default": "`theme.icons.avatar`.",
+          "example": "KitAvatar { fallback-icon: KitGlyphs.check(); }"
+        },
+        "fallback-label": {
+          "effect": "Nom accessible utilisé si accessible-name et initials sont vides.",
+          "default": "`KitStrings.avatar-label`.",
+          "example": "KitAvatar { fallback-label: \"Profile unavailable\"; }"
+        }
+      }
     },
     "en": {
       "summary": "Representation of a person or entity through an image or initials.",
       "usage": "Supply `source`, fallback `initials` and an `accessible-name` describing the entity. Choose `AvatarShape.circle`, `.rounded` or `.square` and the desired size. Set `interaction: AvatarInteraction.action` for a profile action and handle `activated`; keep the static default for decorative identity. `disabled` blocks the action and dims the portrait. `take-focus()` and `has-focus` support host focus restoration.",
-      "behavior": "An available image covers the surface; otherwise initials are centered. Minimum size follows text scale and content is clipped to the shape. The example combines a bundled original fsociety mask illustration, initials and three shapes. The actionable avatar is a named button with hover, press and keyboard focus feedback; the static avatar is announced as an image.",
+      "behavior": "An available image covers the surface; otherwise initials are centered. Minimum size follows text scale and content is clipped to the shape. The example combines a bundled original fsociety mask illustration, initials and three shapes. The actionable avatar is a named button with hover, press and keyboard focus feedback; the static avatar is announced as an image. Explicit size is honored even below 36px and stays fixed at enlarged text; AvatarSize compact/medium/large presets follow text-scale. Initials scale with the actual diameter. Empty content paints fallback-icon from theme.icons.avatar; the accessible name falls back to initials then fallback-label. Compose status content with @children. activation-started and cancel-press support identity-fenced collections.",
       "label": "Avatar",
       "seoTitle": "Avatar for Slint",
       "related": [
         "KitBadge",
         "KitCard"
-      ]
+      ],
+      "properties": {
+        "avatar-size": {
+          "effect": "Text-scaled compact, medium or large preset; an explicit size takes precedence.",
+          "default": "`AvatarSize.medium`.",
+          "example": "KitAvatar { avatar-size: AvatarSize.compact; initials: \"EA\"; }"
+        },
+        "size": {
+          "effect": "Exact avatar diameter; initials and fallback glyph scale within this diameter.",
+          "default": "`KitMetrics.avatar-size(theme, avatar-size)`.",
+          "example": "KitAvatar { size: 24px; initials: \"EA\"; }"
+        },
+        "fallback-icon": {
+          "effect": "Theme glyph displayed when both the image and initials are absent.",
+          "default": "`theme.icons.avatar`.",
+          "example": "KitAvatar { fallback-icon: KitGlyphs.check(); }"
+        },
+        "fallback-label": {
+          "effect": "Accessible name used when accessible-name and initials are empty.",
+          "default": "`KitStrings.avatar-label`.",
+          "example": "KitAvatar { fallback-label: \"Profile unavailable\"; }"
+        }
+      }
     }
   },
   "KitBadge": {
