@@ -12,6 +12,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Avoid unchanged blur commits and honor HTML dirty state and validation timing for text fields. Breaking: `KitFieldService.reduce` now takes the actual user-edit flag.
+- Évite les engagements au flou sans changement et respecte l’état modifié HTML et le moment de validation. Rupture : `KitFieldService.reduce` reçoit désormais l’indicateur réel de saisie.
+
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 

@@ -308,6 +308,16 @@ impl<T: Clone + PartialEq, E> FieldController<T, E> {
         if trigger == CommitTrigger::Blur {
             self.touched = true;
         }
+        if trigger == CommitTrigger::Blur
+            && (!self.dirty
+                || match &self.parsed {
+                    DraftValue::Parsed(value) => self.accepted.as_ref() == Some(value),
+                    DraftValue::Empty => self.accepted.is_none(),
+                    DraftValue::Incomplete | DraftValue::Invalid(_) => false,
+                })
+        {
+            return Ok(None);
+        }
         let permitted = self.permits_commit(trigger);
         if !permitted {
             return Ok(None);

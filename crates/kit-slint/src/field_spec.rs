@@ -412,13 +412,13 @@ where
             .map_or(text, Into::into)
     });
     service.on_reduce(
-        move |state, action, text, constraints, policy, ownership, spec| {
+        move |state, action, text, constraints, policy, ownership, spec, user_edited| {
             let (rules, _) = engine.constraints(&constraints);
             let valid = rules
                 .validate(
                     text.as_str(),
                     HtmlInputState {
-                        user_edited: true,
+                        user_edited,
                         ..Default::default()
                     },
                 )
@@ -509,7 +509,7 @@ where
                 Err(error) => (
                     false,
                     ui::FieldValue::default(),
-                    if action == FieldAction::Edit {
+                    if !valid || action == FieldAction::Edit {
                         String::new()
                     } else {
                         codec_error.unwrap_or_else(|| crate::field::failure_message(error).into())

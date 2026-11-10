@@ -30,10 +30,10 @@ export component KitTextField inherits KitField {
     init => { root.field-state = {accepted: {present: root.text != "", text: root.text}, draft: root.text}; }
     function reduce-field(action: FieldAction) {
         if (!KitFieldService.ready || root.access != FieldAccess.editable) { return; }
-        root.field-state = KitFieldService.reduce(root.field-state, action, root.text, checks.constraints, root.commit-policy, root.ownership, root.spec-key);
+        root.field-state = KitFieldService.reduce(root.field-state, action, root.text, checks.constraints, root.commit-policy, root.ownership, root.spec-key, checks.dirty);
         if (action == FieldAction.cancel) { root.text = root.field-state.draft; }
         if (root.field-state.committed) { root.committed({value: root.field-state.value, constraints: checks.constraints, spec: root.spec-key}); }
-        else if (action != FieldAction.edit && root.field-state.error != "") { root.invalid(); }
+        else if (action == FieldAction.submit && root.field-state.error != "") { root.invalid(); }
     }
     public function step-number(direction: StepDirection) { if (KitFieldService.ready && root.access == FieldAccess.editable) { root.text = KitFieldService.step-number(root.text, checks.constraints, direction); root.reduce-field(FieldAction.submit); } }
     public function commit() { if (root.report-validity()) { root.reduce-field(FieldAction.submit); } }
@@ -76,7 +76,7 @@ export component KitTextField inherits KitField {
         }
         root.previous-edit-text = root.text;
     }
-    changed text => { root.synchronize-length-limit(); }
+    changed text => { root.field-state.error = ""; root.synchronize-length-limit(); }
     changed max-length => { root.synchronize-length-limit(); }
     changed length-policy => { root.synchronize-length-limit(); }
     changed length-limit-ready => { root.synchronize-length-limit(); }
@@ -112,7 +112,7 @@ export component KitTextField inherits KitField {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     public function reset-field() { root.text = root.default-value; root.field-state = {accepted: {present: root.default-value != "", text: root.default-value}, draft: root.default-value}; root.synchronize-length-limit(); checks.reset-validation(); root.edited(root.text); root.synchronize-length-limit(); }
-    private property <ValidationPresentation> effective-validation: root.validation == ValidationPresentation.invalid || checks.show-error || root.field-state.error != "" ? ValidationPresentation.invalid : root.validation;
+    private property <ValidationPresentation> effective-validation: root.validation == ValidationPresentation.invalid || checks.show-error ? ValidationPresentation.invalid : root.validation;
     private property <string> effective-error: !checks.validity.valid ? checks.validation-message : root.field-state.error != "" ? root.field-state.error : root.intrinsic-error != "" ? checks.validation-message : root.validation == ValidationPresentation.invalid && root.error != "" ? root.error : checks.validation-message;
     in-out property <SecretVisibility> secret-visibility: SecretVisibility.hidden;
     in property <TextLineMode> line-mode: TextLineMode.single-line;
@@ -208,7 +208,7 @@ export component KitTextField inherits KitField {
             pattern: root.pattern; pattern-enabled: root.pattern-enabled;
             min: root.min; max: root.max; step: root.step; default-value: root.default-value;
             text: root.validation-text; validation-timing: root.validation-timing;
-            custom-validity: root.custom-validity != "" ? root.custom-validity : root.intrinsic-error != "" ? root.intrinsic-error : root.validation == ValidationPresentation.invalid ? root.error : "";
+            custom-validity: root.custom-validity != "" ? root.custom-validity : root.field-state.error != "" ? root.field-state.error : root.intrinsic-error != "" ? root.intrinsic-error : root.validation == ValidationPresentation.invalid ? root.error : "";
             required-message: root.required-message; email-message: root.email-message;
             url-message: root.url-message; pattern-message: root.pattern-message;
             too-short-message: root.too-short-message; too-long-message: root.too-long-message;

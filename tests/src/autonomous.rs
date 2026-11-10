@@ -565,6 +565,7 @@ fn domain_validation_obeys_commit_policy_and_never_blocks_cancel() {
         ui::CommitPolicy::OnSubmit,
         ui::Ownership::Local,
         "project".into(),
+        true,
     );
     assert!(edited.error.is_empty());
     assert!(edited.dirty);
@@ -576,6 +577,7 @@ fn domain_validation_obeys_commit_policy_and_never_blocks_cancel() {
         ui::CommitPolicy::OnSubmit,
         ui::Ownership::Local,
         "project".into(),
+        true,
     );
     assert_eq!(rejected.error, "Reserved project name");
     assert_eq!(rejected.accepted.text, "accepted");
@@ -587,6 +589,7 @@ fn domain_validation_obeys_commit_policy_and_never_blocks_cancel() {
         ui::CommitPolicy::OnSubmit,
         ui::Ownership::Local,
         "project".into(),
+        true,
     );
     assert!(cancelled.error.is_empty());
     assert_eq!(cancelled.draft, "accepted");
