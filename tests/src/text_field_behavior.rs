@@ -153,3 +153,40 @@ fn native_clear_preserves_undo_and_dispatches_one_final_change() {
     app.invoke_undo();
     assert_eq!(app.get_text(), "query");
 }
+#[test]
+fn window_strings_localize_constraints_and_typed_codec_failures() {
+    let app = fixture();
+    let strings = app.global::<kit_slint::ui::KitStrings>();
+    strings.set_required_message("Obligatoire".into());
+    strings.set_incomplete("Terminez la saisie".into());
+    strings.set_invalid_syntax("Format incorrect".into());
+    app.set_required(true);
+    assert!(!app.invoke_report());
+    assert_eq!(app.get_validation_message(), "Obligatoire");
+    app.set_required(false);
+    let spec = slint_kit::FieldSpec::codec(
+        |text| {
+            if text == "?" {
+                slint_kit::DraftValue::Incomplete
+            } else {
+                slint_kit::DraftValue::Invalid(slint_kit::ParseIssue::InvalidSyntax)
+            }
+        },
+        |text: &String| text.clone(),
+    );
+    kit_slint::install_field_specs(
+        &app,
+        [spec.named(slint_kit::FieldSpecKey::new("code").unwrap())],
+    )
+    .unwrap();
+    app.set_spec_key("code".into());
+    key(&app, "?");
+    key(&app, Key::Return);
+    assert_eq!(app.get_validation_message(), "Terminez la saisie");
+    app.set_text("corrected".into());
+    slint::platform::update_timers_and_animations();
+    assert!(
+        app.get_validation_message().is_empty(),
+        "host correction drops stale codec failure"
+    );
+}

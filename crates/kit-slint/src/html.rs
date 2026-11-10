@@ -185,39 +185,41 @@ where
             .map_or(canonical.clone(), |mask| mask.format(&canonical))
             .into()
     });
-    global.on_phone_mask_error(|source| {
+    global.on_phone_mask_error(|source, message| {
         if source.is_empty() || crate::__core::PhoneDisplayMask::new(source.as_str()).is_ok() {
             "".into()
         } else {
-            "Use 1–15 # digit slots, visual separators and at most one leading +.".into()
+            message
         }
     });
-    global.on_phone_error(|text, allow_plus, require_plus, min, max, syntax, length| {
-        use crate::__core::{PhoneError, PhoneNumberMode, PhoneRules};
-        let mode = if require_plus {
-            PhoneNumberMode::International
-        } else if allow_plus {
-            PhoneNumberMode::Either
-        } else {
-            PhoneNumberMode::National
-        };
-        let rules = u8::try_from(min)
-            .ok()
-            .zip(u8::try_from(max).ok())
-            .and_then(|(min, max)| PhoneRules::new(mode, min, max).ok());
-        let Some(rules) = rules else {
-            return "Phone digit bounds must be between 1 and 15, with min <= max.".into();
-        };
-        match rules.validate(text.as_str()) {
-            Ok(_) => "".into(),
-            Err(PhoneError::TooShort | PhoneError::TooLong) => length,
-            Err(
-                PhoneError::UnsupportedCharacter
-                | PhoneError::InvalidPrefix
-                | PhoneError::InvalidConfiguration,
-            ) => syntax,
-        }
-    });
+    global.on_phone_error(
+        |text, allow_plus, require_plus, min, max, syntax, length, bounds| {
+            use crate::__core::{PhoneError, PhoneNumberMode, PhoneRules};
+            let mode = if require_plus {
+                PhoneNumberMode::International
+            } else if allow_plus {
+                PhoneNumberMode::Either
+            } else {
+                PhoneNumberMode::National
+            };
+            let rules = u8::try_from(min)
+                .ok()
+                .zip(u8::try_from(max).ok())
+                .and_then(|(min, max)| PhoneRules::new(mode, min, max).ok());
+            let Some(rules) = rules else {
+                return bounds;
+            };
+            match rules.validate(text.as_str()) {
+                Ok(_) => "".into(),
+                Err(PhoneError::TooShort | PhoneError::TooLong) => length,
+                Err(
+                    PhoneError::UnsupportedCharacter
+                    | PhoneError::InvalidPrefix
+                    | PhoneError::InvalidConfiguration,
+                ) => syntax,
+            }
+        },
+    );
     global.on_evaluate(move |c, text, user_edited, checked, selected_count| {
         let (rules, pattern_error) = engine.constraints(&c);
         let (v, value, will_validate) = engine.evaluate(

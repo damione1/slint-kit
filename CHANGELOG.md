@@ -20,6 +20,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Add window-local `KitStrings` defaults, plural count labels and templates; localise codec/phone failures and `FieldBinding` messages. Breaking: pure field/phone service callbacks receive message data.
+- Ajoute les messages de fenêtre `KitStrings`, les compteurs pluriels et les modèles ; localise les erreurs codec/téléphone et `FieldBinding`. Rupture : les callbacks purs de champ/téléphone reçoivent les messages.
+
 - Preserve native undo and commit dispatch when clearing text or search fields. Reset/cancel/number steps remain explicit baseline replacements.
 - Préserve l’annulation native et l’engagement lors de l’effacement texte/recherche. Réinitialisation, annulation et pas numériques remplacent explicitement la référence.
 

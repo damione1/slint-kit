@@ -1,6 +1,7 @@
 import { NavigationStep, RangeThumb, ColorAlphaMode } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection } from "shared-contracts.slint";
+import { KitFieldMessages } from "strings.slint";
 import { KitInputConstraints } from "validation.slint";
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
@@ -30,5 +31,5 @@ export global KitFieldService {
     in-out property <bool> ready;
     pure callback display(string, string) -> string;
     pure callback step-number(string, KitInputConstraints, StepDirection) -> string;
-    pure callback reduce(FieldState, FieldAction, string, KitInputConstraints, CommitPolicy, Ownership, string, bool) -> FieldState;
+    pure callback reduce(FieldState, FieldAction, string, KitInputConstraints, CommitPolicy, Ownership, string, bool, KitFieldMessages) -> FieldState;
 }

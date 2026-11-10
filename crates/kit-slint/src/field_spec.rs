@@ -429,7 +429,7 @@ where
             .map_or(text, Into::into)
     });
     service.on_reduce(
-        move |state, action, text, constraints, policy, ownership, spec, user_edited| {
+        move |state, action, text, constraints, policy, ownership, spec, user_edited, messages| {
             let (rules, _) = engine.constraints(&constraints);
             let valid = rules
                 .validate(
@@ -463,7 +463,7 @@ where
                         }
                     },
                     None => {
-                        codec_error = Some("The field codec is not installed.".into());
+                        codec_error = Some(messages.missing_codec.to_string());
                         DraftValue::Invalid(ParseIssue::InvalidSyntax)
                     }
                 }
@@ -529,7 +529,8 @@ where
                     if !valid || action == FieldAction::Edit {
                         String::new()
                     } else {
-                        codec_error.unwrap_or_else(|| crate::field::failure_message(error).into())
+                        codec_error
+                            .unwrap_or_else(|| crate::field::localized_failure(&messages, error))
                     },
                 ),
             };
