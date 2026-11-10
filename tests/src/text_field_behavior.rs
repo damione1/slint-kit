@@ -88,18 +88,55 @@ fn reporting_invalid_fields_does_not_move_focus() {
 }
 #[test]
 fn overflowing_multiline_editor_preserves_mouse_selection_and_has_scrollbar() {
-    use i_slint_backend_testing::{ElementQuery, ElementHandle};
+    use i_slint_backend_testing::{ElementHandle, ElementQuery};
     use slint::platform::PointerEventButton;
     let app = fixture();
     app.set_multiline(true);
-    app.set_text((0..20).map(|_| "A selectable overflowing line\n").collect::<String>().into());
+    app.set_text(
+        (0..20)
+            .map(|_| "A selectable overflowing line\n")
+            .collect::<String>()
+            .into(),
+    );
     slint::platform::update_timers_and_animations();
-    let editor = ElementHandle::find_by_accessible_label(&app, "Name").find(|element| element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)).unwrap();
+    let editor = ElementHandle::find_by_accessible_label(&app, "Name")
+        .find(|element| {
+            element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::TextInput)
+        })
+        .unwrap();
     let bounds = editor.absolute_position();
     let start = slint::LogicalPosition::new(bounds.x + 4., bounds.y + 8.);
     let end = slint::LogicalPosition::new(bounds.x + 140., bounds.y + 30.);
-    app.window().dispatch_event(WindowEvent::PointerPressed { position: start, button: PointerEventButton::Left });
-    app.window().dispatch_event(WindowEvent::PointerMoved { position: end });
-    app.window().dispatch_event(WindowEvent::PointerReleased { position: end, button: PointerEventButton::Left });
-    assert!(ElementQuery::from_root(&app).match_inherits("KitScrollBar").find_first().is_some());
+    app.window().dispatch_event(WindowEvent::PointerPressed {
+        position: start,
+        button: PointerEventButton::Left,
+    });
+    app.window()
+        .dispatch_event(WindowEvent::PointerMoved { position: end });
+    app.window().dispatch_event(WindowEvent::PointerReleased {
+        position: end,
+        button: PointerEventButton::Left,
+    });
+    assert!(
+        ElementQuery::from_root(&app)
+            .match_inherits("KitScrollBar")
+            .find_first()
+            .is_some()
+    );
+}
+#[test]
+fn selection_insertion_and_history_forward_to_the_same_native_editor() {
+    let app = fixture();
+    key(&app, "a😀b");
+    app.invoke_selection(1, 5);
+    assert_eq!(app.get_anchor(), 1);
+    assert_eq!(app.get_cursor(), 5);
+    app.invoke_insert("XY".into());
+    assert_eq!(app.get_text(), "aXYb");
+    app.invoke_undo();
+    app.invoke_undo();
+    assert_eq!(app.get_text(), "a😀b");
+    app.invoke_redo();
+    app.invoke_redo();
+    assert_eq!(app.get_text(), "aXYb");
 }

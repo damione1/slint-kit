@@ -385,7 +385,7 @@ pub fn install_field_specs<W>(
     specs: impl IntoIterator<Item = NamedFieldSpec>,
 ) -> Result<(), ParseIssue>
 where
-    W: slint::ComponentHandle,
+    W: slint::ComponentHandle + 'static,
     for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
 {
     let mut codecs = HashMap::new();
@@ -398,6 +398,23 @@ where
     let display_codecs = codecs.clone();
     let engine = HtmlValidationEngine::default();
     let service = window.global::<ui::KitFieldService>();
+    let edit_window = window.as_weak();
+    service.on_edit_selection(move |text| {
+        if let Some(window) = edit_window.upgrade() {
+            use slint::platform::{Key, WindowEvent};
+            let text = if text.is_empty() {
+                Key::Delete.into()
+            } else {
+                text
+            };
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyReleased { text });
+        }
+    });
     service.on_display(move |spec, text| {
         FieldSpecKey::new(spec.to_string())
             .ok()
@@ -534,7 +551,7 @@ where
 }
 pub(crate) fn install_fields<W>(window: &W)
 where
-    W: slint::ComponentHandle,
+    W: slint::ComponentHandle + 'static,
     for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
 {
     if !window.global::<ui::KitFieldService>().get_ready() {

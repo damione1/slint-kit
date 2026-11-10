@@ -19,6 +19,12 @@ export component TextFieldBehaviorFixture inherits Window {
     public function blur-field() { other.focus(); }
     public function report() -> bool { return field.report-validity(); }
     public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+    out property <int> cursor: field.cursor-position;
+    out property <int> anchor: field.selection-anchor;
+    public function selection(anchor: int, cursor: int) { field.set-selection(anchor, cursor); }
+    public function insert(text: string) { field.insert-at-cursor(text); }
+    public function undo() { field.undo(); }
+    public function redo() { field.redo(); }
     public function select-all() { field.select-all(); }
     other := FocusScope { width: 0px; height: 0px; }
     VerticalLayout {

@@ -14,6 +14,7 @@ export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
 export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
 export global KitFieldService {
+    callback edit-selection(string);
     pure callback color-format(SrgbColorView, ColorAlphaMode) -> string;
     pure callback color-validate(SrgbColorView, ColorAlphaMode) -> ColorResult;
     pure callback color-parse(string, ColorAlphaMode) -> ColorResult;

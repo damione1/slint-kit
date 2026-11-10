@@ -17,6 +17,7 @@ export { FieldDecoration } from "field.slint";
 
 export enum ResizePolicy { fixed, auto-grow }
 export enum TextLineMode { single-line, multiline }
+export enum TextContextMenu { standard, disabled }
 export enum TextLengthPolicy { validate, limit }
 
 // All variants retain this one native TextInput throughout theme, validation,
@@ -163,6 +164,22 @@ export component KitTextField inherits KitField {
     public function take-focus() { if (root.access != FieldAccess.disabled) { editor.focus(); } }
     public function select-all() { editor.select-all(); }
     public function copy-selection() { editor.copy(); }
+    public function cut-selection() { if (root.access == FieldAccess.editable) { editor.cut(); } }
+    public function paste() { if (root.access == FieldAccess.editable) { editor.paste(); } }
+    public function undo() { if (root.access == FieldAccess.editable) { editor.undo(); } }
+    public function redo() { if (root.access == FieldAccess.editable) { editor.redo(); } }
+    public function blur() { editor.clear-focus(); }
+    public function set-selection(anchor: int, cursor: int) { editor.set-selection-offsets(anchor, cursor); }
+    public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); KitFieldService.edit-selection(text); } }
+    out property <int> cursor-position: editor.cursor-position-byte-offset;
+    out property <int> selection-anchor: editor.anchor-position-byte-offset;
+    in property <TextContextMenu> context-menu: TextContextMenu.standard;
+    in property <string> undo-label: "Undo";
+    in property <string> redo-label: "Redo";
+    in property <string> cut-label: "Cut";
+    in property <string> copy-label: "Copy";
+    in property <string> paste-label: "Paste";
+    in property <string> select-all-label: "Select all";
     public function cancel-edit() { root.reduce-field(FieldAction.cancel); root.cancelled(); }
     pure function non-finite-number(text: string) -> bool {
         let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
@@ -382,6 +399,18 @@ export component KitTextField inherits KitField {
                                 else if (position.x + root.text-inset + 2px + viewport.content-x > viewport.width) { viewport.content-x = viewport.width - position.x - root.text-inset - 2px; }
                             }
                         }
+                    }
+                }
+                ContextMenuArea {
+                    enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
+                    Menu {
+                        MenuItem { title: root.undo-label; enabled: root.access == FieldAccess.editable; activated => { root.undo(); } }
+                        MenuItem { title: root.redo-label; enabled: root.access == FieldAccess.editable; activated => { root.redo(); } }
+                        MenuSeparator { }
+                        MenuItem { title: root.cut-label; enabled: root.access == FieldAccess.editable && root.purpose != TextPurpose.password && root.input-type != InputType.password; activated => { root.cut-selection(); } }
+                        MenuItem { title: root.copy-label; enabled: root.purpose != TextPurpose.password && root.input-type != InputType.password; activated => { root.copy-selection(); } }
+                        MenuItem { title: root.paste-label; enabled: root.access == FieldAccess.editable; activated => { root.paste(); } }
+                        MenuItem { title: root.select-all-label; activated => { root.select-all(); } }
                     }
                 }
                 if root.multiline: KitScrollBar {

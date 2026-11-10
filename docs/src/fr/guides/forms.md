@@ -68,3 +68,5 @@ Les composites calendrier/intervalle valident les indisponibilités en plus des 
 `report-validity()` ne déplace jamais le focus. Signalez tous les champs, puis appelez `focus-if-invalid()` uniquement sur le premier champ invalide pour éviter les effets secondaires du flou pendant la collecte des erreurs.
 
 `KitSubmitButton` exige un callback `validation-requested` raccordé qui retourne la validité du formulaire, ou `form-no-validate` explicite. Traitez `form-action(FormAction)` pour soumettre/réinitialiser ; `activated` observe ensuite l’action et ne remplace pas la validation. `KitResetButton` ne valide pas.
+
+L’édition expose les offsets UTF-8 en octets via `cursor-position`, `selection-anchor` et `set-selection(anchor, cursor)`. `insert-at-cursor(text)` prend le focus et suit l’insertion et les filtres natifs ; `undo()`, `redo()`, `cut-selection()`, `copy-selection()` et `paste()` conservent le même éditeur. `blur()` libère son focus. Utilisez `context-menu: TextContextMenu.disabled` pour remplacer le menu standard localisable. Les menus de mot de passe empêchent couper/copier ; les autres champs en lecture seule conservent copie et sélection.

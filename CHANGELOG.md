@@ -20,6 +20,9 @@
 
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
+- Expose native text selection, insertion, editing history and focus APIs and a localisable context menu.
+- Expose la sélection, l’insertion, l’historique d’édition et le focus natifs ainsi qu’un menu contextuel localisable.
+
 - Keep mouse drag selection in overflowing text areas and provide the themed vertical scrollbar.
 - Préserve la sélection par glissement souris dans les zones de texte débordantes et ajoute la barre verticale thémée.
 
