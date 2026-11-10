@@ -53,6 +53,14 @@ export const mockups = Object.freeze({
   'range-slider': p => {p.line(47,82,226,'soft',6);p.line(99,82,113,'accent',6);[99,212].forEach(x=>p.circle(x,85,11,'paper','accent'));},
   rating: p => { [0,1,2,3,4].forEach(i=>p.mark(65+i*47,85,'★',i<3?'accent':'soft',30)); },
   'color-field': p => {p.field(53,64,214,'#7768AC');p.rect(220,72,28,22,'accent',4);},
+  'color-wheel': p => {
+    // Full-value HSV: hue runs clockwise from red at the top, saturation outward.
+    for(let ring=12;ring>0;ring--)for(let hue=0;hue<360;hue+=5) {
+      const saturation=ring/12,angle=hue*Math.PI/180-Math.PI/2;
+      p.arc(160,84,ring*5-2.5,angle,angle+Math.PI/36,`hsl(${hue} ${100*saturation/(2-saturation)}% ${100-50*saturation}%)`,5);
+    }
+    p.circle(128,111,6,'accent','paper');
+  },
   'color-picker': p => {p.rect(80,25,160,90,'soft');[0,1,2,3,4,5].forEach(i=>p.rect(80+i*27,126,22,18,i%2?'accent':'ink',3));p.circle(184,62,8,'paper','accent');},
   field: p => {p.labelField('Label','Value');p.line(52,119,150,'soft');},
   'field-label': p => {p.line(53,47,104,'accent',9);p.rect(53,70,214,39,'paper');p.line(67,86,110,'soft');},
@@ -137,7 +145,7 @@ export function drawMockup(ctx, slug, colors) {
     rect(x,y,w,h,color='paper',radius=6) {ctx.beginPath();ctx.roundRect(x,y,w,h,radius);ctx.fillStyle=colors[color];ctx.fill();},
     line(x,y,w,color='ink',h=4) {this.rect(x,y,w,h,color,Math.min(h/2,2));},
     circle(x,y,r,color='ink',border) {ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=colors[color];ctx.fill();if(border){ctx.lineWidth=2;ctx.strokeStyle=colors[border];ctx.stroke();}},
-    arc(x,y,r,start,end,color='accent',width=3) {ctx.beginPath();ctx.arc(x,y,r,start,end);ctx.strokeStyle=colors[color];ctx.lineWidth=width;ctx.lineCap='round';ctx.stroke();},
+    arc(x,y,r,start,end,color='accent',width=3) {ctx.beginPath();ctx.arc(x,y,r,start,end);ctx.strokeStyle=colors[color]??color;ctx.lineWidth=width;ctx.lineCap='round';ctx.stroke();},
     mark(x,y,value,color='ink',size=13) {ctx.fillStyle=colors[color];ctx.font=`500 ${size}px system-ui, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(value,x,y);},
     path(points,color='accent',width=2.5) {ctx.beginPath();ctx.moveTo(...points[0]);points.slice(1).forEach(point=>ctx.lineTo(...point));ctx.strokeStyle=colors[color];ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();},
     check(x,y,color='accent') {this.path([[x,y],[x+5,y+5],[x+14,y-5]],color);},
