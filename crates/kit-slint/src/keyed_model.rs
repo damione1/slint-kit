@@ -660,3 +660,16 @@ impl KeyedRow for ui::StepEntry {
         self.label.to_string()
     }
 }
+
+impl KeyedRow for ui::ButtonGroupEntry {
+    fn stamp(&mut self, token: i32, generation: i32) {
+        self.token = token;
+        self.generation = generation;
+    }
+    fn enabled(&self) -> bool {
+        !self.disabled && !self.busy
+    }
+    fn label(&self) -> String {
+        self.text.to_string()
+    }
+}

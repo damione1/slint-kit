@@ -225,3 +225,5 @@ Theme direction does not add a general Slint mirroring service: native text and 
 
 
 `ScrollFrame` is a public `@kit` composition primitive for a finite two-axis viewport. Supply `content-width` and `content-height`; its children retain native editing. Observe negative `content-x/y`, `visible-width/height` and the relative physical `viewport-x` to align external headers. It supplies themed gutters, policies and `scrolled`, with no viewport keyboard role. `enabled` gates bars/direct panning, while native wheel scrolling remains available. `KitScrollArea` remains the complete vertical wrapper. RTL table headers and cell reveal use this same measured viewport origin.
+
+`KitButtonGroup` names related commands and supports orientation and optional wrapping. `attached: true` styles model-backed actions as a single non-wrapping strip with a shared outline, separators and inside focus; it ignores spacing/wrap. Custom children keep their explicit styling. The container now uses a Rectangle and an internal FlexboxLayout; spacing/alignment remain public, while former inherited HorizontalLayout padding properties move to the surrounding layout.

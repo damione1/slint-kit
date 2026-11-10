@@ -46,11 +46,13 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
   const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
-  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view']) {
+  const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
+  for (const slug of ['button-group', 'steps', 'timeline']) assert.equal(starters[slug].development, true);
+  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view', 'button-group', 'steps', 'timeline']) {
     for (const locale of ['en', 'fr']) {
       for (const registryExamples of [false, true]) {
         for (const version of ['0.7.2', '0.7.3']) {
-          const rendered = env.renderString(template, { component: { slug }, locale, project: { registryExamples, version }, quickstart: { en: 'English usage.', fr: 'Usage français.' } });
+          const rendered = env.renderString(template, { component: { slug }, locale, project: { registryExamples, version }, quickstart: { ...starters[slug], en: 'English usage.', fr: 'Usage français.' } });
           const development = !registryExamples || version === '0.7.2';
           if (development) {
             assert.doesNotMatch(rendered, /cargo run --locked|\/quickstart\/projects\//);
@@ -66,6 +68,9 @@ test('quickstart pages distinguish development APIs from immutable registry exam
       }
     }
   }
+  const flagged = env.renderString(template, { component: { slug: 'arbitrary-new-api' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { development: true, en: 'Usage.', fr: 'Usage.' } });
+  assert.match(flagged, /cannot compile/);
+  assert.doesNotMatch(flagged, /cargo run --locked|\/quickstart\/projects\//);
   const existing = env.renderString(template, { component: { slug: 'button' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { en: 'Usage.', fr: 'Usage.' } });
   assert.match(existing, /cargo run --locked/);
 });

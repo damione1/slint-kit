@@ -186,3 +186,23 @@ export component DirectionFixture inherits Window {
     }
 
 }
+
+import { KitButtonGroup, ButtonGroupEntry, KitStrings } from "@kit";
+export component ButtonGroupFixture inherits Window {
+    width: 720px; height: 480px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[ButtonGroupEntry]> actions;
+    in property <bool> attached;
+    in property <string> busy-label: KitStrings.busy-label;
+    in property <bool> wrap;
+    in property <bool> disabled;
+    in property <Orientation> orientation;
+    in property <length> group-width: 540px;
+    callback action-requested(int, int);
+    background: root.theme.canvas;
+    group := KitButtonGroup { x: 24px; y: 24px; width: root.group-width;
+        theme: root.theme; actions: root.actions; attached: root.attached; wrap: root.wrap;
+        orientation: root.orientation; disabled: root.disabled; busy-label: root.busy-label; accessible-name: "Document commands";
+        activated(token, generation) => { root.action-requested(token, generation); }
+    }
+}

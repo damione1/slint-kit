@@ -104,3 +104,5 @@ Quand le nombre de colonnes change, `active-column` est borné aux positions res
 ## Étapes interactives et chronologies
 
 Utilisez `KeyedModel<K, StepEntry>` et résolvez `step-activated(token, generation)` avec `accept`. Définissez `enabled` pour les étapes accessibles ; le kit émet une demande et votre flux décide du changement d’état. La génération refuse les gestes maintenus après remplacement. `interactive` vaut false par défaut ; orientation et descriptions fonctionnent dans les deux modes. Les événements de chronologie sont des projections ordonnées : fournissez un `tone` sémantique et un `glyph` décoratif facultatif, en conservant le sens dans le titre et la description.
+
+Pour les bandes de commandes attachées, fournissez `KitButtonGroup.actions` avec `KeyedModel<K, ButtonGroupEntry>` et résolvez `activated(token, generation)` avec `accept`. Chaque bouton garde son arrêt Tab et son action ; ce n’est pas un groupe de sélection. L’hôte possède les états busy/disabled et les commandes. Remplacer le modèle annule les gestes maintenus. Utilisez @children pour une composition personnalisée, avec thème et désactivation propres à chaque enfant.

@@ -1,8 +1,9 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
-import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow, ElevationLevel, FocusRingStyle } from "theme.slint";
 import { FocusOutline } from "focus.slint";
+import { KitStrings } from "strings.slint";
 export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.slint";
 
 component BusyMark inherits Rectangle {
@@ -40,7 +41,7 @@ export component KitPressable inherits Rectangle {
     in property <string> accessible-name;
     in property <bool> disabled;
     in property <bool> busy;
-    in property <string> busy-label: "Working…";
+    in property <string> busy-label: KitStrings.busy-label;
     in property <bool> tab-stop: true;
     // A pressable whose children host an open native editor hands the
     // pointer to them; keyboard activation and focus are unaffected.
@@ -308,10 +309,86 @@ export component KitIconButton inherits KitPressable {
     }
     if root.busy: BusyMark { recipe: root.recipe; theme: root.theme; }
 }
-export component KitButtonGroup inherits HorizontalLayout {
+export struct ButtonGroupEntry {
+    token: int, generation: int, text: string, accessible-name: string,
+    leading-icon: IconGlyph, trailing-icon: IconGlyph, intent: ButtonIntent,
+    disabled: bool, busy: bool, busy-label: string,
+}
+component GroupButtonItem inherits KitButton {
+    in property <ButtonGroupEntry> entry;
+    in property <bool> attached;
+    in property <bool> group-disabled;
+    in property <string> default-busy-label;
+    in property <bool> last;
+    in property <Orientation> orientation;
+    private property <ButtonRecipe> base-recipe: KitThemes.button-recipe(root.theme, root.entry.intent, root.control-size);
+    recipe: {
+        fill: root.base-recipe.fill, hover-fill: root.base-recipe.hover-fill, pressed-fill: root.base-recipe.pressed-fill,
+        disabled-fill: root.base-recipe.disabled-fill, foreground: root.base-recipe.foreground, disabled-foreground: root.base-recipe.disabled-foreground,
+        border: root.base-recipe.border, radius: root.attached ? 0px : root.base-recipe.radius,
+        padding-inline: root.base-recipe.padding-inline, padding-block: root.base-recipe.padding-block,
+        border-width: root.attached ? 0px : root.base-recipe.border-width,
+        height: root.attached ? max(root.base-recipe.height, KitMetrics.control-height(root.theme, root.control-size)) : root.base-recipe.height, font-size: root.base-recipe.font-size, font-weight: root.base-recipe.font-weight, underline: root.base-recipe.underline,
+        busy-mark-size: root.base-recipe.busy-mark-size, busy-mark-stroke: root.base-recipe.busy-mark-stroke,
+        elevation: root.attached ? ElevationLevel.none : root.base-recipe.elevation,
+        shadow: root.attached ? KitThemes.shadow(root.theme, ElevationLevel.none) : root.base-recipe.shadow,
+        focus: { style: root.attached ? FocusRingStyle.inside : root.base-recipe.focus.style,
+            width: root.base-recipe.focus.width, offset: root.base-recipe.focus.offset,
+            color: root.base-recipe.focus.color, invalid-color: root.base-recipe.focus.invalid-color },
+    };
+    control-width: root.attached ? ControlWidth.fill : ControlWidth.intrinsic;
+    text: root.entry.text; accessible-name: root.entry.accessible-name;
+    leading-icon: root.entry.leading-icon; trailing-icon: root.entry.trailing-icon;
+    disabled: root.group-disabled || root.entry.disabled; busy: root.entry.busy; busy-label: root.entry.busy-label != "" ? root.entry.busy-label : root.default-busy-label;
+    private property <int> press-token;
+    private property <int> press-generation;
+    callback action-requested(int, int);
+    activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
+    changed entry => { root.cancel-press(); }
+    activated => { root.action-requested(root.press-token, root.press-generation); }
+    if root.attached && !root.last: separator := Rectangle {
+        x: root.orientation == Orientation.vertical || root.theme.direction == ChoiceFlow.right-to-left ? -root.padding-inline : root.width - root.padding-inline - self.width;
+        y: root.orientation == Orientation.horizontal ? -root.padding-block : root.height - root.padding-block - self.height;
+        width: root.orientation == Orientation.horizontal ? root.theme.shape.border-width : root.width;
+        height: root.orientation == Orientation.horizontal ? root.height : root.theme.shape.border-width;
+        background: root.theme.border-strong;
+    }
+}
+export component KitButtonGroup inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
-    spacing: KitMetrics.inline-gap(root.theme);
-    alignment: start;
-    vertical-stretch: 0;
-    @children
+    in property <[ButtonGroupEntry]> actions;
+    in property <Orientation> orientation: Orientation.horizontal;
+    in property <bool> attached;
+    in property <bool> wrap;
+    in property <bool> disabled;
+    in property <string> accessible-name;
+    in property <string> busy-label: KitStrings.busy-label;
+    in property <length> spacing: KitMetrics.inline-gap(root.theme);
+    in property <LayoutAlignment> alignment: LayoutAlignment.start;
+    in property <ControlSize> control-size: ControlSize.medium;
+    callback activated(int, int);
+    accessible-role: groupbox; accessible-label: root.accessible-name; accessible-orientation: root.orientation;
+    preferred-width: content.preferred-width;
+    min-width: root.wrap && !root.attached ? 0px : content.min-width;
+    preferred-height: content.preferred-height; height: self.preferred-height;
+    horizontal-stretch: 0; vertical-stretch: 0;
+    clip: root.attached;
+    border-radius: root.attached ? root.theme.shape.radius-control : 0px;
+    content := FlexboxLayout {
+        width: root.width; height: self.preferred-height;
+        flex-direction: root.orientation == Orientation.vertical ? FlexboxLayoutDirection.column : root.theme.direction == ChoiceFlow.right-to-left ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
+        flex-wrap: root.wrap && !root.attached ? FlexboxLayoutWrap.wrap : FlexboxLayoutWrap.no-wrap;
+        spacing: root.attached ? 0px : root.spacing;
+        alignment: root.attached ? LayoutAlignment.stretch : root.alignment; cross-axis-alignment: root.attached ? CrossAxisAlignment.stretch : CrossAxisAlignment.start;
+        for entry[index] in root.actions: GroupButtonItem {
+            theme: root.theme; entry: entry; attached: root.attached; group-disabled: root.disabled;
+            default-busy-label: root.busy-label; last: index + 1 == root.actions.length; orientation: root.orientation; control-size: root.control-size;
+            action-requested(token, generation) => { root.activated(token, generation); }
+        }
+        @children
+    }
+    if root.attached: outline := Rectangle {
+        border-radius: root.border-radius;
+        border-color: root.theme.border-strong; border-width: root.theme.shape.border-width;
+    }
 }

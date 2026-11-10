@@ -204,3 +204,5 @@ For RTL chrome set KitTheme.direction to the existing ChoiceFlow.right-to-left e
 
 
 Use public `ScrollFrame` from `@kit` for a finite two-axis composition viewport with explicit content dimensions. Its `viewport-x` is the physical origin relative to the frame; align headers/reveal bounds with it and `visible-width`. `content-x/y` remain negative native offsets. It has no viewport keyboard role. `enabled` gates bars/direct panning, while native wheel handling stays available. Use `KitScrollArea` for the complete vertical wrapper.
+
+KitButtonGroup supports orientation/wrap/accessibility naming. Use actions with KeyedModel<K, ButtonGroupEntry> for attached styling and generation-fenced activated(token, generation); each button keeps independent Tab/action semantics. Attached strips ignore wrap/spacing, share an outline/separators and use inside focus. Custom @children retain their own styling/theme/disabled bindings. The container is now Rectangle with internal FlexboxLayout; spacing/alignment are preserved, former layout padding belongs to the surrounding layout.

@@ -223,26 +223,136 @@
   },
   "KitButtonGroup": {
     "fr": {
-      "summary": "Ligne de boutons apparentés avec un espacement uniforme.",
-      "usage": "Placez les actions dans l’ordre de lecture, par exemple Annuler puis Enregistrer. Chaque enfant choisit sa largeur et son intention.",
-      "behavior": "Le groupe utilise un `HorizontalLayout` aligné au début et conserve une hauteur naturelle. Il ne fusionne ni le focus ni les callbacks des boutons.",
+      "summary": "Groupe nommé de boutons, avec orientation, retour à la ligne et actions attachées.",
+      "usage": "Utilisez @children pour composer des boutons personnalisés. Utilisez actions: [ButtonGroupEntry] avec KeyedModel<K, ButtonGroupEntry> pour la présentation attachée automatique, puis résolvez activated(token, generation) avec accept. Fournissez accessible-name et les champs text, intent, disabled et éventuellement busy-label par ligne.",
+      "behavior": "orientation choisit une disposition horizontale ou verticale ; wrap active le retour à la ligne des groupes non attachés. attached conserve une bande avec une bordure extérieure, des séparateurs et un focus intérieur. Chaque bouton garde son focus et son activation ; remplacer les lignes annule les gestes maintenus. Le modèle actions reçoit le style automatique, la taille et la désactivation du groupe. Les enfants personnalisés gardent leurs propres thème, style et désactivation : liez-les explicitement. Le conteneur reste un groupe de présentation, sans navigation itinérante ni sélection. spacing/alignment restent publics ; attached ignore spacing, wrap et l’alignement interne pour remplir la largeur demandée. La direction logique suit theme.direction. Les actions occupées héritent du busy-label du groupe (KitStrings.busy-label par défaut), avec surcharge par ligne ; le bouton et le modèle à clés bloquent la réactivation. La hauteur du groupe suit son contenu dans les deux orientations, y compris les lignes repliées ; un groupe positionné en absolu ne remplit pas la hauteur du parent par défaut.",
       "label": "Groupe de boutons",
       "seoTitle": "Groupe de boutons pour Slint",
       "related": [
         "KitButton",
         "KitInline"
-      ]
+      ],
+      "properties": {
+        "actions": {
+          "effect": "Fournit les lignes ButtonGroupEntry à clés stables ; les enfants restent indépendants.",
+          "default": "Empty model",
+          "example": "KitButtonGroup { actions: []; }"
+        },
+        "orientation": {
+          "effect": "Choisit l’axe horizontal ou vertical du groupe.",
+          "default": "Orientation.horizontal",
+          "example": "KitButtonGroup { orientation: Orientation.vertical; }"
+        },
+        "attached": {
+          "effect": "Joint les actions du modèle par un contour, des séparateurs et un focus intérieur ; ignore retour à la ligne et espacements.",
+          "default": "false",
+          "example": "KitButtonGroup { attached: true; }"
+        },
+        "wrap": {
+          "effect": "Replie le contenu non attaché dans la largeur demandée.",
+          "default": "false",
+          "example": "KitButtonGroup { wrap: true; }"
+        },
+        "disabled": {
+          "effect": "Bloque les actions du modèle ; liez explicitement la désactivation des enfants.",
+          "default": "false",
+          "example": "KitButtonGroup { disabled: true; }"
+        },
+        "accessible-name": {
+          "effect": "Nomme le groupe sans cible de focus supplémentaire.",
+          "default": "\"\"",
+          "example": "KitButtonGroup { accessible-name: \"Document commands\"; }"
+        },
+        "busy-label": {
+          "effect": "Fournit la description d’activité des lignes sans surcharge propre.",
+          "default": "KitStrings.busy-label",
+          "example": "KitButtonGroup { busy-label: \"Working…\"; }"
+        },
+        "spacing": {
+          "effect": "Règle les espacements non attachés ; les groupes attachés l’ignorent.",
+          "default": "KitMetrics.inline-gap(theme)",
+          "example": "KitButtonGroup { spacing: theme.spacing.unit; }"
+        },
+        "alignment": {
+          "effect": "Aligne le contenu non attaché ; les actions attachées s’étirent.",
+          "default": "LayoutAlignment.start",
+          "example": "KitButtonGroup { alignment: LayoutAlignment.center; }"
+        },
+        "control-size": {
+          "effect": "Dimensionne les recettes des actions ; les enfants choisissent leur taille.",
+          "default": "ControlSize.medium",
+          "example": "KitButtonGroup { control-size: ControlSize.large; }"
+        }
+      },
+      "callbacks": {
+        "activated": "Signale le token et la génération capturés ; résolvez-les avec KeyedModel.accept avant toute action."
+      }
     },
     "en": {
-      "summary": "Row of related buttons with consistent spacing.",
-      "usage": "Place actions in reading order, such as Cancel followed by Save. Each child chooses its own width and intent.",
-      "behavior": "The group uses a start-aligned `HorizontalLayout` and keeps its natural height. It does not merge button focus or callbacks.",
+      "summary": "Named group of related buttons with orientation, wrapping and attached actions.",
+      "usage": "Use @children for custom button composition. Use actions: [ButtonGroupEntry] with KeyedModel<K, ButtonGroupEntry> for automatic attached presentation, and resolve activated(token, generation) with accept. Supply accessible-name and per-row text, intent, disabled and optional busy-label.",
+      "behavior": "orientation selects horizontal or vertical layout; wrap opts into wrapping for unattached groups. attached keeps a single strip with one outer border, separators and inside focus rings. Button focus and activation stay independent; row replacement cancels held gestures. The actions model owns automatic styling, size and disabled propagation. Custom children keep their own theme, styling and disabled bindings; set those explicitly. The container remains a presentation group, without roving navigation or selection. spacing/alignment remain public; attached ignores spacing, wrap and internal alignment, filling the requested strip width. Logical direction follows theme.direction. Busy actions inherit the group busy-label (window KitStrings.busy-label by default), with per-row overrides; busy is guarded by both the button and keyed model. The group height follows its content in either orientation, including wrapped rows; an absolute-positioned group does not fill the parent height by default.",
       "label": "Button Group",
       "seoTitle": "Button Group for Slint",
       "related": [
         "KitButton",
         "KitInline"
-      ]
+      ],
+      "properties": {
+        "actions": {
+          "effect": "Supplies keyed ButtonGroupEntry rows; custom children remain independent.",
+          "default": "Empty model",
+          "example": "KitButtonGroup { actions: []; }"
+        },
+        "orientation": {
+          "effect": "Chooses the horizontal or vertical group axis.",
+          "default": "Orientation.horizontal",
+          "example": "KitButtonGroup { orientation: Orientation.vertical; }"
+        },
+        "attached": {
+          "effect": "Joins model actions with one outline, separators and inside focus; ignores wrapping and gaps.",
+          "default": "false",
+          "example": "KitButtonGroup { attached: true; }"
+        },
+        "wrap": {
+          "effect": "Wraps unattached content within the requested width.",
+          "default": "false",
+          "example": "KitButtonGroup { wrap: true; }"
+        },
+        "disabled": {
+          "effect": "Blocks model action activation; custom children bind their own disabled state.",
+          "default": "false",
+          "example": "KitButtonGroup { disabled: true; }"
+        },
+        "accessible-name": {
+          "effect": "Names the group without adding a separate focus stop.",
+          "default": "\"\"",
+          "example": "KitButtonGroup { accessible-name: \"Document commands\"; }"
+        },
+        "busy-label": {
+          "effect": "Supplies the busy description for rows without a per-row override.",
+          "default": "KitStrings.busy-label",
+          "example": "KitButtonGroup { busy-label: \"Working…\"; }"
+        },
+        "spacing": {
+          "effect": "Sets unattached gaps; attached groups ignore it.",
+          "default": "KitMetrics.inline-gap(theme)",
+          "example": "KitButtonGroup { spacing: theme.spacing.unit; }"
+        },
+        "alignment": {
+          "effect": "Aligns unattached content; attached model actions stretch.",
+          "default": "LayoutAlignment.start",
+          "example": "KitButtonGroup { alignment: LayoutAlignment.center; }"
+        },
+        "control-size": {
+          "effect": "Scales model action recipes; custom children select their own size.",
+          "default": "ControlSize.medium",
+          "example": "KitButtonGroup { control-size: ControlSize.large; }"
+        }
+      },
+      "callbacks": {
+        "activated": "Reports a captured token and generation; resolve with KeyedModel.accept before acting."
+      }
     }
   },
   "KitCalendar": {

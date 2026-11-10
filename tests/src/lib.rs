@@ -772,6 +772,7 @@ mod form_corrections;
 
 #[cfg(test)]
 mod base_data;
+mod button_group;
 mod button_sizing;
 mod control_states;
 mod icons;

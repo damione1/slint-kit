@@ -10,6 +10,8 @@
 - Les champs numériques (`KitIntegerField`, `KitDecimalField`, `KitMoneyField`, `KitPercentField`, `KitQuantityField`, `KitDurationField`, `KitNumberStepper`) suivent désormais le motif du bouton compteur : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas (10 par défaut), Début/Fin sautent à `min`/`max` lorsqu’ils sont définis, avec une arithmétique décimale exacte via le chemin d’édition natif et la politique de validation du champ ; `step: "any"`, la lecture seule et l’état désactivé ne font rien et un pas bloqué n’émet aucune modification. `wheel-stepping` (optionnel) fait avancer l’éditeur ayant le focus à la molette ; `step-by`/`step-to-bound` exposent le même chemin. Les composants numériques exposent `accessible-role: spinbox` avec plage, pas et actions incrément/décrément. **Rupture :** `HtmlConstraints::step_number` prend un `NumberStep` et retourne `NumberStepOutcome` ; `KitFieldService.step-number` prend un nombre de pas et retourne `NumberStepResult`.
 - Export `ScrollFrame` for themed two-axis composition and align table headers/cell reveal with its physical viewport origin in RTL. Native wheel handling is unchanged.
 
+- Add named horizontal/vertical button groups, optional wrapping and keyed attached command strips with one outline, separators, inside focus and generation-fenced activation. Preserve custom child composition. Breaking: KitButtonGroup now wraps an internal FlexboxLayout in a Rectangle; spacing/alignment remain public but inherited HorizontalLayout padding belongs on the surrounding layout.
+
 - Mirror logical button/badge icons, scrollbar gutters, chat sides and steps from theme.direction, reusing ChoiceFlow and keeping local choice flow overrides. Breaking: complete KitTheme literals require direction. Default remains left-to-right; Slint’s native text and application layouts retain their own direction behavior.
 
 
@@ -195,6 +197,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Ajoute groupes de boutons nommés horizontaux/verticaux, retour à la ligne facultatif et bandes attachées à clés stables, contour unique, séparateurs et focus intérieur. Conserve la composition par enfants. Rupture : KitButtonGroup contient un FlexboxLayout dans un Rectangle ; spacing/alignment restent publics, le padding hérité doit passer à la disposition parente.
 
 - Reflète icônes logiques, gouttières, côtés du chat, groupes d’avatars et étapes depuis theme.direction, en réutilisant ChoiceFlow et les surcharges locales. Rupture : les littéraux KitTheme complets exigent direction. Défaut gauche-droite conservé ; textes natifs et dispositions applicatives restent ceux de Slint.
 

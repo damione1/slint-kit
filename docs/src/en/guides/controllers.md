@@ -104,3 +104,5 @@ When a table’s column count changes, `active-column` clamps to the remaining v
 ## Interactive steps and event timelines
 
 Use `KeyedModel<K, StepEntry>` and resolve `step-activated(token, generation)` with `accept`. Set `enabled` explicitly for reachable steps; the kit emits requests and your workflow decides whether and how to change states. The generation fence rejects held gestures after replacement. `interactive` defaults to false; orientation and descriptions work in either mode. Timeline rows are ordered display projections: supply a semantic `tone` and an optional decorative `glyph`, while retaining the event meaning in title and description.
+
+For attached command strips, supply `KitButtonGroup.actions` from `KeyedModel<K, ButtonGroupEntry>` and resolve `activated(token, generation)` with `accept`. Each button keeps an independent Tab stop and action; this is not a selection group. The host owns busy/disabled state and commands. Model replacement cancels held gestures. Use @children when you need custom composition, passing each child its own theme and disabled state.
