@@ -5,6 +5,9 @@
 - Add KitButton.text-wrap for multiline labels with intrinsic height and preserved icon, busy, disabled, keyboard and pointer behavior; single-line elision remains the default.
 - Ajoute KitButton.text-wrap pour les libellés multilignes avec hauteur intrinsèque et conservation des icônes, des états occupé/désactivé et des actions clavier/pointeur ; l’élision monoligne reste le défaut.
 
+- Document Slint 1.18.1 numeric editor platform limits, the retained numeric draft grammar and backend-specific input-purpose behavior. This does not restore a numeric soft keyboard or the native editor’s NumberInput role.
+- Documente les limites de plateforme des éditeurs numériques sous Slint 1.18.1, la grammaire conservée des brouillons et les différences de finalité de saisie entre backends. Cela ne rétablit ni clavier numérique logiciel ni rôle NumberInput de l’éditeur natif.
+
 - **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
 - **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.
 
