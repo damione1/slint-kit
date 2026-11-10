@@ -4,6 +4,10 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { CheckState, KitCheckbox, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
+    // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     default-font-family: InterFont.family;
     title: "KitCheckbox — exemple";
     preferred-width: 360px;
@@ -16,7 +20,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Case à cocher"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitCheckbox { theme: root.theme; label: "Recevoir les nouveautés du produit"; state: CheckState.checked; toggled(state) => { root.status = "Changement de case à cocher demandé"; } }
+        field := KitCheckbox { theme: root.theme; label: "Recevoir les nouveautés du produit"; state: CheckState.checked; toggled(state) => { root.status = "Changement de case à cocher demandé"; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

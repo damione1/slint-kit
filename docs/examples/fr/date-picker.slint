@@ -5,6 +5,10 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 import { KitDatePicker, CivilDateView, WeekStart } from "@kit";
 export component Example inherits Window {
+    // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     max-width: 100000px; max-height: 100000px;
     default-font-family: InterFont.family;
     preferred-width: 600px; preferred-height: 460px;
@@ -15,7 +19,7 @@ export component Example inherits Window {
     callback chosen(CivilDateView);
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        KitDatePicker {
+        field := KitDatePicker {
             label: "Rendez-vous"; description: "Date civile, sans fuseau horaire";
             placeholder: "AAAA-MM-JJ"; calendar-button-label: "Calendrier"; calendar-accessible-name: "Ouvrir le calendrier du rendez-vous";
             month-names: ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];

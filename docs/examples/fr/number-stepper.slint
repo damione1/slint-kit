@@ -4,6 +4,10 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { KitNumberStepper, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
+    // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     default-font-family: InterFont.family;
     title: "KitNumberStepper — exemple";
     preferred-width: 420px;
@@ -16,7 +20,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Champ numérique à incréments"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitNumberStepper { decrement-label: "Diminuer la valeur"; increment-label: "Augmenter la valeur"; theme: root.theme; label: "Invités"; text: "3"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
+        field := KitNumberStepper { decrement-label: "Diminuer la valeur"; increment-label: "Augmenter la valeur"; theme: root.theme; label: "Invités"; text: "3"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

@@ -3,6 +3,10 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { KitRadioGroup, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
+    // Report errors first; request focus separately for one invalid control.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     default-font-family: InterFont.family;
     title: "KitRadioGroup example";
     preferred-width: 420px;
@@ -15,7 +19,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Radio Group"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitRadioGroup { width: 372px; theme: root.theme; options: [{ token: 11, label: "Email", disabled: false , generation: 1 , description: "" }, { token: 23, label: "Push", disabled: false , generation: 1 , description: "" }, { token: 38, label: "SMS", disabled: true , generation: 1 , description: "" }]; selected: { present: true, token: 11 };  chosen(row) => { root.status = "Chosen: " + row.label; } }
+        field := KitRadioGroup { width: 372px; theme: root.theme; options: [{ token: 11, label: "Email", disabled: false , generation: 1 , description: "" }, { token: 23, label: "Push", disabled: false , generation: 1 , description: "" }, { token: 38, label: "SMS", disabled: true , generation: 1 , description: "" }]; selected: { present: true, token: 11 };  chosen(row) => { root.status = "Chosen: " + row.label; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

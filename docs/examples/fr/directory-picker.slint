@@ -5,6 +5,10 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { KitDirectoryPicker, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
+    // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     init => {
         KitStrings.file-choose-one = "Choisir un fichier…";
         KitStrings.file-choose-many = "Choisir des fichiers…";
@@ -30,7 +34,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Sélecteur de dossier"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitDirectoryPicker { theme: root.theme; label: "Dossier d’exportation"; selected-name: "Documents/Project exports"; browse-requested => { root.status = "Demande de dossier à l’hôte"; } }
+        field := KitDirectoryPicker { theme: root.theme; label: "Dossier d’exportation"; selected-name: "Documents/Project exports"; browse-requested => { root.status = "Demande de dossier à l’hôte"; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

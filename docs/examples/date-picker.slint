@@ -5,6 +5,10 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 import { KitDatePicker, CivilDateView, WeekStart } from "@kit";
 export component Example inherits Window {
+    // Report errors first; request focus separately for one invalid control.
+    public function report-validation() -> bool { return field.report-validity(); }
+    public function focus-invalid() -> bool { return field.focus-if-invalid(); }
+
     max-width: 100000px; max-height: 100000px;
     default-font-family: InterFont.family;
     preferred-width: 600px; preferred-height: 460px;
@@ -15,7 +19,7 @@ export component Example inherits Window {
     callback chosen(CivilDateView);
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        KitDatePicker {
+        field := KitDatePicker {
             label: "Appointment";
             accepted-date: {year: 2026, month: 10, day: 19};
             min: "2026-10-01"; max: "2027-12-31";

@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Derive composed date/time focus from the native editors, including nested zoned fields.
-- Calcule le focus des champs date/heure composés depuis les éditeurs natifs, y compris les champs zonés imbriqués.
+- Breaking: choice, select, file and composed date/time `report-validity()` calls now report errors without moving focus. Use the new `focus-if-invalid()` helper for an explicit focus request; zoned date/time reporting collects both parts and focus projections read their native editors directly.
+- Rupture : `report-validity()` des choix, sélections, fichiers et dates/heures composées signale les erreurs sans déplacer le focus. Le nouveau helper `focus-if-invalid()` demande explicitement le focus ; le signalement zoné collecte les deux parties et les projections de focus suivent directement les éditeurs natifs.
 
 - Record the successful macOS arm64 headless check, starters and complete documentation applications at [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661); native, IME and screen-reader qualification remains separate.
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.

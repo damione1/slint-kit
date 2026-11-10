@@ -336,7 +336,8 @@ export component KitSelect inherits Rectangle {
     out property <string> validation-message: checks.validation-message;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
-    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function report-validity() -> bool { return checks.report-validity(); }
+    public function focus-if-invalid() -> bool { if (root.will-validate && !root.validity.valid) { root.take-focus(); return true; } return false; }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {

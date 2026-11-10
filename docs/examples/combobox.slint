@@ -5,6 +5,10 @@ import { KitCombobox, KitTheme, KitThemes, OptionRow, SelectState, NavigationSte
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability }
 
 export component Example inherits Window {
+    // Report errors first; request focus separately for one invalid control.
+    public function report-validation() -> bool { return workspace.report-validity(); }
+    public function focus-invalid() -> bool { return workspace.focus-if-invalid(); }
+
     in-out property <string> status;
     in-out property <KitTheme> theme: KitThemes.light;
     default-font-family: InterFont.family;

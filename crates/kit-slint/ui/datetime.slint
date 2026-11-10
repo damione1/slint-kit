@@ -79,6 +79,7 @@ export component KitTimePicker inherits Rectangle {
     callback invalid();
     public function check-validity() -> bool { return editor.check-validity(); }
     public function report-validity() -> bool { return editor.report-validity(); }
+    public function focus-if-invalid() -> bool { return editor.focus-if-invalid(); }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
 
@@ -138,7 +139,8 @@ export component KitDateTimeField inherits Rectangle {
     out property <string> validation-message: checks.validation-message;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
-    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function report-validity() -> bool { return checks.report-validity(); }
+    public function focus-if-invalid() -> bool { if (root.will-validate && !root.validity.valid) { root.take-focus(); return true; } return false; }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
@@ -228,7 +230,8 @@ export component KitZonedDateTimeField inherits Rectangle {
     out property <string> validation-message: !local.validity.valid ? local.validation-message : zone.validation-message;
     callback invalid();
     public function check-validity() -> bool { let a = local.check-validity(); let b = zone.check-validity(); return a && b; }
-    public function report-validity() -> bool { if (!local.report-validity()) { return false; } return zone.report-validity(); }
+    public function report-validity() -> bool { let local-valid = local.report-validity(); let zone-valid = zone.report-validity(); return local-valid && zone-valid; }
+    public function focus-if-invalid() -> bool { if (local.focus-if-invalid()) { return true; } return zone.focus-if-invalid(); }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { local.reset-validation(); zone.reset-validation(); }
 
