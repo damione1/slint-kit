@@ -22,6 +22,8 @@ Utilisez `FilePickerBinding<W>` ou `DirectoryPickerBinding<W>` pour le flux ordi
 let picker = slint_kit::FilePickerBinding::new(&app, slint_kit::FilePickerPorts {
     entries: App::set_entries, state: App::set_request_state, error: App::set_error,
 });
+picker.set_mode(slint_kit::FileSelectionMode::Single);
+picker.set_access(slint_kit::FieldAccess::Editable);
 picker.on_selection(|files| println!("{} ressources sélectionnées", files.len()));
 app.on_browse(picker.browse_handler());
 app.on_remove(picker.remove_handler());
@@ -54,3 +56,5 @@ Traitez chaque variante de `SelectionOutcome` : `Selected(value)`, `Cancelled` o
 Consultez `slint_kit::native::capabilities()` et projetez ses résultats typés dans [KitFilePicker](/fr/components/file-picker/), [KitDirectoryPicker](/fr/components/directory-picker/) et [KitFileDropZone](/fr/components/file-drop-zone/). Le sélecteur et le dépôt externe sont deux capacités distinctes. L’adaptateur natif générique déclare le dépôt non pris en charge. Pour une fenêtre winit, activez `native-winit` et appelez `FilePickerBinding::install_winit_drop` avec les ports de capacité et de survol. Un DropArea Slint ne prouve ni le support système du dépôt ni la qualification d’un périphérique.
 
 `HostRequestController<T>` émet des tickets pour rejeter les réponses asynchrones obsolètes. Présentez explicitement attente, échec et annulation. Consultez le [contrôleur de fichiers du showcase](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) et l’[adaptateur système](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) pour le comportement par plateforme.
+
+Synchronisez `set_mode` et `set_access` avec le sélecteur lors de leurs changements. Les dépôts natifs appliquent ces règles même via le pont winit de la fenêtre : sélection simple conserve le dernier fichier déposé, sélection multiple ajoute les emplacements uniques, lecture seule et désactivation ignorent le dépôt.

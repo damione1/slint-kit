@@ -25,6 +25,8 @@ struct Files {
 type FileHandler = Rc<dyn Fn(Vec<FileHandle>)>;
 pub struct FilePickerBinding<W: ComponentHandle + 'static> {
     drop_available: Rc<Cell<bool>>,
+    selection_mode: Rc<Cell<FileSelectionMode>>,
+    access: Rc<Cell<crate::FieldAccess>>,
     window: slint::Weak<W>,
     ports: Rc<FilePickerPorts<W>>,
     files: Rc<RefCell<Files>>,
@@ -34,6 +36,8 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
     fn clone(&self) -> Self {
         Self {
             drop_available: self.drop_available.clone(),
+            selection_mode: self.selection_mode.clone(),
+            access: self.access.clone(),
             window: self.window.clone(),
             ports: self.ports.clone(),
             files: self.files.clone(),
@@ -70,6 +74,8 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     pub fn new(window: &W, ports: FilePickerPorts<W>) -> Self {
         let result = Self {
             drop_available: Rc::new(Cell::new(false)),
+            selection_mode: Rc::new(Cell::new(FileSelectionMode::Single)),
+            access: Rc::new(Cell::new(crate::FieldAccess::Editable)),
             window: window.as_weak(),
             ports: Rc::new(ports),
             files: Rc::new(RefCell::new(Files {
@@ -84,6 +90,17 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             result.fail(HostError::Unsupported);
         }
         result
+    }
+    /// Set the same mode as the picker. Single-file drops replace the selection.
+    pub fn set_mode(&self, mode: FileSelectionMode) {
+        self.selection_mode.set(mode);
+    }
+    /// Set the current field access before forwarding native window events.
+    pub fn set_access(&self, access: crate::FieldAccess) {
+        self.access.set(access);
+        if access != crate::FieldAccess::Editable {
+            self.files.borrow_mut().requests.cancel();
+        }
     }
     pub fn on_selection(&self, handler: impl Fn(Vec<FileHandle>) + 'static) {
         *self.handler.borrow_mut() = Some(Rc::new(handler));
@@ -132,6 +149,9 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         }
     }
     pub fn browse(&self, mode: ui::FileSelectionMode) {
+        if self.access.get() != crate::FieldAccess::Editable {
+            return;
+        }
         let Some(window) = self.window.upgrade() else {
             return;
         };
@@ -139,6 +159,7 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             ui::FileSelectionMode::Single => FileSelectionMode::Single,
             ui::FileSelectionMode::Multiple => FileSelectionMode::Multiple,
         };
+        self.set_mode(selection);
         let ticket = self.files.borrow_mut().requests.begin();
         (self.ports.state)(&window, ui::HostRequestPresentation::Pending);
         (self.ports.error)(&window, SharedString::default());
@@ -202,7 +223,10 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     ) -> impl Fn(slint::language::DropEvent) -> slint::language::DragAction + 'static {
         let binding = self.clone();
         move |event| {
-            if binding.drop_available.get() && event.data.has_file_paths() {
+            if binding.drop_available.get()
+                && binding.access.get() == crate::FieldAccess::Editable
+                && event.data.has_file_paths()
+            {
                 slint::language::DragAction::Copy
             } else {
                 slint::language::DragAction::None
@@ -214,7 +238,10 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     ) -> impl Fn(slint::language::DropEvent) -> slint::language::DragAction + 'static {
         let binding = self.clone();
         move |event| {
-            if !binding.drop_available.get() || binding.window.upgrade().is_none() {
+            if !binding.drop_available.get()
+                || binding.access.get() != crate::FieldAccess::Editable
+                || binding.window.upgrade().is_none()
+            {
                 return slint::language::DragAction::None;
             }
             let Ok(paths) = event.data.file_paths() else {
@@ -229,17 +256,27 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         }
     }
     pub fn accept_drop(&self, paths: impl IntoIterator<Item = std::path::PathBuf>) {
-        self.files.borrow_mut().requests.cancel();
-        let mut handles = self.selected();
-        handles.extend(paths.into_iter().map(|path| {
-            FileHandle {
+        if self.access.get() != crate::FieldAccess::Editable || self.window.upgrade().is_none() {
+            return;
+        }
+        let incoming: Vec<_> = paths
+            .into_iter()
+            .map(|path| FileHandle {
                 display_name: path
                     .file_name()
                     .map_or_else(String::new, |name| name.to_string_lossy().into_owned()),
                 location: FileLocation::Path(path),
                 byte_length: None,
-            }
-        }));
+            })
+            .collect();
+        if incoming.is_empty() {
+            return;
+        }
+        self.files.borrow_mut().requests.cancel();
+        let handles = match self.selection_mode.get() {
+            FileSelectionMode::Single => incoming.into_iter().last().into_iter().collect(),
+            FileSelectionMode::Multiple => self.selected().into_iter().chain(incoming).collect(),
+        };
         self.replace(handles);
     }
 }
@@ -432,6 +469,45 @@ mod tests {
     }
 
     #[test]
+    fn dropped_files_respect_single_selection_and_field_access() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::KitVirtualTextView::new().unwrap();
+        let binding = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: |_, _| {},
+                state: |_, _| {},
+                error: |_, _| {},
+            },
+        );
+        let first = std::path::PathBuf::from("/example/first.txt");
+        let last = std::path::PathBuf::from("/example/last.txt");
+        binding.accept_drop([first.clone(), last.clone()]);
+        assert_eq!(binding.selected().len(), 1);
+        assert_eq!(
+            binding.selected()[0].location,
+            FileLocation::Path(last.clone())
+        );
+        for access in [crate::FieldAccess::ReadOnly, crate::FieldAccess::Disabled] {
+            binding.set_access(access);
+            binding.accept_drop([first.clone()]);
+            assert_eq!(
+                binding.selected()[0].location,
+                FileLocation::Path(last.clone())
+            );
+        }
+        binding.set_access(crate::FieldAccess::Editable);
+        binding.accept_drop([first.clone()]);
+        assert_eq!(binding.selected()[0].location, FileLocation::Path(first));
+        binding.accept_drop([]);
+        assert_eq!(
+            binding.selected().len(),
+            1,
+            "an empty drop preserves selection"
+        );
+    }
+
+    #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();
         let window = ui::KitVirtualTextView::new().unwrap();
@@ -444,6 +520,7 @@ mod tests {
                 error: |_, _| {},
             },
         );
+        binding.set_mode(FileSelectionMode::Multiple);
         let path = std::path::PathBuf::from("/example/project.txt");
         binding.accept_drop([path.clone(), path]);
         assert_eq!(binding.selected().len(), 1);

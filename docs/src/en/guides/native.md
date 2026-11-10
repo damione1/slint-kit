@@ -22,6 +22,8 @@ Use `FilePickerBinding<W>` or `DirectoryPickerBinding<W>` for the ordinary compo
 let picker = slint_kit::FilePickerBinding::new(&app, slint_kit::FilePickerPorts {
     entries: App::set_entries, state: App::set_request_state, error: App::set_error,
 });
+picker.set_mode(slint_kit::FileSelectionMode::Single);
+picker.set_access(slint_kit::FieldAccess::Editable);
 picker.on_selection(|files| println!("{} resources selected", files.len()));
 app.on_browse(picker.browse_handler());
 app.on_remove(picker.remove_handler());
@@ -54,3 +56,5 @@ Handle every `SelectionOutcome` variant: `Selected(value)`, `Cancelled`, or `Fai
 Check `slint_kit::native::capabilities()` and project its typed results into [KitFilePicker](/components/file-picker/), [KitDirectoryPicker](/components/directory-picker/) and [KitFileDropZone](/components/file-drop-zone/). Picker support and external drop support are distinct capabilities. The generic native adapter reports drop support as unsupported. For a winit window, opt into `native-winit` and call `FilePickerBinding::install_winit_drop` with the capability and hover ports. This bridge is separate from picker support; exposing a Slint DropArea does not establish OS drop support or device qualification.
 
 `HostRequestController<T>` issues tickets to reject obsolete asynchronous results. Keep pending, failure and cancellation presentation explicit. See the complete [showcase file controller](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) for native request handling and the [host adapter](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) for platform behavior.
+
+Keep `set_mode` and `set_access` synchronized with the picker when they change. Native drops use these same policies even through the window-wide winit bridge: single selection keeps the last dropped file, multiple selection appends unique locations, and read-only/disabled access ignores the drop.
