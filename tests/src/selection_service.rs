@@ -726,3 +726,31 @@ fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carous
     key(&window, Key::UpArrow);
     assert_eq!(window.get_toggles_active(), banana.token);
 }
+
+#[test]
+fn source_reconciliation_clears_typeahead_before_space_activation() {
+    let (window, choices) = fixture();
+    let received = Rc::new(RefCell::new(Vec::new()));
+    let output = received.clone();
+    let source = choices.clone();
+    window.on_first_chosen(move |row| output.borrow_mut().push(source.accept(row).unwrap()));
+    window.invoke_focus_first();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "a".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "a".into() });
+    let generation = window.get_first_state().generation;
+    choices.replace(options()).unwrap();
+    slint::platform::update_timers_and_animations();
+    assert_ne!(window.get_first_state().generation, generation);
+    let active = window.get_first_state().active;
+    key(&window, Key::Space);
+    assert_eq!(
+        received.borrow().len(),
+        1,
+        "Space activates after the canonical query was reset, even within its former timeout"
+    );
+    assert_eq!(window.get_first_state().selected, active);
+}

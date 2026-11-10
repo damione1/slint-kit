@@ -30,18 +30,10 @@ export component KitSelectKeyboard inherits FocusScope {
     callback check-typeahead-active() -> bool;
     check-typeahead-active => { return selection.is-typeahead-active(); }
     private property <bool> activation-held;
-    private property <bool> has-typeahead-timestamp;
-    private property <int> last-typeahead-timestamp;
     focus-on-tab-navigation: false;
-    changed state => { if (!root.state.open) { root.activation-held = false; root.has-typeahead-timestamp = false; } }
-    changed enabled => { if (!root.enabled) { root.activation-held = false; root.has-typeahead-timestamp = false; } }
-    function is-typeahead-active() -> bool {
-        if (!KitSelectionService.ready) { return false; }
-        if (root.check-typeahead-active()) { return true; }
-        if (!root.has-typeahead-timestamp || root.typeahead-timeout-ms <= 0) { return false; }
-        let now = KitSelectionService.timestamp();
-        return now >= root.last-typeahead-timestamp && (now - root.last-typeahead-timestamp) < root.typeahead-timeout-ms;
-    }
+    changed state => { if (!root.state.open) { root.activation-held = false; } }
+    changed enabled => { if (!root.enabled) { root.activation-held = false; } }
+    function is-typeahead-active() -> bool { return root.check-typeahead-active(); }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
             if (!root.state.open) { root.handle-open-requested(); }
@@ -103,18 +95,14 @@ export component KitSelectKeyboard inherits FocusScope {
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
-    function handle-navigate(step: NavigationStep) { root.has-typeahead-timestamp = false; selection.navigate(step); root.navigate(step); }
-    function handle-activate(token: int, generation: int) { root.has-typeahead-timestamp = false; selection.activate(token, generation); root.activate(token, generation); }
-    function handle-dismiss(reason: CloseReason) { root.has-typeahead-timestamp = false; selection.dismiss(reason); root.dismiss(reason); }
+    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
+    function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
+    function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
     function handle-typeahead(text: string) {
-        if (KitSelectionService.ready) {
-            root.has-typeahead-timestamp = true;
-            root.last-typeahead-timestamp = KitSelectionService.timestamp();
-        }
         selection.typeahead(text);
         root.typeahead(text);
     }
-    function handle-open-requested() { root.has-typeahead-timestamp = false; selection.open(); root.open-requested(); }
+    function handle-open-requested() { selection.open(); root.open-requested(); }
 
     out property <[OptionRow]> rows: selection.rows;
     public function choose-option(token: int, generation: int) { root.handle-activate(token, generation); }
