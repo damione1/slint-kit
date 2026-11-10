@@ -4,7 +4,7 @@ import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollFrame } from "scroll.slint";
-import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe } from "theme.slint";
+import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
@@ -13,6 +13,7 @@ import { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from
 export { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
 import { ExpansionMode, DisclosureRow } from "contracts.slint";
 export { ExpansionMode, DisclosureRow } from "contracts.slint";
+export enum TabActivation { manual, automatic }
 export struct NotificationRow { item: OptionRow, read: bool }
 
 // One row owns activation and snapshots its identity through KitOption, and
@@ -155,6 +156,7 @@ export component KitMenuBar inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Actions";
+    in property <ChoiceFlow> flow: root.theme.direction;
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
@@ -169,7 +171,10 @@ export component KitMenuBar inherits Rectangle {
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.interactive) { return KitKeyResult.reject; }
         if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            root.handle-navigate(event.text == Key.RightArrow ? NavigationStep.next : NavigationStep.previous);
+            let forward = root.flow == ChoiceFlow.right-to-left
+                ? event.text == Key.LeftArrow
+                : event.text == Key.RightArrow;
+            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
             return KitKeyResult.accept;
         }
         return keyboard.handle-key(event);
@@ -202,14 +207,15 @@ export component KitMenuBar inherits Rectangle {
                 width: viewport.content-width;
                 height: viewport.visible-height;
                 spacing: root.theme.spacing.unit;
-                alignment: start;
-                for row in root.rows: KitNavigationAction {
+                alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
+                for index in root.rows.length: KitNavigationAction {
+                    private property <OptionRow> row: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size;
-                    option-data: row;
-                    disabled: !root.interactive || row.disabled;
+                    option-data: self.row;
+                    disabled: !root.interactive || self.row.disabled;
                     control-width: ControlWidth.intrinsic;
-                    active: root.state.active.present && root.state.active.token == row.token;
-                    selected: root.state.selected.present && root.state.selected.token == row.token;
+                    active: root.state.active.present && root.state.active.token == self.row.token;
+                    selected: root.state.selected.present && root.state.selected.token == self.row.token;
                     focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
                     key-event(event) => {
@@ -248,6 +254,8 @@ export component KitTabs inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Tabs";
+    in property <ChoiceFlow> flow: root.theme.direction;
+    in property <TabActivation> activation: TabActivation.manual;
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
@@ -262,7 +270,10 @@ export component KitTabs inherits Rectangle {
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.interactive) { return KitKeyResult.reject; }
         if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            root.handle-navigate(event.text == Key.RightArrow ? NavigationStep.next : NavigationStep.previous);
+            let forward = root.flow == ChoiceFlow.right-to-left
+                ? event.text == Key.LeftArrow
+                : event.text == Key.RightArrow;
+            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
             return KitKeyResult.accept;
         }
         return keyboard.handle-key(event);
@@ -297,15 +308,16 @@ export component KitTabs inherits Rectangle {
                 width: viewport.content-width;
                 height: viewport.visible-height;
                 spacing: root.theme.spacing.unit;
-                alignment: start;
-                for row in root.rows: tab-action := KitNavigationAction {
+                alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
+                for index in root.rows.length: tab-action := KitNavigationAction {
+                    private property <OptionRow> row: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size;
-                    option-data: row;
-                    disabled: !root.interactive || row.disabled;
+                    option-data: self.row;
+                    disabled: !root.interactive || self.row.disabled;
                     accessible-role: tab;
                     control-width: ControlWidth.intrinsic;
-                    active: root.state.active.present && root.state.active.token == row.token;
-                    selected: root.state.selected.present && root.state.selected.token == row.token;
+                    active: root.state.active.present && root.state.active.token == self.row.token;
+                    selected: root.state.selected.present && root.state.selected.token == self.row.token;
                     focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     // The selected tab carries an underline instead of a tint;
                     // the ring is left to the active (keyboard) tab only.
@@ -340,7 +352,14 @@ export component KitTabs inherits Rectangle {
         wrap: root.wrap; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
-    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }
+    function handle-navigate(step: NavigationStep) {
+        selection.navigate(step);
+        if (root.activation == TabActivation.automatic && root.interactive && selection.state.active.present) {
+            selection.activate(selection.state.active.token, selection.state.generation);
+            root.activate(selection.state.active.token, selection.state.generation);
+        }
+        root.navigate(step);
+    }
     function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
     function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
     function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
@@ -492,6 +511,8 @@ export component KitCarousel inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
+    in property <ChoiceFlow> flow: root.theme.direction;
+    in property <bool> wrap: true;
     // The editor has source slides but no Rust active-row projection yet.
     private property <int> display-index: !KitSelectionService.ready && root.state.active-index < 0 && root.options.length > 0 ? 0 : root.state.active-index;
     in property <string> previous-label: "Previous slide";
@@ -500,9 +521,27 @@ export component KitCarousel inherits Rectangle {
     callback navigate(NavigationStep);
     callback activate(int, int);
     in property <string> action-label;
+    out property <bool> has-focus: root.interactive && keyboard.has-focus;
+    public function take-focus() { if (root.interactive) { keyboard.focus(); } }
+    public function handle-key(event: KeyEvent) -> KitKeyResult {
+        if (!root.interactive) { return KitKeyResult.reject; }
+        if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
+            let forward = root.flow == ChoiceFlow.right-to-left
+                ? event.text == Key.LeftArrow
+                : event.text == Key.RightArrow;
+            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
+            return KitKeyResult.accept;
+        }
+        if (event.text == Key.Home || event.text == Key.End) {
+            root.handle-navigate(event.text == Key.Home ? NavigationStep.first : NavigationStep.last);
+            return KitKeyResult.accept;
+        }
+        return KitKeyResult.reject;
+    }
     min-height: self.preferred-height;
     preferred-height: max(160px,content.preferred-height);
     vertical-stretch: 0;
+    forward-focus: keyboard;
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
     private property <length> inset: root.theme.spacing.unit * 4;
     background: root.surface.fill;
@@ -512,28 +551,66 @@ export component KitCarousel inherits Rectangle {
     drop-shadow-offset-y: root.surface.shadow.offset-y;
     drop-shadow-blur: root.surface.shadow.blur;
     drop-shadow-color: root.surface.shadow.color;
-    content := VerticalLayout {
-        x: 0px; y: 0px; width: root.width; height: self.preferred-height; alignment: start;
-        padding: root.inset; spacing: root.theme.spacing.unit * 3;
-        if root.rows.length == 0: Text { text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-        if root.display-index >= 0 && root.display-index < root.rows.length: VerticalLayout {
-            width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; vertical-stretch: 0;
-            spacing: root.theme.spacing.unit * 2;
-            alignment: start;
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-            Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+    keyboard := FocusScope {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        enabled: root.interactive;
+        focus-on-tab-navigation: true;
+        key-pressed(event) => {
+            if (!root.interactive) { return reject; }
+            if (root.handle-key(event) == KitKeyResult.accept) { return accept; }
+            if ((event.text == Key.Return || event.text == Key.Space)
+                && root.action-label != ""
+                && root.display-index >= 0
+                && root.display-index < root.rows.length
+                && !root.rows[root.display-index].disabled) {
+                root.handle-activate(root.rows[root.display-index].token, root.rows[root.display-index].generation);
+                return accept;
+            }
+            return reject;
         }
-        @children
-        if root.action-label != "" && root.display-index >= 0 && root.display-index < root.rows.length: KitNavigationAction {
-            theme: root.theme; control-size: root.control-size; tab-stop: true; accessible-role: button;
-            option-data: {token: root.rows[root.display-index].token, generation: root.rows[root.display-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.display-index].disabled};
-            activate(token, generation) => { root.handle-activate(token, generation); }
-        }
-        HorizontalLayout {
-            spacing: root.theme.spacing.unit * 2; alignment: space-between;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.display-index <= 0; activated => { root.handle-navigate(NavigationStep.previous); } }
-            Text { text: root.rows.length == 0 ? "0 / 0" : (root.display-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.rows.length == 0 || root.display-index >= root.rows.length - 1; activated => { root.handle-navigate(NavigationStep.next); } }
+        content := VerticalLayout {
+            x: 0px; y: 0px; width: root.width; height: self.preferred-height; alignment: start;
+            padding: root.inset; spacing: root.theme.spacing.unit * 3;
+            if root.rows.length == 0: Text { text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            if root.display-index >= 0 && root.display-index < root.rows.length: VerticalLayout {
+                width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; vertical-stretch: 0;
+                spacing: root.theme.spacing.unit * 2;
+                alignment: start;
+                Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+                Text { width: max(0px,root.width - 2 * root.inset); height: self.preferred-height; text: root.rows[root.display-index].description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+            }
+            @children
+            if root.action-label != "" && root.display-index >= 0 && root.display-index < root.rows.length: KitNavigationAction {
+                theme: root.theme; control-size: root.control-size; tab-stop: true; accessible-role: button;
+                option-data: {token: root.rows[root.display-index].token, generation: root.rows[root.display-index].generation, label: root.action-label, description: "", disabled: !root.interactive || root.rows[root.display-index].disabled};
+                key-event(event) => {
+                    if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
+                    return KitKeyResult.reject;
+                }
+                activate(token, generation) => { root.handle-activate(token, generation); }
+            }
+            HorizontalLayout {
+                spacing: root.theme.spacing.unit * 2; alignment: space-between;
+                KitButton {
+                    theme: root.theme; control-size: root.control-size; text: root.previous-label;
+                    disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index <= 0);
+                    key-event(event) => {
+                        if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
+                        return KitKeyResult.reject;
+                    }
+                    activated => { root.handle-navigate(NavigationStep.previous); }
+                }
+                Text { text: root.rows.length == 0 ? "0 / 0" : (root.display-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+                KitButton {
+                    theme: root.theme; control-size: root.control-size; text: root.next-label;
+                    disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index >= root.rows.length - 1);
+                    key-event(event) => {
+                        if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End) { root.take-focus(); return root.handle-key(event); }
+                        return KitKeyResult.reject;
+                    }
+                    activated => { root.handle-navigate(NavigationStep.next); }
+                }
+            }
         }
     }
 
@@ -545,6 +622,7 @@ export component KitCarousel inherits Rectangle {
     callback chosen(OptionRow);
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); }

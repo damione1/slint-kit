@@ -247,6 +247,7 @@ component ChoiceKeyboard inherits FocusScope {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> activate-on-return: true;
     in property <bool> both-arrow-axes: false;
+    in property <bool> wrapped-grid: false;
     callback navigate(NavigationStep);
     callback activate();
     private property <bool> held;
@@ -268,6 +269,8 @@ component ChoiceKeyboard inherits FocusScope {
         if (event.text == Key.LeftArrow && (root.direction == ChoiceDirection.horizontal || root.both-arrow-axes)) { root.navigate(root.flow == ChoiceFlow.right-to-left ? NavigationStep.next : NavigationStep.previous); return accept; }
         if (event.text == Key.DownArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.next); return accept; }
         if (event.text == Key.UpArrow && (root.direction == ChoiceDirection.vertical || root.both-arrow-axes)) { root.navigate(NavigationStep.previous); return accept; }
+        if (event.text == Key.DownArrow && root.direction == ChoiceDirection.horizontal && root.wrapped-grid) { root.navigate(NavigationStep.page-next); return accept; }
+        if (event.text == Key.UpArrow && root.direction == ChoiceDirection.horizontal && root.wrapped-grid) { root.navigate(NavigationStep.page-previous); return accept; }
         if (event.text == Key.Space || (root.activate-on-return && event.text == Key.Return)) { if (!root.held) { root.held = true; root.activate(); } return accept; }
         return reject;
     }
@@ -486,6 +489,7 @@ export component KitSegmentedControl inherits Rectangle {
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
+        wrapped-grid: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count;
         navigate(step) => { root.handle-navigate(step); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { checks.note-edit(); root.handle-activate(root.active-token, root.generation); } }
         choices := VerticalLayout {
@@ -514,7 +518,8 @@ export component KitSegmentedControl inherits Rectangle {
     in-out property <SelectionRef> selected <=> selection.selected;
     callback chosen(OptionRow);
     selection := KitSelection {
-        options: root.options; ownership: root.ownership; persistent: true; wrap: root.wrap;
+        options: root.options; ownership: root.ownership; persistent: true;
+        wrap: root.wrap; page-rows: root.column-count;
         chosen(row) => { root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
@@ -564,28 +569,32 @@ export component KitToggleGroup inherits Rectangle {
     }
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.token;
+    in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
+    in property <ChoiceFlow> flow: root.theme.direction;
     in property <bool> wrap: true;
     in property <string> label;
     callback navigate(NavigationStep);
     callback toggled(int, int);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
-    preferred-height: max(choices.min-height,choices.preferred-height);
+    preferred-height: root.direction == ChoiceDirection.vertical ? max(vertical-choices.min-height, vertical-choices.preferred-height) : max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
+    accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     out property <bool> has-focus: keyboard.has-focus;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
-        access: root.access;
+        direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { selection.navigate(step); root.navigate(step); }
         activate => { checks.note-edit(); root.toggle-option(root.active-token, root.generation); }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
+            visible: root.direction == ChoiceDirection.horizontal;
             spacing: root.choice.group-gap;
             for index in root.render-count: option := ChoiceOption {
-                private property <ChoiceRow> display-choice: root.render-row(index);
+                private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
                 option-data: option.display-choice; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size; accessible-name: option.display-choice.label;
@@ -601,6 +610,26 @@ export component KitToggleGroup inherits Rectangle {
                 // Children are injected into the padded pressable content, but
                 // their lexical parent is the option. Match the measured width.
                 option-label := Text { width: max(0px, option.width - 2 * option.padding-inline); height: max(0px, option.height - 2 * option.padding-block); text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
+            }
+        }
+        vertical-choices := VerticalLayout {
+            width: root.width; height: self.preferred-height;
+            visible: root.direction == ChoiceDirection.vertical;
+            spacing: root.choice.group-gap;
+            for index in root.render-count: v-option := ChoiceOption {
+                private property <ChoiceRow> display-choice: root.render-row(index);
+                option-data: v-option.display-choice; generation: root.generation; access: root.access;
+                theme: root.theme; control-size: root.control-size; accessible-name: v-option.display-choice.label;
+                control-width: ControlWidth.fill;
+                intent: v-option.display-choice.selected ? ButtonIntent.primary : ButtonIntent.secondary;
+                disabled: v-option.display-choice.disabled || root.access == FieldAccess.disabled;
+                accessible-checked: v-option.display-choice.selected;
+                border-width: root.theme.shape.border-width;
+                border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
+                focus-indicated: keyboard.focus-visible && root.active-token == v-option.display-choice.token;
+                focus-ring: KitThemes.inset-focus(root.theme);
+                activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggle-option(token,generation); } }
+                Text { width: max(0px, v-option.width - 2 * v-option.padding-inline); height: max(0px, v-option.height - 2 * v-option.padding-block); text: v-option.display-choice.label; color: v-option.disabled ? v-option.recipe.disabled-foreground : v-option.recipe.foreground; font-family: v-option.theme.typography.family; font-size: v-option.recipe.font-size; font-weight: v-option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
     }
