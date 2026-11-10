@@ -1015,13 +1015,14 @@ export component KitCombobox inherits Rectangle {
 // controller owns canonical values, steps and commits, including decimal domains.
 component SliderKeyboard inherits FocusScope {
     in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> gesture-active;
     callback navigate(NavigationStep);
     callback committed();
     callback cancelled();
     enabled: root.access != FieldAccess.disabled;
     key-pressed(event) => {
         if (root.access != FieldAccess.editable) { return reject; }
-        if (event.text == Key.Escape) { root.cancelled(); return accept; }
+        if (event.text == Key.Escape && root.gesture-active) { root.cancelled(); return accept; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
         if (event.text == Key.RightArrow || event.text == Key.UpArrow) { root.navigate(NavigationStep.next); return accept; }
@@ -1159,7 +1160,7 @@ export component KitSlider inherits Rectangle {
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard {
-        access: root.access;
+        access: root.access; gesture-active: root.gesture-active;
         navigate(step) => { root.handle-navigate(step); }
         committed => { root.handle-commit(); }
         cancelled => { root.gesture-active = false; root.handle-cancel(); }
@@ -1241,7 +1242,7 @@ export component KitRangeSlider inherits Rectangle {
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
     lower := SliderKeyboard {
-        access: root.access;
+        access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — lower";
         accessible-value: root.lower-label; accessible-value-minimum: 0; accessible-value-maximum: root.upper-position;
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.next); } }
@@ -1252,7 +1253,7 @@ export component KitRangeSlider inherits Rectangle {
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
     }
     upper := SliderKeyboard {
-        access: root.access;
+        access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — upper";
         accessible-value: root.upper-label; accessible-value-minimum: root.lower-position; accessible-value-maximum: 1;
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.next); } }

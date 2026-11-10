@@ -817,3 +817,5 @@ mod color_wheel;
 mod slider_paint;
 
 mod field_direction;
+
+mod slider_escape;

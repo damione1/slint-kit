@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Sliders and color-channel sliders now cancel only an active pointer gesture on Escape. Outside a gesture, Escape preserves keyboard edits and host-published values and bubbles to the parent.
+- Les curseurs et curseurs de canaux couleur n’annulent sur Échap qu’un geste de pointeur actif. Hors geste, Échap conserve les modifications au clavier et les valeurs publiées par l’hôte, puis remonte au parent.
+
 - Add the controlled `KitColorWheel` hue/saturation plane with opaque RGB proposals, generation-fenced input, localizable descriptions and lazy shared spectrum rendering. **Breaking:** complete `KitGeometry` literals need the four `color-wheel-*` fields.
 - Ajoute `KitColorWheel`, plan teinte/saturation contrôlé avec propositions RGB opaques, gestes gardés par génération, descriptions localisables et spectre partagé construit à la demande. **Rupture :** les littéraux complets `KitGeometry` exigent les quatre champs `color-wheel-*`.
 - Keep filled slider solid paints inside rounded bounds on the software renderer without changing gradient coordinates; reserve the horizontal scrollbar gutter in the minimum tab height.

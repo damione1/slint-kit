@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitRangeSlider, KitColorPicker, KitTheme, KitThemes, FieldAccess, DecimalRangeView, SrgbColorView } from "@kit";
+export component SliderEscapeFixture inherits Window {
+    width: 760px; height: 1000px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <string> value <=> single.value;
+    in-out property <DecimalRangeView> range-value <=> range.value;
+    in-out property <SrgbColorView> accepted-color <=> picker.accepted-color;
+    in-out property <int> escaped;
+    in-out property <int> cancelled-count;
+    in-out property <int> chosen-count;
+    background: root.theme.canvas;
+    FocusScope {
+        width: parent.width; height: parent.height;
+        key-pressed(event) => {
+            if (event.text == Key.Escape) { root.escaped += 1; return accept; }
+            return reject;
+        }
+        VerticalLayout {
+            padding: 24px; spacing: 24px; alignment: start;
+            single := KitSlider {
+                theme: root.theme; access: root.access; label: "Single";
+                value: "20"; spec: {minimum: "0", maximum: "100", step: "1"};
+                chosen(value) => { root.chosen-count += 1; }
+                cancelled => { root.cancelled-count += 1; }
+            }
+            range := KitRangeSlider {
+                theme: root.theme; access: root.access; label: "Range";
+                value: {lower: "20", upper: "80"};
+                chosen(value) => { root.chosen-count += 1; }
+                cancelled(thumb) => { root.cancelled-count += 1; }
+            }
+            picker := KitColorPicker {
+                theme: root.theme; access: root.access; label: "Color";
+                accepted-color: {red: 40, green: 60, blue: 80, alpha: 255};
+                cancelled(channel) => { root.cancelled-count += 1; }
+            }
+        }
+    }
+}
