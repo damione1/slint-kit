@@ -1833,3 +1833,127 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
         "12"
     );
 }
+
+#[test]
+fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_focusing_its_editor()
+{
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::{LogicalPosition, platform::WindowEvent};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install_field_specs(
+        &window,
+        [
+            FieldSpec::integer().named(quantity_key()),
+            owner_spec().named(owner_key()),
+        ],
+    )
+    .unwrap();
+    window.set_columns(columns());
+    window.set_rows(ModelRc::new(VecModel::from(
+        (1..=1000)
+            .map(|token| {
+                record(
+                    token,
+                    &format!("Row {token}"),
+                    12,
+                    "Owner",
+                    FieldAccess::Editable,
+                )
+            })
+            .collect::<Vec<_>>(),
+    )));
+    window.set_table_active(0);
+    window.set_table_active_column(1);
+    window.show().unwrap();
+    let accepted: Commits = Rc::new(RefCell::new(Vec::new()));
+    let observed = accepted.clone();
+    window.on_cell_committed(move |row, column, generation, commit| {
+        observed
+            .borrow_mut()
+            .push((row, column, generation, commit))
+    });
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            frame();
+            window.invoke_focus_table();
+            let table = table(&window);
+            let origin = table.absolute_position();
+            window
+                .window()
+                .dispatch_event(WindowEvent::PointerScrolled {
+                    position: LogicalPosition::new(
+                        origin.x + window.get_theme().spacing.unit * 2.,
+                        origin.y + table.size().height / 2.,
+                    ),
+                    delta_x: 0.,
+                    delta_y: -10000.,
+                });
+            frame();
+            assert!(window.get_table_scroll() < 0.);
+            assert_eq!(window.get_table_active(), 0);
+            assert!(!window.get_table_editing());
+            assert!(editors(&window).is_empty());
+            // Keep the keyboard owner from before the wheel; do not refocus or call
+            // edit-active here, since either would mask an offscreen-start regression.
+            key(&window, Key::Return);
+            let editing = frame();
+            assert!(window.get_table_editing());
+            assert_eq!(window.get_table_scroll(), 0.);
+            assert_eq!(window.get_table_edit_row(), 1);
+            assert_eq!(window.get_table_edit_column(), QUANTITY);
+            let editor = editors(&window).remove(0);
+            let row = delegates(&window, "KitDataTable").remove(0);
+            assert!(editor.absolute_position().y >= row.absolute_position().y);
+            assert!(
+                editor.absolute_position().y + editor.size().height
+                    <= row.absolute_position().y + row.size().height
+            );
+            assert_eq!(
+                labelled(&window, "Quantity, Row 1")
+                    .accessible_value()
+                    .as_deref(),
+                Some("12")
+            );
+            crate::choice_presentation::save_capture(
+                &editing,
+                &format!("table-wheel-enter-editing-{name}-{scale}"),
+            );
+            let before = accepted.borrow().len();
+            text(&window, "13");
+            key(&window, Key::Return);
+            let closed = frame();
+            assert!(!window.get_table_editing());
+            assert!(editors(&window).is_empty());
+            assert_eq!(accepted.borrow().len(), before + 1);
+            let values = accepted.borrow();
+            let commit = &values[before];
+            assert_eq!((commit.0, commit.1, commit.2), (1, QUANTITY, 1));
+            assert_eq!(commit.3.value.text, "13");
+            drop(values);
+            crate::choice_presentation::save_capture(
+                &closed,
+                &format!("table-wheel-enter-closed-{name}-{scale}"),
+            );
+        }
+    }
+}
