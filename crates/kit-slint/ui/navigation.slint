@@ -210,13 +210,13 @@ export component KitMenuBar inherits Rectangle {
                 spacing: root.theme.spacing.unit;
                 alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: KitNavigationAction {
-                    private property <OptionRow> row: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
+                    private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size;
-                    option-data: self.row;
-                    disabled: !root.interactive || self.row.disabled;
+                    option-data: self.entry;
+                    disabled: !root.interactive || self.entry.disabled;
                     control-width: ControlWidth.intrinsic;
-                    active: root.state.active.present && root.state.active.token == self.row.token;
-                    selected: root.state.selected.present && root.state.selected.token == self.row.token;
+                    active: root.state.active.present && root.state.active.token == self.entry.token;
+                    selected: root.state.selected.present && root.state.selected.token == self.entry.token;
                     focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
                     key-event(event) => {
@@ -311,14 +311,14 @@ export component KitTabs inherits Rectangle {
                 spacing: root.theme.spacing.unit;
                 alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: tab-action := KitNavigationAction {
-                    private property <OptionRow> row: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
+                    private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size;
-                    option-data: self.row;
-                    disabled: !root.interactive || self.row.disabled;
+                    option-data: self.entry;
+                    disabled: !root.interactive || self.entry.disabled;
                     accessible-role: tab;
                     control-width: ControlWidth.intrinsic;
-                    active: root.state.active.present && root.state.active.token == self.row.token;
-                    selected: root.state.selected.present && root.state.selected.token == self.row.token;
+                    active: root.state.active.present && root.state.active.token == self.entry.token;
+                    selected: root.state.selected.present && root.state.selected.token == self.entry.token;
                     focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
                     // The selected tab carries an underline instead of a tint;
                     // the ring is left to the active (keyboard) tab only.
