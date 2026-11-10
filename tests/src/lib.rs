@@ -839,4 +839,5 @@ mod field_direction;
 
 mod slider_escape;
 
+mod color_lifecycle;
 mod range_coincident;

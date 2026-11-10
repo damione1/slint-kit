@@ -6,6 +6,8 @@
 - Les poignées coïncidentes du curseur de plage se séparent désormais au pointeur : le côté de l’appui choisit la poignée mobile et un appui sur une borne commune choisit celle qui peut se déplacer.
 - Align calendar weekday headers with every week-start, including date and range pickers. **Breaking:** weekdays models must stay Monday-first; remove any application-side rotation previously used to compensate.
 - Aligne les en-têtes du calendrier sur tous les premiers jours de semaine, y compris les sélecteurs de date et de période. **Rupture :** les modèles weekdays restent lundi en premier ; retirez toute rotation applicative utilisée pour compenser l’ancien comportement.
+- Color hex/channel drafts now follow host accepted-color and alpha-policy changes while idle, including after earlier edits and controlled acknowledgements. Focused native drafts retain caret and undo until focus leaves.
+- Les brouillons hexadécimaux/canaux suivent désormais les changements de couleur acceptée et de politique alpha hors focus, même après édition ou acquittement contrôlé. Un brouillon natif actif conserve curseur et historique jusqu’à la perte du focus.
 
 - Sliders and color-channel sliders now cancel only an active pointer gesture on Escape. Outside a gesture, Escape preserves keyboard edits and host-published values and bubbles to the parent.
 - Les curseurs et curseurs de canaux couleur n’annulent sur Échap qu’un geste de pointeur actif. Hors geste, Échap conserve les modifications au clavier et les valeurs publiées par l’hôte, puis remonte au parent.

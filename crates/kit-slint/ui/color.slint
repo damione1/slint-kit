@@ -67,6 +67,14 @@ export component KitColorField inherits Rectangle {
     callback commit-requested(string);
     callback cancelled();
     callback color-requested(SrgbColorView);
+    changed accepted-color => { root.sync-text(); }
+    changed alpha-mode => { root.sync-text(); }
+    function sync-text() {
+        if (!editor.has-focus && KitFieldService.ready) {
+            root.text = KitFieldService.color-format(root.accepted-color, root.alpha-mode);
+            editor.acknowledge({present: true, text: root.text});
+        }
+    }
     out property <bool> picker-open: popup.is-open && root.access == FieldAccess.editable;
     private property <SrgbColorView> draft;
     private property <SurfaceRecipe> popup-surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
@@ -97,6 +105,7 @@ export component KitColorField inherits Rectangle {
                 theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
                 validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 text <=> root.text;
+                focus-observed(focused) => { if (!focused) { root.sync-text(); } }
                 placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
                 edited(text)=>{root.edited(text);}commit-requested(text)=>{root.commit(); root.commit-requested(text); }cancelled=>{root.cancelled();}
             }
@@ -187,8 +196,9 @@ export component KitColorField inherits Rectangle {
     }
     function publish() {
         if (!root.result.valid) { return; }
-        if (root.ownership == Ownership.local) { root.accepted-color = root.result.value; root.text = root.result.text; }
+        if (root.ownership == Ownership.local) { root.accepted-color = root.result.value; }
         root.chosen(root.result.value);
+        root.sync-text();
     }
 }
 
@@ -201,6 +211,14 @@ component ColorChannelEditor inherits Rectangle {
     in property <string> error;
     in property <float> position;
     in-out property <string> text;
+    in property <string> accepted-text;
+    changed accepted-text => { root.sync-text(); }
+    function sync-text() {
+        if (!editor.has-focus) {
+            root.text = root.accepted-text;
+            editor.acknowledge({present: true, text: root.text});
+        }
+    }
     callback edited(ColorChannel,string);
     callback commit-requested(ColorChannel,string);
     callback position-requested(ColorChannel,float);
@@ -211,7 +229,8 @@ component ColorChannelEditor inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit;
-        KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
+        editor := KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: "0–255";
+            focus-observed(focused) => { if (!focused) { root.sync-text(); } }
             edited(text) => { root.edited(root.channel,text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
         }
@@ -257,22 +276,22 @@ export component KitColorPicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
         field := KitColorField { ownership: Ownership.controlled; chosen(value) => { root.accept-color(value); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-color: root.accepted-color; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; position: root.accepted-color.red / 255;
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: "Red"; error: root.red-error; text <=> root.red-text; accepted-text: root.accepted-color.red; position: root.accepted-color.red / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: "Green"; error: root.green-error; text <=> root.green-text; position: root.accepted-color.green / 255;
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: "Green"; error: root.green-error; text <=> root.green-text; accepted-text: root.accepted-color.green; position: root.accepted-color.green / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: "Blue"; error: root.blue-error; text <=> root.blue-text; position: root.accepted-color.blue / 255;
+        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: "Blue"; error: root.blue-error; text <=> root.blue-text; accepted-text: root.accepted-color.blue; position: root.accepted-color.blue / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
         }
-        if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: "Alpha"; error: root.alpha-error; text <=> root.alpha-text; position: root.accepted-color.alpha / 255;
+        if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: "Alpha"; error: root.alpha-error; text <=> root.alpha-text; accepted-text: root.accepted-color.alpha; position: root.accepted-color.alpha / 255;
             edited(channel,text) => { root.channel-edited(channel,text); } commit-requested(channel,text) => { root.change-channel(channel,text); root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-color; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.accept-color(root.snapshot); root.cancelled(channel); }
@@ -282,6 +301,10 @@ export component KitColorPicker inherits Rectangle {
     private property <ColorResult> result;
     private property <SrgbColorView> snapshot: root.accepted-color;
     callback chosen(SrgbColorView);
+    // No alpha editor is mounted in opaque mode to project host changes.
+    changed accepted-color => { root.sync-hidden-alpha(); }
+    changed alpha-mode => { root.sync-hidden-alpha(); }
+    function sync-hidden-alpha() { if (root.alpha-mode == ColorAlphaMode.opaque) { root.alpha-text = root.accepted-color.alpha; } }
     public function commit() { field.commit(); }
     function accept-color(value: SrgbColorView) {
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
@@ -304,9 +327,7 @@ export component KitColorPicker inherits Rectangle {
     function publish() {
         if (!root.result.valid) { return; }
         if (root.ownership == Ownership.local) {
-            root.accepted-color = root.result.value; root.hex-text = root.result.text;
-            root.red-text = root.result.value.red; root.green-text = root.result.value.green;
-            root.blue-text = root.result.value.blue; root.alpha-text = root.result.value.alpha;
+            root.accepted-color = root.result.value;
         }
         root.chosen(root.result.value);
     }

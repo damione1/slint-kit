@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitColorField, KitColorPicker, KitButton, KitTheme, KitThemes, Ownership, FieldAccess, ColorAlphaMode, SrgbColorView } from "@kit";
+export component ColorLifecycleFixture inherits Window {
+    width: 900px; height: 1200px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <ColorAlphaMode> alpha-mode: ColorAlphaMode.editable;
+    in-out property <SrgbColorView> field-color <=> field.accepted-color;
+    in-out property <SrgbColorView> picker-color <=> picker.accepted-color;
+    in-out property <string> field-text <=> field.text;
+    in-out property <string> hex-text <=> picker.hex-text;
+    in-out property <string> red-text <=> picker.red-text;
+    in-out property <string> green-text <=> picker.green-text;
+    in-out property <string> blue-text <=> picker.blue-text;
+    in-out property <string> alpha-text <=> picker.alpha-text;
+    in-out property <int> field-chosen;
+    in-out property <int> picker-chosen;
+    in-out property <SrgbColorView> field-proposal;
+    in-out property <SrgbColorView> picker-proposal;
+    public function commit-field() { field.commit(); }
+    public function commit-picker() { picker.commit(); }
+    public function blur() { outside.take-focus(); }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        field := KitColorField {
+            theme: root.theme; ownership: root.ownership; access: root.access;
+            label: "Standalone color"; alpha-mode: root.alpha-mode;
+            accepted-color: {red: 1, green: 2, blue: 3, alpha: 255};
+            chosen(value) => { root.field-chosen += 1; root.field-proposal = value; }
+        }
+        picker := KitColorPicker {
+            theme: root.theme; ownership: root.ownership; access: root.access;
+            label: "Picker color"; alpha-mode: root.alpha-mode;
+            accepted-color: {red: 4, green: 5, blue: 6, alpha: 255};
+            chosen(value) => { root.picker-chosen += 1; root.picker-proposal = value; }
+        }
+        outside := KitButton { theme: root.theme; text: "Outside"; }
+    }
+}
+
+import { KitTextField } from "@kit";
+// The exact native editor/menu primitive, with no color synchronization layer.
+export component ColorNativeEditingReference inherits Window {
+    width: 900px; height: 1200px;
+    in property <bool> numeric;
+    in property <int> host-version;
+    in-out property <string> text: root.numeric ? "4" : "#010203FF";
+    editor := KitTextField {
+        x: 24px; y: 24px; width: parent.width - 48px;
+        accessible-name: "Native reference";
+        text <=> root.text;
+        input-type: root.numeric ? InputType.decimal : InputType.text;
+        min: root.numeric ? "0" : ""; max: root.numeric ? "255" : ""; step: root.numeric ? "1" : "any";
+    }
+}
