@@ -64,6 +64,10 @@ struct State<K, R> {
     active: Option<K>,
     indices: HashMap<K, usize>,
 }
+enum MembershipChange {
+    Insert(usize),
+    Remove(usize),
+}
 type ModelPublisher = Rc<dyn Fn()>;
 /// A host-owned collection with stable typed keys, token fencing and a
 /// virtualizable Slint model. Clones share one collection, not a window.
@@ -318,6 +322,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         if state.indices.contains_key(&key) {
             return Err(ModelError::DuplicateKey);
         }
+        let index = state.entries.len();
         state.entries.push(Entry {
             key,
             token: unique(&NEXT_TOKEN),
@@ -325,10 +330,10 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             revision: Rc::new(()),
         });
         drop(state);
-        self.membership_changed();
+        self.membership_changed(MembershipChange::Insert(index));
         Ok(())
     }
-    fn membership_changed(&self) {
+    fn membership_changed(&self, change: MembershipChange) {
         let mut state = self.state.borrow_mut();
         state.generation = unique(&NEXT_GENERATION);
         let generation = state.generation;
@@ -341,8 +346,24 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .enumerate()
             .map(|(index, entry)| (entry.key.clone(), index))
             .collect();
+        let rows: Vec<_> = state
+            .entries
+            .iter()
+            .map(|entry| entry.row.clone())
+            .collect();
         drop(state);
-        self.refresh();
+        // Structural notifications retain every surviving repeater delegate.
+        // Stamping the new generation still fences gestures on other rows.
+        match change {
+            MembershipChange::Insert(index) => self.rows.insert(index, rows[index].clone()),
+            MembershipChange::Remove(index) => {
+                self.rows.remove(index);
+            }
+        }
+        for (index, row) in rows.into_iter().enumerate() {
+            self.rows.set_row_data(index, row);
+        }
+        self.publish();
     }
     /// Number of projected records.
     pub fn len(&self) -> usize {
@@ -396,7 +417,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             state.active = None;
         }
         drop(state);
-        self.membership_changed();
+        self.membership_changed(MembershipChange::Remove(index));
         true
     }
     pub fn remove(&self, token: i32) -> Option<K> {

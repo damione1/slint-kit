@@ -669,3 +669,158 @@ fn labelled_divider_rules_share_the_labels_vertical_center() {
         }
     }
 }
+
+#[test]
+fn toast_queue_changes_keep_the_focused_delegate_and_release_both_pause_sources() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::Model;
+    use slint_kit::{ToastBinding, ToastLifetime};
+    use std::num::NonZeroUsize;
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Action {
+        Earlier,
+        Undo,
+        Followup,
+        Other,
+    }
+    fn entry(title: &str, action: &str) -> ToastEntry {
+        ToastEntry {
+            title: title.into(),
+            action_label: action.into(),
+            dismissible: true,
+            ..Default::default()
+        }
+    }
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    for dark in [false, true] {
+        for scale in [1., 2.] {
+            let window = ToastHostFixture::new().unwrap();
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(640., 900.));
+            let mut theme = if dark {
+                window.global::<KitThemes>().get_dark()
+            } else {
+                window.get_theme()
+            };
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            let binding = ToastBinding::new(NonZeroUsize::new(2).unwrap());
+            binding
+                .push(
+                    Action::Earlier,
+                    entry("Earlier", ""),
+                    ToastLifetime::Persistent,
+                )
+                .unwrap();
+            binding
+                .push(
+                    Action::Undo,
+                    entry("Saved", "Undo kept"),
+                    ToastLifetime::Persistent,
+                )
+                .unwrap();
+            let token = binding.model().row_data(1).unwrap().token;
+            window.set_entries(binding.model());
+            let pauses = Rc::new(RefCell::new((false, false)));
+            let observed = pauses.clone();
+            let interaction = binding.interaction_handler();
+            window.on_toast_interaction(move |id, source, engaged| {
+                if id == token {
+                    let mut flags = observed.borrow_mut();
+                    match source {
+                        ToastInteraction::Pointer => flags.0 = engaged,
+                        ToastInteraction::Focus => flags.1 = engaged,
+                    }
+                }
+                interaction(id, source, engaged);
+            });
+            window.on_toast_dismiss(binding.dismiss_handler());
+            let actions = Rc::new(RefCell::new(Vec::new()));
+            let recorded = actions.clone();
+            window.on_toast_action(move |id| recorded.borrow_mut().push(id));
+            window.show().unwrap();
+            settle(1);
+            window.window().take_snapshot().unwrap();
+            let kept = element(&window, "Undo kept");
+            let point = kept.absolute_position();
+            let size = kept.size();
+            window.window().dispatch_event(WindowEvent::PointerMoved {
+                position: LogicalPosition::new(
+                    point.x + size.width / 2.,
+                    point.y + size.height / 2.,
+                ),
+            });
+            kept.mock_single_click(PointerEventButton::Left);
+            settle(1);
+            assert_eq!(*pauses.borrow(), (true, true));
+
+            // Capacity evicts an earlier row, so the focused delegate changes
+            // index. A zero-lifetime sibling then exercises timer removal.
+            binding
+                .push(
+                    Action::Followup,
+                    entry("Followup", ""),
+                    ToastLifetime::Timed(Duration::ZERO),
+                )
+                .unwrap();
+            settle(1);
+            window.window().take_snapshot().unwrap();
+            assert!(kept.is_valid(), "eviction must retain the focused delegate");
+            assert_eq!(binding.model().row_data(0).unwrap().token, token);
+            assert!(pauses.borrow().1, "the real focused button keeps its pause");
+            key(&window, Key::Space);
+            assert_eq!(actions.borrow().last(), Some(&token));
+            settle(60);
+            window.window().take_snapshot().unwrap();
+            assert_eq!(binding.model().row_count(), 1, "the sibling expires");
+            assert!(kept.is_valid(), "expiry must retain other delegates");
+
+            binding
+                .push(Action::Other, entry("Other", ""), ToastLifetime::Persistent)
+                .unwrap();
+            let other = binding.model().row_data(1).unwrap().token;
+            window.window().take_snapshot().unwrap();
+            assert!(kept.is_valid(), "append must retain other delegates");
+            assert_eq!(binding.dismiss(other), Some(Action::Other));
+            settle(1);
+            window.window().take_snapshot().unwrap();
+            assert!(kept.is_valid(), "dismissal must retain other delegates");
+            let count = actions.borrow().len();
+            key(&window, Key::Space);
+            assert_eq!(actions.borrow().len(), count + 1);
+            assert_eq!(actions.borrow().last(), Some(&token));
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("toast-surviving-focus-{dark}-{scale}"),
+            );
+
+            // Refresh hit testing at the retained button's current position,
+            // then leave it while keyboard focus stays in the toast.
+            let point = kept.absolute_position();
+            window.window().dispatch_event(WindowEvent::PointerMoved {
+                position: LogicalPosition::new(
+                    point.x + size.width / 2.,
+                    point.y + size.height / 2.,
+                ),
+            });
+            settle(1);
+            assert_eq!(*pauses.borrow(), (true, true));
+            window.window().dispatch_event(WindowEvent::PointerMoved {
+                position: LogicalPosition::new(630., 890.),
+            });
+            settle(1);
+            assert_eq!(*pauses.borrow(), (false, true));
+            window.invoke_blur_toasts();
+            settle(1);
+            assert_eq!(*pauses.borrow(), (false, false));
+            assert_eq!(binding.model().row_data(0).unwrap().token, token);
+            window.hide().unwrap();
+        }
+    }
+}

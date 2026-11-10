@@ -2,7 +2,8 @@
 #![forbid(unsafe_code)]
 use crate::{KeyedModel, ui};
 use kit_core::{ToastId, ToastLifetime, ToastPause, ToastQueue, ToastQueueError};
-use std::{cell::RefCell, num::NonZeroUsize, rc::Rc, time::Duration};
+use slint::Model;
+use std::{cell::RefCell, collections::HashSet, num::NonZeroUsize, rc::Rc, time::Duration};
 use web_time::Instant;
 struct Inner<T> {
     queue: RefCell<ToastQueue<(T, ui::ToastEntry)>>,
@@ -58,7 +59,34 @@ impl<T: Clone + 'static> ToastBinding<T> {
             .entries()
             .map(|entry| (entry.id, entry.value.1.clone()))
             .collect::<Vec<_>>();
-        self.inner.rows.replace(rows).expect("toast IDs are unique");
+        let retained: HashSet<_> = rows.iter().map(|(id, _)| *id).collect();
+        let removed: Vec<_> = self
+            .inner
+            .rows
+            .model()
+            .iter()
+            .filter_map(|row| self.inner.rows.key(row.token))
+            .filter(|id| !retained.contains(id))
+            .collect();
+        for id in removed {
+            self.inner.rows.remove_by_key(&id);
+        }
+        for (id, row) in rows {
+            // Queue records are immutable and IDs are never reused. Keep the
+            // existing row/delegate; only append genuinely new live records.
+            let live = self
+                .inner
+                .queue
+                .borrow()
+                .entries()
+                .any(|entry| entry.id == id);
+            if live && self.inner.rows.get(&id).is_none() {
+                self.inner
+                    .rows
+                    .insert(id, row)
+                    .expect("toast IDs are unique");
+            }
+        }
     }
     pub fn push(
         &self,
