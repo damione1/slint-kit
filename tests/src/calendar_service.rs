@@ -151,3 +151,88 @@ fn picker_range_and_datetime_controlled_proposals_require_acknowledgement() {
     window.invoke_acknowledge_local(local.borrow().clone().unwrap());
     assert_eq!(window.get_local_value().date.day, 5);
 }
+
+#[test]
+fn stored_dates_outside_new_bounds_or_availability_do_not_block_replacement() {
+    use crate::CalendarConstraintFixture;
+    use i_slint_backend_testing::{ElementHandle, ElementQuery};
+    i_slint_backend_testing::init_no_event_loop();
+    for bounds in [true, false] {
+        let window = CalendarConstraintFixture::new().unwrap();
+        slint_kit::install(&window);
+        window.set_selected(CivilDateView {
+            year: 2026,
+            month: 10,
+            day: 1,
+        });
+        if bounds {
+            window.set_min("2026-10-05".into());
+            window.set_max("2026-10-31".into());
+        } else {
+            window.set_unavailable_weekdays(slint::ModelRc::new(slint::VecModel::from(vec![
+                slint_kit::ui::WeekStart::Thursday,
+            ])));
+        }
+        window.show().unwrap();
+        slint::platform::update_timers_and_animations();
+        assert_eq!(
+            ElementQuery::from_root(&window)
+                .match_inherits("CalendarOption")
+                .find_all()
+                .len(),
+            42,
+            "invalid stored selection does not blank the grid"
+        );
+        assert_eq!(
+            window.get_selected().day,
+            1,
+            "the host value is preserved until a replacement is chosen"
+        );
+        let old = ElementHandle::find_by_accessible_label(&window, "2026-10-01")
+            .next()
+            .unwrap();
+        old.invoke_accessible_default_action();
+        assert_eq!(
+            window.get_selected().day,
+            1,
+            "an invalid stored day is still unavailable"
+        );
+        ElementHandle::find_by_accessible_label(&window, "2026-10-06")
+            .next()
+            .unwrap()
+            .mock_single_click(slint::platform::PointerEventButton::Left);
+        assert_eq!(window.get_selected().day, 6);
+    }
+}
+
+#[test]
+fn an_invalid_stored_range_can_be_replaced_even_after_cancel_restores_it() {
+    use crate::StoredRangeFixture;
+    i_slint_backend_testing::init_no_event_loop();
+    let window = StoredRangeFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.show().unwrap();
+    window.invoke_cancel();
+    window.invoke_take_focus();
+    slint::platform::update_timers_and_animations();
+    let key = |key: Key| {
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+        slint::platform::update_timers_and_animations();
+    };
+    key(Key::Return);
+    key(Key::RightArrow);
+    key(Key::Return);
+    assert_eq!(
+        window.get_selected().start.day,
+        1,
+        "draft selection is provisional"
+    );
+    window.invoke_apply();
+    assert_eq!(window.get_selected().start.day, 5);
+    assert_eq!(window.get_selected().end.day, 6);
+}

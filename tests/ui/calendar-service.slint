@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership } from "@kit";
+import { KitCalendar, CivilDateView, KitTheme, KitThemes, FieldAccess, Ownership, WeekStart } from "@kit";
 export component CalendarServiceFixture inherits Window {
     width: 1000px; height: 740px;
     in property <KitTheme> theme: KitThemes.light;
@@ -49,5 +49,39 @@ export component ControlledTemporalFixture inherits Window {
         picker := KitDatePicker { ownership: Ownership.controlled; accepted-date: {year: 2026, month: 10, day: 1}; chosen(date) => { root.date-proposed(date); } }
         range := KitDateRangePicker { ownership: Ownership.controlled; selected: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}}; chosen(value) => { root.range-proposed(value); } }
         local := KitDateTimeField { ownership: Ownership.controlled; accepted-value: {date: {year: 2026, month: 10, day: 1}, time: {hour: 9, minute: 30}}; date-text: "2026-10-05"; time-text: "10:30"; chosen(value) => { root.local-proposed(value); } }
+    }
+}
+
+export component CalendarConstraintFixture inherits Window {
+    width: 800px; height: 760px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 19};
+    in property <string> min;
+    in property <string> max;
+    in property <[WeekStart]> unavailable-weekdays;
+    background: root.theme.canvas;
+    KitCalendar {
+        x: 24px; y: 24px; width: 700px; height: self.preferred-height;
+        theme: root.theme; week-start: root.week-start;
+        selected <=> root.selected; min: root.min; max: root.max; unavailable-weekdays: root.unavailable-weekdays;
+        weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    }
+}
+
+
+export component StoredRangeFixture inherits Window {
+    width: 800px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <DateRangeView> selected: picker.selected;
+    public function take-focus() { picker.take-focus(); }
+    public function cancel() { picker.cancel(); }
+    public function apply() { picker.apply(); }
+    background: root.theme.canvas;
+    picker := KitDateRangePicker {
+        x: 24px; y: 24px; width: 700px;
+        theme: root.theme;
+        selected: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}};
+        min: "2026-10-05"; max: "2026-10-31";
     }
 }
