@@ -420,3 +420,71 @@ fn combobox_inline_editing_respects_min_query_length_debounce_custom_value_and_c
     assert_eq!(window.get_combo_query(), "");
     assert_eq!(*cleared.borrow(), 1);
 }
+
+#[test]
+fn remote_labels_do_not_replace_a_focused_native_draft_or_its_undo_and_outside_focus_destination() {
+    let (window, choices) = fixture();
+    window.set_combo_selected(choices.selection(&Destination::Apricot).unwrap());
+    window.invoke_focus_combo();
+    key(&window, Key::End);
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "x".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "x".into() });
+    let editor = ElementQuery::from_root(&window)
+        .match_type_name("TextInput")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Search and select"))
+        .find_first()
+        .unwrap();
+    assert_eq!(window.get_combo_text(), "Apricotx");
+    choices
+        .replace(vec![
+            SelectOption::new(Destination::Apricot, "Renamed"),
+            SelectOption::new(Destination::Banana, "Banana"),
+        ])
+        .unwrap();
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_combo_selected_label(), "Renamed");
+    assert_eq!(window.get_combo_text(), "Apricotx");
+    assert!(window.get_combo_focused());
+    assert!(editor.is_valid());
+    key(&window, Key::Menu);
+    ElementQuery::from_root(&window)
+        .match_inherits("KitOption")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Undo"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(slint::platform::PointerEventButton::Left);
+    assert_eq!(window.get_combo_text(), "Apricot");
+    let outside = ElementQuery::from_root(&window)
+        .match_inherits("KitNavigationAction")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Renamed"))
+        .find_first()
+        .unwrap();
+    outside.mock_single_click(slint::platform::PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(!window.get_combo_focused());
+    assert!(window.get_first_focused());
+    assert!(!window.get_combo_state().open);
+}
+
+#[test]
+fn falling_below_the_query_threshold_closes_suggestions_without_replacing_the_native_text() {
+    let (window, _choices) = fixture();
+    window.set_combo_min_query_length(2);
+    window.invoke_focus_combo();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "Ap".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "Ap".into() });
+    assert!(window.get_combo_state().open);
+    key(&window, Key::Backspace);
+    assert_eq!(window.get_combo_text(), "A");
+    assert_eq!(window.get_combo_query(), "");
+    assert!(!window.get_combo_state().open);
+    assert!(window.get_combo_focused());
+}

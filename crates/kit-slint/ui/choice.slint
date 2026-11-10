@@ -931,7 +931,6 @@ export component KitCombobox inherits Rectangle {
     callback end-reached();
     callback tab-navigation(bool) -> KitKeyResult;
     private property <bool> opened: root.state.open;
-    private property <bool> tab-restore-complete;
     private property <bool> editing-draft;
     private property <bool> syncing-text;
     private property <string> pending-query;
@@ -950,7 +949,7 @@ export component KitCombobox inherits Rectangle {
     accessible-description: checks.show-error ? checks.validation-message : root.status-text;
     out property <bool> has-focus: editor.has-focus || trigger.has-focus;
     changed selected-label => {
-        if (!root.editing-draft || root.selected.present) {
+        if (!root.editing-draft) {
             root.syncing-text = true;
             root.text = root.selected-label;
             root.syncing-text = false;
@@ -1049,6 +1048,7 @@ export component KitCombobox inherits Rectangle {
             root.schedule-query-edited(draft);
         } else {
             debounce-timer.running = false;
+            if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); }
             if (root.query != "") {
                 root.syncing-text = true;
                 root.query = "";
@@ -1095,7 +1095,7 @@ export component KitCombobox inherits Rectangle {
         return KitKeyResult.reject;
     }
     function advance-tab(reverse: bool) -> KitKeyResult {
-        popup.close(); editor.take-focus(); root.tab-restore-complete = true;
+        root.handle-dismiss(CloseReason.programmatic);
         return root.tab-navigation(reverse);
     }
     changed opened => {
@@ -1104,9 +1104,9 @@ export component KitCombobox inherits Rectangle {
             popup.show();
             if (root.access == FieldAccess.editable) { editor.take-focus(); }
         } else {
+            // The native editor keeps focus while suggestions are open. Closing
+            // must not steal focus back from an outside pointer destination.
             popup.close();
-            if (!root.tab-restore-complete && root.access != FieldAccess.disabled) { editor.take-focus(); }
-            root.tab-restore-complete = false;
         }
     }
     private property <bool> presented: popup.is-open;
