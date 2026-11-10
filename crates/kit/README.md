@@ -4,7 +4,7 @@
 
 Fields retain incomplete native drafts while `FieldSpec` returns checked values to Rust. `Choices` and `KeyedModel` preserve domain identity through filtering and sorting and reject stale gestures. Your application supplies its rules, data and business commands; Slint supplies rendering and native editing (caret, selection, undo, IME).
 
-Build **desktop and mobile Rust applications**: macOS, Windows and Linux, plus Android and iOS through Slint's mobile backends. See [platform setup and limits](https://slint-kit.dev/guides/project-setup/#desktop-and-mobile-targets).
+Build **desktop Rust applications** for macOS, Windows and Linux. Android and iOS remain unqualified Slint integration paths rather than announced kit targets. See [platform setup and limits](https://slint-kit.dev/guides/project-setup/#desktop-and-mobile-targets).
 
 <p>
   <img alt="Virtualized data table" src="https://slint-kit.dev/assets/components/data-table@2x.png" width="32%">
@@ -61,11 +61,11 @@ Slint Kit is before 1.0; breaking changes remain possible. The build helper uses
 
 ## Quality
 
-No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS, the headless test suite and `clippy` on Linux, and build/helper checks on Windows; native runtime behavior, mobile, IME and screen readers need verification on the target device.
+No `unsafe` in the kit's hand-written Rust. [CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs `cargo fmt`, `clippy` with warnings denied, behavior tests (keyboard, pointer, focus, identity, geometry), generated-file verification and a lint that rejects hard-coded design values. Public CI runs the full suite on macOS and build/helper checks on Windows; the new Linux headless/clippy job awaits its first successful result; native runtime behavior, mobile, IME and screen readers need verification on the target device.
 
 ## Requirements
 
-Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android builds need the Android SDK/NDK; iOS builds need macOS and Xcode. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
+Rust 1.92 or later and Slint 1.18 (patch releases from 1.18.1). Announced desktop platforms: macOS, Windows and Linux; [announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof. Android and iOS are not announced kit targets; Slint mobile integration requires separate platform setup and device qualification. Optional `native` file/directory dialogs are desktop services and return `SelectionOutcome::Failed(HostError::Unsupported)` on mobile. [Source, showcase and bilingual documentation](https://github.com/damione1/slint-kit).
 
 ## License
 

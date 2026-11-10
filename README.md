@@ -82,7 +82,7 @@ The current series is before 1.0 and breaking changes remain possible. The build
 Every change passes `cargo run -p xtask -- check` in CI:
 
 - No `unsafe` in the kit's hand-written Rust; the domain core and adapters use `#![forbid(unsafe_code)]`.
-- A CI matrix with named proofs: the full check on macOS, the headless test suite and clippy on Linux, build checks on Windows. [Announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof; a headless test or a screenshot is not a native, IME or screen-reader qualification.
+- A CI matrix with named checks: the full check on macOS, build checks on Windows, and a newly added Linux headless/clippy job whose first successful result is pending. [Announced and qualified targets](https://slint-kit.dev/guides/getting-started/) names the OS, backend and renderer of each proof; a headless test or a screenshot is not a native, IME or screen-reader qualification.
 - `cargo fmt` and `clippy` with warnings denied; wildcard match arms on domain enums are rejected.
 - Behavior tests cover keyboard, pointer, focus, identity and geometry, alongside domain logic. [Public CI](https://github.com/damione1/slint-kit/actions/workflows/check.yml) runs the full suite on macOS and build/helper checks on Windows; this does not establish Linux or mobile runtime qualification. IME and screen readers require checks on the target device.
 - Generated files (shared contracts, Lucide icons) are verified against their generators.
