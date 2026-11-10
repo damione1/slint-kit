@@ -528,6 +528,86 @@ fn sparse_and_extra_cells_always_share_the_complete_header_grid() {
 }
 
 #[test]
+fn column_sources_allow_reorder_and_hiding_without_rewriting_rows() {
+    let window = fixture();
+    let records = Rc::new(VecModel::from(rows(1, 2)));
+    window.set_rows(ModelRc::from(records.clone()));
+    let mut columns = column_set();
+    for (index, column) in columns.iter_mut().enumerate() {
+        column.source = slint_kit::ColumnDataIndex::try_from(index).unwrap().into();
+    }
+    columns.swap(0, 1);
+    window.set_columns(ModelRc::new(VecModel::from(columns.clone())));
+    assert_aligned(&window);
+    let leading = row_cells(&window, 0).remove(0);
+    assert!(
+        leading
+            .query_descendants()
+            .match_predicate(|item| item.accessible_label().as_deref() == Some("0"))
+            .find_first()
+            .is_some()
+    );
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    assert_eq!(table.accessible_value().as_deref(), Some("0"));
+    columns.remove(0);
+    window.set_columns(ModelRc::new(VecModel::from(columns)));
+    assert_eq!(row_cells(&window, 0).len(), 1);
+    assert_eq!(records.row_data(0).unwrap().cells.row_count(), 2);
+    assert!(
+        row_cells(&window, 0)[0]
+            .query_descendants()
+            .match_predicate(|item| item.accessible_label().as_deref() == Some("Product 1"))
+            .find_first()
+            .is_some()
+    );
+}
+
+#[test]
+fn hidden_columns_preserve_positional_sources_and_the_cell_cursor_uses_visible_positions() {
+    let window = fixture();
+    let records = Rc::new(VecModel::from(rows(1, 2)));
+    window.set_rows(ModelRc::from(records.clone()));
+    let source = Rc::new(VecModel::from(column_set()));
+    window.set_columns(ModelRc::from(source.clone()));
+    let mut column = source.row_data(0).unwrap();
+    column.visibility = ColumnVisibility::Hidden;
+    source.set_row_data(0, column.clone());
+    assert_eq!(row_cells(&window, 0).len(), 1);
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    assert_eq!(table.accessible_value().as_deref(), Some("0"));
+    assert_eq!(records.row_data(0).unwrap().cells.row_count(), 2);
+    column.visibility = ColumnVisibility::Visible;
+    source.set_row_data(0, column.clone());
+    assert_aligned(&window);
+    assert_eq!(table.accessible_value().as_deref(), Some("Product 1"));
+    window.set_table_active_column(1);
+    let mut quantity = source.row_data(1).unwrap();
+    quantity.visibility = ColumnVisibility::Hidden;
+    source.set_row_data(1, quantity);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(
+        window.get_table_active_column(),
+        0,
+        "the visible cursor clamps when its column disappears"
+    );
+    column.visibility = ColumnVisibility::Hidden;
+    source.set_row_data(0, column);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(row_cells(&window, 0).len(), 0);
+    assert_eq!(window.get_table_active_column(), -1);
+}
+
+#[test]
 fn unnamed_rows_and_resizers_use_current_localized_names_and_keep_their_actions() {
     use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
     slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
@@ -746,4 +826,91 @@ fn table_header_body_and_cell_reveal_share_the_measured_viewport_in_each_directi
             }
         }
     }
+}
+
+#[test]
+fn canonical_sources_keep_sparse_and_extra_rows_aligned_after_projection() {
+    let window = fixture();
+    let records = Rc::new(VecModel::from(vec![
+        TableRow {
+            token: 1,
+            cells: ModelRc::new(VecModel::from(vec!["Short".into()])),
+            ..Default::default()
+        },
+        TableRow {
+            token: 2,
+            cells: ModelRc::new(VecModel::from(vec![
+                "Long".into(),
+                "Second".into(),
+                "Third".into(),
+                "Extra".into(),
+            ])),
+            ..Default::default()
+        },
+    ]));
+    window.set_rows(records.clone().into());
+    let mut columns = column_set();
+    columns[0].source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    columns[1].source = slint_kit::ColumnDataIndex::try_from(0usize).unwrap().into();
+    let source = Rc::new(VecModel::from(columns));
+    window.set_columns(source.clone().into());
+    let table = ElementQuery::from_root(&window)
+        .match_inherits("KitDataTable")
+        .find_first()
+        .unwrap();
+    for (row, values) in [(0, ["", "Short"]), (1, ["Third", "Long"])] {
+        window.set_table_active(row);
+        for (position, value) in values.into_iter().enumerate() {
+            window.set_table_active_column(i32::try_from(position).unwrap());
+            assert_eq!(table.accessible_value().as_deref(), Some(value));
+        }
+    }
+    assert_aligned(&window);
+    let mut hidden = source.row_data(0).unwrap();
+    hidden.visibility = ColumnVisibility::Hidden;
+    source.set_row_data(0, hidden);
+    assert_aligned(&window);
+    assert_eq!(header_cells(&window).len(), 1);
+    assert_eq!(row_cells(&window, 0).len(), 1);
+    window.set_table_active_column(0);
+    assert_eq!(table.accessible_value().as_deref(), Some("Long"));
+    assert_eq!(records.row_data(0).unwrap().cells.row_count(), 1);
+    assert_eq!(records.row_data(1).unwrap().cells.row_count(), 4);
+}
+
+#[test]
+fn projected_column_actions_keep_the_stable_column_token() {
+    let window = fixture();
+    let mut columns = column_set();
+    for (index, column) in columns.iter_mut().enumerate() {
+        column.source = slint_kit::ColumnDataIndex::try_from(index).unwrap().into();
+        column.sortable = true;
+        column.width = resizable(bounded(fixed(180.), 140., 360.));
+    }
+    columns.swap(0, 1);
+    let token = columns[0].token;
+    columns[1].visibility = ColumnVisibility::Hidden;
+    window.set_columns(ModelRc::new(VecModel::from(columns)));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 2))));
+    window.set_table_active(0);
+    window.set_table_active_column(0);
+    let sorted = Rc::new(RefCell::new(Vec::new()));
+    let recorded = sorted.clone();
+    window.on_sort_requested(move |column| recorded.borrow_mut().push(column));
+    let resized = Rc::new(RefCell::new(Vec::new()));
+    let recorded = resized.clone();
+    window.on_resize_requested(move |column, width| recorded.borrow_mut().push((column, width)));
+    // This command uses the current measured header, not the policy basis.
+    // Materialize that header before requesting its deferred resize callback.
+    let headers = header_cells(&window);
+    assert_eq!(headers.len(), 1);
+    assert!(near(headers[0].size().width, 180.));
+    slint::platform::update_timers_and_animations();
+    window.invoke_sort_table_column();
+    window.invoke_resize_table_column(20.);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(*sorted.borrow(), vec![token]);
+    assert_eq!(resized.borrow().len(), 1);
+    assert_eq!(resized.borrow()[0].0, token);
+    assert!(near(resized.borrow()[0].1, 200.));
 }

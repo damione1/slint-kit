@@ -314,6 +314,10 @@ impl Catalogue {
             .iter()
             .enumerate()
             .map(|(i, column)| ui::TableColumn {
+                visibility: Default::default(),
+                source: slint_kit::ColumnDataIndex::try_from(i)
+                    .expect("bounded showcase column index")
+                    .into(),
                 token: i as i32 + 1,
                 label: match column {
                     Column::Title => "Product",

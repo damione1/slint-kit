@@ -17,6 +17,24 @@ impl From<CheckState> for ui::CheckState {
     }
 }
 
+/// A canonical cell-data index, independent of visible column order.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ColumnDataIndex(i32);
+impl TryFrom<usize> for ColumnDataIndex {
+    type Error = std::num::TryFromIntError;
+    fn try_from(index: usize) -> Result<Self, Self::Error> {
+        i32::try_from(index).map(Self)
+    }
+}
+impl From<ColumnDataIndex> for ui::TableColumnSource {
+    fn from(index: ColumnDataIndex) -> Self {
+        Self {
+            mode: ui::ColumnSourceMode::DataIndex,
+            index: index.0,
+        }
+    }
+}
+
 /// The codec of an editable cell: the key of a `FieldSpec` installed with
 /// `install_field_specs`, which parses, validates and displays the value in
 /// the editor and at rest, or plain text when the cell has none.

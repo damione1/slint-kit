@@ -44,6 +44,8 @@ mod callback;
 pub use callback::{action, event, event2, event3};
 
 #[cfg(feature = "adapter")]
+mod data_service;
+#[cfg(feature = "adapter")]
 mod selection_service;
 
 #[cfg(feature = "adapter")]
@@ -62,11 +64,13 @@ where
     for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
     for<'a> ui::KitSelectionService<'a>: slint::Global<'a, W>,
     for<'a> ui::KitTimeService<'a>: slint::Global<'a, W>,
+    for<'a> ui::KitDataService<'a>: slint::Global<'a, W>,
 {
     html::install_validation(window);
     calendar::install_calendar(window);
     field_spec::install_fields(window);
     selection_service::install_selection(window);
+    data_service::install_data(window);
     datetime::install_time(window);
 }
 

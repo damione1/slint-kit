@@ -38,7 +38,17 @@ export enum ColumnCeiling { unbounded, bounded }
 // `resize-requested(token, width)`, which the application applies by
 // changing this policy (usually to `fixed` at the reported basis).
 export struct ColumnWidth { sizing: ColumnSizing, basis: length, minimum: length, ceiling: ColumnCeiling, maximum: length, resizable: bool }
-export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth }
+export enum ColumnVisibility { visible, hidden }
+export enum ColumnSourceMode { position, data-index }
+export struct TableColumnSource { mode: ColumnSourceMode, index: int }
+export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth, source: TableColumnSource, visibility: ColumnVisibility }
+// Pure view projection, installed once with the other module services. It
+// filters presentation visibility and resolves positional sources before the
+// header/body use the resulting shared column model.
+export global KitDataService {
+    in-out property <bool> ready;
+    pure callback visible-columns([TableColumn]) -> [TableColumn];
+}
 // What one typed table cell shows. The set is closed and painted by the
 // kit inside the virtualized row, because Slint 1.18.1 rejects `@children`
 // and slot placeholders inside a repeated element and keeps dynamic
@@ -391,7 +401,7 @@ export component KitDataTable inherits Rectangle {
     private property <TableCursorRegion> cursor-region: TableCursorRegion.body;
     private property <int> keyboard-resize-request;
     private property <length> keyboard-resize-delta;
-    private property <int> column-count: root.columns.length;
+    private property <int> column-count: root.display-columns.length;
     changed column-count => {
         if (root.column-count == 0) {
             root.cursor-region = TableCursorRegion.body;
@@ -402,11 +412,12 @@ export component KitDataTable inherits Rectangle {
         }
     }
     changed header-focus => { root.cursor-region = TableCursorRegion.body; }
-    public function sort-active-column() { if (root.interactive && root.has-active-column() && root.columns[root.active-column].sortable) { root.sort-requested(root.columns[root.active-column].token); } }
-    public function resize-active-column(delta: length) { if (root.interactive && root.has-active-column() && root.columns[root.active-column].width.resizable) { root.keyboard-resize-delta = delta; root.keyboard-resize-request += 1; } }
+    public function sort-active-column() { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].sortable) { root.sort-requested(root.display-columns[root.active-column].token); } }
+    public function resize-active-column(delta: length) { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].width.resizable) { root.keyboard-resize-delta = delta; root.keyboard-resize-request += 1; } }
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[TableColumn]> columns;
+    private property <[TableColumn]> display-columns: KitDataService.ready ? KitDataService.visible-columns(root.columns) : root.columns;
     in property <[TableRow]> rows;
     in property <int> generation;
     in property <int> active-index: -1;
@@ -488,14 +499,16 @@ export component KitDataTable inherits Rectangle {
     private property <string> edit-original;
     private property <int> edit-row-index: root.active-index;
     private property <int> edit-column-index: root.active-column;
+    private property <int> edit-data-index;
     private property <bool> edit-available: !root.edit-open || (KitFieldService.ready && root.edit-generation == root.generation
         && root.edit-row-index >= 0 && root.edit-row-index < root.rows.length
         && root.rows[root.edit-row-index].token == root.edit-row-token && !root.rows[root.edit-row-index].disabled
-        && root.edit-column-index >= 0 && root.edit-column-index < root.columns.length
-        && root.columns[root.edit-column-index].token == root.edit-column-token
-        && root.edit-column-index < root.rows[root.edit-row-index].content.length
-        && root.rows[root.edit-row-index].content[root.edit-column-index].kind == TableCellKind.field
-        && root.rows[root.edit-row-index].content[root.edit-column-index].access == FieldAccess.editable);
+        && root.edit-column-index >= 0 && root.edit-column-index < root.display-columns.length
+        && root.display-columns[root.edit-column-index].token == root.edit-column-token
+        && root.cell-data-index(root.display-columns[root.edit-column-index], root.edit-column-index) == root.edit-data-index
+        && root.edit-data-index >= 0 && root.edit-data-index < root.rows[root.edit-row-index].content.length
+        && root.rows[root.edit-row-index].content[root.edit-data-index].kind == TableCellKind.field
+        && root.rows[root.edit-row-index].content[root.edit-data-index].access == FieldAccess.editable);
     changed edit-available => { if (root.edit-open && !root.edit-available) { root.end-edit(root.edit-focused, TableEditOutcome.superseded); } }
     private property <bool> edit-row-outside-viewport: root.edit-open && list.visible-height > 0px
         && ((root.edit-row-index + 1) * root.row-height + list.content-y <= 0px
@@ -503,22 +516,35 @@ export component KitDataTable inherits Rectangle {
     changed edit-row-outside-viewport => {
         if (root.edit-row-outside-viewport) { root.end-edit(root.edit-focused, TableEditOutcome.viewport-exit); }
     }
-    pure function has-active-column() -> bool { return root.active-column >= 0 && root.active-column < root.columns.length; }
+    pure function has-active-column() -> bool { return root.active-column >= 0 && root.active-column < root.display-columns.length; }
     pure function has-active-cell() -> bool { return root.has-active-row && root.has-active-column(); }
+    pure function cell-data-index(column: TableColumn, position: int) -> int { return column.source.mode == ColumnSourceMode.data-index ? column.source.index : position; }
+    private property <int> active-data-index: root.has-active-cell() ? root.cell-data-index(root.display-columns[root.active-column], root.active-column) : -1;
+    pure function active-cell-value() -> string {
+        if (root.cursor-region != TableCursorRegion.body || !root.has-active-cell() || root.active-data-index < 0) { return ""; }
+        let row = root.rows[root.active-index];
+        if (row.content.length > 0) {
+            if (root.active-data-index >= row.content.length) { return ""; }
+            let cell = row.content[root.active-data-index];
+            return cell.kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(cell.spec, cell.text) : cell.text;
+        }
+        return root.active-data-index < row.cells.length ? row.cells[root.active-data-index] : "";
+    }
     pure function active-cell-editable() -> bool {
         return root.interactive && root.has-active-cell() && !root.rows[root.active-index].disabled
-            && root.active-column < root.rows[root.active-index].content.length
-            && root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field
-            && root.rows[root.active-index].content[root.active-column].access == FieldAccess.editable;
+            && root.active-data-index >= 0 && root.active-data-index < root.rows[root.active-index].content.length
+            && root.rows[root.active-index].content[root.active-data-index].kind == TableCellKind.field
+            && root.rows[root.active-index].content[root.active-data-index].access == FieldAccess.editable;
     }
     function begin-edit() {
         root.cursor-region = TableCursorRegion.body;
         root.reveal-active();
         root.edit-row-token = root.rows[root.active-index].token;
-        root.edit-column-token = root.columns[root.active-column].token;
+        root.edit-column-token = root.display-columns[root.active-column].token;
         root.edit-generation = root.generation;
-        root.edit-draft = root.rows[root.active-index].content[root.active-column].text;
+        root.edit-draft = root.rows[root.active-index].content[root.active-data-index].text;
         root.edit-original = root.edit-draft;
+        root.edit-data-index = root.active-data-index;
         root.edit-bounds = { valid: false };
         root.edit-error = "";
         root.edit-open = true;
@@ -547,8 +573,8 @@ export component KitDataTable inherits Rectangle {
     }
     function step-column(step: ColumnStep) {
         if (root.cursor-region == TableCursorRegion.body && !root.has-active-row) { return; }
-        if (step == ColumnStep.previous) { root.active-column = max(root.cursor-region == TableCursorRegion.header ? 0 : -1, min(root.active-column, root.columns.length) - 1); }
-        if (step == ColumnStep.next) { root.active-column = min(root.columns.length - 1, root.active-column + 1); }
+        if (step == ColumnStep.previous) { root.active-column = max(root.cursor-region == TableCursorRegion.header ? 0 : -1, min(root.active-column, root.display-columns.length) - 1); }
+        if (step == ColumnStep.next) { root.active-column = min(root.display-columns.length - 1, root.active-column + 1); }
     }
     changed generation => { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.superseded); } }
     changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false, TableEditOutcome.superseded); } }
@@ -598,8 +624,8 @@ export component KitDataTable inherits Rectangle {
     pure function cell-preferred(column: TableColumn) -> length { return root.previewed(column) ? root.preview-width : root.column-basis(column); }
     pure function cell-stretch(column: TableColumn) -> float { return !root.previewed(column) && column.width.sizing == ColumnSizing.fill ? 1 : 0; }
     changed active-column => {
-        let first = root.cursor-region == TableCursorRegion.header && root.columns.length > 0 ? 0 : -1;
-        if (root.active-column < first || root.active-column >= root.columns.length) { root.active-column = clamp(root.active-column, first, root.columns.length - 1); }
+        let first = root.cursor-region == TableCursorRegion.header && root.display-columns.length > 0 ? 0 : -1;
+        if (root.active-column < first || root.active-column >= root.display-columns.length) { root.active-column = clamp(root.active-column, first, root.display-columns.length - 1); }
         root.reveal-active();
     }
     function reveal-cell(x: length, width: length) {
@@ -625,9 +651,9 @@ export component KitDataTable inherits Rectangle {
     // `accessible-item-selected`, so focus, active row and selection are
     // three separate facts in the accessible tree.
     clip: true; accessible-role: table; forward-focus: keys;
-    accessible-label: root.label + (root.cursor-region == TableCursorRegion.header && root.has-active-column() ? ": " + root.header-label + ", " + root.header-name(root.columns[root.active-column]) : (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.columns[root.active-column].label : ""));
+    accessible-label: root.label + (root.cursor-region == TableCursorRegion.header && root.has-active-column() ? ": " + root.header-label + ", " + root.header-name(root.display-columns[root.active-column]) : (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.display-columns[root.active-column].label : ""));
     accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.edit-active(); } }
-    accessible-value: root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.rows[root.active-index].content.length > 0 ? (root.rows[root.active-index].content[root.active-column].kind == TableCellKind.field && KitFieldService.ready ? KitFieldService.display(root.rows[root.active-index].content[root.active-column].spec, root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].content[root.active-column].text) : root.rows[root.active-index].cells[root.active-column]) : "";
+    accessible-value: root.active-cell-value();
     accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
     // Keep the scrollbar corner in the header canvas on either side.
     Rectangle { width: root.width; height: root.row-height; background: root.theme.canvas; }
@@ -645,7 +671,7 @@ export component KitDataTable inherits Rectangle {
             // element. Keyboard, pointer and the accessible default action of
             // a sortable header all go through one pressable, so one
             // `disabled` rule decides all three.
-            for column[column-index] in root.columns: header-cell := Rectangle {
+            for column[column-index] in root.display-columns: header-cell := Rectangle {
                 private property <bool> active-header: keys.has-focus && root.cursor-region == TableCursorRegion.header && column-index == root.active-column;
                 changed active-header => { if (self.active-header) { root.reveal-cell(self.absolute-position.x, self.width); } }
                 private property <int> resize-request: root.keyboard-resize-request;
@@ -707,7 +733,7 @@ export component KitDataTable inherits Rectangle {
         }
         edit-requested => { if (root.cursor-region == TableCursorRegion.body) { root.edit-active(); } }
         navigate(step) => {
-            if (root.header-focus == TableHeaderFocus.roving && step == NavigationStep.previous && (root.active-index == 0 || !root.has-active-row) && root.columns.length > 0 && root.cursor-region == TableCursorRegion.body) { root.cursor-region = TableCursorRegion.header; root.active-column = clamp(root.active-column, 0, root.columns.length - 1); }
+            if (root.header-focus == TableHeaderFocus.roving && step == NavigationStep.previous && (root.active-index == 0 || !root.has-active-row) && root.display-columns.length > 0 && root.cursor-region == TableCursorRegion.body) { root.cursor-region = TableCursorRegion.header; root.active-column = clamp(root.active-column, 0, root.display-columns.length - 1); }
             else if (step == NavigationStep.next && root.cursor-region == TableCursorRegion.header) { root.cursor-region = TableCursorRegion.body; }
             else if (root.cursor-region == TableCursorRegion.body) { root.navigate(step); }
         }
@@ -741,15 +767,16 @@ export component KitDataTable inherits Rectangle {
             // typed `content` when it has any, otherwise its plain `cells`
             // as text cells.
             if row.content.length == 0: HorizontalLayout {spacing:0px; padding: 0px;
-                for column[column-index] in root.columns: row-cell := TableCellView {
-                    min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
-                    horizontal-stretch: root.cell-stretch(root.columns[column-index]);
+                for column[column-index] in root.display-columns: row-cell := TableCellView {
+                    min-width: root.cell-min(root.display-columns[column-index]); max-width: root.cell-max(root.display-columns[column-index]); preferred-width: root.cell-preferred(root.display-columns[column-index]);
+                    horizontal-stretch: root.cell-stretch(root.display-columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
-                    cell: { kind: TableCellKind.text, text: row.cells[column-index] };
-                    alignment: root.columns[column-index].alignment;
+                    private property <int> data-index: root.cell-data-index(column, column-index);
+                    cell: { kind: TableCellKind.text, text: self.data-index >= 0 && self.data-index < row.cells.length ? row.cells[self.data-index] : "" };
+                    alignment: root.display-columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
                     focus-indicated: keys.has-focus && root.cursor-region == TableCursorRegion.body && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
                 }
@@ -760,30 +787,31 @@ export component KitDataTable inherits Rectangle {
                 // Its outcomes are forwarded only while that session is the
                 // open one, so the blur the closing itself provokes cannot
                 // commit a second time or to another cell.
-                for column[column-index] in root.columns: content-cell := TableCellView {
-                    min-width: root.cell-min(root.columns[column-index]); max-width: root.cell-max(root.columns[column-index]); preferred-width: root.cell-preferred(root.columns[column-index]);
-                    horizontal-stretch: root.cell-stretch(root.columns[column-index]);
+                for column[column-index] in root.display-columns: content-cell := TableCellView {
+                    min-width: root.cell-min(root.display-columns[column-index]); max-width: root.cell-max(root.display-columns[column-index]); preferred-width: root.cell-preferred(root.display-columns[column-index]);
+                    horizontal-stretch: root.cell-stretch(root.display-columns[column-index]);
                     theme: root.theme; control-size: root.control-size; inset: root.cell-inset;
                     pointed: row-action.pressed && row-action.pointer-x >= self.x && row-action.pointer-x < self.x + self.width;
                     point-requested => { root.active-column = column-index; root.cursor-requested(index, column-index); }
                     reveal-requested(x, width) => { root.reveal-cell(x, width); }
-                    cell: row.content[column-index];
-                    alignment: root.columns[column-index].alignment;
+                    private property <int> data-index: root.cell-data-index(column, column-index);
+                    cell: self.data-index >= 0 && self.data-index < row.content.length ? row.content[self.data-index] : { kind: TableCellKind.text };
+                    alignment: root.display-columns[column-index].alignment;
                     row-selected: row.selected; row-disabled: row.disabled;
                     focus-indicated: keys.has-focus && root.cursor-region == TableCursorRegion.body && index == root.active-index && column-index == root.active-column; focus-ring: KitThemes.inset-focus(root.theme);
-                    editing: root.edits-cell(row, root.columns[column-index]);
-                    editor-name: root.columns[column-index].label + ", " + root.row-name(row);
+                    editing: root.edits-cell(row, root.display-columns[column-index]);
+                    editor-name: root.display-columns[column-index].label + ", " + root.row-name(row);
                     rejection: root.edit-error;
                     keep-on-blur: root.edit-blur-policy == TableEditBlurPolicy.keep-open;
                     identity: { row-token: root.edit-row-token, column-token: root.edit-column-token, generation: root.edit-generation };
-                    bounds-changed(bounds) => { if (root.edits-cell(row, root.columns[column-index])) { root.edit-bounds = bounds; } }
+                    bounds-changed(bounds) => { if (root.edits-cell(row, root.display-columns[column-index])) { root.edit-bounds = bounds; } }
                     draft <=> root.edit-draft;
                     commit-request: root.edit-commit-request;
                     editor-focus-changed(identity, focused) => {
                         if (root.edit-open && root.edit-row-token == identity.row-token && root.edit-column-token == identity.column-token && root.edit-generation == identity.generation) { root.edit-focused = focused; }
                     }
                     committed(commit, focused) => {
-                        if (root.edits-cell(row, root.columns[column-index])) {
+                        if (root.edits-cell(row, root.display-columns[column-index])) {
                             let row-token = root.edit-row-token;
                             let column-token = root.edit-column-token;
                             let generation = root.edit-generation;
@@ -804,20 +832,20 @@ export component KitDataTable inherits Rectangle {
                             }
                         }
                     }
-                    cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true, TableEditOutcome.cancelled); } }
+                    cancel-requested => { if (root.edits-cell(row, root.display-columns[column-index])) { root.end-edit(true, TableEditOutcome.cancelled); } }
                     // The commit ran before this: a closed session means it
                     // was accepted and the cursor may move on; an open one
                     // keeps the invalid draft in the editor.
                     step-requested(step) => { if (!root.edit-open) { root.step-column(step); } }
                     blurred => {
-                        if (root.edits-cell(row, root.columns[column-index])) {
+                        if (root.edits-cell(row, root.display-columns[column-index])) {
                             if (!root.edit-available) { root.end-edit(false, TableEditOutcome.superseded); }
                             else if (root.edit-row-outside-viewport) { root.end-edit(false, TableEditOutcome.viewport-exit); }
                             else if (root.edit-draft == root.edit-original && root.edit-error == "") { root.end-edit(false, TableEditOutcome.unchanged); }
                             else if (root.edit-blur-policy == TableEditBlurPolicy.commit-or-drop) { root.end-edit(false, TableEditOutcome.rejected-on-blur); }
                         }
                     }
-                    error-changed(message) => { if (root.edits-cell(row, root.columns[column-index])) { root.edit-error = message; } }
+                    error-changed(message) => { if (root.edits-cell(row, root.display-columns[column-index])) { root.edit-error = message; } }
                 }
             }
         }

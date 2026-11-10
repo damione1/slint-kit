@@ -51,6 +51,8 @@ fn owner_spec() -> FieldSpec<TextValue, &'static str> {
 }
 fn column(token: i32, label: &str) -> TableColumn {
     TableColumn {
+        visibility: Default::default(),
+        source: Default::default(),
         token,
         label: label.into(),
         sortable: false,
@@ -1956,4 +1958,227 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
             );
         }
     }
+}
+
+#[test]
+fn editing_a_visible_column_resolves_its_canonical_data_source() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    window.set_columns(ModelRc::new(VecModel::from(vec![owner])));
+    open(&window, 0);
+    assert_eq!(window.get_table_edit_draft(), "Elliot");
+    text(&window, "Maya");
+    key(&window, Key::Return);
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(
+        (
+            commits.borrow()[0].0,
+            commits.borrow()[0].1,
+            commits.borrow()[0].2
+        ),
+        (1, OWNER, 1)
+    );
+    assert_eq!(commits.borrow()[0].3.value.text, "Maya");
+    assert_eq!(
+        window
+            .get_rows()
+            .row_data(0)
+            .unwrap()
+            .content
+            .row_data(2)
+            .unwrap()
+            .text,
+        "Elliot",
+        "a commit does not mutate canonical data"
+    );
+}
+
+#[test]
+fn hiding_reordering_or_retargeting_an_edited_column_never_redirects_its_draft() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    let mut title = column(TITLE, "Title");
+    title.source = slint_kit::ColumnDataIndex::try_from(0usize).unwrap().into();
+    let source = Rc::new(VecModel::from(vec![owner.clone(), title.clone()]));
+    window.set_columns(source.clone().into());
+    enum Mutation {
+        Hide,
+        Reorder,
+        Retarget,
+    }
+    for (ordinal, action) in [Mutation::Hide, Mutation::Reorder, Mutation::Retarget]
+        .into_iter()
+        .enumerate()
+    {
+        source.set_vec(vec![owner.clone(), title.clone()]);
+        window.invoke_focus_table();
+        open(&window, 0);
+        text(&window, "Uncommitted owner");
+        match action {
+            Mutation::Hide => {
+                let mut hidden = owner.clone();
+                hidden.visibility = ColumnVisibility::Hidden;
+                source.set_row_data(0, hidden);
+            }
+            Mutation::Reorder => source.set_vec(vec![title.clone(), owner.clone()]),
+            Mutation::Retarget => {
+                let mut changed = owner.clone();
+                changed.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
+                source.set_row_data(0, changed);
+            }
+        }
+        flush();
+        assert!(!window.get_table_editing());
+        assert!(commits.borrow().is_empty());
+        assert_eq!(observed.ended.borrow().len(), ordinal + 1);
+        assert_eq!(
+            observed.ended.borrow().last().unwrap().outcome,
+            ui::TableEditOutcome::Superseded
+        );
+        assert_eq!(
+            observed.ended.borrow().last().unwrap().address.column,
+            OWNER
+        );
+    }
+}
+
+#[test]
+fn invalid_or_missing_canonical_sources_are_empty_and_cannot_open_an_editor() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    assert!(slint_kit::ColumnDataIndex::try_from(usize::MAX).is_err());
+    for index in [-1, 3, i32::MAX] {
+        let mut owner = column(OWNER, "Owner");
+        owner.source = TableColumnSource {
+            mode: ColumnSourceMode::DataIndex,
+            index,
+        };
+        window.set_columns(ModelRc::new(VecModel::from(vec![owner])));
+        window.set_table_active_column(0);
+        assert_eq!(table(&window).accessible_value().as_deref(), Some(""));
+        key(&window, Key::F2);
+        assert!(!window.get_table_editing());
+        assert!(editors(&window).is_empty());
+    }
+    assert!(commits.borrow().is_empty());
+}
+
+#[test]
+fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_directions() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    let mut owner = column(OWNER, "Owner");
+    owner.source = slint_kit::ColumnDataIndex::try_from(2usize).unwrap().into();
+    let mut title = column(TITLE, "Title");
+    title.source = slint_kit::ColumnDataIndex::try_from(0usize).unwrap().into();
+    let mut hidden = column(QUANTITY, "Quantity");
+    hidden.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
+    hidden.visibility = ColumnVisibility::Hidden;
+    let columns = Rc::new(VecModel::from(vec![owner.clone(), hidden, title]));
+    window.set_columns(columns.clone().into());
+    window.set_rows(ModelRc::new(VecModel::from(vec![TableRow {
+        token: 101,
+        content: table_cells([
+            CellContent::text("Canonical project"),
+            CellContent::text("Hidden quantity"),
+            CellContent::field("Original owner", FieldAccess::Editable),
+        ]),
+        ..Default::default()
+    }])));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let commits: Commits = Rc::default();
+    let recorded = commits.clone();
+    window.on_cell_committed(move |row, column, generation, commit| {
+        recorded
+            .borrow_mut()
+            .push((row, column, generation, commit))
+    });
+    for (direction_name, direction) in [
+        ("ltr", ChoiceFlow::LeftToRight),
+        ("rtl", ChoiceFlow::RightToLeft),
+    ] {
+        for (name, base) in [
+            ("light", window.global::<KitThemes>().get_light()),
+            ("dark", window.global::<KitThemes>().get_dark()),
+        ] {
+            for scale in [1., 2.] {
+                let mut theme = base.clone();
+                theme.direction = direction;
+                theme.text_scale = scale;
+                window.set_theme(theme);
+                columns.set_row_data(0, owner.clone());
+                window.invoke_focus_table();
+                window.set_table_active_column(0);
+                window.window().take_snapshot().unwrap();
+                flush();
+                assert_eq!(
+                    table(&window).accessible_value().as_deref(),
+                    Some("Original owner")
+                );
+                let headers: Vec<_> =
+                    ElementHandle::find_by_element_id(&window, "KitDataTable::header-cell")
+                        .collect();
+                let cells: Vec<_> =
+                    ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+                        .collect();
+                assert_eq!(headers.len(), 2);
+                assert_eq!(cells.len(), 2);
+                for (header, cell) in headers.iter().zip(&cells) {
+                    assert!((header.absolute_position().x - cell.absolute_position().x).abs() < 1.);
+                    assert!((header.size().width - cell.size().width).abs() < 1.);
+                }
+                key(&window, Key::RightArrow);
+                assert_eq!(window.get_table_active_column(), 1);
+                assert_eq!(
+                    table(&window).accessible_value().as_deref(),
+                    Some("Canonical project")
+                );
+                key(&window, Key::LeftArrow);
+                key(&window, Key::F2);
+                assert!(window.get_table_editing());
+                flush();
+                window.window().take_snapshot().unwrap();
+                text(&window, "Projected owner");
+                let frame = window.window().take_snapshot().unwrap();
+                crate::choice_presentation::save_capture(
+                    &frame,
+                    &format!("table-column-source-{direction_name}-{name}-{scale}"),
+                );
+                key(&window, Key::Return);
+                let accepted = commits.borrow();
+                let last = accepted.last().unwrap();
+                assert_eq!((last.0, last.1), (101, OWNER));
+                assert_eq!(last.3.value.text, "Projected owner");
+                drop(accepted);
+                assert_eq!(
+                    window
+                        .get_rows()
+                        .row_data(0)
+                        .unwrap()
+                        .content
+                        .row_data(2)
+                        .unwrap()
+                        .text,
+                    "Original owner"
+                );
+            }
+        }
+    }
+    assert_eq!(commits.borrow().len(), 8);
 }

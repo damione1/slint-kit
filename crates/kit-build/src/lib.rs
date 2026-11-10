@@ -65,7 +65,7 @@ pub fn compile_with_config(
     );
     let wrapper = output.join("kit-app.slint");
     std::fs::write(&wrapper, format!(
-        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitThemes, KitThemeContext }}\n"
+        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }}\n"
     )).map_err(slint_build::CompileError::SaveError)?;
     slint_build::compile_with_config(wrapper, configuration)
 }
