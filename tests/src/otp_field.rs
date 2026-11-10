@@ -868,11 +868,11 @@ fn masked_field_respects_access_modes_and_commits_typed_spec_only_when_complete(
     let app = fixture();
     let key_id = kit_slint::FieldSpecKey::new("reference").unwrap();
     let mask = slint_kit::MaskPattern::compile("AA-####").unwrap();
-    kit_slint::bind_field_specs(
+    kit_slint::install_field_specs(
         &app,
-        [(key_id.clone(), kit_slint::FieldSpec::masked(mask))],
-        |_, _| {},
-    );
+        [kit_slint::FieldSpec::masked(mask).named(key_id.clone())],
+    )
+    .unwrap();
     app.set_masked_spec_key(key_id.as_str().into());
     app.invoke_focus_masked();
 
