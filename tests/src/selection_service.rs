@@ -497,6 +497,7 @@ fn exposed_combobox_expand_action_is_idempotent_and_respects_access_guards() {
         .find_first()
         .unwrap();
     assert_eq!(combo.accessible_expandable(), Some(true));
+    assert!(combo.accessible_description().unwrap().contains("Required"));
     assert!(!window.get_combo_state().open);
     combo.invoke_accessible_expand_action();
     assert!(window.get_combo_state().open);

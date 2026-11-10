@@ -949,8 +949,7 @@ export component KitCombobox inherits Rectangle {
     }
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-enabled: root.access != FieldAccess.disabled;
-    accessible-required: root.required;
-    accessible-description: checks.show-error ? checks.validation-message : root.status-text;
+    accessible-description: KitStrings.join-description(checks.show-error ? checks.validation-message : root.status-text, root.required ? KitStrings.required-label : "");
     out property <bool> has-focus: editor.has-focus || trigger.has-focus;
     changed selected-label => {
         if (!root.editing-draft) {
@@ -1122,6 +1121,7 @@ export component KitCombobox inherits Rectangle {
         access: root.access;
         label: "";
         accessible-name: root.label;
+        description: root.required ? KitStrings.required-label : "";
         placeholder: root.placeholder;
         text <=> root.text;
         clearable: root.clearable;
