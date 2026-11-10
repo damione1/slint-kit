@@ -27,6 +27,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Ignore stationary column resize clicks, cancel drag previews with Escape or secondary press, enlarge scaled resize targets and expose `autosize-requested(column-token)` on double-click.
+
 - Keep a resizable fixed column above the table minimum so dragging cannot hide its resize handle or change its floor after the host applies a width.
 
 - Give table cells the full row height so native editors and their focus borders fit at every control size and text scale.
@@ -68,6 +70,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Ignore les clics sans mouvement sur les poignées, annule le glisser avec Échap ou un appui secondaire, agrandit les cibles et expose `autosize-requested(column-token)` au double-clic.
 
 - Applique le minimum du tableau aux colonnes fixes redimensionnables pour conserver leur poignée et leur plancher après application d’une largeur par l’hôte.
 

@@ -131,6 +131,7 @@ component ColumnResizeHandle inherits Rectangle {
     callback preview(length);
     callback commit(length);
     callback cancel();
+    callback autosize();
     out property <bool> dragging;
     out property <bool> active: root.dragging || keys.has-focus;
     private property <bool> keyboard-focus;
@@ -163,19 +164,23 @@ component ColumnResizeHandle inherits Rectangle {
         mouse-cursor: col-resize;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                keys.focus();
                 root.dragging = true;
                 root.start-width = root.current-width;
                 root.start-pointer = root.absolute-position.x + self.mouse-x;
             }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.dragging) {
                 root.dragging = false;
-                root.commit(root.clamped(root.start-width + root.absolute-position.x + self.mouse-x - root.start-pointer));
+                if (root.clamped(root.start-width + root.absolute-position.x + self.mouse-x - root.start-pointer) != root.start-width) {
+                    root.commit(root.clamped(root.start-width + root.absolute-position.x + self.mouse-x - root.start-pointer));
+                } else { root.cancel(); }
             }
-            if (event.kind == PointerEventKind.cancel && root.dragging) {
+            if ((event.kind == PointerEventKind.cancel || (event.kind == PointerEventKind.down && event.button == PointerEventButton.right)) && root.dragging) {
                 root.dragging = false;
                 root.cancel();
             }
         }
+        double-clicked => { if (!root.disabled) { root.autosize(); } }
         moved => {
             if (root.dragging) {
                 // The pointer's window position is frame independent, so the
@@ -191,6 +196,7 @@ component ColumnResizeHandle inherits Rectangle {
             root.keyboard-focus = reason == FocusReason.tab-navigation || reason == FocusReason.programmatic;
         }
         key-pressed(event) => {
+            if (event.text == Key.Escape && root.dragging) { root.dragging = false; root.cancel(); return accept; }
             if (event.text == Key.RightArrow || event.text == Key.UpArrow) { root.widen(); return accept; }
             if (event.text == Key.LeftArrow || event.text == Key.DownArrow) { root.narrow(); return accept; }
             if (event.text == Key.Home) { root.commit(root.clamped(root.minimum)); return accept; }
@@ -338,6 +344,7 @@ export component KitDataTable inherits Rectangle {
     // A clamped width the user asked for, by column token. The table paints
     // nothing from it: the host changes the column's `width` policy.
     callback resize-requested(int,length);
+    callback autosize-requested(int);
     // A committed cell edit: row token, column token and the generation
     // armed when editing began, then the field commit to run through the
     // column's `FieldSpec::accept`. The host fences it with the generation
@@ -517,6 +524,7 @@ export component KitDataTable inherits Rectangle {
                     preview(width) => { root.preview-token = column.token; root.preview-width = width; root.previewing = true; }
                     commit(width) => { root.previewing = false; root.resize-requested(column.token, width); }
                     cancel => { root.previewing = false; }
+                    autosize => { root.autosize-requested(column.token); }
                 }
                 if column.width.resizable && column.width.ceiling == ColumnCeiling.unbounded: ColumnResizeHandle {
                     x: parent.width - self.width; height: parent.height;
@@ -526,6 +534,7 @@ export component KitDataTable inherits Rectangle {
                     preview(width) => { root.preview-token = column.token; root.preview-width = width; root.previewing = true; }
                     commit(width) => { root.previewing = false; root.resize-requested(column.token, width); }
                     cancel => { root.previewing = false; }
+                    autosize => { root.autosize-requested(column.token); }
                 }
             }
         }

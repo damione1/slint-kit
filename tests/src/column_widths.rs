@@ -480,3 +480,28 @@ fn a_fixed_resizable_column_cannot_hide_its_own_handle() {
     pointer_up(&window, end);
     assert_eq!(requested.borrow().last(), Some(&(PRODUCT, 140.)));
 }
+
+#[test]
+fn resize_click_does_not_freeze_fill_and_escape_cancels_the_preview() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 2))));
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        resizable(fill()),
+        fill(),
+    ))));
+    let requested = observe_resizes(&window);
+    let grip = handle(&window, "Product, width").unwrap();
+    assert!(grip.size().width >= 24.);
+    let original = header_cells(&window)[0].size().width;
+    let start = center(&grip);
+    pointer_down(&window, start);
+    pointer_up(&window, start);
+    assert!(requested.borrow().is_empty());
+    pointer_down(&window, start);
+    pointer_move(&window, LogicalPosition::new(start.x + 60., start.y));
+    assert!(header_cells(&window)[0].size().width > original);
+    key(&window, Key::Escape);
+    pointer_up(&window, LogicalPosition::new(start.x + 60., start.y));
+    assert!(requested.borrow().is_empty());
+    assert!(near(header_cells(&window)[0].size().width, original));
+}
