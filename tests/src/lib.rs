@@ -6,8 +6,8 @@ mod ui {
 }
 pub use ui::*;
 mod column_widths;
-mod foundations;
 mod dialog_composition;
+mod foundations;
 mod keyboard_scope;
 mod preview;
 mod selection_service;

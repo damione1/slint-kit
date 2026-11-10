@@ -191,3 +191,5 @@ Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, 
 Pour des sliders dans une modale défilante, activez `KitScrollArea.pan-policy: children-first`. Un enfant interactif conserve son appui jusqu’au relâchement ; démarrez sur le fond ou le texte pour défiler. Ce déplacement est direct, sans inertie. Molette, barres et révélation du focus restent actives. La politique `native` par défaut conserve l’arbitrage Slint.
 
 Pour un contrôle sélectionné à fond accentué personnalisé, `KitThemes.selected-inset-focus(theme)` utilise la couleur `on-accent` du thème avec la géométrie partagée d’anneau intérieur. `KitThemes.inset-focus(theme)` conserve la couleur de focus habituelle sur les surfaces neutres.
+
+Les indicateurs d’attente des boutons suivent `theme.motion.fast` et restent fixes si `theme.reduced-motion` vaut true. Donnez à `busy-label` une explication localisée du travail en cours ; elle devient la description accessible du bouton occupé.

@@ -6,14 +6,23 @@ export { ButtonRecipe, ButtonIntent, ControlSize, ControlWidth } from "theme.sli
 
 component BusyMark inherits Rectangle {
     in property <ButtonRecipe> recipe;
-        Path {
-            x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
-            width: root.recipe.busy-mark-size; height: root.recipe.busy-mark-size;
-            viewbox-width: 16; viewbox-height: 16;
-            commands: "M 8 2 C 11.3 2 14 4.7 14 8 C 14 11.3 11.3 14 8 14 C 4.7 14 2 11.3 2 8";
-            stroke: root.recipe.foreground; stroke-width: root.recipe.busy-mark-stroke; fill: transparent;
-        }
+    in property <KitTheme> theme;
+    private property <int> phase;
+    for index in 8: Rectangle {
+        width: root.recipe.busy-mark-stroke * 2;
+        height: self.width;
+        border-radius: self.width / 2;
+        x: (parent.width - self.width) / 2 + (root.recipe.busy-mark-size - self.width) / 2 * Math.cos(index * 45deg);
+        y: (parent.height - self.height) / 2 + (root.recipe.busy-mark-size - self.height) / 2 * Math.sin(index * 45deg);
+        background: root.recipe.foreground;
+        opacity: root.theme.reduced-motion ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase, 8) / 7;
     }
+    Timer {
+        interval: root.theme.motion.fast;
+        running: !root.theme.reduced-motion;
+        triggered => { root.phase = Math.mod(root.phase + 1, 8); }
+    }
+}
 
 // Content must be non-interactive; the primitive owns hit testing and activation.
 export component KitPressable inherits Rectangle {
@@ -30,6 +39,7 @@ export component KitPressable inherits Rectangle {
     in property <string> accessible-name;
     in property <bool> disabled;
     in property <bool> busy;
+    in property <string> busy-label: "Working…";
     in property <bool> tab-stop: true;
     // A pressable whose children host an open native editor hands the
     // pointer to them; keyboard activation and focus are unaffected.
@@ -80,6 +90,7 @@ export component KitPressable inherits Rectangle {
     accessible-role: button;
     accessible-label: root.accessible-name;
     accessible-enabled: !root.disabled && !root.busy;
+    accessible-description: root.busy ? root.busy-label : "";
     accessible-action-default => {
         if (!root.disabled && !root.busy) { root.activation-started(); root.activate-once(); }
     }
@@ -202,7 +213,7 @@ export component KitButton inherits KitPressable {
     }
     // The label stays in layout while a centered progress mark replaces it.
     // Busy therefore changes neither intrinsic width nor the content center.
-    if root.busy: BusyMark { recipe: root.recipe; }
+    if root.busy: BusyMark { recipe: root.recipe; theme: root.theme; }
 }
 
 // View actions carry intent only; the application provides the typed payload.
@@ -247,7 +258,7 @@ export component KitIconButton inherits KitPressable {
             ink: root.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
         }
     }
-    if root.busy: BusyMark { recipe: root.recipe; }
+    if root.busy: BusyMark { recipe: root.recipe; theme: root.theme; }
 }
 export component KitButtonGroup inherits HorizontalLayout {
     in property <KitTheme> theme: KitThemeContext.current;

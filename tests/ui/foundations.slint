@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitStat, Tone, KitTheme, KitThemes } from "@kit";
+import { KitStat, KitButton, Tone, KitTheme, KitThemes } from "@kit";
 export component StatFixture inherits Window {
     width: 300px; height: 200px;
     in-out property <KitTheme> theme: KitThemes.light;
@@ -7,4 +7,12 @@ export component StatFixture inherits Window {
     in property <Tone> tone;
     background: root.theme.canvas;
     KitStat { x: 24px; y: 24px; width: parent.width - 48px; theme: root.theme; tone: root.tone; label: "Revenue"; value: "88"; leading-icon: root.theme.icons.check; }
+}
+
+export component BusyButtonFixture inherits Window {
+    width: 240px; height: 120px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    KitButton { x: 24px; y: 24px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Save"; busy: true; busy-label: "Saving changes"; }
 }

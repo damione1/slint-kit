@@ -191,3 +191,5 @@ Custom `KitTypography` values must include `family-monospace`, used by code entr
 For sliders in a scrollable modal, opt into `KitScrollArea.pan-policy: children-first`. Interactive children keep a press through release; begin a drag on background or text to scroll. Background panning is direct, without inertia. Wheel scrolling, bars and focus reveal keep working. The default `native` policy preserves Slint arbitration.
 
 For a custom solid selected control, `KitThemes.selected-inset-focus(theme)` uses the theme’s `on-accent` ink with the shared inside-ring geometry. `KitThemes.inset-focus(theme)` keeps the regular focus color on neutral surfaces.
+
+Button busy marks use `theme.motion.fast` and remain static when `theme.reduced-motion` is true. Set `busy-label` to the localized explanation of pending work; it becomes the button’s accessible description while busy.
