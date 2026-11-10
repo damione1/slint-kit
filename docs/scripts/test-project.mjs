@@ -40,3 +40,32 @@ test('password examples keep accepted secrets out of visible status and log sink
   assert.match(rust, /Some\(value\)/);
   assert.doesNotMatch(rust, /(?:println!|eprintln!|dbg!)\s*\([^;]*(?:format\s*\(|&value|\{(?:value|password)[^}]*\})/);
 });
+
+test('quickstart pages distinguish development APIs from immutable registry examples', async () => {
+  const { default: nunjucks } = await import('nunjucks');
+  const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
+  const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
+  env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
+  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view']) {
+    for (const locale of ['en', 'fr']) {
+      for (const registryExamples of [false, true]) {
+        for (const version of ['0.7.2', '0.7.3']) {
+          const rendered = env.renderString(template, { component: { slug }, locale, project: { registryExamples, version }, quickstart: { en: 'English usage.', fr: 'Usage français.' } });
+          const development = !registryExamples || version === '0.7.2';
+          if (development) {
+            assert.doesNotMatch(rendered, /cargo run --locked|\/quickstart\/projects\//);
+            assert.match(rendered, /(?:cannot compile|ne compilent pas)/);
+            assert.match(rendered, /crates\/kit-build/);
+            assert.ok(rendered.includes(`https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/${slug}`));
+            if (['text-field', 'password-field', 'search-field'].includes(slug)) assert.match(rendered, /(?:field composition and action|composition et d’actions de champ)/);
+          } else {
+            assert.match(rendered, /cargo run --locked/);
+            assert.ok(rendered.includes(`/quickstart/projects/${slug}.zip`));
+          }
+        }
+      }
+    }
+  }
+  const existing = env.renderString(template, { component: { slug: 'button' }, locale: 'en', project: { registryExamples: false, version: '0.7.2' }, quickstart: { en: 'Usage.', fr: 'Usage.' } });
+  assert.match(existing, /cargo run --locked/);
+});

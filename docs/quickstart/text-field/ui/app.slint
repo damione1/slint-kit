@@ -1,6 +1,6 @@
 import { KitTheme, KitThemeContext, KitFieldDescription, LayoutSpace } from "@kit";
 
-import { KitTextField, KitStack, KitButton, FieldCommit } from "@kit";
+import { KitTextField, KitStack, KitButton, FieldCommit, KitInputGroupEnd, ControlSize, FieldAccess } from "@kit";
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     preferred-width: 520px; preferred-height: 320px;
@@ -10,9 +10,13 @@ export component App inherits Window {
     callback committed(FieldCommit);
     KitStack { inset: LayoutSpace.roomy;
         control := KitTextField {
+            clearable: true;
             label: "Full name"; text: "Elliot Alderson"; required: true; spec-key: "value";
 
             committed(value) => { root.committed(value); }
+            KitInputGroupEnd { layout-order: control.trailing-adornment-order;
+                KitButton { text: "Copy"; control-size: ControlSize.compact; focus-on-pointer: false; disabled: control.access == FieldAccess.disabled; activated => { control.select-all(); control.copy-selection(); } }
+            }
         }
         KitButton { text: "Apply"; activated => { control.commit(); } }
         KitFieldDescription { text: "Accepted: " + control.accepted-text; }

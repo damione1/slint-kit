@@ -1,6 +1,6 @@
 import { KitTheme, KitThemeContext, KitFieldDescription, LayoutSpace } from "@kit";
 
-import { KitPasswordField, KitStack, KitButton, FieldCommit } from "@kit";
+import { KitPasswordField, KitStack, KitButton, FieldCommit, SecretToggleVisibility } from "@kit";
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     preferred-width: 520px; preferred-height: 320px;
@@ -11,6 +11,7 @@ export component App inherits Window {
     in property <bool> accepted;
     KitStack { inset: LayoutSpace.roomy;
         control := KitPasswordField {
+            clearable: true; reveal-toggle: SecretToggleVisibility.shown;
             label: "Password"; text: "correct horse battery"; required: true; spec-key: "value";
 
             committed(value) => { root.committed(value); }

@@ -87,4 +87,7 @@ Constraint-bearing text, choice, file and date/time controls share a non-focusin
 A read-only file or directory picker can remain a validation candidate while its browse action is inactive. Its focus helper records a request, not confirmation from the platform; keep an editable route available to correct the selection.
 
 
+Compose interactive leading/trailing actions directly inside `KitTextField` with `KitInputGroupStart/End`. Bind each part’s `layout-order` to `field.leading-adornment-order` or `field.trailing-adornment-order`; the one native editor keeps filtering, selection, undo, constraints and commit policy. Give actions their own accessible names and access guards. Use `focus-on-pointer: false` for an auxiliary action that should not blur an edit. Slint’s visual `layout-order` leaves Tab in declaration order: editor, built-in actions, then declared children. `clearable` controls the optional single-line clear button, while `reveal-toggle: SecretToggleVisibility.hidden` hides the password toggle without overriding `secret-visibility`. Observe `cleared()` after a successful clear and `secret-visibility-changed(SecretVisibility)` after a state transition. `busy` and `busy-label` show activity independently of validation; they do not change `access` or hide validation checking. Configure the default with `KitStrings.busy-label`.
+
+
 Keep accepted password values in typed application state. Show a nonsensitive acceptance status; never render accepted-text or committed value text beside a password field, and never print the password to logs.

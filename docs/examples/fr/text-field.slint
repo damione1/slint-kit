@@ -2,13 +2,13 @@ import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTextField, KitTheme, KitThemes } from "@kit";
+import { KitTextField, KitTheme, KitThemes, KitInputGroupStart, KitInputGroupEnd, KitButton, ControlSize, FieldAccess } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitTextField — exemple";
     preferred-width: 420px;
-    preferred-height: 180px;
+    preferred-height: 240px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -18,7 +18,15 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Champ de texte"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         // Clic droit ou Maj+F10 ouvre les commandes d’édition natives.
-        KitTextField { key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; required-label: "Obligatoire"; required-message: "Ce champ est obligatoire."; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; select-all-label: "Tout sélectionner"; text: "Notes de terrain"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
+        field := KitTextField { clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; required-label: "Obligatoire"; required-message: "Ce champ est obligatoire."; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer le texte"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Nom du projet"; select-all-label: "Tout sélectionner"; text: "Notes de terrain"; committed(value) => { root.status = "Accepté : " + value.value.text; }
+            cleared => { root.status = "Effacé"; }
+            KitInputGroupStart { theme: root.theme; layout-order: field.leading-adornment-order;
+                KitButton { theme: root.theme; control-size: ControlSize.compact; text: "@"; accessible-name: "Insérer un repère"; focus-on-pointer: false; disabled: field.access != FieldAccess.editable; activated => { field.insert-at-cursor("@"); } }
+            }
+            KitInputGroupEnd { theme: root.theme; layout-order: field.trailing-adornment-order;
+                KitButton { theme: root.theme; control-size: ControlSize.compact; text: "Copier"; focus-on-pointer: false; disabled: field.access == FieldAccess.disabled; activated => { field.select-all(); field.copy-selection(); root.status = "Copié"; } }
+            }
+        }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

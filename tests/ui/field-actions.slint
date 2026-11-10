@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextField, KitInputGroupStart, KitInputGroupEnd, KitButton, KitSelect, KitTheme, KitThemes, FieldAccess, TextPurpose, SecretVisibility, SecretToggleVisibility, ValidationPresentation, CommitPolicy, ControlSize } from "@kit";
+export component FieldActionsFixture inherits Window {
+    width: 720px; height: 640px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in-out property <string> text: "alpha";
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <TextPurpose> purpose: TextPurpose.plain;
+    in property <bool> clearable: true;
+    in property <bool> show-selector;
+    in property <SecretToggleVisibility> reveal-toggle: SecretToggleVisibility.shown;
+    in-out property <SecretVisibility> secret: SecretVisibility.hidden;
+    in property <bool> busy;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in-out property <int> cleared-count;
+    in-out property <int> reveal-count;
+    in-out property <int> unit-count;
+    in-out property <int> copied-count;
+    in-out property <int> commit-count;
+    out property <bool> editor-focus: field.has-focus;
+    out property <bool> unit-focus: unit.has-focus;
+    out property <bool> copy-focus: copy.has-focus;
+    out property <bool> other-focus: other.has-focus;
+    out property <bool> invalid: field.validation-visible;
+    out property <int> cursor: field.cursor-position;
+    out property <int> anchor: field.selection-anchor;
+    public function focus-field() { field.take-focus(); }
+    public function clear() { field.clear(); }
+    public function undo() { field.undo(); }
+    public function selection(anchor: int, cursor: int) { field.set-selection(anchor, cursor); }
+    public function read-clipboard() -> string { clipboard.text = ""; clipboard.paste(); return clipboard.text; }
+    clipboard := TextInput { visible: false; enabled: false; }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        field := KitTextField {
+            theme: root.theme; access: root.access; text <=> root.text; purpose: root.purpose;
+            label: "Access token"; description: "The native editor keeps selection and undo while actions share its surface.";
+            clearable: root.clearable; reveal-toggle: root.reveal-toggle; secret-visibility <=> root.secret;
+            busy: root.busy; validation: root.validation; error: "Check this token.";
+            commit-policy: CommitPolicy.on-blur;
+            cleared => { root.cleared-count += 1; }
+            secret-visibility-changed(value) => { root.reveal-count += 1; }
+            committed(value) => { root.commit-count += 1; }
+            KitInputGroupStart {
+                theme: root.theme; layout-order: field.leading-adornment-order;
+                if root.show-selector: KitSelect {
+                    theme: root.theme; access: root.access;
+                    preferred-width: 100px; min-width: 100px; max-width: 100px; horizontal-stretch: 0;
+                    options: [{token: 17, generation: 1, label: "USD", description: "US dollar", disabled: false}, {token: 29, generation: 1, label: "EUR", description: "Euro", disabled: false}];
+                    selected: {present: true, token: 17};
+                    chosen(value) => { root.unit-count += 1; }
+                }
+                unit := KitButton {
+                    theme: root.theme; control-size: ControlSize.compact; text: "Unit";
+                    accessible-name: "Unit selector"; focus-on-pointer: false;
+                    disabled: root.access != FieldAccess.editable;
+                    activated => { root.unit-count += 1; }
+                }
+            }
+            KitInputGroupEnd {
+                theme: root.theme; layout-order: field.trailing-adornment-order;
+                copy := KitButton {
+                    theme: root.theme; control-size: ControlSize.compact; text: "Copy";
+                    accessible-name: "Copy value"; focus-on-pointer: false;
+                    disabled: root.access == FieldAccess.disabled || (root.purpose == TextPurpose.password && root.secret == SecretVisibility.hidden);
+                    activated => { field.select-all(); field.copy-selection(); root.copied-count += 1; }
+                }
+            }
+        }
+        other := KitButton { theme: root.theme; text: "Other action"; }
+    }
+}
