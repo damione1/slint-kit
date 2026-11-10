@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, FieldCommit } from "@kit";
+import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
 export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -7,6 +7,8 @@ export enum DataFixtureCollection { table, content, document }
 export component BaseDataFixture inherits Window {
     width: 960px; height: 1000px;
     in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <ControlSize> table-size: ControlSize.medium;
     in property <[TableColumn]> columns;
     in property <[TableRow]> rows;
     in property <[ContentItem]> items;
@@ -47,7 +49,7 @@ export component BaseDataFixture inherits Window {
     VerticalLayout {
         padding: 16px; spacing: 12px; alignment: start;
         table := KitDataTable {
-            theme: root.theme; height: 240px; columns: root.columns; rows: root.rows;
+            theme: root.theme; control-size: root.table-size; height: 240px; columns: root.columns; rows: root.rows;
             generation: root.table-generation; active-index: root.table-active;
             interactive: root.table-interactive;
             label: "Products fixture";

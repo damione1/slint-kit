@@ -27,6 +27,8 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Give table cells the full row height so native editors and their focus borders fit at every control size and text scale.
+
 - Keep keyboard focus on the destination control when a table cell commits on blur; return focus to the table only for an editor that still owns it.
 
 
@@ -64,6 +66,8 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Donne aux cellules toute la hauteur de ligne afin que les éditeurs natifs et leurs bordures de focus restent visibles à chaque densité et échelle de texte.
 
 - Conserve le focus sur le contrôle de destination lorsqu’une cellule est confirmée à la perte de focus ; rend le focus au tableau uniquement si l’éditeur le possède encore.
 

@@ -665,3 +665,34 @@ fn field_cells_project_once_and_format_their_typed_value() {
         }
     );
 }
+
+#[test]
+fn editors_and_cell_cursor_fit_the_row_at_every_density_and_text_scale() {
+    let Editing { window, .. } = editing(records());
+    let light = window.get_theme();
+    for (name, theme) in [("light", light), ("dark", window.get_dark_theme())] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            for size in [
+                ControlSize::Compact,
+                ControlSize::Medium,
+                ControlSize::Comfortable,
+            ] {
+                window.set_table_size(size);
+                open(&window, 1);
+                let editor = editors(&window).remove(0);
+                let row = delegates(&window, "KitDataTable").remove(0);
+                assert!(editor.absolute_position().y >= row.absolute_position().y);
+                assert!(
+                    editor.absolute_position().y + editor.size().height
+                        <= row.absolute_position().y + row.size().height
+                );
+                assert_eq!(editor.computed_opacity(), 1.);
+                key(&window, Key::Escape);
+            }
+        }
+        let _ = name;
+    }
+}
