@@ -22,6 +22,8 @@ Utilisez `FilePickerBinding<W>` ou `DirectoryPickerBinding<W>` pour le flux ordi
 let picker = slint_kit::FilePickerBinding::new(&app, slint_kit::FilePickerPorts {
     entries: App::set_entries, state: App::set_request_state, error: App::set_error,
 });
+picker.set_mode(slint_kit::FileSelectionMode::Single);
+picker.set_access(slint_kit::FieldAccess::Editable);
 picker.on_selection(|files| println!("{} ressources sélectionnées", files.len()));
 app.on_browse(picker.browse_handler());
 app.on_remove(picker.remove_handler());
@@ -54,3 +56,15 @@ Traitez chaque variante de `SelectionOutcome` : `Selected(value)`, `Cancelled` o
 Consultez `slint_kit::native::capabilities()` et projetez ses résultats typés dans [KitFilePicker](/fr/components/file-picker/), [KitDirectoryPicker](/fr/components/directory-picker/) et [KitFileDropZone](/fr/components/file-drop-zone/). Le sélecteur et le dépôt externe sont deux capacités distinctes. L’adaptateur natif générique déclare le dépôt non pris en charge. Pour une fenêtre winit, activez `native-winit` et appelez `FilePickerBinding::install_winit_drop` avec les ports de capacité et de survol. Un DropArea Slint ne prouve ni le support système du dépôt ni la qualification d’un périphérique.
 
 `HostRequestController<T>` émet des tickets pour rejeter les réponses asynchrones obsolètes. Présentez explicitement attente, échec et annulation. Consultez le [contrôleur de fichiers du showcase](https://github.com/damione1/slint-kit/blob/main/showcase/src/form_files.rs) et l’[adaptateur système](https://github.com/damione1/slint-kit/blob/main/crates/kit-native/src/lib.rs) pour le comportement par plateforme.
+
+Synchronisez `set_mode` et `set_access` avec le sélecteur lors de leurs changements. Les dépôts natifs appliquent ces règles même via le pont winit de la fenêtre : sélection simple conserve le dernier fichier déposé, sélection multiple ajoute les emplacements uniques, lecture seule et désactivation ignorent le dépôt.
+
+## Textes intégrés localisés
+
+Définissez `KitStrings` une fois pour la fenêtre afin de traduire parcours, suppression, états des sélecteurs et états des étapes. Les propriétés publiques restent remplaçables par instance ; les modèles de suppression acceptent `{action}` et `{name}` dans l’ordre voulu.
+
+`FilePickerBinding::set_error_mapper` et `DirectoryPickerBinding::set_error_mapper` reçoivent le `HostError` typé et retournent un `SharedString` localisé. `HostError::Platform(detail)` conserve le détail système, y compris avec le mapper par défaut. L’absence de capacité passe par l’état de requête et n’ajoute jamais d’erreur de champ, même avec un mapper personnalisé.
+
+Les bindings fournissent la fenêtre Slint comme parent de la boîte de dialogue native. Une intégration directe utilise pick_files_with_parent ou pick_directory_with_parent avec un fournisseur raw-window-handle. Affichez d’abord la fenêtre ; le support dépend du système/backend (macOS, Windows et Linux XDG). Les handles sont lus avant de retourner le futur pour préserver la durée de vie faible ; le comportement modal natif reste à qualifier sur la cible.
+
+`KitFileDropZone` sert aussi au parcours : raccordez `browse-requested` au même binding que le bouton du sélecteur. Clic/Entrée/Espace/action d’accessibilité fonctionnent indépendamment de la capacité de dépôt système. Définissez `description` et `leading-icon`, ou composez `@children` ; lecture seule et désactivation bloquent les deux chemins.

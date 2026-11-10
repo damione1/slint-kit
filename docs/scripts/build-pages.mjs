@@ -9,6 +9,9 @@ const run = (command, args, extra = {}) => {
 };
 const staging = '.generated/site-stage';
 run('python3',['scripts/sync-doc-versions.py','--check']);
+if (process.env.DOCS_BUILD_MODE === 'release') {
+  run('python3', ['scripts/check-complete-consumers.py', '--mode', 'release']);
+}
 run('node',['scripts/check-migration.mjs']);
 run('python3',['scripts/pack-starters.py']);
 fs.rmSync(staging,{recursive:true,force:true});

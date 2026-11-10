@@ -33,6 +33,9 @@
   <script type="application/ld+json">{{ seo | structuredData(site, locale) | scriptJson | safe }}</script>
   <link rel="icon" href="/assets/branding/slint-kit-symbol.svg" type="image/svg+xml">
   <link rel="stylesheet" href="{{ '/assets/site.css' | versionedAsset }}">
+  {% if contactPage %}<link rel="stylesheet" href="{{ '/assets/contact.css' | versionedAsset }}"><script type="module" src="{{ '/assets/contact.js' | versionedAsset }}"></script>{% endif %}
+  {% if home %}<link rel="stylesheet" href="{{ '/assets/landing.css' | versionedAsset }}">
+  <script type="module" src="{{ '/assets/landing.js' | versionedAsset }}"></script>{% endif %}
   {% if site.url %}<link rel="canonical" href="{{ site.url }}{{ page.url }}">{% endif %}
   <link rel="alternate" hreflang="fr" href="{{ site.url }}{{ translationKey | localeUrl('fr') }}">
   <link rel="alternate" hreflang="en" href="{{ site.url }}{{ translationKey | localeUrl('en') }}">
@@ -47,7 +50,7 @@
   <a class="brand" href="{{ '' | localeUrl(locale) }}" aria-label="Slint Kit — {{ ui[locale].home }}">
     <img src="/assets/branding/slint-kit-symbol.svg" alt="" width="32" height="40"><span>Slint <b>Kit</b></span>
   </a>
-  <span class="site-label">{{ ui[locale].documentation }}</span>
+  <span class="site-label">{% if home %}{% if locale == "fr" %}Kit UI Rust{% else %}Rust UI kit{% endif %}{% else %}{{ ui[locale].documentation }}{% endif %}</span>
   <button class="doc-search-trigger" type="button" data-index="/assets/search-index-{{ locale }}.json" aria-haspopup="dialog" aria-controls="doc-search" hidden>
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 4.5 4.5"/></svg>
     <span>{% if locale == 'fr' %}Rechercher dans la doc{% else %}Search documentation{% endif %}</span><kbd aria-hidden="true">⌘ / Ctrl K</kbd>
@@ -87,6 +90,6 @@
 {% if seo.breadcrumbs.length %}<nav class="breadcrumbs" aria-label="{% if locale == 'fr' %}Fil d’Ariane{% else %}Breadcrumb{% endif %}"><ol>{% for crumb in seo.breadcrumbs %}<li>{% if loop.last %}<span aria-current="page">{{ crumb.name }}</span>{% else %}<a href="{{ crumb.url }}">{{ crumb.name }}</a>{% endif %}</li>{% endfor %}</ol></nav>{% endif %}
 {{ content | safe }}</main>
 </div>
-<footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a></footer>
+<footer class="site-footer"><span>Slint Kit</span> <a href="{{ site.repository }}/blob/main/LICENSE">{{ ui[locale].license }}</a> <a href="{{ 'contact/' | localeUrl(locale) }}">Contact</a></footer>
 </body>
 </html>

@@ -14,7 +14,24 @@ export { StepDirection } from "shared-contracts.slint";
 // Native numeric filtering rejects letters on typing and paste. Decimal mode
 // retains signs and incomplete decimals; Rust still parses exact domain values,
 // integer constraints, scale and bounds without accepting renderer floats.
-export component KitIntegerField inherits KitTextField { step: "1"; input-type: InputType.decimal; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; }
+export component KitIntegerField inherits KitTextField {
+    step: "1"; input-type: InputType.decimal;
+    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };
+    // Slint fixes `accessible-role` at compile time and every text field keeps
+    // one native editor, so the spin button role sits on the numeric component
+    // root with the range and the increment/decrement actions; the editor
+    // below it still exposes its text, caret and selection.
+    accessible-role: spinbox;
+    accessible-label: root.accessible-name;
+    accessible-value: root.text;
+    accessible-value-minimum: root.number-range.minimum;
+    accessible-value-maximum: root.number-range.maximum;
+    accessible-value-step: root.number-range.step;
+    accessible-enabled: root.access != FieldAccess.disabled;
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-action-increment => { root.step-by(StepDirection.increment, 1); }
+    accessible-action-decrement => { root.step-by(StepDirection.decrement, 1); }
+}
 export component KitDecimalField inherits KitIntegerField { step: "any"; }
 export component KitMoneyField inherits KitDecimalField { }
 export component KitPercentField inherits KitDecimalField { suffix: "%"; }
@@ -40,6 +57,8 @@ export component KitNumberStepper inherits KitField {
     in property <string> min;
     in property <string> max;
     in property <string> step: "1";
+    in property <int> page-steps: 10;
+    in property <bool> wheel-stepping;
     in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
     in property <string> default-value;
     in-out property <string> custom-validity;
@@ -49,6 +68,7 @@ export component KitNumberStepper inherits KitField {
     callback invalid();
     public function check-validity() -> bool { return editor.check-validity(); }
     public function report-validity() -> bool { return editor.report-validity(); }
+    public function focus-if-invalid() -> bool { return editor.focus-if-invalid(); }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
     in property <string> label;
@@ -79,6 +99,7 @@ export component KitNumberStepper inherits KitField {
             ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
             show-validation-message: false; error: root.error;
             required: root.required; min: root.min; max: root.max; step: root.step;
+            page-steps: root.page-steps; wheel-stepping: root.wheel-stepping;
             number-format: root.number-format; default-value: root.default-value;
             custom-validity <=> root.custom-validity;
             invalid => { root.invalid(); }

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { contact } from './contact-worker.mjs';
 const aliases = new Set(['slint-kit.damiengoehrig.ca', 'www.slint-kit.dev']);
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/contact' || url.pathname === '/api/contact/config') return contact(request, env);
     if (aliases.has(url.hostname) || (url.hostname === 'slint-kit.dev' && url.protocol !== 'https:')) {
       url.protocol = 'https:';
       url.host = 'slint-kit.dev';

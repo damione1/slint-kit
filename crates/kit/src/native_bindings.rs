@@ -23,10 +23,36 @@ struct Files {
     requests: HostRequestController<Vec<FileHandle>>,
 }
 type FileHandler = Rc<dyn Fn(Vec<FileHandle>)>;
+type ErrorMapper = Rc<dyn Fn(&HostError) -> SharedString>;
+fn default_error_text(error: &HostError) -> SharedString {
+    let (_, message) = error_presentation(error);
+    match error {
+        HostError::Platform(detail) => format!("{message} {detail}").into(),
+        HostError::Unsupported
+        | HostError::PermissionDenied
+        | HostError::Unavailable
+        | HostError::InvalidResource
+        | HostError::InvalidFilter => message.into(),
+    }
+}
+fn mapped_error(
+    error: &HostError,
+    mapper: &RefCell<ErrorMapper>,
+) -> (ui::HostRequestPresentation, SharedString) {
+    let (state, _) = error_presentation(error);
+    if state == ui::HostRequestPresentation::Unsupported {
+        return (state, SharedString::default());
+    }
+    let mapper = mapper.borrow().clone();
+    (state, mapper(error))
+}
 pub struct FilePickerBinding<W: ComponentHandle + 'static> {
     drop_available: Rc<Cell<bool>>,
+    selection_mode: Rc<Cell<FileSelectionMode>>,
+    access: Rc<Cell<crate::FieldAccess>>,
     window: slint::Weak<W>,
     ports: Rc<FilePickerPorts<W>>,
+    error_mapper: Rc<RefCell<ErrorMapper>>,
     files: Rc<RefCell<Files>>,
     handler: Rc<RefCell<Option<FileHandler>>>,
 }
@@ -34,8 +60,11 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
     fn clone(&self) -> Self {
         Self {
             drop_available: self.drop_available.clone(),
+            selection_mode: self.selection_mode.clone(),
+            access: self.access.clone(),
             window: self.window.clone(),
             ports: self.ports.clone(),
+            error_mapper: self.error_mapper.clone(),
             files: self.files.clone(),
             handler: self.handler.clone(),
         }
@@ -43,10 +72,7 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
 }
 fn error_presentation(error: &HostError) -> (ui::HostRequestPresentation, &'static str) {
     match error {
-        HostError::Unsupported => (
-            ui::HostRequestPresentation::Unsupported,
-            "This platform does not provide this picker.",
-        ),
+        HostError::Unsupported => (ui::HostRequestPresentation::Unsupported, ""),
         HostError::PermissionDenied => (
             ui::HostRequestPresentation::Failed,
             "Permission was denied.",
@@ -73,8 +99,11 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     pub fn new(window: &W, ports: FilePickerPorts<W>) -> Self {
         let result = Self {
             drop_available: Rc::new(Cell::new(false)),
+            selection_mode: Rc::new(Cell::new(FileSelectionMode::Single)),
+            access: Rc::new(Cell::new(crate::FieldAccess::Editable)),
             window: window.as_weak(),
             ports: Rc::new(ports),
+            error_mapper: Rc::new(RefCell::new(Rc::new(default_error_text))),
             files: Rc::new(RefCell::new(Files {
                 handles: vec![],
                 rows: KeyedModel::new([]).expect("empty model"),
@@ -88,17 +117,33 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         }
         result
     }
+    /// Set the same mode as the picker. Single-file drops replace the selection.
+    pub fn set_mode(&self, mode: FileSelectionMode) {
+        self.selection_mode.set(mode);
+    }
+    /// Set the current field access before forwarding native window events.
+    pub fn set_access(&self, access: crate::FieldAccess) {
+        self.access.set(access);
+        if access != crate::FieldAccess::Editable {
+            self.files.borrow_mut().requests.cancel();
+        }
+    }
     pub fn on_selection(&self, handler: impl Fn(Vec<FileHandle>) + 'static) {
         *self.handler.borrow_mut() = Some(Rc::new(handler));
     }
     pub fn selected(&self) -> Vec<FileHandle> {
         self.files.borrow().handles.clone()
     }
+    /// Map typed host failures to localized UI text. Unsupported remains a
+    /// capability state and never publishes a field error.
+    pub fn set_error_mapper(&self, mapper: impl Fn(&HostError) -> SharedString + 'static) {
+        *self.error_mapper.borrow_mut() = Rc::new(mapper);
+    }
     fn fail(&self, error: HostError) {
         if let Some(window) = self.window.upgrade() {
-            let (state, message) = error_presentation(&error);
+            let (state, message) = mapped_error(&error, &self.error_mapper);
             (self.ports.state)(&window, state);
-            (self.ports.error)(&window, message.into());
+            (self.ports.error)(&window, message);
         }
     }
     fn replace(&self, handles: Vec<FileHandle>) {
@@ -135,6 +180,9 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         }
     }
     pub fn browse(&self, mode: ui::FileSelectionMode) {
+        if self.access.get() != crate::FieldAccess::Editable {
+            return;
+        }
         let Some(window) = self.window.upgrade() else {
             return;
         };
@@ -142,17 +190,26 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             ui::FileSelectionMode::Single => FileSelectionMode::Single,
             ui::FileSelectionMode::Multiple => FileSelectionMode::Multiple,
         };
+        self.set_mode(selection);
         let ticket = self.files.borrow_mut().requests.begin();
         (self.ports.state)(&window, ui::HostRequestPresentation::Pending);
         (self.ports.error)(&window, SharedString::default());
         let binding = self.clone();
         if slint::spawn_local(async move {
-            let outcome = crate::native::pick_files(FileRequest {
-                selection,
-                filters: vec![],
-                suggested_name: None,
-            })
-            .await;
+            let future = {
+                let Some(window) = binding.window.upgrade() else {
+                    return;
+                };
+                crate::native::pick_files_with_parent(
+                    FileRequest {
+                        selection,
+                        filters: vec![],
+                        suggested_name: None,
+                    },
+                    &window.window().window_handle(),
+                )
+            };
+            let outcome = future.await;
             if binding.window.upgrade().is_none() {
                 return;
             }
@@ -205,7 +262,10 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     ) -> impl Fn(slint::language::DropEvent) -> slint::language::DragAction + 'static {
         let binding = self.clone();
         move |event| {
-            if binding.drop_available.get() && event.data.has_file_paths() {
+            if binding.drop_available.get()
+                && binding.access.get() == crate::FieldAccess::Editable
+                && event.data.has_file_paths()
+            {
                 slint::language::DragAction::Copy
             } else {
                 slint::language::DragAction::None
@@ -217,7 +277,10 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
     ) -> impl Fn(slint::language::DropEvent) -> slint::language::DragAction + 'static {
         let binding = self.clone();
         move |event| {
-            if !binding.drop_available.get() || binding.window.upgrade().is_none() {
+            if !binding.drop_available.get()
+                || binding.access.get() != crate::FieldAccess::Editable
+                || binding.window.upgrade().is_none()
+            {
                 return slint::language::DragAction::None;
             }
             let Ok(paths) = event.data.file_paths() else {
@@ -232,17 +295,27 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         }
     }
     pub fn accept_drop(&self, paths: impl IntoIterator<Item = std::path::PathBuf>) {
-        self.files.borrow_mut().requests.cancel();
-        let mut handles = self.selected();
-        handles.extend(paths.into_iter().map(|path| {
-            FileHandle {
+        if self.access.get() != crate::FieldAccess::Editable || self.window.upgrade().is_none() {
+            return;
+        }
+        let incoming: Vec<_> = paths
+            .into_iter()
+            .map(|path| FileHandle {
                 display_name: path
                     .file_name()
                     .map_or_else(String::new, |name| name.to_string_lossy().into_owned()),
                 location: FileLocation::Path(path),
                 byte_length: None,
-            }
-        }));
+            })
+            .collect();
+        if incoming.is_empty() {
+            return;
+        }
+        self.files.borrow_mut().requests.cancel();
+        let handles = match self.selection_mode.get() {
+            FileSelectionMode::Single => incoming.into_iter().last().into_iter().collect(),
+            FileSelectionMode::Multiple => self.selected().into_iter().chain(incoming).collect(),
+        };
         self.replace(handles);
     }
 }
@@ -256,6 +329,7 @@ type DirectoryHandler = Rc<dyn Fn(Option<DirectoryHandle>)>;
 pub struct DirectoryPickerBinding<W: ComponentHandle + 'static> {
     window: slint::Weak<W>,
     ports: Rc<DirectoryPickerPorts<W>>,
+    error_mapper: Rc<RefCell<ErrorMapper>>,
     requests: Rc<RefCell<HostRequestController<DirectoryHandle>>>,
     selected: Rc<RefCell<Option<DirectoryHandle>>>,
     handler: Rc<RefCell<Option<DirectoryHandler>>>,
@@ -265,6 +339,7 @@ impl<W: ComponentHandle + 'static> Clone for DirectoryPickerBinding<W> {
         Self {
             window: self.window.clone(),
             ports: self.ports.clone(),
+            error_mapper: self.error_mapper.clone(),
             requests: self.requests.clone(),
             selected: self.selected.clone(),
             handler: self.handler.clone(),
@@ -276,6 +351,7 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
         let result = Self {
             window: window.as_weak(),
             ports: Rc::new(ports),
+            error_mapper: Rc::new(RefCell::new(Rc::new(default_error_text))),
             requests: Rc::new(RefCell::new(HostRequestController::default())),
             selected: Rc::new(RefCell::new(None)),
             handler: Rc::new(RefCell::new(None)),
@@ -291,11 +367,15 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
     pub fn selected(&self) -> Option<DirectoryHandle> {
         self.selected.borrow().clone()
     }
+    /// Localize typed host failures; platform details are available to the mapper.
+    pub fn set_error_mapper(&self, mapper: impl Fn(&HostError) -> SharedString + 'static) {
+        *self.error_mapper.borrow_mut() = Rc::new(mapper);
+    }
     fn fail(&self, error: HostError) {
         if let Some(window) = self.window.upgrade() {
-            let (state, message) = error_presentation(&error);
+            let (state, message) = mapped_error(&error, &self.error_mapper);
             (self.ports.state)(&window, state);
-            (self.ports.error)(&window, message.into());
+            (self.ports.error)(&window, message);
         }
     }
     fn publish(&self, selected: Option<DirectoryHandle>) {
@@ -326,7 +406,16 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
         (self.ports.error)(&window, SharedString::default());
         let binding = self.clone();
         if slint::spawn_local(async move {
-            let outcome = crate::native::pick_directory(DirectoryRequest::default()).await;
+            let future = {
+                let Some(window) = binding.window.upgrade() else {
+                    return;
+                };
+                crate::native::pick_directory_with_parent(
+                    DirectoryRequest::default(),
+                    &window.window().window_handle(),
+                )
+            };
+            let outcome = future.await;
             if binding.window.upgrade().is_none() {
                 return;
             }
@@ -417,12 +506,101 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::native_test_fixture::FileBindingTestWindow;
     use slint::Model;
+    #[test]
+    fn unsupported_picker_uses_capability_state_without_a_field_error() {
+        let (state, message) = error_presentation(&HostError::Unsupported);
+        assert_eq!(state, ui::HostRequestPresentation::Unsupported);
+        assert!(
+            message.is_empty(),
+            "the picker renders its capability explanation"
+        );
+        let (state, message) = error_presentation(&HostError::PermissionDenied);
+        assert_eq!(state, ui::HostRequestPresentation::Failed);
+        assert!(
+            !message.is_empty(),
+            "actual failures retain an error message"
+        );
+    }
+
+    #[test]
+    fn both_picker_bindings_localize_typed_errors_and_preserve_platform_detail() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::KitVirtualTextView::new().unwrap();
+        let files = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: |_, _| {},
+                state: |_, _| {},
+                error: ui::KitVirtualTextView::set_error,
+            },
+        );
+        files.fail(HostError::Platform("device unavailable".into()));
+        assert!(window.get_error().contains("device unavailable"));
+        files.set_error_mapper(|error| format!("Échec : {error:?}").into());
+        files.fail(HostError::PermissionDenied);
+        assert_eq!(window.get_error(), "Échec : PermissionDenied");
+        files.fail(HostError::Unsupported);
+        assert!(window.get_error().is_empty());
+        let directory = DirectoryPickerBinding::new(
+            &window,
+            DirectoryPickerPorts {
+                selected: |_, _| {},
+                state: |_, _| {},
+                error: ui::KitVirtualTextView::set_error,
+            },
+        );
+        directory.set_error_mapper(|error| format!("Dossier : {error:?}").into());
+        directory.fail(HostError::Platform("accès refusé".into()));
+        assert!(window.get_error().starts_with("Dossier : "));
+        assert!(window.get_error().contains("accès refusé"));
+        directory.fail(HostError::Unsupported);
+        assert!(window.get_error().is_empty());
+    }
+
+    #[test]
+    fn dropped_files_respect_single_selection_and_field_access() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::KitVirtualTextView::new().unwrap();
+        let binding = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: |_, _| {},
+                state: |_, _| {},
+                error: |_, _| {},
+            },
+        );
+        let first = std::path::PathBuf::from("/example/first.txt");
+        let last = std::path::PathBuf::from("/example/last.txt");
+        binding.accept_drop([first.clone(), last.clone()]);
+        assert_eq!(binding.selected().len(), 1);
+        assert_eq!(
+            binding.selected()[0].location,
+            FileLocation::Path(last.clone())
+        );
+        for access in [crate::FieldAccess::ReadOnly, crate::FieldAccess::Disabled] {
+            binding.set_access(access);
+            binding.accept_drop([first.clone()]);
+            assert_eq!(
+                binding.selected()[0].location,
+                FileLocation::Path(last.clone())
+            );
+        }
+        binding.set_access(crate::FieldAccess::Editable);
+        binding.accept_drop([first.clone()]);
+        assert_eq!(binding.selected()[0].location, FileLocation::Path(first));
+        binding.accept_drop([]);
+        assert_eq!(
+            binding.selected().len(),
+            1,
+            "an empty drop preserves selection"
+        );
+    }
+
     #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = FileBindingTestWindow::new().unwrap();
+        let window = ui::KitVirtualTextView::new().unwrap();
         let weak = window.as_weak();
         let binding = FilePickerBinding::new(
             &window,
@@ -432,6 +610,7 @@ mod tests {
                 error: |_, _| {},
             },
         );
+        binding.set_mode(FileSelectionMode::Multiple);
         let path = std::path::PathBuf::from("/example/project.txt");
         binding.accept_drop([path.clone(), path]);
         assert_eq!(binding.selected().len(), 1);

@@ -5,8 +5,17 @@ mod ui {
     slint::include_modules!();
 }
 pub use ui::*;
+mod column_widths;
+mod dialog_composition;
+mod direction;
+mod foundation_render;
+mod foundations;
+mod journeys;
 mod keyboard_scope;
+mod preview;
 mod selection_service;
+mod table_cells;
+mod table_editing;
 mod window_callback;
 mod wrapped_field;
 
@@ -483,13 +492,7 @@ mod tests {
                     contrast(theme.border_strong, surface)
                 );
             }
-            for intent in [
-                ButtonIntent::Primary,
-                ButtonIntent::Secondary,
-                ButtonIntent::Outline,
-                ButtonIntent::Quiet,
-                ButtonIntent::Destructive,
-            ] {
+            for intent in crate::variants::button_intents() {
                 let recipe = window.invoke_recipe(theme.clone(), intent);
                 for (state, fill) in [
                     ("rest", recipe.fill),
@@ -769,6 +772,7 @@ mod form_corrections;
 
 #[cfg(test)]
 mod base_data;
+mod button_group;
 mod button_sizing;
 mod control_states;
 mod icons;
@@ -781,6 +785,7 @@ mod variants;
 mod base_feedback;
 
 mod datetime_localization;
+mod number_stepping;
 mod numeric_input;
 mod scroll_bar;
 mod select_geometry;
@@ -797,9 +802,16 @@ mod choice_presentation;
 mod keypad;
 mod otp_field;
 mod qa_polish;
-mod slider_paint;
 
 mod autonomous;
 mod keyed_model;
+mod text_field_behavior;
+
+mod direct_validation;
+
+mod field_actions;
+
+mod temporal_blur_commit;
 
 mod color_wheel;
+mod slider_paint;

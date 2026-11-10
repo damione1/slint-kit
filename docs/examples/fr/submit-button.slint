@@ -16,7 +16,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Bouton d’envoi"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitSubmitButton { theme: root.theme; text: "Créer un compte"; activated => { root.status = "Action demandée"; } }
+        KitSubmitButton { validation-requested => { return true; } theme: root.theme; text: "Créer un compte"; form-action(action) => { root.status = "Action demandée"; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

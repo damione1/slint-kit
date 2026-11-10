@@ -1,0 +1,25 @@
+{% macro money(labels) %}
+<div class="kit-illustration mock-money" role="img" aria-label="{{ labels.illustration }} — {{ labels.money }} : CAD 129.95">
+  <p class="mock-title">{{ labels.money }}</p><p class="mock-label">{{ labels.budget }}</p>
+  <div class="mock-input"><span>129.95</span><span class="mock-currency">CAD</span></div>
+  <p class="mock-value"><span>{{ labels.value }}</span><code>Money · CAD 129.95</code></p>
+</div>
+{% endmacro %}
+{% macro calendar(labels) %}
+<div class="kit-illustration mock-calendar" role="img" aria-label="{{ labels.illustration }} — {{ labels.calendar }} : {{ labels.month }}">
+  <div class="mock-calendar-heading"><span aria-hidden="true">‹</span><strong>{{ labels.month }}</strong><span aria-hidden="true">›</span></div>
+  <div class="mock-calendar-grid">{% for day in labels.weekdays %}<span class="mock-weekday">{{ day }}</span>{% endfor %}{% for day in [28,29,30] %}<span class="is-muted">{{ day }}</span>{% endfor %}{% for day in range(1,32) %}<span{% if day == 19 %} class="is-chosen"{% elif (day + 2) % 7 >= 5 %} class="is-muted"{% endif %}>{{ day }}</span>{% endfor %}{% for day in range(1,9) %}<span class="is-muted">{{ day }}</span>{% endfor %}</div>
+</div>
+{% endmacro %}
+{% macro dialog(labels) %}
+<div class="kit-illustration mock-dialog" role="img" aria-label="{{ labels.illustration }} — {{ labels.dialog }}">
+  <div class="mock-dialog-background" aria-hidden="true"><span></span><span></span><span></span></div>
+  <div class="mock-dialog-panel"><p class="mock-dialog-eyebrow">{{ labels.dialog }}</p><p class="mock-title">{{ labels.question }}</p><p>{{ labels.description }}</p><div class="mock-dialog-actions"><span>{{ labels.cancel }}</span><span class="mock-primary">{{ labels.confirm }}</span></div></div>
+</div>
+{% endmacro %}
+{% macro combobox(labels) %}
+<div class="kit-illustration mock-combobox" role="img" aria-label="{{ labels.illustration }} — KitCombobox">
+  <p class="mock-title">{{ labels.workspace }}</p><p class="mock-help">{{ labels.search }}</p>
+  <div class="mock-input"><span>Personal</span><span aria-hidden="true">⌄</span></div><p class="mock-help">{{ labels.chosen }}</p>
+</div>
+{% endmacro %}

@@ -1,17 +1,60 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::ui;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use slint_kit::{CellContent, FieldAccess, FieldSpec, FieldSpecKey, NamedFieldSpec};
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ProductId(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct ArticleId(i32);
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Column {
     Title,
     Category,
     Price,
     Stock,
+}
+impl Column {
+    fn from_token(token: i32) -> Option<Self> {
+        match token {
+            1 => Some(Column::Title),
+            2 => Some(Column::Category),
+            3 => Some(Column::Price),
+            4 => Some(Column::Stock),
+            _ => None,
+        }
+    }
+    // Every column resizes within the same bounds; text columns fill the
+    // viewport until the user fixes them, numeric columns start fixed.
+    fn width(self, resized: Option<f32>) -> ui::ColumnWidth {
+        let bounds = ui::ColumnWidth {
+            minimum: 96.,
+            ceiling: ui::ColumnCeiling::Bounded,
+            maximum: 480.,
+            resizable: true,
+            ..ui::ColumnWidth::default()
+        };
+        match resized {
+            Some(basis) => ui::ColumnWidth {
+                sizing: ui::ColumnSizing::Fixed,
+                basis,
+                ..bounds
+            },
+            None => match self {
+                Column::Title | Column::Category => bounds,
+                Column::Price => ui::ColumnWidth {
+                    sizing: ui::ColumnSizing::Fixed,
+                    basis: 128.,
+                    ..bounds
+                },
+                Column::Stock => ui::ColumnWidth {
+                    sizing: ui::ColumnSizing::Fixed,
+                    basis: 112.,
+                    ..bounds
+                },
+            },
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Order {
@@ -40,6 +83,15 @@ struct Catalogue {
     line: Option<usize>,
     drafts: BTreeMap<usize, String>,
     line_generation: i32,
+    // Widths the user fixed by resizing, by column, in logical pixels.
+    widths: BTreeMap<Column, f32>,
+}
+fn stock_key() -> FieldSpecKey {
+    FieldSpecKey::new("stock").expect("nonempty codec key")
+}
+/// The cell codecs of the data page, installed with the window's catalogue.
+pub(crate) fn codecs() -> impl Iterator<Item = NamedFieldSpec> {
+    std::iter::once(FieldSpec::integer().named(stock_key()))
 }
 fn model<T: Clone + 'static>(data: Rc<VecModel<T>>) -> ModelRc<T> {
     ModelRc::from(data)
@@ -157,6 +209,7 @@ impl Catalogue {
             line: None,
             drafts: BTreeMap::new(),
             line_generation: 1,
+            widths: BTreeMap::new(),
         }
     }
     fn rebuild(&mut self, query: &str) {
@@ -197,19 +250,38 @@ impl Catalogue {
                     let p = &self.products[*index];
                     ui::TableRow {
                         token: p.id.0 as i32,
-                        cells: ModelRc::new(VecModel::from(vec![
-                            p.title.as_str().into(),
-                            p.category.into(),
-                            p.price
-                                .format(
-                                    &currency,
-                                    slint_kit::NumberLocale::EnCa,
-                                    slint_kit::RoundingPolicy::Reject,
-                                )
-                                .expect("exact two decimals")
-                                .into(),
-                            p.stock.to_string().into(),
-                        ])),
+                        cells: ModelRc::default(),
+                        // Typed cells: the category reads as a badge, the
+                        // other columns stay text.
+                        content: slint_kit::table_cells([
+                            CellContent::text(p.title.as_str()),
+                            CellContent::badge(p.category, ui::Tone::Neutral),
+                            CellContent::text(
+                                p.price
+                                    .format(
+                                        &currency,
+                                        slint_kit::NumberLocale::EnCa,
+                                        slint_kit::RoundingPolicy::Reject,
+                                    )
+                                    .expect("exact two decimals"),
+                            ),
+                            // The stock is edited in place through the
+                            // integer codec installed under `stock`.
+                            CellContent::constrained_field(
+                                p.stock.to_string(),
+                                slint_kit::CellCodec::Spec(stock_key()),
+                                FieldAccess::Editable,
+                                ui::KitInputConstraints {
+                                    kind: ui::HtmlInputKind::Number,
+                                    required: true,
+                                    min: "0".into(),
+                                    max: u32::MAX.to_string().into(),
+                                    min_length: -1,
+                                    max_length: -1,
+                                    ..Default::default()
+                                },
+                            ),
+                        ]),
                         selected: self.selected == Some(p.id),
                         disabled: false,
                     }
@@ -264,6 +336,7 @@ impl Catalogue {
                     Column::Price | Column::Stock => ui::DataAlignment::Trailing,
                     Column::Title | Column::Category => ui::DataAlignment::Leading,
                 },
+                width: column.width(self.widths.get(column).copied()),
             })
             .collect::<Vec<_>>(),
         )));
@@ -320,13 +393,52 @@ pub fn install(window: &ui::Showcase) {
     });
     let shared = state.clone();
     let weak = window.as_weak();
+    global.on_table_resize(move |token, width| {
+        let Some(column) = Column::from_token(token) else {
+            return;
+        };
+        if let Some(window) = weak.upgrade() {
+            let mut data = shared.borrow_mut();
+            data.widths.insert(column, width);
+            data.publish(&window);
+        }
+    });
+    let shared = state.clone();
+    let weak = window.as_weak();
+    global.on_table_cell_committed(move |token, column, generation, commit| {
+        if Column::from_token(column) != Some(Column::Stock) {
+            return;
+        }
+        // The same codec that validated the draft in the editor guards the
+        // Rust path; a negative or oversized count is rejected here.
+        let Ok(Some(stock)) = FieldSpec::integer().accept(commit) else {
+            return;
+        };
+        let Ok(stock) = u32::try_from(stock) else {
+            return;
+        };
+        if let Some(window) = weak.upgrade() {
+            let mut data = shared.borrow_mut();
+            if data.generation != generation {
+                return;
+            }
+            let Some(index) = data
+                .products
+                .iter()
+                .position(|product| product.id.0 as i32 == token)
+            else {
+                return;
+            };
+            data.products[index].stock = stock;
+            data.rebuild(&window.global::<ui::DataExamples>().get_query());
+            data.publish(&window);
+        }
+    });
+    let shared = state.clone();
+    let weak = window.as_weak();
     global.on_sort(move |token| {
-        let column = match token {
-            1 => Column::Title,
-            2 => Column::Category,
-            3 => Column::Price,
-            4 => Column::Stock,
-            _ => return,
+        let Some(column) = Column::from_token(token) else {
+            return;
         };
         if let Some(window) = weak.upgrade() {
             let mut data = shared.borrow_mut();
@@ -465,15 +577,16 @@ pub fn install(window: &ui::Showcase) {
         }
     });
     let weak = window.as_weak();
-    global.on_navigate(move |collection, step| {
+    global.on_navigate(move |collection, step, page_rows| {
         let Some(window) = weak.upgrade() else {
             return;
         };
         let global = window.global::<ui::DataExamples>();
         let mut data = state.borrow_mut();
+        let page = usize::try_from(page_rows.max(1)).expect("positive page rows fit usize");
         match collection {
             ui::DataCollection::Table => {
-                if let Some(index) = navigate(data.active(), data.visible.len(), step, 7) {
+                if let Some(index) = navigate(data.active(), data.visible.len(), step, page) {
                     data.select(index);
                     data.publish(&window);
                 }
@@ -484,14 +597,14 @@ pub fn install(window: &ui::Showcase) {
                         .and_then(|id| number(id.0, data.articles.row_count())),
                     data.articles.row_count(),
                     step,
-                    3,
+                    page,
                 ) {
                     drop(data);
                     global.invoke_article_open(index as i32 + 1, 1);
                 }
             }
             ui::DataCollection::Document => {
-                if let Some(index) = navigate(data.line, data.lines.row_count(), step, 10) {
+                if let Some(index) = navigate(data.line, data.lines.row_count(), step, page) {
                     data.choose_line(index, &window);
                 }
             }
@@ -552,6 +665,55 @@ mod tests {
             data.get_lines().row_data(49_999).unwrap().text.as_str(),
             "Dernière ligne — été"
         );
+    }
+    #[test]
+    fn stock_commits_are_fenced_by_generation_and_column_and_keep_the_order() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::Showcase::new().unwrap();
+        install(&window);
+        let data = window.global::<ui::DataExamples>();
+        let generation = data.get_table_generation();
+        let stock_of = |token: i32| {
+            data.get_table_rows()
+                .iter()
+                .find(|row| row.token == token)
+                .unwrap()
+                .content
+                .row_data(3)
+                .unwrap()
+                .text
+        };
+        // The constraints a plain field editor reports: no length limits.
+        let commit = |text: &str| ui::FieldCommit {
+            value: ui::FieldValue {
+                present: true,
+                text: text.into(),
+            },
+            constraints: ui::KitInputConstraints {
+                min_length: -1,
+                max_length: -1,
+                ..ui::KitInputConstraints::default()
+            },
+            ..ui::FieldCommit::default()
+        };
+        let before = stock_of(17);
+        data.invoke_table_cell_committed(17, 4, generation - 1, commit("5"));
+        assert_eq!(stock_of(17), before, "a stale generation changes nothing");
+        data.invoke_table_cell_committed(17, 1, generation, commit("5"));
+        assert_eq!(stock_of(17), before, "only the stock column is editable");
+        data.invoke_table_cell_committed(17, 4, generation, commit("-5"));
+        assert_eq!(
+            stock_of(17),
+            before,
+            "a negative count is rejected in Rust too"
+        );
+        data.invoke_table_cell_committed(17, 4, generation, commit("5"));
+        assert_eq!(stock_of(17), "5");
+        assert!(
+            data.get_table_generation() > generation,
+            "the republished rows advance the generation"
+        );
+        assert_eq!(data.get_table_rows().row_count(), 10_000);
     }
     #[test]
     fn article_preview_uses_the_selected_identity_and_keeps_the_model_virtual() {

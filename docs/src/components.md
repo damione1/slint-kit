@@ -59,8 +59,20 @@ eleventyComputed:
 
 {{ text.behavior | prose | safe }}
 
+{% if text.states %}
+### {% if locale == 'fr' %}États du contrôle{% else %}Control states{% endif %}
+
+{{ text.states | prose | safe }}
+{% endif %}
+{% if text.accessibility %}
+### {% if locale == 'fr' %}Accessibilité du contrôle{% else %}Control accessibility{% endif %}
+
+{{ text.accessibility | prose | safe }}
+{% endif %}
+
 {% if component.name == "KitTelephoneField" %}{% include "telephone-options.njk" %}{% endif %}
 
+{% if component.name == 'KitDialogSurface' or component.name == 'KitFocusTarget' %}{% if locale == 'fr' %}Pour relier plusieurs déclencheurs, des couches imbriquées, Tab, Échap, Retour et l’état occupé à `OverlayStack` et `FocusRegistry`, suivez l’[application complète de dialogues](/fr/guides/dialog-example/).{% else %}To connect several triggers, nested layers, Tab, Escape, Back and the busy state to `OverlayStack` and `FocusRegistry`, follow the [complete dialog application](/guides/dialog-example/).{% endif %}{% endif %}
 {% if component.name == 'KitDataTable' %}{% if locale == 'fr' %}Pour relier réellement le tri, les touches et la sélection, utilisez l’[application complète de tableau triable](/fr/guides/table-example/).{% else %}To connect sorting, keyboard input and selection, use the [complete sortable table application](/guides/table-example/).{% endif %}{% endif %}
 
 <p class="source-link"><a href="https://docs.rs/crate/slint-kit-slint/{{ project.version }}/source/{{ component.source | replace("crates/kit-slint/", "") }}">{{ ui[locale].source }} ↗</a></p>
@@ -113,20 +125,41 @@ eleventyComputed:
 {% if component.properties.length %}
 ### {{ ui[locale].properties }}
 
-| {{ ui[locale].name }} | {{ ui[locale].type }} | {{ ui[locale].direction }} |
-| --- | --- | --- |
-{% for property in component.properties %}| `{{ property.name }}` | `{{ property.type | mdEscape }}` | `{{ property.direction }}` |
+{% if locale == 'fr' %}La colonne « Défaut » reprend l’initialisation déclarée dans la source ; « — » est la valeur zéro du type, et une expression composée renvoie à la source.{% else %}The "Default" column repeats the initializer declared in the source; "—" is the zero value of the type, and a composite expression points to the source.{% endif %}
+
+| {{ ui[locale].name }} | {{ ui[locale].type }} | {{ ui[locale].direction }} | {{ ui[locale].default }} |
+| --- | --- | --- | --- |
+{% for property in component.properties %}| {% if property.documentation %}[`{{ property.name }}`](#property-{{ property.name }}){% else %}`{{ property.name }}`{% endif %} | `{{ property.type | mdEscape }}` | `{{ property.direction }}` | {{ property | declaredDefault(locale) | safe }} |
 {% endfor %}
 {% endif %}
 {% if component.inheritedProperties.length %}
 <details class="inherited-api"><summary>{% if locale == 'fr' %}Propriétés héritées disponibles{% else %}Available inherited properties{% endif %}</summary>
 
-| {{ ui[locale].name }} | {{ ui[locale].type }} | {% if locale == 'fr' %}Définie sur{% else %}Defined on{% endif %} |
-| --- | --- | --- |
-{% for property in component.inheritedProperties %}| `{{ property.name }}` | `{{ property.type | mdEscape }}` | `{{ property.owner }}` |
+| {{ ui[locale].name }} | {{ ui[locale].type }} | {{ ui[locale].definedOn }} | {{ ui[locale].default }} |
+| --- | --- | --- | --- |
+{% for property in component.inheritedProperties %}| {% if property.documentation %}[`{{ property.name }}`](#property-{{ property.name }}){% else %}`{{ property.name }}`{% endif %} | `{{ property.type | mdEscape }}` | `{{ property.owner }}` | {{ property | declaredDefault(locale) | safe }} |
 {% endfor %}
 
 </details>
+{% endif %}
+{% if component.documentedProperties.length %}
+### {{ ui[locale].propertyDetails }}
+
+{% if locale == 'fr' %}Effet, défaut, états et contraintes des propriétés centrales, avec un extrait qui emploie les mécanismes publics. Les propriétés héritées reprennent l’explication du composant qui les déclare. {% if component.family == 'data' %}L’[application complète de tableau triable](/fr/guides/table-example/) relie ces propriétés de bout en bout.{% elif component.family == 'select' or component.family == 'choice' %}Le guide des [contrôleurs typés](/fr/guides/controllers/) montre `Choices<K>` qui alimente ces propriétés.{% else %}L’[exemple typé complet](/fr/guides/typed-example/) et le guide [Formulaires](/fr/guides/forms/) relient ces propriétés de bout en bout.{% endif %}{% else %}Effect, default, states and constraints of the central properties, with a snippet that uses public mechanisms. Inherited properties carry the explanation of the component that declares them. {% if component.family == 'data' %}The [complete sortable table application](/guides/table-example/) wires these properties end to end.{% elif component.family == 'select' or component.family == 'choice' %}The [typed controllers guide](/guides/controllers/) shows the `Choices<K>` source that feeds these properties.{% else %}The [complete typed example](/guides/typed-example/) and the [Forms guide](/guides/forms/) wire these properties end to end.{% endif %}{% endif %}
+
+{% for property in component.documentedProperties %}{% set notes = property.documentation[locale] %}
+<section class="property-note" id="property-{{ property.name }}">
+{% set owner = property.owner | componentByName %}<h4><code>{{ property.name }}</code> <span class="property-meta"><code>{{ property.type }}</code> · {{ property.direction }}{% if property.owner != component.name %} · {{ ui[locale].definedOn | lower }} <a href="{{ ('components/' + owner.slug + '/') | localeUrl(locale) }}">{{ property.owner }}</a>{% endif %}</span></h4>
+{{ notes.effect | prose | trim | safe }}
+<dl class="property-facts">
+{% if notes.default %}<dt>{{ ui[locale].default }}</dt><dd>{{ notes.default | proseInline | safe }}</dd>
+{% endif %}{% if notes.states %}<dt>{{ ui[locale].states }}</dt><dd>{{ notes.states | proseInline | safe }}</dd>
+{% endif %}{% if notes.constraints %}<dt>{{ ui[locale].constraints }}</dt><dd>{{ notes.constraints | proseInline | safe }}</dd>
+{% endif %}{% if property.compositionPrimitive %}<dt>{{ ui[locale].composition }}</dt><dd>{% if locale == 'fr' %}Option intégrée du contrôle. La primitive de composition équivalente est <a href="{{ ('components/' + property.compositionPrimitive.slug + '/') | localeUrl(locale) }}"><code>{{ property.compositionPrimitive.name }}</code></a>, pour une mise en page personnalisée.{% else %}Built-in option of the control. The equivalent composition primitive is <a href="{{ ('components/' + property.compositionPrimitive.slug + '/') | localeUrl(locale) }}"><code>{{ property.compositionPrimitive.name }}</code></a>, for a custom layout.{% endif %}</dd>
+{% endif %}</dl>
+{% if notes.example %}<pre><code class="language-slint">{{ notes.example }}</code></pre>
+{% endif %}</section>
+{% endfor %}
 {% endif %}
 {% if component.types.length %}
 ### {% if locale == 'fr' %}Types et variantes{% else %}Types and variants{% endif %}
@@ -139,13 +172,13 @@ eleventyComputed:
 {% if component.callbacks.length %}
 ### {{ ui[locale].callbacks }}
 
-{% for callback in component.callbacks %}- `{{ callback.signature }}`
+{% for callback in component.callbacks %}- `{{ callback.signature }}`{% if callback.documentation[locale] %} — {{ callback.documentation[locale] }}{% endif %}
 {% endfor %}
 {% endif %}
 {% if component.functions.length %}
 ### {{ ui[locale].methods }}
 
-{% for method in component.functions %}- `{{ method.signature }}`
+{% for method in component.functions %}- `{{ method.signature }}`{% if method.documentation[locale] %} — {{ method.documentation[locale] }}{% endif %}
 {% endfor %}
 {% endif %}
 

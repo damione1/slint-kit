@@ -30,19 +30,23 @@ fn shortcut(view: &ui::PhoneFixture, text: &str) {
     });
 }
 #[test]
-fn typing_blocks_letters_spaces_and_preserves_native_selection_and_undo() {
+fn typing_accepts_visual_separators_blocks_letters_and_preserves_native_history() {
     let view = fixture();
     view.invoke_focus_phone();
     view.invoke_select_phone();
-    for text in ["Ada", " ", "-", "abc123", "１２"] {
+    for text in ["Ada", "abc123", "１２"] {
         key(&view, text);
         assert_eq!(view.get_draft(), "0612345678");
     }
+    key(&view, "(012) 345-6789");
+    assert_eq!(view.get_draft(), "(012) 345-6789");
+    assert_eq!(view.get_canonical(), "0123456789");
+    view.invoke_select_phone();
     key(&view, "0123456789");
     assert_eq!(view.get_draft(), "0123456789");
     shortcut(&view, "z");
     shortcut(&view, "z");
-    assert_eq!(view.get_draft(), "0612345678");
+    assert_eq!(view.get_draft(), "(012) 345-6789");
 }
 #[test]
 fn formatted_paste_normalizes_the_value_but_not_the_native_draft() {
@@ -149,14 +153,15 @@ fn structural_phone_errors_are_shown_before_host_business_errors() {
         .match_predicate(|e| e.accessible_label().as_deref() == Some("Phone"))
         .find_first()
         .unwrap();
-    assert_eq!(
-        editor.accessible_description().as_deref(),
-        Some("Enter exactly 10 digits.")
-    );
+    let description = editor.accessible_description().unwrap();
+    assert!(description.starts_with("Enter exactly 10 digits."));
+    assert!(!description.contains("Phone already used"));
     view.set_draft("0612345678".into());
     assert!(!view.invoke_report());
-    assert_eq!(
-        editor.accessible_description().as_deref(),
-        Some("Phone already used")
+    assert!(
+        editor
+            .accessible_description()
+            .unwrap()
+            .starts_with("Phone already used")
     );
 }

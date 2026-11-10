@@ -1,0 +1,208 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitStat, KitButton, Tone, KitTheme, KitThemes } from "@kit";
+export component StatFixture inherits Window {
+    width: 300px; height: 200px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <Tone> tone;
+    background: root.theme.canvas;
+    KitStat { x: 24px; y: 24px; width: parent.width - 48px; theme: root.theme; tone: root.tone; label: "Revenue"; value: "88"; leading-icon: root.theme.icons.check; }
+}
+
+export component BusyButtonFixture inherits Window {
+    width: 240px; height: 120px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    KitButton { x: 24px; y: 24px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Save"; busy: true; busy-label: "Saving changes"; }
+}
+
+import { KitFilePicker, KitDirectoryPicker, KitSteps, StepState, HostRequestPresentation } from "@kit";
+export component FileLocalizationFixture inherits Window {
+    width: 1000px; height: 800px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 12px; alignment: start;
+        KitFilePicker { theme: root.theme; label: "Pièces jointes"; request-state: HostRequestPresentation.unsupported; entries: [{ token: 1, generation: 1, name: "notes.txt", removable: true }]; }
+        KitDirectoryPicker { theme: root.theme; label: "Destination"; selected-name: "Projet"; request-state: HostRequestPresentation.cancelled; }
+        KitSteps { theme: root.theme; entries: [
+            { token: 1, label: "Préparer", state: StepState.current },
+            { token: 2, label: "Envoyer", state: StepState.complete },
+            { token: 3, label: "Vérifier", state: StepState.error },
+            { token: 4, label: "Terminer", state: StepState.pending },
+        ]; }
+    }
+}
+
+import { KitPressable } from "@kit";
+export component DisabledActionFocusFixture inherits Window {
+    width: 460px; height: 200px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <bool> disabled;
+    in property <bool> busy;
+    out property <bool> standard-focused: standard.has-focus;
+    out property <bool> standard-focus-visible: standard.focus-visible;
+    out property <bool> custom-focused: custom.has-focus;
+    out property <bool> custom-focus-visible: custom.focus-visible;
+    callback focus-observed(bool, bool);
+    out property <bool> fallback-focused: fallback.has-focus;
+    public function focus-fallback() { fallback.focus(); }
+    public function focus-action(is-custom: bool) {
+        if (is-custom) { custom.take-focus(); } else { standard.take-focus(); }
+    }
+    fallback := FocusScope {
+        width: 0px; height: 0px;
+        focus-on-tab-navigation: false;
+        accessible-role: none;
+    }
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        standard := KitButton {
+            theme: root.theme; text: "Standard action";
+            disabled: root.disabled; busy: root.busy;
+            focus-observed(value) => { root.focus-observed(false, value); }
+        }
+        custom := KitPressable {
+            preferred-width: title.preferred-width + 2 * self.padding-inline;
+            theme: root.theme; accessible-name: "Custom action";
+            disabled: root.disabled; busy: root.busy;
+            focus-observed(value) => { root.focus-observed(true, value); }
+            title := Text { text: "Custom action"; color: custom.disabled ? custom.recipe.disabled-foreground : custom.recipe.foreground; font-family: root.theme.typography.family; font-size: custom.text-size; }
+        }
+    }
+}
+
+import { KitFileDropZone, FieldAccess, DropCapability } from "@kit";
+export component DropZoneFixture inherits Window {
+    width: 420px; height: 240px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access;
+    background: root.theme.canvas;
+    callback browse();
+    callback child-activated();
+    in property <bool> composed-action;
+    out property <bool> focused: zone.has-focus;
+    public function focus-zone() { zone.take-focus(); }
+    VerticalLayout { padding: 24px; alignment: start;
+        zone := KitFileDropZone { theme: root.theme; access: root.access; capability: DropCapability.available; label: "Choose or drop documents"; description: "PDF and text files"; browse-requested => { root.browse(); }
+            if root.composed-action: KitButton { theme: root.theme; text: "Additional action"; activated => { root.child-activated(); } }
+        }
+    }
+}
+
+import { ButtonIntent } from "@kit";
+export component ButtonPaletteFixture inherits Window {
+    width: 1040px; height: 140px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <int> link-actions;
+    in property <bool> link-disabled;
+    public function focus-link() { link.take-focus(); }
+    background: root.theme.canvas;
+    HorizontalLayout { padding: 24px; spacing: 16px; alignment: start;
+        KitButton { theme: root.theme; intent: ButtonIntent.success; text: "Confirm"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.warning; text: "Review"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.information; text: "Details"; }
+        KitButton { theme: root.theme; intent: ButtonIntent.destructive; text: "Delete"; }
+        link := KitButton { theme: root.theme; intent: ButtonIntent.link; text: "Learn more"; disabled: root.link-disabled; activated => { root.link-actions += 1; } }
+    }
+}
+
+import { KitIcon, KitScrollBar, KitSurface, KitCard, KitContainer, IconRecipe, ScrollBarRecipe, SurfaceRecipe, SurfaceLevel, ControlSize } from "@kit";
+export component RecipeOverrideFixture inherits Window {
+    width: 700px; height: 400px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <IconRecipe> icon-recipe: KitThemes.icon-recipe(root.theme, ControlSize.medium);
+    in-out property <ScrollBarRecipe> scroll-recipe: KitThemes.scroll-bar-recipe(root.theme);
+    in-out property <SurfaceRecipe> surface-recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
+    in property <SurfaceLevel> card-level;
+    out property <SurfaceRecipe> card-recipe: card.recipe;
+    background: root.theme.canvas;
+    KitIcon { x: 24px; y: 24px; theme: root.theme; glyph: root.theme.icons.check; recipe: root.icon-recipe; }
+    KitScrollBar { x: 100px; y: 24px; width: self.preferred-width; height: 180px; theme: root.theme; maximum: 300px; page-size: 100px; recipe: root.scroll-recipe; }
+    KitSurface { x: 180px; y: 24px; width: 180px; height: 100px; theme: root.theme; recipe: root.surface-recipe; }
+    card := KitCard { x: 400px; y: 24px; width: 220px; height: self.preferred-height; theme: root.theme; level: root.card-level; Text { text: "Card"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } }
+    KitContainer { x: 24px; y: 250px; width: 600px; height: self.preferred-height; max-content-width: 140px; theme: root.theme; bounded-body := Rectangle { height: 32px; Text { text: "Bounded"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } } }
+}
+
+import { KitAvatar, AvatarSize } from "@kit";
+export component AvatarSizingFixture inherits Window {
+    width: 420px; height: 260px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <bool> disabled;
+    in property <Tone> avatar-tone: Tone.success;
+    background: root.theme.canvas;
+    KitAvatar { x: 24px; y: 24px; theme: root.theme; size: 24px; initials: "EA"; }
+    KitAvatar { x: 80px; y: 24px; theme: root.theme; size: 96px; initials: "EA"; accessible-name: "Large initials";
+        large-status := Rectangle {
+            x: parent.width - self.width; y: parent.height - self.height;
+            width: root.theme.spacing.unit * 2; height: self.width;
+            border-radius: self.width / 2; background: root.theme.success;
+            accessible-role: none;
+        }
+    }
+    KitAvatar { x: 220px; y: 24px; theme: root.theme; avatar-size: AvatarSize.compact; accessible-name: "Unknown profile"; disabled: root.disabled; }
+    KitAvatar { x: 300px; y: 24px; theme: root.theme; size: 40px; initials: "AM"; tone: root.avatar-tone; accessible-name: "Positive profile"; }
+}
+
+import { KitSteps, KitTimeline, StepEntry, TimelineEntry } from "@kit";
+export component JourneyFixture inherits Window {
+    width: 840px; height: 720px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[StepEntry]> entries;
+    in property <[TimelineEntry]> events;
+    in property <Orientation> orientation: Orientation.vertical;
+    in property <bool> disabled;
+    in property <bool> connectors: true;
+    callback step-requested(int, int);
+    background: root.theme.canvas;
+    KitSteps { x: 24px; y: 24px; width: 760px; theme: root.theme; entries: root.entries;
+        orientation: root.orientation; interactive: true; disabled: root.disabled; connectors: root.connectors;
+        accessible-name: "Setup journey";
+        step-activated(token, generation) => { root.step-requested(token, generation); }
+    }
+    KitTimeline { x: 24px; y: 360px; width: 760px; height: self.preferred-height; theme: root.theme; entries: root.events; }
+}
+
+import { KitBadge, KitChatBubble, ChatSide, ChoiceFlow, KitDialogFooter, ScrollFrame } from "@kit";
+export component DirectionFixture inherits Window {
+    width: 720px; height: 760px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <int> actions;
+    background: root.theme.canvas;
+    button := KitButton { x: 24px; y: 24px; width: 360px; height: self.preferred-height; theme: root.theme; text: "Continue";
+        leading-icon: root.theme.icons.plus; trailing-icon: root.theme.icons.chevron-right;
+        activated => { root.actions += 1; }
+    }
+    badge := KitBadge { x: 24px; y: 100px; width: self.preferred-width; height: self.preferred-height; theme: root.theme; text: "Available"; leading-icon: root.theme.icons.check; }
+    chat := KitChatBubble { x: 24px; y: 160px; width: 500px; height: self.preferred-height; theme: root.theme; side: ChatSide.start; author: "Amina"; text: "A logical start message"; }
+    scroll := ScrollFrame { x: 24px; y: 330px; width: 400px; height: 220px; theme: root.theme; content-width: 800px; content-height: 600px;
+        Rectangle { width: 800px; height: 600px; background: root.theme.surface; Text { x: 20px; y: 20px; text: "Scrollable content"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.theme.typography.size-control * root.theme.text-scale; } }
+    }
+    footer := KitDialogFooter { x: 24px; y: 580px; width: 500px; height: self.preferred-height; theme: root.theme;
+        KitButton { theme: root.theme; text: "Back"; }
+        KitButton { theme: root.theme; text: "Continue action"; }
+    }
+
+}
+
+import { KitButtonGroup, ButtonGroupEntry, KitStrings } from "@kit";
+export component ButtonGroupFixture inherits Window {
+    width: 720px; height: 480px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <[ButtonGroupEntry]> actions;
+    in property <bool> attached;
+    in property <string> busy-label: KitStrings.busy-label;
+    in property <bool> wrap;
+    in property <bool> disabled;
+    in property <Orientation> orientation;
+    in property <length> group-width: 540px;
+    callback action-requested(int, int);
+    background: root.theme.canvas;
+    group := KitButtonGroup { x: 24px; y: 24px; width: root.group-width;
+        theme: root.theme; actions: root.actions; attached: root.attached; wrap: root.wrap;
+        orientation: root.orientation; disabled: root.disabled; busy-label: root.busy-label; accessible-name: "Document commands";
+        activated(token, generation) => { root.action-requested(token, generation); }
+    }
+}

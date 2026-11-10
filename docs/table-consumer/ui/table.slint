@@ -1,6 +1,5 @@
-export { KitFormValidation, HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDataTable, KitTheme, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit";
+import { KitDataTable, KitSwitch, KitTheme, KitThemes, TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep } from "@kit";
 export { TableRow, TableColumn, DataSortDirection, DataAlignment, NavigationStep }
 export enum TableLanguage { english, french }
 export enum TableAppearance { light, dark }
@@ -18,10 +17,12 @@ export component TableApp inherits Window {
     in property <[TableColumn]> columns;
     in property <int> generation;
     in property <int> active-index: -1;
+    out property <int> page-rows: table.page-rows;
     in property <string> selection-label;
     callback activate(int, int);
     callback navigate(NavigationStep);
     callback sort-requested(int);
+    callback show-archived-changed(bool);
     public function focus-table() { table.take-focus(); }
     VerticalLayout {
         padding: 24px;
@@ -35,9 +36,18 @@ export component TableApp inherits Window {
             generation: root.generation;
             active-index: root.active-index;
             label: root.french ? "Projets" : "Projects";
+            sort-ascending-label: root.french ? "croissant" : "ascending";
+            sort-descending-label: root.french ? "décroissant" : "descending";
+            unnamed-row-label: root.french ? "Ligne" : "Row";
             activate(token, generation) => { root.activate(token, generation); }
             navigate(step) => { root.navigate(step); }
             sort-requested(token) => { root.sort-requested(token); }
+        }
+        KitSwitch {
+            theme: root.theme;
+            label: root.french ? "Afficher les projets archivés" : "Show archived projects";
+            checked: true;
+            toggled(show) => { root.show-archived-changed(show); }
         }
         Text { text: root.selection-label; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
     }

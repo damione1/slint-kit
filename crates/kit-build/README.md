@@ -1,6 +1,8 @@
 # Slint Kit Build
 
-Build-time registration of the installed [Slint Kit](https://github.com/damione1/slint-kit) component library. The helper resolves `@kit` from Cargo's installed package and verifies shared Rust/Slint contracts before compilation. No source checkout is required.
+The build-time companion to [Slint Kit](https://slint-kit.dev/guides/why-slint-kit/), the Rust and Slint component library with shared form validation, typed values and stable collection identity. The helper resolves `@kit` from Cargo's installed package, compiles your UI and verifies shared Rust/Slint contracts. No toolkit source checkout is required.
+
+Use it with the same-release `slint-kit` runtime. It supplies the shared window service exports used by `slint_kit::install(&window)`, so ordinary applications import components and connect business callbacks without per-component global wiring. See [project setup](https://slint-kit.dev/guides/project-setup/) ([français](https://slint-kit.dev/fr/guides/project-setup/)).
 
 ```toml
 [build-dependencies]
@@ -27,7 +29,7 @@ For complete editor settings, local path dependencies and troubleshooting, see [
 
 ## Shared modules and compatibility
 
-Slint Kit pins Slint **1.18.1** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports retain their paths. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
+Slint Kit supports Slint **1.18 patch releases from 1.18.1** and enables its experimental module-build feature inside the build package. Components, structs, enums and globals use the single `@kit` entry point; supplemental font/icon imports retain their paths. Keep the runtime dependency named `slint-kit` so generated references to `slint_kit::ui` resolve. `compile` supplies the window globals needed by `slint_kit::install`; no per-component export list is needed in application UI.
 
 The experimental feature is isolated here rather than exposed as application configuration. If an upstream release removes it, the compatibility fallback is a build-generated Slint entry point that re-exports the application and kit contracts, with typed Rust glue included through `SLINT_INCLUDE_GENERATED`. That fallback preserves the public import/props/callback and per-window `install` contract; it is a migration strategy, not an alternative backend enabled in the current 1.18.1 package.
 
@@ -39,7 +41,7 @@ slint_kit_build::compile_with_config("ui/app.slint", config)
 
 ## Modules partagés et compatibilité
 
-Slint Kit épingle Slint **1.18.1** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports supplémentaires de polices/icônes conservent leurs chemins. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
+Slint Kit prend en charge les **versions correctives de Slint 1.18 à partir de la 1.18.1** et active sa compilation expérimentale de modules dans le paquet build. Composants, structs, enums et globals passent par l’unique point d’entrée `@kit` ; les imports supplémentaires de polices/icônes conservent leurs chemins. Gardez la dépendance runtime nommée `slint-kit` pour résoudre `slint_kit::ui`. `compile` fournit les globals nécessaires à `slint_kit::install` sans liste d’exports par composant dans l’application.
 
 Pour personnaliser le compilateur, partez de `config()` puis appelez `compile_with_config(path, config)` : les chemins de bibliothèques et exports de services restent configurés. L’appel direct au compilateur Slint de bas niveau n’ajoute pas ces exports.
 
@@ -48,3 +50,7 @@ Sous Windows, utilisez la 0.7.1 ou une version ultérieure ; la 0.7.0 échappait
 La fonctionnalité expérimentale reste isolée dans ce paquet. Si une version amont la retire, le repli de compatibilité est un point d’entrée Slint généré qui réexporte l’application et les contrats du kit, avec une liaison Rust typée incluse par `SLINT_INCLUDE_GENERATED`. Ce repli préserve le contrat public import/propriétés/callback et `install` par fenêtre ; il s’agit d’une stratégie de migration, pas d’un autre backend activé dans le paquet 1.18.1 actuel.
 
 Original implementation under [GNU GPL v3.0 or later](LICENSE). Dependencies retain their own licenses.
+
+## Slint Kit licensing
+
+The base kit components are **forever free for open-source use**, under GPL-3.0-or-later. A commercial license for proprietary applications is coming, on request; **Slint Kit Pro** advanced components are also coming. [Contact the author](https://github.com/damione1/slint-kit/discussions) for availability.

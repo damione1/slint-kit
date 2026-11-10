@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitOption, KitTabs, KitMenu, KitMenuBar, KitBreadcrumbs, KitCarousel, KitAccordion,
+    KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitRating,
+    KitSelect, KitSelectSurface, KitSelectKeyboard, KitSelectionService, KitCombobox, KitMultiSelect, KitCalendar,
+    KitTextField, KitTimePicker, KitColorField,
+    OptionRow, KitTheme, KitThemes, ChoiceDirection, ChoiceFlow } from "@kit";
+export enum PreviewFamily { tabs, menu, menu-bar, breadcrumbs, carousel, accordion,
+    radio, radio-horizontal, segments, toggles, rating, select, surface, combobox, multi,
+    calendar, text, time, color, keyboard }
+export component PreviewFixture inherits Window {
+    width: 720px; height: 640px;
+    in-out property <PreviewFamily> family;
+    in-out property <bool> dark;
+    in-out property <float> text-scale: 1;
+    changed dark => { root.theme = root.dark ? KitThemes.dark : KitThemes.light; root.theme.text-scale = root.text-scale; }
+    changed text-scale => { root.theme.text-scale = root.text-scale; }
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <[OptionRow]> options: [
+        {token: 11, generation: 1, label: "Alpha", description: "First description"},
+        {token: 42, generation: 1, label: "Beta", description: "Second description"},
+        {token: 73, generation: 1, label: "Blocked", disabled: true},
+    ];
+    in-out property <int> rating-scale: 7;
+    in-out property <int> carousel-index: -1;
+    callback chosen(OptionRow);
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        if root.family == PreviewFamily.tabs: KitTabs { theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.menu: KitMenu { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.menu-bar: KitMenuBar { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.breadcrumbs: KitBreadcrumbs { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.carousel && !KitSelectionService.ready: KitCarousel { action-label: "Open slide"; state: {active-index: root.carousel-index}; theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.carousel && KitSelectionService.ready: KitCarousel { action-label: "Open slide"; theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.accordion: KitAccordion { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.radio || root.family == PreviewFamily.radio-horizontal: KitRadioGroup { theme: root.theme; options: root.options; selected: {present: true, token: 42}; direction: root.family == PreviewFamily.radio ? ChoiceDirection.vertical : ChoiceDirection.horizontal; flow: ChoiceFlow.right-to-left; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.segments: KitSegmentedControl { theme: root.theme; options: root.options; selected: {present: true, token: 42}; columns: 2; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.toggles: KitToggleGroup { theme: root.theme; options: root.options; selection-changed(row, added) => { root.chosen(row); } }
+        if root.family == PreviewFamily.rating: KitRating { theme: root.theme; scale: root.rating-scale; value: {present: true, step: 4, scale: root.rating-scale}; }
+        if root.family == PreviewFamily.select: KitSelect { theme: root.theme; options: root.options; selected: {present: true, token: 42}; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.surface: surface := KitSelectSurface {
+            theme: root.theme; options: root.options; height: 300px; chosen(row) => { root.chosen(row); }
+            VerticalLayout {
+                alignment: start;
+                for row in surface.rows: KitOption {
+                    theme: root.theme; option-data: row; accessible-name: row.label;
+                    activate(token, generation) => { surface.choose-option(token, generation); }
+                    Text { text: row.label; color: root.theme.text-primary; }
+                }
+            }
+        }
+        if root.family == PreviewFamily.combobox: KitCombobox { theme: root.theme; options: root.options; chosen(row) => { root.chosen(row); } }
+        if root.family == PreviewFamily.multi: KitMultiSelect { theme: root.theme; options: root.options; selection-changed(row, added) => { root.chosen(row); } }
+        if root.family == PreviewFamily.keyboard: KitSelectKeyboard {
+            options: root.options; init => { self.focus(); }
+            chosen(row) => { root.chosen(row); }
+        }
+        // Explicit projections remain useful for non-Rust calendar previews.
+        if root.family == PreviewFamily.calendar: KitCalendar { theme: root.theme; title: "November 2026"; days: [{year: 2026, month: 11, day: 8, label: "8", accessible-label: "November 8, 2026", enabled: true}]; }
+        if root.family == PreviewFamily.text: KitTextField { theme: root.theme; label: "Draft"; text: "Hello"; }
+        if root.family == PreviewFamily.time: KitTimePicker { theme: root.theme; text: "12:30"; }
+        if root.family == PreviewFamily.color: KitColorField { theme: root.theme; text: "#123456"; }
+    }
+}

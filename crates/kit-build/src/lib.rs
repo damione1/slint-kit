@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Build-time registration of the `@kit` import library.
+//! Build-time companion to the Slint Kit Rust UI component library. Resolves
+//! installed `@kit` imports, compiles application UI and verifies shared
+//! Rust/Slint contracts without requiring a toolkit source checkout.
+//!
+//! Use the same-release `slint-kit` runtime and call its per-window installer.
+//! See [project setup](https://slint-kit.dev/guides/project-setup/) and
+//! [compatibility and scope](https://slint-kit.dev/guides/why-slint-kit/).
+//! The helper uses Slint's experimental module compilation.
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -14,6 +21,7 @@ pub fn ui_directory() -> PathBuf {
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Register the kit while preserving application-specific libraries.
+/// Debug metadata follows Slint defaults, including `SLINT_EMIT_DEBUG_INFO`.
 /// `kit` is reserved; conflicting registrations fail at the boundary.
 pub fn config_with_libraries(
     mut libraries: HashMap<String, PathBuf>,
@@ -22,9 +30,7 @@ pub fn config_with_libraries(
         libraries.insert("kit".into(), ui_directory()).is_none(),
         "kit is a reserved library alias"
     );
-    slint_build::CompilerConfiguration::new()
-        .with_library_paths(libraries)
-        .with_debug_info(true)
+    slint_build::CompilerConfiguration::new().with_library_paths(libraries)
 }
 
 pub fn config() -> slint_build::CompilerConfiguration {
@@ -41,6 +47,14 @@ pub fn compile_with_config(
     path: impl AsRef<Path>,
     configuration: slint_build::CompilerConfiguration,
 ) -> Result<(), slint_build::CompileError> {
+    // Slint's live-preview generator omits library global implementations.
+    // Presence selects that generator, even for an empty value or "0".
+    println!("cargo:rerun-if-env-changed=SLINT_LIVE_PREVIEW");
+    if std::env::var_os("SLINT_LIVE_PREVIEW").is_some() {
+        return Err(slint_build::CompileError::CompileError(vec![
+            "SLINT_LIVE_PREVIEW is not supported with Slint Kit's shared library globals in Slint 1.18.1 (slint-ui/slint#14812). Unset SLINT_LIVE_PREVIEW, including in build.rs, and rebuild. The slint/mcp feature and SLINT_EMIT_DEBUG_INFO remain supported; editor/slint-viewer static previews do not require this variable.".into(),
+        ]));
+    }
     let diagnostic =
         |error: std::io::Error| slint_build::CompileError::CompileError(vec![error.to_string()]);
     verify_contracts().map_err(diagnostic)?;
@@ -113,6 +127,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn live_preview_reports_the_upstream_limitation_before_codegen() {
+        const CHILD: &str = "KIT_TEST_LIVE_PREVIEW_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            let error = compile("does-not-need-to-exist.slint").unwrap_err();
+            let diagnostic = format!("{error:?}");
+            assert!(diagnostic.contains("slint-ui/slint#14812"));
+            assert!(diagnostic.contains("Unset SLINT_LIVE_PREVIEW"));
+            return;
+        }
+        for value in ["1", "0", ""] {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "tests::live_preview_reports_the_upstream_limitation_before_codegen",
+                ])
+                .env(CHILD, "1")
+                .env("SLINT_LIVE_PREVIEW", value)
+                .status()
+                .unwrap();
+            assert!(status.success(), "live-preview value {value:?}");
+        }
+    }
+
+    #[test]
     fn import_paths_preserve_windows_drives_and_network_shares() {
         for (source, expected) in [
             (r"C:\project\ui\app.slint", "\"C:/project/ui/app.slint\""),
@@ -151,6 +189,44 @@ mod tests {
     #[test]
     fn generated_contracts_match_source() {
         super::verify_contracts().unwrap();
+    }
+
+    #[test]
+    fn consumer_debug_metadata_is_opt_in() {
+        const CHILD: &str = "KIT_TEST_DEBUG_METADATA_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let status = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", "tests::consumer_debug_metadata_is_opt_in"])
+                .env(CHILD, "1")
+                .env_remove("SLINT_EMIT_DEBUG_INFO")
+                .status()
+                .unwrap();
+            assert!(status.success());
+            return;
+        }
+        let directory =
+            std::env::temp_dir().join(format!("kit-debug-probe-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let source = directory.join("debug-probe.slint");
+        std::fs::write(
+            &source,
+            "export component Probe inherits Window { probe := Rectangle {} }",
+        )
+        .unwrap();
+        for (name, configuration, expected) in [
+            ("default", config(), false),
+            ("inspection", config().with_debug_info(true), true),
+        ] {
+            let output = directory.join(format!("{name}.rs"));
+            slint_build::compile_with_output_path(&source, &output, configuration).unwrap();
+            let generated = std::fs::read_to_string(output).unwrap();
+            assert_eq!(
+                generated.contains("Rectangle,Probe::probe,"),
+                expected,
+                "{name} metadata"
+            );
+        }
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

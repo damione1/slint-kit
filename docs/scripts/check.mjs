@@ -137,6 +137,20 @@ for (const component of components) {
     check(html.includes(`srcset="/assets/components/${imageFilename.replace('.png', '@2x.png')} 2x"`), `${name}/${locale}: Retina candidate is required`);
     check(html.includes(`/assets/components/${imageFilename}`), `${name}/${locale}: missing matching capture`);
     check(text?.summary && html.includes(decode(text.summary)), `${name}/${locale}: missing localized summary`);
+    // Every documented property, own or inherited, renders its anchored note
+    // with the localized effect and its example as displayed Slint code; the
+    // table rows link to those anchors.
+    for (const property of component.documentedProperties) {
+      const notes = property.documentation[locale];
+      const note = html.match(new RegExp(`<section class="property-note" id="property-${property.name}">([\\s\\S]*?)</section>`));
+      check(note, `${name}/${locale}: missing property note for ${property.name}`);
+      if (!note) continue;
+      check(decode(note[1].replace(/<[^>]+>/g, '')).includes(notes.effect.replace(/`([^`]*)`/g, '$1')), `${name}/${locale}: property note ${property.name} must show its effect`);
+      if (notes.example) check(code.includes(notes.example.trim()), `${name}/${locale}: property note ${property.name} must display its example`);
+      check(html.includes(`href="#property-${property.name}"`), `${name}/${locale}: property table must link to ${property.name}`);
+    }
+    const defaultHeader = locale === 'fr' ? 'Défaut' : 'Default';
+    check(component.properties.length === 0 || html.includes(`<th>${defaultHeader}</th>`), `${name}/${locale}: property table needs the declared default column`);
   }
 }
 // Check every emitted HTML link/image, including fragment destinations. This
@@ -338,6 +352,17 @@ for (const locale of ['en', 'fr']) {
     check(fs.readFileSync(path.join(output, 'table-consumer', file), 'utf8') === source, `${locale}: table download must match displayed source: ${file}`);
   }
 }
+for (const locale of ['en', 'fr']) {
+  const page = fs.readFileSync(path.join(output, localeUrl('guides/dialog-example/', locale), 'index.html'), 'utf8');
+  const blocks = [...page.matchAll(/<pre><code class="language-(?:toml|rust|slint)">([\s\S]*?)<\/code><\/pre>/g)].map(match => decode(match[1]).trim());
+  for (const file of ['Cargo.toml', 'build.rs', 'ui/dialog.slint', 'src/main.rs', 'src/controller.rs']) {
+    const source = fs.readFileSync(path.join(docs, 'dialog-consumer', file), 'utf8');
+    check(blocks.includes(source.trim()), `${locale}: dialog guide must show the complete ${file}`);
+    check(fs.readFileSync(path.join(output, 'dialog-consumer', file), 'utf8') === source, `${locale}: dialog download must match displayed source: ${file}`);
+  }
+}
+const dialogManifest = fs.readFileSync(path.join(docs, 'dialog-consumer/Cargo.toml'), 'utf8');
+check(!/\bpath\s*=|\bworkspace\s*=|\b(?:version|edition|license|rust-version)\.workspace\s*=/.test(dialogManifest), 'Public dialog consumer must resolve registry dependencies without workspace inheritance');
 const tableProvenance = JSON.parse(fs.readFileSync(path.join(docs, 'content/table-captures.json'), 'utf8'));
 check(tableProvenance.backend === 'winit' && tableProvenance.renderer === 'skia', 'Table captures must use the documented native backend');
 for (const file of ['Cargo.toml', 'build.rs', 'ui/table.slint', 'src/main.rs']) {

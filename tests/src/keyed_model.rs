@@ -118,11 +118,14 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
     );
     assert_eq!(first.get_email_text(), "edited");
     assert_eq!(second.get_email_text(), "edited");
+    model
+        .replace([(Record(1), row("edited")), (Record(2), row("second"))])
+        .unwrap();
     assert_eq!(
         model.update_active(token, generation, |row| row.title = "stale".into()),
         None
     );
-    model.navigate(slint_kit::NavigationStep::Next);
+    model.navigate(slint_kit::NavigationStep::Next, 1);
     assert_eq!(
         model.update_active(token, model.generation(), |row| row.title =
             "wrong line".into()),
@@ -130,6 +133,234 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
     );
     assert_eq!(model.active_row().unwrap().title, "second");
     drop(first);
-    model.navigate(slint_kit::NavigationStep::Previous);
+    model.navigate(slint_kit::NavigationStep::Previous, 1);
     assert_eq!(second.get_email_text(), "edited");
+}
+
+// The short integration path of a data table: `bind`, `navigation`,
+// `activation` and `sorting_by` wired to `KitDataTable`, with the host
+// supplying only its data, comparator and filter.
+#[test]
+fn table_rows_follow_their_key_through_keyboard_selection_sorting_and_filtering() {
+    use crate::{DataFixtureCollection, base_data};
+    use slint::platform::Key;
+    use slint_kit::{CellContent, table_cells};
+    use std::{cell::Cell, rc::Rc};
+    const PROJECTS: [(Record, &str, u64, bool); 4] = [
+        (Record(101), "Atlas", 12, false),
+        (Record(203), "Boreal", 3, false),
+        (Record(307), "Cedar", 24, true),
+        (Record(409), "Delta", 8, false),
+    ];
+    fn tasks(key: &Record) -> u64 {
+        PROJECTS
+            .iter()
+            .find(|(candidate, ..)| candidate == key)
+            .expect("known project")
+            .2
+    }
+    fn rows(show_archived: bool, selected: Option<Record>) -> Vec<(Record, ui::TableRow)> {
+        PROJECTS
+            .into_iter()
+            .filter(|(_, _, _, archived)| show_archived || !archived)
+            .map(|(key, name, tasks, archived)| {
+                let row = ui::TableRow {
+                    content: table_cells([
+                        CellContent::text(name),
+                        CellContent::text(tasks.to_string()),
+                    ]),
+                    selected: selected == Some(key),
+                    disabled: archived,
+                    ..Default::default()
+                };
+                (key, row)
+            })
+            .collect()
+    }
+    fn names(model: &KeyedModel<Record, ui::TableRow>) -> Vec<String> {
+        model
+            .model()
+            .iter()
+            .map(|row| row.content.row_data(0).expect("name cell").text.to_string())
+            .collect()
+    }
+    let window = base_data::fixture();
+    window.set_columns(slint::ModelRc::new(slint::VecModel::from(vec![
+        ui::TableColumn {
+            token: 1,
+            label: "Project".into(),
+            ..Default::default()
+        },
+        ui::TableColumn {
+            token: 2,
+            label: "Tasks".into(),
+            sortable: true,
+            alignment: ui::DataAlignment::Trailing,
+            ..Default::default()
+        },
+    ])));
+    let model = KeyedModel::new(rows(true, None)).unwrap();
+    model.bind(
+        &window,
+        crate::BaseDataFixture::set_rows,
+        crate::BaseDataFixture::set_table_generation,
+        crate::BaseDataFixture::set_table_active,
+    );
+    let navigate = model.navigation(&window, crate::BaseDataFixture::get_table_page_rows);
+    window.on_navigate(move |collection, step| match collection {
+        DataFixtureCollection::Table => navigate(step),
+        DataFixtureCollection::Content | DataFixtureCollection::Document => {}
+    });
+    let chosen = Rc::new(Cell::new(None));
+    window.on_table_activated(model.activation({
+        let chosen = chosen.clone();
+        move |key| chosen.set(Some(key))
+    }));
+    let sort = model.sorting_by(|left, right| tasks(left).cmp(&tasks(right)), |_| {});
+    window.on_sort_requested(move |_| sort());
+
+    window.invoke_focus_table();
+    base_data::key(&window, Key::DownArrow);
+    base_data::key(&window, Key::Return);
+    assert_eq!(
+        chosen.get(),
+        Some(Record(101)),
+        "Enter selects the first enabled row"
+    );
+    let atlas = model.model().row_data(0).unwrap().token;
+    let generation = window.get_table_generation();
+
+    window.invoke_sort_requested(2);
+    assert_eq!(names(&model), ["Boreal", "Delta", "Atlas", "Cedar"]);
+    assert_ne!(
+        window.get_table_generation(),
+        generation,
+        "sorting advances the generation"
+    );
+    let moved = model.model().row_data(2).unwrap();
+    assert!(
+        moved.selected && moved.token == atlas,
+        "selection follows its key"
+    );
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "the active row follows its key"
+    );
+
+    // A stale gesture and a disabled row are rejected at the component's callback.
+    window.invoke_table_activated(model.model().row_data(1).unwrap().token, generation);
+    window.invoke_table_activated(
+        model.model().row_data(3).unwrap().token,
+        window.get_table_generation(),
+    );
+    assert_eq!(chosen.get(), Some(Record(101)));
+
+    base_data::key(&window, Key::End);
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "End skips the archived last row"
+    );
+    base_data::key(&window, Key::Home);
+    base_data::key(&window, Key::Return);
+    assert_eq!(chosen.get(), Some(Record(203)));
+
+    // Filtering republishes the host's rows: surviving keys keep their token,
+    // selection and active position.
+    let boreal = model.model().row_data(0).unwrap().token;
+    model.replace(rows(false, chosen.get())).unwrap();
+    assert_eq!(model.model().row_count(), 3);
+    let kept = model.model().row_data(1).unwrap();
+    assert!(kept.selected && kept.token == boreal);
+    assert_eq!(window.get_table_active(), 1);
+    assert_eq!(
+        model.accept(boreal, generation),
+        None,
+        "old generation stays rejected"
+    );
+}
+
+#[test]
+fn active_binding_preserves_drafts_when_other_rows_or_only_order_change() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = crate::AutonomousFixture::new().unwrap();
+    let model = KeyedModel::new([(Record(1), row("first")), (Record(2), row("second"))]).unwrap();
+    model.bind_active(&window, |window, row| {
+        window.set_email_text(row.map_or_else(Default::default, |row| row.title))
+    });
+    model.select(model.model().row_data(0).unwrap().token, model.generation());
+    window.set_email_text("unsaved draft".into());
+    model.insert(Record(3), row("third")).unwrap();
+    assert_eq!(window.get_email_text(), "unsaved draft", "insertion");
+    let second = model.model().row_data(1).unwrap();
+    model.update(second.token, model.generation(), |row| {
+        row.title = "updated second".into()
+    });
+    assert_eq!(window.get_email_text(), "unsaved draft", "other row update");
+    model.sort_by(|left, right| right.0.cmp(&left.0));
+    assert_eq!(window.get_email_text(), "unsaved draft");
+    let first = model.active_row().unwrap();
+    model.update(first.token, model.generation(), |row| {
+        row.title = "updated first".into()
+    });
+    assert_eq!(window.get_email_text(), "updated first");
+    model.remove(first.token);
+    assert_eq!(window.get_email_text(), "");
+}
+
+#[test]
+fn domain_updates_preserve_generation_and_can_reenable_or_remove_disabled_records() {
+    let mut disabled = row("disabled");
+    disabled.disabled = true;
+    let model = KeyedModel::new([(Record(1), disabled), (Record(2), row("live"))]).unwrap();
+    let token = model.model().row_data(0).unwrap().token;
+    let generation = model.generation();
+    assert_eq!(model.accept(token, generation), None);
+    assert!(model.update_by_key(&Record(1), |row| {
+        row.disabled = false;
+        row.title = "enabled".into();
+    }));
+    assert_eq!(model.generation(), generation);
+    assert_eq!(model.accept(token, generation), Some(Record(1)));
+    assert_eq!(model.get(&Record(1)).unwrap().title, "enabled");
+    assert_eq!(model.len(), 2);
+    model.update_by_key(&Record(1), |row| row.disabled = true);
+    assert!(model.remove_by_key(&Record(1)));
+    assert_eq!(model.get(&Record(1)), None);
+    assert!(!model.is_empty());
+}
+
+#[test]
+fn page_navigation_reads_the_current_window_getter_and_does_not_retain_it() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = crate::AutonomousFixture::new().unwrap();
+    let weak = window.as_weak();
+    let model = KeyedModel::new((0..100).map(|index| (Record(index), row("row")))).unwrap();
+    let navigate = model.navigation(&window, crate::AutonomousFixture::get_active);
+    model.navigate(slint_kit::NavigationStep::First, 1);
+    window.set_active(4);
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(model.active_index(), 4);
+    window.set_active(11);
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(model.active_index(), 15);
+    window.set_active(3);
+    navigate(ui::NavigationStep::PagePrevious);
+    assert_eq!(model.active_index(), 12);
+    window.set_active(-5);
+    navigate(ui::NavigationStep::PagePrevious);
+    assert_eq!(
+        model.active_index(),
+        11,
+        "an unmeasured page still moves one row"
+    );
+    drop(window);
+    assert!(weak.upgrade().is_none());
+    navigate(ui::NavigationStep::PageNext);
+    assert_eq!(
+        model.active_index(),
+        11,
+        "a dropped view receives no navigation"
+    );
 }

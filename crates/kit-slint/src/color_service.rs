@@ -46,7 +46,7 @@ fn project(value: Result<SrgbColor, ParseIssue>, mode: AlphaPolicy) -> ui::Color
     }
 }
 pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
-    service.set_color_wheel_image(wheel_image());
+    service.on_color_wheel_image(wheel_image);
     service.on_color_wheel_position(|value| {
         let Ok(value) = SrgbColor::try_from(value) else {
             return ui::ColorWheelPosition::default();
@@ -139,16 +139,28 @@ fn wheel_color(hue: f32, saturation: f32) -> ui::ColorResult {
 // clipping in Slint 1.18.1; explicit RGBA coverage gives all backends the same
 // circular plane, without a theme-dependent mask or installation asset.
 fn wheel_image() -> slint::Image {
-    const SIZE: u32 = 512;
-    let mut buffer = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(SIZE, SIZE);
-    for (index, pixel) in buffer.make_mut_slice().iter_mut().enumerate() {
-        let x = ((index % SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
-        let y = ((index / SIZE as usize) as f32 + 0.5) / SIZE as f32 * 2.0 - 1.0;
-        let radius = x.hypot(y);
-        let hue = x.atan2(-y).to_degrees().rem_euclid(360.0);
-        let alpha = ((1.0 - radius) * SIZE as f32 / 2.0 + 0.5).clamp(0.0, 1.0);
-        let color = slint::Color::from_hsva(hue, radius.min(1.0), 1.0, alpha);
-        *pixel = slint::Rgba8Pixel::new(color.red(), color.green(), color.blue(), color.alpha());
+    std::thread_local! {
+        static IMAGE: std::cell::OnceCell<slint::Image> = const { std::cell::OnceCell::new() };
+    }
+    IMAGE.with(|image| image.get_or_init(render_wheel_image).clone())
+}
+
+fn render_wheel_image() -> slint::Image {
+    const SIDE: u16 = 512;
+    let mut buffer =
+        slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(u32::from(SIDE), u32::from(SIDE));
+    let pixels = buffer.make_mut_slice();
+    for row in 0..SIDE {
+        for column in 0..SIDE {
+            let x = (f32::from(column) + 0.5) / f32::from(SIDE) * 2.0 - 1.0;
+            let y = (f32::from(row) + 0.5) / f32::from(SIDE) * 2.0 - 1.0;
+            let radius = x.hypot(y);
+            let hue = x.atan2(-y).to_degrees().rem_euclid(360.0);
+            let alpha = ((1.0 - radius) * f32::from(SIDE) / 2.0 + 0.5).clamp(0.0, 1.0);
+            let color = slint::Color::from_hsva(hue, radius.min(1.0), 1.0, alpha);
+            pixels[usize::from(row) * usize::from(SIDE) + usize::from(column)] =
+                slint::Rgba8Pixel::new(color.red(), color.green(), color.blue(), color.alpha());
+        }
     }
     slint::Image::from_rgba8(buffer)
 }

@@ -59,7 +59,7 @@ version = "0.3.0"
         patch.object(starter_sources.subprocess, 'check_output', return_value='cargo 1.99.1').start()
 
     def resolve(self, command, **kwargs):
-        self.assertEqual(command[:2], ['cargo', 'generate-lockfile'])
+        self.assertEqual(command[:3], ['cargo', 'update', '--workspace'])
         manifest = Path(command[-1])
         parsed = tomllib.loads(manifest.read_text())
         lock = manifest.with_name('Cargo.lock')

@@ -1,12 +1,12 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitChatBubble, ChatSide, KitTheme, KitThemes } from "@kit";
+import { KitChatBubble, ChatSide, KitTheme, KitThemes, KitButton, ChoiceFlow } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitChatBubble example";
     preferred-width: 520px;
-    preferred-height: 460px * root.theme.text-scale;
+    preferred-height: 540px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -18,6 +18,7 @@ export component Example inherits Window {
         KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Elliot Alderson"; text: "The workspace is ready for review."; metadata: "Today, 09:30"; }
         KitChatBubble { theme: root.theme; side: ChatSide.start; author: "Elliot Alderson"; text: "Could you check the project settings?"; metadata: "Today, 09:31"; }
         KitChatBubble { theme: root.theme; side: ChatSide.end; author: "You"; text: "Yes, I’ll review them this afternoon."; metadata: "Today, 09:32 · Delivered"; }
+        KitButton { theme: root.theme; text: "Mirror layout"; activated => { root.theme.direction = root.theme.direction == ChoiceFlow.left-to-right ? ChoiceFlow.right-to-left : ChoiceFlow.left-to-right; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

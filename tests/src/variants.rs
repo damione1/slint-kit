@@ -21,7 +21,7 @@ macro_rules! every_variant {
 }
 
 every_variant!(alert_severities: AlertSeverity { Information, Success, Warning, Error });
-every_variant!(button_intents: ButtonIntent { Primary, Secondary, Outline, Quiet, Destructive });
+every_variant!(button_intents: ButtonIntent { Primary, Secondary, Outline, Quiet, Destructive, Success, Warning, Information, Link });
 every_variant!(control_sizes: ControlSize { Compact, Medium, Comfortable });
 every_variant!(surface_levels: SurfaceLevel { Flat, Raised, Overlay, Popover });
 every_variant!(typography_roles: TypographyRole { Caption, Control, Body, Subtitle, Title });

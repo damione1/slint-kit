@@ -176,6 +176,9 @@ fn submit_validates_but_explicit_novalidate_and_reset_preserve_web_semantics() {
     let view = ui::HtmlChoiceFixture::new().unwrap();
     kit_slint::install(&view);
     view.show().unwrap();
+    let observations = Rc::new(Cell::new(0));
+    let count = observations.clone();
+    view.on_submit_observed(move || count.set(count.get() + 1));
     let submitted = Rc::new(Cell::new(0));
     let count = submitted.clone();
     view.on_submitted(move || count.set(count.get() + 1));
@@ -192,13 +195,24 @@ fn submit_validates_but_explicit_novalidate_and_reset_preserve_web_semantics() {
     };
     button("Submit").mock_single_click(PointerEventButton::Left);
     assert_eq!(submitted.get(), 0);
+    assert_eq!(
+        observations.get(),
+        0,
+        "overriding activated cannot bypass validation"
+    );
     view.set_allow_submit(true);
     button("Submit").mock_single_click(PointerEventButton::Left);
     assert_eq!(submitted.get(), 1);
+    assert_eq!(
+        observations.get(),
+        1,
+        "accepted activation notifies both hooks once"
+    );
     view.set_allow_submit(false);
     view.set_no_validate(true);
     button("Submit").mock_single_click(PointerEventButton::Left);
     assert_eq!(submitted.get(), 2);
+    assert_eq!(observations.get(), 2);
     button("Reset").mock_single_click(PointerEventButton::Left);
     assert_eq!(reset.get(), 1);
 }

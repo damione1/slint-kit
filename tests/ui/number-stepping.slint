@@ -1,0 +1,47 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDecimalField, KitNumberStepper, KitTextField, FieldAccess, NumberInputFormat, StepDirection, KitKeyResult } from "@kit";
+
+// Keyboard, wheel and accessible stepping of the shared numeric editor.
+export component NumberSteppingFixture inherits Window {
+    width: 600px; height: 500px;
+    in-out property <string> value;
+    in-out property <string> min;
+    in-out property <string> max;
+    in-out property <string> step: "1";
+    in-out property <int> page-steps: 10;
+    in-out property <bool> wheel-stepping;
+    in-out property <FieldAccess> access: FieldAccess.editable;
+    in-out property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    in-out property <bool> intercept-key;
+    in-out property <int> edited-count;
+    in-out property <int> value-edited-count;
+    in-out property <int> commit-count;
+    in-out property <string> last-value-edited;
+    out property <bool> dirty: amount.dirty;
+    out property <int> cursor-position: amount.cursor-position;
+    out property <int> selection-anchor: amount.selection-anchor;
+    in-out property <string> stepper-value;
+    in-out property <int> stepper-edited-count;
+    public function focus-amount() { amount.take-focus(); }
+    public function focus-stepper() { stepper.take-focus(); }
+    public function focus-plain() { plain.take-focus(); }
+    public function blur-amount() { amount.blur(); }
+    public function step-amount(direction: StepDirection, count: int) -> bool { return amount.step-by(direction, count); }
+    VerticalLayout {
+        padding: 20px; spacing: 8px;
+        amount := KitDecimalField {
+            label: "Amount"; text <=> root.value;
+            min: root.min; max: root.max; step: root.step; page-steps: root.page-steps;
+            wheel-stepping: root.wheel-stepping; access: root.access; number-format: root.number-format;
+            key-pressed(event) => { return root.intercept-key ? KitKeyResult.accept : KitKeyResult.reject; }
+            edited(text) => { root.edited-count += 1; }
+            value-edited(text) => { root.value-edited-count += 1; root.last-value-edited = text; }
+            committed(value) => { root.commit-count += 1; }
+        }
+        stepper := KitNumberStepper {
+            label: "Guests"; text <=> root.stepper-value; min: "1"; max: "8"; page-steps: 3;
+            edited(text) => { root.stepper-edited-count += 1; }
+        }
+        plain := KitTextField { label: "Note"; }
+    }
+}

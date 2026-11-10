@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { heroProjects } from '../assets/landing.js';
+export default {
+  en: {
+    hero: {projects:heroProjects, project:'Project', tasks:'Tasks', selected:'Selected', archive:'Cedar is archived', original:'{name} selected. Sort the table.', ascending:'{column} ↑ · {name} keeps its key.', descending:'{column} ↓ · {name} is still selected.', pause:'Pause animation', play:'Play animation', link:'Try the Slint example', select:'Select'},
+    mock: {money:'Money Field', budget:'Budget', value:'Accepted value', calendar:'Calendar', month:'October 2026', weekdays:['Mo','Tu','We','Th','Fr','Sa','Su'], dialog:'Project settings', question:'Archive this project?', description:'You can restore it from the archive.', cancel:'Cancel', confirm:'Archive', workspace:'Find your workspace', search:'Search eight workspaces by name.', chosen:'Accepted workspace: Personal', illustration:'HTML illustration'},
+    eyebrow: 'The UI kit for Rust + Slint', title: 'Native Rust UI.', emphasis: 'Behavior included.',
+    lead: 'Slint Kit combines {count} UI components with shared interaction logic and typed domain values. Build validated forms, exact money inputs and data views that keep their identity.',
+    try: 'Try the components', start: 'Get started', why: 'See what the kit handles', free: 'Forever free for open-source use',
+    table: 'Virtualized data. Stable identity.', money: 'Exact values. Native editing.', visual: 'HTML illustration of the documented Slint behavior.',
+    count: 'public components', typed: 'Typed Rust values', themes: 'Light & dark themes', platforms: 'Desktop & mobile',
+    featureEyebrow: 'The behavior layer', featureTitle: 'The details that make an interface work.',
+    features: [
+      { tag: 'Forms', title: 'From draft to domain value.', text: 'Shared validation checks email, URL, bounds and patterns. Incomplete drafts stay editable; your Rust callback accepts a checked value.', api: 'FieldSpec<T, E>', route: 'guides/forms/', link: 'Explore form validation' },
+      { tag: 'Data', title: 'Your keys. The same selection.', text: 'Sort and filter while retaining domain identity. Virtualized views and generation guards keep an old gesture from targeting a different record.', api: 'Choices<K> · KeyedModel<K, Row>', route: 'guides/controllers/', link: 'Explore typed models' },
+      { tag: 'Values', title: 'Exact where it matters.', text: 'Money and decimals stay exact in Rust. Dates and IANA time zones have explicit rules, including nonexistent and repeated local times.', api: 'Money · DecimalValue · CivilDate', route: 'components/money-field/', link: 'Try exact money input' },
+    ],
+    demoEyebrow: 'Try it for real', demoTitle: 'The actual component. In your browser.', demoText: 'Search, move with the arrow keys and choose an option. This preview runs Slint and Rust compiled to WebAssembly, using the same code as the downloadable native example.',
+    demoLink: 'Open the complete combobox project', run: 'Run the Slint demo', demoTheme: 'Demo theme', light: 'Light', dark: 'Dark', noScript: 'Enable JavaScript to run the demo, or open the complete native example.',
+    galleryEyebrow: 'One visual system', galleryTitle: 'Make the interface yours.', galleryText: 'A complete Tailwind-inspired theme, light and dark. Customize colors, spacing, typography and state recipes while reusing the same interaction logic.', themeLink: 'Explore themes and composition',
+    gallery: [
+      {slug:'calendar',title:'Dates with clear rules',text:'Keyboard navigation and explicit availability.',width:600,height:460},
+      {slug:'dialog-surface',title:'Room for your workflow',text:'Compose modal content, actions and focus handling.',width:520,height:520},
+      {slug:'money-field',title:'Precision, all the way',text:'Native editing connected to exact Rust values.',width:420,height:180},
+    ],
+    integrationEyebrow: 'A small public contract', integrationTitle: 'Compose in Slint. Accept values in Rust.', integrationText: 'Compile with slint_kit_build, import from @kit and install shared services once per window. Components own local interaction; your application owns data, domain rules and commands.', integrationLink:'Build your first window', slintLabel:'Slint composition', rustLabel:'Rust acceptance', excerpts:'Excerpts from the email field integration. The complete project includes Cargo, build.rs and window setup.',
+    licenseEyebrow:'Open source, forever free', licenseTitle:'A solid foundation for your next Rust interface.', licenseText:'The base kit components remain free for open-source use under GPL-3.0-or-later.', commercial:'A commercial license for proprietary applications is coming, on request. Slint Kit Pro advanced components are also coming.', contact:'Contact the author',
+    docsTitle:'Your next step', docs:[{route:'guides/getting-started/',title:'Start building',text:'Cargo, build.rs and your first native window.'},{route:'components/',title:'Find your component',text:'APIs, real previews and complete downloads.'},{route:'guides/why-slint-kit/',title:'Evaluate the kit',text:'Responsibilities, evidence and adoption limits.'}],
+    qualification:'Version {version}, before 1.0. Rust {rust}+ · Slint {slint}. Full checks run on macOS; Windows has build/helper checks. Linux and mobile require their own runtime qualification. IME and screen readers need checks on the target device.', evidence:'Explore the public checks', families:'Explore all component families',
+  },
+  fr: {
+    hero: {projects:heroProjects, project:'Projet', tasks:'Tâches', selected:'Sélection', archive:'Cedar est archivé', original:'{name} sélectionné. Triez le tableau.', ascending:'{column} ↑ · {name} conserve sa clé.', descending:'{column} ↓ · {name} reste sélectionné.', pause:'Mettre en pause', play:'Animer le tableau', link:'Essayer l’exemple Slint', select:'Sélectionner'},
+    mock: {money:'Champ monétaire', budget:'Budget', value:'Valeur acceptée', calendar:'Calendrier', month:'Octobre 2026', weekdays:['Lu','Ma','Me','Je','Ve','Sa','Di'], dialog:'Paramètres du projet', question:'Archiver ce projet ?', description:'Vous pourrez le restaurer depuis les archives.', cancel:'Annuler', confirm:'Archiver', workspace:'Choisissez votre espace', search:'Recherchez parmi huit espaces de travail.', chosen:'Espace accepté : Personal', illustration:'Illustration HTML'},
+    eyebrow: 'Le kit UI pour Rust + Slint', title: 'Des composants Rust.', emphasis: 'Prêts à interagir.',
+    lead: 'Slint Kit associe {count} composants UI à une logique d’interaction partagée et des valeurs métier typées. Créez des formulaires validés, des champs monétaires exacts et des vues de données à identité stable.',
+    try: 'Essayer les composants', start: 'Bien démarrer', why: 'Voir ce que le kit prend en charge', free: 'Gratuit pour toujours pour l’usage open source',
+    table: 'Données virtualisées. Identité stable.', money: 'Valeurs exactes. Édition native.', visual: 'Illustration HTML du comportement Slint documenté.',
+    count: 'composants publics', typed: 'Valeurs Rust typées', themes: 'Thèmes clair et sombre', platforms: 'Bureau et mobile',
+    featureEyebrow: 'La couche de comportements', featureTitle: 'Les détails qui font fonctionner une interface.',
+    features: [
+      { tag: 'Formulaires', title: 'Du brouillon à la valeur métier.', text: 'La validation partagée vérifie courriels, URL, bornes et motifs. Les brouillons incomplets restent éditables ; votre callback Rust accepte une valeur vérifiée.', api: 'FieldSpec<T, E>', route: 'guides/forms/', link: 'Explorer la validation' },
+      { tag: 'Données', title: 'Vos clés. La même sélection.', text: 'Triez et filtrez en conservant l’identité métier. Vues virtualisées et gardes de génération empêchent un ancien geste de viser un autre enregistrement.', api: 'Choices<K> · KeyedModel<K, Row>', route: 'guides/controllers/', link: 'Explorer les modèles typés' },
+      { tag: 'Valeurs', title: 'L’exactitude là où elle compte.', text: 'Montants et décimaux restent exacts en Rust. Dates et fuseaux IANA ont des règles explicites, y compris pour les heures inexistantes ou répétées.', api: 'Money · DecimalValue · CivilDate', route: 'components/money-field/', link: 'Essayer le champ monétaire' },
+    ],
+    demoEyebrow: 'À vous de jouer', demoTitle: 'Le vrai composant. Dans votre navigateur.', demoText: 'Recherchez, naviguez avec les flèches et choisissez une option. Cet aperçu exécute Slint et Rust compilés en WebAssembly, avec le même code que l’exemple natif téléchargeable.',
+    demoLink: 'Ouvrir le projet complet de combobox', run: 'Lancer la démo Slint', demoTheme: 'Thème de la démo', light: 'Clair', dark: 'Sombre', noScript: 'Activez JavaScript pour lancer la démo, ou ouvrez l’exemple natif complet.',
+    galleryEyebrow: 'Un système visuel cohérent', galleryTitle: 'Une interface à votre image.', galleryText: 'Un thème complet inspiré de Tailwind, en clair et en sombre. Personnalisez couleurs, espacements, typographie et recettes d’état en réutilisant la même logique d’interaction.', themeLink: 'Explorer les thèmes et la composition',
+    gallery: [
+      {slug:'calendar',title:'Des dates aux règles claires',text:'Navigation clavier et disponibilités explicites.',width:600,height:460},
+      {slug:'dialog-surface',title:'Place à votre parcours',text:'Composez contenu modal, actions et gestion du focus.',width:520,height:520},
+      {slug:'money-field',title:'La précision de bout en bout',text:'Une édition native reliée aux valeurs Rust exactes.',width:420,height:180},
+    ],
+    integrationEyebrow: 'Un contrat public simple', integrationTitle: 'Composez en Slint. Acceptez les valeurs en Rust.', integrationText: 'Compilez avec slint_kit_build, importez depuis @kit et installez les services partagés une fois par fenêtre. Les composants possèdent leur interaction locale ; votre application possède données, règles métier et commandes.', integrationLink:'Créer votre première fenêtre', slintLabel:'Composition Slint', rustLabel:'Acceptation Rust', excerpts:'Extraits de l’intégration du champ courriel. Le projet complet inclut Cargo, build.rs et la création de fenêtre.',
+    licenseEyebrow:'Open source, gratuit pour toujours', licenseTitle:'Une base solide pour votre prochaine interface Rust.', licenseText:'Les composants du kit de base restent gratuits pour l’usage open source, sous GPL-3.0-or-later.', commercial:'La licence commerciale pour les applications propriétaires est à venir, sur demande. Les composants avancés de Slint Kit Pro sont également à venir.', contact:'Contacter l’auteur',
+    docsTitle:'Votre prochaine étape', docs:[{route:'guides/getting-started/',title:'Commencer à construire',text:'Cargo, build.rs et votre première fenêtre native.'},{route:'components/',title:'Trouver votre composant',text:'API, vrais aperçus et projets complets.'},{route:'guides/why-slint-kit/',title:'Évaluer le kit',text:'Responsabilités, preuves et limites d’adoption.'}],
+    qualification:'Version {version}, avant la 1.0. Rust {rust}+ · Slint {slint}. Vérification complète sur macOS ; vérifications de compilation et du helper sur Windows. Linux et mobile demandent leur propre qualification à l’exécution. IME et lecteurs d’écran se vérifient sur l’appareil cible.', evidence:'Consulter les vérifications publiques', families:'Explorer toutes les familles de composants',
+  },
+};

@@ -20,6 +20,7 @@ export component HtmlChoiceFixture inherits Window {
     out property <KitValidityState> multi-validity: multi.validity;
     out property <KitValidityState> files-validity: picker.validity;
     callback submitted();
+    callback submit-observed();
     callback reset();
     public function report-checkbox() -> bool { return checkbox.report-validity(); }
     VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
@@ -28,7 +29,7 @@ export component HtmlChoiceFixture inherits Window {
         select := KitSelect { theme: root.theme; placeholder: "Select plan"; rows: root.options; state: root.select-state; required: true; access: root.disabled ? FieldAccess.disabled : FieldAccess.editable; }
         multi := KitMultiSelect { theme: root.theme; rows: root.options; chips: root.chips; required: true; }
         picker := KitFilePicker { theme: root.theme; label: "Attachment"; entries: root.files; required: true; }
-        KitSubmitButton { theme: root.theme; text: "Submit"; form-no-validate: root.no-validate; validation-requested => { return root.allow-submit; } form-action(action) => { root.submitted(); } }
+        KitSubmitButton { activated => { root.submit-observed(); } theme: root.theme; text: "Submit"; form-no-validate: root.no-validate; validation-requested => { return root.allow-submit; } form-action(action) => { root.submitted(); } }
         KitResetButton { theme: root.theme; text: "Reset"; validation-requested => { return false; } form-action(action) => { root.reset(); } }
     }
 }

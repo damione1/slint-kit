@@ -6,6 +6,7 @@ use chrono::NaiveDate;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::Zero;
+use std::num::NonZeroU32;
 
 /// A bounded native edit and a safe UTF-8 caret offset after a rejected edit.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1121,84 +1122,188 @@ mod localized_time_tests {
     }
 }
 
-impl HtmlConstraints {
-    /// HTML number stepping, on the minimum/default/zero step lattice, using
-    /// exact rationals. A mismatched value first moves to the adjacent valid step.
-    pub fn step_number(
-        &self,
-        draft: &str,
+/// One stepping request on a number field: arrow keys, page keys, Home/End,
+/// the wheel and assistive increment/decrement actions all reduce to it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NumberStep {
+    /// Move `count` lattice steps in `direction`: one for Up/Down, the page
+    /// size for PageUp/PageDown.
+    Steps {
         direction: crate::StepDirection,
-    ) -> Result<String, crate::ParseIssue> {
-        use crate::ParseIssue;
+        count: NonZeroU32,
+    },
+    /// Jump to the bound in `direction` (Home/End). Unavailable without it.
+    Bound(crate::StepDirection),
+}
+
+/// The result of a [`NumberStep`]. `Unavailable` leaves the key to the native
+/// editor; `Unchanged` consumes it without an edit, so a bound never emits a
+/// duplicate edit; `Stepped` carries the next draft in the field's grammar.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NumberStepOutcome {
+    Unavailable,
+    Unchanged,
+    Stepped(String),
+}
+
+/// Float projection of a number field's range for assistive technology.
+/// `None` is an absent bound or `step="any"`; exact arithmetic never uses it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NumberRangeProjection {
+    pub minimum: Option<f32>,
+    pub maximum: Option<f32>,
+    pub step: Option<f32>,
+}
+
+struct NumberLattice {
+    step: BigRational,
+    base: BigRational,
+    minimum: Option<BigRational>,
+    maximum: Option<BigRational>,
+}
+
+impl HtmlConstraints {
+    fn number_bounds(&self) -> (Option<BigRational>, Option<BigRational>) {
+        (
+            self.minimum.as_deref().and_then(html_number),
+            self.maximum.as_deref().and_then(html_number),
+        )
+    }
+    /// The HTML step: the type default without `step`, none for `"any"`.
+    fn number_step(&self) -> Option<BigRational> {
+        match self.step.as_deref() {
+            Some("any") => None,
+            Some(step) => Some(
+                html_number(step)
+                    .filter(|value| value > &BigRational::zero())
+                    .unwrap_or_else(|| BigRational::from_integer(1.into())),
+            ),
+            None => Some(BigRational::from_integer(1.into())),
+        }
+    }
+    /// The step lattice of an editable number field; `None` when stepping
+    /// does not apply (access, kind, `step="any"` or an inverted range).
+    fn number_lattice(&self) -> Option<NumberLattice> {
         if self.disabled
             || self.read_only
             || !matches!(self.kind, HtmlInputKind::Number | HtmlInputKind::Range)
-            || self.step.as_deref() == Some("any")
         {
-            return Err(ParseIssue::InvalidSyntax);
+            return None;
         }
-        let step = self
-            .step
-            .as_deref()
-            .and_then(html_number)
-            .filter(|value| value > &BigRational::zero())
-            .unwrap_or_else(|| BigRational::from_integer(1.into()));
-        let minimum = self.minimum.as_deref().and_then(html_number);
-        let maximum = self.maximum.as_deref().and_then(html_number);
+        let step = self.number_step()?;
+        let (minimum, maximum) = self.number_bounds();
         if minimum
             .as_ref()
             .zip(maximum.as_ref())
             .is_some_and(|(min, max)| min > max)
         {
-            return Err(ParseIssue::InvalidRange);
+            return None;
         }
         let base = minimum
             .clone()
             .or_else(|| html_number(&self.default_value))
             .unwrap_or_else(BigRational::zero);
+        Some(NumberLattice {
+            step,
+            base,
+            minimum,
+            maximum,
+        })
+    }
+    /// HTML number stepping, on the minimum/default/zero step lattice, using
+    /// exact rationals. A mismatched value first moves to the adjacent valid
+    /// step; the result never leaves `[min, max]`.
+    pub fn step_number(&self, draft: &str, step: NumberStep) -> NumberStepOutcome {
+        let Some(lattice) = self.number_lattice() else {
+            return NumberStepOutcome::Unavailable;
+        };
         let current = canonical_number_draft(draft, self.number_format)
             .as_deref()
             .and_then(html_number)
             .unwrap_or_else(BigRational::zero);
-        let position = (&current - &base) / &step;
-        let next_index = match direction {
-            crate::StepDirection::Increment => {
-                if position.is_integer() {
-                    position + BigRational::from_integer(1.into())
-                } else {
-                    position.ceil()
-                }
+        let clamp = |mut next: BigRational| {
+            if let Some(minimum) = &lattice.minimum
+                && &next < minimum
+            {
+                next = &lattice.base
+                    + ((minimum - &lattice.base) / &lattice.step).ceil() * &lattice.step;
             }
-            crate::StepDirection::Decrement => {
-                if position.is_integer() {
-                    position - BigRational::from_integer(1.into())
-                } else {
-                    position.floor()
+            if let Some(maximum) = &lattice.maximum
+                && &next > maximum
+            {
+                next = &lattice.base
+                    + ((maximum - &lattice.base) / &lattice.step).floor() * &lattice.step;
+            }
+            next
+        };
+        let next = match step {
+            NumberStep::Steps { direction, count } => {
+                let position = (&current - &lattice.base) / &lattice.step;
+                let count = BigRational::from_integer(count.get().into());
+                let one = BigRational::from_integer(1.into());
+                let index = match direction {
+                    crate::StepDirection::Increment => {
+                        if position.is_integer() {
+                            position + count
+                        } else {
+                            position.ceil() + count - one
+                        }
+                    }
+                    crate::StepDirection::Decrement => {
+                        if position.is_integer() {
+                            position - count
+                        } else {
+                            position.floor() - count + one
+                        }
+                    }
+                };
+                let next = clamp(&lattice.base + index * &lattice.step);
+                let overshoot = match direction {
+                    crate::StepDirection::Increment => next < current,
+                    crate::StepDirection::Decrement => next > current,
+                };
+                if overshoot {
+                    return NumberStepOutcome::Unchanged;
                 }
+                next
+            }
+            NumberStep::Bound(direction) => {
+                let bound = match direction {
+                    crate::StepDirection::Increment => lattice.maximum.clone(),
+                    crate::StepDirection::Decrement => lattice.minimum.clone(),
+                };
+                let Some(bound) = bound else {
+                    return NumberStepOutcome::Unavailable;
+                };
+                clamp(bound)
             }
         };
-        let mut next = &base + next_index * &step;
-        if let Some(minimum) = minimum
-            && next < minimum
-        {
-            next = &base + ((minimum - &base) / &step).ceil() * &step;
-        }
-        if let Some(maximum) = maximum
-            && next > maximum
-        {
-            next = &base + ((maximum - &base) / &step).floor() * &step;
-        }
-        if match direction {
-            crate::StepDirection::Increment => next < current,
-            crate::StepDirection::Decrement => next > current,
-        } {
-            return Ok(draft.into());
+        if next == current {
+            return NumberStepOutcome::Unchanged;
         }
         let mut value = rational_decimal(next);
         if self.number_format == NumberInputFormat::DecimalComma {
             value = value.replace('.', ",");
         }
-        Ok(value)
+        NumberStepOutcome::Stepped(value)
+    }
+    /// Range and step of a number field as floats, for accessible value
+    /// bounds only; other kinds and absent constraints project to `None`.
+    pub fn number_range_projection(&self) -> NumberRangeProjection {
+        use num_traits::ToPrimitive;
+        if !matches!(self.kind, HtmlInputKind::Number | HtmlInputKind::Range) {
+            return NumberRangeProjection {
+                minimum: None,
+                maximum: None,
+                step: None,
+            };
+        }
+        let (minimum, maximum) = self.number_bounds();
+        NumberRangeProjection {
+            minimum: minimum.as_ref().and_then(ToPrimitive::to_f32),
+            maximum: maximum.as_ref().and_then(ToPrimitive::to_f32),
+            step: self.number_step().as_ref().and_then(ToPrimitive::to_f32),
+        }
     }
 }
 fn rational_decimal(value: BigRational) -> String {
@@ -1222,30 +1327,177 @@ fn rational_decimal(value: BigRational) -> String {
 mod stepping_tests {
     use super::*;
     use crate::StepDirection;
-    #[test]
-    fn exact_number_stepping_aligns_then_respects_bounds() {
-        let rules = HtmlConstraints {
+    fn steps(direction: StepDirection, count: u32) -> NumberStep {
+        NumberStep::Steps {
+            direction,
+            count: NonZeroU32::new(count).unwrap(),
+        }
+    }
+    fn stepped(text: &str) -> NumberStepOutcome {
+        NumberStepOutcome::Stepped(text.into())
+    }
+    fn bounded() -> HtmlConstraints {
+        HtmlConstraints {
             kind: HtmlInputKind::Number,
             minimum: Some("0.1".into()),
             maximum: Some("0.9".into()),
             step: Some("0.2".into()),
             ..Default::default()
+        }
+    }
+    #[test]
+    fn exact_number_stepping_aligns_then_respects_bounds() {
+        let rules = bounded();
+        let up = steps(StepDirection::Increment, 1);
+        let down = steps(StepDirection::Decrement, 1);
+        assert_eq!(rules.step_number("0.2", up), stepped("0.3"));
+        assert_eq!(rules.step_number("0.2", down), stepped("0.1"));
+        assert_eq!(rules.step_number("0.9", up), NumberStepOutcome::Unchanged);
+        assert_eq!(rules.step_number("0.1", down), NumberStepOutcome::Unchanged);
+        let decimal = HtmlConstraints {
+            kind: HtmlInputKind::Number,
+            step: Some("0.1".into()),
+            ..Default::default()
+        };
+        assert_eq!(decimal.step_number("0.2", up), stepped("0.3"));
+        assert_eq!(decimal.step_number("0.7", up), stepped("0.8"));
+        assert_eq!(decimal.step_number("0", down), stepped("-0.1"));
+    }
+    #[test]
+    fn page_steps_count_from_the_adjacent_lattice_value_and_clamp() {
+        let rules = bounded();
+        assert_eq!(
+            rules.step_number("0.1", steps(StepDirection::Increment, 3)),
+            stepped("0.7")
+        );
+        assert_eq!(
+            rules.step_number("0.2", steps(StepDirection::Increment, 2)),
+            stepped("0.5")
+        );
+        assert_eq!(
+            rules.step_number("0.2", steps(StepDirection::Decrement, 2)),
+            stepped("0.1")
+        );
+        assert_eq!(
+            rules.step_number("0.5", steps(StepDirection::Increment, 10)),
+            stepped("0.9")
+        );
+        assert_eq!(
+            rules.step_number("0.9", steps(StepDirection::Increment, 10)),
+            NumberStepOutcome::Unchanged
+        );
+    }
+    #[test]
+    fn bounds_jump_to_the_lattice_value_at_min_and_max_or_stay_unavailable() {
+        let rules = bounded();
+        assert_eq!(
+            rules.step_number("0.3", NumberStep::Bound(StepDirection::Increment)),
+            stepped("0.9")
+        );
+        assert_eq!(
+            rules.step_number("0.3", NumberStep::Bound(StepDirection::Decrement)),
+            stepped("0.1")
+        );
+        assert_eq!(
+            rules.step_number("0.1", NumberStep::Bound(StepDirection::Decrement)),
+            NumberStepOutcome::Unchanged
+        );
+        let open = HtmlConstraints {
+            kind: HtmlInputKind::Number,
+            minimum: Some("2".into()),
+            ..Default::default()
         };
         assert_eq!(
-            rules.step_number("0.2", StepDirection::Increment).unwrap(),
-            "0.3"
+            open.step_number("5", NumberStep::Bound(StepDirection::Increment)),
+            NumberStepOutcome::Unavailable
         );
         assert_eq!(
-            rules.step_number("0.2", StepDirection::Decrement).unwrap(),
-            "0.1"
+            open.step_number("5", NumberStep::Bound(StepDirection::Decrement)),
+            stepped("2")
+        );
+    }
+    #[test]
+    fn stepping_is_unavailable_for_any_step_read_only_disabled_and_text() {
+        let up = steps(StepDirection::Increment, 1);
+        for rules in [
+            HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                step: Some("any".into()),
+                ..Default::default()
+            },
+            HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                read_only: true,
+                ..Default::default()
+            },
+            HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                disabled: true,
+                ..Default::default()
+            },
+            HtmlConstraints {
+                kind: HtmlInputKind::Text,
+                ..Default::default()
+            },
+        ] {
+            assert_eq!(rules.step_number("1", up), NumberStepOutcome::Unavailable);
+        }
+    }
+    #[test]
+    fn decimal_comma_drafts_step_in_their_own_grammar() {
+        let rules = HtmlConstraints {
+            kind: HtmlInputKind::Number,
+            number_format: NumberInputFormat::DecimalComma,
+            step: Some("0.5".into()),
+            ..Default::default()
+        };
+        assert_eq!(
+            rules.step_number("1,5", steps(StepDirection::Increment, 1)),
+            stepped("2")
         );
         assert_eq!(
-            rules.step_number("0.9", StepDirection::Increment).unwrap(),
-            "0.9"
+            rules.step_number("2", steps(StepDirection::Decrement, 1)),
+            stepped("1,5")
+        );
+    }
+    #[test]
+    fn range_projection_reports_only_known_number_bounds() {
+        let projection = bounded().number_range_projection();
+        assert_eq!(projection.minimum, Some(0.1));
+        assert_eq!(projection.maximum, Some(0.9));
+        assert_eq!(projection.step, Some(0.2));
+        let open = HtmlConstraints {
+            kind: HtmlInputKind::Number,
+            step: Some("any".into()),
+            ..Default::default()
+        }
+        .number_range_projection();
+        assert_eq!(
+            open,
+            NumberRangeProjection {
+                minimum: None,
+                maximum: None,
+                step: None
+            }
         );
         assert_eq!(
-            rules.step_number("0.1", StepDirection::Decrement).unwrap(),
-            "0.1"
+            HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                ..Default::default()
+            }
+            .number_range_projection()
+            .step,
+            Some(1.0)
+        );
+        assert_eq!(
+            HtmlConstraints {
+                kind: HtmlInputKind::Text,
+                minimum: Some("2".into()),
+                ..Default::default()
+            }
+            .number_range_projection()
+            .minimum,
+            None
         );
     }
 }

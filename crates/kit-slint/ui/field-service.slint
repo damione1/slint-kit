@@ -1,6 +1,9 @@
+import { OptionRow } from "contracts.slint";
+import { TextEditLabels, TextEditAvailability, TextEditCommandResult, TextMenuPlacement, TextMenuGeometry } from "text-edit.slint";
 import { NavigationStep, RangeThumb, ColorAlphaMode } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection } from "shared-contracts.slint";
+import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection, NumberStepStatus } from "shared-contracts.slint";
+import { KitFieldMessages } from "strings.slint";
 import { KitInputConstraints } from "validation.slint";
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
@@ -14,11 +17,20 @@ export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
 export struct ColorWheelPosition { x: float, y: float, hue: float, saturation: float }
 export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
+// `text` is the next draft only when `status` is `stepped`.
+export struct NumberStepResult { status: NumberStepStatus, text: string }
+// Float projection for accessible value bounds only. An absent bound is
+// -inf/+inf and `step="any"` is 0, because Slint always publishes the floats.
+export struct NumberRangeView { minimum: float, maximum: float, step: float }
 export global KitFieldService {
-    in-out property <image> color-wheel-image;
+    pure callback color-wheel-image() -> image;
     pure callback color-wheel-position(SrgbColorView) -> ColorWheelPosition;
     pure callback color-wheel(float, float) -> ColorResult;
     pure callback color-hue(float, float) -> ColorResult;
+    pure callback text-menu-options(TextEditLabels, TextEditAvailability) -> [OptionRow];
+    pure callback text-menu-command(OptionRow) -> TextEditCommandResult;
+    callback text-menu-placement(TextMenuPlacement) -> TextMenuGeometry;
+    callback edit-selection(string);
     pure callback color-format(SrgbColorView, ColorAlphaMode) -> string;
     pure callback color-validate(SrgbColorView, ColorAlphaMode) -> ColorResult;
     pure callback color-parse(string, ColorAlphaMode) -> ColorResult;
@@ -33,6 +45,9 @@ export global KitFieldService {
     pure callback range-navigate(DecimalRangeView, RangeThumb, NavigationStep, SliderSpec) -> DecimalRangeView;
     in-out property <bool> ready;
     pure callback display(string, string) -> string;
-    pure callback step-number(string, KitInputConstraints, StepDirection) -> string;
-    pure callback reduce(FieldState, FieldAction, string, KitInputConstraints, CommitPolicy, Ownership, string) -> FieldState;
+    // Exact HTML stepping: `count` lattice steps, or a jump to the bound in the direction.
+    pure callback step-number(string, KitInputConstraints, StepDirection, int) -> NumberStepResult;
+    pure callback step-number-to-bound(string, KitInputConstraints, StepDirection) -> NumberStepResult;
+    pure callback number-range(KitInputConstraints) -> NumberRangeView;
+    pure callback reduce(FieldState, FieldAction, string, KitInputConstraints, CommitPolicy, Ownership, string, bool, KitFieldMessages) -> FieldState;
 }

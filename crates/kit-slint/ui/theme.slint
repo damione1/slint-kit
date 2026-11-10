@@ -3,13 +3,15 @@ import { MonospaceFont } from "fonts/monospace.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { IconGlyph, IconStroke } from "icons/glyph.slint";
 import { LucideIcons } from "icons/lucide/all.slint";
-export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph }
+export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph, avatar: IconGlyph }
 export enum ControlSize { compact, medium, comfortable }
+export enum AvatarSize { compact, medium, large }
+export enum ChoiceFlow { left-to-right, right-to-left }
 export enum ControlWidth { intrinsic, fill }
 export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
 // control; quiet is borderless (the web's ghost).
-export enum ButtonIntent { primary, secondary, outline, quiet, destructive }
+export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information, link }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
 // enums. A level names a shadow; the theme supplies that shadow's geometry.
 export enum ElevationLevel { none, xs, sm, md, lg, xl }
@@ -50,25 +52,34 @@ export struct KitTypography {
 export struct KitControlDensity { height: length, padding-inline: length, padding-block: length }
 export struct KitSpacing { unit: length, compact: KitControlDensity, medium: KitControlDensity, comfortable: KitControlDensity }
 export struct KitMotion { fast: duration, base: duration, slow: duration }
+export struct KitGeometry {
+    icon-compact: length, icon-medium: length, icon-comfortable: length,
+    choice-compact: length, choice-medium: length, choice-comfortable: length,
+    scroll-thickness: length, scroll-thumb: length, scroll-active-thumb: length, scroll-inset: length, scroll-min-thumb: length,
+    content-reading: length, content-standard: length, content-wide: length, content-fluid: length,
+    busy-mark: length, avatar-size: length, avatar-compact: length, avatar-large: length, avatar-initials-ratio: float, step-marker-minimum: length, step-marker-scaled: length,
+    drop-zone-minimum: length, drop-zone-scaled: length,
+    color-wheel-minimum: length, color-wheel-diameter: length, color-wheel-indicator-size: length, color-wheel-indicator-border-width: length,
+}
 export struct KitTheme {
     canvas: color, surface: color, surface-raised: color,
     text-primary: color, text-secondary: color, placeholder: color,
     accent: color, on-accent: color, accent-hover: color, accent-pressed: color, accent-subtle: color,
     selection: color, on-selection: color,
-    danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, success-subtle: color,
-    warning: color, warning-subtle: color, information: color, information-subtle: color,
+    danger: color, on-danger: color, danger-hover: color, danger-pressed: color, danger-subtle: color, success: color, on-success: color, success-hover: color, success-pressed: color, success-subtle: color,
+    warning: color, on-warning: color, warning-hover: color, warning-pressed: color, warning-subtle: color, information: color, on-information: color, information-hover: color, information-pressed: color, information-subtle: color,
     border-subtle: color, border-strong: color,
     hover: color, pressed: color, disabled-fill: color, disabled-text: color, scrim: color,
     shape: KitShape, elevation: KitElevation, focus: KitFocusRing, typography: KitTypography,
-    spacing: KitSpacing, motion: KitMotion, icons: KitIconSet,
-    reduced-motion: bool, text-scale: float,
+    spacing: KitSpacing, motion: KitMotion, icons: KitIconSet, geometry: KitGeometry,
+    reduced-motion: bool, text-scale: float, direction: ChoiceFlow,
 }
 
 export struct ButtonRecipe {
     fill: brush, hover-fill: brush, pressed-fill: brush, disabled-fill: brush,
     foreground: color, disabled-foreground: color, border: color,
     radius: length, padding-inline: length, padding-block: length, border-width: length, height: length,
-    font-size: length, font-weight: int,
+    font-size: length, font-weight: int, underline: bool,
     busy-mark-size: length, busy-mark-stroke: length,
     // The control's elevation: the key layer of `elevation`, painted under it.
     elevation: ElevationLevel, shadow: ShadowLayer,
@@ -117,8 +128,18 @@ export struct ScrollBarRecipe {
     transition: duration,
 }
 
+// The resize handle at the trailing edge of a resizable data-table column:
+// `width` is its pointer target, `thickness` the divider it draws, `step`
+// the width change of one keyboard or accessible increment.
+export struct ColumnHandleRecipe {
+    width: length, thickness: length, active-thickness: length, step: length,
+    ink: color, hover-ink: color, active-ink: color,
+    focus: KitFocusRing,
+}
+
 // Metrics derive from theme tokens; text sizes and control heights follow text-scale.
 export global KitMetrics {
+    public pure function popover-inset(theme: KitTheme) -> length { return theme.spacing.unit * 1.5; }
     public pure function label-gap(theme: KitTheme) -> length { return theme.spacing.unit * 2; }
     // Between the items of one control row: adornments, an editor and its
     // actions, a group of buttons.
@@ -144,7 +165,10 @@ export global KitMetrics {
     }
     // Tailwind size-3.5/4/5, scaled with text so icons stay legible at 200%.
     public pure function icon-size(theme: KitTheme, size: ControlSize) -> length {
-        return (size == ControlSize.compact ? 14px : size == ControlSize.comfortable ? 20px : 16px) * theme.text-scale;
+        return (size == ControlSize.compact ? theme.geometry.icon-compact : size == ControlSize.comfortable ? theme.geometry.icon-comfortable : theme.geometry.icon-medium) * theme.text-scale;
+    }
+    public pure function avatar-size(theme: KitTheme, size: AvatarSize) -> length {
+        return (size == AvatarSize.compact ? theme.geometry.avatar-compact : size == AvatarSize.large ? theme.geometry.avatar-large : theme.geometry.avatar-size) * theme.text-scale;
     }
     // A control never clips one line of scaled text inside its block padding.
     public pure function control-height(theme: KitTheme, size: ControlSize) -> length {
@@ -159,10 +183,10 @@ export global KitThemes {
         accent: #4f46e5 /* indigo-600 */, on-accent: #ffffff /* white */,
         accent-hover: #4338ca /* indigo-700 */, accent-pressed: #3730a3 /* indigo-800 */, accent-subtle: #eef2ff /* indigo-50 */,
         selection: #c7d2fe /* indigo-200 */, on-selection: #0f172a /* slate-900 */,
-        danger: #b91c1c /* red-700 */, danger-hover: #991b1b /* red-800 */, danger-pressed: #7f1d1d /* red-900 */, danger-subtle: #fef2f2 /* red-50 */,
-        success: #16a34a /* green-600 */, success-subtle: #f0fdf4 /* green-50 */,
-        warning: #d97706 /* amber-600 */, warning-subtle: #fffbeb /* amber-50 */,
-        information: #0284c7 /* sky-600 */, information-subtle: #f0f9ff /* sky-50 */,
+        on-danger: #ffffff, danger: #b91c1c /* red-700 */, danger-hover: #991b1b /* red-800 */, danger-pressed: #7f1d1d /* red-900 */, danger-subtle: #fef2f2 /* red-50 */,
+        on-success: #020617, success-hover: #22c55e, success-pressed: #4ade80, success: #16a34a /* green-600 */, success-subtle: #f0fdf4 /* green-50 */,
+        on-warning: #020617, warning-hover: #f59e0b, warning-pressed: #fbbf24, warning: #d97706 /* amber-600 */, warning-subtle: #fffbeb /* amber-50 */,
+        on-information: #020617, information-hover: #0ea5e9, information-pressed: #38bdf8, information: #0284c7 /* sky-600 */, information-subtle: #f0f9ff /* sky-50 */,
         // border-strong outlines controls that a light border would hide:
         // checkboxes, radios, switch and slider tracks, outline buttons.
         border-subtle: #e2e8f0 /* slate-200 */, border-strong: #64748b /* slate-500: visible control boundaries */,
@@ -198,8 +222,17 @@ export global KitThemes {
         },
         // duration-150, duration-200 and duration-300.
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
-        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
-        reduced-motion: false, text-scale: 1,
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete(), avatar: LucideIcons.user() },
+        geometry: {
+            icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
+            choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
+            content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+            color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
+        },
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
     };
     out property <KitTheme> dark: {
         // Raised surfaces (popovers, dialogs) keep the card tone, as shadcn's
@@ -212,10 +245,10 @@ export global KitThemes {
         accent: #818cf8 /* indigo-400 */, on-accent: #020617 /* slate-950 */,
         accent-hover: #a5b4fc /* indigo-300 */, accent-pressed: #c7d2fe /* indigo-200 */, accent-subtle: #1e1b4b /* indigo-950 */,
         selection: #3730a3 /* indigo-800 */, on-selection: #f8fafc /* slate-50 */,
-        danger: #f87171 /* red-400 */, danger-hover: #fca5a5 /* red-300 */, danger-pressed: #fecaca /* red-200 */, danger-subtle: #450a0a /* red-950 */,
-        success: #4ade80 /* green-400 */, success-subtle: #052e16 /* green-950 */,
-        warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
-        information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
+        on-danger: #020617, danger: #f87171 /* red-400 */, danger-hover: #fca5a5 /* red-300 */, danger-pressed: #fecaca /* red-200 */, danger-subtle: #450a0a /* red-950 */,
+        on-success: #020617, success-hover: #86efac, success-pressed: #bbf7d0, success: #4ade80 /* green-400 */, success-subtle: #052e16 /* green-950 */,
+        on-warning: #020617, warning-hover: #fcd34d, warning-pressed: #fde68a, warning: #fbbf24 /* amber-400 */, warning-subtle: #451a03 /* amber-950 */,
+        on-information: #020617, information-hover: #7dd3fc, information-pressed: #bae6fd, information: #38bdf8 /* sky-400 */, information-subtle: #082f49 /* sky-950 */,
         border-subtle: #1e293b /* slate-800 */, border-strong: #64748b /* slate-500: visible control boundaries */,
         hover: #1e293b /* slate-800 */, pressed: #334155 /* slate-700 */,
         disabled-fill: #1e293b /* slate-800 */, disabled-text: #64748b /* slate-500 */, scrim: #000000b3 /* black/70 */,
@@ -242,8 +275,17 @@ export global KitThemes {
             comfortable: { height: 40px, padding-inline: 24px, padding-block: 8px },
         },
         motion: { fast: 150ms, base: 200ms, slow: 300ms },
-        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete() },
-        reduced-motion: false, text-scale: 1,
+        icons: { close: LucideIcons.x(), check: LucideIcons.check(), minus: LucideIcons.minus(), plus: LucideIcons.plus(), chevron-down: LucideIcons.chevron-down(), chevron-up: LucideIcons.chevron-up(), chevron-left: LucideIcons.chevron-left(), chevron-right: LucideIcons.chevron-right(), eye: LucideIcons.eye(), eye-hidden: LucideIcons.eye-off(), search: LucideIcons.search(), information: LucideIcons.info(), warning: LucideIcons.triangle-alert(), bell: LucideIcons.bell(), article: LucideIcons.file-text(), delete: LucideIcons.delete(), avatar: LucideIcons.user() },
+        geometry: {
+            icon-compact: 14px, icon-medium: 16px, icon-comfortable: 20px,
+            choice-compact: 16px, choice-medium: 20px, choice-comfortable: 24px,
+            scroll-thickness: 14px, scroll-thumb: 6px, scroll-active-thumb: 8px, scroll-inset: 3px, scroll-min-thumb: 24px,
+            content-reading: 720px, content-standard: 1040px, content-wide: 1360px, content-fluid: 100000px,
+            busy-mark: 14px, avatar-size: 40px, avatar-compact: 24px, avatar-large: 96px, avatar-initials-ratio: 0.4, step-marker-minimum: 28px, step-marker-scaled: 22px,
+            drop-zone-minimum: 100px, drop-zone-scaled: 64px,
+            color-wheel-minimum: 96px, color-wheel-diameter: 200px, color-wheel-indicator-size: 32px, color-wheel-indicator-border-width: 4px,
+        },
+        reduced-motion: false, text-scale: 1, direction: ChoiceFlow.left-to-right,
     };
     // How far an outline extends beyond its host; inside rings extend nowhere.
     public pure function focus-outset(ring: KitFocusRing) -> length {
@@ -280,7 +322,8 @@ export global KitThemes {
             radius: theme.shape.radius-control, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size),
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-medium,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            underline: false,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // A borderless control stays flat, like a quiet button.
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: theme.focus,
@@ -289,26 +332,31 @@ export global KitThemes {
     public pure function button-recipe(theme: KitTheme, intent: ButtonIntent, size: ControlSize) -> ButtonRecipe {
         return {
             fill: intent == ButtonIntent.primary ? theme.accent : intent == ButtonIntent.destructive ? theme.danger
+                : intent == ButtonIntent.success ? theme.success : intent == ButtonIntent.warning ? theme.warning : intent == ButtonIntent.information ? theme.information
                 : intent == ButtonIntent.secondary ? theme.surface : transparent,
-            hover-fill: intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover : theme.hover,
-            pressed-fill: intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed : theme.pressed,
-            disabled-fill: intent == ButtonIntent.outline ? transparent : theme.disabled-fill,
-            foreground: intent == ButtonIntent.primary || intent == ButtonIntent.destructive ? theme.on-accent : theme.text-primary,
+            hover-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-hover : intent == ButtonIntent.destructive ? theme.danger-hover
+                : intent == ButtonIntent.success ? theme.success-hover : intent == ButtonIntent.warning ? theme.warning-hover : intent == ButtonIntent.information ? theme.information-hover : theme.hover,
+            pressed-fill: intent == ButtonIntent.link ? transparent : intent == ButtonIntent.primary ? theme.accent-pressed : intent == ButtonIntent.destructive ? theme.danger-pressed
+                : intent == ButtonIntent.success ? theme.success-pressed : intent == ButtonIntent.warning ? theme.warning-pressed : intent == ButtonIntent.information ? theme.information-pressed : theme.pressed,
+            disabled-fill: intent == ButtonIntent.outline || intent == ButtonIntent.link ? transparent : theme.disabled-fill,
+            foreground: intent == ButtonIntent.link ? theme.accent : intent == ButtonIntent.primary ? theme.on-accent : intent == ButtonIntent.destructive ? theme.on-danger
+                : intent == ButtonIntent.success ? theme.on-success : intent == ButtonIntent.warning ? theme.on-warning : intent == ButtonIntent.information ? theme.on-information : theme.text-primary,
             disabled-foreground: theme.disabled-text,
             border: intent == ButtonIntent.secondary ? theme.border-subtle : intent == ButtonIntent.outline ? theme.border-strong : transparent,
             radius: theme.shape.radius-control,
-            padding-inline: KitMetrics.density(theme, size).padding-inline,
-            padding-block: KitMetrics.density(theme, size).padding-block,
+            padding-inline: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-inline,
+            padding-block: intent == ButtonIntent.link ? 0px : KitMetrics.density(theme, size).padding-block,
             border-width: intent == ButtonIntent.secondary || intent == ButtonIntent.outline ? theme.shape.border-width : 0px,
-            height: KitMetrics.density(theme, size).height,
+            height: intent == ButtonIntent.link ? theme.typography.line-height-control * theme.text-scale : KitMetrics.density(theme, size).height,
             font-size: KitMetrics.font-size(theme, size == ControlSize.comfortable ? TypographyRole.body : TypographyRole.control),
             font-weight: theme.typography.weight-medium,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            underline: intent == ButtonIntent.link,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             // Filled intents lift by the theme's control elevation. Outline and
             // quiet controls show their parent through a transparent fill, which
             // a shadow would tint, so they stay flat.
-            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control,
-            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet ? ElevationLevel.none : theme.elevation.control),
+            elevation: intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control,
+            shadow: KitThemes.shadow(theme, intent == ButtonIntent.outline || intent == ButtonIntent.quiet || intent == ButtonIntent.link ? ElevationLevel.none : theme.elevation.control),
             focus: theme.focus,
         };
     }
@@ -348,7 +396,8 @@ export global KitThemes {
             radius: field.radius, padding-inline: field.padding-inline, padding-block: field.padding-block,
             border-width: field.border-width, height: field.height, font-size: field.font-size,
             font-weight: theme.typography.weight-regular,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            underline: false,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: field.focus,
         };
@@ -359,10 +408,11 @@ export global KitThemes {
         return {
             fill: transparent, hover-fill: theme.hover, pressed-fill: theme.pressed, disabled-fill: theme.disabled-fill,
             foreground: theme.text-primary, disabled-foreground: theme.disabled-text, border: transparent,
-            radius: 0px, padding-inline: 0px, padding-block: KitMetrics.density(theme, size).padding-block, border-width: 0px,
+            radius: 0px, padding-inline: 0px, padding-block: 0px, border-width: 0px,
             height: KitMetrics.control-height(theme, size) + theme.spacing.unit * 2,
             font-size: KitMetrics.font-size(theme, TypographyRole.control), font-weight: theme.typography.weight-regular,
-            busy-mark-size: 14px * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
+            underline: false,
+            busy-mark-size: theme.geometry.busy-mark * theme.text-scale, busy-mark-stroke: theme.shape.border-width-strong * theme.text-scale,
             elevation: ElevationLevel.none, shadow: KitThemes.shadow(theme, ElevationLevel.none),
             focus: KitThemes.inset-focus(theme),
         };
@@ -379,8 +429,8 @@ export global KitThemes {
         };
     }
     // The box of a checkbox or radio by ControlSize: Tailwind size-4/5/6.
-    public pure function choice-box-size(size: ControlSize) -> length {
-        return size == ControlSize.compact ? 16px : size == ControlSize.comfortable ? 24px : 20px;
+    public pure function choice-box-size(theme: KitTheme, size: ControlSize) -> length {
+        return size == ControlSize.compact ? theme.geometry.choice-compact : size == ControlSize.comfortable ? theme.geometry.choice-comfortable : theme.geometry.choice-medium;
     }
     // Checkbox, radio, switch and slider geometry, sized by ControlSize. Marks,
     // track and thumb derive from the box, so they keep their proportions; a
@@ -388,15 +438,15 @@ export global KitThemes {
     // groups nest their options' control radius inside their own padding.
     public pure function choice-recipe(theme: KitTheme, size: ControlSize) -> ChoiceRecipe {
         return {
-            box-size: KitThemes.choice-box-size(size),
-            box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(size) / 4),
+            box-size: KitThemes.choice-box-size(theme, size),
+            box-radius: min(theme.shape.radius-control, KitThemes.choice-box-size(theme, size) / 4),
             mark-stroke: theme.shape.border-width-strong,
-            radio-dot-size: KitThemes.choice-box-size(size) / 2, label-gap: theme.spacing.unit * 2.5,
-            track-width: KitThemes.choice-box-size(size) * 1.9, track-height: KitThemes.choice-box-size(size) + 2px,
-            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(size) + 2px) / 2),
-            thumb-size: KitThemes.choice-box-size(size) - 2px, thumb-inset: 2px,
-            check-size: KitThemes.choice-box-size(size) * 0.7, mixed-width: KitThemes.choice-box-size(size) * 0.6,
-            slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(size) - 4px,
+            radio-dot-size: KitThemes.choice-box-size(theme, size) / 2, label-gap: theme.spacing.unit * 2.5,
+            track-width: KitThemes.choice-box-size(theme, size) * 1.9, track-height: KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong,
+            track-radius: min(theme.shape.radius-pill, (KitThemes.choice-box-size(theme, size) + theme.shape.border-width-strong) / 2),
+            thumb-size: KitThemes.choice-box-size(theme, size) - theme.shape.border-width-strong, thumb-inset: theme.shape.border-width-strong,
+            check-size: KitThemes.choice-box-size(theme, size) * 0.7, mixed-width: KitThemes.choice-box-size(theme, size) * 0.6,
+            slider-track-height: theme.spacing.unit, slider-thumb-size: KitThemes.choice-box-size(theme, size) - theme.spacing.unit,
             group-radius: theme.shape.radius-control + theme.spacing.unit * 0.75,
             group-padding: theme.spacing.unit * 0.75, group-gap: theme.spacing.unit * 1.5,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
@@ -441,9 +491,17 @@ export global KitThemes {
     }
     public pure function scroll-bar-recipe(theme: KitTheme) -> ScrollBarRecipe {
         return {
-            thickness: 14px, thumb-thickness: 6px, active-thumb-thickness: 8px, inset: 3px, min-thumb-length: 24px,
+            thickness: theme.geometry.scroll-thickness, thumb-thickness: theme.geometry.scroll-thumb, active-thumb-thickness: theme.geometry.scroll-active-thumb, inset: theme.geometry.scroll-inset, min-thumb-length: theme.geometry.scroll-min-thumb,
             thumb: theme.border-strong, active-thumb: theme.text-secondary, track: transparent, active-track: theme.hover,
             transition: theme.reduced-motion ? 0ms : theme.motion.fast,
+        };
+    }
+    public pure function column-handle-recipe(theme: KitTheme) -> ColumnHandleRecipe {
+        return {
+            width: theme.spacing.unit * 6 * theme.text-scale, thickness: theme.shape.border-width, active-thickness: theme.shape.border-width-strong,
+            step: theme.spacing.unit * 4,
+            ink: theme.border-subtle, hover-ink: theme.border-strong, active-ink: theme.accent,
+            focus: KitThemes.inset-focus(theme),
         };
     }
     public pure function icon-recipe(theme: KitTheme, size: ControlSize) -> IconRecipe {

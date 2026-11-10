@@ -3,15 +3,20 @@ import { KitTheme, KitThemeContext, KitThemes } from "theme.slint";
 import { FieldAccess } from "contracts.slint";
 import { KitFieldService, SrgbColorView, ColorWheelPosition, ColorResult } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
+import { KitStrings } from "strings.slint";
 
 // A controlled full-value HSV plane. Its callbacks edit a local color draft;
 // the owning form decides when to submit. Opaque RGB is the public value.
 export component KitColorWheel inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <SrgbColorView> value;
+    in property <SrgbColorView> value: { red: 255, green: 255, blue: 255, alpha: 255 };
     in property <bool> known: true;
-    in property <string> label: "Color";
+    in property <string> label: KitStrings.color-wheel-label;
+    in property <string> unknown-label: KitStrings.color-wheel-unknown-label;
+    in property <string> value-format: KitStrings.color-wheel-value-format;
+    out property <string> value-text: root.known ? root.value-format.replace-all("{hue}", "" + round(root.hue)).replace-all("{saturation}", "" + round(root.position.saturation * 100)) : root.unknown-label;
+    private property <image> empty-image;
     // Change this epoch when rebinding an editor, even if its RGB is unchanged.
     in property <int> generation;
     callback chosen(SrgbColorView);
@@ -22,11 +27,13 @@ export component KitColorWheel inherits Rectangle {
     out property <float> hue: root.selected-hue;
     private property <float> selected-hue;
     private property <bool> dragging;
-    private property <ColorWheelPosition> position: KitFieldService.color-wheel-position(root.value);
+    private property <ColorWheelPosition> position: KitFieldService.ready ? KitFieldService.color-wheel-position(root.value) : { x: 0, y: 0, hue: 0, saturation: 0 };
     private property <ColorResult> candidate;
     private property <length> diameter: root.width;
-    min-width: root.theme.spacing.unit * 24;
-    preferred-width: root.theme.spacing.unit * 50;
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
+    min-width: root.theme.geometry.color-wheel-minimum * root.theme.text-scale;
+    preferred-width: root.theme.geometry.color-wheel-diameter * root.theme.text-scale;
     preferred-height: root.width;
     min-height: root.width;
     max-height: root.width;
@@ -34,7 +41,7 @@ export component KitColorWheel inherits Rectangle {
     changed access => { root.dragging = false; root.reset-hue(); }
     changed generation => { root.dragging = false; root.reset-hue(); }
     changed known => { root.dragging = false; root.reset-hue(); }
-    changed value => { if (root.position.saturation > 0) { root.selected-hue = root.position.hue; } }
+    changed position => { if (root.position.saturation > 0) { root.selected-hue = root.position.hue; } }
     function reset-hue() { root.selected-hue = root.known ? root.position.hue : 0; }
     public function choose-hue(hue: float) {
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
@@ -58,23 +65,24 @@ export component KitColorWheel inherits Rectangle {
     wheel := Rectangle {
         width: root.diameter; height: root.diameter;
         border-radius: root.diameter / 2;
-        Image { source: KitFieldService.color-wheel-image; width: parent.width; height: parent.height; preferred-width: 0px; preferred-height: 0px; }
+        Image { source: KitFieldService.ready ? KitFieldService.color-wheel-image() : root.empty-image; width: parent.width; height: parent.height; preferred-width: 0px; preferred-height: 0px; }
         if root.access == FieldAccess.disabled: Rectangle { border-radius: parent.border-radius; background: root.theme.disabled-fill; }
         if keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     if root.known: Rectangle {
-        width: root.theme.spacing.unit * 8; height: self.width;
+        width: root.theme.geometry.color-wheel-indicator-size * root.theme.text-scale; height: self.width;
         x: (1 + root.position.x) * root.diameter / 2 - self.width / 2;
         y: (1 + root.position.y) * root.diameter / 2 - self.height / 2;
         border-radius: self.width / 2;
         background: rgb(root.value.red,root.value.green,root.value.blue);
-        border-color: root.theme.surface; border-width: root.theme.shape.border-width-strong * 2;
+        border-color: root.theme.surface; border-width: root.theme.geometry.color-wheel-indicator-border-width * root.theme.text-scale;
     }
     keyboard := FocusScope {
         enabled: root.access != FieldAccess.disabled;
-        accessible-role: slider;
+        // A two-axis picker is a named focus group, not a scalar slider.
+        accessible-role: groupbox;
         accessible-label: root.label;
-        accessible-value: root.known ? "Hue \{round(root.hue)}°, saturation \{round(root.position.saturation * 100)}%" : "Unknown color";
+        accessible-description: root.value-text;
         accessible-enabled: root.access == FieldAccess.editable;
         key-pressed(event) => {
             if (root.access != FieldAccess.editable) { return reject; }

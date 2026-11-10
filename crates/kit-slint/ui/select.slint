@@ -1,4 +1,5 @@
-import { KitSelection } from "selection-service.slint";
+import { KitKeyResult } from "keyboard.slint";
+import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
@@ -22,24 +23,24 @@ export component KitSelectKeyboard inherits FocusScope {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     private property <bool> activation-held;
     focus-on-tab-navigation: false;
     changed state => { if (!root.state.open) { root.activation-held = false; } }
     changed enabled => { if (!root.enabled) { root.activation-held = false; } }
-    public function handle-key(event: KeyEvent) -> EventResult {
+    public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
             if (!root.state.open) { root.handle-open-requested(); }
             else { root.handle-navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
-            return accept;
+            return KitKeyResult.accept;
         }
-        if (!root.state.open) { return reject; }
-        if (event.text == Key.Home) { root.handle-navigate(NavigationStep.first); return accept; }
-        if (event.text == Key.End) { root.handle-navigate(NavigationStep.last); return accept; }
-        if (event.text == Key.PageDown) { root.handle-navigate(NavigationStep.page-next); return accept; }
-        if (event.text == Key.PageUp) { root.handle-navigate(NavigationStep.page-previous); return accept; }
-        if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return accept; }
-        if (event.text == Key.Back && root.dismiss-on-system-back) { root.handle-dismiss(CloseReason.system-back); return accept; }
+        if (!root.state.open) { return KitKeyResult.reject; }
+        if (event.text == Key.Home) { root.handle-navigate(NavigationStep.first); return KitKeyResult.accept; }
+        if (event.text == Key.End) { root.handle-navigate(NavigationStep.last); return KitKeyResult.accept; }
+        if (event.text == Key.PageDown) { root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
+        if (event.text == Key.PageUp) { root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
+        if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return KitKeyResult.accept; }
+        if (event.text == Key.Back && root.dismiss-on-system-back) { root.handle-dismiss(CloseReason.system-back); return KitKeyResult.accept; }
         if (event.text == Key.Tab || event.text == Key.Backtab) {
             root.handle-dismiss(CloseReason.programmatic);
             return root.tab-navigation(event.modifiers.shift || event.text == Key.Backtab);
@@ -49,16 +50,16 @@ export component KitSelectKeyboard inherits FocusScope {
                 root.activation-held = true;
                 if (root.state.active.present) { root.handle-activate(root.state.active.token, root.state.generation); }
             }
-            return accept;
+            return KitKeyResult.accept;
         }
         if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
-            root.handle-typeahead(event.text); return accept;
+            root.handle-typeahead(event.text); return KitKeyResult.accept;
         }
-        return reject;
+        return KitKeyResult.reject;
     }
     key-pressed(event) => {
         if (!root.enabled) { return reject; }
-        return root.handle-key(event);
+        return root.handle-key(event) == KitKeyResult.accept ? accept : reject;
     }
     key-released(event) => {
         if (!root.enabled) { return reject; }
@@ -103,7 +104,7 @@ export component KitSelectTrigger inherits KitPressable {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     private property <FieldRecipe> field: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     recipe: KitThemes.trigger-recipe(root.theme, root.field, root.access);
     disabled: root.access == FieldAccess.disabled;
@@ -169,7 +170,7 @@ export component KitSelectSurface inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
     public function take-focus() {
         if (root.searchable && root.focus-search-on-open) { search.focus(); }
@@ -191,7 +192,7 @@ export component KitSelectSurface inherits Rectangle {
     init => { if (root.state.open) { root.take-focus(); root.ensure-active-visible(); } }
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
-    private property <length> inset: root.theme.spacing.unit * 1.5;
+    private property <length> inset: KitMetrics.popover-inset(root.theme);
     // The surface and its two-layer shadow paint under the list.
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
@@ -203,7 +204,7 @@ export component KitSelectSurface inherits Rectangle {
         tab-navigation(reverse) => { return root.tab-navigation(reverse); }
         VerticalLayout {
             padding: root.inset;
-            spacing: root.inset;
+            spacing: root.searchable ? root.inset : 0px;
             Rectangle {
                 visible: root.searchable;
                 height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
@@ -243,7 +244,7 @@ export component KitSelectSurface inherits Rectangle {
                             }
                             key-pressed(event) => {
                                 if (event.text == Key.Escape || event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Return || event.text == Key.PageDown || event.text == Key.PageUp) {
-                                    return keyboard.handle-key(event);
+                                    return keyboard.handle-key(event) == KitKeyResult.accept ? accept : reject;
                                 }
                                 return reject;
                             }
@@ -335,7 +336,8 @@ export component KitSelect inherits Rectangle {
     out property <string> validation-message: checks.validation-message;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
-    public function report-validity() -> bool { let valid = checks.report-validity(); if (!valid) { root.take-focus(); } return valid; }
+    public function report-validity() -> bool { return checks.report-validity(); }
+    public function focus-if-invalid() -> bool { if (root.will-validate && !root.validity.valid) { root.take-focus(); return true; } return false; }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
@@ -349,7 +351,7 @@ export component KitSelect inherits Rectangle {
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
     in property <string> placeholder: selection.selected-label != "" ? selection.selected-label : "Choose an option";
-    private property <string> trigger-label: root.options.length > 0 && root.selected.present ? selection.selected-label : root.placeholder;
+    private property <string> trigger-label: root.options.length > 0 && root.selected.present && KitSelectionService.ready ? selection.selected-label : root.placeholder;
     in property <string> unavailable-label: "Selected option is unavailable";
     in property <FieldAccess> access: FieldAccess.editable;
     // A composite (multi-select) reports its own constraint through this.
@@ -362,7 +364,7 @@ export component KitSelect inherits Rectangle {
     callback activate(int, int);
     callback dismiss(CloseReason);
     callback typeahead(string);
-    callback tab-navigation(bool) -> EventResult;
+    callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
     out property <bool> has-focus: trigger.has-focus;
@@ -382,7 +384,7 @@ export component KitSelect inherits Rectangle {
     vertical-stretch: 0;
     min-width: 160px;
     private property <bool> tab-restore-complete;
-    function advance-tab(reverse: bool) -> EventResult {
+    function advance-tab(reverse: bool) -> KitKeyResult {
         // Close native presentation before the host advances focus. The deferred
         // state change must not restore over the host's next focus request.
         popup.close();

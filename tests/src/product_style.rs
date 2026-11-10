@@ -139,7 +139,7 @@ fn icons_and_explicit_theme_regions_follow_their_own_context() {
 fn shipped_icon_sets_are_complete_and_use_lucide_semantic_roles() {
     i_slint_backend_testing::init_no_event_loop();
     let app = ThemeTokenFixture::new().unwrap();
-    fn roles(set: KitIconSet) -> [IconGlyph; 16] {
+    fn roles(set: KitIconSet) -> [IconGlyph; 17] {
         let KitIconSet {
             close,
             check,
@@ -157,6 +157,7 @@ fn shipped_icon_sets_are_complete_and_use_lucide_semantic_roles() {
             bell,
             article,
             delete,
+            avatar,
         } = set;
         [
             close,
@@ -175,6 +176,7 @@ fn shipped_icon_sets_are_complete_and_use_lucide_semantic_roles() {
             bell,
             article,
             delete,
+            avatar,
         ]
     }
     for theme in [app.get_light(), app.get_dark()] {

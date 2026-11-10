@@ -551,9 +551,14 @@ fn a_header_that_cannot_sort_keeps_the_header_tone_and_square_cells() {
         let header = labelled(&window, "Owner").unwrap();
         let label = header
             .query_descendants()
-            .match_predicate(|e| e.accessible_label().as_deref() == Some("Owner"))
+            .match_type_name("Text")
             .find_first()
-            .expect("header label");
+            .expect("decorative header label");
+        assert_ne!(
+            label.accessible_label().as_deref(),
+            Some("Owner"),
+            "the static wrapper owns the one accessible header name"
+        );
         let inset = label.absolute_position().x - header.absolute_position().x;
         assert!(
             (inset - theme.spacing.unit * 4.).abs() < 0.5,

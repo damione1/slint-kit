@@ -14,7 +14,7 @@ import tarfile
 import tomllib
 
 from doc_inputs import DOCS, ROOT, build_inputs, digest, key_for, runtime_inputs, write_changed, write_json, consumer_identity, compiler_environment
-from doc_inputs import archived_runtime_inputs, rendering_runtime
+from doc_inputs import archived_runtime_inputs, rendering_runtime, rendering_slint_requirement
 
 
 class SceneKind(StrEnum):
@@ -176,13 +176,17 @@ def reuse_build_only_changes(work, manifest, inputs):
     """Retain original capture provenance after proving rendering inputs equal."""
     current = runtime_inputs()
     workspace = tomllib.loads((ROOT / 'Cargo.toml').read_text())
+    current_sources = {name: (ROOT / name).read_bytes() for name in current['rust']}
 
     def build_independent_workspace(value):
         value = json.loads(json.dumps(value))
-        value['workspace']['package'].pop('version', None)
+        for field in ('version', 'description', 'keywords'):
+            value['workspace']['package'].pop(field, None)
         for name, dependency in value['workspace']['dependencies'].items():
             if name.startswith('kit-') or name == 'slint-kit':
                 dependency.pop('version', None)
+            elif name in ('slint', 'slint-build'):
+                value['workspace']['dependencies'][name] = rendering_slint_requirement(dependency)
         return value
 
     for folder in sorted((DOCS / '.cache/preview-bundles').glob('*')):
@@ -208,11 +212,11 @@ def reuse_build_only_changes(work, manifest, inputs):
             if set(sources) != set(checksums) or any(digest(content) != checksums[name] for name, content in sources.items()):
                 continue
             previous = archived_runtime_inputs(sources)
-            if rendering_runtime(previous) != rendering_runtime(current):
+            if rendering_runtime(previous, sources) != rendering_runtime(current, current_sources):
                 continue
             # A package-version-sensitive runtime must be rebuilt and captured.
-            if any(b'CARGO_PKG_VERSION' in content for name, content in sources.items()
-                   if name in rendering_runtime(previous)['rust']):
+            if any(b'CARGO_PKG_' in content for values in (sources, current_sources) for name, content in values.items()
+                   if name in rendering_runtime(previous, sources)['rust']):
                 continue
             if build_independent_workspace(tomllib.loads(sources['Cargo.toml'].decode())) != build_independent_workspace(workspace):
                 continue

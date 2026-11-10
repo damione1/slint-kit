@@ -26,6 +26,25 @@ fn decimal_draft(value: DecimalValue, locale: NumberLocale) -> String {
         .replace('.', &locale.decimal_separator().to_string())
 }
 
+/// Slint has no sum types: the outcome splits into its status and the text
+/// that only a `stepped` status carries.
+fn step_result(outcome: NumberStepOutcome) -> ui::NumberStepResult {
+    match outcome {
+        NumberStepOutcome::Unavailable => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Unavailable,
+            text: Default::default(),
+        },
+        NumberStepOutcome::Unchanged => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Unchanged,
+            text: Default::default(),
+        },
+        NumberStepOutcome::Stepped(text) => ui::NumberStepResult {
+            status: ui::NumberStepStatus::Stepped,
+            text: text.into(),
+        },
+    }
+}
+
 type SpecParser<T> = Rc<dyn Fn(&str) -> DraftValue<T>>;
 type SpecFormatter<T> = Rc<dyn Fn(&T) -> String>;
 type SpecValidator<T, E> = Rc<dyn Fn(&T) -> Result<(), E>>;
@@ -385,7 +404,7 @@ pub fn install_field_specs<W>(
     specs: impl IntoIterator<Item = NamedFieldSpec>,
 ) -> Result<(), ParseIssue>
 where
-    W: slint::ComponentHandle,
+    W: slint::ComponentHandle + 'static,
     for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
 {
     let mut codecs = HashMap::new();
@@ -398,27 +417,68 @@ where
     let display_codecs = codecs.clone();
     let engine = HtmlValidationEngine::default();
     let service = window.global::<ui::KitFieldService>();
+    crate::text_edit::install(window);
+    let edit_window = window.as_weak();
+    service.on_edit_selection(move |text| {
+        if let Some(window) = edit_window.upgrade() {
+            use slint::platform::{Key, WindowEvent};
+            let text = if text.is_empty() {
+                Key::Delete.into()
+            } else {
+                text
+            };
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyPressed { text: text.clone() });
+            window
+                .window()
+                .dispatch_event(WindowEvent::KeyReleased { text });
+        }
+    });
     service.on_display(move |spec, text| {
         FieldSpecKey::new(spec.to_string())
             .ok()
             .and_then(|key| display_codecs.get(&key))
             .map_or(text.clone(), |codec| (codec.display)(text.as_str()).into())
     });
-    service.on_step_number(|text, constraints, direction| {
+    service.on_step_number(|text, constraints, direction, count| {
         let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
-        let direction = direction.into();
-        rules
-            .step_number(text.as_str(), direction)
-            .map_or(text, Into::into)
+        // The page size is an `int` in Slint; only a positive count is a step.
+        let Some(count) = u32::try_from(count)
+            .ok()
+            .and_then(std::num::NonZeroU32::new)
+        else {
+            return step_result(NumberStepOutcome::Unavailable);
+        };
+        step_result(rules.step_number(
+            text.as_str(),
+            NumberStep::Steps {
+                direction: direction.into(),
+                count,
+            },
+        ))
+    });
+    service.on_step_number_to_bound(|text, constraints, direction| {
+        let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
+        step_result(rules.step_number(text.as_str(), NumberStep::Bound(direction.into())))
+    });
+    service.on_number_range(|constraints| {
+        let (rules, _) = HtmlValidationEngine::default().constraints(&constraints);
+        let projection = rules.number_range_projection();
+        ui::NumberRangeView {
+            minimum: projection.minimum.unwrap_or(f32::NEG_INFINITY),
+            maximum: projection.maximum.unwrap_or(f32::INFINITY),
+            step: projection.step.unwrap_or(0.0),
+        }
     });
     service.on_reduce(
-        move |state, action, text, constraints, policy, ownership, spec| {
+        move |state, action, text, constraints, policy, ownership, spec, user_edited, messages| {
             let (rules, _) = engine.constraints(&constraints);
             let valid = rules
                 .validate(
                     text.as_str(),
                     HtmlInputState {
-                        user_edited: true,
+                        user_edited,
                         ..Default::default()
                     },
                 )
@@ -446,7 +506,7 @@ where
                         }
                     },
                     None => {
-                        codec_error = Some("The field codec is not installed.".into());
+                        codec_error = Some(messages.missing_codec.to_string());
                         DraftValue::Invalid(ParseIssue::InvalidSyntax)
                     }
                 }
@@ -509,10 +569,11 @@ where
                 Err(error) => (
                     false,
                     ui::FieldValue::default(),
-                    if action == FieldAction::Edit {
+                    if !valid || action == FieldAction::Edit {
                         String::new()
                     } else {
-                        codec_error.unwrap_or_else(|| crate::field::failure_message(error).into())
+                        codec_error
+                            .unwrap_or_else(|| crate::field::localized_failure(&messages, error))
                     },
                 ),
             };
@@ -534,7 +595,7 @@ where
 }
 pub(crate) fn install_fields<W>(window: &W)
 where
-    W: slint::ComponentHandle,
+    W: slint::ComponentHandle + 'static,
     for<'a> ui::KitFieldService<'a>: slint::Global<'a, W>,
 {
     if !window.global::<ui::KitFieldService>().get_ready() {

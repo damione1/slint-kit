@@ -6,7 +6,12 @@ mod table_verify;
 fn main() -> Result<(), slint::PlatformError> {
     use slint::ComponentHandle;
     if std::env::args().any(|arg| arg == "--verify") {
-        let app = example::create_app(std::env::args().any(|arg| arg == "--fr"))?;
+        let language = if std::env::args().any(|arg| arg == "--fr") {
+            example::ui::TableLanguage::French
+        } else {
+            example::ui::TableLanguage::English
+        };
+        let app = example::create_app(language)?;
         table_verify::schedule(&app);
         app.run()
     } else {

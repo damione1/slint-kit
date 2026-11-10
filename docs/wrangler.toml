@@ -4,6 +4,20 @@ compatibility_date = "2026-10-23"
 workers_dev = true
 preview_urls = true
 
+[vars]
+TURNSTILE_SITE_KEY = "0x4AAAAAAF6ay_-RDqbUbugE"
+
+# The contact addresses and Turnstile secret are configured as Worker secrets:
+# CONTACT_TO, CONTACT_FROM, TURNSTILE_SECRET_KEY.
+
+[[send_email]]
+name = "CONTACT_EMAIL"
+
+[[ratelimits]]
+name = "CONTACT_RATE_LIMITER"
+namespace_id = "202611091"
+simple = { limit = 3, period = 60 }
+
 [assets]
 directory = "./_site"
 binding = "ASSETS"

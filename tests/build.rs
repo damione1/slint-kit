@@ -42,5 +42,9 @@ fn main() {
             "unexpected failure for {path}: {error:?}"
         );
     }
-    kit_build::compile("ui/fixture.slint").expect("public component fixture compiles");
+    kit_build::compile_with_config(
+        "ui/fixture.slint",
+        kit_build::config().with_debug_info(true),
+    )
+    .expect("public component fixture compiles");
 }

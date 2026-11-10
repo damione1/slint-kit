@@ -7,6 +7,10 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 import { KitColorField, KitStack, KitThemeContext, SrgbColorView, KitButton } from "@kit";
 export component Example inherits Window {
+    // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
+    public function report-validation() -> bool { return control.report-validity(); }
+    public function focus-invalid() -> bool { return control.focus-if-invalid(); }
+
     default-font-family: InterFont.family;
     max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme: KitThemes.light;

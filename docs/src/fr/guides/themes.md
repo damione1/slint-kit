@@ -40,7 +40,7 @@ Les conteneurs de défilement thémés réservent un espace stable sur chaque ax
 
 Chaque composant prend par défaut `KitThemeContext.current`, initialisé à `KitThemes.light`. Affectez-le une fois pour définir la présentation de la fenêtre. Un `theme` explicite remplace celui du composant et de ses contrôles internes. Les enfants fournis par l’application via `@children` gardent leurs propres valeurs par défaut : transmettez le thème du parent lors de leur composition. Pour changer le défaut depuis Rust, réexportez `KitThemeContext` du fichier Slint principal, puis appelez `KitThemeContext::get(&window).set_current(theme)`.
 
-`ButtonIntent` propose `primary`, `secondary`, `outline`, `quiet` et `destructive`. `secondary` est une surface neutre remplie, `outline` un contrôle transparent bordé et `quiet` un contrôle sans bordure. Le retour utilisateur utilise des enums de sévérité et de ton. Choisissez l’état selon son sens, puis laissez le thème fournir la couleur. Accompagnez une bordure d’erreur d’un message et d’un libellé accessibles.
+`ButtonIntent` propose `primary`, `secondary`, `outline`, `quiet`, `destructive`, `success`, `warning`, `information` et `link`. `secondary` est une surface neutre remplie, `outline` un contrôle transparent bordé et `quiet` un contrôle sans bordure. Le retour utilisateur utilise des enums de sévérité et de ton. Choisissez l’état selon son sens, puis laissez le thème fournir la couleur. Accompagnez une bordure d’erreur d’un message et d’un libellé accessibles.
 
 Chaque `AlertSeverity` reçoit son propre fond atténué, sa bordure et sa marque à partir des jetons `information`, `success`, `warning` et `danger` et de leurs fonds `*-subtle` : les alertes restent distinctes sans lire leur titre. Les conteneurs défilants, listes et tableaux du kit dessinent leurs barres avec [KitScrollBar](/fr/components/scroll-bar/), qui suit le thème. Un `ScrollView` ou un `ListView` std-widgets dans le code de l’application conserve le style Slint et `Palette.color-scheme`.
 
@@ -182,7 +182,7 @@ Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Pour r
 
 Examinez les thèmes clair et sombre, le texte à 200 %, la navigation clavier, le focus visible et les actions désactivées dans l’application réelle. Préservez l’éditeur natif pour curseur, sélection, annulation et IME. Donnez un nom accessible pertinent aux boutons d’icône, surfaces pressables et cibles de focus.
 
-Ce site propose des previews navigateur et des captures natives ; leurs légendes indiquent l’environnement de rendu. Un exemple rendu ne qualifie ni lecteur d’écran, ni IME, ni dépôt de fichiers externe, ni autre backend. La qualification des périphériques et technologies d’assistance relève des plateformes ciblées par l’application. La [documentation d’accessibilité de Slint](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) décrit les propriétés et les outils d’inspection native.
+Ce site propose des previews navigateur et des captures natives ; leurs légendes indiquent l’environnement de rendu. Un exemple rendu ne qualifie ni lecteur d’écran, ni IME, ni dépôt de fichiers externe, ni autre backend. La qualification des périphériques et technologies d’assistance relève des plateformes ciblées par l’application. [Cibles annoncées et cibles qualifiées](/fr/guides/getting-started/) nomme le système, le backend et le moteur de rendu de chaque preuve publiée par le kit, et ce qu’aucune preuve ne couvre. La [documentation d’accessibilité de Slint](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) décrit les propriétés et les outils d’inspection native.
 
 Utilisez `KitAvatar` avec `AvatarInteraction.action` pour accéder à un profil : fournissez un nom d’action et traitez `activated`. Les avatars statiques restent des images. `KitBadge` et `KitStat` acceptent des glyphes `leading-icon` optionnels ; gardez le statut et la valeur lisibles. Les champs OTP soulignés utilisent toujours un seul éditeur natif. Alignez les `slots` visuels sur la longueur de code acceptée par l’hôte. Pour les infobulles des boutons Kit, liez `target-focused` à `focus-visible` afin de garder l’aide au survol sans ouvrir une projection clavier après un clic.
 
@@ -191,3 +191,41 @@ Les valeurs `KitTypography` personnalisées doivent fournir `family-monospace`, 
 Pour des sliders dans une modale défilante, activez `KitScrollArea.pan-policy: children-first`. Un enfant interactif conserve son appui jusqu’au relâchement ; démarrez sur le fond ou le texte pour défiler. Ce déplacement est direct, sans inertie. Molette, barres et révélation du focus restent actives. La politique `native` par défaut conserve l’arbitrage Slint.
 
 Pour un contrôle sélectionné à fond accentué personnalisé, `KitThemes.selected-inset-focus(theme)` utilise la couleur `on-accent` du thème avec la géométrie partagée d’anneau intérieur. `KitThemes.inset-focus(theme)` conserve la couleur de focus habituelle sur les surfaces neutres.
+
+Les indicateurs d’attente des boutons suivent `theme.motion.fast` et restent fixes si `theme.reduced-motion` vaut true. Donnez à `busy-label` une explication localisée du travail en cours ; elle devient la description accessible du bouton occupé.
+
+Les boutons acceptent `ButtonIntent.success`, `.warning` et `.information`. Chaque palette comprend repos/survol/appui et les encres indépendantes `on-success`, `on-warning`, `on-information`. Les actions destructives lisent `on-danger`, sans hériter de `on-accent`. Fournissez chaque champ de palette dans un littéral `KitTheme` complet ; copier un thème livré puis modifier ses champs évite les valeurs nulles implicites.
+
+`ButtonIntent.link` est une action textuelle avec encre accentuée, soulignement et fonds hover/pressed/disabled transparents. La sémantique et l’activation restent celles d’un bouton : votre handler activated décide de toute navigation. Slint1.18.1 ne fournit pas de rôle accessible link distinct. `ButtonRecipe.underline` est un champ de décoration de recette ; les recettes personnalisées complètes doivent le définir.
+
+`KitTheme.geometry` possède les tailles d’icônes/choix, épaisseurs/marges/limites des barres, plafonds de contenu, indicateurs occupés, taille d’avatar, marqueurs d’étape et bornes de dépôt. Les valeurs conservent la présentation par défaut et deviennent personnalisables. `KitIcon`, `KitScrollBar`, `KitSurface` et `KitCard` exposent des entrées `recipe` complètes ; les cartes ajoutent `level`, les conteneurs `max-content-width`. Partez de KitThemes puis modifiez les champs voulus. L’ombre principale suit la recette, sauf si une élévation explicite choisit une autre ombre du thème.
+
+Lors de la migration d’un littéral de thème complet, ajoutez chaque champ `KitGeometry` dans les deux modes. `KitThemes.choice-box-size(theme, size)` et `KitLayoutMetrics.width-limit(theme, value)` prennent désormais le thème explicitement pour respecter les thèmes locaux.
+
+`KitSurface` et `KitCard` conservent la peinture de leur Rectangle hérité. Leur `SurfaceRecipe` applique le fond, la bordure, le rayon et l’élévation, puis seulement `shadow.offset-y`, `shadow.blur` et `shadow.color`. Ces deux composants ne peignent ni `ambient-shadow` ni `shadow.spread`. Une valeur explicite de `elevation` différente de `recipe.elevation` choisit l’ombre principale dans le thème. `KitDialogPanel` utilise la composition élevée qui peint les deux couches d’ombre et leurs spreads.
+
+La `size` explicite de l’avatar est exacte et les initiales suivent son diamètre. Les préréglages `AvatarSize.compact/medium/large` suivent le texte ; leurs tailles et le ratio des initiales appartiennent à geometry. Un avatar vide lit theme.icons.avatar avec un nom de repli localisable. Les décorations de statut utilisent @children.
+
+Le `tone` de l’avatar choisit une palette neutre/accent/statut, avec accent par défaut. Les tons de statut combinent fonds subtils et encres lisibles.
+
+
+`KitSteps.orientation` propose des dispositions verticales et horizontales, avec liaisons facultatives et descriptions par étape. Activez explicitement l’interaction et nommez le groupe. `KitTimeline` utilise le ton sémantique de la ligne pour son repère ou glyphe décoratif ; le ton par défaut est neutre. Les textes doivent porter le sens indépendamment des couleurs ou icônes.
+
+
+KitSteps conserve spacing comme entrée publique ; son conteneur Rectangle utilise des dispositions horizontale/verticale internes. Déplacez l’ancien padding hérité vers une disposition parente.
+
+
+## Présentation de droite à gauche
+
+Définissez `theme.direction: ChoiceFlow.right-to-left` pour les icônes leading/trailing, les badges, les gouttières de défilement et les côtés start/end du chat. Les repères d’étapes suivent cette direction. Les choix en héritent comme `flow` par défaut, toujours remplaçable localement. Les thèmes fournis restent de gauche à droite ; les littéraux complets de `KitTheme` doivent inclure direction.
+
+Slint 1.18.1 ne propose pas de direction générale ni de reflet automatique des dispositions. Ce réglage reflète les éléments positionnés par le kit ; il ne réécrit pas les dispositions de vos `@children`, n’inverse pas les données, ne modifie pas les coordonnées du défilement horizontal et ne transforme pas les glyphes fournis. Disposez les enfants explicitement et choisissez des icônes directionnelles adaptées. La composition, la sélection, le curseur et le comportement bidirectionnel des textes natifs restent ceux de Slint ; qualifiez la saisie arabe/hébraïque et les technologies d’assistance sur le backend cible.
+
+La direction du thème n’ajoute pas de service général de reflet Slint : textes et parcours de focus natifs conservent le comportement du moteur, les dispositions enfants restent explicites et les coordonnées de défilement gardent la convention contenu positif/décalage négatif documentée.
+
+
+`ScrollFrame` est une primitive publique `@kit` pour composer un viewport fini à deux axes. Fournissez `content-width` et `content-height` ; les enfants gardent leur édition native. Observez `content-x/y` négatifs, `visible-width/height` et l’origine physique relative `viewport-x` pour aligner les en-têtes externes. Elle fournit gouttières, politiques et `scrolled`, sans rôle clavier de viewport. `enabled` contrôle barres et déplacement direct ; la molette native reste disponible. `KitScrollArea` reste le conteneur vertical complet. Les en-têtes et la révélation des cellules du tableau RTL utilisent cette même origine mesurée.
+
+`KitButtonGroup` nomme les commandes apparentées, avec orientation et retour à la ligne facultatif. `attached: true` présente les actions du modèle dans une bande sans retour à la ligne, avec contour partagé, séparateurs et focus intérieur ; spacing/wrap sont ignorés. Les enfants personnalisés gardent leur style explicite. Le conteneur utilise désormais un Rectangle et un FlexboxLayout interne ; spacing/alignment restent publics, tandis que l’ancien padding hérité de HorizontalLayout doit passer à la disposition parente.
+
+`KitColorWheel` lit son minimum, son diamètre préféré et les dimensions du marqueur dans `KitTheme.geometry.color-wheel-*`, multipliés par `text-scale`. Les littéraux complets doivent inclure `color-wheel-minimum`, `color-wheel-diameter`, `color-wheel-indicator-size` et `color-wheel-indicator-border-width`. Le spectre représente les données couleur et ne dépend pas du thème. Les remplissages unis des sliders conservent leurs coins arrondis sur le moteur logiciel ; les dégradés gardent leur espace de remplissage partiel et sa limite de clipping amont documentée.

@@ -78,3 +78,35 @@ If the editor still reports “Cannot find requested import”, check that the c
 The language server resolves a bare alias as a file and joins a suffixed import onto the configured path. A single alias cannot therefore resolve both `@kit` and `@kit/fonts/inter.slint` or `@kit/icons/lucide/all.slint`. Mapping `kit` to the `ui` directory supports those supplemental imports, but makes bare `@kit` unresolved. The file mapping above prioritizes the component API.
 
 Keep the documented supplemental imports in your application: Cargo compilation through `slint-kit-build` resolves them correctly using its module metadata and directory alias. With the editor file mapping, Slint 1.18.1 can still report unresolved supplemental imports. This is a language-server limitation, not a failure of the Cargo configuration; do not replace the application's root imports with the old `@kit/kit.slint` path.
+
+<h2 id="static-previews-and-rust-services">Static previews and Rust services</h2>
+
+Starting with Slint Kit 0.7.2, VS Code Live Preview and `slint-viewer` display declarative selection options even though no Rust code runs. For a local checkout, the viewer can use a directory alias if the preview file imports `@kit/kit.slint`; use a separate preview entry file and keep the application's public imports as `@kit`. A file alias for `@kit` has the supplemental-import limitation described above.
+
+These previews show layout and declared state; they do not install Rust services. Use `cargo run` with `slint_kit::install(&app)` once per window, or the component page's browser demo, for service-backed behavior.
+
+| Component family | Pure-Slint preview | Runtime service needed for |
+| --- | --- | --- |
+| Tabs, menus/menu bars, breadcrumbs, carousels | Declared `options`, labels and disabled state; declared single selection | Filtering, reconciliation, navigation and accepted `chosen` values; carousels preview their first source slide |
+| Radio and segmented groups | Declared options and single selection | Keyboard selection, validation and generation checks |
+| Toggle groups | Declared option labels; explicit `rows` for exact selected marks | Projecting the selected set and accepting toggles |
+| Accordion | Declared option headers, initially collapsed; use explicit `rows: [DisclosureRow]` instead of `options` to preview expanded bodies | Expansion-set projection and keyboard navigation |
+| Rating | Configured score scale and value; explicit `scores` also work | Score acceptance and navigation |
+| Select, combobox, multi-select and tag input | Authored placeholders/text and explicit presentation properties; static option rows where exposed | Selected-label lookup, chips, filtering and popup navigation |
+| Calendar, date picker and date range picker | Explicit `days`, `title` and navigation properties | Computing month grids, bounds, ranges and accepted dates |
+| Text/numeric, color and time/date-time fields | Authored native text; use `text` or `hex-text` where exposed | Typed formatting/parsing, commit rules, HTML validation and time-zone resolution |
+| Buttons, layout, feedback and data display | Declared content and presentation | Only the application actions or models your example uses |
+
+Do not set a service's `ready` property manually: it means its Rust callbacks are installed. Local ownership does not replace installation. Static preview does not qualify keyboard/IME or assistive technology behavior on a target device.
+
+## Rust live-preview limitation in Slint 1.18.1
+
+The `SLINT_LIVE_PREVIEW` environment variable selects a different Rust code generator. That generator omits the shared library global exports and `Global` implementations required by Slint Kit ([upstream issue #14812](https://github.com/slint-ui/slint/issues/14812)). This affects every window using `slint_kit::install`, including windows whose visible controls are unrelated to selection.
+
+Slint Kit 0.7.2 reports this limitation during the build instead of emitting Rust that fails with unresolved globals. Remove `SLINT_LIVE_PREVIEW` from the shell, `build.rs` and development scripts, then rebuild. Setting it to `0` or an empty string still selects Slint's live-preview generator; remove the variable entirely. Enabling the `slint/live-preview` Cargo feature alone does not select it.
+
+For runtime inspection, keep `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` with the normal generator. The editor's pure-Slint Live Preview and `slint-viewer` do not need `SLINT_LIVE_PREVIEW`; their static rendering follows the table above.
+
+## Runtime inspection metadata
+
+The build helper follows Slint’s default debug metadata policy. For runtime element inspection with the testing backend or MCP, set `SLINT_EMIT_DEBUG_INFO=1` before building, or pass `slint_kit_build::config().with_debug_info(true)` to `compile_with_config`. Ordinary release builds do not force element names and source locations into the generated application.

@@ -1,3 +1,4 @@
+import { KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext } from "theme.slint";
 import { KitIcon } from "icons.slint";
@@ -24,6 +25,9 @@ export component KitField inherits VerticalLayout {
 export component KitFieldLabel inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
+    in property <bool> required;
+    in property <bool> show-required-indicator: true;
+    in property <string> required-label: KitStrings.required-label;
     in property <FieldAccess> access: FieldAccess.editable;
     callback focus-requested();
     vertical-stretch: 0;
@@ -34,7 +38,7 @@ export component KitFieldLabel inherits Rectangle {
         padding-bottom: KitMetrics.label-gap(root.theme) - KitMetrics.help-gap(root.theme);
         label := Text {
             horizontal-alignment: left;
-            text: root.text;
+            text: root.text + (root.required && root.show-required-indicator ? " (" + root.required-label + ")" : "");
             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
             font-weight: root.theme.typography.weight-medium;
             color: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-primary;
@@ -163,7 +167,7 @@ export component KitInputGroupText inherits Text {
 
 export struct FormErrorRow { target: FocusRequest, message: string }
 export component KitFormErrorSummary inherits KitFieldGroup {
-    in property <string> title: "Please check these fields";
+    in property <string> title: KitStrings.form-error-title;
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
     spacing: KitMetrics.help-gap(root.theme);

@@ -10,6 +10,8 @@ permalink: "{{ 'guides/project-setup/' | localeUrl(locale) }}index.html"
 
 Configurez l’application Rust une seule fois, puis utilisez chaque composant avec un import `@kit`, des propriétés et des callbacks typés. Les fiches fournissent `ui/app.slint` et `src/main.rs` ; les projets téléchargeables incluent aussi le manifeste, le script de compilation et le fichier de verrouillage.
 
+Le helper build utilise la compilation expérimentale de modules de Slint pour partager les contrats Rust/Slint du kit. Gardez les paquets runtime et build sur la même version et suivez la plage corrective Slint prise en charge. Consultez la [compatibilité du build](https://docs.rs/crate/slint-kit-build/latest) et les [limites d’adoption](/fr/guides/why-slint-kit/).
+
 ## Dépendances
 
 Utilisez Rust **{{ project.rust }}+**, l’édition **2024** et Slint **{{ project.slint }}**. Lancez `cargo new my-app` et ajoutez les paquets d’exécution et de compilation dans `Cargo.toml` :
@@ -28,6 +30,8 @@ slint = { version = "={{ project.slint }}", default-features = false, features =
 [build-dependencies]
 slint-kit-build = "={{ project.version }}"
 ```
+
+Le manifeste ci-dessus épingle l’exemple sur Slint {{ project.slint }} pour sa reproductibilité. Le kit accepte les versions correctives de Slint 1.18 à partir de la 1.18.1 (`~1.18.1`). Gardez le compilateur et le runtime Slint alignés lors d’une mise à jour corrective.
 
 Gardez les paquets d’exécution et de compilation du kit sur des versions correspondantes. Conservez le backend et le moteur de rendu compatibles d’une application existante. Cet exemple de bureau utilise winit et Skia ; consultez [Bien démarrer](/fr/guides/getting-started/) pour les prérequis système et l’[intégration native](/fr/guides/native/) pour les services hôtes optionnels.
 

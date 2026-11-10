@@ -1,4 +1,11 @@
-//! Deterministic interaction state, independent of rendering and platform APIs.
+//! Domain values and shared interaction rules for Slint Kit, independent of
+//! rendering and platform APIs: exact decimals and money, HTML form constraints,
+//! field state, stable selection identity and generation guards.
+//!
+//! Applications normally use the `slint-kit` facade, which re-exports these types.
+//! See [why Slint Kit](https://slint-kit.dev/guides/why-slint-kit/),
+//! [forms](https://slint-kit.dev/guides/forms/) and
+//! [typed models](https://slint-kit.dev/guides/controllers/).
 #![forbid(unsafe_code)]
 #![deny(clippy::wildcard_enum_match_arm)]
 
@@ -72,6 +79,7 @@ contract_enums! {
     }
     SecretVisibility => "SecretVisibility" { Hidden => "hidden", Revealed => "revealed" }
     StepDirection => "StepDirection" { Increment => "increment", Decrement => "decrement" }
+    NumberStepStatus => "NumberStepStatus" { Unavailable => "unavailable", Unchanged => "unchanged", Stepped => "stepped" }
     FieldAccess => "FieldAccess" {
         Editable => "editable", ReadOnly => "read-only", Disabled => "disabled",
     }

@@ -33,6 +33,47 @@ export const families = {
 function mask(source) {
   return source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"/g, x => x.replace(/[^\n]/g, ' '));
 }
+// The initializer of a property declaration, read from the source so the
+// reference states the real default. `top` keeps top-level text verbatim and
+// blanks nested braces, so a struct literal arrives as spaces: it is reported
+// as `elided` rather than invented, like a multi-line expression that would
+// not read as one table cell. `none` is the zero value of the type.
+export function declaredDefault(operator, initializer, masked = false) {
+  if (operator === undefined) return { kind: 'none' };
+  const text = initializer.trim();
+  if (operator === '<=>' || masked || text === '' || initializer.includes('\n')) return { kind: 'elided' };
+  return { kind: 'inline', text: text.replace(/\s+/g, ' ') };
+}
+export const propertyDeclaration = /\b(in-out|in|out)\s+property\s*<([^;]+?)>\s*([\w-]+)(?:\s*(:|<=>)\s*([^;]*))?/g;
+// Hand-written explanations of a property, per locale, from components.json.
+// `effect` is required; the other keys are optional and must be given in both
+// locales when one has them, so the two references stay consistent.
+export const propertyDocumentationKeys = ['effect', 'default', 'states', 'constraints', 'example'];
+const locales = ['en', 'fr'];
+export function propertyDocumentation(component, declared) {
+  const entries = Object.fromEntries(locales.map(locale => [locale, component[locale]?.properties || {}]));
+  const names = Object.keys(entries.en);
+  if (names.join('\n') !== Object.keys(entries.fr).join('\n')) throw new Error(`${component.name}: documented properties differ between English and French`);
+  const documentation = new Map();
+  for (const name of names) {
+    if (!declared.has(name)) throw new Error(`${component.name}: documented property ${name} is neither declared nor inherited`);
+    const keys = locales.map(locale => Object.keys(entries[locale][name]).join('\n'));
+    if (keys[0] !== keys[1]) throw new Error(`${component.name}.${name}: documented keys differ between English and French`);
+    for (const locale of locales) {
+      const entry = entries[locale][name];
+      for (const key of Object.keys(entry)) {
+        if (!propertyDocumentationKeys.includes(key)) throw new Error(`${component.name}.${name}/${locale}: unknown documentation key ${key}`);
+        if (typeof entry[key] !== 'string' || entry[key].trim() === '') throw new Error(`${component.name}.${name}/${locale}: ${key} must be a nonempty string`);
+      }
+      if (typeof entry.effect !== 'string') throw new Error(`${component.name}.${name}/${locale}: effect is required`);
+      if (entry.example !== undefined && !entry.example.includes(name)) throw new Error(`${component.name}.${name}/${locale}: the example must use the property`);
+      // The example is emitted inside one HTML block of the page; a blank line would end it.
+      if (entry.example !== undefined && /\n\s*\n/.test(entry.example)) throw new Error(`${component.name}.${name}/${locale}: the example must not contain a blank line`);
+    }
+    documentation.set(name, { en: entries.en[name], fr: entries.fr[name], documentedOn: component.name });
+  }
+  return documentation;
+}
 export function scanComponents() {
   const dir = path.join(root, 'crates/kit-slint/ui');
   // Family files also export implementation helpers for sibling modules. Only
@@ -69,9 +110,9 @@ export function scanComponents() {
         if (!nesting) top += body[i]; else top += bodyMask[i] === '\n' ? '\n' : ' ';
         if (bodyMask[i] === '}') nesting--;
       }
-      const properties = Array.from(top.matchAll(/\b(in-out|in|out)\s+property\s*<([^;]+?)>\s*([\w-]+)/g), m => ({ direction: m[1], type: m[2], name: m[3] }));
+      const properties = Array.from(top.matchAll(propertyDeclaration), m => ({ direction: m[1], type: m[2], name: m[3], default: declaredDefault(m[4], m[5], body.slice(m.index, m.index + m[0].length) !== m[0]) }));
       const callbacks = Array.from(top.matchAll(/\bcallback\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^;]+))?\s*;/g), m => ({ name: m[1], signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
-      const functions = Array.from(top.matchAll(/\bpublic\s+(?:pure\s+)?function\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^{}\n]+))?/g), m => ({ signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
+      const functions = Array.from(top.matchAll(/\bpublic\s+(?:pure\s+)?function\s+([\w-]+)\s*\(([^)]*)\)\s*(?:->\s*([^{}\n]+))?/g), m => ({ name: m[1], signature: `${m[1]}(${m[2].trim()})${m[3] ? ` → ${m[3].trim()}` : ''}` }));
       const signatures = [...properties.map(p => p.type), ...callbacks.map(c => c.signature), ...functions.map(f => f.signature)].join(' ');
       const relatedTypes = new Map();
       function collectTypes(text) {
@@ -84,7 +125,7 @@ export function scanComponents() {
       }
       collectTypes(signatures);
       const publicTypes = [...relatedTypes.values()].sort((a, b) => a.name.localeCompare(b.name));
-      const family = file.replace('.slint', '');
+      const family = file === 'color-wheel.slint' ? 'color' : file.replace('.slint', '');
       const screenshots = {};
       for (const locale of ['fr', 'en']) {
         const filename = `${slugify(name)}${locale === 'fr' ? '-fr' : ''}.png`;
@@ -93,7 +134,11 @@ export function scanComponents() {
         const proof = renderProofs[`catalogue:${slugify(name)}:${locale}:light:1`];
         screenshots[locale] = { backend: proof?.renderProfile?.backend || 'winit', filename, retinaFilename: filename.replace('.png', '@2x.png'), width: image?.length >= 24 ? image.readUInt32BE(16) : undefined, height: image?.length >= 24 ? image.readUInt32BE(20) : undefined };
       }
-      components.push({ screenshots, name, slug: slugify(name), base, family, familyLabel: families[family], types: publicTypes, source: `crates/kit-slint/ui/${file}`, line: source.slice(0, match.index).split('\n').length, properties, callbacks, functions, ...metadata[name] });
+      // The kit components this one instantiates, read from its body: a
+      // shared option is linked to its composition primitive only when the
+      // owner really renders that primitive from the option.
+      const composes = new Set(Array.from(bodyMask.matchAll(/\b(Kit[A-Z]\w*)\s*\{/g), m => m[1]));
+      components.push({ screenshots, name, slug: slugify(name), base, family, familyLabel: families[family], types: publicTypes, source: `crates/kit-slint/ui/${file}`, line: source.slice(0, match.index).split('\n').length, properties, callbacks, functions, composes, ...metadata[name] });
     }
   }
   const byName = new Map(components.map(component => [component.name, component]));
@@ -102,15 +147,41 @@ export function scanComponents() {
     seen.add(component.name);
     const parent = byName.get(component.base);
     const properties = new Map((parent ? inherited(parent, seen) : []).map(property => [property.name, property]));
-    for (const property of component.properties) properties.set(property.name, { ...property, owner: component.name });
+    for (const property of component.properties) properties.set(property.name, { ...property, owner: component.name, documentation: undefined });
+    // A component documents its own properties and may restate an inherited
+    // one (for a changed default); otherwise the owner's explanation follows
+    // the property down the inheritance chain.
+    for (const [name, documentation] of propertyDocumentation(component, properties)) properties.set(name, { ...properties.get(name), documentation });
     return [...properties.values()];
   };
+  for (const component of components) {
+    for (const kind of ['callbacks', 'functions']) {
+      const callables = new Map(component[kind].map(callable => [callable.name, callable]));
+      const en = component.en?.[kind] || {};
+      const fr = component.fr?.[kind] || {};
+      if (Object.keys(en).sort().join('\n') !== Object.keys(fr).sort().join('\n')) throw new Error(`${component.name}: documented ${kind} differ between English and French`);
+      for (const name of Object.keys(en)) {
+        if (!callables.has(name)) throw new Error(`${component.name}: unknown documented ${kind} ${name}`);
+        callables.get(name).documentation = { en: en[name], fr: fr[name] };
+      }
+    }
+  }
   for (const component of components) component.effectiveProperties = inherited(component);
   const optionPages = components.filter(component => component.sharedOption);
   for (const component of components) {
     component.optionDemos = optionPages.filter(page => component.effectiveProperties.some(property => property.name === page.sharedOption));
     component.optionConsumers = component.sharedOption ? components.filter(candidate => candidate.effectiveProperties.some(property => property.name === component.sharedOption)).map(candidate => ({name:candidate.name,slug:candidate.slug})) : [];
     component.inheritedProperties = component.effectiveProperties.filter(property => property.owner !== component.name);
+    // Own declarations keep their table rows; the detail section lists them
+    // first, then the inherited ones, with the composition primitive of a
+    // shared option derived from the pages that demonstrate it.
+    component.properties = component.properties.map(property => component.effectiveProperties.find(candidate => candidate.name === property.name));
+    component.documentedProperties = [...component.properties, ...component.inheritedProperties]
+      .filter(property => property.documentation)
+      .map(property => {
+        const page = optionPages.find(candidate => candidate.sharedOption === property.name && byName.get(property.owner).composes.has(candidate.name));
+        return { ...property, compositionPrimitive: page ? { name: page.name, slug: page.slug } : undefined };
+      });
   }
   return components.sort((a, b) => a.name.localeCompare(b.name));
 }

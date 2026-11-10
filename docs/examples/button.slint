@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitTheme, KitThemes } from "@kit";
+import { KitButton, KitTheme, KitThemes, ButtonIntent, ChoiceFlow } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitButton example";
     preferred-width: 360px;
-    preferred-height: 160px;
+    preferred-height: 280px * root.theme.text-scale;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -17,7 +17,9 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Button"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         // Equal side reserves keep the label centered with one icon.
-        KitButton { leading-icon: LucideIcons.check(); theme: root.theme; text: "Save changes"; activated => { root.status = "Action requested"; } }
+        KitButton { intent: ButtonIntent.success; leading-icon: LucideIcons.check(); theme: root.theme; text: "Save changes"; busy-label: "Saving changes…"; activated => { root.status = "Action requested"; } }
+        KitButton { theme: root.theme; intent: ButtonIntent.link; text: "Learn about saving"; activated => { root.status = "Help requested"; } }
+        KitButton { theme: root.theme; text: "Mirror layout"; activated => { root.theme.direction = root.theme.direction == ChoiceFlow.left-to-right ? ChoiceFlow.right-to-left : ChoiceFlow.left-to-right; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

@@ -28,5 +28,5 @@ export function projectMetadata(source) {
 }
 
 export function loadProject() {
-  return projectMetadata(fs.readFileSync(new URL('../../Cargo.toml', import.meta.url), 'utf8'));
+  return { ...projectMetadata(fs.readFileSync(new URL('../../Cargo.toml', import.meta.url), 'utf8')), registryExamples: process.env.DOCS_BUILD_MODE === 'release' };
 }

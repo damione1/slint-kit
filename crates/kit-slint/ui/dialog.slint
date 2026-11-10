@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 import { ElevatedSurface } from "elevation.slint";
 export { DialogState, CloseReason } from "contracts.slint";
@@ -16,9 +16,13 @@ export component KitDialogSurface inherits Rectangle {
     in property <DialogTabPolicy> tab-policy: DialogTabPolicy.host;
     callback dismiss(CloseReason);
     callback focus-next(bool);
+    // Fallback keyboard scope when a modal contains no eligible control.
+    public function take-scope-focus() {
+        if (root.state.open && root.state.topmost) { keys.focus(); }
+    }
     visible: root.state.open;
     background: root.theme.scrim;
-    FocusScope {
+    keys := FocusScope {
         // Keep the scrim inside the focus scope so it receives the first
         // pointer press instead of the scope consuming it to take focus.
         TouchArea {
@@ -79,8 +83,19 @@ export component KitDialogBody inherits Rectangle {
 }
 export component KitDialogFooter inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
-    min-height: root.theme.spacing.unit * 12;
-    HorizontalLayout { spacing: root.theme.spacing.unit * 2; alignment: end; @children }
+    min-height: max(root.theme.spacing.unit * 12, actions.preferred-height);
+    preferred-height: root.min-height;
+    vertical-stretch: 0;
+    actions := FlexboxLayout {
+        flex-direction: root.theme.direction == ChoiceFlow.right-to-left ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
+        width: root.width; height: self.preferred-height;
+        spacing: root.theme.spacing.unit * 2;
+        alignment: end;
+        cross-axis-alignment: start;
+        cross-axis-line-alignment: start;
+        flex-wrap: wrap;
+        @children
+    }
 }
 
 export { KitFocusTarget } from "focus.slint";

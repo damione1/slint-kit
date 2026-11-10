@@ -26,6 +26,7 @@ enum Token {
     Elevation(ElevationLevel),
     // Both ring styles are real geometry: no variant stands for "unset".
     RingStyle,
+    Direction,
     // A zero shadow spread is real geometry (Tailwind's sm and xs key layers),
     // so a forgotten spread cannot be told apart; the literals name every one.
     Spread,
@@ -40,7 +41,7 @@ impl Token {
             Token::Text(value) => value.is_empty(),
             Token::Flag(value) => !*value,
             Token::Elevation(level) => *level == ElevationLevel::None,
-            Token::RingStyle | Token::Spread => false,
+            Token::RingStyle | Token::Direction | Token::Spread => false,
         }
     }
 }
@@ -96,14 +97,24 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         selection,
         on_selection,
         danger,
+        on_danger,
         danger_hover,
         danger_pressed,
         danger_subtle,
         success,
+        on_success,
+        success_hover,
+        success_pressed,
         success_subtle,
         warning,
+        on_warning,
+        warning_hover,
+        warning_pressed,
         warning_subtle,
         information,
+        on_information,
+        information_hover,
+        information_pressed,
         information_subtle,
         border_subtle,
         border_strong,
@@ -117,10 +128,12 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         focus,
         typography,
         spacing,
+        geometry,
         motion,
         icons: _,
         reduced_motion,
         text_scale,
+        direction: _,
     } = theme;
     let mut tokens: Vec<(String, Token)> = [
         ("canvas", canvas),
@@ -137,14 +150,24 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
         ("selection", selection),
         ("on-selection", on_selection),
         ("danger", danger),
+        ("on-danger", on_danger),
         ("danger-hover", danger_hover),
         ("danger-pressed", danger_pressed),
         ("danger-subtle", danger_subtle),
         ("success", success),
+        ("on-success", on_success),
+        ("success-hover", success_hover),
+        ("success-pressed", success_pressed),
         ("success-subtle", success_subtle),
         ("warning", warning),
+        ("on-warning", on_warning),
+        ("warning-hover", warning_hover),
+        ("warning-pressed", warning_pressed),
         ("warning-subtle", warning_subtle),
         ("information", information),
+        ("on-information", on_information),
+        ("information-hover", information_hover),
+        ("information-pressed", information_pressed),
         ("information-subtle", information_subtle),
         ("border-subtle", border_subtle),
         ("border-strong", border_strong),
@@ -158,6 +181,78 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     .map(|(name, color)| (name.to_owned(), Token::Color(color)))
     .collect();
 
+    let KitGeometry {
+        icon_compact,
+        icon_medium,
+        icon_comfortable,
+        choice_compact,
+        choice_medium,
+        choice_comfortable,
+        scroll_thickness,
+        scroll_thumb,
+        scroll_active_thumb,
+        scroll_inset,
+        scroll_min_thumb,
+        content_reading,
+        content_standard,
+        content_wide,
+        content_fluid,
+        busy_mark,
+        avatar_size,
+        avatar_compact,
+        avatar_large,
+        avatar_initials_ratio,
+        step_marker_minimum,
+        step_marker_scaled,
+        drop_zone_minimum,
+        drop_zone_scaled,
+        color_wheel_minimum,
+        color_wheel_diameter,
+        color_wheel_indicator_size,
+        color_wheel_indicator_border_width,
+    } = geometry;
+    for (name, value) in [
+        ("geometry.icon-compact", icon_compact),
+        ("geometry.icon-medium", icon_medium),
+        ("geometry.icon-comfortable", icon_comfortable),
+        ("geometry.choice-compact", choice_compact),
+        ("geometry.choice-medium", choice_medium),
+        ("geometry.choice-comfortable", choice_comfortable),
+        ("geometry.scroll-thickness", scroll_thickness),
+        ("geometry.scroll-thumb", scroll_thumb),
+        ("geometry.scroll-active-thumb", scroll_active_thumb),
+        ("geometry.scroll-inset", scroll_inset),
+        ("geometry.scroll-min-thumb", scroll_min_thumb),
+        ("geometry.content-reading", content_reading),
+        ("geometry.content-standard", content_standard),
+        ("geometry.content-wide", content_wide),
+        ("geometry.content-fluid", content_fluid),
+        ("geometry.busy-mark", busy_mark),
+        ("geometry.avatar-size", avatar_size),
+        ("geometry.avatar-compact", avatar_compact),
+        ("geometry.avatar-large", avatar_large),
+        ("geometry.step-marker-minimum", step_marker_minimum),
+        ("geometry.step-marker-scaled", step_marker_scaled),
+        ("geometry.drop-zone-minimum", drop_zone_minimum),
+        ("geometry.drop-zone-scaled", drop_zone_scaled),
+        ("geometry.color-wheel-minimum", color_wheel_minimum),
+        ("geometry.color-wheel-diameter", color_wheel_diameter),
+        (
+            "geometry.color-wheel-indicator-size",
+            color_wheel_indicator_size,
+        ),
+        (
+            "geometry.color-wheel-indicator-border-width",
+            color_wheel_indicator_border_width,
+        ),
+    ] {
+        tokens.push((name.to_owned(), Token::Length(value)));
+    }
+
+    tokens.push((
+        "geometry.avatar-initials-ratio".into(),
+        Token::Float(avatar_initials_ratio),
+    ));
     let KitShape {
         radius_control,
         radius_container,
@@ -276,6 +371,7 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
 
     tokens.push(("reduced-motion".into(), Token::Flag(reduced_motion)));
     tokens.push(("text-scale".into(), Token::Float(text_scale)));
+    tokens.push(("direction".into(), Token::Direction));
     tokens
 }
 
@@ -301,6 +397,77 @@ fn zero_allowed() -> impl Iterator<Item = &'static (&'static str, &'static str)>
 
 fn shipped_themes(window: &ThemeTokenFixture) -> [(&'static str, KitTheme); 2] {
     [("light", window.get_light()), ("dark", window.get_dark())]
+}
+
+/// Complete copies are subject to the same omitted-field zero default as themes.
+#[test]
+fn showcase_and_fixture_theme_literals_copy_every_top_level_field() {
+    use std::collections::BTreeSet;
+    fn fields(source: &str, marker: &str) -> BTreeSet<String> {
+        fn add(result: &mut BTreeSet<String>, segment: &str) {
+            if let Some((key, _)) = segment.split_once(':') {
+                result.insert(key.trim().to_owned());
+            }
+        }
+        let start = source.find(marker).expect("theme declaration");
+        let body = &source[start + source[start..].find('{').unwrap()..];
+        let mut depth = 0;
+        let mut quoted = false;
+        let mut escaped = false;
+        let mut segment = 1;
+        let mut result = BTreeSet::new();
+        for (offset, character) in body.char_indices() {
+            if quoted {
+                if escaped {
+                    escaped = false;
+                } else if character == '\\' {
+                    escaped = true;
+                } else if character == '"' {
+                    quoted = false;
+                }
+                continue;
+            }
+            match character {
+                '"' => quoted = true,
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        add(&mut result, &body[segment..offset]);
+                        break;
+                    }
+                }
+                ',' if depth == 1 => {
+                    add(&mut result, &body[segment..offset]);
+                    segment = offset + 1;
+                }
+                // Source text is an open lexical set; other characters are values.
+                _ => {}
+            }
+        }
+        result
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let declaration =
+        std::fs::read_to_string(root.join("crates/kit-slint/ui/theme.slint")).unwrap();
+    let expected = fields(&declaration, "export struct KitTheme {");
+    for (path, marker) in [
+        (
+            "showcase/ui/showcase.slint",
+            "out property <KitTheme> theme: {",
+        ),
+        (
+            "tests/ui/form-corrections.slint",
+            "private property <KitTheme> theme: {",
+        ),
+    ] {
+        let source = std::fs::read_to_string(root.join(path)).unwrap();
+        assert_eq!(
+            fields(&source, marker),
+            expected,
+            "{path} must copy every theme field explicitly"
+        );
+    }
 }
 
 #[test]
@@ -435,8 +602,13 @@ fn recipes_reproduce_the_default_geometry() {
             assert_eq!(recipe.radius, 6.);
             assert_eq!(recipe.font_weight, theme.typography.weight_medium);
             let lifted = match intent {
-                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+                ButtonIntent::Primary
+                | ButtonIntent::Secondary
+                | ButtonIntent::Destructive
+                | ButtonIntent::Success
+                | ButtonIntent::Warning
+                | ButtonIntent::Information => true,
+                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
             };
             assert_eq!(
                 recipe.elevation,
@@ -450,8 +622,14 @@ fn recipes_reproduce_the_default_geometry() {
             let (border_width, hover, pressed) = match intent {
                 ButtonIntent::Primary => (0., theme.accent_hover, theme.accent_pressed),
                 ButtonIntent::Destructive => (0., theme.danger_hover, theme.danger_pressed),
+                ButtonIntent::Success => (0., theme.success_hover, theme.success_pressed),
+                ButtonIntent::Warning => (0., theme.warning_hover, theme.warning_pressed),
+                ButtonIntent::Information => {
+                    (0., theme.information_hover, theme.information_pressed)
+                }
                 ButtonIntent::Secondary | ButtonIntent::Outline => (1., theme.hover, theme.pressed),
                 ButtonIntent::Quiet => (0., theme.hover, theme.pressed),
+                ButtonIntent::Link => (0., slint::Color::default(), slint::Color::default()),
             };
             assert_eq!(recipe.border_width, border_width, "{intent:?}");
             // Hover and press read explicit tokens, never a derived darkening.
@@ -974,75 +1152,6 @@ fn the_selected_tab_carries_an_underline_and_no_outline() {
 }
 
 #[test]
-fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
-    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
-    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
-        mock_time: true,
-        renderer_name: Some("software".into()),
-        ..Default::default()
-    })))
-    .unwrap();
-    let tokens = ThemeTokenFixture::new().unwrap();
-    for (name, base) in shipped_themes(&tokens) {
-        for scale in [1., 2.] {
-            for width in [220., 640.] {
-                let window = TabsIndicatorFixture::new().unwrap();
-                let mut theme = base.clone();
-                theme.text_scale = scale;
-                window.set_theme(theme);
-                window.set_available_width(width);
-                window.show().unwrap();
-                slint::platform::update_timers_and_animations();
-                let viewport = ElementQuery::from_root(&window)
-                    .match_type_name("Flickable")
-                    .find_first()
-                    .expect("tabs own a clipped scrolling viewport");
-                let tabs: Vec<ElementHandle> = ElementQuery::from_root(&window)
-                    .match_inherits("KitNavigationAction")
-                    .find_all();
-                // The testing query excludes fully clipped descendants.
-                assert!(!tabs.is_empty());
-                if width == 640. {
-                    assert_eq!(tabs.len(), 3);
-                }
-                let top = viewport.absolute_position().y;
-                let bottom = top + viewport.size().height;
-                for tab in &tabs {
-                    assert!(tab.absolute_position().y >= top - 0.01);
-                    assert!(
-                        tab.absolute_position().y + tab.size().height <= bottom + 0.01,
-                        "complete tab must fit the viewport at scale {scale}, width {width}"
-                    );
-                }
-                let mut state = window.get_state();
-                state.active = SelectionRef {
-                    present: true,
-                    token: 3,
-                };
-                state.active_index = 2;
-                window.set_state(state);
-                slint::platform::update_timers_and_animations();
-                let last = ElementQuery::from_root(&window)
-                    .match_inherits("KitNavigationAction")
-                    .match_predicate(|e| e.accessible_label().as_deref() == Some("Settings"))
-                    .find_first()
-                    .expect("activating the last tab reveals it even when the row overflows");
-                let left = viewport.absolute_position().x;
-                assert!(last.absolute_position().x >= left - 0.01);
-                assert!(
-                    last.absolute_position().x + last.size().width
-                        <= left + viewport.size().width + 0.01
-                );
-                crate::choice_presentation::save_capture(
-                    &window.window().take_snapshot().unwrap(),
-                    &format!("tabs-{name}-{scale}-{width}"),
-                );
-            }
-        }
-    }
-}
-
-#[test]
 fn scroll_bar_recipe_reads_theme_tokens() {
     let window = fixture();
     for (_, theme) in shipped_themes(&window) {
@@ -1133,16 +1242,16 @@ fn every_shipped_theme_keeps_text_rings_and_states_legible() {
                 theme.accent_pressed,
                 4.5,
             ),
-            ("on-accent/danger", theme.on_accent, theme.danger, 4.5),
+            ("on-danger/danger", theme.on_danger, theme.danger, 4.5),
             (
-                "on-accent/danger-hover",
-                theme.on_accent,
+                "on-danger/danger-hover",
+                theme.on_danger,
                 theme.danger_hover,
                 4.5,
             ),
             (
-                "on-accent/danger-pressed",
-                theme.on_accent,
+                "on-danger/danger-pressed",
+                theme.on_danger,
                 theme.danger_pressed,
                 4.5,
             ),
@@ -1200,8 +1309,13 @@ fn default_themes_use_tailwind_role_radii_density_and_shadows() {
         for intent in button_intents() {
             let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
             let lifted = match intent {
-                ButtonIntent::Primary | ButtonIntent::Secondary | ButtonIntent::Destructive => true,
-                ButtonIntent::Outline | ButtonIntent::Quiet => false,
+                ButtonIntent::Primary
+                | ButtonIntent::Secondary
+                | ButtonIntent::Destructive
+                | ButtonIntent::Success
+                | ButtonIntent::Warning
+                | ButtonIntent::Information => true,
+                ButtonIntent::Outline | ButtonIntent::Quiet | ButtonIntent::Link => false,
             };
             if lifted {
                 assert_eq!(recipe.elevation, ElevationLevel::Xs, "{intent:?}");
@@ -1470,4 +1584,156 @@ fn every_theme_token_has_a_reader() {
         unread.is_empty(),
         "theme tokens no component or recipe reads; wire or remove them: {unread:?}"
     );
+}
+
+#[test]
+fn destructive_and_status_buttons_use_their_own_foreground_tokens() {
+    let window = fixture();
+    let mut theme = window.get_light();
+    theme.on_accent = slint::Color::from_rgb_u8(220, 0, 220);
+    for (intent, expected) in [
+        (ButtonIntent::Destructive, theme.on_danger),
+        (ButtonIntent::Success, theme.on_success),
+        (ButtonIntent::Warning, theme.on_warning),
+        (ButtonIntent::Information, theme.on_information),
+    ] {
+        let recipe = window.invoke_button(theme.clone(), intent, ControlSize::Medium);
+        assert_eq!(recipe.foreground, expected);
+        assert_ne!(recipe.foreground, theme.on_accent);
+    }
+}
+
+#[test]
+fn link_recipe_is_flat_transparent_accented_and_underlined() {
+    let window = fixture();
+    for theme in [window.get_light(), window.get_dark()] {
+        for size in control_sizes() {
+            let recipe = window.invoke_button(theme.clone(), ButtonIntent::Link, size);
+            assert!(recipe.underline);
+            assert_eq!(recipe.foreground, theme.accent);
+            assert_eq!(recipe.fill.color().alpha(), 0);
+            assert_eq!(recipe.hover_fill.color().alpha(), 0);
+            assert_eq!(recipe.pressed_fill.color().alpha(), 0);
+            assert_eq!(recipe.disabled_fill.color().alpha(), 0);
+            assert_eq!(recipe.padding_inline, 0.);
+            assert_eq!(recipe.padding_block, 0.);
+            assert_eq!(recipe.elevation, ElevationLevel::None);
+        }
+    }
+}
+
+#[test]
+fn custom_geometry_reaches_the_family_recipes() {
+    let window = fixture();
+    for mut theme in [window.get_light(), window.get_dark()] {
+        theme.geometry.icon_medium = 31.;
+        theme.geometry.choice_medium = 33.;
+        theme.geometry.scroll_thickness = 27.;
+        theme.geometry.scroll_thumb = 9.;
+        theme.geometry.scroll_active_thumb = 11.;
+        theme.geometry.scroll_inset = 5.;
+        theme.geometry.scroll_min_thumb = 37.;
+        theme.geometry.busy_mark = 23.;
+        for scale in [1., 2.] {
+            theme.text_scale = scale;
+            assert_eq!(
+                window
+                    .invoke_icon_glyph(theme.clone(), ControlSize::Medium)
+                    .size,
+                31. * scale
+            );
+            assert_eq!(
+                window
+                    .invoke_choice(theme.clone(), ControlSize::Medium)
+                    .box_size,
+                33.
+            );
+            assert_eq!(
+                window
+                    .invoke_button(theme.clone(), ButtonIntent::Primary, ControlSize::Medium)
+                    .busy_mark_size,
+                23. * scale
+            );
+            let bar = window.invoke_scroll_bar(theme.clone());
+            assert_eq!(
+                (
+                    bar.thickness,
+                    bar.thumb_thickness,
+                    bar.active_thumb_thickness,
+                    bar.inset,
+                    bar.min_thumb_length
+                ),
+                (27., 9., 11., 5., 37.)
+            );
+        }
+    }
+}
+
+#[test]
+fn tabs_keep_the_whole_row_visible_with_overflow_and_large_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let tokens = ThemeTokenFixture::new().unwrap();
+    for (name, base) in shipped_themes(&tokens) {
+        for scale in [1., 2.] {
+            for width in [220., 640.] {
+                let window = TabsIndicatorFixture::new().unwrap();
+                let mut theme = base.clone();
+                theme.text_scale = scale;
+                window.set_theme(theme);
+                window.set_available_width(width);
+                window.show().unwrap();
+                slint::platform::update_timers_and_animations();
+                let viewport = ElementQuery::from_root(&window)
+                    .match_type_name("Flickable")
+                    .find_first()
+                    .expect("tabs own a clipped scrolling viewport");
+                let tabs: Vec<ElementHandle> = ElementQuery::from_root(&window)
+                    .match_inherits("KitNavigationAction")
+                    .find_all();
+                // The testing query excludes fully clipped descendants.
+                assert!(!tabs.is_empty());
+                if width == 640. {
+                    assert_eq!(tabs.len(), 3);
+                }
+                let top = viewport.absolute_position().y;
+                let bottom = top + viewport.size().height;
+                for tab in &tabs {
+                    assert!(tab.absolute_position().y >= top - 0.01);
+                    assert!(
+                        tab.absolute_position().y + tab.size().height <= bottom + 0.01,
+                        "complete tab must fit the viewport at scale {scale}, width {width}"
+                    );
+                }
+                let mut state = window.get_state();
+                state.active = SelectionRef {
+                    present: true,
+                    token: 3,
+                };
+                state.active_index = 2;
+                window.set_state(state);
+                slint::platform::update_timers_and_animations();
+                let last = ElementQuery::from_root(&window)
+                    .match_inherits("KitNavigationAction")
+                    .match_predicate(|e| e.accessible_label().as_deref() == Some("Settings"))
+                    .find_first()
+                    .expect("activating the last tab reveals it even when the row overflows");
+                let left = viewport.absolute_position().x;
+                assert!(last.absolute_position().x >= left - 0.01);
+                assert!(
+                    last.absolute_position().x + last.size().width
+                        <= left + viewport.size().width + 0.01
+                );
+                crate::choice_presentation::save_capture(
+                    &window.window().take_snapshot().unwrap(),
+                    &format!("tabs-{name}-{scale}-{width}"),
+                );
+            }
+        }
+    }
 }

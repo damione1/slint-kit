@@ -40,7 +40,7 @@ Themed scroll containers reserve a stable gutter for each scrollbar axis whose p
 
 Each component defaults to `KitThemeContext.current`, initially `KitThemes.light`. Assign it once for the window's default presentation. An explicit `theme` overrides that component and its internal controls. Children supplied by the application through `@children` keep their own defaults: pass the parent theme explicitly when composing a themed region. To switch the window default from Rust, re-export `KitThemeContext` from the main Slint file, then call `KitThemeContext::get(&window).set_current(theme)`.
 
-`ButtonIntent` has `primary`, `secondary`, `outline`, `quiet` and `destructive` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
+`ButtonIntent` has `primary`, `secondary`, `outline`, `quiet`, `destructive`, `success`, `warning`, `information` and `link` variants. `secondary` is a filled neutral surface, `outline` a transparent bordered control and `quiet` a borderless one. Feedback uses semantic severity and tone enums. Choose a state by meaning, then let the theme supply its color. Avoid conveying an error solely through a red border; keep the message and field label available.
 
 Each `AlertSeverity` takes its own subtle background, border and mark from the `information`, `success`, `warning` and `danger` tokens and their `*-subtle` backgrounds, so alerts stay distinguishable without reading their titles. Kit scroll containers, lists and tables draw their bars with [KitScrollBar](/components/scroll-bar/), which follows the theme. A std-widgets `ScrollView` or `ListView` in application code keeps the Slint style and `Palette.color-scheme`.
 
@@ -182,7 +182,7 @@ For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced m
 
 Check light and dark themes, 200% text, keyboard navigation, focus visibility and disabled actions in the actual application. Preserve the native text editor for caret, selection, undo and IME. Provide meaningful accessible names, particularly for icon buttons, custom pressables and focus targets.
 
-The site includes browser previews and native captures; their captions identify the rendering environment. A rendered example does not certify a screen reader, IME behavior, external file dropping or another backend. Native device and assistive-technology qualification belongs to the consuming application's target platforms. [Slint accessibility documentation](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) describes accessibility properties and native inspection practices.
+The site includes browser previews and native captures; their captions identify the rendering environment. A rendered example does not certify a screen reader, IME behavior, external file dropping or another backend. Native device and assistive-technology qualification belongs to the consuming application's target platforms. [Announced and qualified targets](/guides/getting-started/) names the OS, backend and renderer behind each proof the kit publishes, and what no proof covers. [Slint accessibility documentation](https://docs.slint.dev/latest/docs/slint/guide/development/best-practices/#accessibility) describes accessibility properties and native inspection practices.
 
 Use `KitAvatar` with `AvatarInteraction.action` for profile navigation: supply an action name and handle `activated`. Static avatars remain images. `KitBadge` and `KitStat` accept optional `leading-icon` glyphs; keep the accompanying status and value readable. Underlined OTP fields still use one native editor. Match visual `slots` with the host’s accepted code length. Tooltips on Kit buttons should bind `target-focused` to `focus-visible`, preserving hover help without turning a pointer click into a keyboard popup.
 
@@ -191,3 +191,41 @@ Custom `KitTypography` values must include `family-monospace`, used by code entr
 For sliders in a scrollable modal, opt into `KitScrollArea.pan-policy: children-first`. Interactive children keep a press through release; begin a drag on background or text to scroll. Background panning is direct, without inertia. Wheel scrolling, bars and focus reveal keep working. The default `native` policy preserves Slint arbitration.
 
 For a custom solid selected control, `KitThemes.selected-inset-focus(theme)` uses the theme’s `on-accent` ink with the shared inside-ring geometry. `KitThemes.inset-focus(theme)` keeps the regular focus color on neutral surfaces.
+
+Button busy marks use `theme.motion.fast` and remain static when `theme.reduced-motion` is true. Set `busy-label` to the localized explanation of pending work; it becomes the button’s accessible description while busy.
+
+Buttons accept `ButtonIntent.success`, `.warning` and `.information`. Their palettes include base/hover/pressed colors and independent `on-success`, `on-warning` and `on-information` inks. Destructive actions read `on-danger`; they do not inherit `on-accent`. When authoring a complete `KitTheme` literal, supply every new palette field; copying a shipped theme and changing named fields avoids zero defaults.
+
+`ButtonIntent.link` is an inline text action with accent ink, underline and transparent hover/pressed/disabled fills. It retains button semantics and native activation: your activated handler chooses any navigation. Slint1.18.1 provides no separate accessible link role. `ButtonRecipe.underline` is a recipe decoration field; complete custom recipe literals must set it.
+
+`KitTheme.geometry` owns icon/choice size scales, scrollbar thickness/insets/thumb limits, content-width presets, busy marks, avatar defaults, step markers and drop-zone bounds. These values retain the default presentation while custom themes can change them. `KitIcon`, `KitScrollBar`, `KitSurface` and `KitCard` expose complete `recipe` inputs; cards also expose `level`, and containers expose `max-content-width`. Prefer a recipe returned by KitThemes and change named fields. The surface/card key shadow follows its recipe unless an explicit elevation selects another theme shadow.
+
+When migrating a complete theme literal, add every `KitGeometry` field in both modes. `KitThemes.choice-box-size(theme, size)` and `KitLayoutMetrics.width-limit(theme, value)` now take the theme explicitly so local themes are honored.
+
+`KitSurface` and `KitCard` retain their inherited Rectangle painting. Their `SurfaceRecipe` applies fill, border, radius and elevation, and only `shadow.offset-y`, `shadow.blur` and `shadow.color`. `ambient-shadow` and `shadow.spread` are not painted by these two components. An explicit `elevation` different from `recipe.elevation` selects the main shadow from the theme. `KitDialogPanel` uses the elevated composition, which paints both recipe shadow layers with their spreads.
+
+Avatar explicit `size` is exact and its initials follow the diameter. Use `AvatarSize.compact/medium/large` for text-scaled presets; their dimensions and initials ratio live in geometry. An empty avatar uses theme.icons.avatar and a localizable fallback label. Status decorations enter through @children.
+
+Avatar `tone` selects the existing neutral/accent/status palette while its default remains accent. Status tones use subtle fills and readable foregrounds.
+
+
+`KitSteps.orientation` supports vertical and horizontal arrangements, with optional connectors and per-step descriptions. Enable interaction explicitly and give the group an accessible name. `KitTimeline` uses the semantic row tone for its marker or decorative glyph; neutral is the default. Labels must carry status meaning independently of color or icons.
+
+
+KitSteps retains spacing as a public input; its Rectangle container uses internal horizontal/vertical layouts. Move former inherited layout padding to a surrounding layout.
+
+
+## Right-to-left presentation
+
+Set `theme.direction: ChoiceFlow.right-to-left` for logical leading/trailing icons, badge labels, scrollbar gutters and chat start/end sides. Step markers follow the same direction. Choices inherit it as their default `flow`, which still accepts a local override. The shipped themes default to left-to-right; complete custom `KitTheme` literals must include direction.
+
+Slint 1.18.1 has no general layout-direction or automatic layout mirroring property. This setting mirrors kit-positioned chrome; it does not rewrite your `@children` layouts, reverse data order, change horizontal scroll coordinates, or transform supplied glyphs. Arrange application layouts explicitly and use appropriate directional icons. Native text shaping, selection, caret and bidirectional behavior remain Slint’s; qualify Arabic/Hebrew editing and assistive technology on the target backend.
+
+Theme direction does not add a general Slint mirroring service: native text and focus traversal keep engine behavior, caller child layouts remain explicit, and scroll coordinates retain the documented positive-content/negative-offset convention.
+
+
+`ScrollFrame` is a public `@kit` composition primitive for a finite two-axis viewport. Supply `content-width` and `content-height`; its children retain native editing. Observe negative `content-x/y`, `visible-width/height` and the relative physical `viewport-x` to align external headers. It supplies themed gutters, policies and `scrolled`, with no viewport keyboard role. `enabled` gates bars/direct panning, while native wheel scrolling remains available. `KitScrollArea` remains the complete vertical wrapper. RTL table headers and cell reveal use this same measured viewport origin.
+
+`KitButtonGroup` names related commands and supports orientation and optional wrapping. `attached: true` styles model-backed actions as a single non-wrapping strip with a shared outline, separators and inside focus; it ignores spacing/wrap. Custom children keep their explicit styling. The container now uses a Rectangle and an internal FlexboxLayout; spacing/alignment remain public, while former inherited HorizontalLayout padding properties move to the surrounding layout.
+
+`KitColorWheel` reads its minimum, preferred diameter and marker dimensions from `KitTheme.geometry.color-wheel-*`, scaled by `text-scale`. Complete geometry literals must include `color-wheel-minimum`, `color-wheel-diameter`, `color-wheel-indicator-size` and `color-wheel-indicator-border-width`. The spectrum represents user color data and is independent of the theme. Filled slider solid paints preserve rounded track corners on the software renderer; gradient paints keep their partial-fill coordinate space and its documented upstream clipping limit.

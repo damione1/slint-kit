@@ -1,3 +1,4 @@
+import { KitKeyResult } from "@kit";
 export { HtmlInputKind, NumberInputFormat, KitInputConstraints, KitValidationResult, KitValidityState } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitButton, KitTextField, KitSelect, KitThemes, FieldAccess, ValidationPresentation, OptionRow, SelectState, SelectionRef, Ownership } from "@kit";
@@ -52,7 +53,7 @@ export component App inherits Window {
             selected <=> root.workspace-selected;
             placeholder: root.selected-label;
             chosen(row) => { root.workspace-chosen(row); }
-            tab-navigation(reverse) => { root.focus-name(); return accept; }
+            tab-navigation(reverse) => { root.focus-name(); return KitKeyResult.accept; }
         }
         KitButton { text: root.french ? "Accepter le nom" : "Accept name"; activated => { root.name-commit(); } }
         Text { text: (root.french ? "Nom accepté : " : "Accepted: ") + root.accepted-label; color: KitThemes.light.text-secondary; wrap: word-wrap; }

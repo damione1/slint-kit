@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 use crate::{ColorWheelFixture, FieldAccess};
 use slint::{
     ComponentHandle, LogicalPosition,
@@ -137,4 +138,60 @@ fn explicit_hue_choice_establishes_an_unknown_opaque_color() {
         (0, 255, 0, 255)
     );
     assert!(window.get_known());
+}
+
+#[test]
+fn installed_wheel_projects_initial_hue_localizes_and_renders_all_access_states() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = ColorWheelFixture::new().unwrap();
+    window.set_value(crate::SrgbColorView {
+        red: 0,
+        green: 255,
+        blue: 0,
+        alpha: 255,
+    });
+    slint_kit::install(&window);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    assert!((window.get_hue() - 120.).abs() < 0.01);
+    window
+        .global::<kit_slint::ui::KitStrings>()
+        .set_color_wheel_value_format("Teinte {hue}; saturation {saturation}".into());
+    window
+        .global::<kit_slint::ui::KitStrings>()
+        .set_color_wheel_unknown_label("Couleur inconnue".into());
+    assert_eq!(window.get_value_text(), "Teinte 120; saturation 100");
+    window.set_known(false);
+    assert_eq!(window.get_value_text(), "Couleur inconnue");
+    window.set_known(true);
+    for (name, base) in [("light", window.get_light()), ("dark", window.get_dark())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(260. * scale, 260. * scale));
+            for access in [
+                FieldAccess::Editable,
+                FieldAccess::ReadOnly,
+                FieldAccess::Disabled,
+            ] {
+                window.set_access(access);
+                slint::platform::update_timers_and_animations();
+                let image = window.window().take_snapshot().unwrap();
+                assert_eq!(image.width(), if scale == 1. { 260 } else { 520 });
+                crate::choice_presentation::save_capture(
+                    &image,
+                    &format!("color-wheel-{name}-{scale}-{access:?}"),
+                );
+            }
+        }
+    }
 }

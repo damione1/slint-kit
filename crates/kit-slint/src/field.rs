@@ -63,6 +63,7 @@ struct BoundField<T, E> {
     normalizer: Option<DraftNormalizer>,
     html_user_edited: bool,
     html_reported: bool,
+    messages: Option<crate::ui::KitFieldMessages>,
 }
 /// A local controller with an explicit parsing/formatting boundary. The publisher
 /// should capture a weak window. No thread, task runtime or global state is used.
@@ -115,6 +116,7 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                 normalizer: None,
                 html_user_edited: false,
                 html_reported: false,
+                messages: None,
             })),
             publish: Rc::new(publish),
             intent: Rc::new(RefCell::new(None)),
@@ -126,6 +128,10 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
     }
     /// Intrinsic HTML constraints run before the application's domain parser.
     /// This also guards commits triggered by blur or a form submit in Rust.
+    pub fn set_messages(&self, messages: crate::ui::KitFieldMessages) {
+        self.inner.borrow_mut().messages = Some(messages);
+        self.refresh();
+    }
     pub fn set_html_constraints(&self, rules: HtmlConstraints) {
         {
             let mut inner = self.inner.borrow_mut();
@@ -201,9 +207,15 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
             ValidationState::Unchecked
             | ValidationState::Pending { .. }
             | ValidationState::Valid => match inner.failure {
-                Some(failure) => failure_message(failure).into(),
+                Some(failure) => inner.messages.as_ref().map_or_else(
+                    || failure_message(failure).into(),
+                    |messages| localized_failure(messages, failure),
+                ),
                 None => match c.parsed() {
-                    DraftValue::Invalid(issue) => parse_message(*issue).into(),
+                    DraftValue::Invalid(issue) => inner.messages.as_ref().map_or_else(
+                        || parse_message(*issue).into(),
+                        |messages| localized_failure(messages, FieldFailure::Parse(*issue)),
+                    ),
                     DraftValue::Empty | DraftValue::Incomplete | DraftValue::Parsed(_) => {
                         String::new()
                     }
@@ -250,7 +262,10 @@ impl<T: Clone + PartialEq + 'static, E: 'static> FieldBinding<T, E> {
                     ValidationPresentation::Pristine
                 };
                 error = if show {
-                    validity.message(rules)
+                    inner.messages.as_ref().map_or_else(
+                        || validity.message(rules),
+                        |messages| localized_constraint(messages, validity, rules),
+                    )
                 } else {
                     String::new()
                 };
@@ -520,6 +535,85 @@ fn parse_message(issue: ParseIssue) -> &'static str {
         ParseIssue::InvalidUnit => "Choose a valid unit.",
         ParseIssue::InvalidRange => "Enter an ordered range.",
     }
+}
+
+pub(crate) fn localized_failure(
+    messages: &crate::ui::KitFieldMessages,
+    failure: FieldFailure,
+) -> String {
+    let message = match failure {
+        FieldFailure::AccessDenied => &messages.access_denied,
+        FieldFailure::MissingValue => &messages.missing_value,
+        FieldFailure::Incomplete => &messages.incomplete,
+        FieldFailure::ValidationPending => &messages.validation_pending,
+        FieldFailure::ValidationFailed => &messages.validation_failed,
+        FieldFailure::Parse(issue) => match issue {
+            ParseIssue::InvalidSyntax => &messages.invalid_syntax,
+            ParseIssue::InvalidGrouping => &messages.invalid_grouping,
+            ParseIssue::Overflow => &messages.overflow,
+            ParseIssue::DivisionByZero => &messages.division_by_zero,
+            ParseIssue::ScaleExceeded => &messages.scale_exceeded,
+            ParseIssue::BelowMinimum => &messages.below_minimum,
+            ParseIssue::AboveMaximum => &messages.above_maximum,
+            ParseIssue::InvalidDate => &messages.invalid_date,
+            ParseIssue::InvalidTime => &messages.invalid_time,
+            ParseIssue::InvalidCurrency => &messages.invalid_currency,
+            ParseIssue::InvalidColor => &messages.invalid_color,
+            ParseIssue::InvalidUnit => &messages.invalid_unit,
+            ParseIssue::InvalidRange => &messages.invalid_range,
+        },
+    };
+    message.to_string()
+}
+fn localized_constraint(
+    messages: &crate::ui::KitFieldMessages,
+    validity: HtmlValidity,
+    rules: &HtmlConstraints,
+) -> String {
+    if !rules.will_validate() || validity.valid() {
+        return String::new();
+    }
+    if validity.custom_error {
+        return rules.custom_error.clone();
+    }
+    if validity.value_missing {
+        return messages.required_message.to_string();
+    }
+    if validity.type_mismatch {
+        return if rules.kind == kit_core::HtmlInputKind::Email {
+            &messages.email_message
+        } else {
+            &messages.url_message
+        }
+        .to_string();
+    }
+    if validity.pattern_mismatch {
+        return messages.pattern_message.to_string();
+    }
+    if validity.too_short {
+        return messages
+            .too_short_template
+            .replace("{count}", &rules.min_length.unwrap_or(0).to_string());
+    }
+    if validity.too_long {
+        return messages
+            .too_long_template
+            .replace("{count}", &rules.max_length.unwrap_or(0).to_string());
+    }
+    if validity.range_underflow {
+        return messages
+            .underflow_template
+            .replace("{value}", rules.minimum.as_deref().unwrap_or(""));
+    }
+    if validity.range_overflow {
+        return messages
+            .overflow_template
+            .replace("{value}", rules.maximum.as_deref().unwrap_or(""));
+    }
+    if validity.step_mismatch {
+        return messages.step_message.to_string();
+    }
+    messages.bad_input_message.to_string()
 }
 
 #[cfg(test)]

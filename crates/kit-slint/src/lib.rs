@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Public model projection and weak-window binding helpers.
+//! Public Slint components and Rust behavior adapters for Slint Kit: native
+//! drafts, typed field acceptance, shared interaction services and stable-key
+//! collection models, with customizable light/dark themes.
+//!
+//! Applications normally use the `slint-kit` facade and matching
+//! `slint-kit-build` helper to import components from `@kit`.
+//! See [components](https://slint-kit.dev/components/) and
+//! [behavior and responsibilities](https://slint-kit.dev/guides/why-slint-kit/).
 pub const UI_DIRECTORY: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/ui");
 #[doc(hidden)]
 pub use kit_core as __core;
@@ -84,7 +91,19 @@ mod toast;
 pub use toast::*;
 
 #[cfg(feature = "adapter")]
+mod table;
+#[cfg(feature = "adapter")]
+pub use table::*;
+
+#[cfg(feature = "adapter")]
 mod numeric_service;
 
 #[cfg(feature = "adapter")]
 mod color_service;
+
+#[cfg(feature = "adapter")]
+mod dialog;
+#[cfg(feature = "adapter")]
+pub use dialog::*;
+#[cfg(feature = "adapter")]
+mod text_edit;

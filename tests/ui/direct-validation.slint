@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { FieldAccess, KitCheckbox, KitColorField, KitCombobox, KitDatePicker, KitDateTimeField, KitDirectoryPicker, KitFilePicker, KitMultiSelect, KitNumberStepper, KitRadioGroup, KitSegmentedControl, KitSelect, KitSwitch, KitTagInput, KitTextField, KitTheme, KitThemes, KitTimePicker, KitToggleGroup, KitValidityState, KitZonedDateTimeField } from "@kit";
+import { ScrollView } from "std-widgets.slint";
+export component DirectValidationFixture inherits Window {
+    width: 640px; height: 1150px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in-out property <FieldAccess> access: FieldAccess.editable;
+    out property <bool> sentinel-focus: sentinel.has-focus;
+    out property <bool> consent-focus: consent.has-focus;
+    out property <KitValidityState> consent-validity: consent.validity;
+    out property <KitValidityState> selection-validity: selection.validity;
+    out property <KitValidityState> attachment-validity: attachment.validity;
+    out property <KitValidityState> meeting-validity: meeting.validity;
+    out property <bool> consent-candidate: consent.will-validate;
+    out property <bool> selection-candidate: selection.will-validate;
+    out property <bool> attachment-candidate: attachment.will-validate;
+    out property <bool> meeting-candidate: meeting.will-validate;
+    out property <string> consent-message: consent.validation-message;
+    out property <string> selection-message: selection.validation-message;
+    out property <string> attachment-message: attachment.validation-message;
+    out property <string> meeting-message: meeting.validation-message;
+    public function focus-sentinel() { sentinel.take-focus(); }
+    public function focus-consent() { consent.take-focus(); }
+    public function focus-selection() { selection.take-focus(); }
+    public function focus-attachment() { attachment.take-focus(); }
+    public function focus-meeting() { meeting.take-focus(); }
+    public function report-consent() -> bool { return consent.report-validity(); }
+    public function report-selection() -> bool { return selection.report-validity(); }
+    public function report-attachment() -> bool { return attachment.report-validity(); }
+    public function report-meeting() -> bool { return meeting.report-validity(); }
+    public function focus-invalid-consent() -> bool { return consent.focus-if-invalid(); }
+    public function focus-invalid-selection() -> bool { return selection.focus-if-invalid(); }
+    public function focus-invalid-attachment() -> bool { return attachment.focus-if-invalid(); }
+    public function focus-invalid-meeting() -> bool { return meeting.focus-if-invalid(); }
+    VerticalLayout { padding: 24px; spacing: root.theme.spacing.unit * 3; alignment: start;
+        sentinel := KitTextField { theme: root.theme; label: "Focus sentinel"; }
+        consent := KitCheckbox { theme: root.theme; access: root.access; label: "Consent"; required: true; }
+        selection := KitSelect { theme: root.theme; access: root.access; placeholder: "Choose a region"; required: true; options: [{token: 17, generation: 1, label: "Region", description: "Available region", disabled: false}]; }
+        attachment := KitFilePicker { theme: root.theme; access: root.access; label: "Attachment"; required: true; }
+        meeting := KitDateTimeField { theme: root.theme; access: root.access; label: "Meeting"; required: true; }
+    }
+}
+
+export component ZonedReportFocusFixture inherits Window {
+    width: 640px;
+    height: 640px;
+    in-out property <int> invalid-count;
+    out property <bool> sentinel-focus: sentinel.has-focus;
+    out property <bool> zoned-focus: zoned.editor-focused;
+    in-out property <string> date-text <=> zoned.date-text;
+    in-out property <string> time-text <=> zoned.time-text;
+    in-out property <string> zone-text <=> zoned.zone-text;
+    public function focus-sentinel() { sentinel.take-focus(); }
+    public function report-zoned() -> bool { return zoned.report-validity(); }
+    public function focus-invalid-zoned() -> bool { return zoned.focus-if-invalid(); }
+    VerticalLayout {
+        sentinel := KitTextField { label: "Focus sentinel"; }
+        zoned := KitZonedDateTimeField {
+            label: "Local meeting and time zone";
+            required: true;
+            invalid => { root.invalid-count += 1; }
+        }
+    }
+}
+
+export component AllDirectReportsFixture inherits Window {
+    width: 640px; height: 800px;
+    in-out property <FieldAccess> access: FieldAccess.editable;
+    in-out property <int> invalid-count;
+    out property <bool> sentinel-focus: sentinel.has-focus;
+    public function focus-sentinel() { sentinel.take-focus(); }
+    public function report-all() -> [bool] { return [checkbox.report-validity(), switch.report-validity(), radio.report-validity(), segmented.report-validity(), toggle.report-validity(), multi.report-validity(), tags.report-validity(), combo.report-validity(), select.report-validity(), files.report-validity(), directory.report-validity(), date-time.report-validity(), zoned.report-validity(), stepper.report-validity(), date.report-validity(), time.report-validity(), color.report-validity()]; }
+    public function focus-all-invalid() -> [bool] { return [checkbox.focus-if-invalid(), switch.focus-if-invalid(), radio.focus-if-invalid(), segmented.focus-if-invalid(), toggle.focus-if-invalid(), multi.focus-if-invalid(), tags.focus-if-invalid(), combo.focus-if-invalid(), select.focus-if-invalid(), files.focus-if-invalid(), directory.focus-if-invalid(), date-time.focus-if-invalid(), zoned.focus-if-invalid(), stepper.focus-if-invalid(), date.focus-if-invalid(), time.focus-if-invalid(), color.focus-if-invalid()]; }
+    VerticalLayout {
+        sentinel := KitTextField { label: "Focus sentinel"; }
+        ScrollView {
+            VerticalLayout { spacing: 12px;
+                checkbox := KitCheckbox { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitCheckbox"; invalid => { root.invalid-count += 1; } }
+                switch := KitSwitch { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitSwitch"; invalid => { root.invalid-count += 1; } }
+                radio := KitRadioGroup { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                segmented := KitSegmentedControl { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                toggle := KitToggleGroup { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                multi := KitMultiSelect { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                tags := KitTagInput { access: root.access; required: true; custom-validity: "Rejected value";  invalid => { root.invalid-count += 1; } }
+                combo := KitCombobox { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                select := KitSelect { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; placeholder: "KitSelect"; invalid => { root.invalid-count += 1; } }
+                files := KitFilePicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitFilePicker"; invalid => { root.invalid-count += 1; } }
+                directory := KitDirectoryPicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDirectoryPicker"; invalid => { root.invalid-count += 1; } }
+                date-time := KitDateTimeField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDateTimeField"; invalid => { root.invalid-count += 1; } }
+                zoned := KitZonedDateTimeField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitZonedDateTimeField"; invalid => { root.invalid-count += 1; } }
+                stepper := KitNumberStepper { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitNumberStepper"; invalid => { root.invalid-count += 1; } }
+                date := KitDatePicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDatePicker"; invalid => { root.invalid-count += 1; } }
+                time := KitTimePicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitTimePicker"; invalid => { root.invalid-count += 1; } }
+                color := KitColorField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitColorField"; invalid => { root.invalid-count += 1; } }
+            }
+        }
+    }
+}

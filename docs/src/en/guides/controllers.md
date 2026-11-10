@@ -8,7 +8,11 @@ permalink: "{{ 'guides/controllers/' | localeUrl(locale) }}index.html"
 
 # Typed values and owned collections
 
+`FieldSpec<T, E>` returns validated domain values; `Choices<K>` retains choice keys; `KeyedModel<K, Row>` connects rows to stable identities. These APIs share the validation and selection behavior of Slint Kit components. Your application supplies its types, rules and data.
+
 Start with [Project setup](/guides/project-setup/) and one `slint_kit::install(&app)` per window. Interactive components own their local view state and call pure shared reducers. Business callbacks receive a checked projection that converts to a Rust domain type. Applications retain ownership of their documents, lists, tables, files and asynchronous work.
+
+Controls mounted later by `if`, model delegates or a popup initialize their own selection fence from the already installed window services. Keep one installation per window; no second install or artificial options replacement is needed.
 
 ## FieldSpec and native drafts
 
@@ -61,8 +65,44 @@ The application still chooses data, sorting, filtering, loading and commands. A 
 
 `ToastBinding<Action>` stores typed actions in `ToastQueue`, projects `ToastEntry` rows and manages a weak timer. Capacity and `ToastLifetime` are explicit. Its three handlers route action, dismissal and independent pointer/focus pauses; the application only performs the resulting business action.
 
-`KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection.
+`KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection. The [sortable table application](/guides/table-example/) wires `bind`, `navigation()`, `activation` and `sorting_by` to a `KitDataTable` in one short file.
+
+`KeyedModel::cell_commits(handler)` is the `KitDataTable.cell-committed` handler for in-place cell edits: it admits a commit only under the current generation and for an enabled row, then passes the row key, the column token and the `FieldCommit`, which the application runs through that column's `FieldSpec::accept` before republishing the row.
 
 Use `Choices::selections(&keys)` for initial multiple selections; missing or repeated keys reject the complete projection. `KeyedModel::bind_active` publishes the active row through a weak window to an editor. Use `update_active` to reject commits for a line that is no longer active.
 
 Match a decimal codec’s `DecimalRules.locale` to the component’s `number-format`, and a time codec’s `ClockFormat` to the component’s `clock-format`. The HTML engine validates the native grammar; the codec then receives that grammar, including decimal commas and 12-hour clocks. Accepted formatting round-trips through the same parser, so cancelling restores an editable value in the declared format.
+
+`bind_active` publishes only when the active key or its record revision changes. Updating another row and reordering unchanged rows preserve an editor draft. Explicit `replace` supplies fresh records and republishes the active record. Use `get`, `len`, `is_empty`, `update_by_key` and `remove_by_key` for domain access, including disabled records. In-place updates retain the interaction generation and use row notifications; membership changes and replacement invalidate old gestures.
+
+Column resize ignores a click without movement. Escape or a secondary press cancels a drag preview. Double-clicking a divider emits `autosize-requested(column-token)`; calculate the domain-appropriate width and update the column policy.
+
+A table cell uses the native field editor. Click chooses the row and cell cursor, double-click or F2 opens an editable field, Enter commits, Escape cancels and Tab validates before moving. `edit-active()`, `commit-edit()` and `cancel-edit()` expose those operations to host actions. Install the kit once per window, including for plain text cells. `active-index` and `active-column` are view cursors; commit identity is always `(row-token, column-token, generation, FieldCommit)`. Read `edit-error` for a rejected codec or HTML constraint. The accessible active cell exposes its value and the localized `editable-label` / `read-only-label` hint; headless evidence does not qualify a screen reader.
+
+Localize document editing with `editor-label`, `editor-placeholder`, `save-label` and `copy-label`; their defaults remain English.
+
+
+### Keyboard hooks from Rust
+
+Public kit keyboard hooks return `KitKeyResult`, a shared presentation enum exported by `@kit` and as `slint_kit::ui::KitKeyResult`. Return `KitKeyResult::Accept` from Rust to consume a shortcut, or `Reject` to preserve the control’s built-in behavior. Slint bindings use `KitKeyResult.accept` and `.reject`; the kit converts them at the native `FocusScope` or `TextInput` boundary. Do not use the unrelated winit backend `EventResult` or Slint private APIs.
+
+This result applies to `KitTextField.key-pressed`, `KitDataTable.key-event`, inherited `KitPressable.key-event`, selector `tab-navigation`, and public selector/navigation `handle-key` functions. A text-field hook runs only without active IME preedit. Preserve rejection for normal text and navigation so native editing keeps selection, undo and IME.
+
+Use `CellContent::constrained_field(text, codec, access, constraints)` when a cell has intrinsic form rules. `KitInputConstraints` is the same projection used by the shared HTML engine; use `kind: HtmlInputKind::Number` for native numeric filtering and set absent `min_length` / `max_length` to -1. The default value supplies the step base and `custom_error` remains a persistent constraint; cell `FieldAccess` controls access. Required, pattern, min/max and step remain validated again through `FieldSpec::accept(commit)` in Rust. For a domain lock or another synchronous business rule, implement `validate-edit(row_token, column_token, generation, commit) -> string`: an empty string accepts, a localized message keeps the draft open. Enter, Tab and `commit-edit()` recheck the same draft after a temporary rejection; the canonical row remains unchanged until acceptance. Avoid silently reverting a rejected committed value.
+
+Use `header-focus: TableHeaderFocus.roving` for one table Tab stop: Up from the first row (or the empty body) enters the header cursor, Left/Right changes columns, Down returns to the body, Enter/Space sorts, and Alt+Left/Right requests bounded resizing. The default `individual` policy keeps each sortable header and resize handle tabbable before the body. Localize `header-label`; `sort-active-column()` and `resize-active-column(delta)` share the guarded token callbacks.
+
+Moving an edited row entirely outside the table viewport cancels its draft without committing. This includes wheel scrolling and shrinking the view. Returning the row keeps its accepted value and does not restore an editor; start a new session explicitly.
+
+Observe `edit-started(row, column, generation)` and `edit-ended(row, column, generation, outcome, message)` to track a cell session by its armed identity. `TableEditOutcome` distinguishes committed, unchanged, cancelled, rejected-on-blur, superseded and viewport-exit. Read `edit-draft` for recovery and `edit-bounds` (`valid`, window-logical x/y/width/height) after layout. `edit-blur-policy: TableEditBlurPolicy.keep-open` keeps an invalid native editor focused; its explicit cancel remains available. The default commit-or-drop preserves native blur behavior and reports rejection. `unchanged-edit-policy: TableUnchangedEditPolicy.skip` suppresses an unchanged cell proposal while still ending the session. End events snapshot their identity, so a handler can open another cell; canonical updates still use the fenced, typed cell-committed path.
+
+Read each collection’s `page-rows` when handling PageUp/PageDown: it reflects the body viewport after the table header or document editor footer, density and text scaling. Expose it on your window and connect `model.navigation(&window, Window::get_page_rows)`; this weak handler reads the getter again for every key. A direct controller passes that value to `navigate_page`. `navigate(step, page_rows)` also requires an explicit capacity; `navigate_page` remains an explicit compatibility alias.
+
+Collection viewports expose `first-visible-index`, `visible-row-count` and signed `scroll-x`/`scroll-y` offsets independently of selection. Use `scroll-to-index` for a visual position, `reveal-active` for the current active identity, `scroll-to-top` for both axes, and `set-scroll(x,y)` to restore saved offsets within current bounds. A saved position belongs to the model identity/order it was captured with. `near-end-rows`, `end-near` and the edge-triggered `near-end()` support incremental loading; if an appended page still leaves `end-near` true, continue filling explicitly instead of waiting for another edge. Programmatic scrolling also ends a table editing session if its row leaves the viewport.
+
+When a table’s column count changes, `active-column` clamps to the remaining visible positions in both body and header navigation. Removing every column returns the body to the whole-row cursor (-1); later columns do not revive an obsolete cell. A removed edited cell still ends as `superseded`, without committing the draft.
+## Interactive steps and event timelines
+
+Use `KeyedModel<K, StepEntry>` and resolve `step-activated(token, generation)` with `accept`. Set `enabled` explicitly for reachable steps; the kit emits requests and your workflow decides whether and how to change states. The generation fence rejects held gestures after replacement. `interactive` defaults to false; orientation and descriptions work in either mode. Timeline rows are ordered display projections: supply a semantic `tone` and an optional decorative `glyph`, while retaining the event meaning in title and description.
+
+For attached command strips, supply `KitButtonGroup.actions` from `KeyedModel<K, ButtonGroupEntry>` and resolve `activated(token, generation)` with `accept`. Each button keeps an independent Tab stop and action; this is not a selection group. The host owns busy/disabled state and commands. Model replacement cancels held gestures. Use @children when you need custom composition, passing each child its own theme and disabled state.

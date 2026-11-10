@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { LayoutSpace, KitLayoutMetrics } from "layout.slint";
-import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, SurfaceLevel, SurfaceRecipe } from "theme.slint";
+import { ElevationLevel, KitTheme, KitThemes, KitThemeContext, KitMetrics, TypographyRole, ControlSize, AvatarSize, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { KitPressable } from "button.slint";
 import { ButtonIntent } from "theme.slint";
+import { KitStrings } from "strings.slint";
 
 export enum Tone { neutral, accent, success, warning, danger, information }
+export { AvatarSize } from "theme.slint";
 export enum AvatarShape { circle, rounded, square }
 export enum AvatarInteraction { static, action }
 export enum ChatSide { start, end }
 export enum StepState { pending, current, complete, error }
-export struct TimelineEntry { title: string, description: string, metadata: string }
-export struct StepEntry { token: int, label: string, state: StepState }
+export struct TimelineEntry { title: string, description: string, metadata: string, tone: Tone, glyph: IconGlyph }
+export struct StepEntry { token: int, generation: int, label: string, description: string, state: StepState, enabled: bool }
 
 export component KitBadge inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -33,8 +35,8 @@ export component KitBadge inherits Rectangle {
     border-width: root.theme.shape.border-width;
     border-color: root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.information ? root.theme.information : root.theme.border-subtle;
     accessible-role: AccessibleRole.text; accessible-label: root.text;
-    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
-    label := Text { x: root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;
+    if root.has-icon: KitIcon { theme: root.theme; control-size: ControlSize.compact; glyph: root.leading-icon; x: root.theme.direction == ChoiceFlow.right-to-left ? root.width - root.inset-x - self.width : root.inset-x; y: (parent.height - self.height) / 2; ink: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; }
+    label := Text { x: root.theme.direction == ChoiceFlow.right-to-left ? root.inset-x : root.inset-x + root.icon-space; y: (root.height - self.preferred-height) / 2; text: root.text;
         color: root.tone == Tone.accent ? root.theme.on-accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
         font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); font-weight: root.theme.typography.weight-semibold;
     }
@@ -45,26 +47,39 @@ export component KitAvatar inherits Rectangle {
     in property <image> source;
     in property <string> initials;
     in property <string> accessible-name;
+    in property <Tone> tone: Tone.accent;
+    private property <color> avatar-ink: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary;
     in property <AvatarShape> shape: AvatarShape.circle;
     in property <AvatarInteraction> interaction: AvatarInteraction.static;
     in property <bool> disabled;
     callback activated();
+    callback activation-started();
+    public function cancel-press() { action.cancel-press(); }
     out property <bool> has-focus: root.interaction == AvatarInteraction.action && action.has-focus;
     public function take-focus() { if (root.interaction == AvatarInteraction.action) { action.take-focus(); } }
-    in property <length> size: 40px;
-    width: max(root.size, KitMetrics.font-size(root.theme, TypographyRole.subtitle) * 2);
+    in property <AvatarSize> avatar-size: AvatarSize.medium;
+    in property <length> size: KitMetrics.avatar-size(root.theme, root.avatar-size);
+    in property <IconGlyph> fallback-icon: root.theme.icons.avatar;
+    in property <string> fallback-label: KitStrings.avatar-label;
+    private property <string> effective-name: root.accessible-name != "" ? root.accessible-name : root.initials != "" ? root.initials : root.fallback-label;
+    width: max(0px, root.size);
     height: self.width;
     horizontal-stretch: 0; vertical-stretch: 0;
     border-radius: root.shape == AvatarShape.circle ? self.width / 2 : root.shape == AvatarShape.rounded ? root.theme.shape.radius-control : 0px;
-    background: root.theme.accent-subtle;
+    background: root.tone == Tone.accent ? root.theme.accent-subtle : root.tone == Tone.success ? root.theme.success-subtle : root.tone == Tone.warning ? root.theme.warning-subtle : root.tone == Tone.danger ? root.theme.danger-subtle : root.tone == Tone.information ? root.theme.information-subtle : root.theme.surface;
     border-width: root.theme.shape.border-width; border-color: root.theme.border-strong;
     accessible-role: AccessibleRole.none;
-    if root.interaction == AvatarInteraction.static: Rectangle { accessible-role: image; accessible-label: root.accessible-name; }
+    if root.interaction == AvatarInteraction.static: Rectangle { accessible-role: image; accessible-label: root.effective-name; }
     Rectangle {
         clip: true; border-radius: root.border-radius;
         opacity: root.disabled ? 0.45 : 1;
         if root.source.width > 0: Image { accessible-role: none; width: parent.width; height: parent.height; source: root.source; image-fit: cover; }
-        if root.source.width == 0: Text { accessible-role: none; text: root.initials; color: root.theme.accent; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+        if root.source.width == 0 && root.initials != "": Text { accessible-role: none; text: root.initials; color: root.avatar-ink; font-family: root.theme.typography.family; font-size: root.width * root.theme.geometry.avatar-initials-ratio; overflow: elide; font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+        if root.source.width == 0 && root.initials == "": KitIcon {
+            theme: root.theme; glyph: root.fallback-icon; ink: root.avatar-ink;
+            width: root.width * root.theme.geometry.avatar-initials-ratio * 1.5; height: self.width;
+            x: (root.width - self.width) / 2; y: (root.height - self.height) / 2;
+        }
     }
     action := KitPressable {
         visible: root.interaction == AvatarInteraction.action;
@@ -73,22 +88,25 @@ export component KitAvatar inherits Rectangle {
         theme: root.theme; intent: ButtonIntent.quiet;
         width: root.width; height: root.height;
         corner-radius: root.border-radius;
-        accessible-name: root.accessible-name;
-        background: self.pressed ? root.theme.accent.transparentize(0.75) : self.hovered ? root.theme.accent.transparentize(0.88) : transparent;
+        accessible-name: root.effective-name;
+        background: self.pressed ? root.avatar-ink.transparentize(0.75) : self.hovered ? root.avatar-ink.transparentize(0.88) : transparent;
+        activation-started => { root.activation-started(); }
         activated => { root.activated(); }
     }
+    @children
 }
 
 export component KitCard inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <SurfaceLevel> level: SurfaceLevel.flat;
     in property <LayoutSpace> inset: LayoutSpace.roomy;
     in property <LayoutSpace> gap: LayoutSpace.regular;
-    in property <length> corner-radius: root.surface.radius;
-    in property <ElevationLevel> elevation: root.surface.elevation;
-    private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
-    background: root.surface.fill;
-    border-color: root.surface.border; border-width: root.surface.border-width; border-radius: root.corner-radius;
-    drop-shadow-offset-y: KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: KitThemes.shadow(root.theme, root.elevation).color;
+    in property <length> corner-radius: root.recipe.radius;
+    in property <ElevationLevel> elevation: root.recipe.elevation;
+    in property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, root.level);
+    background: root.recipe.fill;
+    border-color: root.recipe.border; border-width: root.recipe.border-width; border-radius: root.corner-radius;
+    drop-shadow-offset-y: root.elevation == root.recipe.elevation ? root.recipe.shadow.offset-y : KitThemes.shadow(root.theme, root.elevation).offset-y; drop-shadow-blur: root.elevation == root.recipe.elevation ? root.recipe.shadow.blur : KitThemes.shadow(root.theme, root.elevation).blur; drop-shadow-color: root.elevation == root.recipe.elevation ? root.recipe.shadow.color : KitThemes.shadow(root.theme, root.elevation).color;
     preferred-height: content.preferred-height; min-height: self.preferred-height;
     vertical-stretch: 0;
     content := VerticalLayout { x: 0px; y: 0px; width: root.width; height: self.preferred-height; padding: KitLayoutMetrics.space(root.theme, root.inset); spacing: KitLayoutMetrics.space(root.theme, root.gap); alignment: start; @children }
@@ -106,6 +124,7 @@ export component KitCardBody inherits VerticalLayout {
     spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0; @children }
 export component KitCardFooter inherits FlexboxLayout {
     in property <KitTheme> theme: KitThemeContext.current;
+    flex-direction: root.theme.direction == ChoiceFlow.right-to-left ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
     spacing: root.theme.spacing.unit * 2; flex-wrap: wrap; vertical-stretch: 0; @children }
 
 export component KitHero inherits Rectangle {
@@ -142,12 +161,13 @@ export component KitStat inherits VerticalLayout {
     in property <string> description;
     in property <IconGlyph> leading-icon;
     in property <Tone> tone: Tone.neutral;
+    private property <color> tone-ink: root.tone == Tone.neutral ? root.theme.text-primary : root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.success ? root.theme.success : root.tone == Tone.warning ? root.theme.warning : root.tone == Tone.danger ? root.theme.danger : root.theme.information;
     spacing: root.theme.spacing.unit; vertical-stretch: 0;
     HorizontalLayout { spacing: root.theme.spacing.unit * 2;
-        if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; glyph: root.leading-icon; ink: root.theme.accent; }
+        if root.leading-icon.stroke != "" || root.leading-icon.fill != "": KitIcon { theme: root.theme; glyph: root.leading-icon; ink: root.tone-ink; }
         Text { text: root.label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; vertical-alignment: center; }
     }
-    Text { text: root.value; color: root.tone == Tone.accent ? root.theme.accent : root.tone == Tone.danger ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
+    Text { text: root.value; color: root.tone-ink; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-bold; wrap: word-wrap; }
     if root.description != "": Text { text: root.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
 }
 export component KitChatBubble inherits HorizontalLayout {
@@ -157,10 +177,10 @@ export component KitChatBubble inherits HorizontalLayout {
     in property <string> text;
     in property <string> metadata;
     vertical-stretch: 0;
-    if root.side == ChatSide.end: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    if (root.side == ChatSide.end) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
     VerticalLayout { spacing: root.theme.spacing.unit * 1.5; horizontal-stretch: 4;
         Text { text: root.author; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
-        Rectangle {
+        bubble := Rectangle {
             background: root.side == ChatSide.end ? root.theme.accent : root.theme.surface;
             border-radius: root.theme.shape.radius-container;
             // Received messages are surfaces, not hover states. Their edge
@@ -173,7 +193,7 @@ export component KitChatBubble inherits HorizontalLayout {
         }
         if root.metadata != "": Text { text: root.metadata; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     }
-    if root.side == ChatSide.start: Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
+    if (root.side == ChatSide.start) != (root.theme.direction == ChoiceFlow.right-to-left): Rectangle { horizontal-stretch: 1; min-width: root.theme.spacing.unit * 4; }
 }
 export component KitSkeleton inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -206,7 +226,7 @@ export component KitTimeline inherits VerticalLayout {
     spacing: root.theme.spacing.unit * 4; vertical-stretch: 0;
     for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
         rail := Rectangle {
-            width: root.theme.spacing.unit * 3 * root.theme.text-scale;
+            width: max(root.theme.spacing.unit * 3 * root.theme.text-scale, entry.glyph.stroke != "" || entry.glyph.fill != "" ? KitMetrics.icon-size(root.theme, ControlSize.compact) : 0px);
             horizontal-stretch: 0;
             // Measure one rendered line, even when the entry's title wraps.
             first-line := Text {
@@ -218,9 +238,11 @@ export component KitTimeline inherits VerticalLayout {
             marker := Rectangle {
                 x: (rail.width - self.width) / 2;
                 y: max(0px, (first-line.preferred-height - self.height) / 2);
-                width: root.theme.spacing.unit * 2 * root.theme.text-scale;
+                width: entry.glyph.stroke != "" || entry.glyph.fill != "" ? KitMetrics.icon-size(root.theme, ControlSize.compact) : root.theme.spacing.unit * 2 * root.theme.text-scale;
                 height: self.width; border-radius: self.width / 2;
-                background: root.theme.accent;
+                private property <color> ink: entry.tone == Tone.neutral ? root.theme.text-secondary : entry.tone == Tone.accent ? root.theme.accent : entry.tone == Tone.success ? root.theme.success : entry.tone == Tone.warning ? root.theme.warning : entry.tone == Tone.danger ? root.theme.danger : root.theme.information;
+                background: entry.glyph.stroke != "" || entry.glyph.fill != "" ? transparent : self.ink;
+                if entry.glyph.stroke != "" || entry.glyph.fill != "": KitIcon { theme: root.theme; glyph: entry.glyph; ink: marker.ink; width: parent.width; height: parent.height; }
             }
             if index + 1 < root.entries.length: connector := Rectangle {
                 x: (rail.width - self.width) / 2;
@@ -237,17 +259,129 @@ export component KitTimeline inherits VerticalLayout {
         }
     }
 }
-export component KitSteps inherits VerticalLayout {
+component StepItem inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <StepEntry> entry;
+    in property <int> ordinal;
+    in property <int> total;
+    in property <Orientation> orientation;
+    in property <bool> interactive;
+    in property <bool> disabled;
+    in property <bool> connectors;
+    in property <length> gap;
+    in property <string> state-label;
+    callback step-requested(int, int);
+    private property <bool> horizontal: root.orientation == Orientation.horizontal;
+    private property <bool> rtl: root.theme.direction == ChoiceFlow.right-to-left;
+    private property <bool> unavailable: root.disabled || (root.interactive && !root.entry.enabled);
+    private property <int> press-token;
+    private property <int> press-generation;
+    private property <string> name: root.entry.label + (root.state-label == "" ? "" : ", " + root.state-label);
+    private property <length> marker-size: max(root.theme.geometry.step-marker-minimum, root.theme.geometry.step-marker-scaled * root.theme.text-scale);
+    preferred-width: root.horizontal ? max(root.marker-size, labels.preferred-width) : root.marker-size + root.gap + labels.preferred-width;
+    min-width: root.marker-size;
+    preferred-height: root.horizontal ? root.marker-size + root.gap + labels.preferred-height : max(root.marker-size, labels.preferred-height);
+    min-height: root.preferred-height;
+    horizontal-stretch: 1; vertical-stretch: 0;
+    changed entry => { action.cancel-press(); }
+    action := KitPressable {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        theme: root.theme; intent: ButtonIntent.quiet;
+        visible: root.interactive; tab-stop: root.interactive;
+        disabled: root.unavailable;
+        accessible-name: root.name; accessible-description: root.entry.description;
+        accessible-item-index: root.ordinal; accessible-item-count: root.total;
+        activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }
+        activated => { root.step-requested(root.press-token, root.press-generation); }
+    }
+    if root.connectors && !root.horizontal && root.ordinal + 1 < root.total: vertical-connector := Rectangle {
+        x: root.rtl ? root.width - (root.marker-size + self.width) / 2 : (root.marker-size - self.width) / 2;
+        y: root.marker-size + root.theme.spacing.unit * root.theme.text-scale;
+        width: root.theme.shape.border-width-strong;
+        height: max(0px, root.height + root.gap - root.theme.spacing.unit * root.theme.text-scale - self.y);
+        background: root.theme.border-subtle;
+    }
+    if root.connectors && root.horizontal && (root.rtl ? root.ordinal + 1 < root.total : root.ordinal > 0): leading-connector := Rectangle {
+        x: -root.gap / 2; y: (root.marker-size - self.height) / 2;
+        width: max(0px, (root.width - root.marker-size) / 2 - root.theme.spacing.unit * root.theme.text-scale + root.gap / 2);
+        height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
+    }
+    if root.connectors && root.horizontal && (root.rtl ? root.ordinal > 0 : root.ordinal + 1 < root.total): trailing-connector := Rectangle {
+        x: (root.width + root.marker-size) / 2 + root.theme.spacing.unit * root.theme.text-scale;
+        y: (root.marker-size - self.height) / 2;
+        width: max(0px, root.width + root.gap / 2 - self.x);
+        height: root.theme.shape.border-width-strong; background: root.theme.border-subtle;
+    }
+    marker := Rectangle {
+        x: root.horizontal ? (root.width - self.width) / 2 : root.rtl ? root.width - self.width : 0px; y: 0px;
+        width: root.marker-size; height: self.width; border-radius: self.width / 2;
+        background: root.entry.state == StepState.current || root.entry.state == StepState.complete ? root.theme.accent : root.entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
+        border-width: root.theme.shape.border-width;
+        border-color: root.entry.state == StepState.error ? root.theme.danger : root.entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
+        if root.entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
+        if root.entry.state == StepState.error: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.warning; ink: root.theme.danger; }
+        if root.entry.state != StepState.complete && root.entry.state != StepState.error: Text { accessible-role: none; text: root.ordinal + 1; color: root.entry.state == StepState.current ? root.theme.on-accent : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+    }
+    if !root.interactive: Rectangle { accessible-role: text; accessible-label: root.name; accessible-description: root.entry.description; }
+    labels := VerticalLayout {
+        x: root.horizontal || root.rtl ? 0px : root.marker-size + root.gap;
+        y: root.horizontal ? root.marker-size + root.gap : 0px;
+        width: root.horizontal ? root.width : max(0px, root.width - root.marker-size - root.gap);
+        height: self.preferred-height;
+        spacing: root.theme.spacing.unit;
+        Text { text: root.entry.label; accessible-role: AccessibleRole.none;
+            min-width: 0px; horizontal-stretch: 1;
+            color: root.unavailable ? root.theme.disabled-text : root.theme.text-primary;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular;
+            wrap: word-wrap; horizontal-alignment: root.horizontal ? TextHorizontalAlignment.center : TextHorizontalAlignment.start;
+        }
+        if root.entry.description != "": Text { text: root.entry.description; accessible-role: AccessibleRole.none;
+            min-width: 0px; horizontal-stretch: 1;
+            color: root.unavailable ? root.theme.disabled-text : root.theme.text-secondary;
+            font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+            wrap: word-wrap; horizontal-alignment: root.horizontal ? TextHorizontalAlignment.center : TextHorizontalAlignment.start;
+        }
+    }
+}
+export component KitSteps inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[StepEntry]> entries;
-    spacing: root.theme.spacing.unit * 3; vertical-stretch: 0;
-    for entry[index] in root.entries: HorizontalLayout { spacing: root.theme.spacing.unit * 3;
-        Rectangle { width: max(28px,22px * root.theme.text-scale); height: self.width; horizontal-stretch: 0; vertical-stretch: 0; border-radius: self.width / 2;
-            background: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.accent : entry.state == StepState.error ? root.theme.danger-subtle : root.theme.surface;
-            border-width: root.theme.shape.border-width; border-color: entry.state == StepState.error ? root.theme.danger : entry.state == StepState.pending ? root.theme.border-strong : root.theme.accent;
-            if entry.state == StepState.complete: KitIcon { theme: root.theme; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; glyph: root.theme.icons.check; ink: root.theme.on-accent; }
-            if entry.state != StepState.complete: Text { text: entry.state == StepState.error ? "!" : index + 1; color: entry.state == StepState.current || entry.state == StepState.complete ? root.theme.on-accent : entry.state == StepState.error ? root.theme.danger : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); horizontal-alignment: center; vertical-alignment: center; }
+    in property <Orientation> orientation: Orientation.vertical;
+    in property <bool> interactive;
+    in property <bool> disabled;
+    in property <bool> connectors: true;
+    in property <string> accessible-name: KitStrings.steps-label;
+    in property <string> current-label: KitStrings.step-current;
+    in property <string> complete-label: KitStrings.step-complete;
+    in property <string> error-label: KitStrings.step-error;
+    in property <string> pending-label: KitStrings.step-pending;
+    in property <length> spacing: root.theme.spacing.unit * 3;
+    callback step-activated(int, int);
+    accessible-role: groupbox; accessible-label: root.accessible-name; accessible-orientation: root.orientation;
+    preferred-width: root.orientation == Orientation.vertical ? vertical.preferred-width : horizontal.preferred-width;
+    preferred-height: root.orientation == Orientation.vertical ? vertical.preferred-height : horizontal.preferred-height;
+    height: self.preferred-height; vertical-stretch: 0;
+    pure function state-label(state: StepState) -> string { return state == StepState.current ? root.current-label : state == StepState.complete ? root.complete-label : state == StepState.error ? root.error-label : root.pending-label; }
+    vertical := VerticalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        spacing: root.spacing; alignment: start;
+        for entry[index] in (root.orientation == Orientation.vertical ? root.entries : []): StepItem {
+            theme: root.theme; entry: entry; ordinal: index; total: root.entries.length;
+            orientation: root.orientation; interactive: root.interactive; disabled: root.disabled;
+            connectors: root.connectors; gap: root.spacing; state-label: root.state-label(entry.state);
+            step-requested(token, generation) => { root.step-activated(token, generation); }
         }
-        Text { text: entry.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: entry.state == StepState.current ? root.theme.typography.weight-bold : root.theme.typography.weight-regular; wrap: word-wrap; vertical-alignment: center; accessible-label: entry.label + (entry.state == StepState.current ? ", current step" : entry.state == StepState.complete ? ", complete" : entry.state == StepState.error ? ", error" : ", pending"); }
+    }
+    horizontal := HorizontalLayout {
+        x: 0px; y: 0px; width: root.width; height: self.preferred-height;
+        spacing: root.spacing; alignment: start;
+        for entry[index] in (root.orientation == Orientation.horizontal ? root.entries : []): StepItem {
+            private property <int> source-index: root.theme.direction == ChoiceFlow.right-to-left ? root.entries.length - 1 - index : index;
+            theme: root.theme; entry: root.entries[self.source-index]; ordinal: self.source-index; total: root.entries.length;
+            orientation: root.orientation; interactive: root.interactive; disabled: root.disabled;
+            connectors: root.connectors; gap: root.spacing; state-label: root.state-label(self.entry.state);
+            step-requested(token, generation) => { root.step-activated(token, generation); }
+        }
     }
 }
