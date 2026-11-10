@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextField, KitPasswordField, KitOtpField, KitFormErrorSummary, KitInputGroupStart, KitInputGroupEnd, KitButton, KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ChoiceFlow, FieldDecoration, ValidationPresentation, SecretVisibility } from "@kit";
+export enum FieldTextScript { arabic, hebrew }
+export component FieldDirectionFixture inherits Window {
+    width: 1000px; height: 1600px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <FieldTextScript> script: FieldTextScript.arabic;
+    out property <string> word: root.script == FieldTextScript.hebrew ? "שלום" : "سلام";
+    out property <string> field-label: root.script == FieldTextScript.hebrew ? "שם" : "الاسم";
+    out property <string> help: root.script == FieldTextScript.hebrew ? "עזרה" : "مساعدة";
+    out property <string> error: root.script == FieldTextScript.hebrew ? "שגיאה" : "خطأ";
+    out property <string> second-error: root.script == FieldTextScript.hebrew ? "בדיקה" : "تحقق";
+    in-out property <ChoiceFlow> field-flow: root.theme.direction;
+    in-out property <string> decorated-text: "12345";
+    in-out property <SecretVisibility> secret: SecretVisibility.hidden;
+    in-out property <int> leading-count;
+    in-out property <int> trailing-count;
+    in-out property <int> cleared-count;
+    in-out property <int> revealed-count;
+    in-out property <int> summary-token;
+    in-out property <SecretVisibility> native-secret: SecretVisibility.hidden;
+    in-out property <int> native-revealed-count;
+    out property <bool> native-reference-focused: native-reference.has-focus;
+    out property <int> native-anchor: native-reference.anchor-position-byte-offset;
+    out property <int> native-cursor: native-reference.cursor-position-byte-offset;
+    out property <string> native-reference-text: native-reference.text;
+    public function undo-native-reference() { native-reference.undo(); }
+    public function focus-native-reference() { native-reference.focus(); }
+    public function select-native-reference(anchor: int, cursor: int) { native-reference.set-selection-offsets(anchor, cursor); }
+    out property <bool> decorated-focused: adorned.has-focus;
+    out property <int> decorated-anchor: adorned.selection-anchor;
+    out property <int> decorated-cursor: adorned.cursor-position;
+    out property <bool> leading-focused: leading-action.has-focus;
+    out property <bool> trailing-focused: trailing-action.has-focus;
+    out property <bool> default-start: value-field.text-alignment == TextHorizontalAlignment.start;
+    out property <bool> otp-left: otp.text-alignment == TextHorizontalAlignment.left;
+    out property <ChoiceFlow> inherited-flow: value-field.flow;
+    out property <ChoiceFlow> summary-flow: summary.flow;
+    out property <int> leading-order: adorned.leading-adornment-order;
+    out property <int> trailing-order: adorned.trailing-adornment-order;
+    public function focus-decorated() { adorned.take-focus(); }
+    public function select-decorated(anchor: int, cursor: int) { adorned.set-selection(anchor, cursor); }
+    public function undo-decorated() { adorned.undo(); }
+    public function blur-fields() { other.focus(); }
+    other := FocusScope { width: 0px; height: 0px; }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        adorned := KitPasswordField {
+            theme: root.theme; flow: root.field-flow;
+            text <=> root.decorated-text; secret-visibility <=> root.secret;
+            label: root.field-label; accessible-name: "Decorated edit";
+            description: root.help; error: root.error; validation: ValidationPresentation.invalid;
+            prefix: "PRE"; suffix: "POST";
+            leading-icon: root.theme.icons.search; trailing-icon: root.theme.icons.check;
+            clearable: true; busy: true; busy-label: root.help;
+            cleared => { root.cleared-count += 1; }
+            secret-visibility-changed(value) => { root.revealed-count += 1; }
+            KitInputGroupStart {
+                theme: root.theme; layout-order: adorned.leading-adornment-order;
+                leading-action := KitButton { theme: root.theme; control-size: ControlSize.compact; text: "Lead"; accessible-name: "Leading accessory"; focus-on-pointer: false; activated => { root.leading-count += 1; } }
+            }
+            KitInputGroupEnd {
+                theme: root.theme; layout-order: adorned.trailing-adornment-order;
+                trailing-action := KitButton { theme: root.theme; control-size: ControlSize.compact; text: "Trail"; accessible-name: "Trailing accessory"; focus-on-pointer: false; activated => { root.trailing-count += 1; } }
+            }
+        }
+        value-field := KitTextField { theme: root.theme; label: root.field-label; accessible-name: "RTL value"; text: root.word; }
+        placeholder-field := KitTextField { theme: root.theme; label: root.field-label; accessible-name: "RTL placeholder"; placeholder: root.word; }
+        formatted-field := KitTextField { theme: root.theme; label: root.field-label; accessible-name: "RTL formatted"; text: "12345"; display-text: root.word; }
+        otp := KitOtpField { theme: root.theme; label: "OTP"; text: "12"; decoration: FieldDecoration.underlined; }
+        summary := KitFormErrorSummary {
+            theme: root.theme; title: root.help;
+            errors: [{target: {present: true, token: 11, generation: 1, request: 1}, message: root.error}, {target: {present: true, token: 29, generation: 1, request: 2}, message: root.second-error}];
+            error-activated(target) => { root.summary-token = target.token; }
+        }
+        HorizontalLayout {
+            vertical-stretch: 0;
+            native-start := Text { text: root.word; horizontal-stretch: 1; horizontal-alignment: start; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+            native-left := Text { text: root.word; horizontal-stretch: 1; horizontal-alignment: left; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+            native-right := Text { text: root.word; horizontal-stretch: 1; horizontal-alignment: right; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+        }
+        HorizontalLayout {
+            vertical-stretch: 0;
+            native-input-start := TextInput { text: root.word; read-only: true; accessible-label: "Native Start"; horizontal-stretch: 1; horizontal-alignment: start; preferred-height: KitMetrics.control-height(root.theme, ControlSize.medium); color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+            native-input-left := TextInput { text: root.word; read-only: true; accessible-label: "Native Left"; horizontal-stretch: 1; horizontal-alignment: left; preferred-height: KitMetrics.control-height(root.theme, ControlSize.medium); color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+            native-input-right := TextInput { text: root.word; read-only: true; accessible-label: "Native Right"; horizontal-stretch: 1; horizontal-alignment: right; preferred-height: KitMetrics.control-height(root.theme, ControlSize.medium); color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+        }
+        native-label-right := Text {
+            text: root.field-label; horizontal-alignment: right;
+            color: root.theme.text-primary; font-family: root.theme.typography.family;
+            font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            font-weight: root.theme.typography.weight-medium;
+        }
+        HorizontalLayout {
+            vertical-stretch: 0;
+            native-reference := TextInput {
+                text: "12345"; accessible-label: "Native selection reference";
+                input-type: root.native-secret == SecretVisibility.hidden ? InputType.password : InputType.text;
+                horizontal-stretch: 1; preferred-height: KitMetrics.control-height(root.theme, ControlSize.medium);
+                color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+            }
+            FocusScope {
+                accessible-role: button; accessible-label: "Native first tab stop";
+                width: KitMetrics.control-height(root.theme, ControlSize.medium);
+                height: KitMetrics.control-height(root.theme, ControlSize.medium);
+                Text { text: "1"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+                key-pressed(event) => { return event.text == " " ? accept : reject; }
+            }
+            FocusScope {
+                accessible-role: button; accessible-label: "Native reveal tab stop";
+                width: KitMetrics.control-height(root.theme, ControlSize.medium);
+                height: KitMetrics.control-height(root.theme, ControlSize.medium);
+                Text { text: "2"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+                key-pressed(event) => { return event.text == " " ? accept : reject; }
+                key-released(event) => {
+                    if (event.text == " ") {
+                        root.native-secret = root.native-secret == SecretVisibility.hidden ? SecretVisibility.revealed : SecretVisibility.hidden;
+                        root.native-revealed-count += 1;
+                        native-reference.focus();
+                        return accept;
+                    }
+                    return reject;
+                }
+            }
+        }
+    }
+}

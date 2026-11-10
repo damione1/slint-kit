@@ -48,7 +48,7 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
   const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
   for (const slug of ['button-group', 'steps', 'timeline']) assert.equal(starters[slug].development, true);
-  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view', 'button-group', 'steps', 'timeline']) {
+  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view', 'button-group', 'steps', 'timeline', 'form-error-summary']) {
     for (const locale of ['en', 'fr']) {
       for (const registryExamples of [false, true]) {
         for (const version of ['0.7.2', '0.7.3']) {
@@ -60,6 +60,7 @@ test('quickstart pages distinguish development APIs from immutable registry exam
             assert.match(rendered, /crates\/kit-build/);
             assert.ok(rendered.includes(`https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/${slug}`));
             if (['text-field', 'password-field', 'search-field'].includes(slug)) assert.match(rendered, /(?:field composition and action|composition et d’actions de champ)/);
+            if (slug === 'form-error-summary') assert.match(rendered, /(?:field direction|direction des champs)/);
           } else {
             assert.match(rendered, /cargo run --locked/);
             assert.ok(rendered.includes(`/quickstart/projects/${slug}.zip`));

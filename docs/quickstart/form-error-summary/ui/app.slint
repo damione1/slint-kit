@@ -2,10 +2,11 @@
 import { KitMetrics, KitTheme, KitThemeContext, TypographyRole } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFocusTarget, KitTextField, KitThemes, FocusRequest, KitFormErrorSummary } from "@kit";
+import { KitFocusTarget, KitTextField, KitThemes, FocusRequest, KitFormErrorSummary, ChoiceFlow } from "@kit";
 export { FocusRequest }
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
+    in property <ChoiceFlow> flow: root.theme.direction;
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
     title: "KitFormErrorSummary";
@@ -19,11 +20,11 @@ export component App inherits Window {
     callback request-focus(FocusRequest);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
-        KitFormErrorSummary { theme: root.theme; errors: [{ target: { present: true, token: 42, generation: 1, request: 1 }, message: "Enter a project name." }]; error-activated(target) => { root.request-focus(target); } }
+        KitFormErrorSummary { theme: root.theme; flow: root.flow; errors: [{ target: { present: true, token: 42, generation: 1, request: 1 }, message: "Enter a project name." }]; error-activated(target) => { root.request-focus(target); } }
         KitFocusTarget {
             token: 42; generation: 1; request: root.focus-request;
             focus-requested => { editor.take-focus(); }
-            editor := KitTextField { theme: root.theme; label: "Project name"; text <=> root.draft; }
+            editor := KitTextField { theme: root.theme; flow: root.flow; label: "Project name"; text <=> root.draft; }
         }
         Text { text: "Draft: " + root.draft; color: root.theme.text-primary; }
     }

@@ -1,6 +1,6 @@
 import { KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, FieldRecipe, KitThemeContext, ChoiceFlow } from "theme.slint";
 import { KitIcon } from "icons.slint";
 import { FocusOutline } from "focus.slint";
 import { KitPressable } from "button.slint";
@@ -37,7 +37,7 @@ export component KitFieldLabel inherits Rectangle {
     VerticalLayout {
         padding-bottom: KitMetrics.label-gap(root.theme) - KitMetrics.help-gap(root.theme);
         label := Text {
-            horizontal-alignment: left;
+            horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
             text: root.text + (root.required && root.show-required-indicator ? " (" + root.required-label + ")" : "");
             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
             font-weight: root.theme.typography.weight-medium;
@@ -49,7 +49,7 @@ export component KitFieldLabel inherits Rectangle {
 }
 export component KitFieldDescription inherits Text {
     in property <KitTheme> theme: KitThemeContext.current;
-    horizontal-alignment: left;
+    horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
     color: root.theme.text-secondary;
     font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
     wrap: word-wrap;
@@ -78,7 +78,7 @@ export component KitFieldSet inherits Rectangle {
         alignment: start;
         spacing: KitMetrics.field-gap(root.theme);
         if root.legend != "": Text {
-            text: root.legend;
+            text: root.legend; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
             color: root.theme.text-primary;
             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
             font-weight: root.theme.typography.weight-semibold;
@@ -159,6 +159,7 @@ export component KitInputGroupEnd inherits HorizontalLayout {
 }
 export component KitInputGroupText inherits Text {
     in property <KitTheme> theme: KitThemeContext.current;
+    horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left;
     font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
     color: root.theme.text-secondary;
     vertical-alignment: center;
@@ -167,6 +168,7 @@ export component KitInputGroupText inherits Text {
 
 export struct FormErrorRow { target: FocusRequest, message: string }
 export component KitFormErrorSummary inherits KitFieldGroup {
+    in property <ChoiceFlow> flow: root.theme.direction;
     in property <string> title: KitStrings.form-error-title;
     in property <[FormErrorRow]> errors;
     callback error-activated(FocusRequest);
@@ -183,10 +185,10 @@ export component KitFormErrorSummary inherits KitFieldGroup {
             padding: root.theme.spacing.unit * 4;
             spacing: KitMetrics.help-gap(root.theme); alignment: start;
             HorizontalLayout { spacing: root.theme.spacing.unit * 2;
-                Rectangle { width: KitMetrics.icon-size(root.theme, ControlSize.medium); horizontal-stretch: 0;
+                Rectangle { layout-order: root.flow == ChoiceFlow.right-to-left ? 1 : 0; width: KitMetrics.icon-size(root.theme, ControlSize.medium); horizontal-stretch: 0;
                     KitIcon { theme: root.theme; glyph: root.theme.icons.warning; ink: root.theme.danger; y: (parent.height - self.height) / 2; }
                 }
-                KitFieldError { theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
+                KitFieldError { layout-order: root.flow == ChoiceFlow.right-to-left ? 0 : 1; theme: root.theme; text: root.title + " (" + root.errors.length + ")"; font-weight: root.theme.typography.weight-semibold; }
             }
             for error in root.errors: error-action := KitPressable {
                 theme: root.theme; intent: ButtonIntent.quiet; control-width: ControlWidth.fill;
@@ -201,7 +203,7 @@ export component KitFormErrorSummary inherits KitFieldGroup {
                     height: max(0px,error-action.height - 2 * error-action.padding-block);
                     text: error.message; color: root.theme.danger;
                     font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-                    wrap: word-wrap; horizontal-alignment: left; vertical-alignment: center;
+                    wrap: word-wrap; horizontal-alignment: root.theme.direction == ChoiceFlow.right-to-left ? right : left; vertical-alignment: center;
                 }
             }
         }
