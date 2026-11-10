@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Keep the dialog consumer on the workspace release and check documentation dependency versions in CI; integration dependencies now inherit workspace versions.
+
 - Present unavailable native file/directory pickers through their capability state without a duplicate field error.
 
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
@@ -20,6 +22,8 @@
 - `KitDataTable` accessible text is localizable: new `sort-ascending-label`, `sort-descending-label` and `unnamed-row-label` properties replace the hard-coded English sort suffixes and row fallback. A header with `sortable: false` is now exposed as static `text` instead of a disabled `button`, and the table's accessible label names the active row (`label: first cell`) so focus, active row and row selection stay distinct. Headless tests prove the sort, activation and selection contract across keyboard, pointer and accessible actions; they are not a screen-reader qualification. No breaking change: defaults keep the previous English names.
 
 ### Français
+
+- Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
 
