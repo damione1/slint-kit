@@ -745,7 +745,7 @@ fn table_key_hook_can_handle_a_shortcut_before_builtin_navigation() {
     let recorded = handled.clone();
     window.on_table_key_event(move |event| {
         recorded.borrow_mut().push(event.text);
-        slint::EventResult::Accept
+        crate::DataFixtureKeyResult::Accept
     });
     let navigated = Rc::new(RefCell::new(Vec::new()));
     let recorded = navigated.clone();
@@ -767,5 +767,4 @@ fn document_editor_actions_accept_localized_labels() {
     for label in ["Modifier la ligne", "Enregistrer", "Copier"] {
         assert!(labelled(&window, label).size().width > 0.);
     }
-
 }

@@ -3,6 +3,7 @@ import { KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableCo
 export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
+export enum DataFixtureKeyResult { reject, accept }
 
 export component BaseDataFixture inherits Window {
     width: 960px; height: 1000px;
@@ -37,8 +38,8 @@ export component BaseDataFixture inherits Window {
     out property <length> content-scroll: content.scroll-y;
     out property <length> line-scroll: document.scroll-y;
     callback navigate(DataFixtureCollection, NavigationStep);
-    callback table-key-event(KeyEvent) -> EventResult;
-    table-key-event(event) => { return reject; }
+    callback table-key-event(KeyEvent) -> DataFixtureKeyResult;
+    table-key-event(event) => { return DataFixtureKeyResult.reject; }
     callback table-activated(int,int);
     callback content-activated(int,int);
     callback line-selected(int,int);
@@ -63,7 +64,7 @@ export component BaseDataFixture inherits Window {
             label: "Products fixture";
             sort-ascending-label: root.table-ascending-label;
             sort-descending-label: root.table-descending-label;
-            key-event(event) => { return root.table-key-event(event); }
+            key-event(event) => { return root.table-key-event(event) == DataFixtureKeyResult.accept ? accept : reject; }
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
