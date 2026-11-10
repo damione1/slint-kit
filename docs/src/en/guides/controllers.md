@@ -76,3 +76,5 @@ Match a decimal codec’s `DecimalRules.locale` to the component’s `number-for
 Column resize ignores a click without movement. Escape or a secondary press cancels a drag preview. Double-clicking a divider emits `autosize-requested(column-token)`; calculate the domain-appropriate width and update the column policy.
 
 A table cell uses the native field editor. Click chooses the row and cell cursor, double-click or F2 opens an editable field, Enter commits, Escape cancels and Tab validates before moving. `edit-active()`, `commit-edit()` and `cancel-edit()` expose those operations to host actions. Install the kit once per window, including for plain text cells. `active-index` and `active-column` are view cursors; commit identity is always `(row-token, column-token, generation, FieldCommit)`. Read `edit-error` for a rejected codec or HTML constraint. The accessible active cell exposes its value and the localized `editable-label` / `read-only-label` hint; headless evidence does not qualify a screen reader.
+
+Localize document editing with `editor-label`, `editor-placeholder`, `save-label` and `copy-label`; their defaults remain English.

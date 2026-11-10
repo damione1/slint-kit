@@ -755,3 +755,17 @@ fn table_key_hook_can_handle_a_shortcut_before_builtin_navigation() {
     assert_eq!(handled.borrow().len(), 1);
     assert!(navigated.borrow().is_empty());
 }
+
+#[test]
+fn document_editor_actions_accept_localized_labels() {
+    let window = fixture();
+    window.set_lines(ModelRc::new(VecModel::from(lines(1))));
+    window.set_line_active(0);
+    window.set_document_editor_label("Modifier la ligne".into());
+    window.set_document_save_label("Enregistrer".into());
+    window.set_document_copy_label("Copier".into());
+    for label in ["Modifier la ligne", "Enregistrer", "Copier"] {
+        assert!(labelled(&window, label).size().width > 0.);
+    }
+
+}

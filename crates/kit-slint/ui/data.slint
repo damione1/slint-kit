@@ -732,6 +732,10 @@ export component KitVirtualTextView inherits Rectangle {
     in-out property <string> line-draft;
     in property <string> error;
     in property <string> label:"Text document";
+    in property <string> editor-label:"Edit selected line";
+    in property <string> editor-placeholder:"Select a line to edit";
+    in property <string> save-label:"Save line";
+    in property <string> copy-label:"Copy";
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
     public function take-focus(){keys.focus();}
     out property <length> scroll-y:list.content-y;
@@ -775,12 +779,12 @@ export component KitVirtualTextView inherits Rectangle {
                 spacing:KitMetrics.inline-gap(root.theme);
                 // Resolve the editor width before measuring its wrapped label
                 // and help. Its height must not feed back into flexbox width.
-                line-editor:=KitTextField {width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:"Edit selected line";placeholder:"Select a line to edit";access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
+                line-editor:=KitTextField {width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
                 HorizontalLayout {
                     width:save-line.preferred-width + copy-line.preferred-width + KitMetrics.inline-gap(root.theme);
                     spacing:KitMetrics.inline-gap(root.theme);alignment:start;vertical-stretch:0;
-                    save-line := KitButton {theme:root.theme;text:"Save line";disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
-                    copy-line := KitButton {theme:root.theme;text:"Copy";disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
+                    save-line := KitButton {theme:root.theme;text:root.save-label;disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
+                    copy-line := KitButton {theme:root.theme;text:root.copy-label;disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
                 }
             }
             if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}
