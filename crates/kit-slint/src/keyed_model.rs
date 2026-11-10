@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::ui;
-use kit_core::{ModelError, NavigationStep, Ownership, SelectController, SelectOption};
+use kit_core::{ModelError, NavigationStep};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{
     cell::RefCell,
@@ -39,11 +39,13 @@ struct Entry<K, R> {
     key: K,
     token: i32,
     row: R,
+    revision: Rc<()>,
 }
 struct State<K, R> {
     entries: Vec<Entry<K, R>>,
     generation: i32,
     active: Option<K>,
+    indices: HashMap<K, usize>,
 }
 type ModelPublisher = Rc<dyn Fn()>;
 /// A host-owned collection with stable typed keys, token fencing and a
@@ -69,6 +71,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
                 entries: vec![],
                 generation: unique(&NEXT_GENERATION),
                 active: None,
+                indices: HashMap::new(),
             })),
             rows: Rc::new(VecModel::default()),
             publish: Rc::new(RefCell::new(Vec::new())),
@@ -103,6 +106,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     /// Publish the current row to an editor through a weak window reference.
     /// Multiple views may observe a shared collection independently.
     pub fn bind_active<W: ComponentHandle + 'static>(&self, window: &W, setter: fn(&W, Option<R>)) {
+        let previous: RefCell<Option<(Option<K>, Option<Rc<()>>)>> = RefCell::new(None);
         let window = window.as_weak();
         let state = Rc::downgrade(&self.state);
         self.publish.borrow_mut().push(Rc::new(move || {
@@ -110,15 +114,31 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
                 return;
             };
             let state = state.borrow();
-            let row = state
-                .entries
-                .iter()
-                .find(|entry| state.active.as_ref() == Some(&entry.key))
-                .map(|entry| entry.row.clone());
+            let entry = state
+                .active
+                .as_ref()
+                .and_then(|key| state.indices.get(key))
+                .map(|index| &state.entries[*index]);
+            let identity = (
+                state.active.clone(),
+                entry.map(|entry| entry.revision.clone()),
+            );
+            if previous.borrow().as_ref().is_some_and(|old| {
+                old.0 == identity.0
+                    && match (&old.1, &identity.1) {
+                        (Some(old), Some(current)) => Rc::ptr_eq(old, current),
+                        (None, None) => true,
+                        (None, Some(_)) | (Some(_), None) => false,
+                    }
+            }) {
+                return;
+            }
+            *previous.borrow_mut() = Some(identity);
+            let row = entry.map(|entry| entry.row.clone());
             drop(state);
             setter(&window, row);
         }));
-        self.refresh();
+        self.publish();
     }
     /// Update only the still-active identity from the current projection.
     pub fn update_active(
@@ -174,8 +194,19 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
                     .copied()
                     .unwrap_or_else(|| unique(&NEXT_TOKEN));
                 row.stamp(token, generation);
-                Entry { key, token, row }
+                Entry {
+                    key,
+                    token,
+                    row,
+                    revision: Rc::new(()),
+                }
             })
+            .collect();
+        state.indices = state
+            .entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| (entry.key.clone(), index))
             .collect();
         if !state
             .entries
@@ -197,6 +228,9 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .map(|entry| entry.row.clone())
             .collect();
         self.rows.set_vec(rows);
+        self.publish();
+    }
+    fn publish(&self) {
         let callbacks = self.publish.borrow().clone();
         for callback in callbacks {
             callback();
@@ -205,16 +239,23 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     /// Reorder rows without changing their stable keys, selection or active key.
     /// Every reorder advances the generation, invalidating old pointer gestures.
     pub fn sort_by(&self, mut compare: impl FnMut(&K, &K) -> std::cmp::Ordering) {
-        let mut entries = self
-            .state
-            .borrow()
+        let mut state = self.state.borrow_mut();
+        state
+            .entries
+            .sort_by(|left, right| compare(&left.key, &right.key));
+        state.generation = unique(&NEXT_GENERATION);
+        let generation = state.generation;
+        for entry in &mut state.entries {
+            entry.row.stamp(entry.token, generation);
+        }
+        state.indices = state
             .entries
             .iter()
-            .map(|entry| (entry.key.clone(), entry.row.clone()))
-            .collect::<Vec<_>>();
-        entries.sort_by(|(left, _), (right, _)| compare(left, right));
-        self.replace(entries)
-            .expect("sorting preserves unique keys");
+            .enumerate()
+            .map(|(index, entry)| (entry.key.clone(), index))
+            .collect();
+        drop(state);
+        self.refresh();
     }
     /// A sortable header action that alternates ascending/descending order.
     /// The application supplies its domain comparator and receives the display
@@ -261,48 +302,94 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         }
     }
     pub fn insert(&self, key: K, row: R) -> Result<(), ModelError> {
-        let mut entries = self
-            .state
-            .borrow()
+        let mut state = self.state.borrow_mut();
+        if state.indices.contains_key(&key) {
+            return Err(ModelError::DuplicateKey);
+        }
+        state.entries.push(Entry {
+            key,
+            token: unique(&NEXT_TOKEN),
+            row,
+            revision: Rc::new(()),
+        });
+        drop(state);
+        self.membership_changed();
+        Ok(())
+    }
+    fn membership_changed(&self) {
+        let mut state = self.state.borrow_mut();
+        state.generation = unique(&NEXT_GENERATION);
+        let generation = state.generation;
+        for entry in &mut state.entries {
+            entry.row.stamp(entry.token, generation);
+        }
+        state.indices = state
             .entries
             .iter()
-            .map(|entry| (entry.key.clone(), entry.row.clone()))
-            .collect::<Vec<_>>();
-        entries.push((key, row));
-        self.replace(entries)
+            .enumerate()
+            .map(|(index, entry)| (entry.key.clone(), index))
+            .collect();
+        drop(state);
+        self.refresh();
+    }
+    /// Number of projected records.
+    pub fn len(&self) -> usize {
+        self.state.borrow().entries.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    /// Read a domain record, including a disabled one.
+    pub fn get(&self, key: &K) -> Option<R> {
+        let state = self.state.borrow();
+        state
+            .indices
+            .get(key)
+            .map(|index| state.entries[*index].row.clone())
+    }
+    /// Update a domain record without resetting delegates or invalidating other gestures.
+    /// Unlike UI intents, domain access may re-enable a disabled record.
+    pub fn update_by_key(&self, key: &K, update: impl FnOnce(&mut R)) -> bool {
+        let mut state = self.state.borrow_mut();
+        let Some(index) = state.indices.get(key).copied() else {
+            return false;
+        };
+        let generation = state.generation;
+        let entry = &mut state.entries[index];
+        update(&mut entry.row);
+        entry.row.stamp(entry.token, generation);
+        entry.revision = Rc::new(());
+        let row = entry.row.clone();
+        if !entry.row.enabled() && state.active.as_ref() == Some(key) {
+            state.active = None;
+        }
+        drop(state);
+        self.rows.set_row_data(index, row);
+        self.publish();
+        true
     }
     pub fn update(&self, token: i32, generation: i32, update: impl FnOnce(&mut R)) -> Option<K> {
         let key = self.accept(token, generation)?;
-        let mut entries = self
-            .state
-            .borrow()
-            .entries
-            .iter()
-            .map(|entry| (entry.key.clone(), entry.row.clone()))
-            .collect::<Vec<_>>();
-        update(
-            &mut entries
-                .iter_mut()
-                .find(|(candidate, _)| candidate == &key)
-                .expect("accepted key exists")
-                .1,
-        );
-        self.replace(entries)
-            .expect("updating a row preserves unique keys");
+        self.update_by_key(&key, update);
         Some(key)
+    }
+    /// Remove a domain record regardless of its disabled state.
+    pub fn remove_by_key(&self, key: &K) -> bool {
+        let mut state = self.state.borrow_mut();
+        let Some(index) = state.indices.get(key).copied() else {
+            return false;
+        };
+        state.entries.remove(index);
+        if state.active.as_ref() == Some(key) {
+            state.active = None;
+        }
+        drop(state);
+        self.membership_changed();
+        true
     }
     pub fn remove(&self, token: i32) -> Option<K> {
         let key = self.key(token)?;
-        let entries = self
-            .state
-            .borrow()
-            .entries
-            .iter()
-            .filter(|entry| entry.key != key)
-            .map(|entry| (entry.key.clone(), entry.row.clone()))
-            .collect::<Vec<_>>();
-        self.replace(entries)
-            .expect("removal preserves unique keys");
+        self.remove_by_key(&key);
         Some(key)
     }
     pub fn remove_fenced(&self, token: i32, generation: i32) -> Option<K> {
@@ -310,35 +397,67 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         self.remove(token)
     }
     pub fn navigate(&self, step: NavigationStep) {
+        self.navigate_page(step, 10);
+    }
+    /// Navigate by the view's current visible row count for page keys.
+    pub fn navigate_page(&self, step: NavigationStep, page_rows: usize) {
         let mut state = self.state.borrow_mut();
-        let options = state
-            .entries
-            .iter()
-            .map(|entry| SelectOption {
-                key: entry.key.clone(),
-                label: entry.row.label(),
-                description: String::new(),
-                disabled: !entry.row.enabled(),
-            })
-            .collect();
-        let mut controller = SelectController::new(options, state.active.clone(), Ownership::Local);
-        controller.open();
-        let step = if state.active.is_none() {
-            match step {
-                NavigationStep::Next => NavigationStep::First,
-                NavigationStep::Previous => NavigationStep::Last,
-                NavigationStep::First
-                | NavigationStep::Last
-                | NavigationStep::PageNext
-                | NavigationStep::PagePrevious => step,
+        let current = state
+            .active
+            .as_ref()
+            .and_then(|key| state.indices.get(key))
+            .copied();
+        let first = state.entries.iter().position(|entry| entry.row.enabled());
+        let last = state.entries.iter().rposition(|entry| entry.row.enabled());
+        let target = match step {
+            NavigationStep::First => first,
+            NavigationStep::Last => last,
+            NavigationStep::Next => current
+                .and_then(|index| {
+                    state
+                        .entries
+                        .iter()
+                        .enumerate()
+                        .skip(index + 1)
+                        .find(|(_, entry)| entry.row.enabled())
+                        .map(|(index, _)| index)
+                })
+                .or(current)
+                .or(first),
+            NavigationStep::Previous => current
+                .and_then(|index| {
+                    state.entries[..index]
+                        .iter()
+                        .rposition(|entry| entry.row.enabled())
+                })
+                .or(current)
+                .or(last),
+            NavigationStep::PageNext => {
+                let start = current.unwrap_or(0).saturating_add(page_rows.max(1));
+                state
+                    .entries
+                    .iter()
+                    .enumerate()
+                    .skip(start)
+                    .find(|(_, entry)| entry.row.enabled())
+                    .map(|(index, _)| index)
+                    .or(last)
             }
-        } else {
-            step
+            NavigationStep::PagePrevious => {
+                let start = current
+                    .unwrap_or(state.entries.len())
+                    .saturating_sub(page_rows.max(1));
+                state
+                    .entries
+                    .iter()
+                    .take(start + 1)
+                    .rposition(|entry| entry.row.enabled())
+                    .or(first)
+            }
         };
-        controller.navigate(step, 10);
-        state.active = controller.state().active.clone();
+        state.active = target.map(|index| state.entries[index].key.clone());
         drop(state);
-        self.refresh();
+        self.publish();
     }
     pub fn navigation(&self) -> impl Fn(ui::NavigationStep) + 'static {
         let model = self.clone();
@@ -384,11 +503,12 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
         let key = self.accept(token, generation)?;
         let mut state = self.state.borrow_mut();
         state.active = Some(key.clone());
-        for entry in &mut state.entries {
+        for (index, entry) in state.entries.iter_mut().enumerate() {
             entry.row.select(entry.key == key);
+            self.rows.set_row_data(index, entry.row.clone());
         }
         drop(state);
-        self.refresh();
+        self.publish();
         Some(key)
     }
     pub fn activation(&self, handler: impl Fn(K) + 'static) -> impl Fn(i32, i32) + 'static {

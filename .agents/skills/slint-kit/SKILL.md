@@ -150,3 +150,5 @@ For multi-selection, derive initial refs with `Choices::selections(&[K])`. For a
 For custom selection surfaces, `KitSelectKeyboard.move-active(NavigationStep)` and `type-ahead(string)` reuse its local session. Activate with `choose-option(token, generation)` and consume `chosen(OptionRow)` through `Choices::accept`; keep interaction admission on the calling surface.
 
 Keep `FilePickerBinding::set_mode` and `set_access` synchronized with the Slint picker before forwarding native drops. Defaults are single/editable; single drops replace, multiple drops append unique locations, and read-only/disabled bindings ignore window-wide winit drops.
+
+`KeyedModel::bind_active` publishes only when the active key or its record revision changes; updates to other records and sorting preserve drafts. Explicit `replace` supplies fresh records and republishes the active record.

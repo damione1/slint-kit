@@ -118,6 +118,9 @@ fn active_row_bindings_share_updates_without_accepting_edits_to_a_different_line
     );
     assert_eq!(first.get_email_text(), "edited");
     assert_eq!(second.get_email_text(), "edited");
+    model
+        .replace([(Record(1), row("edited")), (Record(2), row("second"))])
+        .unwrap();
     assert_eq!(
         model.update_active(token, generation, |row| row.title = "stale".into()),
         None
@@ -276,4 +279,54 @@ fn table_rows_follow_their_key_through_keyboard_selection_sorting_and_filtering(
         None,
         "old generation stays rejected"
     );
+}
+
+#[test]
+fn active_binding_preserves_drafts_when_other_rows_or_only_order_change() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = crate::AutonomousFixture::new().unwrap();
+    let model = KeyedModel::new([(Record(1), row("first")), (Record(2), row("second"))]).unwrap();
+    model.bind_active(&window, |window, row| {
+        window.set_email_text(row.map_or_else(Default::default, |row| row.title))
+    });
+    model.select(model.model().row_data(0).unwrap().token, model.generation());
+    window.set_email_text("unsaved draft".into());
+    model.insert(Record(3), row("third")).unwrap();
+    assert_eq!(window.get_email_text(), "unsaved draft", "insertion");
+    let second = model.model().row_data(1).unwrap();
+    model.update(second.token, model.generation(), |row| {
+        row.title = "updated second".into()
+    });
+    assert_eq!(window.get_email_text(), "unsaved draft", "other row update");
+    model.sort_by(|left, right| right.0.cmp(&left.0));
+    assert_eq!(window.get_email_text(), "unsaved draft");
+    let first = model.active_row().unwrap();
+    model.update(first.token, model.generation(), |row| {
+        row.title = "updated first".into()
+    });
+    assert_eq!(window.get_email_text(), "updated first");
+    model.remove(first.token);
+    assert_eq!(window.get_email_text(), "");
+}
+
+#[test]
+fn domain_updates_preserve_generation_and_can_reenable_or_remove_disabled_records() {
+    let mut disabled = row("disabled");
+    disabled.disabled = true;
+    let model = KeyedModel::new([(Record(1), disabled), (Record(2), row("live"))]).unwrap();
+    let token = model.model().row_data(0).unwrap().token;
+    let generation = model.generation();
+    assert_eq!(model.accept(token, generation), None);
+    assert!(model.update_by_key(&Record(1), |row| {
+        row.disabled = false;
+        row.title = "enabled".into();
+    }));
+    assert_eq!(model.generation(), generation);
+    assert_eq!(model.accept(token, generation), Some(Record(1)));
+    assert_eq!(model.get(&Record(1)).unwrap().title, "enabled");
+    assert_eq!(model.len(), 2);
+    model.update_by_key(&Record(1), |row| row.disabled = true);
+    assert!(model.remove_by_key(&Record(1)));
+    assert_eq!(model.get(&Record(1)), None);
+    assert!(!model.is_empty());
 }

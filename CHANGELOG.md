@@ -26,6 +26,8 @@
 - Keep keyboard focus on the destination control when a table cell commits on blur; return focus to the table only for an editor that still owns it.
 
 
+- Preserve active editor drafts when other collection rows change or unchanged rows reorder. Add key-based record access and updates that retain the generation and notify one row; navigation no longer reconstructs the model. Explicit replacement republishes the active record.
+
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
 
 - Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented ascending/descending table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
@@ -57,6 +59,8 @@
 
 - Conserve le focus sur le contrôle de destination lorsqu’une cellule est confirmée à la perte de focus ; rend le focus au tableau uniquement si l’éditeur le possède encore.
 
+
+- Conserve le brouillon actif lorsque d’autres lignes changent ou sont triées. Ajoute un accès métier par clé et des mises à jour conservant la génération et notifiant une ligne ; la navigation ne reconstruit plus le modèle. Un remplacement explicite republie la ligne active.
 
 - Ajoute un formulaire de contact français/anglais avec vérification Turnstile côté serveur, validation bornée, limitation des tentatives et envoi privé par le Worker existant de la documentation. Conserve le texte en cas d’échec et relie le contact depuis l’accueil et les guides.
 
