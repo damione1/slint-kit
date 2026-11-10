@@ -18,6 +18,7 @@ export component SelectionServiceFixture inherits Window {
     out property <SelectState> combo-state: combo.state;
     out property <string> combo-selected-label: combo.selected-label;
     out property <bool> combo-focused: combo.has-focus;
+    in-out property <int> combo-open-requests;
     out property <bool> first-focused: first.has-focus;
     in-out property <string> combo-text <=> combo.text;
     in-out property <string> combo-query <=> combo.query;
@@ -64,6 +65,7 @@ export component SelectionServiceFixture inherits Window {
             min-query-length: root.combo-min-query-length; query-debounce: root.combo-query-debounce;
             required: true; access: root.access;
             chosen(row) => { root.combo-chosen(row); }
+            open-requested => { root.combo-open-requests += 1; }
             query-edited(text) => { root.combo-query-edited(text); }
             custom-chosen(text) => { root.combo-custom-chosen(text); }
             cleared => { root.combo-cleared(); }

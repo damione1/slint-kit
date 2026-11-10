@@ -488,3 +488,32 @@ fn falling_below_the_query_threshold_closes_suggestions_without_replacing_the_na
     assert!(!window.get_combo_state().open);
     assert!(window.get_combo_focused());
 }
+
+#[test]
+fn exposed_combobox_expand_action_is_idempotent_and_respects_access_guards() {
+    let (window, _choices) = fixture();
+    let combo = ElementQuery::from_root(&window)
+        .match_inherits("KitCombobox")
+        .find_first()
+        .unwrap();
+    assert_eq!(combo.accessible_expandable(), Some(true));
+    assert!(!window.get_combo_state().open);
+    combo.invoke_accessible_expand_action();
+    assert!(window.get_combo_state().open);
+    assert_eq!(window.get_combo_open_requests(), 1);
+    combo.invoke_accessible_expand_action();
+    assert!(window.get_combo_state().open);
+    assert_eq!(window.get_combo_open_requests(), 1);
+    key(&window, Key::Escape);
+    assert!(!window.get_combo_state().open);
+    for access in [
+        slint_kit::ui::FieldAccess::ReadOnly,
+        slint_kit::ui::FieldAccess::Disabled,
+    ] {
+        window.set_access(access);
+        assert_eq!(combo.accessible_expandable(), Some(false));
+        combo.invoke_accessible_expand_action();
+        assert!(!window.get_combo_state().open);
+        assert_eq!(window.get_combo_open_requests(), 1);
+    }
+}
