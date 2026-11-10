@@ -572,6 +572,12 @@ fn focus_loss_commits_a_valid_draft_once_and_drops_an_invalid_one() {
     );
     assert_eq!(commits.borrow()[0].3.value.text, "7");
     assert!(editors(&window).is_empty());
+    text(&window, "kept focus");
+    assert_eq!(
+        window.get_pasted(),
+        "kept focus",
+        "blur commits must preserve the destination focus"
+    );
 
     window.invoke_focus_table();
     open(&window, 1);

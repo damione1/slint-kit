@@ -230,7 +230,8 @@ component TableCellView inherits Rectangle {
     // The draft of the session, kept by the table so a cell that the
     // viewport recreates shows the same text.
     in-out property <string> draft;
-    callback committed(FieldCommit);
+    callback committed(FieldCommit, bool);
+    callback editor-focus-changed(bool);
     callback cancel-requested();
     callback step-requested(ColumnStep);
     callback blurred();
@@ -283,10 +284,10 @@ component TableCellView inherits Rectangle {
             // error from the table instead.
             show-validation-message: false;
             init => { self.take-focus(); self.select-all(); }
-            committed(commit) => { root.committed(commit); }
+            committed(commit) => { root.committed(commit, self.has-focus); }
             edited(text) => { root.error-changed(""); }
             invalid => { root.error-changed(self.field-state.error != "" ? self.field-state.error : self.validation-message); }
-            focus-observed(focused) => { if (!focused) { root.blurred(); } }
+            focus-observed(focused) => { root.editor-focus-changed(focused); if (!focused) { root.blurred(); } }
         }
     }
     if root.focus-indicated: FocusOutline {
@@ -355,6 +356,7 @@ export component KitDataTable inherits Rectangle {
     // viewport moved. A new generation ends it: the projection changed and
     // the kit cannot know what the row now means.
     private property <bool> edit-open;
+    private property <bool> edit-focused;
     private property <int> edit-row-token;
     private property <int> edit-column-token;
     private property <int> edit-generation;
@@ -380,6 +382,7 @@ export component KitDataTable inherits Rectangle {
     // the editor had it, and stays away when focus already went elsewhere.
     function end-edit(refocus: bool) {
         root.edit-open = false;
+        root.edit-focused = false;
         root.edit-error = "";
         if (refocus) { keys.focus(); }
     }
@@ -395,7 +398,7 @@ export component KitDataTable inherits Rectangle {
         if (step == ColumnStep.previous) { root.active-column = max(-1, min(root.active-column, root.columns.length) - 1); }
         if (step == ColumnStep.next) { root.active-column = min(root.columns.length - 1, root.active-column + 1); }
     }
-    changed generation => { if (root.edit-open) { root.end-edit(true); } }
+    changed generation => { if (root.edit-open) { root.end-edit(root.edit-focused); } }
     changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false); } }
     private property <ButtonRecipe> row-recipe: KitThemes.table-row-recipe(root.theme, root.control-size);
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
@@ -578,9 +581,10 @@ export component KitDataTable inherits Rectangle {
                     editing: root.edits-cell(row, root.columns[column-index]);
                     editor-name: root.columns[column-index].label + ", " + root.row-name(row);
                     draft <=> root.edit-draft;
-                    committed(commit) => {
+                    editor-focus-changed(focused) => { root.edit-focused = focused; }
+                    committed(commit, focused) => {
                         if (root.edits-cell(row, root.columns[column-index])) {
-                            root.end-edit(true);
+                            root.end-edit(focused);
                             root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
                         }
                     }

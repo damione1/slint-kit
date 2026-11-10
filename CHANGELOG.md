@@ -13,6 +13,9 @@
 - Commit the completed native text edit for `on-change-when-valid`; ignore navigation keys and include search clear actions.
 - Engage la saisie native terminée pour `on-change-when-valid`, ignore les touches de navigation et inclut l’effacement de recherche.
 
+- Keep keyboard focus on the destination control when a table cell commits on blur; return focus to the table only for an editor that still owns it.
+
+
 - Add an English/French contact form with server-side Turnstile verification, bounded input validation, rate limiting and private email delivery through the existing documentation Worker. Preserve drafts when sending fails and link contact from the homepage and guides.
 
 - Replace homepage screenshots with lightweight, theme-aware HTML illustrations and demonstrate the documented ascending/descending table sort while retaining selection by key. Respect reduced motion, pause offscreen playback and allow manual control. Keep the open-source section dark in dark mode and preserve displayed/copied snippet indentation. No component API changes.
@@ -37,6 +40,9 @@
 - Aligne l’exemple de dialogue sur la version du workspace et vérifie les versions documentées en CI ; l’intégration hérite désormais des dépendances du workspace.
 
 - Présente les sélecteurs natifs indisponibles par leur état de capacité, sans erreur de champ en double.
+
+- Conserve le focus sur le contrôle de destination lorsqu’une cellule est confirmée à la perte de focus ; rend le focus au tableau uniquement si l’éditeur le possède encore.
+
 
 - Ajoute un formulaire de contact français/anglais avec vérification Turnstile côté serveur, validation bornée, limitation des tentatives et envoi privé par le Worker existant de la documentation. Conserve le texte en cas d’échec et relie le contact depuis l’accueil et les guides.
 
