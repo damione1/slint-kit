@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitKeyResult } from "keyboard.slint";
+import { KitSelection } from "selection-service.slint";
+import { KitSelectSurface, KitOption } from "select.slint";
+import { ListView } from "scroll.slint";
+import { OptionRow, CloseReason } from "contracts.slint";
+import { KitTheme, KitThemeContext, ControlSize, KitMetrics, KitThemes, OptionRecipe } from "theme.slint";
+import { KitStrings } from "strings.slint";
+
+export component TextEditMenu inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <[OptionRow]> options;
+    in property <bool> opened;
+    callback chosen(OptionRow);
+    callback dismiss(CloseReason);
+    callback tab-navigation(bool) -> KitKeyResult;
+    accessible-role: AccessibleRole.list;
+    accessible-label: KitStrings.text-menu-label;
+    private property <OptionRecipe> recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    private property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
+    function synchronize() {
+        if (root.opened) { selection.open(); surface.take-focus(); }
+        else { selection.dismiss(CloseReason.host-closed); }
+    }
+    init => { root.synchronize(); }
+    changed opened => { root.synchronize(); }
+    selection := KitSelection {
+        options: root.options;
+        chosen(row) => { root.chosen(row); }
+    }
+    surface := KitSelectSurface {
+        theme: root.theme; state: selection.state;
+        searchable: false; row-height: root.row-height;
+        viewport-height: list.visible-height; scroll-y <=> list.content-y;
+        navigate(step) => { selection.navigate(step); }
+        activate(token, generation) => { selection.activate(token, generation); }
+        dismiss(reason) => { root.dismiss(reason); }
+        typeahead(text) => { selection.typeahead(text); }
+        tab-navigation(reverse) => { return root.tab-navigation(reverse); }
+        list := ListView {
+            theme: root.theme;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            for row in selection.rows: entry := KitOption {
+                theme: root.theme; control-size: root.control-size;
+                focus-on-pointer: false;
+                option-data: row;
+                selected: false; accessible-item-selectable: false;
+                active: selection.state.active.present && selection.state.active.token == row.token;
+                focus-indicated: self.active;
+                height: root.row-height;
+                activate(token, generation) => { selection.activate(token, generation); }
+                Text {
+                    x: 0px; y: 0px;
+                    width: max(0px, entry.width - 2 * entry.padding-inline);
+                    height: max(0px, entry.height - 2 * entry.padding-block);
+                    text: row.label;
+                    color: row.disabled ? root.recipe.disabled-foreground : root.recipe.foreground;
+                    font-family: root.theme.typography.family;
+                    font-size: root.recipe.font-size;
+                    font-weight: root.theme.typography.weight-regular;
+                    vertical-alignment: center;
+                    horizontal-alignment: start;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+}

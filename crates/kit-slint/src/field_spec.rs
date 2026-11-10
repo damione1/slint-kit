@@ -398,6 +398,7 @@ where
     let display_codecs = codecs.clone();
     let engine = HtmlValidationEngine::default();
     let service = window.global::<ui::KitFieldService>();
+    crate::text_edit::install(window);
     let edit_window = window.as_weak();
     service.on_edit_selection(move |text| {
         if let Some(window) = edit_window.upgrade() {

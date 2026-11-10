@@ -18,6 +18,9 @@
 
 - Preserve selected, striped and text presentation when table interaction is blocked; unavailable records retain their own disabled appearance.
 
+- Replace stock text editing menus with themed kit popups compatible with renderer-free builds, preserving native commands and hidden-password/paste guards. **Behavior change:** field focus includes its owned editing menu; document Slint outside-click, accessibility-role and touch limits.
+- Remplace les menus d’édition standard par des popups thémés compatibles sans renderer imposé, avec commandes natives et gardes de mot de passe masqué/collage. **Changement de comportement :** le focus du champ inclut son menu ; documente les limites Slint de clic extérieur, rôles accessibles et tactile.
+
 - Initialize selection controllers created after window installation, including conditional controls and popup content, without requiring an options mutation.
 - Initialise les contrôleurs de sélection créés après installation de la fenêtre, y compris les contrôles conditionnels et popups, sans exiger de mutation des options.
 

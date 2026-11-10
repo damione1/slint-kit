@@ -1,16 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitKeyResult, KitTextField, KitTextArea, CommitPolicy, ValidationTiming, FieldCommit, FieldAccess, TextPurpose, FieldState, TextLineMode, TextEscapeBehavior, KitTheme, KitThemes } from "@kit";
+import { KitKeyResult, KitTextField, KitTextArea, CommitPolicy, ValidationTiming, FieldCommit, FieldAccess, TextPurpose, FieldState, TextLineMode, TextEscapeBehavior, TextContextMenu, KitTheme, KitThemes } from "@kit";
 export component TextFieldBehaviorFixture inherits Window {
     width: 600px; height: 400px;
     in-out property <string> text;
     in property <bool> multiline;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <TextPurpose> purpose: TextPurpose.plain;
+    in property <bool> decimal-input;
+    in property <TextContextMenu> context-menu: TextContextMenu.standard;
+    in-out property <string> clipboard-text;
+    background: root.theme.canvas;
     in property <TextEscapeBehavior> escape-behavior: TextEscapeBehavior.bubble;
     in property <bool> intercept-key;
     callback cancelled();
     callback key-observed();
     callback handle-key(KeyEvent) -> KitKeyResult;
     in-out property <KitTheme> theme: KitThemes.light;
-    background: root.theme.canvas;
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <CommitPolicy> policy: CommitPolicy.on-change-when-valid;
     in property <bool> required;
@@ -28,6 +33,7 @@ export component TextFieldBehaviorFixture inherits Window {
     callback invalid();
     public function focus-field() { field.take-focus(); }
     public function blur-field() { other.focus(); }
+    public function release-field() { field.blur(); }
     public function report() -> bool { return field.report-validity(); }
     public function focus-invalid() -> bool { return field.focus-if-invalid(); }
     out property <int> cursor: field.cursor-position;
@@ -38,12 +44,23 @@ export component TextFieldBehaviorFixture inherits Window {
     public function undo() { field.undo(); }
     public function redo() { field.redo(); }
     public function select-all() { field.select-all(); }
-    other := FocusScope { width: 0px; height: 0px; }
+    public function paste() { field.paste(); }
+    public function copy() { field.copy-selection(); }
+    public function cut() { field.cut-selection(); }
+    public function prepare-paste() { clipboard.text = root.clipboard-text; clipboard.select-all(); clipboard.copy(); }
+    public function read-clipboard() -> string { clipboard.text = ""; clipboard.paste(); return clipboard.text; }
+    clipboard := TextInput { visible: false; enabled: false; }
+    other := FocusScope {
+        x: 24px; y: 340px; width: 120px; height: 36px;
+        focus-on-tab-navigation: true; accessible-role: button; accessible-label: "Other";
+        TouchArea { clicked => { other.focus(); } }
+    }
     VerticalLayout {
         padding: 24px; alignment: start;
         field := KitTextField {
             theme: root.theme; line-mode: root.multiline ? TextLineMode.multiline : TextLineMode.single-line;
-            escape-behavior: root.escape-behavior;
+            escape-behavior: root.escape-behavior; access: root.access; purpose: root.purpose;
+            input-type: root.decimal-input ? InputType.decimal : InputType.text; context-menu: root.context-menu;
             key-pressed(event) => { root.key-observed(); return root.intercept-key ? KitKeyResult.accept : root.handle-key(event); }
             cancelled => { root.cancelled(); }
             placeholder: root.placeholder; description: root.description;

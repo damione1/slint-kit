@@ -100,3 +100,6 @@ mod numeric_service;
 
 #[cfg(feature = "adapter")]
 mod color_service;
+
+#[cfg(feature = "adapter")]
+mod text_edit;

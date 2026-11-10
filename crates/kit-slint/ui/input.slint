@@ -1,9 +1,12 @@
+import { TextEditCommand, TextMenuGeometry } from "text-edit.slint";
+import { TextEditMenu } from "text-edit-menu.slint";
+import { OptionRow } from "contracts.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { FieldState, FieldValue, FieldCommit, KitFieldService } from "field-service.slint";
 import { FieldAction, CommitPolicy, Ownership, StepDirection } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, TypographyRole, OptionRecipe, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe } from "theme.slint";
 import { KitScrollBar } from "scroll.slint";
 import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup, FieldDecoration } from "field.slint";
@@ -166,7 +169,8 @@ export component KitTextField inherits KitField {
     in property <string> clear-label: root.purpose == TextPurpose.search ? KitStrings.clear-search-label : KitStrings.clear-label;
     in property <string> character-count-label: root.character-count == 1 ? KitStrings.character-singular : KitStrings.character-plural;
     in property <string> checking-label: KitStrings.checking-label;
-    out property <bool> has-focus: editor.has-focus;
+    private property <bool> menu-opened: text-menu.is-open;
+    out property <bool> has-focus: editor.has-focus || root.menu-opened;
     in property <TextEscapeBehavior> escape-behavior: root.purpose == TextPurpose.search ? TextEscapeBehavior.clear : TextEscapeBehavior.bubble;
     in property <bool> submit-on-modified-enter;
     callback key-pressed(KeyEvent) -> KitKeyResult;
@@ -176,15 +180,15 @@ export component KitTextField inherits KitField {
     callback commit-requested(string);
     callback cancelled();
     callback focus-observed(bool);
-    public function take-focus() { if (root.access != FieldAccess.disabled) { editor.focus(); } }
+    public function take-focus() { if (root.access != FieldAccess.disabled) { if (root.menu-opened) { text-menu.close(); } editor.focus(); } }
     public function select-all() { editor.select-all(); }
-    public function copy-selection() { editor.copy(); }
-    public function cut-selection() { if (root.access == FieldAccess.editable) { editor.cut(); } }
-    public function paste() { if (root.access == FieldAccess.editable) { editor.paste(); } }
+    public function copy-selection() { if (!root.hidden-password) { editor.copy(); } }
+    public function cut-selection() { if (root.access == FieldAccess.editable && !root.hidden-password) { editor.cut(); } }
+    public function paste() { if (root.access == FieldAccess.editable && root.paste-allowed()) { editor.paste(); } }
     public function undo() { if (root.access == FieldAccess.editable) { editor.undo(); } }
     public function redo() { if (root.access == FieldAccess.editable) { editor.redo(); } }
     public function clear() { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); editor.select-all(); KitFieldService.edit-selection(""); } }
-    public function blur() { editor.clear-focus(); }
+    public function blur() { text-menu.close(); editor.clear-focus(); }
     public function set-selection(anchor: int, cursor: int) { editor.set-selection-offsets(anchor, cursor); }
     public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); KitFieldService.edit-selection(text); } }
     out property <int> cursor-position: editor.cursor-position-byte-offset;
@@ -196,6 +200,47 @@ export component KitTextField inherits KitField {
     in property <string> copy-label: KitStrings.copy-label;
     in property <string> paste-label: KitStrings.paste-label;
     in property <string> select-all-label: KitStrings.select-all-label;
+    private property <bool> hidden-password: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden);
+    private property <Point> menu-caret;
+    private property <[OptionRow]> menu-options;
+    private property <TextMenuGeometry> menu-geometry;
+    private property <OptionRecipe> menu-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    private property <length> menu-width: Math.max(undo-measure.preferred-width, redo-measure.preferred-width, cut-measure.preferred-width, copy-measure.preferred-width, paste-measure.preferred-width, select-all-measure.preferred-width) + 2 * root.menu-recipe.padding-inline + 2 * KitMetrics.popover-inset(root.theme) + KitThemes.scroll-bar-recipe(root.theme).thickness;
+    private property <length> menu-height: root.menu-options.length * KitMetrics.row-height(root.theme, root.control-size) + 2 * KitMetrics.popover-inset(root.theme);
+    changed access => { if (root.menu-opened) { root.close-text-menu(); } }
+    changed context-menu => { if (root.context-menu == TextContextMenu.disabled && root.menu-opened) { root.close-text-menu(); } }
+    changed hidden-password => { if (root.menu-opened) { root.close-text-menu(); } }
+    function paste-allowed() -> bool {
+        clipboard-probe.text = ""; clipboard-probe.paste();
+        if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !KitFormValidation.phone-paste(clipboard-probe.text)) { return false; }
+        if (root.input-type == InputType.decimal) {
+            if (root.non-finite-number(clipboard-probe.text)) { return false; }
+            if (KitFormValidation.ready && !KitFormValidation.numeric-insertion(clipboard-probe.text)) { return false; }
+            if (!KitFormValidation.ready && clipboard-probe.text != "" && clipboard-probe.text != "-" && clipboard-probe.text != "." && clipboard-probe.text != "," && !clipboard-probe.text.is-float()) { return false; }
+        }
+        return true;
+    }
+    function open-text-menu(anchor: Point) {
+        if (root.context-menu != TextContextMenu.standard || root.access == FieldAccess.disabled || !KitFieldService.ready || editor.preedit-text != "") { return; }
+        root.menu-options = KitFieldService.text-menu-options(
+            {undo: root.undo-label, redo: root.redo-label, cut: root.cut-label, copy: root.copy-label, paste: root.paste-label, select-all: root.select-all-label},
+            {editable: root.access == FieldAccess.editable, selection: root.cursor-position != root.selection-anchor, hidden-password: root.hidden-password, has-text: root.text != ""});
+        root.menu-geometry = KitFieldService.text-menu-placement({origin-x: context-area.absolute-position.x, origin-y: context-area.absolute-position.y, anchor-x: anchor.x, anchor-y: anchor.y, width: root.menu-width, height: root.menu-height});
+        if (root.menu-geometry.valid) { text-menu.show(); }
+    }
+    function close-text-menu() { text-menu.close(); root.take-focus(); }
+    function run-text-command(row: OptionRow) {
+        if (root.access == FieldAccess.disabled || root.context-menu != TextContextMenu.standard) { text-menu.close(); return; }
+        let result = KitFieldService.text-menu-command(row);
+        if (!result.valid) { return; }
+        root.close-text-menu();
+        if (result.command == TextEditCommand.undo) { root.undo(); }
+        else if (result.command == TextEditCommand.redo) { root.redo(); }
+        else if (result.command == TextEditCommand.cut) { root.cut-selection(); }
+        else if (result.command == TextEditCommand.copy) { root.copy-selection(); }
+        else if (result.command == TextEditCommand.paste) { root.paste(); }
+        else if (result.command == TextEditCommand.select-all) { root.select-all(); }
+    }
     public function cancel-edit() { root.reduce-field(FieldAction.cancel); root.cancelled(); }
     pure function non-finite-number(text: string) -> bool {
         let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
@@ -276,8 +321,19 @@ export component KitTextField inherits KitField {
                 font-family: root.theme.typography.family; font-size: root.text-size;
                 vertical-alignment: center; horizontal-stretch: 0;
             }
-            context-area := Rectangle {
-                horizontal-stretch: 1; clip: true;
+            context-area := TouchArea {
+                enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
+                horizontal-stretch: 1;
+                mouse-cursor: MouseCursor.text;
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.open-text-menu({x: self.mouse-x, y: self.mouse-y}); }
+                }
+                undo-measure := Text { visible: false; text: root.undo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                redo-measure := Text { visible: false; text: root.redo-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                cut-measure := Text { visible: false; text: root.cut-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                copy-measure := Text { visible: false; text: root.copy-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                paste-measure := Text { visible: false; text: root.paste-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
+                select-all-measure := Text { visible: false; text: root.select-all-label; font-family: root.theme.typography.family; font-size: root.menu-recipe.font-size; font-weight: root.theme.typography.weight-regular; }
                 viewport := Flickable {
                     x: 0px; y: 0px;
                     interactive: root.multiline;
@@ -339,6 +395,9 @@ export component KitTextField inherits KitField {
                         key-pressed(event) => {
                             if (self.preedit-text == "") {
                                 if (root.key-pressed(event) == KitKeyResult.accept) { return accept; }
+                                if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && root.context-menu == TextContextMenu.standard) {
+                                    root.open-text-menu({x: root.menu-caret.x + root.text-inset + viewport.content-x, y: root.menu-caret.y + root.line-height + viewport.content-y}); return accept;
+                                }
                                 if (event.text == Key.Escape) {
                                     if (root.escape-behavior == TextEscapeBehavior.clear && root.text != "" && root.access == FieldAccess.editable) { root.clear(); return accept; }
                                     if (root.escape-behavior == TextEscapeBehavior.cancel && root.access == FieldAccess.editable) { root.cancel-edit(); return accept; }
@@ -349,26 +408,12 @@ export component KitTextField inherits KitField {
                                 }
                             }
                             root.previous-edit-text = self.text;
-                            if (root.purpose == TextPurpose.telephone && KitFormValidation.ready) {
-                                if (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
-                                    || (event.modifiers.shift && event.text == Key.Insert)) {
-                                    clipboard-probe.text = ""; clipboard-probe.paste();
-                                    if (!KitFormValidation.phone-paste(clipboard-probe.text)) { return accept; }
-                                } else if (!(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
-                            }
-                            if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta)
-                                && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
-                            if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
-                            if (root.input-type == InputType.decimal && root.access == FieldAccess.editable
-                                && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V"))
-                                    || (event.modifiers.shift && event.text == Key.Insert))) {
-                                clipboard-probe.text = "";
-                                clipboard-probe.paste();
-                                if (root.non-finite-number(clipboard-probe.text)) { return accept; }
-                                if (KitFormValidation.ready && !KitFormValidation.numeric-insertion(clipboard-probe.text)) { return accept; }
-                                if (!KitFormValidation.ready && clipboard-probe.text != "" && clipboard-probe.text != "-"
-                                    && clipboard-probe.text != "." && clipboard-probe.text != ","
-                                    && !clipboard-probe.text.is-float()) { return accept; }
+                            if (root.access == FieldAccess.editable && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V")) || (event.modifiers.shift && event.text == Key.Insert))) {
+                                if (!root.paste-allowed()) { return accept; }
+                            } else {
+                                if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
+                                if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
+                                if (root.input-type == InputType.decimal && root.non-finite-number(event.text)) { return accept; }
                             }
                             return reject;
                         }
@@ -420,6 +465,7 @@ export component KitTextField inherits KitField {
                         accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
                         // Do not intercept Enter/Escape before the native IME engine.
                         cursor-position-changed(position) => {
+                            root.menu-caret = position;
                             if (root.multiline) {
                                 if (position.y + viewport.content-y < 0px) { viewport.content-y = -position.y; }
                                 else if (position.y + root.line-height + viewport.content-y > viewport.height) { viewport.content-y = viewport.height - position.y - root.line-height; }
@@ -430,16 +476,16 @@ export component KitTextField inherits KitField {
                         }
                     }
                 }
-                ContextMenuArea {
-                    enabled: root.context-menu == TextContextMenu.standard && root.access != FieldAccess.disabled;
-                    Menu {
-                        MenuItem { title: root.undo-label; enabled: root.access == FieldAccess.editable; activated => { root.undo(); } }
-                        MenuItem { title: root.redo-label; enabled: root.access == FieldAccess.editable; activated => { root.redo(); } }
-                        MenuSeparator { }
-                        MenuItem { title: root.cut-label; enabled: root.access == FieldAccess.editable && root.purpose != TextPurpose.password && root.input-type != InputType.password; activated => { root.cut-selection(); } }
-                        MenuItem { title: root.copy-label; enabled: root.purpose != TextPurpose.password && root.input-type != InputType.password; activated => { root.copy-selection(); } }
-                        MenuItem { title: root.paste-label; enabled: root.access == FieldAccess.editable; activated => { root.paste(); } }
-                        MenuItem { title: root.select-all-label; activated => { root.select-all(); } }
+                text-menu := PopupWindow {
+                    close-policy: close-on-click-outside;
+                    x: root.menu-geometry.x; y: root.menu-geometry.y;
+                    width: root.menu-geometry.width; height: root.menu-geometry.height;
+                    TextEditMenu {
+                        theme: root.theme; control-size: root.control-size;
+                        options: root.menu-options; opened: root.menu-opened;
+                        chosen(row) => { root.run-text-command(row); }
+                        dismiss(reason) => { root.close-text-menu(); }
+                        tab-navigation(reverse) => { root.close-text-menu(); return KitKeyResult.reject; }
                     }
                 }
                 if root.multiline: KitScrollBar {

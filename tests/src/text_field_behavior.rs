@@ -298,6 +298,284 @@ fn public_kit_key_result_can_be_returned_from_a_rust_text_field_hook() {
     assert_eq!(app.get_text().as_str(), "y");
 }
 
+fn menu_item(
+    app: &TextFieldBehaviorFixture,
+    label: &str,
+) -> i_slint_backend_testing::ElementHandle {
+    let requested = label.to_owned();
+    i_slint_backend_testing::ElementQuery::from_root(app)
+        .match_inherits("KitOption")
+        .match_predicate(move |element| {
+            element.accessible_label().as_deref() == Some(requested.as_str())
+        })
+        .find_first()
+        .unwrap_or_else(|| panic!("missing text command {label}"))
+}
+fn menu_visible(app: &TextFieldBehaviorFixture) -> bool {
+    i_slint_backend_testing::ElementQuery::from_root(app)
+        .match_inherits("TextEditMenu")
+        .find_first()
+        .is_some()
+}
+fn right_click_editor(app: &TextFieldBehaviorFixture) {
+    use i_slint_backend_testing::{AccessibleRole, ElementHandle};
+    let editor = ElementHandle::find_by_accessible_label(app, "Name")
+        .find(|element| element.accessible_role() == Some(AccessibleRole::TextInput))
+        .unwrap();
+    editor.mock_single_click(slint::platform::PointerEventButton::Right);
+    slint::platform::update_timers_and_animations();
+}
+#[test]
+fn editing_menu_uses_native_commands_and_preserves_selection_focus_and_history() {
+    use slint::platform::PointerEventButton;
+    let app = fixture();
+    app.set_policy(CommitPolicy::OnBlur);
+    key(&app, "a😀b");
+    app.invoke_selection(1, 5);
+    let commits = Rc::new(RefCell::new(0));
+    let output = commits.clone();
+    app.on_committed(move |_| *output.borrow_mut() += 1);
+    right_click_editor(&app);
+    assert!(menu_visible(&app));
+    assert!(
+        app.get_has_focus(),
+        "the owned menu retains logical field focus"
+    );
+    assert_eq!((app.get_anchor(), app.get_cursor()), (1, 5));
+    assert_eq!(*commits.borrow(), 0, "opening a menu is not a field blur");
+    menu_item(&app, "Copy").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.invoke_read_clipboard(), "😀");
+    assert_eq!(app.get_text(), "a😀b");
+    assert!(!menu_visible(&app));
+    assert!(app.get_has_focus());
+    right_click_editor(&app);
+    menu_item(&app, "Cut").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.get_text(), "ab");
+    key(&app, Key::Menu);
+    menu_item(&app, "Undo").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.get_text(), "a😀b");
+    key(&app, Key::Menu);
+    menu_item(&app, "Redo").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.get_text(), "ab");
+    app.invoke_selection(1, 1);
+    app.set_clipboard_text("XY".into());
+    app.invoke_prepare_paste();
+    key(&app, Key::Menu);
+    menu_item(&app, "Paste").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.get_text(), "aXYb");
+    key(&app, Key::Menu);
+    key(&app, Key::End);
+    key(&app, Key::Return);
+    assert_eq!((app.get_anchor(), app.get_cursor()), (0, 4));
+    assert_eq!(*commits.borrow(), 0);
+}
+#[test]
+fn editing_menu_keyboard_dismissal_disabled_readonly_and_password_are_guarded() {
+    use slint::platform::{Key, PointerEventButton};
+    let app = fixture();
+    app.set_text("secret".into());
+    app.invoke_select_all();
+    app.set_access(FieldAccess::ReadOnly);
+    app.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Shift.into(),
+    });
+    key(&app, Key::F10);
+    app.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Shift.into(),
+    });
+    assert!(menu_visible(&app));
+    for label in ["Undo", "Redo", "Cut", "Paste"] {
+        let item = menu_item(&app, label);
+        assert_eq!(item.accessible_enabled(), Some(false), "{label}");
+        item.invoke_accessible_default_action();
+        assert_eq!(app.get_text(), "secret");
+    }
+    assert_eq!(menu_item(&app, "Copy").accessible_enabled(), Some(true));
+    key(&app, Key::Home);
+    key(&app, Key::Return);
+    assert_eq!(
+        app.invoke_read_clipboard(),
+        "secret",
+        "keyboard skips disabled edits and copies read-only selection"
+    );
+    key(&app, Key::Menu);
+    key(&app, Key::Escape);
+    assert!(!menu_visible(&app));
+    assert!(app.get_has_focus());
+    app.set_access(FieldAccess::Editable);
+    app.set_purpose(TextPurpose::Password);
+    app.set_clipboard_text("sentinel".into());
+    app.invoke_prepare_paste();
+    app.invoke_select_all();
+    key(&app, Key::Menu);
+    assert_eq!(menu_item(&app, "Cut").accessible_enabled(), Some(false));
+    assert_eq!(menu_item(&app, "Copy").accessible_enabled(), Some(false));
+    key(&app, Key::Escape);
+    app.invoke_copy();
+    app.invoke_cut();
+    assert_eq!(app.get_text(), "secret");
+    assert_eq!(app.invoke_read_clipboard(), "sentinel");
+    app.set_intercept_key(true);
+    key(&app, Key::Menu);
+    assert!(
+        !menu_visible(&app),
+        "the public keyboard hook keeps priority"
+    );
+    app.set_intercept_key(false);
+    key(&app, Key::Menu);
+    assert!(menu_visible(&app));
+    app.set_access(FieldAccess::ReadOnly);
+    slint::platform::update_timers_and_animations();
+    assert!(
+        !menu_visible(&app),
+        "access changes discard stale menu availability"
+    );
+    assert!(app.get_has_focus());
+    app.set_access(FieldAccess::Disabled);
+    right_click_editor(&app);
+    assert!(!menu_visible(&app));
+    app.set_access(FieldAccess::Editable);
+    app.set_context_menu(TextContextMenu::Disabled);
+    right_click_editor(&app);
+    assert!(!menu_visible(&app));
+    app.set_context_menu(TextContextMenu::Standard);
+    app.invoke_focus_field();
+    key(&app, Key::Menu);
+    assert!(menu_visible(&app));
+    key(&app, Key::Tab);
+    assert!(!menu_visible(&app));
+    assert!(
+        !app.get_has_focus(),
+        "Tab continues normal focus navigation"
+    );
+    app.invoke_focus_field();
+    key(&app, Key::Menu);
+    app.invoke_release_field();
+    slint::platform::update_timers_and_animations();
+    assert!(!menu_visible(&app));
+    assert!(!app.get_has_focus());
+    // Slint restores parent focus on the dismissal press; the next press reaches the outside target.
+    app.invoke_focus_field();
+    key(&app, Key::Menu);
+    i_slint_backend_testing::ElementQuery::from_root(&app)
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Other"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(!menu_visible(&app));
+    assert!(
+        app.get_has_focus(),
+        "Slint popup dismissal restores parent focus"
+    );
+    i_slint_backend_testing::ElementQuery::from_root(&app)
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Other"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(
+        !app.get_has_focus(),
+        "a subsequent outside click keeps its own focus"
+    );
+}
+#[test]
+fn menu_and_public_paste_keep_phone_and_numeric_filters() {
+    use slint::platform::PointerEventButton;
+    let app = fixture();
+    for (purpose, input_type, original, rejected, accepted) in [
+        (TextPurpose::Telephone, false, "514", "Ada", " (555)-0123"),
+        (TextPurpose::Plain, true, "12", "NaN", ".5"),
+    ] {
+        app.set_purpose(purpose);
+        app.set_decimal_input(input_type);
+        app.set_text(original.into());
+        app.invoke_selection(
+            original.len().try_into().unwrap(),
+            original.len().try_into().unwrap(),
+        );
+        app.set_clipboard_text(rejected.into());
+        app.invoke_prepare_paste();
+        app.invoke_paste();
+        assert_eq!(app.get_text(), original);
+        key(&app, Key::Menu);
+        menu_item(&app, "Paste").mock_single_click(PointerEventButton::Left);
+        assert_eq!(app.get_text(), original);
+        app.set_clipboard_text(accepted.into());
+        app.invoke_prepare_paste();
+        app.invoke_paste();
+        assert_eq!(app.get_text(), format!("{original}{accepted}"));
+    }
+}
+#[test]
+fn editing_menu_renders_in_both_themes_at_double_text_scale() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = TextFieldBehaviorFixture::new().unwrap();
+    kit_slint::install(&app);
+    app.show().unwrap();
+    app.set_text("Selectable native text".into());
+    for (name, base) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            app.invoke_focus_field();
+            app.invoke_select_all();
+            key(&app, Key::Menu);
+            assert!(menu_visible(&app));
+            let last = menu_item(&app, "Select all");
+            let origin = last.absolute_position();
+            let size = last.size();
+            assert!(origin.x >= 0. && origin.y >= 0.);
+            assert!(origin.x + size.width <= 600. && origin.y + size.height <= 400.);
+            let snapshot = app.window().take_snapshot().unwrap();
+            crate::choice_presentation::save_capture(
+                &snapshot,
+                &format!("text-menu-{name}-{scale}"),
+            );
+            key(&app, Key::Escape);
+            for (state, access, purpose) in [
+                ("readonly", FieldAccess::ReadOnly, TextPurpose::Plain),
+                ("password", FieldAccess::Editable, TextPurpose::Password),
+            ] {
+                app.set_access(access);
+                app.set_purpose(purpose);
+                app.invoke_focus_field();
+                app.invoke_select_all();
+                key(&app, Key::Menu);
+                assert_eq!(menu_item(&app, "Cut").accessible_enabled(), Some(false));
+                crate::choice_presentation::save_capture(
+                    &app.window().take_snapshot().unwrap(),
+                    &format!("text-menu-{state}-{name}-{scale}"),
+                );
+                key(&app, Key::Escape);
+            }
+            app.set_access(FieldAccess::Editable);
+            app.set_purpose(TextPurpose::Plain);
+            app.invoke_focus_field();
+            app.invoke_select_all();
+            key(&app, Key::Menu);
+            let copy = menu_item(&app, "Copy");
+            let mut click = Box::pin(copy.single_click(slint::platform::PointerEventButton::Left));
+            let mut context = std::task::Context::from_waker(std::task::Waker::noop());
+            assert!(click.as_mut().poll(&mut context).is_pending());
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("text-menu-pressed-{name}-{scale}"),
+            );
+            i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+            assert!(click.as_mut().poll(&mut context).is_ready());
+            assert!(!menu_visible(&app));
+        }
+    }
+}
+
 #[test]
 fn native_text_pointer_reference_preserves_selection_through_plain_wrappers() {
     use i_slint_backend_testing::{

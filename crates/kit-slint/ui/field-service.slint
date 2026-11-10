@@ -1,3 +1,5 @@
+import { OptionRow } from "contracts.slint";
+import { TextEditLabels, TextEditAvailability, TextEditCommandResult, TextMenuPlacement, TextMenuGeometry } from "text-edit.slint";
 import { NavigationStep, RangeThumb, ColorAlphaMode } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection } from "shared-contracts.slint";
@@ -15,6 +17,9 @@ export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
 export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
 export global KitFieldService {
+    pure callback text-menu-options(TextEditLabels, TextEditAvailability) -> [OptionRow];
+    pure callback text-menu-command(OptionRow) -> TextEditCommandResult;
+    callback text-menu-placement(TextMenuPlacement) -> TextMenuGeometry;
     callback edit-selection(string);
     pure callback color-format(SrgbColorView, ColorAlphaMode) -> string;
     pure callback color-validate(SrgbColorView, ColorAlphaMode) -> ColorResult;

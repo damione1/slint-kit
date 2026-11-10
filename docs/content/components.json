@@ -3968,17 +3968,17 @@
         "committed": "FieldCommit accepté selon commit-policy, avec valeur, contraintes partagées et clé du codec. Protégez les commandes Rust avec FieldSpec::accept.",
         "commit-requested": "Notification Entrée monoligne ou Entrée modifiée activée. Utilisez committed pour les valeurs acceptées et conservez le garde du codec Rust.",
         "invalid": "Une vérification demandée ou une acceptation explicite a échoué. Observer ce signal ne remplace pas la vérification de la valeur envoyée à Rust.",
-        "focus-observed": "Observe le focus de l’éditeur natif, indépendamment des boutons d’action voisins.",
+        "focus-observed": "Observe le focus de l’éditeur natif ou de son menu d’édition ; ouvrir ce menu ne valide pas par flou. Les autres boutons d’action restent distincts.",
         "cancelled": "Émis par cancel-edit() et la politique d’annulation Échap configurée.",
         "key-pressed": "Précède filtrage et édition native uniquement sans préédition IME active. Retournez reject pour préserver le comportement natif, accept pour un raccourci traité. Retournez KitKeyResult.accept ou KitKeyResult.reject."
       },
       "functions": {
-        "take-focus": "Donne le focus à l’éditeur natif sauf s’il est désactivé.",
-        "blur": "Libère le focus de l’éditeur natif.",
+        "take-focus": "Ferme le menu d’édition du champ et focalise l’éditeur natif, sauf si désactivé.",
+        "blur": "Ferme le menu d’édition du champ et libère le focus de son éditeur natif.",
         "select-all": "Sélectionne tout le texte dans l’éditeur natif existant.",
-        "copy-selection": "Transmet la copie native ; la lecture seule conserve la copie.",
-        "cut-selection": "Transmet la coupe native uniquement en accès éditable.",
-        "paste": "Transmet le collage natif uniquement en accès éditable.",
+        "copy-selection": "Transmet la copie native sauf si le mot de passe est masqué ; la lecture seule conserve la copie.",
+        "cut-selection": "Transmet la coupe native seulement si le champ est modifiable et le mot de passe visible.",
+        "paste": "Transmet le collage natif seulement en édition et si les mêmes filtres téléphone/numérique que le collage clavier l’acceptent.",
         "undo": "Annule une édition native en accès éditable. Slint peut représenter un remplacement par deux entrées d’historique suppression/insertion.",
         "redo": "Rétablit une édition native en accès éditable.",
         "set-selection": "Sélectionne entre les offsets UTF-8 en octets (ancre, curseur) ; deux offsets égaux placent le curseur sans sélection.",
@@ -3995,7 +3995,7 @@
         "set-custom-validity": "Définit un message de contrainte applicative ; une chaîne vide efface cette erreur.",
         "reset-validation": "Efface la présentation HTML modifié/touché/signalé en conservant brouillon et valeur acceptée."
       },
-      "accessibility": "Le TextInput natif expose son nom accessible, l’espace réservé, l’état activé/lecture seule et sa valeur. Un mot de passe caché tait sa valeur accessible. La description conserve l’aide avec les erreurs visibles, l’obligation, préfixe/suffixe, compteur et vérifications ; ces dernières demandent une annonce polie. `required-label`, libellés afficher/masquer/effacer, menus et messages de validation héritent des valeurs de fenêtre `KitStrings`, surchargeables par champ. Slint 1.18 ne propose ni états accessibles requis/invalide natifs, ni type de clavier courriel/URL/téléphone, ni remplissage OTP. Le texte descriptif constitue le contournement pris en charge ; les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil physique.",
+      "accessibility": "Le TextInput natif expose son nom accessible, l’espace réservé, l’état activé/lecture seule et sa valeur. Un mot de passe caché tait sa valeur accessible. La description conserve l’aide avec les erreurs visibles, l’obligation, préfixe/suffixe, compteur et vérifications ; ces dernières demandent une annonce polie. `required-label`, libellés afficher/masquer/effacer, menus et messages de validation héritent des valeurs de fenêtre `KitStrings`, surchargeables par champ. Slint 1.18 ne propose ni états accessibles requis/invalide natifs, ni type de clavier courriel/URL/téléphone, ni remplissage OTP. Le texte descriptif constitue le contournement pris en charge ; les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil physique. Le menu d’édition utilise les rôles liste/élément du kit car Slint 1.18 ne fournit pas les rôles menu/élément de menu. Il s’ouvre par clic droit, Menu ou Maj+F10 et accepte flèches, Début/Fin, Entrée, Échap et Tab ; l’appui tactile prolongé n’est pas fourni.",
       "states": "Un champ éditable conserve sélection, curseur, annulation et IME. La lecture seule conserve sélection et copie ; un champ désactivé rejette édition et actions. La validation peut être pristine, checking, valid ou invalid ; `validation-timing` régit la visibilité des erreurs HTML/codec et un signalement explicite les révèle immédiatement. `validation-visible` observe cette présentation. Le dévoilement du mot de passe conserve l’éditeur et change `secret-visibility` ; `input-method-hints` règle capitalisation, correction et complétion dans les limites des API Slint."
     },
     "en": {
@@ -4214,17 +4214,17 @@
         "committed": "Accepted FieldCommit according to commit-policy, with value, shared constraints and codec key. Guard Rust commands with FieldSpec::accept.",
         "commit-requested": "Single-line Enter or opted-in modified-Enter notification. Use committed for accepted payloads and retain the Rust codec guard.",
         "invalid": "A requested validity check or explicit acceptance failed. Observing it does not replace checking the submitted value in Rust.",
-        "focus-observed": "Observes focus of the native editor, independently of surrounding action buttons.",
+        "focus-observed": "Observes focus of the native editor or its owned editing menu; opening that menu does not commit a blur. Other action buttons are separate.",
         "cancelled": "Emitted by cancel-edit() and the configured Escape cancellation policy.",
         "key-pressed": "Runs before filtering/native editing only without active IME preedit. Return reject to retain native behavior or accept for a handled shortcut. Return KitKeyResult.accept or KitKeyResult.reject."
       },
       "functions": {
-        "take-focus": "Focus the native editor unless disabled.",
-        "blur": "Release the native editor’s focus.",
+        "take-focus": "Close the owned editing menu and focus the native editor unless disabled.",
+        "blur": "Close the owned editing menu and release the native editor’s focus.",
         "select-all": "Select all text in the existing native editor.",
-        "copy-selection": "Forward native copy; read-only controls retain copying.",
-        "cut-selection": "Forward native cut only while editable.",
-        "paste": "Forward native paste only while editable.",
+        "copy-selection": "Forward native copy unless the password is hidden; read-only controls retain copying.",
+        "cut-selection": "Forward native cut only while editable and the password is not hidden.",
+        "paste": "Forward native paste only while editable and the same phone/numeric insertion checks as keyboard paste accept it.",
         "undo": "Undo a native edit while editable. Slint may represent a replacement as separate deletion/insertion history entries.",
         "redo": "Redo a native edit while editable.",
         "set-selection": "Select between UTF-8 byte offsets (anchor, cursor); equal offsets place the caret without selecting.",
@@ -4241,7 +4241,7 @@
         "set-custom-validity": "Set an application constraint message; an empty string clears that error.",
         "reset-validation": "Clear HTML dirty/touched/reported presentation while retaining the current draft and accepted value."
       },
-      "accessibility": "The native TextInput exposes its accessible name, placeholder, enabled/read-only state and value. Hidden passwords omit the accessible value. Descriptions retain help alongside visible errors, required text, prefix/suffix, character count and pending checks; pending checks request a polite live announcement. `required-label`, reveal/hide/clear labels, menu labels and validation messages inherit window-local `KitStrings` defaults and can be overridden per field. Slint 1.18 has no native required/invalid accessibility states, email/URL/telephone soft-keyboard type or OTP autofill hint. Text descriptions are the supported workaround; headless coverage does not qualify screen readers, IME or physical devices.",
+      "accessibility": "The native TextInput exposes its accessible name, placeholder, enabled/read-only state and value. Hidden passwords omit the accessible value. Descriptions retain help alongside visible errors, required text, prefix/suffix, character count and pending checks; pending checks request a polite live announcement. `required-label`, reveal/hide/clear labels, menu labels and validation messages inherit window-local `KitStrings` defaults and can be overridden per field. Slint 1.18 has no native required/invalid accessibility states, email/URL/telephone soft-keyboard type or OTP autofill hint. Text descriptions are the supported workaround; headless coverage does not qualify screen readers, IME or physical devices. The editing popup uses the kit’s accessible list/list-item roles because Slint 1.18 has no menu/menu-item roles. It opens with right-click, Menu or Shift+F10 and supports arrows, Home/End, Enter, Escape and Tab; touch long-press is not provided.",
       "states": "Editable fields preserve selection, caret, undo and IME. Read-only fields remain selectable and copyable; disabled fields reject editing and actions. Validation can be pristine, checking, valid or invalid; `validation-timing` controls HTML/codec error visibility, while explicit reporting reveals errors immediately. `validation-visible` observes that presentation. Password reveal retains the editor and changes `secret-visibility`; `input-method-hints` controls capitalization, autocorrect and autocomplete within Slint’s available input APIs."
     }
   },

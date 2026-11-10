@@ -16,6 +16,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Text Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+        // Right-click or Shift+F10 opens native editing commands.
         KitTextField { key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; theme: root.theme; label: "Project name"; select-all-label: "Select all"; text: "Field notes"; committed(value) => { root.status = "Accepted: " + value.value.text; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }

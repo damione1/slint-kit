@@ -192,7 +192,7 @@ export component KitSelectSurface inherits Rectangle {
     init => { if (root.state.open) { root.take-focus(); root.ensure-active-visible(); } }
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
-    private property <length> inset: root.theme.spacing.unit * 1.5;
+    private property <length> inset: KitMetrics.popover-inset(root.theme);
     // The surface and its two-layer shadow paint under the list.
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
@@ -204,7 +204,7 @@ export component KitSelectSurface inherits Rectangle {
         tab-navigation(reverse) => { return root.tab-navigation(reverse); }
         VerticalLayout {
             padding: root.inset;
-            spacing: root.inset;
+            spacing: root.searchable ? root.inset : 0px;
             Rectangle {
                 visible: root.searchable;
                 height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
