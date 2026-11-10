@@ -6,6 +6,9 @@
 - Consigne le succès de la vérification headless macOS arm64, des starters et des applications complètes de documentation sur [6f553989](https://github.com/damione1/slint-kit/actions/runs/42776551241/job/129696271661) ; les qualifications native, IME et lecteur d’écran restent distinctes.
 - Preserve completed macOS compiler caches when a later CI documentation check fails.
 - Conserve les caches de compilation macOS terminés lorsqu’un contrôle documentaire ultérieur de CI échoue.
+- Expose table edit identity, draft, native editor bounds and typed lifecycle outcomes, with explicit invalid-blur and unchanged-commit policies; preserve commit identity when end handlers open another cell.
+- Expose l’identité d’édition, le brouillon, le rectangle natif et les résultats typés de session, avec politiques de perte de focus invalide et de confirmation inchangée ; conserve l’identité lorsqu’un gestionnaire ouvre une autre cellule.
+
 - Cancel table edits when their row leaves the viewport, preserving accepted values and preventing hidden or resurrected editors after scrolling or resizing.
 - Annule l’édition de tableau lorsque sa ligne quitte le viewport, conserve la valeur acceptée et évite les éditeurs cachés ou réapparus après défilement ou redimensionnement.
 

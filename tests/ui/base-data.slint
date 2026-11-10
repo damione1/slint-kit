@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
+import { TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
 export { ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -26,6 +26,13 @@ export component BaseDataFixture inherits Window {
     in-out property <int> table-active-column <=> table.active-column;
     out property <bool> table-editing: table.editing;
     out property <string> table-edit-error: table.edit-error;
+    in property <TableEditBlurPolicy> table-edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
+    in property <TableUnchangedEditPolicy> table-unchanged-edit-policy: TableUnchangedEditPolicy.report;
+    out property <int> table-edit-row: table.edit-row-token;
+    out property <int> table-edit-column: table.edit-column-token;
+    out property <int> table-edit-generation: table.edit-generation;
+    out property <string> table-edit-draft: table.edit-draft;
+    out property <TableEditBounds> table-edit-bounds: table.edit-bounds;
     in property <int> content-active: -1;
     in property <int> line-active: -1;
     in-out property <string> line-draft;
@@ -50,6 +57,8 @@ export component BaseDataFixture inherits Window {
     callback sort-requested(int);
     callback resize-requested(int, length);
     callback cell-committed(int, int, int, FieldCommit);
+    callback table-edit-started(int, int, int);
+    callback table-edit-ended(int, int, int, TableEditOutcome, string);
     callback validate-table-edit(int, int, int, FieldCommit) -> string;
     validate-table-edit(row, column, generation, commit) => { return ""; }
     public function edit-table() { table.edit-active(); }
@@ -75,6 +84,9 @@ export component BaseDataFixture inherits Window {
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
+            edit-blur-policy: root.table-edit-blur-policy; unchanged-edit-policy: root.table-unchanged-edit-policy;
+            edit-started(row,column,generation) => {root.table-edit-started(row,column,generation);}
+            edit-ended(row,column,generation,outcome,message) => {root.table-edit-ended(row,column,generation,outcome,message);}
             validate-edit(row,column,generation,commit) => { return root.validate-table-edit(row,column,generation,commit); }
             cell-committed(row, column, generation, commit) => { root.cell-committed(row, column, generation, commit); }
         }

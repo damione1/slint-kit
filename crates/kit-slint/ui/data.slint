@@ -17,6 +17,11 @@ export enum DataAlignment { leading, center, trailing }
 export enum TextViewAccess { read-only, edit-line }
 export enum TableHeaderFocus { individual, roving }
 enum TableCursorRegion { body, header }
+export enum TableEditOutcome { committed, unchanged, cancelled, rejected-on-blur, superseded, viewport-exit }
+export enum TableEditBlurPolicy { commit-or-drop, keep-open }
+export enum TableUnchangedEditPolicy { report, skip }
+export struct TableEditBounds { valid: bool, x: length, y: length, width: length, height: length }
+struct TableEditIdentity { row-token: int, column-token: int, generation: int }
 // How a data-table column takes its width. `fill` (the default) starts at
 // its basis, never below the table's `minimum-column-width` or its own
 // minimum, and shares the space left over with the other fill columns.
@@ -247,6 +252,9 @@ component TableCellView inherits Rectangle {
     in property <bool> editing;
     in property <string> editor-name;
     in property <string> rejection;
+    in property <bool> keep-on-blur;
+    in property <TableEditIdentity> identity;
+    callback bounds-changed(TableEditBounds);
     in property <int> commit-request;
     in property <bool> pointed;
     callback point-requested();
@@ -261,7 +269,7 @@ component TableCellView inherits Rectangle {
     // visible. Leaving the viewport cancels the session without committing.
     in-out property <string> draft;
     callback committed(FieldCommit, bool);
-    callback editor-focus-changed(bool);
+    callback editor-focus-changed(TableEditIdentity, bool);
     callback cancel-requested();
     callback step-requested(ColumnStep);
     callback blurred();
@@ -309,6 +317,7 @@ component TableCellView inherits Rectangle {
             theme: root.theme; control-size: root.control-size;
             accessible-name: root.editor-name;
             text <=> root.draft;
+            access: root.row-disabled ? FieldAccess.disabled : root.cell.access;
             // The table owns acceptance until its host verdict succeeds.
             ownership: Ownership.controlled;
             spec-key: root.cell.spec;
@@ -338,13 +347,24 @@ component TableCellView inherits Rectangle {
             // The row has no room under the editor: the host reads the
             // error from the table instead.
             show-validation-message: false;
-            init => { self.take-focus(); self.select-all(); }
+            private property <TableEditBounds> geometry: { valid: self.width > 0px && self.height > 0px, x: self.absolute-position.x, y: self.absolute-position.y, width: self.width, height: self.height };
+            private property <TableEditIdentity> armed-identity;
+            changed geometry => { if (root.editing) { root.bounds-changed(self.geometry); } }
+            init => { self.armed-identity = root.identity; root.bounds-changed(self.geometry); self.take-focus(); self.select-all(); }
             private property <int> request: root.commit-request;
             changed request => { if (root.editing) { root.error-changed(""); self.commit(); } }
             committed(commit) => { root.committed(commit, self.has-focus); }
             edited(text) => { root.error-changed(""); }
             invalid => { root.error-changed(self.field-state.error != "" ? self.field-state.error : self.validation-message); }
-            focus-observed(focused) => { root.editor-focus-changed(focused); if (!focused) { root.blurred(); } }
+            focus-observed(focused) => {
+                root.editor-focus-changed(self.armed-identity, focused);
+                if (!focused && root.editing) {
+                    if (!self.check-validity()) { root.error-changed(self.validation-message); }
+                    else if (self.field-state.error != "") { root.error-changed(self.field-state.error); }
+                    root.blurred();
+                    if (root.editing && root.keep-on-blur) { self.take-focus(); }
+                }
+            }
         }
     }
     if root.focus-indicated: FocusOutline {
@@ -420,12 +440,16 @@ export component KitDataTable inherits Rectangle {
     // column's `FieldSpec::accept`. The host fences it with the generation
     // and republishes the row; the table paints nothing from it.
     callback cell-committed(int,int,int,FieldCommit);
+    in property <TableEditBlurPolicy> edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
+    in property <TableUnchangedEditPolicy> unchanged-edit-policy: TableUnchangedEditPolicy.report;
+    callback edit-started(int,int,int);
+    callback edit-ended(int,int,int,TableEditOutcome,string);
     callback validate-edit(int,int,int,FieldCommit) -> string;
     validate-edit(row, column, generation, commit) => { return ""; }
     public function take-focus() {if(root.interactive){keys.focus();}}
     public function edit-active() { if (!root.edit-open && KitFieldService.ready && root.active-cell-editable()) { root.begin-edit(); } }
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
-    public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused); } }
+    public function cancel-edit() { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.cancelled); } }
     private property <int> edit-commit-request;
     out property <length> scroll-y: list.content-y;
     out property <length> scroll-x: list.content-x;
@@ -440,16 +464,28 @@ export component KitDataTable inherits Rectangle {
     // the kit cannot know what the row now means.
     private property <bool> edit-open;
     private property <bool> edit-focused;
-    private property <int> edit-row-token;
-    private property <int> edit-column-token;
-    private property <int> edit-generation;
-    private property <string> edit-draft;
-    private property <int> edit-row-index;
+    out property <int> edit-row-token;
+    out property <int> edit-column-token;
+    out property <int> edit-generation;
+    out property <string> edit-draft;
+    out property <TableEditBounds> edit-bounds;
+    private property <string> edit-original;
+    private property <int> edit-row-index: root.active-index;
+    private property <int> edit-column-index: root.active-column;
+    private property <bool> edit-available: !root.edit-open || (KitFieldService.ready && root.edit-generation == root.generation
+        && root.edit-row-index >= 0 && root.edit-row-index < root.rows.length
+        && root.rows[root.edit-row-index].token == root.edit-row-token && !root.rows[root.edit-row-index].disabled
+        && root.edit-column-index >= 0 && root.edit-column-index < root.columns.length
+        && root.columns[root.edit-column-index].token == root.edit-column-token
+        && root.edit-column-index < root.rows[root.edit-row-index].content.length
+        && root.rows[root.edit-row-index].content[root.edit-column-index].kind == TableCellKind.field
+        && root.rows[root.edit-row-index].content[root.edit-column-index].access == FieldAccess.editable);
+    changed edit-available => { if (root.edit-open && !root.edit-available) { root.end-edit(root.edit-focused, TableEditOutcome.superseded); } }
     private property <bool> edit-row-outside-viewport: root.edit-open && list.visible-height > 0px
         && ((root.edit-row-index + 1) * root.row-height + list.content-y <= 0px
             || root.edit-row-index * root.row-height + list.content-y >= list.visible-height);
     changed edit-row-outside-viewport => {
-        if (root.edit-row-outside-viewport) { root.end-edit(root.edit-focused); }
+        if (root.edit-row-outside-viewport) { root.end-edit(root.edit-focused, TableEditOutcome.viewport-exit); }
     }
     pure function has-active-column() -> bool { return root.active-column >= 0 && root.active-column < root.columns.length; }
     pure function has-active-cell() -> bool { return root.has-active-row && root.has-active-column(); }
@@ -462,21 +498,29 @@ export component KitDataTable inherits Rectangle {
     function begin-edit() {
         root.cursor-region = TableCursorRegion.body;
         root.reveal-active();
-        root.edit-row-index = root.active-index;
         root.edit-row-token = root.rows[root.active-index].token;
         root.edit-column-token = root.columns[root.active-column].token;
         root.edit-generation = root.generation;
         root.edit-draft = root.rows[root.active-index].content[root.active-column].text;
+        root.edit-original = root.edit-draft;
+        root.edit-bounds = { valid: false };
         root.edit-error = "";
         root.edit-open = true;
+        root.edit-started(root.edit-row-token, root.edit-column-token, root.edit-generation);
     }
     // Close the session; `refocus` returns the keyboard to the table when
     // the editor had it, and stays away when focus already went elsewhere.
-    function end-edit(refocus: bool) {
+    function end-edit(refocus: bool, outcome: TableEditOutcome) {
+        if (!root.edit-open) { return; }
+        let row = root.edit-row-token;
+        let column = root.edit-column-token;
+        let generation = root.edit-generation;
+        let message = root.edit-error;
         root.edit-open = false;
         root.edit-focused = false;
         root.edit-error = "";
         if (refocus) { keys.focus(); }
+        root.edit-ended(row, column, generation, outcome, message);
     }
     pure function edits-cell(row: TableRow, column: TableColumn) -> bool {
         return root.edit-open && row.token == root.edit-row-token && column.token == root.edit-column-token;
@@ -490,8 +534,8 @@ export component KitDataTable inherits Rectangle {
         if (step == ColumnStep.previous) { root.active-column = max(root.cursor-region == TableCursorRegion.header ? 0 : -1, min(root.active-column, root.columns.length) - 1); }
         if (step == ColumnStep.next) { root.active-column = min(root.columns.length - 1, root.active-column + 1); }
     }
-    changed generation => { if (root.edit-open) { root.end-edit(root.edit-focused); } }
-    changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false); } }
+    changed generation => { if (root.edit-open) { root.end-edit(root.edit-focused, TableEditOutcome.superseded); } }
+    changed interactive => { if (!root.interactive && root.edit-open) { root.end-edit(false, TableEditOutcome.superseded); } }
     private property <ButtonRecipe> row-recipe: KitThemes.table-row-recipe(root.theme, root.control-size);
     private property <SurfaceRecipe> surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.flat);
     private property <ColumnHandleRecipe> handle-recipe: KitThemes.column-handle-recipe(root.theme);
@@ -711,27 +755,49 @@ export component KitDataTable inherits Rectangle {
                     editing: root.edits-cell(row, root.columns[column-index]);
                     editor-name: root.columns[column-index].label + ", " + root.row-name(row);
                     rejection: root.edit-error;
+                    keep-on-blur: root.edit-blur-policy == TableEditBlurPolicy.keep-open;
+                    identity: { row-token: root.edit-row-token, column-token: root.edit-column-token, generation: root.edit-generation };
+                    bounds-changed(bounds) => { if (root.edits-cell(row, root.columns[column-index])) { root.edit-bounds = bounds; } }
                     draft <=> root.edit-draft;
                     commit-request: root.edit-commit-request;
-                    editor-focus-changed(focused) => { root.edit-focused = focused; }
+                    editor-focus-changed(identity, focused) => {
+                        if (root.edit-open && root.edit-row-token == identity.row-token && root.edit-column-token == identity.column-token && root.edit-generation == identity.generation) { root.edit-focused = focused; }
+                    }
                     committed(commit, focused) => {
                         if (root.edits-cell(row, root.columns[column-index])) {
-                            if (root.edit-row-outside-viewport) { root.end-edit(focused); }
+                            let row-token = root.edit-row-token;
+                            let column-token = root.edit-column-token;
+                            let generation = root.edit-generation;
+                            if (root.edit-row-outside-viewport) { root.end-edit(focused && root.edit-focused, TableEditOutcome.viewport-exit); }
                             else {
-                                let rejection = root.validate-edit(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
-                                if (rejection == "") {
-                                    root.end-edit(focused);
-                                    root.cell-committed(root.edit-row-token, root.edit-column-token, root.edit-generation, commit);
-                                } else { root.edit-error = rejection; }
+                                let rejection = root.validate-edit(row-token, column-token, generation, commit);
+                                // A synchronous verdict or end observer may change the active
+                                // record or start another session. Never redirect this payload.
+                                if (root.edit-open && root.edit-row-token == row-token && root.edit-column-token == column-token && root.edit-generation == generation) {
+                                    if (!root.edit-available) { root.end-edit(focused && root.edit-focused, TableEditOutcome.superseded); }
+                                    else if (rejection == "") {
+                                        let unchanged = commit.value.text == root.edit-original;
+                                        let report = !unchanged || root.unchanged-edit-policy == TableUnchangedEditPolicy.report;
+                                        root.end-edit(focused && root.edit-focused, unchanged ? TableEditOutcome.unchanged : TableEditOutcome.committed);
+                                        if (report) { root.cell-committed(row-token, column-token, generation, commit); }
+                                    } else { root.edit-error = rejection; }
+                                }
                             }
                         }
                     }
-                    cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true); } }
+                    cancel-requested => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(true, TableEditOutcome.cancelled); } }
                     // The commit ran before this: a closed session means it
                     // was accepted and the cursor may move on; an open one
                     // keeps the invalid draft in the editor.
                     step-requested(step) => { if (!root.edit-open) { root.step-column(step); } }
-                    blurred => { if (root.edits-cell(row, root.columns[column-index])) { root.end-edit(false); } }
+                    blurred => {
+                        if (root.edits-cell(row, root.columns[column-index])) {
+                            if (!root.edit-available) { root.end-edit(false, TableEditOutcome.superseded); }
+                            else if (root.edit-row-outside-viewport) { root.end-edit(false, TableEditOutcome.viewport-exit); }
+                            else if (root.edit-draft == root.edit-original && root.edit-error == "") { root.end-edit(false, TableEditOutcome.unchanged); }
+                            else if (root.edit-blur-policy == TableEditBlurPolicy.commit-or-drop) { root.end-edit(false, TableEditOutcome.rejected-on-blur); }
+                        }
+                    }
                     error-changed(message) => { if (root.edits-cell(row, root.columns[column-index])) { root.edit-error = message; } }
                 }
             }

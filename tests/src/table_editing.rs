@@ -1304,3 +1304,453 @@ fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_gho
         }
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SessionAddress {
+    row: i32,
+    column: i32,
+    generation: i32,
+}
+#[derive(Debug)]
+struct ObservedSessionEnd {
+    address: SessionAddress,
+    outcome: ui::TableEditOutcome,
+    message: String,
+}
+#[derive(Default)]
+struct SessionObserver {
+    started: Rc<RefCell<Vec<SessionAddress>>>,
+    ended: Rc<RefCell<Vec<ObservedSessionEnd>>>,
+}
+fn observe_sessions(window: &BaseDataFixture) -> SessionObserver {
+    let observer = SessionObserver::default();
+    let observed = observer.started.clone();
+    window.on_table_edit_started(move |row, column, generation| {
+        observed.borrow_mut().push(SessionAddress {
+            row,
+            column,
+            generation,
+        });
+    });
+    let observed = observer.ended.clone();
+    window.on_table_edit_ended(move |row, column, generation, outcome, message| {
+        observed.borrow_mut().push(ObservedSessionEnd {
+            address: SessionAddress {
+                row,
+                column,
+                generation,
+            },
+            outcome,
+            message: message.to_string(),
+        });
+    });
+    observer
+}
+
+#[test]
+fn edit_session_events_name_the_armed_cell_and_distinguish_unchanged_cancel_and_commit() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    let address = SessionAddress {
+        row: 1,
+        column: QUANTITY,
+        generation: 1,
+    };
+    open(&window, 1);
+    assert_eq!(
+        observed.started.borrow().as_slice(),
+        std::slice::from_ref(&address)
+    );
+    assert_eq!(
+        (
+            window.get_table_edit_row(),
+            window.get_table_edit_column(),
+            window.get_table_edit_generation()
+        ),
+        (1, QUANTITY, 1)
+    );
+    assert_eq!(window.get_table_edit_draft(), "12");
+    text(&window, "7");
+    assert_eq!(window.get_table_edit_draft(), "7");
+    key(&window, Key::Escape);
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::Cancelled
+    );
+    assert_eq!(observed.ended.borrow()[0].address, address);
+    assert!(commits.borrow().is_empty());
+    open(&window, 1);
+    window.invoke_focus_paste();
+    flush();
+    assert_eq!(
+        observed.ended.borrow()[1].outcome,
+        ui::TableEditOutcome::Unchanged
+    );
+    assert!(observed.ended.borrow()[1].message.is_empty());
+    assert!(commits.borrow().is_empty());
+    text(&window, "Destination");
+    assert_eq!(window.get_pasted(), "Destination");
+    window.invoke_focus_table();
+    open(&window, 1);
+    text(&window, "8");
+    key(&window, Key::Return);
+    assert_eq!(
+        observed.ended.borrow()[2].outcome,
+        ui::TableEditOutcome::Committed
+    );
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(commits.borrow()[0].3.value.text, "8");
+    open(&window, 1);
+    key(&window, Key::Return);
+    assert_eq!(
+        observed.ended.borrow()[3].outcome,
+        ui::TableEditOutcome::Unchanged
+    );
+    assert_eq!(commits.borrow().len(), 2);
+    window.set_table_unchanged_edit_policy(ui::TableUnchangedEditPolicy::Skip);
+    open(&window, 1);
+    key(&window, Key::Return);
+    assert_eq!(
+        observed.ended.borrow()[4].outcome,
+        ui::TableEditOutcome::Unchanged
+    );
+    assert_eq!(commits.borrow().len(), 2);
+    assert_eq!(observed.started.borrow().len(), 5);
+    assert_eq!(observed.ended.borrow().len(), 5);
+    assert!(
+        observed
+            .ended
+            .borrow()
+            .iter()
+            .all(|event| event.address == address)
+    );
+}
+
+#[test]
+fn rejected_blur_and_superseding_projection_report_the_last_error_and_original_identity() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    open(&window, 1);
+    text(&window, "x");
+    window.invoke_focus_paste();
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::RejectedOnBlur
+    );
+    assert!(!observed.ended.borrow()[0].message.is_empty());
+    assert!(commits.borrow().is_empty());
+    window.invoke_focus_table();
+    open(&window, 2);
+    window.set_table_generation(2);
+    flush();
+    assert_eq!(
+        observed.ended.borrow()[1].outcome,
+        ui::TableEditOutcome::Superseded
+    );
+    assert_eq!(
+        observed.ended.borrow()[1].address,
+        SessionAddress {
+            row: 1,
+            column: OWNER,
+            generation: 1
+        }
+    );
+    open(&window, 2);
+    let model = window.get_rows();
+    let mut record = model.row_data(0).unwrap();
+    record.disabled = true;
+    model.set_row_data(0, record);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(
+        observed.ended.borrow()[2].outcome,
+        ui::TableEditOutcome::Superseded
+    );
+    assert_eq!(
+        observed.ended.borrow()[2].address,
+        SessionAddress {
+            row: 1,
+            column: OWNER,
+            generation: 2
+        }
+    );
+    assert!(commits.borrow().is_empty());
+}
+
+#[test]
+fn keep_open_blur_retains_the_native_invalid_draft_until_explicit_cancel() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    window.set_table_edit_blur_policy(ui::TableEditBlurPolicy::KeepOpen);
+    open(&window, 1);
+    text(&window, "x");
+    window.invoke_focus_paste();
+    flush();
+    assert!(window.get_table_editing());
+    assert!(observed.ended.borrow().is_empty());
+    assert_eq!(window.get_table_edit_draft(), "x");
+    assert!(!window.get_table_edit_error().is_empty());
+    text(&window, "y");
+    assert_eq!(
+        window.get_table_edit_draft(),
+        "xy",
+        "focus retention preserves the native caret"
+    );
+    assert_eq!(window.get_pasted(), "");
+    for _ in 0..3 {
+        down(&window, Key::Control);
+        text(&window, "z");
+        up(&window, Key::Control);
+    }
+    assert_eq!(
+        window.get_table_edit_draft(),
+        "12",
+        "native undo reaches the value before the rejected blur"
+    );
+    assert!(observed.ended.borrow().is_empty());
+    window.invoke_cancel_table();
+    flush();
+    assert_eq!(observed.ended.borrow().len(), 1);
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::Cancelled
+    );
+    assert!(commits.borrow().is_empty());
+    window.invoke_focus_paste();
+    text(&window, "Destination");
+    assert_eq!(window.get_pasted(), "Destination");
+}
+
+#[test]
+fn an_end_observer_can_open_another_cell_without_redirecting_the_accepted_commit() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let opened = Rc::new(std::cell::Cell::new(false));
+    let observed = opened.clone();
+    let weak = window.as_weak();
+    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+        if outcome == ui::TableEditOutcome::Committed && !observed.replace(true) {
+            assert_eq!((row, column, generation), (1, QUANTITY, 1));
+            let window = weak.upgrade().unwrap();
+            window.set_table_active(1);
+            window.set_table_active_column(2);
+            window.invoke_edit_table();
+        }
+    });
+    open(&window, 1);
+    text(&window, "8");
+    key(&window, Key::Return);
+    flush();
+    assert!(opened.get());
+    assert!(window.get_table_editing());
+    assert_eq!(
+        (window.get_table_edit_row(), window.get_table_edit_column()),
+        (2, OWNER)
+    );
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(
+        (
+            commits.borrow()[0].0,
+            commits.borrow()[0].1,
+            commits.borrow()[0].2
+        ),
+        (1, QUANTITY, 1)
+    );
+    assert_eq!(commits.borrow()[0].3.value.text, "8");
+    text(&window, "Next owner");
+    assert_eq!(window.get_table_edit_draft(), "Next owner");
+    key(&window, Key::Escape);
+    assert_eq!(commits.borrow().len(), 1);
+}
+
+#[test]
+fn session_bounds_follow_native_geometry_and_viewport_exit_reports_one_closed_outcome() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::{LogicalPosition, platform::WindowEvent};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install_field_specs(
+        &window,
+        [
+            FieldSpec::integer().named(quantity_key()),
+            owner_spec().named(owner_key()),
+        ],
+    )
+    .unwrap();
+    window.set_columns(columns());
+    let rows = (1..=1000)
+        .map(|token| {
+            record(
+                token,
+                &format!("Row {token}"),
+                12,
+                "Owner",
+                FieldAccess::Editable,
+            )
+        })
+        .collect::<Vec<_>>();
+    window.set_rows(ModelRc::new(VecModel::from(rows)));
+    window.set_table_active(0);
+    window.set_table_edit_blur_policy(ui::TableEditBlurPolicy::KeepOpen);
+    window.show().unwrap();
+    flush();
+    window.window().take_snapshot().unwrap();
+    let observed = observe_sessions(&window);
+    let commits = Rc::new(std::cell::Cell::new(0));
+    let counted = commits.clone();
+    window.on_cell_committed(move |_, _, _, _| counted.set(counted.get() + 1));
+    let wheel = |delta| {
+        let view = table(&window);
+        window
+            .window()
+            .dispatch_event(WindowEvent::PointerScrolled {
+                position: LogicalPosition::new(
+                    view.absolute_position().x + 8.,
+                    view.absolute_position().y + view.size().height / 2.,
+                ),
+                delta_x: 0.,
+                delta_y: delta,
+            });
+        flush();
+    };
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.set_columns(columns());
+            flush();
+            window.window().take_snapshot().unwrap();
+            window.invoke_focus_table();
+            open(&window, 1);
+            text(&window, "x");
+            key(&window, Key::Return);
+            window.window().take_snapshot().unwrap();
+            flush();
+            let before = window.get_table_edit_bounds();
+            assert!(before.valid && before.width > 0. && before.height > 0.);
+            let native = editors(&window).remove(0);
+            assert!((before.x - native.absolute_position().x).abs() < 0.5);
+            assert!((before.y - native.absolute_position().y).abs() < 0.5);
+            assert!((before.width - native.size().width).abs() < 0.5);
+            assert!((before.height - native.size().height).abs() < 0.5);
+            let columns = window.get_columns();
+            let mut first = columns.row_data(0).unwrap();
+            first.width = ColumnWidth {
+                sizing: ColumnSizing::Fixed,
+                basis: 200.,
+                ..Default::default()
+            };
+            columns.set_row_data(0, first);
+            flush();
+            window.window().take_snapshot().unwrap();
+            flush();
+            let after = window.get_table_edit_bounds();
+            let native = editors(&window).remove(0);
+            assert!(after.valid);
+            assert!((after.x - before.x).abs() > 1.);
+            assert!((after.x - native.absolute_position().x).abs() < 0.5);
+            assert!((after.width - native.size().width).abs() < 0.5);
+            let invalid = window.window().take_snapshot().unwrap();
+            crate::choice_presentation::save_capture(
+                &invalid,
+                &format!("table-session-observer-invalid-{name}-{scale}"),
+            );
+            let previous = observed.ended.borrow().len();
+            wheel(-10000.);
+            window.window().take_snapshot().unwrap();
+            flush();
+            assert!(!window.get_table_editing());
+            assert!(editors(&window).is_empty());
+            assert_eq!(observed.ended.borrow().len(), previous + 1);
+            assert_eq!(
+                observed.ended.borrow().last().unwrap().outcome,
+                ui::TableEditOutcome::ViewportExit
+            );
+            assert!(!observed.ended.borrow().last().unwrap().message.is_empty());
+            assert_eq!(commits.get(), 0);
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("table-session-observer-ended-{name}-{scale}"),
+            );
+            wheel(100000.);
+            window.window().take_snapshot().unwrap();
+            flush();
+        }
+    }
+    assert_eq!(observed.started.borrow().len(), 4);
+    assert_eq!(observed.ended.borrow().len(), 4);
+}
+
+#[test]
+fn a_verdict_that_replaces_the_projection_ends_the_original_session_as_superseded() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    let weak = window.as_weak();
+    window.on_validate_table_edit(move |_, _, _, _| {
+        weak.upgrade().unwrap().set_table_generation(2);
+        "".into()
+    });
+    open(&window, 2);
+    text(&window, "Changed owner");
+    key(&window, Key::Return);
+    flush();
+    assert!(!window.get_table_editing());
+    assert!(commits.borrow().is_empty());
+    assert_eq!(observed.ended.borrow().len(), 1);
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::Superseded
+    );
+    assert_eq!(
+        observed.ended.borrow()[0].address,
+        SessionAddress {
+            row: 1,
+            column: OWNER,
+            generation: 1
+        }
+    );
+}
+
+#[test]
+fn removing_an_edited_column_then_focusing_another_field_keeps_that_destination() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    let observed = observe_sessions(&window);
+    open(&window, 2);
+    text(&window, "Unsaved owner");
+    let remaining = vec![column(TITLE, "Title"), column(QUANTITY, "Quantity")];
+    window.set_columns(ModelRc::new(VecModel::from(remaining)));
+    window.invoke_focus_paste();
+    flush();
+    assert!(!window.get_table_editing());
+    assert!(commits.borrow().is_empty());
+    assert_eq!(observed.ended.borrow().len(), 1);
+    assert_eq!(
+        observed.ended.borrow()[0].outcome,
+        ui::TableEditOutcome::Superseded
+    );
+    text(&window, "Destination");
+    assert_eq!(window.get_pasted(), "Destination");
+}
