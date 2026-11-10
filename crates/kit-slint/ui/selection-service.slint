@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OptionRow, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason } from "contracts.slint";
+import { OptionRow, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
 import { Ownership } from "shared-contracts.slint";
 import { ExpansionMode, DisclosureRow, ChipRow } from "contracts.slint";
 
@@ -23,8 +23,8 @@ export global KitSelectionService {
     pure callback chips([OptionRow], [SelectionRef]) -> [ChipRow];
     pure callback toggle([OptionRow], [SelectionRef], int, int, int) -> MultipleTransition;
     in-out property <bool> ready;
-    pure callback project([OptionRow], [OptionRow], SelectionRef, SelectionRef, bool, int) -> SelectState;
-    pure callback reconcile([OptionRow], SelectionSession, Ownership) -> SelectionSession;
+    pure callback project([OptionRow], [OptionRow], SelectionRef, SelectionRef, bool, int, SelectionRetention) -> SelectState;
+    pure callback reconcile([OptionRow], SelectionSession, Ownership, SelectionRetention) -> SelectionSession;
     pure callback open([OptionRow], SelectionSession, Ownership) -> SelectionSession;
     pure callback navigate([OptionRow], SelectionSession, NavigationStep, Ownership) -> SelectionSession;
     pure callback dismiss([OptionRow], SelectionSession, CloseReason, Ownership) -> SelectionSession;
@@ -51,6 +51,7 @@ export component KitSelection inherits Rectangle {
     horizontal-stretch: 0; vertical-stretch: 0;
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
+    in property <SelectionRetention> retention: SelectionRetention.bound-to-options;
     in property <bool> persistent;
     in-out property <SelectionRef> selected;
     in-out property <string> query;
@@ -59,13 +60,21 @@ export component KitSelection inherits Rectangle {
     private property <int> gesture-source-generation: -1;
     private property <string> gesture-query;
     private property <int> source-generation: KitSelectionService.ready ? KitSelectionService.generation(root.options) : -1;
-    init => { root.invalidate(); }
+    private property <string> current-option-label: KitSelectionService.ready ? KitSelectionService.label(root.options, root.selected) : "";
+    private property <string> retained-label;
+    private property <int> retained-token: -1;
+    private property <string> last-chosen-label;
+    private property <int> last-chosen-token: -1;
+    init => { root.sync-retained-label(); root.invalidate(); }
     changed source-generation => { root.invalidate(); }
     changed query => { root.invalidate(); }
+    changed retention => { root.invalidate(); }
+    changed selected => { root.sync-retained-label(); }
+    changed current-option-label => { root.sync-retained-label(); }
     out property <[OptionRow]> rows: KitSelectionService.ready ? KitSelectionService.rows(root.options, root.query, root.gesture-generation) : root.options;
-    out property <SelectState> state: KitSelectionService.ready ? KitSelectionService.project(root.options, root.rows, root.selected, root.session.state.active, root.persistent || root.session.state.open, root.gesture-generation) : {selected: root.selected, active-index: -1, generation: -1};
+    out property <SelectState> state: KitSelectionService.ready ? KitSelectionService.project(root.options, root.rows, root.selected, root.session.state.active, root.persistent || root.session.state.open, root.gesture-generation, root.retention) : {selected: root.selected, active-index: -1, generation: -1};
     out property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.choices(root.rows, root.selected) : [];
-    out property <string> selected-label: KitSelectionService.ready ? KitSelectionService.label(root.options, root.selected) : "";
+    out property <string> selected-label: !root.selected.present ? "" : root.current-option-label != "" ? root.current-option-label : (root.retention == SelectionRetention.retain && root.selected.token == root.retained-token ? root.retained-label : "");
     // Slint has no model-map expression. Renderers project one static option at
     // a time in editor/viewer previews; transitions remain guarded by ready.
     public pure function preview-choice(index: int) -> ChoiceRow {
@@ -74,15 +83,32 @@ export component KitSelection inherits Rectangle {
     }
     private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp };
     callback chosen(OptionRow);
+    function sync-retained-label() {
+        if (!root.selected.present) {
+            root.retained-label = "";
+            root.retained-token = -1;
+        } else if (root.current-option-label != "") {
+            root.retained-label = root.current-option-label;
+            root.retained-token = root.selected.token;
+        } else if (root.selected.token == root.last-chosen-token && root.last-chosen-label != "") {
+            root.retained-label = root.last-chosen-label;
+            root.retained-token = root.selected.token;
+        } else if (root.selected.token != root.retained-token) {
+            root.retained-label = "";
+            root.retained-token = root.selected.token;
+        }
+    }
     function invalidate() {
+        root.sync-retained-label();
         root.gesture-source-generation = root.source-generation;
         root.gesture-query = root.query;
         if (KitSelectionService.ready) { root.gesture-generation = KitSelectionService.next-generation(root.gesture-generation); }
-        if (KitSelectionService.ready) { root.apply(KitSelectionService.reconcile(root.options, root.current-session, root.ownership)); }
+        if (KitSelectionService.ready) { root.apply(KitSelectionService.reconcile(root.options, root.current-session, root.ownership, root.retention)); }
     }
     function apply(session: SelectionSession) {
         root.session = session;
         root.selected = session.state.selected;
+        root.sync-retained-label();
     }
     public function open() {
         if (KitSelectionService.ready) { root.apply(KitSelectionService.open(root.rows, root.current-session, root.ownership)); }
@@ -94,6 +120,10 @@ export component KitSelection inherits Rectangle {
         if (!KitSelectionService.ready || root.source-generation < 0 || root.gesture-generation < 0 || root.gesture-source-generation != root.source-generation || root.gesture-query != root.query) { return; }
         let update = KitSelectionService.activate(root.rows, root.current-session, token, generation, root.ownership);
         let row = KitSelectionService.source(root.options, update.chosen.token);
+        if (update.chosen.present) {
+            root.last-chosen-token = update.chosen.token;
+            root.last-chosen-label = KitSelectionService.label(root.options, update.chosen);
+        }
         root.apply(update.session);
         if (update.chosen.present) {
             if (root.persistent) { root.session.state.active = {present: true, token: token}; }

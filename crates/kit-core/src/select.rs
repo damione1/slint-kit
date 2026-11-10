@@ -1,5 +1,5 @@
-use crate::Ownership;
 use crate::{DismissReason, NavigationStep};
+use crate::{Ownership, SelectionRetention};
 use std::collections::HashSet;
 use std::hash::Hash;
 
@@ -68,17 +68,43 @@ pub fn reduce_selection<K: Clone + Eq + Hash>(
     ownership: Ownership,
     event: SelectEvent<K>,
 ) -> Result<SelectTransition<K>, ModelError> {
+    let policy = match ownership {
+        Ownership::Local => RemovalPolicy::Clear,
+        Ownership::Controlled => RemovalPolicy::PreserveUnavailable,
+    };
+    reduce_selection_with_policy(options, session, ownership, policy, event)
+}
+
+/// Apply one event to explicit instance state with an explicit removal policy.
+pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
+    options: Vec<SelectOption<K>>,
+    session: SelectSession<K>,
+    ownership: Ownership,
+    removal_policy: RemovalPolicy,
+    event: SelectEvent<K>,
+) -> Result<SelectTransition<K>, ModelError> {
     let mut controller = SelectController::try_new(options, None, ownership)?;
     controller.removal_policy = match &event {
-        SelectEvent::Reconcile => match ownership {
-            Ownership::Local => RemovalPolicy::Clear,
-            Ownership::Controlled => RemovalPolicy::PreserveUnavailable,
+        SelectEvent::Reconcile => match (ownership, removal_policy) {
+            (Ownership::Local | Ownership::Controlled, RemovalPolicy::Retain) => {
+                RemovalPolicy::Retain
+            }
+            (Ownership::Controlled, RemovalPolicy::Clear | RemovalPolicy::PreserveUnavailable)
+            | (Ownership::Local, RemovalPolicy::PreserveUnavailable) => {
+                RemovalPolicy::PreserveUnavailable
+            }
+            (Ownership::Local, RemovalPolicy::Clear) => RemovalPolicy::Clear,
         },
         SelectEvent::Open
         | SelectEvent::Navigate { .. }
         | SelectEvent::Activate(_)
         | SelectEvent::Dismiss(_)
-        | SelectEvent::Typeahead { .. } => RemovalPolicy::PreserveUnavailable,
+        | SelectEvent::Typeahead { .. } => match removal_policy {
+            RemovalPolicy::Retain => RemovalPolicy::Retain,
+            RemovalPolicy::Clear | RemovalPolicy::PreserveUnavailable => {
+                RemovalPolicy::PreserveUnavailable
+            }
+        },
     };
     controller.state = session.selection;
     controller.reconcile_selection();
@@ -136,6 +162,15 @@ pub fn reduce_selection<K: Clone + Eq + Hash>(
 pub enum RemovalPolicy {
     Clear,
     PreserveUnavailable,
+    Retain,
+}
+impl From<SelectionRetention> for RemovalPolicy {
+    fn from(value: SelectionRetention) -> Self {
+        match value {
+            SelectionRetention::BoundToOptions => Self::Clear,
+            SelectionRetention::Retain => Self::Retain,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -244,14 +279,18 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
     }
 
     fn reconcile_selection(&mut self) {
-        if self.removal_policy == RemovalPolicy::Clear
-            && self
-                .state
-                .selected
-                .as_ref()
-                .is_some_and(|key| !self.options.iter().any(|o| &o.key == key))
-        {
-            self.state.selected = None;
+        match self.removal_policy {
+            RemovalPolicy::Clear => {
+                if self
+                    .state
+                    .selected
+                    .as_ref()
+                    .is_some_and(|key| !self.options.iter().any(|o| &o.key == key))
+                {
+                    self.state.selected = None;
+                }
+            }
+            RemovalPolicy::PreserveUnavailable | RemovalPolicy::Retain => {}
         }
     }
 
@@ -715,5 +754,30 @@ mod tests {
             assert_eq!(c.state().active, None);
         }
         assert!(c.commit().is_none());
+    }
+    #[test]
+    fn retain_policy_preserves_selection_across_remote_page_replacements() {
+        for ownership in [Ownership::Local, Ownership::Controlled] {
+            let session = SelectSession {
+                selection: SelectState {
+                    selected: Some(1),
+                    active: Some(1),
+                    open: true,
+                },
+                typeahead: "ap".into(),
+                last_typeahead_ms: Some(42),
+            };
+            let reduced = reduce_selection_with_policy(
+                vec![SelectOption::new(2, "Banana"), SelectOption::new(3, "Pear")],
+                session,
+                ownership,
+                RemovalPolicy::Retain,
+                SelectEvent::Reconcile,
+            )
+            .unwrap();
+            assert_eq!(reduced.session.selection.selected, Some(1));
+            assert_eq!(reduced.session.selection.active, Some(2));
+            assert!(reduced.intent.is_none());
+        }
     }
 }

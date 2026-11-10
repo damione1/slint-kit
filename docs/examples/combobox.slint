@@ -20,7 +20,7 @@ export component Example inherits Window {
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
-    in property <[OptionRow]> options: [{ token: 11, generation: 1, label: "Personal", description: "", disabled: false }, { token: 25, generation: 1, label: "Shared", description: "", disabled: false }, { token: 39, generation: 1, label: "Archive", description: "", disabled: false }, { token: 53, generation: 1, label: "Design studio", description: "", disabled: false }, { token: 67, generation: 1, label: "Engineering", description: "", disabled: false }, { token: 81, generation: 1, label: "Marketing", description: "", disabled: false }, { token: 95, generation: 1, label: "Research lab", description: "", disabled: false }, { token: 109, generation: 1, label: "Community", description: "", disabled: false }];
+    in property <[OptionRow]> options: [{ token: 11, generation: 1, label: "Personal", description: "Private notes and drafts", disabled: false }, { token: 25, generation: 1, label: "Shared", description: "Team documents", disabled: false }, { token: 39, generation: 1, label: "Archive", description: "Completed projects", disabled: false }, { token: 53, generation: 1, label: "Design studio", description: "UI systems and tokens", disabled: false }, { token: 67, generation: 1, label: "Engineering", description: "Architecture and releases", disabled: false }, { token: 81, generation: 1, label: "Marketing", description: "Campaigns and launches", disabled: false }, { token: 95, generation: 1, label: "Research lab", description: "User studies", disabled: false }, { token: 109, generation: 1, label: "Community", description: "Public discussions", disabled: false }];
 
     in-out property <string> query;
 
@@ -29,9 +29,11 @@ export component Example inherits Window {
         spacing: 16px;
         alignment: start;
         Text { text: "Find your workspace"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
-        Text { text: "Search eight workspaces by name, or browse with the arrow keys."; color: root.theme.text-secondary; wrap: word-wrap; }
+        Text { text: "Type in the inline field to filter workspaces, or browse with the arrow keys."; color: root.theme.text-secondary; wrap: word-wrap; }
         workspace := KitCombobox { theme: root.theme;
             label: "Workspace";
+            placeholder: "Search workspaces…";
+            clearable: true;
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Chosen: " + row.label; }
 
             query <=> root.query;

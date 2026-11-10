@@ -314,3 +314,312 @@ fn accordion_local_expansion_and_controlled_proposals_wait_for_acknowledgment() 
         "keyboard focus survives expansion and closes the next section"
     );
 }
+
+fn assert_combobox_retains_remote_page(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let apricot_ref = choices.selection(&Destination::Apricot).unwrap();
+    window.set_combo_selected(apricot_ref.clone());
+    // A host projection becomes displayed after the UI processes its changed handlers.
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert!(window.get_combo_validity().valid);
+
+    // Simulate remote search replacing the options with a page that omits Apricot.
+    choices
+        .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+        .unwrap();
+    assert_eq!(
+        choices.selection(&Destination::Apricot),
+        Some(apricot_ref.clone()),
+        "Choices retains stable token for known keys across remote pages"
+    );
+    assert_eq!(
+        choices.label(&Destination::Apricot).as_deref(),
+        Some("Apricot")
+    );
+    assert_eq!(window.get_combo_state().selected, apricot_ref);
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert_eq!(
+        window.get_combo_state().selection_availability,
+        slint_kit::ui::SelectionAvailability::Available
+    );
+    assert!(window.get_combo_validity().valid);
+
+    // Returning to a page that includes Apricot preserves its original token.
+    choices.replace(options()).unwrap();
+    assert_eq!(choices.selection(&Destination::Apricot), Some(apricot_ref));
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+}
+
+#[test]
+fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements_local() {
+    assert_combobox_retains_remote_page(slint_kit::ui::Ownership::Local);
+}
+
+#[test]
+fn combobox_retains_accepted_selection_and_label_across_remote_page_replacements_controlled() {
+    assert_combobox_retains_remote_page(slint_kit::ui::Ownership::Controlled);
+}
+
+#[test]
+fn combobox_inline_editing_respects_min_query_length_debounce_custom_value_and_clear() {
+    let (window, _choices) = fixture();
+    window.set_combo_min_query_length(2);
+    window.set_combo_query_debounce(50);
+    window.set_combo_allow_custom(true);
+    window.set_combo_clearable(true);
+
+    let queries = Rc::new(RefCell::new(Vec::new()));
+    let observed_queries = queries.clone();
+    window.on_combo_query_edited(move |q| observed_queries.borrow_mut().push(q.to_string()));
+
+    let customs = Rc::new(RefCell::new(Vec::new()));
+    let observed_customs = customs.clone();
+    window.on_combo_custom_chosen(move |val| observed_customs.borrow_mut().push(val.to_string()));
+
+    let cleared = Rc::new(RefCell::new(0usize));
+    let observed_cleared = cleared.clone();
+    window.on_combo_cleared(move || *observed_cleared.borrow_mut() += 1);
+
+    window.invoke_focus_combo();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "C".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "C".into() });
+    assert_eq!(window.get_combo_text(), "C");
+    assert_eq!(window.get_combo_query(), "");
+    assert!(!window.get_combo_state().open);
+    assert!(queries.borrow().is_empty());
+
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "u".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "u".into() });
+    assert_eq!(window.get_combo_text(), "Cu");
+    assert_eq!(window.get_combo_query(), "Cu");
+    assert!(window.get_combo_state().open);
+    assert!(
+        queries.borrow().is_empty(),
+        "debounced query waits for timer"
+    );
+
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(60));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(&*queries.borrow(), &["Cu"]);
+    assert!(
+        window.get_combo_validity().valid,
+        "allow-custom-value satisfies required with custom text"
+    );
+
+    // Pressing Return with no matching option commits the custom value.
+    key(&window, Key::Return);
+    assert_eq!(&*customs.borrow(), &["Cu"]);
+
+    // Clearing resets text, query, and emits cleared().
+    window.invoke_clear_combo();
+    assert_eq!(window.get_combo_text(), "");
+    assert_eq!(window.get_combo_query(), "");
+    assert_eq!(*cleared.borrow(), 1);
+}
+
+#[test]
+fn remote_labels_do_not_replace_a_focused_native_draft_or_its_undo_and_outside_focus_destination() {
+    let (window, choices) = fixture();
+    let accepted = choices.selection(&Destination::Apricot).unwrap();
+    window.set_combo_selected(accepted.clone());
+    window.set_acknowledged(accepted);
+    slint::platform::update_timers_and_animations();
+    window.invoke_focus_combo();
+    for _ in 0.."Apricot".len() {
+        key(&window, Key::RightArrow);
+    }
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "x".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "x".into() });
+    let editor = ElementQuery::from_root(&window)
+        .match_type_name("TextInput")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Search and select"))
+        .find_first()
+        .unwrap();
+    assert_eq!(window.get_combo_text(), "Apricotx");
+    choices
+        .replace(vec![
+            SelectOption::new(Destination::Apricot, "Renamed"),
+            SelectOption::new(Destination::Banana, "Banana"),
+        ])
+        .unwrap();
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_combo_selected_label(), "Renamed");
+    assert_eq!(window.get_combo_text(), "Apricotx");
+    assert!(window.get_combo_focused());
+    assert!(editor.is_valid());
+    key(&window, Key::Menu);
+    ElementQuery::from_root(&window)
+        .match_inherits("KitOption")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Undo"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(slint::platform::PointerEventButton::Left);
+    assert_eq!(window.get_combo_text(), "Apricot");
+    let outside = ElementQuery::from_root(&window)
+        .match_inherits("KitNavigationAction")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Renamed"))
+        .find_first()
+        .unwrap();
+    // Slint PopupWindow consumes the outside press while dismissing its child popup.
+    // A subsequent click reaches the intended parent control and must retain that focus.
+    outside.mock_single_click(slint::platform::PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(!window.get_combo_state().open);
+    outside.mock_single_click(slint::platform::PointerEventButton::Left);
+    slint::platform::update_timers_and_animations();
+    assert!(!window.get_combo_focused());
+    assert!(window.get_first_focused());
+    assert!(!window.get_combo_state().open);
+}
+
+#[test]
+fn falling_below_the_query_threshold_closes_suggestions_without_replacing_the_native_text() {
+    let (window, _choices) = fixture();
+    window.set_combo_min_query_length(2);
+    window.invoke_focus_combo();
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "Ap".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "Ap".into() });
+    assert!(window.get_combo_state().open);
+    key(&window, Key::Backspace);
+    assert_eq!(window.get_combo_text(), "A");
+    assert_eq!(window.get_combo_query(), "");
+    assert!(!window.get_combo_state().open);
+    assert!(window.get_combo_focused());
+}
+
+#[test]
+fn exposed_combobox_expand_action_is_idempotent_and_respects_access_guards() {
+    let (window, _choices) = fixture();
+    let combo = ElementQuery::from_root(&window)
+        .match_inherits("KitCombobox")
+        .find_first()
+        .unwrap();
+    assert_eq!(combo.accessible_expandable(), Some(true));
+    assert!(combo.accessible_description().unwrap().contains("Required"));
+    assert!(!window.get_combo_state().open);
+    combo.invoke_accessible_expand_action();
+    assert!(window.get_combo_state().open);
+    assert_eq!(window.get_combo_open_requests(), 1);
+    combo.invoke_accessible_expand_action();
+    assert!(window.get_combo_state().open);
+    assert_eq!(window.get_combo_open_requests(), 1);
+    key(&window, Key::Escape);
+    assert!(!window.get_combo_state().open);
+    for access in [
+        slint_kit::ui::FieldAccess::ReadOnly,
+        slint_kit::ui::FieldAccess::Disabled,
+    ] {
+        window.set_access(access);
+        assert_eq!(combo.accessible_expandable(), Some(false));
+        combo.invoke_accessible_expand_action();
+        assert!(!window.get_combo_state().open);
+        assert_eq!(window.get_combo_open_requests(), 1);
+    }
+}
+
+fn assert_combobox_reentrant_remote_choice(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let accepted = choices.selection(&Destination::Apricot).unwrap();
+    let weak = window.as_weak();
+    let replacement = choices.clone();
+    window.on_combo_chosen(move |row| {
+        let window = weak.unwrap();
+        window.set_combo_selected(slint_kit::ui::SelectionRef {
+            present: true,
+            token: row.token,
+        });
+        replacement
+            .replace(vec![SelectOption::new(Destination::Banana, "Banana")])
+            .unwrap();
+    });
+    window.invoke_focus_combo();
+    key(&window, Key::DownArrow);
+    assert!(window.get_combo_state().open);
+    key(&window, Key::DownArrow); // skip the disabled row to Apricot
+    key(&window, Key::Return);
+    assert_eq!(window.get_combo_selected(), accepted);
+    assert_eq!(window.get_combo_selected_label(), "Apricot");
+    assert!(!window.get_combo_state().open);
+}
+
+#[test]
+fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen_local() {
+    assert_combobox_reentrant_remote_choice(slint_kit::ui::Ownership::Local);
+}
+
+#[test]
+fn combobox_keyboard_choice_keeps_its_label_when_the_host_replaces_the_page_in_chosen_controlled() {
+    assert_combobox_reentrant_remote_choice(slint_kit::ui::Ownership::Controlled);
+}
+
+fn assert_combobox_native_clear(ownership: slint_kit::ui::Ownership) {
+    let (window, choices) = fixture();
+    window.set_ownership(ownership);
+    let cleared = Rc::new(RefCell::new(0));
+    let observed_clear = cleared.clone();
+    window.on_combo_cleared(move || *observed_clear.borrow_mut() += 1);
+    window.set_combo_selected(choices.selection(&Destination::Apricot).unwrap());
+    slint::platform::update_timers_and_animations();
+    let queries = Rc::new(RefCell::new(Vec::new()));
+    let observed = queries.clone();
+    window.on_combo_query_edited(move |query| observed.borrow_mut().push(query.to_string()));
+    window.invoke_clear_combo();
+    assert_eq!(window.get_combo_text(), "");
+    let accepted_until_ack = match ownership {
+        slint_kit::ui::Ownership::Local => false,
+        slint_kit::ui::Ownership::Controlled => true,
+    };
+    assert_eq!(window.get_combo_selected().present, accepted_until_ack);
+    assert_eq!(*cleared.borrow(), 1);
+    assert_eq!(&*queries.borrow(), &[""]);
+    key(&window, Key::Menu);
+    ElementQuery::from_root(&window)
+        .match_inherits("KitOption")
+        .match_predicate(|element| element.accessible_label().as_deref() == Some("Undo"))
+        .find_first()
+        .unwrap()
+        .mock_single_click(PointerEventButton::Left);
+    assert_eq!(
+        window.get_combo_text(),
+        "Apricot",
+        "Undo restores the actual native deletion"
+    );
+    window.set_combo_selected(Default::default());
+    assert!(!window.get_combo_selected().present);
+    for access in [
+        slint_kit::ui::FieldAccess::ReadOnly,
+        slint_kit::ui::FieldAccess::Disabled,
+    ] {
+        window.set_access(access);
+        window.invoke_clear_combo();
+        assert_eq!(window.get_combo_text(), "Apricot");
+        assert_eq!(*cleared.borrow(), 1);
+    }
+}
+#[test]
+fn combobox_public_clear_uses_native_undo_and_one_empty_query_locally() {
+    assert_combobox_native_clear(slint_kit::ui::Ownership::Local);
+}
+#[test]
+fn combobox_public_clear_uses_native_undo_and_waits_for_controlled_acknowledgment() {
+    assert_combobox_native_clear(slint_kit::ui::Ownership::Controlled);
+}

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
+- **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.
+
 - Publish expandable state and accessible expansion actions on select triggers, Collapse and Accordion; shared Select/Combobox/MultiSelect composition inherits the fix. Expand requests opening idempotently and preserves access and controlled-state guards. The pinned macOS AccessKit bridge still lacks native expanded/Expand exports.
 - Publie l’état développable et l’action accessible Développer sur les déclencheurs de sélection, Collapse et Accordion ; Select/Combobox/MultiSelect héritent du correctif partagé. Développer demande l’ouverture de façon idempotente et conserve les protections d’accès et d’état contrôlé. Le pont AccessKit macOS épinglé n’exporte toujours pas l’état développé ni Développer.
 
@@ -16,6 +19,18 @@
 - Les brouillons hexadécimaux/canaux suivent désormais les changements de couleur acceptée et de politique alpha hors focus, même après édition ou acquittement contrôlé. Un brouillon natif actif conserve curseur et historique jusqu’à la perte du focus.
 - Preserve surviving toast delegates, keyboard focus and independent hover/focus pauses across queue additions, expiry, dismissal and capacity eviction; use incremental keyed insertion/removal without replacing the toast model.
 - Conserve les délégués de toast survivants, leur focus clavier et leurs pauses indépendantes de survol/focus lors des ajouts, expirations, fermetures et évictions ; applique des insertions/retraits incrémentaux par clé sans remplacer le modèle de toasts.
+
+- Publish expandable state and an idempotent accessible expand action on the editable combobox root, with read-only/disabled guards.
+- Publie l’état dépliable et une action accessible d’ouverture idempotente sur la racine de combobox éditable, avec gardes de lecture seule et désactivation.
+
+- Keep an off-page accepted SelectBinding identity in a separate retained slot so its projection stays selected and cannot alias a row of a replacement page; resolve activations by token and generation.
+- Conserve l’identité acceptée hors page de SelectBinding dans un emplacement retenu distinct : sa projection reste sélectionnée sans désigner une ligne de remplacement ; les activations vérifient jeton et génération.
+
+- Preserve active combobox query drafts and native undo across remote label changes, keep outside-click focus destinations, and close suggestions below the minimum query length.
+- Conserve les brouillons de recherche de combobox et l’historique natif lors des changements de libellé distant, respecte le focus du clic extérieur et ferme les suggestions sous le seuil de recherche.
+
+- Rebuild `KitCombobox` around an inline native `KitTextField` and a non-focus-stealing suggestion popup (`accessible-role: combobox`), and retain accepted selections and their labels across remote `options` page replacements (`SelectionRetention.retain`, `RemovalPolicy::Retain`, `Choices::retain`, `Choices::label`, `SelectBinding::set_removal_policy`). Add `text`, `placeholder`, `allow-custom-value` (`custom-chosen`), `clearable`/`clear()` (`cleared`), `min-query-length`, `query-debounce`, `loading-label`, option descriptions, inline/popup loading indicators that keep current rows visible, and `near-end-rows`/`end-near` (`end-reached`). **Behavior change:** `KitCombobox` now edits inline in its text field instead of opening a separate search field inside the popup, and defaults to `SelectionRetention.retain`.
+- Reconstruit `KitCombobox` autour d’un `KitTextField` natif en ligne et d’un popup de suggestions sans capture de focus (`accessible-role: combobox`), et conserve la sélection acceptée ainsi que son libellé lors du remplacement des pages `options` distantes (`SelectionRetention.retain`, `RemovalPolicy::Retain`, `Choices::retain`, `Choices::label`, `SelectBinding::set_removal_policy`). Ajoute `text`, `placeholder`, `allow-custom-value` (`custom-chosen`), `clearable`/`clear()` (`cleared`), `min-query-length`, `query-debounce`, `loading-label`, les descriptions d’options, l’état de chargement en ligne et en popup conservant les lignes affichées, et `near-end-rows`/`end-near` (`end-reached`). **Changement de comportement :** `KitCombobox` s’édite désormais directement en ligne au lieu d’ouvrir un champ de recherche séparé dans le popup, et utilise `SelectionRetention.retain` par défaut.
 
 - Sliders and color-channel sliders now cancel only an active pointer gesture on Escape. Outside a gesture, Escape preserves keyboard edits and host-published values and bubbles to the parent.
 - Les curseurs et curseurs de canaux couleur n’annulent sur Échap qu’un geste de pointeur actif. Hors geste, Échap conserve les modifications au clavier et les valeurs publiées par l’hôte, puis remonte au parent.

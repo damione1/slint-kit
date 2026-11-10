@@ -10,8 +10,8 @@ import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
-import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
-export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability } from "contracts.slint";
+import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
+export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 
 // One key translator is shared by both the standard and composed surfaces.
 // Selection, skip-disabled, search and identity reconciliation stay in kit-core.
@@ -161,6 +161,7 @@ export component KitSelectSurface inherits Rectangle {
     in property <length> row-height: 48px;
     in property <length> viewport-height: content-box.height;
     in property <bool> searchable: true;
+    in property <bool> focus-on-open: true;
     in property <bool> focus-search-on-open: false;
     in property <bool> empty;
     in property <string> empty-label: "No matching options";
@@ -190,8 +191,8 @@ export component KitSelectSurface inherits Rectangle {
     changed row-height => { root.ensure-active-visible(); }
     changed viewport-height => { root.ensure-active-visible(); }
     private property <bool> opened: root.state.open;
-    changed opened => { if (root.opened) { root.take-focus(); root.ensure-active-visible(); } }
-    init => { if (root.state.open) { root.take-focus(); root.ensure-active-visible(); } }
+    changed opened => { if (root.opened) { if (root.focus-on-open) { root.take-focus(); } root.ensure-active-visible(); } }
+    init => { if (root.state.open) { if (root.focus-on-open) { root.take-focus(); } root.ensure-active-visible(); } }
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
     private property <length> inset: KitMetrics.popover-inset(root.theme);

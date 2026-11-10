@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCombobox, KitSelect, OptionRow, SelectState, KitThemes, KitThemeContext, ControlSize } from "@kit";
+import { KitCombobox, KitSelect, OptionRow, SelectState, SearchPresentation, KitThemes, KitThemeContext, ControlSize } from "@kit";
 
 export component SelectGeometryFixture inherits Window {
     width: 520px; height: 420px;
@@ -7,14 +7,49 @@ export component SelectGeometryFixture inherits Window {
     in property <bool> combobox;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
+    in property <SearchPresentation> search-state: SearchPresentation.idle;
+    in property <string> status-text;
+    in property <length> popup-height: 320px;
+    in property <length> row-height: 48px;
+    in property <string> selected-label: "Personal";
     in-out property <string> query;
+    callback end-reached();
     if root.combobox: KitCombobox {
         x: 24px; y: 24px; width: 472px;
         rows: root.rows; state: root.state; query <=> root.query;
-        label: "Workspace"; selected-label: "Personal";
+        search-state: root.search-state; status-text: root.status-text;
+        popup-height: root.popup-height; row-height: root.row-height;
+        label: "Workspace"; selected-label: root.selected-label;
+        end-reached => { root.end-reached(); }
     }
     if !root.combobox: KitSelect {
         x: 24px; y: 24px; width: 472px;
         rows: root.rows; state: root.state;
+        popup-height: root.popup-height; row-height: root.row-height;
+    }
+}
+
+import { KitTheme, KitThemes, KitMetrics, KitStrings } from "@kit";
+export component ComboboxDefaultsFixture inherits Window {
+    width: 520px; height: 480px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    out property <length> field-height: combo.height;
+    out property <length> intrinsic-height: combo.preferred-height;
+    out property <length> row-height: combo.row-height;
+    out property <length> popup-height: combo.popup-height;
+    out property <length> expected-inset: KitMetrics.popover-inset(root.theme);
+    out property <string> loading-label: combo.loading-label;
+    out property <bool> editor-focused: combo.has-focus;
+    public function focus-editor() { combo.take-focus(); }
+    background: root.theme.canvas;
+    combo := KitCombobox {
+        x: 24px; y: 24px; width: parent.width - 48px;
+        theme: root.theme; label: "Directory";
+        search-state: SearchPresentation.loading;
+        options: [
+            {token: 41, generation: 1, label: "Workspace", description: "Shared workspace", disabled: false},
+            {token: 42, generation: 1, label: "Archive", description: "Older workspace", disabled: false},
+        ];
     }
 }

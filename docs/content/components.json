@@ -839,126 +839,264 @@
   },
   "KitCombobox": {
     "fr": {
-      "label": "Liste avec recherche",
-      "seoTitle": "Combobox Slint avec recherche",
-      "summary": "Combobox Slint avec recherche, navigation clavier et clés de choix Rust stables via Choices.",
-      "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. La recherche préserve l’édition native. Les contrôles en lecture seule ou désactivés ne s’ouvrent pas et ne choisissent rien ; la fermeture restitue le focus au déclencheur, et Tab suit le parcours configuré. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
+      "label": "Combobox éditable",
+      "seoTitle": "Combobox éditable avec recherche pour Slint",
+      "summary": "Combobox Slint à éditeur natif en ligne, popup d’autocomplétion et clés de choix Rust stables via Choices.",
+      "usage": "Passez `options` depuis `Choices<K>::model()`, liez éventuellement `selected` et traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. En recherche distante, `retention: SelectionRetention.retain` (par défaut) conserve la sélection acceptée et son dernier libellé affiché lors du remplacement de la page. Pour une clé retenue jamais affichée, enregistrez-la via `Choices::retain` puis fournissez `Choices::label` à `selected-label`.",
+      "behavior": "L’éditeur en ligne `KitTextField` conserve le focus, le curseur, la sélection, l’annulation et l’IME natifs pendant que le popup d’autocomplétion (`PopupWindow` sans capture de focus) présente les options filtrées avec leur `label` et leur `description`. Haut/Bas ouvrent la liste et déplacent l’élément actif, Entrée accepte l’option active (ou émet `custom-chosen(text)` lorsque `allow-custom-value` vaut `true`), Échap ferme le popup en conservant le texte saisi, et la perte de focus restaure `selected-label` lorsque `allow-custom-value` vaut `false`. `min-query-length` et `query-debounce` encadrent `query-edited(string)`, `search-state: SearchPresentation.loading` affiche un indicateur en ligne et un pied de popup sans masquer les résultats existants, et `end-reached()` signale l’approche de la fin de liste. Les hooks clavier publics renvoient `KitKeyResult` (`accept` ou `reject`). Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les changements de libellé distant conservent le brouillon natif actif, son curseur et son historique. Fermer les suggestions par un clic extérieur laisse le focus sur la destination cliquée. Repasser sous min-query-length ferme les suggestions sans remplacer le texte saisi. La racine combobox exposée publie les états expandable/expanded et une action d’ouverture idempotente sans argument ; les contrôles en lecture seule ou désactivés ne s’ouvrent pas. Avec les popups enfants Slint 1.18.1, le premier appui extérieur ferme les suggestions et est consommé par le popup ; l’appui suivant atteint le contrôle extérieur. Tab ferme les suggestions et avance normalement. Le champ garde la hauteur intrinsèque de son éditeur natif même hors layout ; le popup de suggestions s’ancre sous ce champ.",
       "related": [
         "KitSelect",
-        "KitMultiSelect"
+        "KitMultiSelect",
+        "KitTextField"
       ],
       "properties": {
         "options": {
-          "effect": "Les lignes source, issues de `Choices<K>::model()` en Rust : chaque `OptionRow` porte un `token` stable, la `generation` de la source, un `label`, une `description` et `disabled`. L’instance les filtre par `query` dans `rows` et y résout `selected`.",
-          "default": "Vide : le déclencheur affiche `placeholder` et le popup n’a aucune ligne.",
+          "effect": "Les lignes source, issues de `Choices<K>::model()` en Rust : chaque `OptionRow` porte un `token` stable, la `generation` de la source, un `label`, une `description` et `disabled`. L’instance les filtre par `query` dans `rows` et affiche le `label` et la `description` non vide de chaque option.",
+          "default": "Vide : l’éditeur affiche `placeholder` tant que `text` est vide et le popup n’a aucune ligne.",
           "example": "KitCombobox {\n    label: \"Responsable\";\n    options: root.personnes;\n    chosen(ligne) => { root.responsable-choisi(ligne); }\n}"
         },
         "selected": {
-          "effect": "L’option choisie sous forme de `SelectionRef`, liée dans les deux sens, indépendante du texte de recherche : effacer `query` la conserve. `chosen(OptionRow)` rapporte la ligne complète.",
+          "effect": "L’option choisie sous forme de `SelectionRef`, liée dans les deux sens, indépendante du brouillon de recherche `query`. `chosen(OptionRow)` rapporte la ligne complète.",
           "default": "Absente (`present: false`).",
-          "states": "Un jeton absent de `options` rend la sélection `unavailable` et fait d’`unavailable-label` le message de contrainte ; sous `Ownership.controlled`, l’hôte l’écrit pour acquitter.",
+          "states": "Avec `SelectionRetention.retain` (par défaut), remplacer `options` par une page distante conserve `selected`, son état `available` et le dernier `selected-label` connu ; avec `bound-to-options`, une sélection supprimée est effacée en mode local et devient `unavailable` en mode contrôlé. Sous `Ownership.controlled`, l’hôte écrit `selected` pour acquitter.",
           "example": "KitCombobox {\n    options: root.personnes;\n    selected: { present: true, token: 7 };\n}"
         },
+        "retention": {
+          "effect": "Politique de conservation de `selected` lors du remplacement de `options` : `retain` conserve le jeton accepté, sa disponibilité et son dernier libellé connu à travers les pages de recherche distante ; `bound-to-options` exige que le jeton demeure dans `options`.",
+          "default": "`SelectionRetention.retain`.",
+          "example": "KitCombobox {\n    options: root.resultats-distants;\n    retention: SelectionRetention.retain;\n}"
+        },
+        "text": {
+          "effect": "Texte affiché et édité dans le champ en ligne, lié dans les deux sens. Il suit `selected-label` lorsqu’une option est choisie, devient le brouillon pendant la saisie et revient à `selected-label` à la perte de focus si `allow-custom-value` vaut `false`.",
+          "default": "`root.selected-label`.",
+          "example": "KitCombobox {\n    options: root.villes;\n    text <=> root.saisie-ville;\n}"
+        },
+        "placeholder": {
+          "effect": "Texte indicatif affiché dans l’éditeur en ligne lorsque `text` est vide.",
+          "default": "`root.label`.",
+          "example": "KitCombobox {\n    label: \"Client\";\n    placeholder: \"Rechercher par nom ou société…\";\n    options: root.clients;\n}"
+        },
         "query": {
-          "effect": "Texte de l’éditeur de recherche du popup, lié dans les deux sens. Il filtre `rows` localement (libellé ou description, insensible à la casse) et `query-edited(string)` permet à l’hôte de lancer une recherche distante et de remplacer `options` ; l’éditeur garde curseur, sélection et IME natifs.",
+          "effect": "Requête de filtrage issue de l’éditeur en ligne, liée dans les deux sens. Elle filtre `rows` localement (libellé ou description, insensible à la casse) et déclenche `query-edited(string)` lorsque sa longueur atteint `min-query-length` (ou lorsqu’elle est effacée), après `query-debounce`.",
           "default": "`\"\"`.",
-          "example": "KitCombobox {\n    options: root.resultats;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+          "example": "KitCombobox {\n    options: root.resultats;\n    query <=> root.requete;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+        },
+        "allow-custom-value": {
+          "effect": "Autorise la conservation d’un `text` libre qui ne correspond à aucune option : à la perte de focus ou sur Entrée sans option active, `selected` est effacé et `custom-chosen(text)` est émis.",
+          "default": "`false`.",
+          "example": "KitCombobox {\n    options: root.etiquettes;\n    allow-custom-value: true;\n    custom-chosen(valeur) => { root.etiquette-libre(valeur); }\n}"
+        },
+        "clearable": {
+          "effect": "Affiche un bouton d’effacement dans le champ en ligne lorsque `access` vaut `editable` et qu’un texte ou une sélection est présent.",
+          "default": "`false`.",
+          "example": "KitCombobox {\n    options: root.clients;\n    clearable: true;\n    cleared => { root.client-efface(); }\n}"
+        },
+        "clear-label": {
+          "effect": "Nom accessible du bouton d’effacement.",
+          "default": "`KitStrings.clear-search-label`.",
+          "example": "KitCombobox {\n    options: root.clients;\n    clearable: true;\n    clear-label: \"Effacer le client\";\n}"
+        },
+        "loading-label": {
+          "effect": "Libellé d’occupation annoncé sur le champ en ligne et affiché dans le popup lorsque `search-state` vaut `loading` et que `status-text` est vide.",
+          "default": "`KitStrings.busy-label`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    search-state: SearchPresentation.loading;\n    loading-label: \"Recherche en cours…\";\n}"
+        },
+        "min-query-length": {
+          "effect": "Nombre minimal de caractères requis avant d’ouvrir les suggestions à la saisie et d’émettre `query-edited(string)`. Une requête ramenée à `\"\"` émet toujours `query-edited(\"\")` pour réinitialiser la source.",
+          "default": "`0`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    min-query-length: 2;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+        },
+        "query-debounce": {
+          "effect": "Délai avant l’émission de `query-edited(string)` après une frappe en ligne. `0ms` émet immédiatement à chaque frappe.",
+          "default": "`0ms`.",
+          "example": "KitCombobox {\n    options: root.resultats;\n    query-debounce: 200ms;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
+        },
+        "popup-height": {
+          "effect": "Hauteur maximale du popup de suggestions ; la liste s’adapte lorsque les lignes et le pied d’état tiennent dans moins d’espace.",
+          "default": "`6 * row-height + 2 * KitMetrics.popover-inset(theme)`.",
+          "example": "KitCombobox {\n    options: root.clients;\n    popup-height: 280px;\n}"
+        },
+        "row-height": {
+          "effect": "Hauteur de chaque ligne d’option dans le popup.",
+          "default": "Option recipe/control row height plus caption typography and theme gaps.",
+          "example": "KitCombobox {\n    options: root.clients;\n    row-height: 56px;\n}"
+        },
+        "near-end-rows": {
+          "effect": "Marge en nombre de lignes avant la fin de `rows` à partir de laquelle `end-near` passe à `true` et `end-reached()` est émis.",
+          "default": "`3`.",
+          "example": "KitCombobox {\n    options: root.clients;\n    near-end-rows: 5;\n    end-reached => { root.charger-page-suivante(); }\n}"
+        },
+        "end-near": {
+          "effect": "Vaut `true` lorsque la fenêtre visible du popup atteint les `near-end-rows` dernières lignes.",
+          "example": "combo := KitCombobox { options: root.clients; }\nText { text: combo.end-near ? \"Fin proche\" : \"\"; }"
         },
         "search-state": {
-          "effect": "Où en est la recherche de l’application : `idle`, `loading` (le popup vide affiche « Searching… »), `ready` ou `failed` (le popup vide affiche `status-text`).",
+          "effect": "Où en est la recherche de l’application : `idle`, `loading` (affiche le spinner en ligne et l’état dans le popup tout en conservant les lignes existantes), `ready` ou `failed` (affiche `status-text`).",
           "default": "`SearchPresentation.idle`.",
           "example": "KitCombobox {\n    options: root.resultats;\n    search-state: root.recherche-en-cours ? SearchPresentation.loading : SearchPresentation.ready;\n}"
         },
         "status-text": {
-          "effect": "Message affiché dans le popup vide tant que `search-state` vaut `failed`.",
+          "effect": "Message affiché dans le popup lorsque `search-state` vaut `loading` ou `failed`.",
           "default": "`\"\"`.",
           "example": "KitCombobox {\n    options: root.resultats;\n    search-state: SearchPresentation.failed;\n    status-text: \"L’annuaire est inaccessible.\";\n}"
         },
         "label": {
-          "effect": "Nom accessible du déclencheur et de l’éditeur de recherche, affiché dans le déclencheur tant que rien n’est sélectionné. Aucune ligne de libellé visible n’est rendue : composez un `KitFieldLabel` pour en avoir une.",
+          "effect": "Nom accessible du combobox et valeur par défaut de `placeholder`. Aucune ligne de libellé visible n’est rendue : composez un `KitFieldLabel` pour en avoir une.",
           "default": "`\"Search and select\"`.",
           "example": "KitCombobox {\n    label: \"Client\";\n    options: root.clients;\n}"
         },
         "selected-label": {
-          "effect": "Texte affiché dans le déclencheur et dans le champ en lecture seule ; lié par défaut au libellé de l’option sélectionnée et remplaçable pour une projection contrôlée.",
+          "effect": "Libellé de l’option sélectionnée, conservé à travers les remplacements de pages distantes lorsque `retention` vaut `retain` et remplaçable pour une projection contrôlée.",
           "example": "KitCombobox {\n    options: root.clients;\n    selected-label: root.nom-client;\n}"
         },
         "access": {
-          "effect": "`read-only` remplace le déclencheur par un champ texte en lecture seule affichant `selected-label` ; `disabled` refuse l’interaction et ferme un popup ouvert.",
+          "effect": "`read-only` place l’éditeur en ligne en lecture seule et empêche l’ouverture du popup ; `disabled` refuse toute interaction et ferme un popup ouvert.",
           "default": "`FieldAccess.editable`.",
           "example": "KitCombobox {\n    options: root.clients;\n    selected: root.client;\n    access: FieldAccess.read-only;\n}"
         }
       },
       "callbacks": {
+        "cleared": "Émis après l’effacement du texte et de la sélection via `clear()` ou le bouton `clearable`.",
+        "custom-chosen": "Émis avec le texte libre accepté lorsque `allow-custom-value` vaut `true` et que l’utilisateur valide sur Entrée ou quitte le champ sans option correspondante.",
+        "end-reached": "Émis à l’entrée de la fenêtre visible du popup dans les `near-end-rows` dernières lignes pour charger la page suivante.",
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
       },
       "functions": {
+        "clear": "Délègue la suppression du texte modifiable non vide à l’éditeur natif, en conservant annulation et protection de composition ; cleared() suit une suppression terminée et la recherche vide est émise une fois. La propriété locale efface selected immédiatement ; l’hôte contrôlé acquitte via selected. Une action vide ou refusée n’émet pas cleared(). Un popup déjà ouvert reste ouvert.",
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les champs obligatoires ajoutent KitStrings.required-label localisé aux descriptions du combobox et de l’éditeur natif ; Slint 1.18.1 ne fournit pas de propriété publique accessible-required."
     },
     "en": {
-      "label": "Searchable combobox",
-      "seoTitle": "Searchable combobox for Slint",
-      "summary": "Searchable Slint combobox with keyboard navigation and stable Rust choice keys through Choices.",
-      "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Search preserves native text editing. Read-only and disabled controls do not open or choose; popup closure restores the trigger focus, while Tab follows the configured traversal. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
+      "label": "Editable combobox",
+      "seoTitle": "Editable searchable combobox for Slint",
+      "summary": "Editable Slint combobox with an inline native text field, autocomplete popup and stable Rust choice keys through Choices.",
+      "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. For remote search, keep `retention: SelectionRetention.retain` (the default) so replacing `options` with a new result page preserves an accepted selection and its last displayed label. For a retained key never shown in the component, register it with `Choices::retain` and supply `Choices::label` through `selected-label`.",
+      "behavior": "The inline `KitTextField` keeps native focus, caret, selection, undo and IME while the non-focus-stealing `PopupWindow` displays filtered options with both `label` and `description`. Up/Down open the popup and move the active option, Enter accepts the active option (or emits `custom-chosen(text)` when `allow-custom-value` is `true`), Escape closes the popup while keeping typed text, and blur restores `selected-label` when `allow-custom-value` is `false`. `min-query-length` and `query-debounce` gate `query-edited(string)`, `search-state: SearchPresentation.loading` shows inline and popup loading indicators without hiding current rows, and `end-reached()` signals incremental pagination. Public keyboard hooks return `KitKeyResult` (`accept` or `reject`). See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Remote label changes preserve an active native query draft and its caret/undo history. Closing suggestions by an outside click leaves focus on the clicked destination. Dropping below min-query-length closes suggestions without replacing the typed text. The exposed combobox root publishes expandable/expanded state and an idempotent, argument-free expand action; read-only and disabled controls do not expand. With Slint 1.18.1 child popups, the first outside pointer press dismisses suggestions and is consumed by the popup; a following press reaches the outside control. Keyboard Tab closes suggestions and advances normally. The field keeps its native editor’s intrinsic height even outside a layout; the suggestion popup anchors below that field.",
       "related": [
         "KitSelect",
-        "KitMultiSelect"
+        "KitMultiSelect",
+        "KitTextField"
       ],
       "properties": {
         "options": {
-          "effect": "The source rows, from `Choices<K>::model()` in Rust: each `OptionRow` carries a stable `token`, the source `generation`, a `label`, a `description` and `disabled`. The instance filters them by `query` into `rows` and resolves `selected` against them.",
-          "default": "Empty: the trigger shows `placeholder` and the popup has no row.",
+          "effect": "The source rows, from `Choices<K>::model()` in Rust: each `OptionRow` carries a stable `token`, the source `generation`, a `label`, a `description` and `disabled`. The instance filters them by `query` into `rows` and renders each option's `label` and nonempty `description`.",
+          "default": "Empty: the inline editor shows `placeholder` while `text` is empty and the popup has no row.",
           "example": "KitCombobox {\n    label: \"Assignee\";\n    options: root.people;\n    chosen(row) => { root.assignee-chosen(row); }\n}"
         },
         "selected": {
-          "effect": "The chosen option as a `SelectionRef`, two-way, independent of the search text: clearing `query` keeps it. `chosen(OptionRow)` reports the full row.",
+          "effect": "The chosen option as a `SelectionRef`, two-way, independent of the search draft `query`. `chosen(OptionRow)` reports the full row.",
           "default": "Absent (`present: false`).",
-          "states": "A token missing from `options` makes the selection `unavailable` and `unavailable-label` the constraint message; under `Ownership.controlled` the host writes it to acknowledge.",
+          "states": "With `SelectionRetention.retain` (the default), replacing `options` with a remote search page preserves `selected`, its `available` state and the last known `selected-label`; with `bound-to-options`, a removed selection is cleared under local ownership and becomes `unavailable` under controlled ownership. Under `Ownership.controlled` the host writes `selected` to acknowledge.",
           "example": "KitCombobox {\n    options: root.people;\n    selected: { present: true, token: 7 };\n}"
         },
+        "retention": {
+          "effect": "How `selected` behaves when `options` is replaced: `retain` preserves the accepted token, its availability and its last known label across remote search pages; `bound-to-options` requires the token to stay in `options`.",
+          "default": "`SelectionRetention.retain`.",
+          "example": "KitCombobox {\n    options: root.remote-results;\n    retention: SelectionRetention.retain;\n}"
+        },
+        "text": {
+          "effect": "Text displayed and edited in the inline field, two-way. It follows `selected-label` when an option is chosen, holds the live draft while typing and reverts to `selected-label` on blur when `allow-custom-value` is `false`.",
+          "default": "`root.selected-label`.",
+          "example": "KitCombobox {\n    options: root.cities;\n    text <=> root.city-input;\n}"
+        },
+        "placeholder": {
+          "effect": "Placeholder shown in the inline editor while `text` is empty.",
+          "default": "`root.label`.",
+          "example": "KitCombobox {\n    label: \"Customer\";\n    placeholder: \"Search by name or company…\";\n    options: root.customers;\n}"
+        },
         "query": {
-          "effect": "Text of the live search editor in the popup, two-way. It filters `rows` locally (label or description, case-insensitive) and `query-edited(string)` lets the host run a remote search and replace `options`; the editor keeps native caret, selection and IME.",
+          "effect": "Filter query driven by the inline editor, two-way. It filters `rows` locally (label or description, case-insensitive) and emits `query-edited(string)` once its length reaches `min-query-length` (or when cleared), after `query-debounce`.",
           "default": "`\"\"`.",
-          "example": "KitCombobox {\n    options: root.results;\n    query-edited(text) => { root.search(text); }\n}"
+          "example": "KitCombobox {\n    options: root.results;\n    query <=> root.search-query;\n    query-edited(text) => { root.search(text); }\n}"
+        },
+        "allow-custom-value": {
+          "effect": "Allows keeping free-form `text` that does not match any option: on blur or Enter without an active option, `selected` is cleared and `custom-chosen(text)` is emitted.",
+          "default": "`false`.",
+          "example": "KitCombobox {\n    options: root.tags;\n    allow-custom-value: true;\n    custom-chosen(value) => { root.custom-tag(value); }\n}"
+        },
+        "clearable": {
+          "effect": "Shows an inline clear button while `access` is `editable` and either `text` or `selected` is non-empty.",
+          "default": "`false`.",
+          "example": "KitCombobox {\n    options: root.customers;\n    clearable: true;\n    cleared => { root.customer-cleared(); }\n}"
+        },
+        "clear-label": {
+          "effect": "Accessible name of the inline clear button.",
+          "default": "`KitStrings.clear-search-label`.",
+          "example": "KitCombobox {\n    options: root.customers;\n    clearable: true;\n    clear-label: \"Clear customer\";\n}"
+        },
+        "loading-label": {
+          "effect": "Busy label announced on the inline field and shown in the popup status row while `search-state` is `loading` and `status-text` is empty.",
+          "default": "`KitStrings.busy-label`.",
+          "example": "KitCombobox {\n    options: root.results;\n    search-state: SearchPresentation.loading;\n    loading-label: \"Searching directory…\";\n}"
+        },
+        "min-query-length": {
+          "effect": "Minimum character count required before typing opens suggestions and emits `query-edited(string)`. Clearing the query back to `\"\"` always emits `query-edited(\"\")` so the host can reset options.",
+          "default": "`0`.",
+          "example": "KitCombobox {\n    options: root.results;\n    min-query-length: 2;\n    query-edited(text) => { root.search(text); }\n}"
+        },
+        "query-debounce": {
+          "effect": "Delay before emitting `query-edited(string)` after inline typing. `0ms` emits immediately on every edit.",
+          "default": "`0ms`.",
+          "example": "KitCombobox {\n    options: root.results;\n    query-debounce: 200ms;\n    query-edited(text) => { root.search(text); }\n}"
+        },
+        "popup-height": {
+          "effect": "Maximum height of the suggestion popup; the popup shrinks when the rows and status footer fit in less space.",
+          "default": "`6 * row-height + 2 * KitMetrics.popover-inset(theme)`.",
+          "example": "KitCombobox {\n    options: root.customers;\n    popup-height: 280px;\n}"
+        },
+        "row-height": {
+          "effect": "Height of each option row in the popup.",
+          "default": "Hauteur de recette d’option/ligne de contrôle, plus typographie de légende et espacements du thème.",
+          "example": "KitCombobox {\n    options: root.customers;\n    row-height: 56px;\n}"
+        },
+        "near-end-rows": {
+          "effect": "Number of trailing rows in `rows` within which `end-near` becomes `true` and `end-reached()` is emitted.",
+          "default": "`3`.",
+          "example": "KitCombobox {\n    options: root.customers;\n    near-end-rows: 5;\n    end-reached => { root.load-more(); }\n}"
+        },
+        "end-near": {
+          "effect": "Whether the popup viewport has reached the last `near-end-rows` rows.",
+          "example": "combo := KitCombobox { options: root.customers; }\nText { text: combo.end-near ? \"Near end\" : \"\"; }"
         },
         "search-state": {
-          "effect": "Where the application's search stands: `idle`, `loading` (the empty popup says \"Searching…\"), `ready`, or `failed` (the empty popup shows `status-text`).",
+          "effect": "Where the application's search stands: `idle`, `loading` (shows the inline spinner and popup status row while keeping existing rows visible), `ready`, or `failed` (shows `status-text`).",
           "default": "`SearchPresentation.idle`.",
           "example": "KitCombobox {\n    options: root.results;\n    search-state: root.searching ? SearchPresentation.loading : SearchPresentation.ready;\n}"
         },
         "status-text": {
-          "effect": "Message shown in the empty popup while `search-state` is `failed`.",
+          "effect": "Message shown in the popup while `search-state` is `loading` or `failed`.",
           "default": "`\"\"`.",
           "example": "KitCombobox {\n    options: root.results;\n    search-state: SearchPresentation.failed;\n    status-text: \"The directory is unreachable.\";\n}"
         },
         "label": {
-          "effect": "Accessible name of the trigger and of the search editor, shown in the trigger while nothing is selected. No visible label row is rendered: compose a `KitFieldLabel` for one.",
+          "effect": "Accessible name of the combobox and default `placeholder` text. No visible label row is rendered: compose a `KitFieldLabel` for one.",
           "default": "`\"Search and select\"`.",
           "example": "KitCombobox {\n    label: \"Customer\";\n    options: root.customers;\n}"
         },
         "selected-label": {
-          "effect": "Text shown in the trigger and in the read-only field; bound to the selected option's label by default and overridable for a controlled projection.",
+          "effect": "Label of the selected option, retained across remote page replacements while `retention` is `retain` and overridable for a controlled projection.",
           "example": "KitCombobox {\n    options: root.customers;\n    selected-label: root.customer-name;\n}"
         },
         "access": {
-          "effect": "`read-only` replaces the trigger by a read-only text field showing `selected-label`; `disabled` refuses interaction and closes an open popup.",
+          "effect": "`read-only` makes the inline text field read-only and prevents opening the popup; `disabled` refuses interaction and closes an open popup.",
           "default": "`FieldAccess.editable`.",
           "example": "KitCombobox {\n    options: root.customers;\n    selected: root.customer;\n    access: FieldAccess.read-only;\n}"
         }
       },
       "callbacks": {
+        "cleared": "Emitted after clearing the text and selection through `clear()` or the `clearable` button.",
+        "custom-chosen": "Emitted with the accepted free-form text when `allow-custom-value` is `true` and the user commits with Enter or blurs without a matching option.",
+        "end-reached": "Emitted when the popup viewport enters the last `near-end-rows` rows so the host can load the next page.",
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
       },
       "functions": {
+        "clear": "Delegate nonempty editable text deletion to the native editor, preserving undo and its composition guard; cleared() follows a completed deletion and the empty query is published once. Local ownership clears selected immediately; controlled owners acknowledge through selected. Empty or refused native actions do not emit cleared(). An already-open suggestion popup remains open.",
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Required fields use the localized KitStrings.required-label in the combobox and native editor descriptions; Slint 1.18.1 has no public accessible-required property."
     }
   },
   "KitContainer": {

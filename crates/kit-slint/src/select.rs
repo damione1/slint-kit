@@ -16,7 +16,7 @@ pub struct ProjectedOption {
     pub disabled: bool,
 }
 
-/// A coherent, immutable projection. Tokens are positions valid only within this
+/// A coherent, immutable projection. Tokens are opaque identities guarded by
 /// generation; the controller retains the application's actual stable keys.
 #[derive(Clone, Debug)]
 pub struct SelectProjection {
@@ -32,8 +32,10 @@ pub struct SelectProjection {
 type IntentHandler<K> = Rc<dyn Fn(SelectionIntent<K>)>;
 struct Inner<K> {
     controller: SelectController<K>,
+    removal_policy: RemovalPolicy,
     source: Vec<SelectOption<K>>,
     source_index: HashMap<K, i32>,
+    retained_selection: Option<(K, i32)>,
     query: String,
     rows: Rc<Vec<ProjectedOption>>,
     rows_generation: u64,
@@ -70,10 +72,16 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         let mut controller = SelectController::new(options.clone(), selected, ownership);
         // Filtering is a view operation, not removal of the application value.
         controller.set_removal_policy(RemovalPolicy::PreserveUnavailable);
+        let removal_policy = match ownership {
+            Ownership::Local => RemovalPolicy::Clear,
+            Ownership::Controlled => RemovalPolicy::PreserveUnavailable,
+        };
         let result = Self {
             inner: Rc::new(RefCell::new(Inner {
                 controller,
+                removal_policy,
                 source_index: source_index(&options),
+                retained_selection: None,
                 source: options,
                 query: String::new(),
                 rows: Rc::new(Vec::new()),
@@ -86,6 +94,10 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         result.refresh();
         result
     }
+    pub fn set_removal_policy(&self, policy: RemovalPolicy) {
+        self.inner.borrow_mut().removal_policy = policy;
+        self.refresh();
+    }
     pub fn on_intent(&self, callback: impl Fn(SelectionIntent<K>) + 'static) {
         *self.intent.borrow_mut() = Some(Rc::new(callback));
     }
@@ -93,15 +105,26 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         let inner = self.inner.borrow();
         let state = inner.controller.state();
         let token = |key: &Option<K>| {
-            key.as_ref()
-                .and_then(|key| inner.source_index.get(key).copied())
+            key.as_ref().and_then(|key| {
+                inner.source_index.get(key).copied().or_else(|| {
+                    inner
+                        .retained_selection
+                        .as_ref()
+                        .filter(|(retained, _)| retained == key)
+                        .map(|(_, token)| *token)
+                })
+            })
         };
         let active = token(&state.active);
         let selected = token(&state.selected);
-        let selection_availability = match (&state.selected, selected) {
-            (None, _) => SelectionAvailability::Absent,
-            (Some(_), Some(_)) => SelectionAvailability::Available,
-            (Some(_), None) => SelectionAvailability::Unavailable,
+        let selection_availability = match (&state.selected, selected, inner.removal_policy) {
+            (None, _, _) => SelectionAvailability::Absent,
+            (Some(_), Some(_), _) | (Some(_), None, RemovalPolicy::Retain) => {
+                SelectionAvailability::Available
+            }
+            (Some(_), None, RemovalPolicy::Clear | RemovalPolicy::PreserveUnavailable) => {
+                SelectionAvailability::Unavailable
+            }
         };
         SelectProjection {
             rows: inner.rows.clone(),
@@ -127,6 +150,37 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     pub fn refresh(&self) {
         {
             let mut inner = self.inner.borrow_mut();
+            // Keep only the accepted identity outside the current result page.
+            // Its token must not alias a different row after page replacement.
+            inner.retained_selection = if inner.removal_policy == RemovalPolicy::Retain {
+                inner.controller.state().selected.clone().map(|key| {
+                    let token = inner
+                        .source_index
+                        .get(&key)
+                        .copied()
+                        .or_else(|| {
+                            inner
+                                .retained_selection
+                                .as_ref()
+                                .filter(|(held, _)| held == &key)
+                                .map(|(_, token)| *token)
+                        })
+                        .unwrap_or_else(|| {
+                            let vacant = (0..=inner.source_index.len())
+                                .find(|candidate| {
+                                    !inner.source_index.values().any(|token| {
+                                        usize::try_from(*token).ok() == Some(*candidate)
+                                    })
+                                })
+                                .expect("one more candidate than current row tokens");
+                            i32::try_from(vacant)
+                                .expect("Slint models are bounded by i32 row tokens")
+                        });
+                    (key, token)
+                })
+            } else {
+                None
+            };
             let generation = inner.controller.generation();
             if inner.rows_generation != generation {
                 inner.rows = Rc::new(
@@ -179,10 +233,14 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
         }
         let key = {
             let inner = self.inner.borrow();
-            if inner.controller.generation() != generation as u64 {
+            if u64::try_from(generation).ok() != Some(inner.controller.generation()) {
                 return;
             }
-            inner.source.get(token as usize).map(|row| row.key.clone())
+            inner
+                .source
+                .iter()
+                .find(|row| inner.source_index.get(&row.key) == Some(&token))
+                .map(|row| row.key.clone())
         };
         if let Some(key) = key {
             self.apply(|c| c.activate(&key));
@@ -236,7 +294,7 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
     pub fn reconcile(&self, options: Vec<SelectOption<K>>) -> Result<(), ModelError> {
         // Validate all source keys, including rows currently filtered out.
         SelectController::try_new(options.clone(), None, Ownership::Local)?;
-        let removed = {
+        let (removed, retain) = {
             let mut inner = self.inner.borrow_mut();
             let removed = inner
                 .controller
@@ -244,31 +302,52 @@ impl<K: Clone + Eq + Hash + 'static> SelectBinding<K> {
                 .selected
                 .as_ref()
                 .is_some_and(|key| !options.iter().any(|row| &row.key == key));
-            if removed && inner.controller.ownership() == Ownership::Local {
-                inner.controller.set_selected(None);
+            let retain = inner.removal_policy == RemovalPolicy::Retain;
+            match inner.removal_policy {
+                RemovalPolicy::Clear => {
+                    if removed && inner.controller.ownership() == Ownership::Local {
+                        inner.controller.set_selected(None);
+                    }
+                }
+                RemovalPolicy::PreserveUnavailable | RemovalPolicy::Retain => {}
             }
             let filtered = filter(&options, &inner.query);
             inner.controller.reconcile(filtered)?;
-            inner.source_index = source_index(&options);
+            inner.source_index =
+                source_index_retaining(&options, inner.retained_selection.as_ref());
             inner.source = options;
-            removed
+            (removed, retain)
         };
         self.refresh();
-        if removed {
+        if removed && !retain {
             self.emit_intent(SelectionIntent::Clear);
         }
         Ok(())
     }
 }
 fn source_index<K: Clone + Eq + Hash>(source: &[SelectOption<K>]) -> HashMap<K, i32> {
+    source_index_retaining(source, None)
+}
+fn source_index_retaining<K: Clone + Eq + Hash>(
+    source: &[SelectOption<K>],
+    retained: Option<&(K, i32)>,
+) -> HashMap<K, i32> {
+    let mut next = 0;
     source
         .iter()
-        .enumerate()
-        .map(|(index, row)| {
-            (
-                row.key.clone(),
-                i32::try_from(index).expect("Slint models are bounded by i32 row tokens"),
-            )
+        .map(|row| {
+            let token = if let Some((_, token)) = retained.filter(|(key, _)| key == &row.key) {
+                *token
+            } else {
+                if retained.and_then(|(_, token)| usize::try_from(*token).ok()) == Some(next) {
+                    next += 1;
+                }
+                let token =
+                    i32::try_from(next).expect("Slint models are bounded by i32 row tokens");
+                next += 1;
+                token
+            };
+            (row.key.clone(), token)
         })
         .collect()
 }
@@ -304,6 +383,7 @@ impl std::error::Error for ChoiceError {}
 struct ChoiceSource<K> {
     options: Vec<SelectOption<K>>,
     tokens: HashMap<K, i32>,
+    labels: HashMap<K, String>,
     generation: i32,
 }
 
@@ -355,6 +435,7 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
             source: Rc::new(RefCell::new(ChoiceSource {
                 options: Vec::new(),
                 tokens: HashMap::new(),
+                labels: HashMap::new(),
                 generation: 0,
             })),
             model: Rc::new(slint::VecModel::default()),
@@ -377,6 +458,28 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
                 present: true,
                 token: *token,
             })
+    }
+
+    /// Return the last known label for a domain key, even when omitted from the
+    /// current remote result page.
+    pub fn label(&self, key: &K) -> Option<String> {
+        self.source.borrow().labels.get(key).cloned()
+    }
+
+    /// Register or update a known key and label without adding it to the current
+    /// visible page, returning its stable `SelectionRef`.
+    pub fn retain(&self, option: SelectOption<K>) -> Result<crate::ui::SelectionRef, ChoiceError> {
+        let mut source = self.source.borrow_mut();
+        let token = match source.tokens.get(&option.key) {
+            Some(token) => *token,
+            None => choice_identity(&CHOICE_TOKEN)?,
+        };
+        source.tokens.insert(option.key.clone(), token);
+        source.labels.insert(option.key, option.label);
+        Ok(crate::ui::SelectionRef {
+            present: true,
+            token,
+        })
     }
 
     /// Project a set of existing, distinct domain keys for a multiple selector.
@@ -420,14 +523,16 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
         let (next, rows) = {
             let source = self.source.borrow();
             let generation = choice_identity(&CHOICE_GENERATION)?;
-            let mut tokens = HashMap::with_capacity(options.len());
+            let mut tokens = source.tokens.clone();
+            let mut labels = source.labels.clone();
             let mut rows = Vec::with_capacity(options.len());
             for option in &options {
-                let token = match source.tokens.get(&option.key) {
+                let token = match tokens.get(&option.key) {
                     Some(token) => *token,
                     None => choice_identity(&CHOICE_TOKEN)?,
                 };
                 tokens.insert(option.key.clone(), token);
+                labels.insert(option.key.clone(), option.label.clone());
                 rows.push(crate::ui::OptionRow {
                     token,
                     generation,
@@ -440,6 +545,7 @@ impl<K: Clone + Eq + Hash + 'static> Choices<K> {
                 ChoiceSource {
                     options,
                     tokens,
+                    labels,
                     generation,
                 },
                 rows,
@@ -579,5 +685,47 @@ mod tests {
         });
         c.commit();
         assert_eq!(c.selected(), Some(9999));
+    }
+    #[test]
+    fn retain_policy_preserves_selection_and_availability_across_remote_reconcile() {
+        for ownership in [Ownership::Local, Ownership::Controlled] {
+            let c = SelectBinding::new(
+                vec![SelectOption::new(9, "Nine"), SelectOption::new(3, "Three")],
+                Some(9),
+                ownership,
+                |_| {},
+            );
+            c.set_removal_policy(RemovalPolicy::Retain);
+            let retained_token = c.snapshot().selected.unwrap();
+            let calls = Rc::new(RefCell::new(Vec::new()));
+            let captured = calls.clone();
+            c.on_intent(move |intent| captured.borrow_mut().push(intent));
+            c.reconcile(vec![SelectOption::new(4, "Four")]).unwrap();
+            assert_eq!(c.selected(), Some(9));
+            assert_eq!(
+                c.snapshot().selection_availability,
+                SelectionAvailability::Available
+            );
+            assert!(calls.borrow().is_empty());
+            c.open();
+            let snapshot = c.snapshot();
+            assert!(snapshot.open);
+            assert_eq!(snapshot.selected, Some(retained_token));
+            assert!(snapshot.rows.iter().all(|row| row.token != retained_token));
+            c.activate(retained_token, snapshot.generation);
+            assert_eq!(
+                c.selected(),
+                Some(9),
+                "retained identity is not a current page row"
+            );
+            let row = &snapshot.rows[0];
+            c.activate(row.token, row.generation);
+            if ownership == Ownership::Local {
+                assert_eq!(c.selected(), Some(4));
+            } else {
+                assert_eq!(c.selected(), Some(9));
+            }
+            assert_eq!(&*calls.borrow(), &[SelectionIntent::Commit(4)]);
+        }
     }
 }
