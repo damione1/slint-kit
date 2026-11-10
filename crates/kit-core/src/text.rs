@@ -105,9 +105,13 @@ impl MaskedValue {
     }
 }
 impl MaskPattern {
+    const MAX_TOKENS: usize = 256;
+    /// Maximum UTF-8 source size: each token can be an escaped four-byte scalar.
+    pub const MAX_SOURCE_BYTES: usize = Self::MAX_TOKENS * 5;
+
     pub fn new(tokens: Vec<MaskToken>) -> Result<Self, ParseIssue> {
         if tokens.is_empty()
-            || tokens.len() > 256
+            || tokens.len() > Self::MAX_TOKENS
             || tokens
                 .iter()
                 .all(|token| matches!(token, MaskToken::Literal(_)))
@@ -120,6 +124,9 @@ impl MaskPattern {
     /// letter, `*` is an ASCII alphanumeric slot, `\` escapes the next
     /// character as a literal, and every other character is a literal.
     pub fn compile(source: &str) -> Result<Self, ParseIssue> {
+        if source.len() > Self::MAX_SOURCE_BYTES {
+            return Err(ParseIssue::InvalidSyntax);
+        }
         let mut tokens = Vec::new();
         let mut chars = source.chars();
         while let Some(ch) = chars.next() {
@@ -131,7 +138,7 @@ impl MaskPattern {
                 literal => MaskToken::Literal(literal),
             };
             tokens.push(token);
-            if tokens.len() > 256 {
+            if tokens.len() > Self::MAX_TOKENS {
                 return Err(ParseIssue::InvalidSyntax);
             }
         }
@@ -222,7 +229,15 @@ impl MaskPattern {
         candidate.push_str(&current[..start]);
         candidate.push_str(inserted);
         candidate.push_str(&current[end..]);
-        self.accepts_draft(&candidate)
+        if self.accepts_draft(&candidate) {
+            return true;
+        }
+        // A native deletion or a host assignment may leave an invalid draft.
+        // Permit incremental repair of its first mismatch without replacing
+        // the suffix, caret or native history on the application's behalf.
+        !self.accepts_draft(current)
+            && self.valid_prefix(&candidate).chars().count()
+                > self.valid_prefix(current).chars().count()
     }
     /// Whether a `key-pressed` text payload is either a non-text navigation/editing
     /// key or an insertion that keeps the draft a valid mask prefix.
@@ -233,39 +248,13 @@ impl MaskPattern {
         cursor_byte_offset: usize,
         inserted: &str,
     ) -> bool {
-        let mut chars = inserted.chars();
-        match (chars.next(), chars.next()) {
-            (None, None) => true,
-            (Some(c), None) if c.is_control() || ('\u{e000}'..='\u{f8ff}').contains(&c) => true,
-            _ => self.accepts_edit(current, anchor_byte_offset, cursor_byte_offset, inserted),
+        // Public key events can contain navigation codes or text delivered by
+        // an input method. Filter ordinary ASCII insertions only; non-ASCII
+        // input remains native and is checked by complete-draft validation.
+        if inserted.is_empty() || !inserted.is_ascii() || inserted.chars().any(char::is_control) {
+            return true;
         }
-    }
-    /// Bound a post-edit or host-assigned string to this mask while preserving
-    /// valid edits untouched.
-    pub fn limit_edit(&self, previous: &str, edited: &str) -> crate::HtmlTextEdit {
-        if self.accepts_draft(edited) {
-            return crate::HtmlTextEdit {
-                text: edited.to_owned(),
-                cursor_byte_offset: edited.len(),
-            };
-        }
-        if !self.accepts_draft(previous) {
-            let text = self.valid_prefix(edited).to_owned();
-            return crate::HtmlTextEdit {
-                cursor_byte_offset: text.len(),
-                text,
-            };
-        }
-        let common_start: usize = previous
-            .chars()
-            .zip(edited.chars())
-            .take_while(|(left, right)| left == right)
-            .map(|(ch, _)| ch.len_utf8())
-            .sum();
-        crate::HtmlTextEdit {
-            text: previous.to_owned(),
-            cursor_byte_offset: common_start,
-        }
+        self.accepts_edit(current, anchor_byte_offset, cursor_byte_offset, inserted)
     }
     /// ASCII slots are deliberately bounded. Unicode user text belongs in TextField.
     /// Literals are supplied by the user/native editor; no caret-changing insertion occurs.
@@ -426,7 +415,7 @@ mod tests {
         );
     }
     #[test]
-    fn mask_prefix_edits_and_limits_preserve_valid_drafts() {
+    fn mask_prefix_edits_preserve_native_drafts_and_allow_incremental_repairs() {
         let mask = MaskPattern::compile("AA-####").unwrap();
         assert_eq!(mask.valid_prefix("AB-12x9"), "AB-12");
         assert_eq!(mask.valid_prefix("AB-123456"), "AB-1234");
@@ -438,27 +427,11 @@ mod tests {
         assert!(mask.accepts_key_insertion("AB-12", 5, 5, "\u{f700}"));
         assert!(!mask.accepts_key_insertion("AB-12", 5, 5, "Z"));
 
-        assert_eq!(
-            mask.limit_edit("AB-12", "AB-123"),
-            crate::HtmlTextEdit {
-                text: "AB-123".into(),
-                cursor_byte_offset: 6,
-            }
-        );
-        assert_eq!(
-            mask.limit_edit("AB-12", "-12"),
-            crate::HtmlTextEdit {
-                text: "AB-12".into(),
-                cursor_byte_offset: 0,
-            }
-        );
-        assert_eq!(
-            mask.limit_edit("AB_1234", "AB_1234"),
-            crate::HtmlTextEdit {
-                text: "AB".into(),
-                cursor_byte_offset: 2,
-            }
-        );
+        assert!(mask.accepts_edit("-12", 0, 0, "A"));
+        assert!(mask.accepts_edit("A-12", 1, 1, "B"));
+        assert!(!mask.accepts_edit("-12", 0, 0, "9"));
+        assert!(mask.accepts_key_insertion("AB-12", 5, 5, "界"));
+        assert!(!mask.accepts_draft("AB-12界"));
     }
 }
 

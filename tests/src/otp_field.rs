@@ -649,7 +649,9 @@ fn masked_field_derives_placeholder_bounds_pattern_and_reports_invalid_mask_synt
 
     app.invoke_focus_masked();
     key(&app, "freeform-99");
-    assert_eq!(app.get_masked_text(), "freeform-99");
+    assert_eq!(app.get_masked_text(), "");
+    assert!(app.get_masked_validity().custom_error);
+    assert!(!app.invoke_report_masked());
 }
 
 #[test]
@@ -660,6 +662,19 @@ fn masked_field_waits_for_constraint_bridge_before_accepting_input() {
     app.invoke_focus_masked();
     key(&app, "AB-1234");
     assert_eq!(app.get_masked_text(), "");
+    app.set_clipboard_text("AB-1234".into());
+    app.invoke_prepare_paste();
+    app.invoke_paste_masked();
+    assert_eq!(
+        app.get_masked_text(),
+        "",
+        "public paste also waits for the bridge"
+    );
+    app.set_masked_text("AB-12".into());
+    app.invoke_select_masked();
+    app.invoke_cut_masked();
+    assert_eq!(app.get_masked_text(), "AB-12");
+    app.set_masked_text("".into());
     kit_slint::install(&app);
     key(&app, "AB-1234");
     assert_eq!(app.get_masked_text(), "AB-1234");
@@ -760,38 +775,92 @@ fn masked_field_guards_native_paste_shortcuts_and_programmatic_paste() {
 }
 
 #[test]
-fn masked_field_rolls_back_incompatible_prefix_deletion_and_trims_host_assignments() {
+fn masked_field_preserves_native_deletion_undo_and_invalid_host_values() {
     let app = fixture();
     app.invoke_focus_masked();
     key(&app, "AB-12");
-    assert_eq!(app.get_masked_text(), "AB-12");
-
+    app.invoke_focus_witness();
+    key(&app, "AB-12");
+    app.invoke_focus_masked();
     app.invoke_set_masked_selection(0, 2);
     key(&app, &slint::SharedString::from(Key::Backspace));
-    assert_eq!(app.get_masked_text(), "AB-12");
-    assert_eq!(app.get_masked_cursor(), 0);
+    app.invoke_focus_witness();
+    app.invoke_set_witness_selection(0, 2);
+    key(&app, &slint::SharedString::from(Key::Backspace));
+    assert_eq!(app.get_masked_text(), "-12");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+    assert_eq!(app.get_masked_cursor(), app.get_witness_cursor());
+    assert_eq!(app.get_masked_anchor(), app.get_witness_anchor());
+    assert!(app.get_masked_validity().pattern_mismatch);
+    app.invoke_undo_masked();
+    app.invoke_focus_witness();
+    shortcut(&app, "z");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+    assert_eq!(app.get_masked_cursor(), app.get_witness_cursor());
+    app.invoke_redo_masked();
+    app.invoke_focus_witness();
+    redo(&app);
+    assert_eq!(app.get_masked_text(), "-12");
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
 
+    app.invoke_focus_masked();
+    app.invoke_set_masked_selection(0, 0);
+    key(&app, "A");
+    assert_eq!(
+        app.get_masked_text(),
+        "A-12",
+        "repair can proceed one character at a time"
+    );
+    key(&app, "B");
+    assert_eq!(app.get_masked_text(), "AB-12");
+    app.invoke_focus_witness();
+    app.invoke_set_witness_selection(0, 0);
+    key(&app, "A");
+    key(&app, "B");
+    app.invoke_focus_masked();
     app.invoke_set_masked_selection(0, 2);
     app.invoke_cut_masked();
-    assert_eq!(app.get_masked_text(), "AB-12");
-
-    app.invoke_set_masked_selection(3, 5);
-    key(&app, &slint::SharedString::from(Key::Backspace));
-    assert_eq!(app.get_masked_text(), "AB-");
+    app.invoke_focus_witness();
+    app.invoke_set_witness_selection(0, 2);
+    shortcut(&app, "x");
+    assert_eq!(
+        app.get_masked_text(),
+        "-12",
+        "native cut remains a real deletion"
+    );
+    assert_eq!(app.get_masked_text(), app.get_witness_text());
+    app.invoke_undo_masked();
+    app.invoke_focus_witness();
+    shortcut(&app, "z");
+    assert_eq!(
+        app.get_masked_text(),
+        app.get_witness_text(),
+        "cut undo has the same history as the native witness"
+    );
 
     app.set_masked_text("CD-987654".into());
     slint::platform::update_timers_and_animations();
-    assert_eq!(app.get_masked_text(), "CD-9876");
-
+    assert_eq!(
+        app.get_masked_text(),
+        "CD-987654",
+        "host text is never cropped to the mask"
+    );
+    assert!(app.get_masked_validity().pattern_mismatch);
     app.set_masked_text("CD_9876".into());
     slint::platform::update_timers_and_animations();
-    assert_eq!(app.get_masked_text(), "CD");
-
+    assert_eq!(app.get_masked_text(), "CD_9876");
+    assert!(!app.get_masked_validity().valid);
     app.set_masked_text("CD-9876".into());
-    slint::platform::update_timers_and_animations();
     app.set_mask("AA-##".into());
     slint::platform::update_timers_and_animations();
-    assert_eq!(app.get_masked_text(), "CD-98");
+    assert_eq!(
+        app.get_masked_text(),
+        "CD-9876",
+        "changing the mask validates the existing host text without truncation"
+    );
+    assert!(!app.get_masked_validity().valid);
+    app.invoke_commit_masked();
+    assert_eq!(app.get_masked_commits(), 0);
 }
 
 #[test]
@@ -849,6 +918,40 @@ fn masked_field_respects_access_modes_and_commits_typed_spec_only_when_complete(
                 .unwrap();
             assert_eq!(masked_editor.accessible_value().as_deref(), Some("AB-1234"));
             assert!(masked_editor.size().width > 0. && masked_editor.size().height > 0.);
+        }
+    }
+}
+
+#[test]
+fn masked_field_renders_the_unmodified_invalid_host_draft_in_both_themes_and_text_scales() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = OtpFixture::new().unwrap();
+    kit_slint::install(&app);
+    app.window().set_size(slint::LogicalSize::new(900., 600.));
+    app.set_masked_text("AB-123456".into());
+    app.show().unwrap();
+    let light = app.get_theme();
+    for (dark, base) in [(false, light), (true, app.get_dark())] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            app.invoke_focus_masked();
+            assert!(!app.invoke_report_masked());
+            slint::platform::update_timers_and_animations();
+            let snapshot = app.window().take_snapshot().unwrap();
+            assert_eq!(app.get_masked_text(), "AB-123456");
+            assert!(app.get_masked_validity().pattern_mismatch);
+            assert!(app.get_masked_validation_visible());
+            crate::choice_presentation::save_capture(
+                &snapshot,
+                &format!("mask-invalid-native-{dark}-{scale}"),
+            );
         }
     }
 }
