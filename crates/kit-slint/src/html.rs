@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-use kit_core::{HtmlConstraints, HtmlInputState, HtmlPattern, HtmlValidity};
-use std::{cell::RefCell, collections::VecDeque};
+use kit_core::{
+    HtmlConstraints, HtmlInputState, HtmlPattern, HtmlValidity, MaskPattern, ParseIssue,
+};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 /// Window-local, bounded pattern cache. Patterns are authored by the application.
 #[derive(Default)]
 pub struct HtmlValidationEngine {
     patterns: RefCell<VecDeque<(String, Result<HtmlPattern, String>)>>,
+    masks: RefCell<VecDeque<(String, Result<Rc<MaskPattern>, ParseIssue>)>>,
 }
 impl HtmlValidationEngine {
     pub fn pattern(&self, source: &str) -> Result<HtmlPattern, String> {
@@ -15,6 +18,18 @@ impl HtmlValidationEngine {
             return result.clone();
         }
         let result = HtmlPattern::compile(source).map_err(|e| e.to_string());
+        if cache.len() == 64 {
+            cache.pop_front();
+        }
+        cache.push_back((source.into(), result.clone()));
+        result
+    }
+    pub fn mask(&self, source: &str) -> Result<Rc<MaskPattern>, ParseIssue> {
+        let mut cache = self.masks.borrow_mut();
+        if let Some((_, result)) = cache.iter().find(|(key, _)| key == source) {
+            return result.clone();
+        }
+        let result = MaskPattern::compile(source).map(Rc::new);
         if cache.len() == 64 {
             cache.pop_front();
         }
@@ -125,7 +140,7 @@ where
     if global.get_ready() {
         return;
     }
-    let engine = crate::HtmlValidationEngine::default();
+    let engine = Rc::new(crate::HtmlValidationEngine::default());
     global.on_grapheme_count(|text| {
         i32::try_from(crate::__core::grapheme_count(text.as_str()))
             .expect("Slint string count fits i32")
@@ -155,6 +170,79 @@ where
         let maximum = usize::try_from(maximum).unwrap_or(usize::MAX);
         let limited =
             crate::__core::limit_html_text_edit(previous.as_str(), edited.as_str(), maximum);
+        ui::KitTextEdit {
+            text: limited.text.into(),
+            cursor_byte_offset: i32::try_from(limited.cursor_byte_offset)
+                .expect("Slint text offset fits i32"),
+        }
+    });
+    let mask_compile_engine = Rc::clone(&engine);
+    global.on_compile_mask(move |source, message| {
+        if source.is_empty() {
+            return ui::KitMaskRules {
+                length: -1,
+                placeholder: Default::default(),
+                pattern: Default::default(),
+                error: Default::default(),
+            };
+        }
+        match mask_compile_engine.mask(source.as_str()) {
+            Ok(mask) => ui::KitMaskRules {
+                length: i32::from(mask.utf16_length()),
+                placeholder: mask.placeholder().into(),
+                pattern: mask.html_pattern_source().into(),
+                error: Default::default(),
+            },
+            Err(_) => ui::KitMaskRules {
+                length: -1,
+                placeholder: Default::default(),
+                pattern: Default::default(),
+                error: message,
+            },
+        }
+    });
+    let mask_insert_engine = Rc::clone(&engine);
+    global.on_mask_insertion(move |mask, current, anchor, cursor, inserted| {
+        let Ok(compiled) = mask_insert_engine.mask(mask.as_str()) else {
+            return true;
+        };
+        let Ok(anchor) = usize::try_from(anchor) else {
+            return false;
+        };
+        let Ok(cursor) = usize::try_from(cursor) else {
+            return false;
+        };
+        compiled.accepts_key_insertion(current.as_str(), anchor, cursor, inserted.as_str())
+    });
+    let mask_paste_engine = Rc::clone(&engine);
+    global.on_mask_paste(move |mask, current, anchor, cursor, inserted| {
+        let Ok(compiled) = mask_paste_engine.mask(mask.as_str()) else {
+            return true;
+        };
+        let Ok(anchor) = usize::try_from(anchor) else {
+            return false;
+        };
+        let Ok(cursor) = usize::try_from(cursor) else {
+            return false;
+        };
+        compiled.accepts_edit(current.as_str(), anchor, cursor, inserted.as_str())
+    });
+    let mask_limit_engine = Rc::clone(&engine);
+    global.on_limit_mask_edit(move |mask, previous, edited, maximum| {
+        let maximum = usize::try_from(maximum).unwrap_or(usize::MAX);
+        let limited = match mask_limit_engine.mask(mask.as_str()) {
+            Ok(compiled) => {
+                let capped = crate::__core::limit_html_text_edit(
+                    previous.as_str(),
+                    edited.as_str(),
+                    maximum,
+                );
+                compiled.limit_edit(previous.as_str(), capped.text.as_str())
+            }
+            Err(_) => {
+                crate::__core::limit_html_text_edit(previous.as_str(), edited.as_str(), maximum)
+            }
+        };
         ui::KitTextEdit {
             text: limited.text.into(),
             cursor_byte_offset: i32::try_from(limited.cursor_byte_offset)
@@ -260,4 +348,30 @@ where
         }
     });
     global.set_ready(true);
+}
+
+#[cfg(test)]
+mod mask_cache_tests {
+    use super::HtmlValidationEngine;
+    use kit_core::ParseIssue;
+    use std::rc::Rc;
+
+    #[test]
+    fn caches_compiled_masks_and_evicts_oldest_past_sixty_four_entries() {
+        let engine = HtmlValidationEngine::default();
+        let first = engine.mask("AA-####").unwrap();
+        let cached = engine.mask("AA-####").unwrap();
+        assert!(Rc::ptr_eq(&first, &cached));
+        assert_eq!(engine.mask("---"), Err(ParseIssue::InvalidSyntax));
+        assert_eq!(engine.mask("---"), Err(ParseIssue::InvalidSyntax));
+
+        let engine = HtmlValidationEngine::default();
+        let first = engine.mask("A#0").unwrap();
+        for index in 1..64 {
+            assert!(engine.mask(&format!("A#{index}")).is_ok());
+        }
+        assert!(Rc::ptr_eq(&first, &engine.mask("A#0").unwrap()));
+        assert!(engine.mask("A#64").is_ok());
+        assert!(!Rc::ptr_eq(&first, &engine.mask("A#0").unwrap()));
+    }
 }
