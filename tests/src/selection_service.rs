@@ -622,7 +622,7 @@ fn combobox_public_clear_uses_native_undo_and_one_empty_query_locally() {
 #[test]
 fn combobox_public_clear_uses_native_undo_and_waits_for_controlled_acknowledgment() {
     assert_combobox_native_clear(slint_kit::ui::Ownership::Controlled);
-    }
+}
 #[test]
 fn composite_keyboard_policies_wrap_closed_select_grid_tab_activation_and_carousel_keys() {
     let (window, choices) = fixture();
@@ -870,4 +870,58 @@ fn page_navigation_uses_the_resized_visible_viewport_and_rejects_unmeasured_page
         !window.get_state().selected.present,
         "navigation never commits a selection"
     );
+}
+
+#[test]
+fn composite_keyboard_focus_renders_in_both_themes_at_large_text() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = SelectionServiceFixture::new().unwrap();
+    slint_kit::install(&window);
+    let choices = Choices::from_options(options()).unwrap();
+    window.set_options(choices.model());
+    window.show().unwrap();
+    for (dark, base) in [
+        (false, window.get_theme()),
+        (true, window.global::<slint_kit::ui::KitThemes>().get_dark()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window
+                .window()
+                .set_size(slint::LogicalSize::new(1100., 2200.));
+            window.invoke_focus_carousel();
+            key(&window, Key::End);
+            assert_eq!(
+                window.get_carousel_state().active,
+                choices.selection(&Destination::Banana).unwrap()
+            );
+            slint::platform::update_timers_and_animations();
+            let image = window.window().take_snapshot().unwrap();
+            let carousel = ElementQuery::from_root(&window)
+                .match_inherits("KitCarousel")
+                .find_first()
+                .unwrap();
+            assert!(carousel.size().height > 0.);
+            assert!(carousel.absolute_position().y + carousel.size().height <= 2200.);
+            if let Some(directory) = std::env::var_os("KIT_CONTROL_CAPTURE_DIR") {
+                use std::io::Write;
+                std::fs::create_dir_all(&directory).unwrap();
+                let path = std::path::PathBuf::from(directory)
+                    .join(format!("composite-keyboard-{dark}-{scale}.ppm"));
+                let mut file = std::fs::File::create(path).unwrap();
+                write!(file, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                for pixel in image.as_slice() {
+                    file.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
+            }
+        }
+    }
 }
