@@ -213,7 +213,9 @@ export component Showcase inherits Window {
     public function focus-form-text(target: TextExample) { FormExamples.text-focus-target = target; FormExamples.text-focus-sequence += 1; }
     public function focus-form-numeric(target: NumericExample) { FormExamples.numeric-focus-target = target; FormExamples.numeric-focus-sequence += 1; }
     callback select-open();
-    out property <int> select-page-rows: root.popup-skin == ShowcaseSkin.mineral ? mineral-select.page-rows : surface.page-rows;
+    private property <int> mineral-page-rows;
+    private property <int> expressive-page-rows;
+    out property <int> select-page-rows: !root.select-state.open ? 0 : root.popup-skin == ShowcaseSkin.mineral ? root.mineral-page-rows : root.expressive-page-rows;
     callback select-navigate(NavigationStep);
     callback select-activate(int, int);
     callback select-dismiss(CloseReason);
@@ -303,6 +305,8 @@ export component Showcase inherits Window {
                 }
                 ExampleSection { theme: root.theme; title: "Select"; preview-target: PreviewTarget.select; description: "KitSelect · @kit/select.slint · Search 10,000 people. Selection follows identity when rows move.";
                             mineral-select := KitSelect {
+                                init => { root.mineral-page-rows = self.page-rows; }
+                                changed page-rows => { root.mineral-page-rows = self.page-rows; }
                                 theme: root.theme; control-size: root.density; rows: root.rows;
                                 access: root.modal-open ? FieldAccess.disabled : FieldAccess.editable;
                                 state: {selection-availability: root.select-state.selection-availability, selected: root.select-state.selected, active: root.select-state.active, open: root.select-state.open && root.popup-skin == ShowcaseSkin.mineral, active-index: root.select-state.active-index, generation: root.select-state.generation};
@@ -337,7 +341,7 @@ export component Showcase inherits Window {
                                 min-height: max(64px, 44px * root.theme.text-scale); preferred-height: self.min-height; max-height: self.preferred-height; vertical-stretch: 0;
                                 focus-requested => { rich-trigger.take-focus(); }
                                 rich-trigger := KitSelectTrigger {
-                                    page-rows: surface.page-rows;
+                                    page-rows: root.select-page-rows;
                                     theme: root.theme; control-size: root.density; state: root.select-state;
                                     access: root.modal-open ? FieldAccess.disabled : FieldAccess.editable;
                                     min-height: max(64px, 44px * root.theme.text-scale); preferred-height: self.min-height; max-height: self.preferred-height;
@@ -467,7 +471,7 @@ export component Showcase inherits Window {
                             focus-requested => { nested-trigger.take-focus(); }
                             focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             nested-trigger := KitSelectTrigger {
-                                page-rows: surface.page-rows;
+                                page-rows: root.select-page-rows;
                                 theme: root.theme; control-size: root.density; state: root.select-state;
                                 access: root.dialog-state.busy ? FieldAccess.disabled : FieldAccess.editable;
                                 accessible-name: "Choose a collaborator inside dialog";
@@ -532,6 +536,8 @@ export component Showcase inherits Window {
     if root.select-state.open && root.popup-skin == ShowcaseSkin.expressive: Rectangle {
         TouchArea { clicked => { root.select-dismiss(CloseReason.outside-press); } }
         surface := KitSelectSurface {
+            init => { root.expressive-page-rows = self.page-rows; }
+            changed page-rows => { root.expressive-page-rows = self.page-rows; }
         x: root.popup-bounds.x;
         y: root.popup-bounds.y;
         width: root.popup-bounds.width;
