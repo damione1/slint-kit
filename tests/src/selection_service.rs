@@ -754,3 +754,51 @@ fn source_reconciliation_clears_typeahead_before_space_activation() {
     );
     assert_eq!(window.get_first_state().selected, active);
 }
+
+#[test]
+fn carousel_navigation_does_not_intercept_native_child_editing_or_form_keys() {
+    let (window, _choices) = fixture();
+    let activations = Rc::new(RefCell::new(0));
+    let output = activations.clone();
+    window.on_carousel_activated(move || *output.borrow_mut() += 1);
+    let before = window.get_carousel_state().active;
+    window.invoke_focus_carousel_editor();
+    key(&window, Key::Home);
+    key(&window, Key::LeftArrow);
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: "x".into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: "x".into() });
+    assert_eq!(
+        window.get_carousel_editor_text(),
+        "xab",
+        "the editor retains its native caret and insertion"
+    );
+    assert_eq!(window.get_carousel_state().active, before);
+    window.invoke_focus_carousel_checkbox();
+    key(&window, Key::Return);
+    assert_eq!(
+        window.get_carousel_checkbox_state(),
+        slint_kit::ui::CheckState::Unchecked
+    );
+    assert_eq!(
+        *activations.borrow(),
+        0,
+        "a child's rejected Return must reach the enclosing form without activating a slide"
+    );
+    key(&window, Key::Space);
+    assert_eq!(
+        window.get_carousel_checkbox_state(),
+        slint_kit::ui::CheckState::Checked
+    );
+    assert_eq!(*activations.borrow(), 0);
+    window.invoke_focus_carousel();
+    key(&window, Key::End);
+    assert_ne!(
+        window.get_carousel_state().active,
+        before,
+        "the carousel's own focus target still handles navigation"
+    );
+}

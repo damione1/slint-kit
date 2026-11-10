@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess, KitMenuBar, KitTabs, KitCarousel, KitSegmentedControl, KitToggleGroup, TabActivation, ChoiceDirection, ChoiceFlow } from "@kit";
+import { KitMenu, KitAccordion, KitSelect, KitCombobox, KitRadioGroup, KitSelectKeyboard, NavigationStep, OptionRow, SelectionRef, SelectState, SelectionRetention, KitValidityState, KitTheme, KitThemes, ExpansionMode, Ownership, FieldAccess, KitMenuBar, KitTabs, KitCarousel, KitSegmentedControl, KitToggleGroup, TabActivation, ChoiceDirection, ChoiceFlow, KitTextField, KitCheckbox, CheckState } from "@kit";
 export component SelectionServiceFixture inherits Window {
     width: 800px; height: 1000px;
     in property <[OptionRow]> options;
@@ -34,6 +34,9 @@ export component SelectionServiceFixture inherits Window {
     out property <SelectState> tabs-state: tabs.state;
     out property <SelectState> menubar-state: menubar.state;
     out property <SelectState> carousel-state: carousel.state;
+    out property <string> carousel-editor-text: carousel-editor.text;
+    out property <CheckState> carousel-checkbox-state: carousel-checkbox.state;
+    callback carousel-activated();
     out property <SelectionRef> segments-selected: segments.selected;
     out property <int> toggles-active: toggles.active-token;
     in-out property <SelectionRef> acknowledged <=> first.selected;
@@ -66,6 +69,8 @@ export component SelectionServiceFixture inherits Window {
     public function focus-tabs() { tabs.take-focus(); }
     public function focus-menubar() { menubar.take-focus(); }
     public function focus-carousel() { carousel.take-focus(); }
+    public function focus-carousel-editor() { carousel-editor.take-focus(); }
+    public function focus-carousel-checkbox() { carousel-checkbox.take-focus(); }
     public function focus-segments() { segments.take-focus(); }
     public function focus-toggles() { toggles.take-focus(); }
     public function search-first(text: string) { first.query = text; }
@@ -92,7 +97,12 @@ export component SelectionServiceFixture inherits Window {
         radio := KitRadioGroup { theme: root.theme; options: root.options; access: root.access; label: "Destination"; }
         tabs := KitTabs { theme: root.theme; options: root.options; activation: root.tab-activation; flow: root.nav-flow; }
         menubar := KitMenuBar { theme: root.theme; options: root.options; flow: root.nav-flow; }
-        carousel := KitCarousel { theme: root.theme; options: root.options; flow: root.nav-flow; }
+        carousel := KitCarousel {
+            theme: root.theme; options: root.options; flow: root.nav-flow; action-label: "Choose slide";
+            activate(token, generation) => { root.carousel-activated(); }
+            carousel-editor := KitTextField { theme: root.theme; text: "ab"; implicit-form-submit: false; }
+            carousel-checkbox := KitCheckbox { theme: root.theme; label: "Slide option"; }
+        }
         segments := KitSegmentedControl { theme: root.theme; options: root.options; flow: root.nav-flow; columns: 2; label: "Segments"; }
         toggles := KitToggleGroup { theme: root.theme; options: root.options; direction: root.toggle-direction; flow: root.nav-flow; label: "Toggles"; }
     }

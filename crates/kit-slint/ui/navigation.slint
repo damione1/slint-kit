@@ -1,4 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
+import { FocusOutline } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
@@ -556,17 +557,10 @@ export component KitCarousel inherits Rectangle {
         enabled: root.interactive;
         focus-on-tab-navigation: true;
         key-pressed(event) => {
-            if (!root.interactive) { return reject; }
-            if (root.handle-key(event) == KitKeyResult.accept) { return accept; }
-            if ((event.text == Key.Return || event.text == Key.Space)
-                && root.action-label != ""
-                && root.display-index >= 0
-                && root.display-index < root.rows.length
-                && !root.rows[root.display-index].disabled) {
-                root.handle-activate(root.rows[root.display-index].token, root.rows[root.display-index].generation);
-                return accept;
-            }
-            return reject;
+            // Keys rejected by an editor or control in @children belong to
+            // its ancestors, not to the carousel's own navigation target.
+            if (!self.has-focus) { return reject; }
+            return root.handle-key(event) == KitKeyResult.accept ? accept : reject;
         }
         content := VerticalLayout {
             x: 0px; y: 0px; width: root.width; height: self.preferred-height; alignment: start;
@@ -612,6 +606,11 @@ export component KitCarousel inherits Rectangle {
                 }
             }
         }
+    }
+
+    if root.has-focus: FocusOutline {
+        ring: KitThemes.inset-focus(root.theme);
+        radius: root.surface.radius; host-width: root.width; host-height: root.height;
     }
 
     in-out property <string> query <=> selection.query;

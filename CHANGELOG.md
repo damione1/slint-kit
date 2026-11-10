@@ -8,6 +8,9 @@
 - Publish expandable state and accessible expansion actions on select triggers, Collapse and Accordion; shared Select/Combobox/MultiSelect composition inherits the fix. Expand requests opening idempotently and preserves access and controlled-state guards. The pinned macOS AccessKit bridge still lacks native expanded/Expand exports.
 - Publie l’état développable et l’action accessible Développer sur les déclencheurs de sélection, Collapse et Accordion ; Select/Combobox/MultiSelect héritent du correctif partagé. Développer demande l’ouverture de façon idempotente et conserve les protections d’accès et d’état contrôlé. Le pont AccessKit macOS épinglé n’exporte toujours pas l’état développé ni Développer.
 
+- Keep carousel navigation on its own focus target and built-in controls; preserve native editing and form-key bubbling in composed children, and paint the shared inset focus outline for the container.
+- Limite la navigation du carrousel à sa propre cible de focus et à ses contrôles intégrés ; préserve l’édition native et la remontée des touches de formulaire dans les enfants composés, et peint le contour partagé de focus intérieur sur le conteneur.
+
 - Read active typeahead from its selection session so source reconciliation immediately restores Space activation instead of retaining a keyboard-only timeout.
 - Lit la frappe active dans sa session de sélection pour que la réconciliation de la source rétablisse immédiatement l’activation par Espace sans temporisation propre au clavier.
 
