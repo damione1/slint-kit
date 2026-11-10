@@ -964,7 +964,8 @@ export component KitCombobox inherits Rectangle {
     out property <bool> end-near;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
-    out property <int> page-rows: surface.page-rows;
+    private property <int> measured-popup-page-rows;
+    out property <int> page-rows: root.state.open ? root.measured-popup-page-rows : 0;
     in-out property <string> query <=> selection.query;
     in-out property <string> text: root.selected-label;
     callback open-requested();
@@ -1228,6 +1229,7 @@ export component KitCombobox inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
+            changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             theme: root.theme; state: root.state; query <=> root.query;
             row-height: root.row-height;
             searchable: false; search-label: root.label;
