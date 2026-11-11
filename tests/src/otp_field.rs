@@ -1112,6 +1112,8 @@ fn otp_rejected_letters_and_overflow_preserve_the_native_selection_and_history()
     let app = fixture();
     // Start from an authored draft so the native insertion is one distinct undo item.
     app.set_text("12".into());
+    select_from_start(&app, 2, 0);
+    assert_eq!((app.get_anchor(), app.get_cursor()), (2, 2));
     key(&app, "3456");
     assert_eq!(app.get_completions(), 1);
     let cursor = app.get_cursor();
@@ -1145,6 +1147,8 @@ fn otp_native_raw_clipboard_paste_keeps_undo_while_formatted_paste_is_explicitly
     let app = fixture();
     // Start from an authored draft so the native insertion is one distinct undo item.
     app.set_text("12".into());
+    select_from_start(&app, 2, 0);
+    assert_eq!((app.get_anchor(), app.get_cursor()), (2, 2));
     app.set_clipboard_text("3456".into());
     app.invoke_prepare_paste();
     shortcut(&app, "v");
@@ -1229,7 +1233,8 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
                 &frame,
                 &format!("otp-cells-selected-{name}-{scale}"),
             );
-            app.set_text("12".into());
+            app.invoke_select_code();
+            key(&app, "12");
             assert!(!app.invoke_report_code());
             slint::platform::update_timers_and_animations();
             crate::choice_presentation::save_capture(
