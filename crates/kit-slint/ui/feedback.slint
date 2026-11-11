@@ -87,7 +87,7 @@ export component KitProgress inherits VerticalLayout {
     out property <float> bounded-value: min(1,max(0,root.value));
     spacing: root.theme.spacing.unit * 2; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100) + "%";
+    accessible-value: Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
     if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
     Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle;
@@ -103,7 +103,7 @@ export component KitRadialProgress inherits Rectangle {
     min-width: self.preferred-width; min-height: self.preferred-height; max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100) + "%";
+    accessible-value: Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
     private property <float> visual-value: root.bounded-value;
     animate visual-value { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }

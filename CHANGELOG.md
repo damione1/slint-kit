@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Fix KitProgress and KitRadialProgress accessible values to publish plain numbers from 0 to 100, preserving numeric platform range values. **Accessibility behavior change:** accessible values no longer include a `%` suffix; visible percentages are unchanged.
+- Corrige les valeurs accessibles de KitProgress et KitRadialProgress : nombres simples de 0 à 100 pour conserver une valeur numérique de plage sur les plateformes. **Changement de comportement accessible :** les valeurs accessibles n’incluent plus le suffixe `%` ; les pourcentages visibles restent identiques.
+
 - Replace ToastBinding’s permanent 50ms poll with a single-shot timer for the next running toast expiry. Empty, persistent-only and fully paused queues have no active timer; independent hover/focus pauses and surviving toast identities are preserved. Add nonmutating ToastQueue::next_timeout(now) for custom runtime scheduling; no breaking API change.
 - Remplace le polling permanent de 50ms de ToastBinding par un minuteur unique pour la prochaine expiration active. Les files vides, persistantes ou entièrement en pause n’ont aucun minuteur actif ; les pauses survol/focus indépendantes et les identités des toasts conservés sont préservées. Ajoute ToastQueue::next_timeout(now), sans mutation, pour la planification personnalisée ; aucune rupture d’API.
 

@@ -228,7 +228,7 @@ fn progress_accessibility_is_bounded_and_reduced_motion_freezes_loading_marks() 
     theme.reduced_motion = true;
     window.set_theme(theme.clone());
     window.show().unwrap();
-    for (value, expected) in [(-0.5, "0%"), (0.37, "37%"), (1.5, "100%")] {
+    for (value, expected, numeric) in [(-0.5, "0", 0.), (0.37, "37", 37.), (1.5, "100", 100.)] {
         window.set_progress(value);
         for label in ["Upload progress", "Review progress"] {
             let progress = element(&window, label);
@@ -237,6 +237,12 @@ fn progress_accessibility_is_bounded_and_reduced_motion_freezes_loading_marks() 
                 Some(i_slint_backend_testing::AccessibleRole::ProgressIndicator)
             );
             assert_eq!(progress.accessible_value().as_deref(), Some(expected));
+            // The native accessibility bridge parses this string as a number.
+            // A formatted suffix would lose the platform's numeric value.
+            assert_eq!(
+                progress.accessible_value().unwrap().parse::<f64>().unwrap(),
+                numeric
+            );
             assert_eq!(progress.accessible_value_minimum(), Some(0.));
             assert_eq!(progress.accessible_value_maximum(), Some(100.));
         }
