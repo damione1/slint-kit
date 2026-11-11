@@ -210,6 +210,14 @@ fn popup_bounds_and_long_list_reveal_are_measured_on_all_three_controls_at_both_
                     let below = origin.y >= ap.y + az.height - 1.;
                     let separated = above || below;
                     measurements.push(format!(r#"{{"kind":"{kind:?}","mode":"{mode}","scale":{scale},"bottom":{bottom},"window_width":{},"window_height":{},"popup_x":{},"popup_y":{},"popup_width":{},"popup_height":{},"anchor_y":{},"anchor_height":{},"bounded":{bounded},"separated":{separated}}}"#,host.width,host.height,origin.x,origin.y,size.width,size.height,ap.y,az.height));
+                    if let Some(dir) = std::env::var_os("KIT_DROPDOWN_RENDER_DIR") {
+                        std::fs::create_dir_all(&dir).unwrap();
+                        std::fs::write(
+                            std::path::PathBuf::from(dir).join("measurements.json"),
+                            format!("[\n{}\n]\n", measurements.join(",\n")),
+                        )
+                        .unwrap();
+                    }
                     if !bounded || !separated {
                         failures.push(format!("{kind:?}/{mode}/{scale}/{bottom}: origin{origin:?}, size{size:?}, host{host:?}, anchor{ap:?}/{az:?}"));
                     }
@@ -306,6 +314,13 @@ fn edge_popups_keep_controlled_admission_multi_sessions_and_native_tab_exit() {
             }
         }
         assert!(app.get_state().open);
+        if kind != DropdownProbeKind::Combobox {
+            key(&app, Key::Tab);
+            assert!(
+                app.get_state().open,
+                "the list's first Tab enters its native search editor"
+            );
+        }
         key(&app, Key::Tab);
         assert!(!app.get_state().open);
         assert!(app.get_outside_focused());

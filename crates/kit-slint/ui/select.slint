@@ -1,4 +1,4 @@
-import { KitFieldService } from "field-service.slint";
+import { KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
@@ -486,9 +486,10 @@ export component KitSelect inherits Rectangle {
         root.tab-restore-complete = true;
         return root.tab-navigation(reverse);
     }
+    private property <PopupViewport> popup-viewport;
     private property <bool> opened: root.state.open;
     changed opened => {
-        if (root.state.open) { popup.show(); root.popup-presented = true; }
+        if (root.state.open) { root.popup-viewport = KitFieldService.popup-viewport(); popup.show(); root.popup-presented = true; }
         else {
             root.popup-presented = false;
             root.pending-search-input = "";
@@ -549,10 +550,12 @@ export component KitSelect inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        x: 0px;
-        y: root.height + root.theme.spacing.unit;
-        width: max(root.width, 240px);
-        height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.searchable ? max(36px, 20px * root.theme.text-scale + 12px) : 0px) + 18px);
+        // Resolve width before measuring chrome; option rows remain virtualized.
+        width: min(max(root.width, KitMetrics.select-popup-min-width(root.theme)), max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: min(root.popup-height, max(1, root.rows.length) * root.row-height + surface.chrome-height);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
             searchable: root.searchable;
@@ -595,6 +598,7 @@ export component KitSelect inherits Rectangle {
             query-edited(text) => { root.handle-query-edited(text); }
             options := ListView {
                 theme: root.theme;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                 for row[index] in root.rows: KitOption {
                     theme: root.theme;
                     option-data: row;
