@@ -78,3 +78,29 @@ export component ColorNativeEditingReference inherits Window {
         min: root.numeric ? "0" : ""; max: root.numeric ? "255" : ""; step: root.numeric ? "1" : "any";
     }
 }
+
+// The public field at either edge of a small window, independent of a host layout.
+export component ColorPopupFixture inherits Window {
+    width: root.narrow ? 320px : 560px; height: 560px;
+    in property <bool> narrow;
+    in property <bool> bottom;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <ColorValue> value <=> field.accepted-value;
+    in-out property <int> proposals;
+    out property <SrgbColorView> proposal;
+    out property <bool> open: field.picker-open;
+    background: root.theme.canvas;
+    public function open-picker() { field.open-picker(); }
+    public function cancel-picker() { field.cancel-picker(); }
+    field := KitColorField {
+        x: root.bottom ? parent.width - self.width - 8px : 8px;
+        y: root.bottom ? parent.height - self.height - 8px : 8px;
+        width: min(260px, parent.width - 16px); height: self.preferred-height;
+        theme: root.theme; label: "Accent"; alpha-mode: ColorAlphaMode.editable;
+        required: false; ownership: root.ownership;
+        accepted-value: {present: true, color: {red: 12, green: 34, blue: 56, alpha: 78}};
+        chosen(value) => { root.proposals += 1; root.proposal = value; }
+    }
+}

@@ -858,6 +858,7 @@ mod field_direction;
 mod slider_escape;
 
 mod color_lifecycle;
+mod color_popup;
 mod range_coincident;
 
 mod form_registration;

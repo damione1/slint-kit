@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bound the ColorField palette popup, including its use inside ColorPicker, to the installation window; flip above or shift horizontally when needed. Native scrolling and themed bars keep oversized palette content and Cancel/Apply reachable at 200% text without changing the public API or color acceptance.
+- Borne le popup de palette ColorField, y compris dans ColorPicker, à la fenêtre d’installation ; placement au-dessus ou décalage horizontal selon la place. Le défilement natif et les barres thémées gardent le contenu et Annuler/Appliquer accessibles à 200 % de texte, sans changer l’API publique ni l’acceptation des couleurs.
+
 - Localize Alert/Toast dismiss actions, Breadcrumbs/Pagination/NotificationCenter accessible names, and Carousel/Pagination position text through per-instance properties and per-window KitStrings templates. Default visible text and navigation behavior are preserved; ToastHost forwards each entry’s dismiss label. **Breaking Rust literals:** ToastEntry adds dismiss_label; supply a localized name or an empty fallback in complete literals, or use ..Default::default().
 - Localise la fermeture Alert/Toast, les noms accessibles Breadcrumbs/Pagination/NotificationCenter et les positions Carousel/Pagination par propriétés et modèles KitStrings de la fenêtre. Textes visibles par défaut et navigation sont conservés ; ToastHost transmet le libellé de chaque entrée. **Rupture des littéraux Rust :** ToastEntry ajoute dismiss_label ; complétez les littéraux avec un nom localisé ou le repli vide, ou utilisez ..Default::default().
 

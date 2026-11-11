@@ -107,6 +107,8 @@ mod numeric_service;
 
 #[cfg(feature = "adapter")]
 mod color_service;
+#[cfg(feature = "adapter")]
+mod popup;
 
 #[cfg(feature = "adapter")]
 mod dialog;

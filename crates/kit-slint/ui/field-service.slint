@@ -5,6 +5,10 @@ import { NavigationStep, RangeThumb, ColorAlphaMode } from "shared-contracts.sli
 import { FieldAction, CommitPolicy, FieldAccess, Ownership, StepDirection, NumberStepStatus } from "shared-contracts.slint";
 import { KitFieldMessages } from "strings.slint";
 import { KitInputConstraints } from "validation.slint";
+// Logical window coordinates. Placement is shared with kit-core geometry.
+export struct PopupViewport { width: length, height: length }
+export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length }
+export struct PopupGeometry { x: length, y: length, width: length, height: length }
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
     accepted: FieldValue, draft: string, dirty: bool, touched: bool,
@@ -29,6 +33,8 @@ export struct SliderAccessibleValue { valid: bool, minimum: float, maximum: floa
 export struct RangeAccessibleValue { lower: SliderAccessibleValue, upper: SliderAccessibleValue }
 export struct RangeSetValueResult { status: NumberStepStatus, value: DecimalRangeView }
 export global KitFieldService {
+    callback popup-viewport() -> PopupViewport;
+    pure callback place-popup(PopupRequest, PopupViewport) -> PopupGeometry;
     pure callback color-wheel-image() -> image;
     pure callback color-wheel-position(SrgbColorView) -> ColorWheelPosition;
     pure callback color-wheel(float, float) -> ColorResult;
