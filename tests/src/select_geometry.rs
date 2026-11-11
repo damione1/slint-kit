@@ -27,9 +27,10 @@ fn surface(window: &SelectGeometryFixture) -> ElementHandle {
 #[test]
 fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
     i_slint_backend_testing::init_no_event_loop();
-    for combobox in [false, true] {
+    for (combobox, searchable) in [(false, false), (false, true), (true, false)] {
         let window = SelectGeometryFixture::new().unwrap();
         window.set_combobox(combobox);
+        window.set_searchable(searchable);
         window.set_rows(rows(3));
         window.show().unwrap();
         let _ = ElementQuery::from_root(&window)
@@ -43,20 +44,24 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
         });
         slint::platform::update_timers_and_animations();
         let height = surface(&window).size().height;
-        let expected_three = if combobox { 140.0..200.0 } else { 190.0..250.0 };
+        let expected_three = if searchable {
+            190.0..250.0
+        } else {
+            140.0..200.0
+        };
         assert!(
             expected_three.contains(&height),
             "three rows need a compact popup: {height}"
         );
         window.set_rows(rows(1));
         let height = surface(&window).size().height;
-        let expected_one = if combobox { 55.0..110.0 } else { 90.0..150.0 };
+        let expected_one = if searchable { 90.0..150.0 } else { 55.0..110.0 };
         assert!(
             expected_one.contains(&height),
             "filtered popup follows its content: {height}"
         );
         window.set_rows(rows(0));
-        let minimum_empty = if combobox { 55.0 } else { 90.0 };
+        let minimum_empty = if searchable { 90.0 } else { 55.0 };
         assert!(
             surface(&window).size().height >= minimum_empty,
             "empty state keeps a usable viewport"

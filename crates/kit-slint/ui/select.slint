@@ -458,6 +458,7 @@ export component KitSelect inherits Rectangle {
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
     private property <bool> popup-focused;
+    private property <bool> popup-presented;
     out property <bool> has-focus: trigger.has-focus || root.popup-focused;
     changed has-focus => { if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => {
@@ -485,8 +486,9 @@ export component KitSelect inherits Rectangle {
     }
     private property <bool> opened: root.state.open;
     changed opened => {
-        if (root.state.open) { popup.show(); }
+        if (root.state.open) { popup.show(); root.popup-presented = true; }
         else {
+            root.popup-presented = false;
             root.pending-search-input = "";
             let reset-query = root.query != "";
             if (reset-query) { root.query = ""; }
@@ -497,7 +499,7 @@ export component KitSelect inherits Rectangle {
         }
     }
     changed popup-visible => {
-        if (!root.popup-visible) { root.popup-focused = false; }
+        if (!root.popup-visible) { root.popup-focused = false; root.popup-presented = false; }
         // Native presentation closure does not expose its precise cause.
         if (!root.popup-visible && root.state.open) { root.handle-dismiss(CloseReason.host-closed); }
     }
@@ -557,8 +559,7 @@ export component KitSelect inherits Rectangle {
             empty-label: root.empty-label;
             // A popup takes native focus from its parent after its init code.
             // Observe presentation so focus and the opening key follow show().
-            focus-on-open: false;
-            private property <bool> presented: root.popup-visible;
+            private property <bool> presented: root.popup-presented;
             private property <string> pending-input: root.pending-search-input;
             function deliver-search-input() {
                 if (self.presented && root.state.open && root.access == FieldAccess.editable && root.searchable && root.pending-search-input != "") {
@@ -567,7 +568,7 @@ export component KitSelect inherits Rectangle {
                     self.type-ahead(text);
                 }
             }
-            changed presented => { if (self.presented) { self.take-focus(); self.deliver-search-input(); } }
+            changed presented => { if (self.presented && root.state.open && root.access == FieldAccess.editable) { self.take-focus(); self.deliver-search-input(); } }
             changed pending-input => { self.deliver-search-input(); }
             accessible-name: root.label;
             accessible-item-count: root.rows.length;
