@@ -19,6 +19,7 @@ mod journeys;
 mod keyboard_scope;
 mod multi_popup;
 mod preview;
+mod select_search;
 mod selection_names;
 mod selection_search_session;
 mod selection_service;

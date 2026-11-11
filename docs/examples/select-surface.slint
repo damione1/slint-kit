@@ -16,6 +16,9 @@ export component Example inherits Window {
     in property <[OptionRow]> options: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
 
     in-out property <string> query;
+    // Custom typing uses the native search path (install services once per window).
+    // With searchable:false, the same API performs prefix navigation instead.
+    public function type-ahead(text: string) { control.type-ahead(text); }
 
     VerticalLayout {
         padding: 24px;
@@ -27,6 +30,7 @@ export component Example inherits Window {
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Chosen: " + row.label; }
             theme: root.theme; height: 240px; searchable: true; query <=> root.query;
             search-label: "Find destination"; focus-search-on-open: true;
+            empty-label: "No matching destinations";
             tab-navigation(reverse) => { return KitKeyResult.reject; }
             VerticalLayout {
                 alignment: start;
