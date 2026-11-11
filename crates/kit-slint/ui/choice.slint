@@ -859,6 +859,7 @@ export component KitMultiSelect inherits Rectangle {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <[OptionRow]> rows: selection.rows;
     in property <[ChipRow]> chips: selection.chips;
+    in property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.multiple-choices(root.rows, root.selected) : [];
     in property <SelectState> state: selection.state;
     in property <string> label: KitStrings.multi-select-label;
     in property <string> placeholder: KitStrings.multi-select-placeholder;
@@ -866,6 +867,7 @@ export component KitMultiSelect inherits Rectangle {
     in property <string> value-label: root.chips.length == 0 ? ""
         : (root.selected-labels == "" ? KitStrings.multi-selection-count-format : KitStrings.multi-selection-value-format)
             .replace-all("{count}", "" + root.chips.length).replace-all("{labels}", root.selected-labels);
+    in property <bool> close-on-select: false;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
     out property <int> page-rows: selector.page-rows;
@@ -913,7 +915,7 @@ export component KitMultiSelect inherits Rectangle {
             }
         }
         selector := KitSelect {
-            theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
+            theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; choice-rows: root.choice-rows; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
             access: root.access;
             query <=> root.query;
             wrap: root.wrap;
@@ -940,7 +942,7 @@ export component KitMultiSelect inherits Rectangle {
     in-out property <[SelectionRef]> selected <=> selection.selected;
     callback selection-changed(OptionRow, bool);
     selection := KitMultipleSelection {
-        options: root.options; ownership: root.ownership; limit: root.selection-limit;
+        options: root.options; ownership: root.ownership; limit: root.selection-limit; close-on-select: root.close-on-select;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
         query-reset => { root.query-edited(""); }

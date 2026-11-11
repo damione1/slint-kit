@@ -56,6 +56,8 @@ export component SelectionSearchSessionFixture inherits Window {
             query-edited(query) => { root.single-query-edited(query); }
         }
         multi := KitMultiSelect {
+            // This fixture covers the explicit closing-session policy (#172).
+            close-on-select: true;
             theme: root.theme; label: "Multiple search"; options: root.options;
             ownership: root.ownership; access: root.access;
             selection-changed(row, added) => { root.multi-changed(row, added); }

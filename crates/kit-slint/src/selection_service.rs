@@ -342,27 +342,33 @@ where
         )
         .session
     });
-    service.on_activate(|rows, current, token, generation, ownership| {
-        let Some(token) = ChoiceToken::new(token) else {
-            return ui::SelectionTransition {
-                session: current,
-                chosen: ui::SelectionRef::default(),
+    service.on_activate(
+        |rows, current, token, generation, ownership, close_on_select| {
+            let Some(token) = ChoiceToken::new(token) else {
+                return ui::SelectionTransition {
+                    session: current,
+                    chosen: ui::SelectionRef::default(),
+                };
             };
-        };
-        if generation < 0 || generation != current.state.generation {
-            return ui::SelectionTransition {
-                session: current,
-                chosen: ui::SelectionRef::default(),
-            };
-        }
-        reduce(
-            &rows,
-            current,
-            ownership,
-            ui::SelectionRetention::BoundToOptions,
-            SelectEvent::Activate(token),
-        )
-    });
+            if generation < 0 || generation != current.state.generation {
+                return ui::SelectionTransition {
+                    session: current,
+                    chosen: ui::SelectionRef::default(),
+                };
+            }
+            reduce(
+                &rows,
+                current,
+                ownership,
+                ui::SelectionRetention::BoundToOptions,
+                if close_on_select {
+                    SelectEvent::Activate(token)
+                } else {
+                    SelectEvent::ActivateKeepingOpen(token)
+                },
+            )
+        },
+    );
     service.on_typeahead(|rows, current, text, timestamp, ownership| {
         let Ok(now_ms) = u64::try_from(timestamp) else {
             return current;

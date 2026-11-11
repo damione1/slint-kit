@@ -1,6 +1,6 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, ValidationTiming, KitSelect, KitTheme, KitThemes, SelectionAvailability } from "@kit";
+import { KitFieldError, ValidationTiming, ChoiceRow, KitSelect, KitTheme, KitThemes, SelectionAvailability } from "@kit";
 
 // Accessible Expand opens only; ordinary activation still toggles. Controlled owners acknowledge the requested state.
     // Native editing keeps focus; option positions do not imply an active-descendant relation.
@@ -18,6 +18,8 @@ export component Example inherits Window {
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <string> status;
+    // Host-readable markers are matched by token; controlled markers wait for selected acknowledgement.
+    out property <[ChoiceRow]> projected-choice-rows: field.choice-rows;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Select"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }

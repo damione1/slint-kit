@@ -15,6 +15,7 @@ mod foundation_render;
 mod foundations;
 mod journeys;
 mod keyboard_scope;
+mod multi_popup;
 mod preview;
 mod selection_names;
 mod selection_search_session;

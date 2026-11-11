@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, ValidationTiming, KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
+import { KitFieldError, ValidationTiming, ChoiceRow, KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // Accessible Expand opens only; ordinary activation still toggles. Controlled owners acknowledge the requested state.
     // Native editing keeps focus; option positions do not imply an active-descendant relation.
@@ -17,12 +17,14 @@ export component Example inherits Window {
     in property <[OptionRow]> options: [{token: 1, generation: 1, label: "Email"}, {token: 2, generation: 1, label: "Push"}, {token: 3, generation: 1, label: "SMS"}, {token: 4, generation: 1, label: "Desktop"}, {token: 5, generation: 1, label: "In-app inbox"}, {token: 6, generation: 1, label: "Weekly digest"}, {token: 7, generation: 1, label: "Webhook"}, {token: 8, generation: 1, label: "Calendar"}];
     in-out property <[SelectionRef]> selected: [{present: true, token: 1}, {present: true, token: 2}];
     in-out property <string> search-query;
+    // Host-readable markers are matched by token; controlled markers wait for selected acknowledgement.
+    out property <[ChoiceRow]> projected-choice-rows: field.choice-rows;
     callback membership-changed(OptionRow, bool);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Keep in the loop"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Choose your notification channels. Every selection keeps its identity when the visible list changes."; color: root.theme.text-secondary; wrap: word-wrap; }
-        field := KitMultiSelect { required: true; validation-timing: ValidationTiming.on-blur; label: "Delivery channels"; placeholder: "Add a channel"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.search-query; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        field := KitMultiSelect { close-on-select: false; required: true; validation-timing: ValidationTiming.on-blur; label: "Delivery channels"; placeholder: "Add a channel"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.search-query; selection-changed(row, added) => { root.membership-changed(row, added); } }
         if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         Text { text: root.selected.length + " channels selected"; color: root.theme.text-secondary; }
     }
