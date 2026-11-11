@@ -241,8 +241,10 @@ export component KitSelectSurface inherits Rectangle {
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
     private property <length> inset: KitMetrics.popover-inset(root.theme);
+    // Intrinsic search measurement stays independent of allocated popup height.
+    private property <length> search-height: root.searchable ? KitMetrics.select-search-height(root.theme, search.preferred-height) : 0px;
     // Options and an optional host status row consume the remaining viewport.
-    out property <length> chrome-height: 2 * root.inset + (root.searchable ? search-box.height + root.inset : 0px);
+    out property <length> chrome-height: 2 * root.inset + root.search-height + (root.searchable ? root.inset : 0px);
     // The surface and its two-layer shadow paint under the list.
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
@@ -270,7 +272,7 @@ export component KitSelectSurface inherits Rectangle {
             spacing: root.searchable ? root.inset : 0px;
             search-box := Rectangle {
                 visible: root.searchable;
-                height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
+                height: root.search-height;
                 border-radius: max(0px, root.recipe.radius - root.inset);
                 background: root.theme.canvas;
                 border-width: root.theme.shape.border-width;
