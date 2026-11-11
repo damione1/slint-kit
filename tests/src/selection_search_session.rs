@@ -31,7 +31,7 @@ fn fixture() -> (SelectionSearchSessionFixture, Choices<u32>) {
                 ..Default::default()
             })))
             .unwrap()
-        })
+        });
     });
     let app = SelectionSearchSessionFixture::new().unwrap();
     slint_kit::install(&app);
