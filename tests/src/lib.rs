@@ -225,6 +225,7 @@ mod tests {
     #[test]
     fn ten_thousand_options_are_virtualized_and_keyboard_moves_active_into_view() {
         let window = fixture();
+        kit_slint::install(&window);
         let options = (0..10_000)
             .map(|i| kit_core::SelectOption::new(i, format!("Option{i:05}")))
             .collect();

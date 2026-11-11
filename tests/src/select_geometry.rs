@@ -29,6 +29,7 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
     i_slint_backend_testing::init_no_event_loop();
     for (combobox, searchable) in [(false, false), (false, true), (true, false)] {
         let window = SelectGeometryFixture::new().unwrap();
+        slint_kit::install(&window);
         window.set_combobox(combobox);
         window.set_searchable(searchable);
         window.set_rows(rows(3));
@@ -78,6 +79,7 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
 fn combobox_labels_use_the_full_left_aligned_text_column() {
     i_slint_backend_testing::init_no_event_loop();
     let window = SelectGeometryFixture::new().unwrap();
+    slint_kit::install(&window);
     window.set_combobox(true);
     window.set_selected_label("".into());
     window.set_rows(rows(3));
@@ -140,6 +142,7 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
 fn combobox_renders_descriptions_loading_with_results_custom_geometry_and_end_reached() {
     i_slint_backend_testing::init_no_event_loop();
     let window = SelectGeometryFixture::new().unwrap();
+    slint_kit::install(&window);
     window.set_combobox(true);
     window.set_popup_height(220.0);
     window.set_row_height(56.0);
