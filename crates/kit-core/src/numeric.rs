@@ -337,7 +337,9 @@ impl DecimalRules {
         }
     }
 }
-fn canonicalize<T>(
+// Structural normalization shared by typed codecs and native numeric constraints.
+// It produces text, not a parsed domain value.
+pub(crate) fn canonicalize<T>(
     text: &str,
     locale: NumberLocale,
     decimal: bool,

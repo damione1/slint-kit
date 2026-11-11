@@ -427,36 +427,11 @@ fn canonical_clock_draft(draft: &str) -> Option<String> {
     None
 }
 fn canonical_number_draft(draft: &str, format: NumberInputFormat) -> Option<String> {
-    if format == NumberInputFormat::Canonical {
-        return Some(draft.into());
-    }
-    let (mantissa, exponent) = draft
-        .find(['e', 'E'])
-        .map_or((draft, ""), |i| (&draft[..i], &draft[i..]));
-    let mut decimal = mantissa.split(',');
-    let integer = decimal.next()?;
-    let fraction = decimal.next();
-    if decimal.next().is_some() || integer.contains('.') {
-        return None;
-    }
-    let digits = integer.strip_prefix('-').unwrap_or(integer);
-    if digits.contains([' ', '\u{a0}', '\u{202f}']) {
-        let groups: Vec<_> = digits.split([' ', '\u{a0}', '\u{202f}']).collect();
-        if groups[0].is_empty()
-            || groups[0].len() > 3
-            || !groups[0].bytes().all(|c| c.is_ascii_digit())
-            || groups[1..]
-                .iter()
-                .any(|g| g.len() != 3 || !g.bytes().all(|c| c.is_ascii_digit()))
-        {
-            return None;
-        }
-    }
-    let integer = integer.replace([' ', '\u{a0}', '\u{202f}'], "");
-    Some(format!(
-        "{integer}{}{exponent}",
-        fraction.map_or(String::new(), |f| format!(".{f}"))
-    ))
+    let locale = match format {
+        NumberInputFormat::Canonical => crate::NumberLocale::EnCa,
+        NumberInputFormat::DecimalComma => crate::NumberLocale::FrCa,
+    };
+    crate::numeric::canonicalize::<()>(draft, locale, true, crate::SignPolicy::Signed).ok()
 }
 /// Filter insertions without owning native selection, caret, composition or undo.
 /// Incomplete exponent/sign drafts remain editable and validate as badInput.
@@ -1499,5 +1474,59 @@ mod stepping_tests {
             .minimum,
             None
         );
+    }
+    #[test]
+    fn supported_grouped_drafts_share_syntax_without_localizing_constraint_attributes() {
+        for (format, texts) in [
+            (
+                NumberInputFormat::Canonical,
+                vec!["1,234.50", "+1,234.50", " 1234.50 ", "1.2345e3"],
+            ),
+            (
+                NumberInputFormat::DecimalComma,
+                vec![
+                    "1 234,50",
+                    "+1\u{a0}234,50",
+                    " 1\u{202f}234,50 ",
+                    "1,2345e3",
+                ],
+            ),
+        ] {
+            let c = HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                number_format: format,
+                minimum: Some("0".into()),
+                maximum: Some("2000".into()),
+                step: Some("0.01".into()),
+                ..Default::default()
+            };
+            for text in texts {
+                assert!(
+                    c.validate(text, HtmlInputState::default()).valid(),
+                    "{text}"
+                );
+                assert_eq!(html_number(&c.sanitize(text)), html_number("1234.50"));
+            }
+            for text in ["-", "+", "1e", "1e-"] {
+                assert!(c.validate(text, HtmlInputState::default()).bad_input);
+            }
+        }
+        // Attributes are never interpreted using the draft's grouping grammar.
+        for invalid in ["1,000", "1 000", "+1000", " 1000 "] {
+            assert_eq!(html_number(invalid), None, "{invalid}");
+            let c = HtmlConstraints {
+                kind: HtmlInputKind::Number,
+                minimum: Some(invalid.into()),
+                maximum: Some(invalid.into()),
+                step: Some(invalid.into()),
+                ..Default::default()
+            };
+            assert!(c.validate("2", HtmlInputState::default()).valid());
+        }
+        let range = HtmlConstraints {
+            kind: HtmlInputKind::Range,
+            ..Default::default()
+        };
+        assert_eq!(range.sanitize("1,234.50"), "");
     }
 }

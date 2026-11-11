@@ -823,6 +823,7 @@ mod base_feedback;
 mod datetime_localization;
 mod number_stepping;
 mod numeric_input;
+mod numeric_locale;
 mod optional_temporal;
 mod scroll_bar;
 mod select_geometry;
