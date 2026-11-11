@@ -14,6 +14,9 @@
 - **Rupture :** les littéraux FileRequest/DirectoryRequest complets exigent title/directory ; HostCapabilities exige save_files ; FileViewEntry complet exige byte_length décimal (vide signifie inconnu). accept_drop résout désormais les métadonnées de façon asynchrone en conservant les gardes de génération, d’accès et de fenêtre faible ; accept_handles reçoit les ressources déjà résolues d’un fournisseur.
 
 
+- Add controlled table column reordering through built-in Slint header drag-and-drop, Ctrl+Shift+Left/Right and `reorder-active-column(ColumnStep)`, reporting stable source and target tokens with stale-payload guards. Cover stationary divider double-click autosizing independently of sort and resize actions.
+- Ajoute le réordonnancement contrôlé des colonnes par glisser-déposer Slint des en-têtes, Ctrl+Maj+Gauche/Droite et `reorder-active-column(ColumnStep)`, avec jetons source/cible stables et rejet des données périmées. Couvre l’ajustement par double-clic immobile des séparations indépendamment du tri et du redimensionnement.
+
 - Preserve manual horizontal table scrolling until the next cell-navigation action; verify Left/Right after real wheel events and measure the cell focus frame independently of editors at every control size and doubled text.
 - Conserve le défilement horizontal manuel du tableau jusqu’à la prochaine navigation de cellule ; vérifie Gauche/Droite après de vraies molettes et mesure le cadre de cellule indépendamment des éditeurs à chaque taille de contrôle et au texte doublé.
 

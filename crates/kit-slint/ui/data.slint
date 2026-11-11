@@ -49,6 +49,8 @@ export global KitDataService {
     in-out property <bool> ready;
     pure callback visible-columns([TableColumn]) -> [TableColumn];
     pure callback source-current([TableColumn], int, int) -> bool;
+    pure callback column-drag([TableColumn], int) -> data-transfer;
+    pure callback column-drop([TableColumn], data-transfer, int) -> TableColumnDrop;
 }
 // What one typed table cell shows. The set is closed and painted by the
 // kit inside the virtualized row, because Slint 1.18.1 rejects `@children`
@@ -65,7 +67,9 @@ export global KitDataService {
 export enum TableCellKind { text, badge, check, field }
 export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
-enum ColumnStep { previous, next }
+export enum ColumnStep { previous, next }
+// Projection of an optional, validated internal drag payload.
+export struct TableColumnDrop { valid: bool, token: int }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
@@ -425,6 +429,16 @@ export component KitDataTable inherits Rectangle {
     changed header-focus => { root.cursor-region = TableCursorRegion.body; }
     public function sort-active-column() { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].sortable) { root.sort-requested(root.display-columns[root.active-column].token); } }
     public function resize-active-column(delta: length) { if (root.interactive && root.has-active-column() && root.display-columns[root.active-column].width.resizable) { root.keyboard-resize-delta = delta; root.keyboard-resize-request += 1; } }
+    public function reorder-active-column(step: ColumnStep) {
+        if (!root.interactive || !KitDataService.ready || !root.has-active-column()) { return; }
+        let target = root.active-column + (step == ColumnStep.previous ? -1 : 1);
+        if (target >= 0 && target < root.display-columns.length) {
+            let source-token = root.display-columns[root.active-column].token;
+            let target-token = root.display-columns[target].token;
+            let request = KitDataService.column-drop(root.columns, KitDataService.column-drag(root.columns, source-token), target-token);
+            if (request.valid) { root.reorder-requested(request.token, target-token); }
+        }
+    }
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[TableColumn]> columns;
@@ -460,6 +474,9 @@ export component KitDataTable inherits Rectangle {
     // nothing from it: the host changes the column's `width` policy.
     callback resize-requested(int,length);
     callback autosize-requested(int);
+    // Move the source token to the target token's current visible position.
+    // The host accepts by republishing its column projection.
+    callback reorder-requested(int, int);
     // A committed cell edit: row token, column token and the generation
     // armed when editing began, then the field commit to run through the
     // column's `FieldSpec::accept`. The host fences it with the generation
@@ -709,21 +726,54 @@ export component KitDataTable inherits Rectangle {
                 min-width: root.cell-min(column); max-width: root.cell-max(column); preferred-width: root.cell-preferred(column);
                 horizontal-stretch: root.cell-stretch(column);
                 height: root.row-height; clip: true;
-                if column.sortable: KitPressable {
-                    theme: root.theme; control-width: ControlWidth.fill;
-                    width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
-                    recipe: root.row-recipe; disabled: !root.interactive; tab-stop: root.header-focus == TableHeaderFocus.individual;
-                    focus-indicated: header-cell.active-header; focus-ring: KitThemes.inset-focus(root.theme);
-                    background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
-                    accessible-name: root.header-name(column);
-                    activated => {root.sort-requested(column.token);}
-                    TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
+                column-drag := DragArea {
+                    width: max(0px, parent.width - (column.width.resizable ? root.handle-recipe.width : 0px));
+                    height: parent.height;
+                    enabled: root.interactive && KitDataService.ready;
+                    allow-move: true;
+                    data: KitDataService.column-drag(root.columns, column.token);
+                    if column.sortable: KitPressable {
+                        theme: root.theme; control-width: ControlWidth.fill;
+                        width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
+                        recipe: root.row-recipe; disabled: !root.interactive; tab-stop: root.header-focus == TableHeaderFocus.individual;
+                        focus-indicated: header-cell.active-header; focus-ring: KitThemes.inset-focus(root.theme);
+                        background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
+                        accessible-name: root.header-name(column);
+                        key-event(event) => {
+                            if (event.modifiers.control && event.modifiers.shift && (event.text == Key.LeftArrow || event.text == Key.RightArrow)) {
+                                root.active-column = column-index;
+                                root.reorder-active-column(event.text == Key.LeftArrow ? ColumnStep.previous : ColumnStep.next);
+                                return KitKeyResult.accept;
+                            }
+                            return KitKeyResult.reject;
+                        }
+                        activated => {root.sort-requested(column.token);}
+                        TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
+                    }
+                    if !column.sortable: Rectangle {
+                        width: parent.width; height: parent.height; background: root.row-recipe.fill;
+                        accessible-role: text; accessible-label: root.header-name(column);
+                        TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
+                        if header-cell.active-header: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: parent.width; host-height: parent.height; }
+                    }
                 }
-                if !column.sortable: Rectangle {
-                    width: parent.width; height: parent.height; background: root.row-recipe.fill;
-                    accessible-role: text; accessible-label: root.header-name(column);
-                    TableHeaderContent {theme: root.theme; control-size: root.control-size; column: column; inset: root.cell-inset;}
-                    if header-cell.active-header: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: 0px; host-width: parent.width; host-height: parent.height; }
+                column-drop := DropArea {
+                    enabled: root.interactive && KitDataService.ready;
+                    can-drop(event) => {
+                        return KitDataService.column-drop(root.columns, event.data, column.token).valid ? DragAction.move : DragAction.none;
+                    }
+                    dropped(event) => {
+                        let request = KitDataService.column-drop(root.columns, event.data, column.token);
+                        if (!request.valid) { return DragAction.none; }
+                        root.reorder-requested(request.token, column.token);
+                        return DragAction.move;
+                    }
+                    if column-drop.has-drag: Rectangle {
+                        width: parent.width; height: parent.height;
+                        background: root.theme.hover;
+                        border-width: root.theme.shape.border-width-strong;
+                        border-color: root.theme.accent;
+                    }
                 }
                 // The handle sits inside its own cell, after the header, so it
                 // wins the pointer over the sortable header beneath it. A
@@ -758,6 +808,10 @@ export component KitDataTable inherits Rectangle {
         column-navigation: true;
         key-event(event) => {
             if (root.key-event(event) == KitKeyResult.accept) { return KitKeyResult.accept; }
+            if (event.modifiers.control && event.modifiers.shift && root.cursor-region == TableCursorRegion.header && (event.text == Key.LeftArrow || event.text == Key.RightArrow)) {
+                root.reorder-active-column(event.text == Key.LeftArrow ? ColumnStep.previous : ColumnStep.next);
+                return KitKeyResult.accept;
+            }
             if (event.modifiers.alt && root.cursor-region == TableCursorRegion.header && (event.text == Key.LeftArrow || event.text == Key.RightArrow)) { root.resize-active-column(event.text == Key.LeftArrow ? -root.handle-recipe.step : root.handle-recipe.step); return KitKeyResult.accept; }
             return KitKeyResult.reject;
         }

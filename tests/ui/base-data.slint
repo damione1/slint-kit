@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
-export { ColumnWidth, ColumnSizing, ColumnCeiling }
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
+export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
 
@@ -90,6 +90,8 @@ export component BaseDataFixture inherits Window {
     callback line-copied(int,int);
     callback sort-requested(int);
     callback resize-requested(int, length);
+    callback autosize-requested(int);
+    callback reorder-requested(int, int);
     callback cell-committed(int, int, int, FieldCommit);
     callback table-edit-started(int, int, int);
     callback table-edit-ended(int, int, int, TableEditOutcome, string);
@@ -100,6 +102,7 @@ export component BaseDataFixture inherits Window {
     public function cancel-table() { table.cancel-edit(); }
     public function sort-table-column() { table.sort-active-column(); }
     public function resize-table-column(delta: length) { table.resize-active-column(delta); }
+    public function reorder-table-column(step: ColumnStep) { table.reorder-active-column(step); }
     public function focus-table() { table.take-focus(); }
     public function focus-content() { content.take-focus(); }
     public function focus-document() { document.take-focus(); }
@@ -119,6 +122,8 @@ export component BaseDataFixture inherits Window {
             activate(token,generation) => { root.table-activated(token,generation); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
+            autosize-requested(token) => { root.autosize-requested(token); }
+            reorder-requested(source, target) => { root.reorder-requested(source, target); }
             edit-blur-policy: root.table-edit-blur-policy; unchanged-edit-policy: root.table-unchanged-edit-policy;
             edit-started(row,column,generation) => {root.table-edit-started(row,column,generation);}
             edit-ended(row,column,generation,outcome,message) => {root.table-edit-ended(row,column,generation,outcome,message);}

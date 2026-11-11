@@ -914,3 +914,324 @@ fn projected_column_actions_keep_the_stable_column_token() {
     assert_eq!(resized.borrow()[0].0, token);
     assert!(near(resized.borrow()[0].1, 200.));
 }
+
+#[test]
+fn stationary_handle_double_click_requests_only_autosize_and_blocked_handles_ignore_it() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    window.set_columns(ModelRc::new(VecModel::from(with_widths(
+        resizable(fixed(180.)),
+        fill(),
+    ))));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 2))));
+    window.show().unwrap();
+    let autosized = Rc::new(RefCell::new(Vec::new()));
+    let resized = Rc::new(RefCell::new(Vec::new()));
+    let sorted = Rc::new(RefCell::new(Vec::new()));
+    let activated = Rc::new(RefCell::new(Vec::new()));
+    let recorded = autosized.clone();
+    window.on_autosize_requested(move |token| recorded.borrow_mut().push(token));
+    let recorded = resized.clone();
+    window.on_resize_requested(move |token, width| recorded.borrow_mut().push((token, width)));
+    let recorded = sorted.clone();
+    window.on_sort_requested(move |token| recorded.borrow_mut().push(token));
+    let recorded = activated.clone();
+    window.on_table_activated(move |token, generation| {
+        recorded.borrow_mut().push((token, generation))
+    });
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.set_table_interactive(true);
+            autosized.borrow_mut().clear();
+            resized.borrow_mut().clear();
+            sorted.borrow_mut().clear();
+            activated.borrow_mut().clear();
+            frame();
+            let target = handle(&window, "Product, width").unwrap();
+            assert!(
+                target.size().width >= 24. * scale,
+                "the divider target scales with text"
+            );
+            let position = LogicalPosition::new(
+                target.absolute_position().x + target.size().width / 2.,
+                target.absolute_position().y + target.size().height / 2.,
+            );
+            i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(600));
+            for _ in 0..2 {
+                pointer_move(&window, position);
+                pointer_down(&window, position);
+                frame();
+                pointer_up(&window, position);
+                frame();
+                i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+            }
+            assert_eq!(*autosized.borrow(), vec![PRODUCT]);
+            assert!(
+                resized.borrow().is_empty(),
+                "stationary clicks are not drags"
+            );
+            assert!(
+                sorted.borrow().is_empty(),
+                "the handle does not sort its header"
+            );
+            assert!(
+                activated.borrow().is_empty(),
+                "the handle does not activate a row"
+            );
+            assert!(near(header_cells(&window)[0].size().width, 180.));
+            crate::choice_presentation::save_capture(
+                &frame(),
+                &format!("table-handle-autosize-{name}-{scale}"),
+            );
+            window.set_table_interactive(false);
+            frame();
+            i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(600));
+            for _ in 0..2 {
+                pointer_down(&window, position);
+                pointer_up(&window, position);
+                i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+                frame();
+            }
+            assert_eq!(*autosized.borrow(), vec![PRODUCT]);
+            assert!(resized.borrow().is_empty());
+            assert!(sorted.borrow().is_empty());
+            assert!(activated.borrow().is_empty());
+            crate::choice_presentation::save_capture(
+                &frame(),
+                &format!("table-handle-autosize-blocked-{name}-{scale}"),
+            );
+        }
+    }
+}
+
+fn column_drag_area(window: &BaseDataFixture, index: usize) -> ElementHandle {
+    header_cells(window)[index]
+        .query_descendants()
+        .match_type_name("DragArea")
+        .find_first()
+        .unwrap()
+}
+fn column_frame(window: &BaseDataFixture) -> slint::SharedPixelBuffer<slint::Rgba8Pixel> {
+    slint::platform::update_timers_and_animations();
+    let frame = window.window().take_snapshot().unwrap();
+    slint::platform::update_timers_and_animations();
+    frame
+}
+fn software_columns() -> BaseDataFixture {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    kit_slint::install(&window);
+    let mut columns = with_widths(resizable(fixed(220.)), resizable(fixed(220.)));
+    for (index, column) in columns.iter_mut().enumerate() {
+        column.source = slint_kit::ColumnDataIndex::try_from(index).unwrap().into();
+    }
+    window.set_columns(ModelRc::new(VecModel::from(columns)));
+    let mut records = rows(1, 2);
+    records[0].selected = true;
+    window.set_rows(ModelRc::new(VecModel::from(records)));
+    window.set_table_active(0);
+    window.show().unwrap();
+    column_frame(&window);
+    window
+}
+
+#[test]
+fn dragging_a_header_requests_a_stable_move_and_host_projection_keeps_row_data() {
+    let window = software_columns();
+    let requested = Rc::new(RefCell::new(Vec::new()));
+    let recorded = requested.clone();
+    let weak = window.as_weak();
+    window.on_reorder_requested(move |source, target| {
+        recorded.borrow_mut().push((source, target));
+        let window = weak.upgrade().unwrap();
+        let mut columns: Vec<_> = window.get_columns().iter().collect();
+        let from = columns
+            .iter()
+            .position(|column| column.token == source)
+            .unwrap();
+        let to = columns
+            .iter()
+            .position(|column| column.token == target)
+            .unwrap();
+        let column = columns.remove(from);
+        columns.insert(to, column);
+        window.set_columns(ModelRc::new(VecModel::from(columns)));
+        window.set_table_active_column(i32::try_from(to).unwrap());
+    });
+    let sorted = Rc::new(RefCell::new(Vec::new()));
+    let recorded = sorted.clone();
+    window.on_sort_requested(move |token| recorded.borrow_mut().push(token));
+    let resized = observe_resizes(&window);
+    let row_model = window.get_rows();
+    let original_columns: Vec<_> = window.get_columns().iter().collect();
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            window.set_columns(ModelRc::new(VecModel::from(original_columns.clone())));
+            window.set_table_active_column(0);
+            requested.borrow_mut().clear();
+            column_frame(&window);
+            let source = column_drag_area(&window, 0);
+            let start = center(&source);
+            let target = center(&column_drag_area(&window, 1));
+            pointer_down(&window, start);
+            pointer_move(&window, LogicalPosition::new(start.x + 30., start.y));
+            pointer_move(&window, target);
+            crate::choice_presentation::save_capture(
+                &column_frame(&window),
+                &format!("table-column-drop-target-{name}-{scale}"),
+            );
+            pointer_up(&window, target);
+            column_frame(&window);
+            assert_eq!(*requested.borrow(), vec![(17, 91)]);
+            assert!(sorted.borrow().is_empty(), "dragging must not also sort");
+            assert!(
+                resized.borrow().is_empty(),
+                "header drag is separate from its divider"
+            );
+            assert_eq!(window.get_columns().row_data(1).unwrap().token, PRODUCT);
+            assert_eq!(
+                window.get_columns().row_data(1).unwrap().width,
+                original_columns[0].width
+            );
+            assert_eq!(
+                window.get_rows(),
+                row_model,
+                "reordering does not replace rows"
+            );
+            assert!(window.get_rows().row_data(0).unwrap().selected);
+            assert_eq!(window.get_table_active(), 0);
+            assert_aligned(&window);
+            let first = row_cells(&window, 0).remove(0);
+            assert!(
+                first
+                    .query_descendants()
+                    .match_predicate(|item| item.accessible_label().as_deref() == Some("0"))
+                    .find_first()
+                    .is_some(),
+                "Quantity still reads its canonical source"
+            );
+            crate::choice_presentation::save_capture(
+                &column_frame(&window),
+                &format!("table-column-moved-{name}-{scale}"),
+            );
+        }
+    }
+}
+
+#[test]
+fn column_reorder_keyboard_and_public_command_respect_bounds_and_blocking() {
+    let window = software_columns();
+    window.set_table_header_focus(ui::TableHeaderFocus::Roving);
+    let requests = Rc::new(RefCell::new(Vec::new()));
+    let recorded = requests.clone();
+    window.on_reorder_requested(move |source, target| recorded.borrow_mut().push((source, target)));
+    window.invoke_focus_table();
+    key(&window, Key::UpArrow);
+    column_frame(&window);
+    down(&window, Key::Control);
+    down(&window, Key::Shift);
+    key(&window, Key::LeftArrow);
+    assert!(
+        requests.borrow().is_empty(),
+        "first column has no previous destination"
+    );
+    key(&window, Key::RightArrow);
+    up(&window, Key::Shift);
+    up(&window, Key::Control);
+    assert_eq!(*requests.borrow(), vec![(17, 91)]);
+    assert_eq!(
+        window.get_columns().row_data(0).unwrap().token,
+        17,
+        "requests do not mutate a controlled projection"
+    );
+    window.set_table_active_column(1);
+    window.invoke_reorder_table_column(ui::ColumnStep::Previous);
+    window.invoke_reorder_table_column(ui::ColumnStep::Next);
+    assert_eq!(*requests.borrow(), vec![(17, 91), (91, 17)]);
+    window.set_table_interactive(false);
+    window.invoke_reorder_table_column(ui::ColumnStep::Previous);
+    column_frame(&window);
+    column_drag_area(&window, 0).mock_drag(
+        center(&column_drag_area(&window, 1)),
+        PointerEventButton::Left,
+    );
+    assert_eq!(
+        requests.borrow().len(),
+        2,
+        "blocked tables have no move actions"
+    );
+}
+
+#[test]
+fn cancelled_and_superseded_header_drags_emit_no_reorder() {
+    let window = software_columns();
+    let source = Rc::new(VecModel::from(
+        window.get_columns().iter().collect::<Vec<_>>(),
+    ));
+    window.set_columns(source.clone().into());
+    column_frame(&window);
+    let requests = Rc::new(RefCell::new(Vec::new()));
+    let recorded = requests.clone();
+    window.on_reorder_requested(move |from, to| recorded.borrow_mut().push((from, to)));
+    for cancel in [true, false] {
+        let start = center(&column_drag_area(&window, 0));
+        let target = center(&column_drag_area(&window, 1));
+        pointer_down(&window, start);
+        pointer_move(&window, LogicalPosition::new(start.x + 30., start.y));
+        pointer_move(&window, target);
+        column_frame(&window);
+        if cancel {
+            pointer_move(&window, LogicalPosition::new(target.x, target.y + 300.));
+        } else {
+            let mut column = source.row_data(1).unwrap();
+            column.label = "Changed while dragging".into();
+            source.set_row_data(1, column);
+        }
+        column_frame(&window);
+        pointer_up(
+            &window,
+            if cancel {
+                LogicalPosition::new(target.x, target.y + 300.)
+            } else {
+                target
+            },
+        );
+        column_frame(&window);
+        assert!(
+            requests.borrow().is_empty(),
+            "cancelled or stale payload cannot move a column"
+        );
+    }
+}
