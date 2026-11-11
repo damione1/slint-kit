@@ -7,7 +7,7 @@ import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
-import { NavigationStep, FieldAccess } from "contracts.slint";
+import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
 import { CheckState, TextPurpose, HtmlInputKind, Ownership } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
@@ -1020,6 +1020,20 @@ export component KitContentList inherits Rectangle {
 
 }
 
+// The footer uses the same press identity fence as DataAction, with the
+// normal button presentation and Tab behavior retained.
+component DocumentLineAction inherits KitButton {
+    in property <SelectionRef> line-source;
+    in property <int> generation;
+    private property <SelectionRef> armed-source;
+    private property <int> armed-generation;
+    callback requested(SelectionRef, int);
+    activation-started => { root.armed-source = root.line-source; root.armed-generation = root.generation; }
+    changed line-source => { root.cancel-press(); }
+    changed generation => { root.cancel-press(); }
+    activated => { root.requested(root.armed-source, root.armed-generation); }
+}
+
 export component KitVirtualTextView inherits Rectangle {
     in property <KitTheme> theme:KitThemeContext.current;
     in property <[TextLine]> lines;
@@ -1034,6 +1048,28 @@ export component KitVirtualTextView inherits Rectangle {
     in property <string> save-label:"Save line";
     in property <string> copy-label:"Copy";
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
+    private property <bool> has-active-line: root.active-index >= 0 && root.active-index < root.lines.length;
+    private property <bool> can-edit-line: root.access == TextViewAccess.edit-line && root.has-active-line;
+    pure function current-line() -> SelectionRef {
+        if (root.has-active-line) { return {present: true, token: root.lines[root.active-index].token}; }
+        return {present: false};
+    }
+    pure function current-source(source: SelectionRef, generation: int) -> bool {
+        return root.can-edit-line && source.present && generation == root.generation
+            && root.lines[root.active-index].token == source.token;
+    }
+    function commit-current(source: SelectionRef, generation: int, text: string) {
+        if (root.current-source(source, generation)) { root.commit-line(source.token, generation, text); }
+    }
+    function copy-current(source: SelectionRef, generation: int) {
+        if (!root.current-source(source, generation)) { return; }
+        line-editor.take-focus();
+        if (!root.current-source(source, generation)) { return; }
+        line-editor.select-all();
+        if (!root.current-source(source, generation)) { return; }
+        line-editor.copy-selection();
+        if (root.current-source(source, generation)) { root.copy-requested(source.token, generation); }
+    }
     public function take-focus(){keys.focus();}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.lines.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.line-height), 0, root.lines.length - 1);
@@ -1092,12 +1128,12 @@ export component KitVirtualTextView inherits Rectangle {
                 // Resolve the editor width before measuring its wrapped label
                 // and help. Its height must not feed back into flexbox width.
                 line-editor:=KitTextField {
-                    implicit-form-submit: false;width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
+                    implicit-form-submit: false;width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.can-edit-line?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{let source = root.current-line(); let generation = root.generation; root.commit-current(source,generation,text);}}
                 HorizontalLayout {
                     width:save-line.preferred-width + copy-line.preferred-width + KitMetrics.inline-gap(root.theme);
                     spacing:KitMetrics.inline-gap(root.theme);alignment:start;vertical-stretch:0;
-                    save-line := KitButton {theme:root.theme;text:root.save-label;disabled:root.active-index<0;activated=>{root.commit-line(root.lines[root.active-index].token,root.generation,root.line-draft);}}
-                    copy-line := KitButton {theme:root.theme;text:root.copy-label;disabled:root.active-index<0;activated=>{line-editor.take-focus();line-editor.select-all();line-editor.copy-selection();root.copy-requested(root.lines[root.active-index].token,root.generation);}}
+                    save-line := DocumentLineAction {theme:root.theme;text:root.save-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.commit-current(source,generation,root.line-draft);}}
+                    copy-line := DocumentLineAction {theme:root.theme;text:root.copy-label;line-source:root.current-line();generation:root.generation;disabled:!root.can-edit-line;requested(source,generation)=>{root.copy-current(source,generation);}}
                 }
             }
             if root.error!="": Text {text:root.error;color:root.theme.danger;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);wrap:word-wrap;}

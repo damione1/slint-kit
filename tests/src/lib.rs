@@ -12,6 +12,7 @@ mod code_feedback;
 mod column_widths;
 mod dialog_composition;
 mod direction;
+mod document_guards;
 mod file_constraints;
 mod foundation_render;
 mod foundations;
