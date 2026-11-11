@@ -84,6 +84,23 @@ fn capture_menu(app: &MenuActiveFocusFixture) {
             key(app, Key::End);
             assert!(app.get_menu_focused());
             let image = app.window().take_snapshot().unwrap();
+            let viewport = ElementQuery::from_root(app)
+                .match_inherits("KitMenu")
+                .find_first()
+                .unwrap();
+            let active = rows(app)
+                .into_iter()
+                .find(|row| row.accessible_label().as_deref() == Some("Row 1999"))
+                .expect("the active row remains materialized after a density change");
+            let viewport_y = viewport.absolute_position().y;
+            let row_y = active.absolute_position().y;
+            assert!(
+                row_y >= viewport_y - 0.1
+                    && row_y + active.size().height <= viewport_y + viewport.size().height + 0.1,
+                "{name}/{scale}: active row [{row_y}, {}] must be inside viewport [{viewport_y}, {}]",
+                row_y + active.size().height,
+                viewport_y + viewport.size().height
+            );
             let mut output = std::fs::File::create(
                 std::path::PathBuf::from(&directory)
                     .join(format!("menu-persistent-focus-{name}-{scale}.ppm")),

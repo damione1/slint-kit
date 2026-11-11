@@ -23,6 +23,9 @@
 - File and directory focus-if-invalid now rejects an inactive or busy browse action, allowing a form to focus its next invalid field or fallback. Form-owned error projections do not accumulate on refresh.
 - focus-if-invalid des fichiers et dossiers refuse désormais un parcours inactif ou occupé, pour permettre au formulaire de cibler le champ invalide suivant ou son repli. Les erreurs projetées par le formulaire ne s’accumulent pas au rafraîchissement.
 
+- Keep the active virtualized menu row visible when its row height or text scale changes; preserve the persistent native keyboard scope and controlled selection.
+- Garde la ligne active du menu virtualisé visible quand sa hauteur ou l’échelle du texte change ; préserve la portée clavier native persistante et la sélection contrôlée.
+
 - Expose logical option positions and missing orientation/list names across selection/navigation controls. Nonvirtualized MenuBar/Tabs/choice/rating controls delegate from persistent native scopes, preserving model reconciliation, RTL, Tab and editor focus. Virtualized/editor active-option relations, tab-panel relations and native AT qualification remain explicit SDK/platform limits. No breaking API change.
 - Expose les positions logiques et les orientations/noms de liste manquants des contrôles de sélection/navigation. MenuBar/Tabs/choix/note non virtualisés délèguent depuis des portées natives persistantes, préservant réconciliation du modèle, RTL, Tab et focus éditeur. Relations d’option active virtualisée/éditeur, relations onglet-panneau et qualification AT native restent des limites explicites SDK/plateforme. Aucune rupture d’API.
 
