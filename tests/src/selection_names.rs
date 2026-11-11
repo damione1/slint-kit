@@ -25,6 +25,10 @@ fn fixture() -> (SelectionNamesFixture, Choices<u8>) {
     app.show().unwrap();
     (app, choices)
 }
+fn settle(app: &SelectionNamesFixture) {
+    slint::platform::update_timers_and_animations();
+    app.window().take_snapshot().unwrap();
+}
 fn owner(app: &SelectionNamesFixture, name: &str) -> ElementHandle {
     ElementQuery::from_root(app)
         .match_inherits(name)
@@ -97,6 +101,12 @@ fn selection_names_hints_and_values_are_independent_including_an_empty_option_la
     capture(&app, "empty");
     for (key, value) in [(1, "Alpha"), (2, "Beta"), (3, "")] {
         app.set_selected(choices.selection(&key).unwrap());
+        settle(&app);
+        assert_eq!(
+            app.get_combo_text(),
+            value,
+            "the native editor projects the accepted label, including empty labels"
+        );
         let single = control(&app, "KitSelect");
         assert_eq!(single.accessible_label().as_deref(), Some("Destination"));
         assert_eq!(
@@ -259,6 +269,13 @@ fn unavailable_selection_shows_a_localized_message_and_the_theme_warning_glyph()
 fn editable_combobox_keeps_name_hint_draft_and_retained_selection_separate() {
     let (app, choices) = fixture();
     app.set_selected(choices.selection(&1).unwrap());
+    settle(&app);
+    assert_eq!(app.get_combo_text(), "Alpha");
+    assert_eq!(
+        app.get_combo_label(),
+        "Alpha",
+        "accept the native selected projection before replacing remote options"
+    );
     let combo = control(&app, "KitCombobox");
     assert_eq!(combo.accessible_label().as_deref(), Some("Contributor"));
     assert_eq!(
@@ -269,6 +286,8 @@ fn editable_combobox_keeps_name_hint_draft_and_retained_selection_separate() {
     app.set_options(slint::ModelRc::new(slint::VecModel::from(vec![
         choices.model().row_data(1).unwrap(),
     ])));
+    settle(&app);
+    assert_eq!(app.get_combo_text(), "Alpha");
     assert_eq!(app.get_combo_label(), "Alpha");
     assert_eq!(
         app.get_combo_availability(),
