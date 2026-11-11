@@ -163,6 +163,14 @@ where
         return;
     }
     let engine = Rc::new(crate::HtmlValidationEngine::default());
+    let dispatch = std::rc::Rc::new(crate::form::ImplicitSubmitDispatcher::default());
+    let begin = dispatch.clone();
+    global.on_begin_implicit_submit(move |generation| begin.begin(generation));
+    let active = dispatch.clone();
+    global.on_implicit_submit_active(move |generation| active.active(generation));
+    let native = dispatch.clone();
+    global.on_note_native_submit(move |generation| native.note_native(generation));
+    global.on_take_implicit_submit(move |ticket, generation| dispatch.take(ticket, generation));
     global.on_grapheme_count(|text| {
         i32::try_from(crate::__core::grapheme_count(text.as_str()))
             .expect("Slint string count fits i32")
@@ -339,6 +347,23 @@ where
         }
     });
     global.set_ready(true);
+}
+
+impl From<crate::ui::KitValidityState> for HtmlValidity {
+    fn from(value: crate::ui::KitValidityState) -> Self {
+        Self {
+            value_missing: value.value_missing,
+            type_mismatch: value.type_mismatch,
+            pattern_mismatch: value.pattern_mismatch,
+            too_long: value.too_long,
+            too_short: value.too_short,
+            range_underflow: value.range_underflow,
+            range_overflow: value.range_overflow,
+            step_mismatch: value.step_mismatch,
+            bad_input: value.bad_input,
+            custom_error: value.custom_error,
+        }
+    }
 }
 
 #[cfg(test)]

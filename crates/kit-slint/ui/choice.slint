@@ -149,6 +149,7 @@ export component KitCheckbox inherits KitPressable {
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
+    form-submit-on-return: true;
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
@@ -204,6 +205,7 @@ export component KitSwitch inherits KitPressable {
     disabled: root.access == FieldAccess.disabled;
     background: root.access == FieldAccess.read-only ? root.recipe.fill : root.disabled ? root.recipe.disabled-fill : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
+    form-submit-on-return: true;
     changed access => { root.cancel-press(); }
     min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
@@ -261,6 +263,10 @@ component ChoiceKeyboard inherits FocusScope {
     enabled: root.access != FieldAccess.disabled;
     key-pressed(event) => {
         root.keyboard-focus = true;
+        if (root.access != FieldAccess.disabled && event.text == Key.Return && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation)) {
+            KitFormValidation.note-native-submit(KitFormValidation.focus-generation);
+            return accept;
+        }
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Home) { root.navigate(NavigationStep.first); return accept; }
         if (event.text == Key.End) { root.navigate(NavigationStep.last); return accept; }
@@ -826,6 +832,7 @@ export component KitMultiSelect inherits Rectangle {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitTextField {
+                implicit-form-submit: false;
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
                 min-width: 0px; horizontal-stretch: 0;
@@ -910,6 +917,7 @@ export component KitTagInput inherits Rectangle {
             for chip in root.chips: KitChip { theme: root.theme; chip: chip; disabled: root.access != FieldAccess.editable || !chip.removable; remove-requested(token) => { root.remove-requested(token); } }
         }
         editor := KitTextField {
+            implicit-form-submit: false;
             theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label; error: root.error; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; text <=> root.text;
             placeholder: "Type a tag, then press Enter";
             edited(text) => { root.edited(text); }
@@ -1153,6 +1161,7 @@ export component KitCombobox inherits Rectangle {
     private property <bool> presented: popup.is-open;
     changed presented => { if (!root.presented && root.state.open) { root.handle-dismiss(CloseReason.host-closed); } }
     editor := KitTextField {
+        implicit-form-submit: false;
         width: root.width;
         theme: root.theme;
         control-size: root.control-size;

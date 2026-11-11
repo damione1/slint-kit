@@ -3,6 +3,7 @@
 // explicit recipe; adding a component without its illustration fails the build.
 export const mockups = Object.freeze({
   button: p => p.button(95,65,130,'Save',true),
+  'form': p => { p.field(50,34,220,'Email'); p.button(164,93,106,'Send',true); },
   'form-button': p => { p.field(50,34,220,'…'); p.button(164,93,106,'Send',true); },
   'submit-button': p => { p.button(80,65,160,'✓  Submit',true); p.line(112,117,96); },
   'reset-button': p => { p.field(52,40,216,'…'); p.button(168,103,100,'↺ Reset'); },

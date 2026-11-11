@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemeContext, KitMetrics } from "theme.slint";
+import { FocusRequest } from "contracts.slint";
+import { KitValidityState } from "validation.slint";
+export struct FormFieldView { will-validate: bool, validity: KitValidityState, dirty: bool, message: string, target: FocusRequest }
+import { FormErrorRow } from "field.slint";
+import { KitFormValidation, FormEditorFocus, ImplicitSubmitTicket } from "validation.slint";
+// Compose fields inside this form and connect its callbacks to FormBinding.
+export component KitForm inherits FocusScope {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <string> accessible-name;
+    in property <bool> valid;
+    in property <bool> dirty;
+    in property <bool> submitting;
+    in property <[FormErrorRow]> errors;
+    in property <bool> implicit-submit: true;
+    in property <bool> form-no-validate;
+    callback validation-requested() -> bool;
+    callback submit-requested();
+    callback reset-requested();
+    validation-requested => { return false; }
+    public function report-validity() -> bool { return root.validation-requested(); }
+    public function submit() -> bool {
+        if (root.submitting || (!root.form-no-validate && !root.report-validity())) { return false; }
+        root.submit-requested(); return true;
+    }
+    public function take-focus() { root.focus(); }
+    public function reset() { root.reset-requested(); }
+    accessible-role: form; accessible-label: root.accessible-name;
+    focus-on-tab-navigation: false;
+    vertical-stretch: 0;
+    preferred-height: content.preferred-height;
+    max-height: self.preferred-height;
+    private property <ImplicitSubmitTicket> pending-ticket;
+    capture-key-pressed(event) => {
+        if (KitFormValidation.ready && root.implicit-submit && event.text == Key.Return && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && !event.modifiers.shift
+            && (KitFormValidation.focused-editor == FormEditorFocus.single-line || KitFormValidation.focused-editor == FormEditorFocus.other)) {
+            root.pending-ticket = KitFormValidation.begin-implicit-submit(KitFormValidation.focus-generation);
+            deferred-submit.start();
+        }
+        // Let custom shortcuts and the native IME/editor decide whether Enter
+        // is accepted. Only its accepted callback completes the pending ticket.
+        return reject;
+    }
+    key-pressed(event) => {
+        if (root.implicit-submit && event.text == Key.Return && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && !event.modifiers.shift
+            && KitFormValidation.focused-editor == FormEditorFocus.read-only-single-line) {
+            root.submit(); return accept;
+        }
+        return reject;
+    }
+    deferred-submit := Timer {
+        interval: 0ms; running: false;
+        triggered => {
+            self.stop();
+            let native-accepted = KitFormValidation.take-implicit-submit(root.pending-ticket, KitFormValidation.focus-generation);
+            if (native-accepted && root.implicit-submit && (KitFormValidation.focused-editor == FormEditorFocus.single-line || KitFormValidation.focused-editor == FormEditorFocus.other)) { root.submit(); }
+        }
+    }
+    content := VerticalLayout {
+        spacing: KitMetrics.field-gap(root.theme); alignment: start;
+        @children
+    }
+}

@@ -829,6 +829,7 @@ mod otp_field;
 mod qa_polish;
 
 mod autonomous;
+mod form_binding;
 mod keyed_model;
 mod text_field_behavior;
 
@@ -847,3 +848,5 @@ mod slider_escape;
 
 mod color_lifecycle;
 mod range_coincident;
+
+mod form_registration;

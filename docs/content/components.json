@@ -613,7 +613,7 @@
     "fr": {
       "summary": "Case à cocher contrôlée avec un véritable état mixte.",
       "usage": "`state` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `toggled` uniquement pour les effets métier. Projetez `CheckState.unchecked`, `.checked` ou `.mixed` et acceptez la demande `toggled(CheckState)` dans le contrôleur. Fournissez `label` et `FieldAccess`. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
-      "behavior": "Une activation par clic ou Espace demande l’état coché sauf depuis `.checked`, qui demande l’état décoché ; Entrée n’est pas consommée et remonte au formulaire parent. L’état mixte reste distinct et la lecture seule permet le focus sans modification.",
+      "behavior": "Une activation par clic ou Espace demande l’état coché sauf depuis `.checked`, qui demande l’état décoché ; Entrée n’est pas consommée et remonte au formulaire parent. L’état mixte reste distinct et la lecture seule permet le focus sans modification. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
       "related": [
         "KitSwitch",
         "KitRadioGroup"
@@ -656,7 +656,7 @@
     "en": {
       "summary": "Controlled checkbox with a genuine mixed state.",
       "usage": "`state` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `toggled` only for business effects. Project `CheckState.unchecked`, `.checked` or `.mixed` and accept `toggled(CheckState)` requests in the controller. Supply `label` and `FieldAccess`. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
-      "behavior": "Click or Space activation requests checked unless currently `.checked`, which requests unchecked; Enter is not consumed so enclosing forms can handle submission. Mixed remains distinct, and read-only access allows focus without modification.",
+      "behavior": "Click or Space activation requests checked unless currently `.checked`, which requests unchecked; Enter is not consumed so enclosing forms can handle submission. Mixed remains distinct, and read-only access allows focus without modification. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
       "related": [
         "KitSwitch",
         "KitRadioGroup"
@@ -2128,7 +2128,7 @@
       ],
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau. Un sélecteur en lecture seule peut rester invalide alors que sa cible de parcours est inactive ; le retour ne confirme pas un déplacement effectif du focus par la plateforme."
+        "focus-if-invalid": "Demande le focus seulement si le champ est invalide et l’action Parcourir active et au repos ; retourne false en lecture seule, désactivation, indisponibilité ou requête en cours pour permettre le repli du formulaire. Ne signale pas les erreurs de nouveau."
       }
     },
     "en": {
@@ -2143,7 +2143,7 @@
       ],
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again. A read-only picker can remain invalid while its browse target is inactive; the return value does not confirm that platform focus moved."
+        "focus-if-invalid": "Request focus only if invalid and the browse action is enabled and idle; return false for read-only, disabled, unsupported or pending actions so the enclosing form can try another field or its fallback. Does not report errors again."
       }
     }
   },
@@ -2553,7 +2553,7 @@
       ],
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau. Un sélecteur en lecture seule peut rester invalide alors que sa cible de parcours est inactive ; le retour ne confirme pas un déplacement effectif du focus par la plateforme."
+        "focus-if-invalid": "Demande le focus seulement si le champ est invalide et l’action Parcourir active et au repos ; retourne false en lecture seule, désactivation, indisponibilité ou requête en cours pour permettre le repli du formulaire. Ne signale pas les erreurs de nouveau."
       }
     },
     "en": {
@@ -2569,7 +2569,7 @@
       ],
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again. A read-only picker can remain invalid while its browse target is inactive; the return value does not confirm that platform focus moved."
+        "focus-if-invalid": "Request focus only if invalid and the browse action is enabled and idle; return false for read-only, disabled, unsupported or pending actions so the enclosing form can try another field or its fallback. Does not report errors again."
       }
     }
   },
@@ -3617,6 +3617,10 @@
           "effect": "Indique si un appui principal donne le focus à cette primitive. Les lignes composites utilisent false et donnent le focus à leur portée clavier commune pour conserver la navigation après annulation.",
           "default": "`true`.",
           "example": "KitPressable {\n    focus-on-pointer: false;\n}"
+        },
+        "form-submit-on-return": {
+          "effect": "Fait participer Entrée sans modificateur à l’envoi du KitForm englobant au lieu d’activer cet élément. Hors formulaire, l’activation ordinaire reste disponible. Espace conserve son action. Ce hook de composition vaut false par défaut ; les cases et interrupteurs l’activent.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -3638,6 +3642,10 @@
           "effect": "Whether a primary pointer press focuses this primitive. Composite rows set false and focus their shared key scope instead, preserving navigation when a press is cancelled.",
           "default": "`true`.",
           "example": "KitPressable {\n    focus-on-pointer: false;\n}"
+        },
+        "form-submit-on-return": {
+          "effect": "Let unmodified Return participate in an enclosing KitForm submission instead of activating this pressable. Outside a form, ordinary activation remains. Space keeps its normal action. This composition hook defaults to false; checkbox and switch compositions opt in.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -3723,7 +3731,7 @@
     "fr": {
       "summary": "Groupe de choix exclusifs avec une cible clavier commune.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Haut/Bas ainsi que Gauche/Droite (selon `flow`) sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; Espace active le bouton radio courant tandis qu’Entrée remonte au formulaire parent. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust).",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Haut/Bas ainsi que Gauche/Droite (selon `flow`) sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; Espace active le bouton radio courant tandis qu’Entrée remonte au formulaire parent. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
       "related": [
         "KitSegmentedControl",
         "KitToggleGroup"
@@ -3776,7 +3784,7 @@
     "en": {
       "summary": "Exclusive choice group with a shared keyboard target.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Up/Down and flow-aware Left/Right arrows select locally and wrap at bounds when `wrap` is enabled (`true` by default); Space activates the active radio while Enter is not consumed so enclosing forms can submit. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services).",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Up/Down and flow-aware Left/Right arrows select locally and wrap at bounds when `wrap` is enabled (`true` by default); Space activates the active radio while Enter is not consumed so enclosing forms can submit. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
       "related": [
         "KitSegmentedControl",
         "KitToggleGroup"
@@ -3971,7 +3979,7 @@
     "fr": {
       "summary": "Choix exclusif compact présenté sous forme de segments.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les flèches sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; dans une grille horizontale sur plusieurs rangées (`rows.length > columns`), Haut/Bas avancent ou reculent de `columns` tandis que Gauche/Droite suivent `flow`. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les flèches verticales conservent la colonne rendue, en ignorant ses cellules désactivées et les cellules absentes de la dernière rangée incomplète. Le bouclage reste dans cette colonne.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les flèches sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; dans une grille horizontale sur plusieurs rangées (`rows.length > columns`), Haut/Bas avancent ou reculent de `columns` tandis que Gauche/Droite suivent `flow`. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les flèches verticales conservent la colonne rendue, en ignorant ses cellules désactivées et les cellules absentes de la dernière rangée incomplète. Le bouclage reste dans cette colonne. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -4014,7 +4022,7 @@
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Arrow navigation selects locally and wraps at bounds when `wrap` is enabled (`true` by default); in a wrapped multi-row horizontal grid (`rows.length > columns`), Up/Down step by `columns` while Left/Right follow `flow`. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Vertical arrows preserve the rendered column, skipping disabled cells within that column and missing cells in a partial final row. Wrapping stays in that column.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Arrow navigation selects locally and wraps at bounds when `wrap` is enabled (`true` by default); in a wrapped multi-row horizontal grid (`rows.length > columns`), Up/Down step by `columns` while Left/Right follow `flow`. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Vertical arrows preserve the rendered column, skipping disabled cells within that column and missing cells in a partial final row. Wrapping stays in that column. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -4551,7 +4559,7 @@
     "fr": {
       "summary": "Interrupteur contrôlé pour une préférence booléenne.",
       "usage": "`checked` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `toggled` uniquement pour les effets métier. Projetez `checked` et traitez `toggled(bool)` pour accepter le nouvel état. Utilisez un `label` décrivant la préférence activée. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
-      "behavior": "Une activation par clic ou Espace propose l’inverse de la valeur actuelle sans la modifier localement en mode contrôlé ; Entrée n’est pas consommée et remonte au formulaire parent. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions. Les pistes en lecture seule utilisent des couleurs neutres et un contour visible, conservent la position cochée de la poignée et suppriment les remplissages de survol/appui ; le focus reste disponible et l’état « Read only » est annoncé.",
+      "behavior": "Une activation par clic ou Espace propose l’inverse de la valeur actuelle sans la modifier localement en mode contrôlé ; Entrée n’est pas consommée et remonte au formulaire parent. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions. Les pistes en lecture seule utilisent des couleurs neutres et un contour visible, conservent la position cochée de la poignée et suppriment les remplissages de survol/appui ; le focus reste disponible et l’état « Read only » est annoncé. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
       "related": [
         "KitPressable"
       ],
@@ -4588,7 +4596,7 @@
     "en": {
       "summary": "Controlled switch for a boolean preference.",
       "usage": "`checked` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `toggled` only for business effects. Project `checked` and handle `toggled(bool)` to accept the new state. Use a `label` describing the enabled preference. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
-      "behavior": "Click or Space activation proposes the inverse of the current value without changing it locally when controlled; Enter is not consumed so enclosing forms can handle submission. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction. Read-only tracks use neutral colors and a visible edge, preserve the checked thumb position and suppress hover/press fills; they stay focusable and announce “Read only”.",
+      "behavior": "Click or Space activation proposes the inverse of the current value without changing it locally when controlled; Enter is not consumed so enclosing forms can handle submission. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction. Read-only tracks use neutral colors and a visible edge, preserve the checked thumb position and suppress hover/press fills; they stay focusable and announce “Read only”. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
       "related": [
         "KitPressable"
       ],
@@ -5051,6 +5059,13 @@
           "default": "`\"\"`",
           "states": "Un masque non vide exige la validation installée ; les suppressions natives et les entrées sans frappe passent par la validation HTML du brouillon complet.",
           "constraints": "Utilise la grammaire déclarée #/A/*/littéral échappé. Cette propriété ne dérive pas les autres contraintes."
+        },
+        "constraints": {
+          "effect": "Contraintes HTML partagées du brouillon natif en lecture seule. Transmettez cette projection exacte dans FieldCommit à FieldSpec::accept à la frontière d’envoi Rust."
+        },
+        "implicit-form-submit": {
+          "effect": "Participe au protocole Entrée natif du KitForm englobant. Définissez false sur les éditeurs auxiliaires dont Entrée appartient au widget.",
+          "default": "`true`."
         }
       },
       "callbacks": {
@@ -5360,6 +5375,13 @@
           "default": "`\"\"`",
           "states": "A nonempty mask requires installed validation; native deletes and non-keyboard text remain subject to full-draft HTML validation.",
           "constraints": "Use the declared #/A/*/escaped-literal grammar. This property does not derive the other constraints."
+        },
+        "constraints": {
+          "effect": "Read-only shared HTML constraints for the current native draft. Carry this exact projection in FieldCommit to FieldSpec::accept at the Rust submission boundary."
+        },
+        "implicit-form-submit": {
+          "effect": "Participates in the enclosing KitForm’s native Enter protocol. Set false on auxiliary editors whose Enter action belongs to their own widget.",
+          "default": "`true`."
         }
       },
       "callbacks": {
@@ -5533,7 +5555,7 @@
     "fr": {
       "summary": "Groupe d’actions à sélection multiple locale ou contrôlée.",
       "usage": "Fournissez `options` depuis `Choices<K>::model()`. Le composant possède sa sélection multiple et le focus clavier ; `selected` accepte une liaison bidirectionnelle et `selection-limit` borne le nombre de choix (zéro signifie sans limite). Traitez `selection-changed(OptionRow, bool)` puis `Choices::accept` pour retrouver la clé métier stable. Le mode contrôlé émet des propositions sans modifier `selected`.",
-      "behavior": "La navigation ignore les choix désactivés. `direction` (`horizontal` par défaut ou `vertical`), `flow` (hérité de `theme.direction`, inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`) et `wrap` (`true` par défaut) pilotent le parcours clavier. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les libellés reviennent à la ligne dans les limites du bouton avec sa marge interne, y compris à 200 % de texte ; leur texte complet reste exposé à l’accessibilité. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Fournissez `rows` explicitement pour les marques de sélection exactes d’un aperçu statique.",
+      "behavior": "La navigation ignore les choix désactivés. `direction` (`horizontal` par défaut ou `vertical`), `flow` (hérité de `theme.direction`, inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`) et `wrap` (`true` par défaut) pilotent le parcours clavier. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les libellés reviennent à la ligne dans les limites du bouton avec sa marge interne, y compris à 200 % de texte ; leur texte complet reste exposé à l’accessibilité. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Fournissez `rows` explicitement pour les marques de sélection exactes d’un aperçu statique. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
       "label": "Groupe de boutons à bascule",
       "seoTitle": "Groupe de boutons à bascule pour Slint",
       "related": [
@@ -5570,7 +5592,7 @@
     "en": {
       "summary": "Group of actions with local or controlled multiple selection.",
       "usage": "Supply `options` from `Choices<K>::model()`. The component owns its selected set and keyboard focus; `selected` supports two-way binding and `selection-limit` bounds membership (zero means unlimited). Handle `selection-changed(OptionRow, bool)` and pass the row to `Choices::accept` to recover the stable domain key. Controlled ownership emits membership proposals without changing `selected`.",
-      "behavior": "Navigation skips disabled choices. `direction` (`horizontal` by default or `vertical`), `flow` (inherited from `theme.direction`, reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`) and `wrap` (`true` by default) configure keyboard traversal. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Labels wrap within the padded button bounds, including at 200% text, while accessibility exposes their complete text. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Supply explicit `rows` for exact selected marks in a static preview.",
+      "behavior": "Navigation skips disabled choices. `direction` (`horizontal` by default or `vertical`), `flow` (inherited from `theme.direction`, reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`) and `wrap` (`true` by default) configure keyboard traversal. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Labels wrap within the padded button bounds, including at 200% text, while accessibility exposes their complete text. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Supply explicit `rows` for exact selected marks in a static preview. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
       "label": "Toggle Group",
       "seoTitle": "Toggle Group for Slint",
       "related": [
@@ -6045,6 +6067,104 @@
       },
       "states": "Une valeur connue affiche un marqueur, une valeur inconnue le masque. Lecture seule et désactivation ne proposent aucune modification. Les changements d’accès, de génération et de présence annulent le geste tenu.",
       "accessibility": "Un groupe de focus clavier nommé décrit teinte et saturation ; il ne prétend pas exposer une plage numérique à un seul axe. Les flèches règlent les deux axes, Entrée confirme et Échap annule. Les descriptions se localisent via KitStrings ou les propriétés de l’instance. Les preuves headless ne qualifient pas un lecteur d’écran natif."
+    }
+  },
+  "KitForm": {
+    "en": {
+      "summary": "Form composition with shared validation, first-invalid focus and guarded submission.",
+      "usage": "Compose fields and actions in KitForm. Declare the typed record once with form_schema!(Record, Window, FieldKeys, { field: required(Type, FieldSpec, message), consent: checked }). The macro generates Rust ports and global form callbacks from the public window naming convention; missing ports, incompatible codecs and unregistered field-key variants fail compilation. The complete four-field starter is fifteen Rust lines including schema and business logic, with no helper module. Record::on_submit admits a typed record and completes synchronous success; Record::bind returns TypedFormBinding for asynchronous tickets and server errors. Advanced compositions can declare FormFieldPorts once through bind_required/bind_checked, combine them with zip/map and call with_schema; no caller validation loop or duplicate parser is needed.",
+      "behavior": "The Rust adapter reports every registered field before focusing the first invalid one exactly once, aggregates HTML validity, rejects duplicate keys and concurrent submissions, and drops stale responses after reset. finish(ticket, errors) publishes server errors; reset restores every registered field. Call refresh() after field edits or model changes. KitForm exposes report-validity(), submit(), reset(), valid, dirty, submitting and errors. Submission is blocked until validation is wired; implicit Enter submission excludes multiline fields and active IME preedit. Native accessibility role is form; set accessible-name. Implicit Enter is deferred until the native editor accepts it; custom handled shortcuts and auxiliary editor opt-outs do not submit the form. Set form-no-validate for an explicit UI validation opt-out and call FormBinding::submit_without_validation on that corresponding Rust path; both retain busy/window guards. Ordinary Rust submit always enforces validation. Raw custom TextInput editors wire accepted to form.submit() explicitly. register_focusable/register_view focus callbacks return whether focus was requested. If an invalid read-only file cannot take focus, try the next invalid field; set_focus_fallback can focus the form when none admits it. finish routes messages to each registered field and the summary without replacing drafts; field_edited clears only that key’s server error. Unknown error keys remain in the summary without a fabricated focus target. Checkbox, switch and shared radio/toggle Enter submit the enclosing form; Space still changes choices, while selectors, tag entry, table editors and host-consumed shortcuts keep Enter.",
+      "related": [
+        "KitFormButton",
+        "KitFormErrorSummary",
+        "KitTextField"
+      ],
+      "label": "Form",
+      "seoTitle": "Form for Slint",
+      "callbacks": {
+        "validation-requested": "Report registered fields and return whether submission may proceed. An unconnected callback blocks submission.",
+        "submit-requested": "Call TypedFormBinding::submit() and consume FormSubmission<T>; its schema validates/parses internally before returning the typed payload and response ticket.",
+        "reset-requested": "Call FormBinding::reset to restore registered fields and invalidate older submission tickets."
+      },
+      "functions": {
+        "report-validity": "Report every registered field before focusing the first invalid one once; connect to FormBinding::report_validity.",
+        "submit": "Reject while submitting or invalid, then emit submit-requested. Implicit Enter follows this same admission path after native editing. form-no-validate bypasses field reporting deliberately.",
+        "reset": "Request deliberate field/business reset through reset-requested.",
+        "take-focus": "Request native focus on the named form as an explicit fallback; it adds no Tab stop."
+      },
+      "states": "valid aggregates the registered HTML snapshots, dirty reflects edits, and submitting follows the active FormCoordinator ticket. Reset invalidates pending responses. Codecs and domain payloads still pass through FieldSpec::accept at the Rust boundary.",
+      "accessibility": "The container exposes the native form role and accessible-name. Registered field focus callbacks keep the first-invalid focus order independent of visual row indices. Render errors with KitFormErrorSummary; each message retains its FocusRequest target. Native editor/IME processing owns Enter before implicit submission.",
+      "properties": {
+        "accessible-name": {
+          "effect": "Names the accessible form container. Choose a name that distinguishes this form from other forms in the window."
+        },
+        "valid": {
+          "effect": "Publish FormProjection.valid here to expose the current registered HTML validity to actions. Submission still goes through validation-requested."
+        },
+        "dirty": {
+          "effect": "Publish FormProjection.dirty here; it reflects whether any registered snapshot reports edits."
+        },
+        "submitting": {
+          "effect": "Publish FormProjection.submitting here. While true, submit() and implicit Enter reject a second request."
+        },
+        "errors": {
+          "effect": "Publish FormProjection.errors and bind a KitFormErrorSummary in the form content to the same model. Each row retains its FocusRequest."
+        },
+        "implicit-submit": {
+          "effect": "Plain Enter from participating single-line kit editors submits after native acceptance. Turn this off when the form has another Enter policy."
+        },
+        "form-no-validate": {
+          "effect": "Explicitly bypass the UI field-validation gate while retaining the submitting guard. Pair the corresponding Rust route with FormBinding::submit_without_validation."
+        }
+      }
+    },
+    "fr": {
+      "summary": "Composition de formulaire avec validation partagée, focus de première erreur et envoi protégé.",
+      "usage": "Composez les champs et actions dans KitForm. Déclarez la struct une fois avec form_schema!(Record, Window, FieldKeys, { champ: required(Type, FieldSpec, message), consent: checked }). La macro génère les ports Rust et les callbacks globaux selon les noms publics de la fenêtre ; ports manquants, codecs incompatibles et variantes de clés non enregistrées échouent à la compilation. Le projet complet de quatre champs tient en quinze lignes Rust avec schéma et métier, sans module auxiliaire. Record::on_submit admet la struct et termine une réussite synchrone ; Record::bind retourne TypedFormBinding pour les tickets asynchrones et erreurs serveur. Les compositions avancées peuvent déclarer leurs FormFieldPorts via bind_required/bind_checked, combiner zip/map et appeler with_schema, sans boucle de validation ni parseur dupliqué.",
+      "behavior": "L’adaptateur Rust signale tous les champs enregistrés avant de cibler une fois le premier invalide, agrège la validité HTML, rejette clés dupliquées et envois simultanés, puis ignore les réponses périmées après réinitialisation. finish(ticket, errors) publie les erreurs serveur ; reset restaure chaque champ. Appelez refresh() après édition ou changement de modèle. KitForm expose report-validity(), submit(), reset(), valid, dirty, submitting et errors. L’envoi reste bloqué sans validation branchée ; Entrée implicite exclut les champs multiligne et la préédition IME active. Rôle accessible form ; définissez accessible-name. Entrée implicite est différée jusqu’à son acceptation native ; les raccourcis traités et éditeurs auxiliaires désactivant cette participation n’envoient pas le formulaire. Activez form-no-validate pour ignorer explicitement la validation UI et utilisez FormBinding::submit_without_validation sur le chemin Rust correspondant ; les gardes occupé/fenêtre restent actives. submit Rust applique toujours la validation. Reliez explicitement accepted d’un TextInput personnalisé à form.submit(). Les callbacks de focus de register_focusable/register_view retournent si une demande est admissible. Si un fichier invalide en lecture seule ne peut recevoir le focus, essayez le prochain champ invalide ; set_focus_fallback peut cibler le formulaire si aucun ne l’admet. finish transmet les messages aux champs enregistrés et au résumé sans remplacer les brouillons ; field_edited efface seulement l’erreur serveur de cette clé. Une clé d’erreur inconnue reste dans le résumé sans cible de focus inventée. Entrée sur case, interrupteur et radio/choix partagé envoie le formulaire ; Espace change toujours les choix, tandis que sélecteurs, étiquettes, éditeurs de tableau et raccourcis consommés gardent Entrée.",
+      "related": [
+        "KitFormButton",
+        "KitFormErrorSummary",
+        "KitTextField"
+      ],
+      "label": "Formulaire",
+      "seoTitle": "Formulaire pour Slint",
+      "callbacks": {
+        "validation-requested": "Signale les champs enregistrés et renvoie si l’envoi peut continuer. Sans callback branché, l’envoi est bloqué.",
+        "submit-requested": "Appelez TypedFormBinding::submit() et utilisez FormSubmission<T> ; son schéma valide/analyse en interne avant de retourner la valeur typée et son ticket.",
+        "reset-requested": "Appelez FormBinding::reset pour restaurer les champs enregistrés et invalider les anciens tickets d’envoi."
+      },
+      "functions": {
+        "report-validity": "Signale chaque champ enregistré avant de cibler une fois le premier invalide ; reliez à FormBinding::report_validity.",
+        "submit": "Refuse pendant un envoi ou une invalidité puis émet submit-requested. Entrée implicite suit le même chemin après l’édition native. form-no-validate ignore délibérément le signalement des champs.",
+        "reset": "Demande une réinitialisation explicite des champs et du métier via reset-requested.",
+        "take-focus": "Demande le focus natif du formulaire nommé comme repli explicite ; n’ajoute pas d’arrêt Tab."
+      },
+      "states": "valid agrège les instantanés HTML enregistrés, dirty reflète les éditions et submitting suit le ticket FormCoordinator actif. Reset invalide les réponses en attente. Codecs et payloads métier passent toujours par FieldSpec::accept à la frontière Rust.",
+      "accessibility": "Le conteneur expose le rôle natif form et accessible-name. Les callbacks de focus enregistrés conservent l’ordre de première erreur indépendamment des indices visuels. Affichez errors avec KitFormErrorSummary ; chaque message conserve sa cible FocusRequest. L’éditeur natif et l’IME traitent Entrée avant l’envoi implicite.",
+      "properties": {
+        "accessible-name": {
+          "effect": "Nomme le conteneur accessible du formulaire. Choisissez un nom qui le distingue des autres formulaires de la fenêtre."
+        },
+        "valid": {
+          "effect": "Publiez FormProjection.valid ici pour exposer la validité HTML enregistrée aux actions. L’envoi passe toujours par validation-requested."
+        },
+        "dirty": {
+          "effect": "Publiez FormProjection.dirty ici ; cette valeur indique si un instantané enregistré signale une édition."
+        },
+        "submitting": {
+          "effect": "Publiez FormProjection.submitting ici. Pendant cet état, submit() et Entrée implicite refusent une seconde demande."
+        },
+        "errors": {
+          "effect": "Publiez FormProjection.errors et reliez un KitFormErrorSummary dans le contenu au même modèle. Chaque ligne conserve son FocusRequest."
+        },
+        "implicit-submit": {
+          "effect": "Entrée simple dans les éditeurs monolignes participants envoie après leur acceptation native. Désactivez cette option si le formulaire possède une autre politique Entrée."
+        },
+        "form-no-validate": {
+          "effect": "Ignore explicitement la validation UI des champs tout en conservant la garde submitting. Associez le chemin Rust correspondant à FormBinding::submit_without_validation."
+        }
+      }
     }
   }
 }

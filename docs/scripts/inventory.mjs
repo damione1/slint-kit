@@ -9,6 +9,7 @@ export const componentLabel = (component, locale) => component[locale].label
 export const families = {
   button: { fr: 'Boutons et actions', en: 'Buttons and actions' },
   field: { fr: 'Structure des formulaires', en: 'Form structure' },
+  form: { fr: 'Formulaires', en: 'Forms' },
   input: { fr: 'Saisie de texte', en: 'Text input' },
   number: { fr: 'Nombres et montants', en: 'Numbers and money' },
   keypad: { fr: 'Pavés numériques et codes', en: 'Keypads and codes' },

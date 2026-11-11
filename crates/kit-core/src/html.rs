@@ -672,7 +672,7 @@ impl<K> Default for HtmlFormValidation<K> {
         Self { fields: Vec::new() }
     }
 }
-impl<K: Eq> HtmlFormValidation<K> {
+impl<K: PartialEq> HtmlFormValidation<K> {
     pub fn update(&mut self, key: K, will_validate: bool, validity: HtmlValidity) {
         if let Some(row) = self.fields.iter_mut().find(|(k, _, _)| k == &key) {
             *row = (key, will_validate, validity);

@@ -16,7 +16,7 @@ import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } fr
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
 export { PhoneNumberMode } from "shared-contracts.slint";
-import { KitFormValidation, FormConstraintState, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
+import { KitFormValidation, FormConstraintState, FormEditorFocus, KitInputConstraints, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 
 export { FieldDecoration } from "field.slint";
 
@@ -64,6 +64,7 @@ component InputFieldAction inherits Rectangle {
 // All variants retain this one native TextInput throughout theme, validation,
 // placeholder and reveal changes. Parsing and grapheme counting belong to Rust.
 export component KitTextField inherits KitField {
+    in property <bool> implicit-form-submit: true;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     in property <Ownership> ownership: Ownership.local;
     in property <string> spec-key;
@@ -76,7 +77,7 @@ export component KitTextField inherits KitField {
         root.field-state = KitFieldService.reduce(root.field-state, action, root.text, checks.constraints, root.commit-policy, root.ownership, root.spec-key, checks.dirty, KitStrings.fields);
         if (action == FieldAction.cancel) { root.text = root.field-state.draft; }
         if (root.field-state.committed) { root.committed({value: root.field-state.value, constraints: checks.constraints, spec: root.spec-key}); }
-        else if (action == FieldAction.submit && root.field-state.error != "") { root.invalid(); }
+        else if (action == FieldAction.submit && root.field-state.error != "" && !(root.implicit-form-submit && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation))) { root.invalid(); }
     }
     // Pointer stepping (the KitNumberStepper buttons) rewrites the draft and
     // commits at once; the editor need not have focus. An unavailable or
@@ -185,6 +186,7 @@ export component KitTextField inherits KitField {
     in property <string> overflow-message: KitStrings.overflow-template.replace-all("{value}", root.max);
     in property <string> step-message: KitStrings.step-message;
     in property <string> bad-input-message: KitStrings.bad-input-message;
+    out property <KitInputConstraints> constraints: checks.constraints;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <bool> validation-ready: checks.validation-ready;
@@ -352,14 +354,20 @@ export component KitTextField inherits KitField {
         let normalized = text.to-lowercase().replace-all("+", "").replace-all("-", "");
         return normalized == "nan" || normalized == "inf" || normalized == "infinity";
     }
+    private property <FormEditorFocus> form-editor-focus: root.access == FieldAccess.disabled ? FormEditorFocus.disabled
+        : !root.implicit-form-submit ? FormEditorFocus.auxiliary
+        : root.multiline ? FormEditorFocus.multiline
+        : root.access == FieldAccess.read-only ? FormEditorFocus.read-only-single-line : FormEditorFocus.single-line;
+    changed form-editor-focus => { if (root.has-focus) { KitFormValidation.focused-editor = root.form-editor-focus; } }
     private property <int> focus-generation;
     changed has-focus => {
         if (root.has-focus) {
             KitFormValidation.focus-generation += 1;
             root.focus-generation = KitFormValidation.focus-generation;
             KitFormValidation.phone-focused = root.purpose == TextPurpose.telephone;
+            KitFormValidation.focused-editor = root.form-editor-focus;
         } else {
-            if (root.focus-generation == KitFormValidation.focus-generation) { KitFormValidation.phone-focused = false; }
+            if (root.focus-generation == KitFormValidation.focus-generation) { KitFormValidation.phone-focused = false; KitFormValidation.focused-editor = FormEditorFocus.other; }
             checks.note-blur();
             root.reduce-field(FieldAction.blur);
             if (root.purpose == TextPurpose.telephone) { viewport.content-x = 0px; }
@@ -594,7 +602,13 @@ export component KitTextField inherits KitField {
                                 root.previous-edit-text = self.text;
                                 root.reduce-field(FieldAction.edit);
                             }
-                            accepted => { if (!root.multiline && root.access == FieldAccess.editable && root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); } }
+                            accepted => {
+                                if (!root.multiline && root.access == FieldAccess.editable) {
+                                    let coordinated = root.implicit-form-submit && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation);
+                                    if (coordinated ? root.validity.valid : root.report-validity()) { root.reduce-field(FieldAction.submit); root.commit-requested(root.purpose == TextPurpose.telephone ? root.value : self.text); }
+                                }
+                                if (!root.multiline && root.access != FieldAccess.disabled && root.implicit-form-submit) { KitFormValidation.note-native-submit(KitFormValidation.focus-generation); }
+                            }
                             // Do not intercept Enter/Escape before the native IME engine.
                             cursor-position-changed(position) => {
                                 root.menu-caret = position;

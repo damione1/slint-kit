@@ -16,6 +16,9 @@ mod select;
 pub use select::*;
 #[cfg(feature = "adapter")]
 mod macros;
+#[cfg(feature = "adapter")]
+#[doc(hidden)]
+pub use paste::paste as __form_identifiers;
 
 #[cfg(feature = "adapter")]
 mod field;
@@ -111,3 +114,13 @@ mod dialog;
 pub use dialog::*;
 #[cfg(feature = "adapter")]
 mod text_edit;
+#[cfg(feature = "adapter")]
+pub use form::*;
+
+#[cfg(feature = "adapter")]
+mod form;
+
+#[cfg(feature = "adapter")]
+mod form_schema;
+#[cfg(feature = "adapter")]
+pub use form_schema::*;
