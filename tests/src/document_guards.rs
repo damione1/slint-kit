@@ -184,8 +184,8 @@ fn pending_actions_reject_new_generations_and_valid_native_operations_keep_typed
         app.set_draft(row.map_or_else(Default::default, |row| row.text))
     });
     let first = rows.model().row_data(0).unwrap();
-    let key = rows.select(first.token, rows.generation()).unwrap();
-    assert_eq!(key, LineKey("alpha"));
+    let selected_key = rows.select(first.token, rows.generation()).unwrap();
+    assert_eq!(selected_key, LineKey("alpha"));
     let raw_commits = Rc::new(RefCell::new(Vec::new()));
     let raw_observed = raw_commits.clone();
     let commits = Rc::new(RefCell::new(Vec::new()));
