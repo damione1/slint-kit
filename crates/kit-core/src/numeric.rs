@@ -877,7 +877,11 @@ impl DecimalSlider {
         if minimum >= maximum || step <= DecimalValue::ZERO {
             return Err(ParseIssue::InvalidRange);
         }
-        maximum.checked_sub(minimum)?;
+        maximum
+            .checked_sub(minimum)?
+            .0
+            .checked_div(step.0)
+            .ok_or(ParseIssue::Overflow)?;
         Ok(Self {
             minimum,
             maximum,
@@ -913,7 +917,7 @@ impl DecimalSlider {
     }
     pub fn position(self, value: DecimalValue) -> Result<f32, ParseIssue> {
         use rust_decimal::prelude::ToPrimitive;
-        self.validate(value)?;
+        let value = value.clamp(self.minimum, self.maximum);
         value
             .checked_sub(self.minimum)?
             .0
@@ -959,32 +963,129 @@ impl DecimalSlider {
         value: DecimalValue,
         direction: crate::NavigationStep,
     ) -> Result<DecimalValue, ParseIssue> {
-        self.validate(value)?;
-        let delta = match direction {
+        let amount: i32 = match direction {
             crate::NavigationStep::First => return Ok(self.minimum),
             crate::NavigationStep::Last => return self.at_position(1.0),
-            crate::NavigationStep::Next => self.step,
-            crate::NavigationStep::Previous => DecimalValue::ZERO.checked_sub(self.step)?,
-            crate::NavigationStep::PageNext => {
-                self.step.checked_mul(DecimalValue::from_integer(10))?
-            }
-            crate::NavigationStep::PagePrevious => {
-                self.step.checked_mul(DecimalValue::from_integer(-10))?
-            }
+            crate::NavigationStep::Next => 1,
+            crate::NavigationStep::Previous => -1,
+            crate::NavigationStep::PageNext => 10,
+            crate::NavigationStep::PagePrevious => -10,
         };
-        let next = value.checked_add(delta)?;
-        if next < self.minimum {
-            Ok(self.minimum)
-        } else if next > self.maximum {
-            self.at_position(1.0)
-        } else {
-            Ok(next)
+        if value < self.minimum {
+            return Ok(self.minimum);
         }
+        if value > self.maximum {
+            return self.at_position(1.0);
+        }
+        if self.validate(value).is_ok() {
+            // Keep the established arithmetic scale of already-valid values.
+            // Reconstructing them from a step ordinal would normalize 12.50.
+            let boundary = || {
+                if amount > 0 {
+                    self.at_position(1.0)
+                } else {
+                    Ok(self.minimum)
+                }
+            };
+            let Some(delta) = self.step.0.checked_mul(Decimal::from(amount)) else {
+                return boundary();
+            };
+            let Some(next) = value.0.checked_add(delta) else {
+                return boundary();
+            };
+            let next = DecimalValue(next);
+            return if next < self.minimum {
+                Ok(self.minimum)
+            } else if next > self.maximum {
+                self.at_position(1.0)
+            } else {
+                Ok(next)
+            };
+        }
+        let steps = value
+            .checked_sub(self.minimum)?
+            .0
+            .checked_div(self.step.0)
+            .ok_or(ParseIssue::Overflow)?;
+        let maximum_steps = self
+            .maximum
+            .checked_sub(self.minimum)?
+            .0
+            .checked_div(self.step.0)
+            .ok_or(ParseIssue::Overflow)?
+            .floor();
+        // Floor for forward motion and ceil for backward motion retain the
+        // adjacent valid step instead of skipping it after an off-grid input.
+        let anchor = if amount > 0 {
+            steps.floor()
+        } else {
+            steps.ceil()
+        };
+        let distance = Decimal::from(amount.unsigned_abs());
+        let next = if amount > 0 {
+            if maximum_steps
+                .checked_sub(anchor)
+                .ok_or(ParseIssue::Overflow)?
+                < distance
+            {
+                maximum_steps
+            } else {
+                anchor.checked_add(distance).ok_or(ParseIssue::Overflow)?
+            }
+        } else if anchor < distance {
+            Decimal::ZERO
+        } else {
+            anchor
+                .checked_sub(distance)
+                .ok_or(ParseIssue::Overflow)?
+                .min(maximum_steps)
+        };
+        self.minimum
+            .checked_add(DecimalValue(next).checked_mul(self.step)?)
     }
 }
 
 #[cfg(test)]
 mod slider_tests {
+    #[test]
+    fn off_grid_navigation_uses_adjacent_steps_and_clamps_loaded_values() {
+        let slider = DecimalSlider::new(
+            "10".parse().unwrap(),
+            "37".parse().unwrap(),
+            "5".parse().unwrap(),
+        )
+        .unwrap();
+        for (step, expected) in [
+            (crate::NavigationStep::Next, "20"),
+            (crate::NavigationStep::Previous, "15"),
+            (crate::NavigationStep::PageNext, "35"),
+            (crate::NavigationStep::PagePrevious, "10"),
+            (crate::NavigationStep::First, "10"),
+            (crate::NavigationStep::Last, "35"),
+        ] {
+            assert_eq!(
+                slider.navigate("17".parse().unwrap(), step).unwrap(),
+                expected.parse().unwrap()
+            );
+        }
+        assert_eq!(
+            slider
+                .navigate("-99".parse().unwrap(), crate::NavigationStep::Next)
+                .unwrap(),
+            "10".parse().unwrap()
+        );
+        assert_eq!(
+            slider
+                .navigate("99".parse().unwrap(), crate::NavigationStep::Previous)
+                .unwrap(),
+            "35".parse().unwrap()
+        );
+        assert_eq!(slider.position("-99".parse().unwrap()).unwrap(), 0.);
+        assert_eq!(slider.position("99".parse().unwrap()).unwrap(), 1.);
+        assert!((slider.position("17".parse().unwrap()).unwrap() - 7. / 27.).abs() < 0.00001);
+        assert!(slider.validate("17".parse().unwrap()).is_err());
+    }
+
     use super::*;
     #[test]
     fn domain_requests_clamp_and_round_on_the_pointer_lattice() {
@@ -1048,8 +1149,7 @@ mod slider_tests {
             DecimalValue::ZERO,
             "79228162514264337593543950335".parse().unwrap(),
             "0.0000000000000000000000000001".parse().unwrap(),
-        )
-        .unwrap();
-        assert!(huge.at_position(0.5).is_err());
+        );
+        assert_eq!(huge.unwrap_err(), ParseIssue::Overflow);
     }
 }

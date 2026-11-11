@@ -1517,7 +1517,7 @@ export component KitSlider inherits Rectangle {
     private property <color> fill-color: root.fill-brush;
     private property <brush> solid-fill-brush: root.fill-color;
     private property <bool> solid-fill: root.fill-brush == root.solid-fill-brush;
-    private property <bool> disabled: root.access == FieldAccess.disabled;
+    private property <bool> disabled: root.access == FieldAccess.disabled || (root.service-ready && !root.spec-valid);
     // The extent across the travel axis. A filled slider is a touch target
     // in its own right, so it is at least twelve spacing units thick in
     // either direction. A line slider keeps the kit's control height, like
@@ -1614,13 +1614,14 @@ export component KitSlider inherits Rectangle {
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard {
+        enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         navigate(step) => { root.handle-navigate(step); }
         committed => { root.handle-commit(); }
         cancelled => { root.gesture-active = false; root.handle-cancel(); }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable;
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { keyboard.focus(); root.gesture-active = true; root.snapshot = root.value; root.gesture-started(); root.update-position(); }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.gesture-active) { root.gesture-active = false; root.handle-commit(); }
@@ -1629,6 +1630,14 @@ export component KitSlider inherits Rectangle {
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
+    out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
+    out property <bool> value-valid: KitFieldService.ready && KitFieldService.slider-valid(root.value, root.spec);
+    private property <bool> service-ready: KitFieldService.ready;
+    function report-spec() { if (root.service-ready && !root.spec-valid) { KitFieldService.slider-invalid-spec(root.spec); } }
+    init => { root.report-spec(); }
+    changed spec => { root.report-spec(); }
+    changed service-ready => { root.report-spec(); }
+
     in property <Ownership> ownership: Ownership.local;
     in-out property <string> value: "0";
     private property <string> snapshot: root.value;
@@ -1644,7 +1653,7 @@ export component KitSlider inherits Rectangle {
         root.handle-commit();
     }
     function handle-position(position: float) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (root.access != FieldAccess.editable || (root.service-ready && !root.spec-valid)) { return; }
         if (KitFieldService.ready) {
             root.candidate = KitFieldService.slider-pointer(root.value, position, root.spec);
             if (root.ownership == Ownership.local) { root.value = root.candidate; }
@@ -1652,7 +1661,7 @@ export component KitSlider inherits Rectangle {
         root.position-requested(position);
     }
     function handle-navigate(step: NavigationStep) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (root.access != FieldAccess.editable || (root.service-ready && !root.spec-valid)) { return; }
         if (KitFieldService.ready) {
             root.candidate = KitFieldService.slider-navigate(root.value, step, root.spec);
             if (root.ownership == Ownership.local) { root.value = root.candidate; }
@@ -1661,6 +1670,7 @@ export component KitSlider inherits Rectangle {
         root.navigate(step);
     }
     function handle-commit() {
+        if (root.service-ready && !root.spec-valid) { return; }
         if (root.access == FieldAccess.editable && KitFieldService.ready && KitFieldService.slider-valid(root.ownership == Ownership.local ? root.value : root.candidate, root.spec)) { root.chosen(root.ownership == Ownership.local ? root.value : root.candidate); }
         root.committed();
     }
@@ -1686,6 +1696,7 @@ export component KitRangeSlider inherits Rectangle {
     callback cancelled(RangeThumb);
     private property <RangeThumb> active-thumb: RangeThumb.lower;
     private property <bool> gesture-active;
+    private property <bool> disabled: root.access == FieldAccess.disabled || (root.service-ready && !root.spec-valid);
     vertical-stretch: 0;
     preferred-height: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
     min-width: 120px;
@@ -1700,12 +1711,13 @@ export component KitRangeSlider inherits Rectangle {
         root.handle-position(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position,root.upper-position) : max(position,root.lower-position));
     }
     Rectangle { x: root.edge; y: (parent.height - self.height) / 2; width: parent.width - 2 * root.edge; height: root.choice.slider-track-height; border-radius: self.height / 2; background: root.theme.border-strong;
-        Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: parent.height; border-radius: parent.border-radius; background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent; }
+        Rectangle { x: parent.width * clamp(root.lower-position,0,1); width: parent.width * max(0, clamp(root.upper-position,0,1) - clamp(root.lower-position,0,1)); height: parent.height; border-radius: parent.border-radius; background: root.disabled ? root.theme.disabled-text : root.theme.accent; }
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
     private property <RangeAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.range-accessibility(root.value, root.spec) : {lower: {valid: false}, upper: {valid: false}};
     lower := SliderKeyboard {
+        enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — lower";
         accessible-value: root.accessible-domain.lower.value;
@@ -1724,6 +1736,7 @@ export component KitRangeSlider inherits Rectangle {
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
     }
     upper := SliderKeyboard {
+        enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — upper";
         accessible-value: root.accessible-domain.upper.value;
@@ -1741,14 +1754,14 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.handle-commit(RangeThumb.upper); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.upper); }
     }
-    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.lower-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.lower-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.disabled ? root.theme.disabled-text : root.theme.accent;
         if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
-    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.upper-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.accent;
+    Rectangle { x: root.choice.thumb-inset + (parent.width - 2 * root.edge) * clamp(root.upper-position,0,1); y: (parent.height - self.height) / 2; width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.disabled ? root.theme.disabled-text : root.theme.accent;
         if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable;
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 let position = clamp((self.mouse-x - root.edge) / max(1px,root.width - 2 * root.edge),0,1);
@@ -1771,6 +1784,14 @@ export component KitRangeSlider inherits Rectangle {
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
+    out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
+    out property <bool> value-valid: KitFieldService.ready && KitFieldService.range-valid(root.value, root.spec);
+    private property <bool> service-ready: KitFieldService.ready;
+    function report-spec() { if (root.service-ready && !root.spec-valid) { KitFieldService.slider-invalid-spec(root.spec); } }
+    init => { root.report-spec(); }
+    changed spec => { root.report-spec(); }
+    changed service-ready => { root.report-spec(); }
+
     in property <Ownership> ownership: Ownership.local;
     in-out property <DecimalRangeView> value: {lower: "0", upper: "100"};
     private property <DecimalRangeView> snapshot: root.value;
@@ -1786,7 +1807,7 @@ export component KitRangeSlider inherits Rectangle {
         root.handle-commit(thumb);
     }
     function handle-position(thumb: RangeThumb, position: float) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (root.access != FieldAccess.editable || (root.service-ready && !root.spec-valid)) { return; }
         if (KitFieldService.ready) {
             root.candidate = KitFieldService.range-pointer(root.value, thumb, position, root.spec);
             if (root.ownership == Ownership.local) { root.value = root.candidate; }
@@ -1794,7 +1815,7 @@ export component KitRangeSlider inherits Rectangle {
         root.position-requested(thumb, position);
     }
     function handle-navigate(thumb: RangeThumb, step: NavigationStep) {
-        if (root.access != FieldAccess.editable) { return; }
+        if (root.access != FieldAccess.editable || (root.service-ready && !root.spec-valid)) { return; }
         if (KitFieldService.ready) {
             root.candidate = KitFieldService.range-navigate(root.value, thumb, step, root.spec);
             if (root.ownership == Ownership.local) { root.value = root.candidate; }
@@ -1803,6 +1824,7 @@ export component KitRangeSlider inherits Rectangle {
         root.navigate(thumb, step);
     }
     function handle-commit(thumb: RangeThumb) {
+        if (root.service-ready && !root.spec-valid) { return; }
         if (root.access == FieldAccess.editable && KitFieldService.ready && KitFieldService.range-valid(root.ownership == Ownership.local ? root.value : root.candidate, root.spec)) { root.chosen(root.ownership == Ownership.local ? root.value : root.candidate); }
         root.committed(thumb);
     }

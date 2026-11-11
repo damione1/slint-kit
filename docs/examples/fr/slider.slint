@@ -14,7 +14,11 @@ export component Example inherits Window {
     title: "Curseur"; preferred-width: 560px; preferred-height: 360px;
     background: KitThemeContext.current.canvas;
     callback volume-changed(string);
+    // Lisez ces projections après install(&window) pour les messages hôte ; elles sont fausses avant.
+    // Ne liez pas disabled à !value-valid : clavier/pointeur peuvent réparer les nombres hors grille/hors bornes.
+    out property <bool> slider-spec-valid: slider.spec-valid;
+    out property <bool> slider-value-valid: slider.value-valid;
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        KitSlider { label: "Volume"; value: "65"; value-label: "65 pour cent"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
+        slider := KitSlider { label: "Volume"; value: "65"; value-label: "65 pour cent"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
 }
