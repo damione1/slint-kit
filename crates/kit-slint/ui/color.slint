@@ -115,7 +115,7 @@ export component KitColorField inherits Rectangle {
                 theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
                 validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 text <=> root.text;
-                focus-observed(focused) => { if (!focused) { root.sync-text(); } }
+                focus-observed(focused) => { debug("COLOR focus", root.label, focused, root.text, editor.field-state); if (!focused) { root.sync-text(); } }
                 placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
                 edited(text) => { root.edited(text); }
                 committed(value) => { root.accept-typed(value); }
@@ -205,11 +205,13 @@ export component KitColorField inherits Rectangle {
     // Preserve the imperative API: a host can assign text and submit it in
     // the same call, independently of the native editor's blur baseline.
     public function commit() {
+        debug("COLOR submit", root.label, root.text, root.validity.valid, editor.field-state);
         if (root.access != FieldAccess.editable || !KitFieldService.ready || !editor.report-validity()) { return; }
         root.result = KitFieldService.color-parse(root.text, root.alpha-mode);
         root.publish();
     }
     function accept-typed(value: FieldCommit) {
+        debug("COLOR native", root.label, value, root.accepted-value);
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
         root.result = KitFieldService.color-parse(value.value.text, root.alpha-mode);
         root.publish();
@@ -220,12 +222,14 @@ export component KitColorField inherits Rectangle {
         root.publish();
     }
     function publish() {
+        debug("COLOR before publish", root.label, root.result, root.accepted-value, root.ownership);
         if (!root.result.valid) { return; }
         let value = root.result.value;
         let present = value.present;
         let color = value.color;
         if (!present && !root.accepted-value.present) { return; }
         if (root.ownership == Ownership.local) { root.accepted-value = value; }
+        debug("COLOR after publish", root.label, root.accepted-value, root.accepted-color);
         if (present) { root.chosen(color); }
         else { root.cleared(); }
         root.sync-text();
