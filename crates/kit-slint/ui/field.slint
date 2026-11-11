@@ -97,6 +97,8 @@ export component KitInputGroup inherits Rectangle {
     in property <int> underline-segments: 1;
     // Decorative group boundaries; one native editor still owns all text.
     in property <int> group-size;
+    // Leave room for a native editor's final caret after fixed decorative cells.
+    in property <length> cell-trailing-space: 0px;
     out property <bool> hovered: hover.has-hover;
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     in property <length> corner-radius: root.recipe.radius;
@@ -111,7 +113,7 @@ export component KitInputGroup inherits Rectangle {
     border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
     if root.decoration == FieldDecoration.cells: Rectangle {
         x: root.padding-inline; y: 0px;
-        width: max(0px, root.width - 2 * root.padding-inline); height: root.height;
+        width: max(0px, root.width - 2 * root.padding-inline - root.cell-trailing-space); height: root.height;
         for index in max(1, root.underline-segments): Rectangle {
             private property <length> cell-width: parent.width / max(1, root.underline-segments);
             private property <length> gap: root.theme.spacing.unit * 2 * root.theme.text-scale;
