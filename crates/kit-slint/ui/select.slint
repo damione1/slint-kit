@@ -462,9 +462,12 @@ export component KitSelect inherits Rectangle {
     changed opened => {
         if (root.state.open) { popup.show(); }
         else {
+            let reset-query = root.query != "";
+            if (reset-query) { root.query = ""; }
             if (!root.tab-restore-complete && root.access != FieldAccess.disabled) { trigger.take-focus(); }
             popup.close();
             root.tab-restore-complete = false;
+            if (reset-query && root.query == "" && !root.state.open) { root.query-edited(""); }
         }
     }
     changed popup-visible => {
@@ -529,6 +532,7 @@ export component KitSelect inherits Rectangle {
             focus-observed(focused) => { root.popup-focused = focused; }
             theme: root.theme;
             state: root.state;
+            query <=> root.query;
             row-height: root.row-height;
             viewport-height: options.visible-height;
             wrap: root.wrap;
@@ -578,6 +582,7 @@ export component KitSelect inherits Rectangle {
         options: root.options; ownership: root.ownership; persistent: false;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { checks.note-edit(); root.chosen(row); }
+        query-reset => { root.query-edited(""); }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
     function handle-activate(token: int, generation: int) {

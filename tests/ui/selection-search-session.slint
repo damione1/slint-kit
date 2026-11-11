@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelect, KitMultiSelect, KitCombobox, KitMenu, KitTextField, KitTheme, KitThemes, OptionRow, SelectionRef, SelectState, Ownership, FieldAccess, CloseReason, NavigationStep } from "@kit";
+export component SelectionSearchSessionFixture inherits Window {
+    width: 640px; height: 620px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <string> single-query <=> single.query;
+    in-out property <string> multi-query <=> multi.query;
+    in-out property <string> combo-query <=> combo.query;
+    in-out property <string> projected-query <=> projected.query;
+    in property <[OptionRow]> projected-rows;
+    in property <SelectState> projected-state;
+    in-out property <SelectionRef> single-selected <=> single.selected;
+    in-out property <[SelectionRef]> multi-selected <=> multi.selected;
+    in-out property <SelectionRef> combo-selected <=> combo.selected;
+    out property <SelectState> single-state: single.state;
+    out property <SelectState> multi-state: multi.state;
+    out property <SelectState> combo-state: combo.state;
+    out property <int> single-row-count: single.rows.length;
+    out property <int> multi-row-count: multi.rows.length;
+    out property <[OptionRow]> single-rows: single.rows;
+    out property <string> combo-text: combo.text;
+    out property <bool> combo-focused: combo.has-focus;
+    in property <duration> combo-debounce: 0ms;
+    callback single-chosen(OptionRow);
+    callback multi-changed(OptionRow, bool);
+    callback combo-chosen(OptionRow);
+    callback single-query-edited(string);
+    callback multi-query-edited(string);
+    callback combo-query-edited(string);
+    callback projected-open();
+    callback projected-navigate(NavigationStep);
+    callback projected-activate(int, int);
+    callback projected-query-edited(string);
+    callback projected-dismissed(CloseReason);
+    in-out property <int> projected-resets;
+    in-out property <string> persistent-query <=> persistent.query;
+    in-out property <int> persistent-choices;
+    public function focus-single() { single.take-focus(); }
+    public function focus-multi() { multi.take-focus(); }
+    public function focus-combo() { combo.take-focus(); }
+    public function focus-projected() { projected.take-focus(); }
+    public function cycle-persistent() {
+        persistent.take-focus();
+    }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        single := KitSelect {
+            theme: root.theme; label: "Single search"; options: root.options;
+            ownership: root.ownership; access: root.access;
+            chosen(row) => { root.single-chosen(row); }
+            query-edited(query) => { root.single-query-edited(query); }
+        }
+        multi := KitMultiSelect {
+            theme: root.theme; label: "Multiple search"; options: root.options;
+            ownership: root.ownership; access: root.access;
+            selection-changed(row, added) => { root.multi-changed(row, added); }
+            query-edited(query) => { root.multi-query-edited(query); }
+        }
+        combo := KitCombobox {
+            theme: root.theme; label: "Editable search"; options: root.options;
+            ownership: root.ownership; access: root.access; query-debounce: root.combo-debounce;
+            chosen(row) => { root.combo-chosen(row); }
+            query-edited(query) => { root.combo-query-edited(query); }
+        }
+        projected := KitSelect {
+            theme: root.theme; label: "Projected search";
+            rows: root.projected-rows; state: root.projected-state;
+            open-requested => { root.projected-open(); }
+            navigate(step) => { root.projected-navigate(step); }
+            activate(token, generation) => { root.projected-activate(token, generation); }
+            dismiss(reason) => { root.projected-dismissed(reason); }
+            query-edited(query) => { if (query == "") { root.projected-resets += 1; } root.projected-query-edited(query); }
+        }
+        persistent := KitMenu { height: 100px; theme: root.theme; options: root.options; chosen(row) => { root.persistent-choices += 1; } }
+        other := KitTextField { theme: root.theme; label: "Outside editor"; }
+    }
+}

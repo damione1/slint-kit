@@ -876,6 +876,7 @@ export component KitMultiSelect inherits Rectangle {
     callback typeahead(string);
     callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
+    in-out property <string> query <=> selection.query;
     callback remove-requested(int);
     vertical-stretch: 0;
     private property <SelectionRef> focused-chip;
@@ -914,6 +915,7 @@ export component KitMultiSelect inherits Rectangle {
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
             access: root.access;
+            query <=> root.query;
             wrap: root.wrap;
             typeahead-timeout-ms: root.typeahead-timeout-ms;
             // The chips carry the selection, so this composite owns the constraint.
@@ -929,7 +931,7 @@ export component KitMultiSelect inherits Rectangle {
             dismiss(reason) => { selection.dismiss(reason); root.dismiss(reason); }
             typeahead(text) => { if (root.access == FieldAccess.editable) { selection.typeahead(text); root.typeahead(text); } }
             tab-navigation(reverse) => { return root.tab-navigation(reverse); }
-            query-edited(text) => { if (root.access == FieldAccess.editable) { selection.query = text; root.query-edited(text); } }
+            query-edited(text) => { if (root.access == FieldAccess.editable) { root.query-edited(text); } }
         }
     }
     in property <[OptionRow]> options;
@@ -941,6 +943,7 @@ export component KitMultiSelect inherits Rectangle {
         options: root.options; ownership: root.ownership; limit: root.selection-limit;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
+        query-reset => { root.query-edited(""); }
     }
 }
 
@@ -1246,6 +1249,9 @@ export component KitCombobox inherits Rectangle {
             // The native editor keeps focus while suggestions are open. Closing
             // must not steal focus back from an outside pointer destination.
             popup.close();
+            debounce-timer.running = false;
+            root.pending-query = "";
+            if (root.query != "") { root.query = ""; root.query-edited(""); }
         }
     }
     private property <bool> presented: popup.is-open;
@@ -1417,6 +1423,7 @@ export component KitCombobox inherits Rectangle {
     selection := KitSelection {
         options: root.options; ownership: root.ownership; retention: root.retention; persistent: false;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
+        query-reset => { root.query-edited(""); }
         chosen(row) => {
             checks.note-edit();
             debounce-timer.running = false;
@@ -1436,12 +1443,17 @@ export component KitCombobox inherits Rectangle {
         selection.activate(token, generation); root.activate(token, generation);
     }
     function handle-dismiss(reason: CloseReason) {
-        if (root.editing-draft && (reason == CloseReason.escape || reason == CloseReason.outside-press || reason == CloseReason.host-closed)) {
+        debounce-timer.running = false;
+        root.pending-query = "";
+        let reset-by-draft = root.editing-draft && (reason == CloseReason.escape || reason == CloseReason.outside-press || reason == CloseReason.host-closed);
+        let had-query = root.query != "";
+        if (reset-by-draft) {
             if (root.allow-custom-value && reason != CloseReason.escape) { root.commit-custom-value(); }
             else { root.restore-accepted-text(); }
         }
         selection.dismiss(reason);
         root.dismiss(reason);
+        if (reset-by-draft && had-query && root.query == "" && !root.state.open) { root.query-edited(""); }
     }
     function handle-typeahead(text: string) { if (root.access != FieldAccess.editable) { return; } selection.typeahead(text); root.typeahead(text); }
     function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
