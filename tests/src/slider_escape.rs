@@ -156,7 +156,10 @@ fn color_channel_escape_cancels_an_active_gesture_but_keeps_later_keyboard_and_h
         blue: 56,
         alpha: 255,
     };
-    app.set_accepted_color(published.clone());
+    app.set_accepted_value(crate::ui::ColorValue {
+        present: true,
+        color: published.clone(),
+    });
     key(&app, Key::Escape);
     assert_eq!(app.get_accepted_color(), published);
     assert_eq!(app.get_escaped(), 2);

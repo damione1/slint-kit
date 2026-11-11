@@ -89,8 +89,8 @@ fn host_colors_and_alpha_policy_refresh_idle_text_after_native_edits_and_publica
     replace(&app, "Red", "42");
     key(&app, Key::Return);
     blur(&app);
-    app.set_field_color(color(170, 187, 204, 221));
-    app.set_picker_color(color(18, 52, 86, 120));
+    app.set_field_value(value(color(170, 187, 204, 221)));
+    app.set_picker_value(value(color(18, 52, 86, 120)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_field_text(), "#AABBCCDD");
     assert_eq!(app.get_hex_text(), "#12345678");
@@ -104,7 +104,7 @@ fn host_colors_and_alpha_policy_refresh_idle_text_after_native_edits_and_publica
         ("18".into(), "52".into(), "86".into(), "120".into())
     );
     app.set_alpha_mode(ui::ColorAlphaMode::Opaque);
-    app.set_picker_color(color(9, 8, 7, 6));
+    app.set_picker_value(value(color(9, 8, 7, 6)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_field_text(), "#AABBCC");
     assert_eq!(app.get_hex_text(), "#090807");
@@ -161,7 +161,7 @@ fn controlled_host_updates_preserve_focused_hex_caret_history_and_native_identit
     key(&app, "A");
     assert_eq!(app.get_field_text(), "#A123456");
     key(&app, Key::LeftArrow);
-    app.set_field_color(color(68, 85, 102, 255));
+    app.set_field_value(value(color(68, 85, 102, 255)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_field_text(), "#A123456");
     assert!(editor.is_valid());
@@ -207,7 +207,7 @@ fn controlled_picker_acknowledgement_preserves_the_focused_channel_and_updates_o
     let editor = replace(&app, "Red", "12");
     key(&app, "3");
     key(&app, Key::LeftArrow);
-    app.set_picker_color(color(20, 30, 40, 50));
+    app.set_picker_value(value(color(20, 30, 40, 50)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_red_text(), "123");
     assert_eq!(app.get_green_text(), "30");
@@ -226,7 +226,7 @@ fn controlled_picker_acknowledgement_preserves_the_focused_channel_and_updates_o
     assert_eq!(app.get_picker_color(), color(20, 30, 40, 50));
     blur(&app);
     assert_eq!(app.get_red_text(), "20");
-    app.set_picker_color(color(12, 30, 40, 50));
+    app.set_picker_value(value(color(12, 30, 40, 50)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_red_text(), "12");
     assert_eq!(app.get_hex_text(), "#0C1E2832");
@@ -318,7 +318,7 @@ fn controlled_blur_proposes_once_and_readonly_or_disabled_blur_cannot_publish_a_
     assert_eq!(app.get_field_proposal(), color(17, 34, 51, 68));
     assert_eq!(app.get_field_color(), color(1, 2, 3, 255));
     assert_eq!(app.get_field_text(), "#010203FF");
-    app.set_field_color(color(17, 34, 51, 68));
+    app.set_field_value(value(color(17, 34, 51, 68)));
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_field_text(), "#11223344");
     for access in [ui::FieldAccess::ReadOnly, ui::FieldAccess::Disabled] {
@@ -457,7 +457,7 @@ fn required_custom_invalid_and_blocked_access_never_publish_color_absence() {
 }
 
 #[test]
-fn controlled_empty_acknowledgment_and_same_color_reintroduction_keep_payload_alias_honest() {
+fn controlled_empty_acknowledgment_and_same_color_reintroduction_use_the_atomic_value() {
     let app = fixture();
     app.set_required(false);
     app.set_ownership(ui::Ownership::Controlled);
@@ -473,13 +473,6 @@ fn controlled_empty_acknowledgment_and_same_color_reintroduction_keep_payload_al
     app.set_field_value(ui::ColorValue::default());
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_field_text(), "");
-    app.set_field_color(old_field.clone());
-    slint::platform::update_timers_and_animations();
-    assert!(
-        !app.get_field_value().present,
-        "legacy payload setter does not acknowledge presence"
-    );
-    assert_eq!(app.get_field_text(), "");
     app.set_field_value(value(old_field));
     slint::platform::update_timers_and_animations();
     assert!(app.get_field_value().present);
@@ -494,10 +487,6 @@ fn controlled_empty_acknowledgment_and_same_color_reintroduction_keep_payload_al
     slint::platform::update_timers_and_animations();
     assert_eq!(app.get_hex_text(), "");
     assert_eq!(app.get_red_text(), "");
-    app.set_picker_color(old_picker.clone());
-    slint::platform::update_timers_and_animations();
-    assert!(!app.get_picker_value().present);
-    assert_eq!(app.get_hex_text(), "");
     app.set_picker_value(value(old_picker));
     slint::platform::update_timers_and_animations();
     assert!(app.get_picker_value().present);

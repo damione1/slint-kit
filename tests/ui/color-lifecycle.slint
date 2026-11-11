@@ -21,8 +21,8 @@ export component ColorLifecycleFixture inherits Window {
     public function clear-picker() { picker.clear(); }
     public function open-field-picker() { field.open-picker(); }
     public function cancel-field-picker() { field.cancel-picker(); }
-    in-out property <SrgbColorView> field-color <=> field.accepted-color;
-    in-out property <SrgbColorView> picker-color <=> picker.accepted-color;
+    out property <SrgbColorView> field-color: field.accepted-value.color;
+    out property <SrgbColorView> picker-color: picker.accepted-value.color;
     in-out property <string> field-text <=> field.text;
     in-out property <string> hex-text <=> picker.hex-text;
     in-out property <string> red-text <=> picker.red-text;
@@ -45,7 +45,7 @@ export component ColorLifecycleFixture inherits Window {
             theme: root.theme; ownership: root.ownership; access: root.access;
             required: root.required; clearable: root.clearable; empty-label: root.empty-label; custom-validity <=> root.custom-validity;
             clear-label: "Clear standalone color"; label: "Standalone color"; alpha-mode: root.alpha-mode;
-            accepted-color: {red: 1, green: 2, blue: 3, alpha: 255};
+            accepted-value: {present: true, color: {red: 1, green: 2, blue: 3, alpha: 255}};
             cleared => { root.field-cleared += 1; }
             chosen(value) => { root.field-chosen += 1; root.field-proposal = value; }
             commit-requested(text) => { root.field-requests += 1; }
@@ -54,7 +54,7 @@ export component ColorLifecycleFixture inherits Window {
             theme: root.theme; ownership: root.ownership; access: root.access;
             required: root.required; clearable: root.clearable; empty-label: root.empty-label; custom-validity <=> root.custom-validity;
             clear-label: "Clear picker color"; label: "Picker color"; alpha-mode: root.alpha-mode;
-            accepted-color: {red: 4, green: 5, blue: 6, alpha: 255};
+            accepted-value: {present: true, color: {red: 4, green: 5, blue: 6, alpha: 255}};
             cleared => { root.picker-cleared += 1; }
             chosen(value) => { root.picker-chosen += 1; root.picker-proposal = value; }
             channel-commit-requested(channel,text) => { root.channel-requests += 1; }

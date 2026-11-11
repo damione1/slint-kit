@@ -15,7 +15,7 @@ export component AutonomousFixture inherits Window {
     out property <FieldState> second-state: second.field-state;
     out property <string> slider-value: slider.value;
     out property <DecimalRangeView> range-value: range.value;
-    out property <SrgbColorView> color-value: color.accepted-color;
+    out property <SrgbColorView> color-value: color.accepted-value.color;
     out property <[SelectionRef]> selected: toggles.selected;
     callback email-committed(FieldCommit);
     callback selection-changed(OptionRow, bool);
@@ -34,7 +34,7 @@ export component AutonomousFixture inherits Window {
         second := KitEmailField { theme: root.theme; label: "Independent email"; spec-key: "email"; text: "second@example.com"; }
         slider := KitSlider { theme: root.theme; label: "Exact decimal slider"; access: root.access; ownership: root.ownership; value: "0.2"; spec: {minimum: "0", maximum: "1", step: "0.1"}; }
         range := KitRangeSlider { theme: root.theme; label: "Exact decimal range"; access: root.access; value: {lower: "0.2", upper: "0.8"}; spec: {minimum: "0", maximum: "1", step: "0.1"}; }
-        color := KitColorField { theme: root.theme; label: "Accent"; access: root.access; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; }
+        color := KitColorField { theme: root.theme; label: "Accent"; access: root.access; accepted-value: {present: true, color: {red: 79, green: 70, blue: 229, alpha: 255}}; }
         toggles := KitToggleGroup { theme: root.theme; label: "Membership"; access: root.access; ownership: root.ownership; options: root.options; selection-limit: 2; selection-changed(row, added) => { root.selection-changed(row, added); } }
     }
 }
