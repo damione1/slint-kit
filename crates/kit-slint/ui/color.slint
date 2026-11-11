@@ -30,6 +30,9 @@ component ColorDraftChannel inherits HorizontalLayout {
     spacing: root.theme.spacing.unit * 3;
     Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
     KitSlider {
+        // A channel shares its row with a label and a byte value. Keep its
+        // thumb usable while allowing the caller's narrow viewport to fit.
+        min-width: self.preferred-height;
         theme: root.theme; control-size: root.control-size; access: root.access; label: root.label + " draft"; value: root.value; position: root.value / 255;
         ownership: Ownership.controlled; spec: {minimum: "0", maximum: "255", step: "1"};
         cancelled => { root.cancelled(); }
@@ -38,7 +41,7 @@ component ColorDraftChannel inherits HorizontalLayout {
             root.requested(step == NavigationStep.first ? 0 : step == NavigationStep.last ? 255 : max(0,min(255,root.value + (step == NavigationStep.next ? 1 : step == NavigationStep.previous ? -1 : step == NavigationStep.page-next ? 16 : -16))));
         }
     }
-    Text { text: root.value; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
+    value-text := Text { text: root.value; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); min-width: 26px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; horizontal-alignment: right; }
 }
 
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.

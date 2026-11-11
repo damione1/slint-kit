@@ -198,6 +198,36 @@ fn edge_popup_geometry_and_scroll_keep_actions_reachable_in_both_themes_and_text
                 }
                 assert_action_visible(&app, "Cancel");
                 assert_action_visible(&app, "Apply color");
+                let viewport = id(&app, "ScrollFrame::flickable");
+                let vp = viewport.absolute_position();
+                let vs = viewport.size();
+                let values = ElementQuery::from_root(&app)
+                    .match_id("ColorDraftChannel::value-text")
+                    .find_all();
+                let sliders = ElementQuery::from_root(&app)
+                    .match_inherits("KitSlider")
+                    .find_all();
+                assert_eq!(values.len(), 4, "all four byte values remain visible");
+                assert_eq!(sliders.len(), 4, "all four channel sliders remain visible");
+                for element in values.iter().chain(sliders.iter()) {
+                    let p = element.absolute_position();
+                    let size = element.size();
+                    assert!(
+                        p.x >= vp.x - 0.5 && p.x + size.width <= vp.x + vs.width + 0.5,
+                        "channel content must fit horizontally: {p:?}/{size:?} in {vp:?}/{vs:?}"
+                    );
+                }
+                let red = sliders
+                    .into_iter()
+                    .find(|e| e.accessible_label().as_deref() == Some("Red draft"))
+                    .unwrap();
+                click(&app, &red);
+                assert_eq!(
+                    app.get_proposals(),
+                    0,
+                    "pointer changes remain provisional until Apply"
+                );
+                assert_eq!(app.get_value().color.red, 12);
                 let frame = settle(&app);
                 if let Some(directory) = std::env::var_os("KIT_COLOR_POPUP_RENDER_DIR") {
                     std::fs::create_dir_all(&directory).unwrap();
@@ -216,7 +246,11 @@ fn edge_popup_geometry_and_scroll_keep_actions_reachable_in_both_themes_and_text
                 click(&app, &button(&app, "Apply color"));
                 assert!(!app.get_open());
                 assert_eq!(app.get_proposals(), 1);
-                assert_eq!(app.get_value().color.red, 12);
+                assert!(
+                    app.get_value().color.red > 12,
+                    "the visible slider accepted the pointer change"
+                );
+                assert_eq!(app.get_value().color, app.get_proposal());
                 app.hide().unwrap();
             }
         }
