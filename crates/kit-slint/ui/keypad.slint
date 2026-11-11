@@ -2,7 +2,7 @@
 import { KitTheme, KitThemeContext, KitMetrics, ButtonIntent, ControlSize, ControlWidth, TypographyRole } from "theme.slint";
 import { KitPressable } from "button.slint";
 import { KitIcon, IconGlyph } from "icons.slint";
-import { FieldAccess } from "contracts.slint";
+import { FieldAccess, ValidationPresentation } from "contracts.slint";
 import { FocusOutline } from "focus.slint";
 
 // One keypad key: its glyph, or its text when the glyph is empty. The text
@@ -157,8 +157,13 @@ export component KitCodeIndicator inherits Rectangle {
     in property <int> length;
     in property <int> filled;
     in property <string> label;
-    private property <length> mark: root.theme.spacing.unit * 3 * root.theme.text-scale;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    private property <length> mark: root.theme.spacing.unit * (root.control-size == ControlSize.compact ? 2 : root.control-size == ControlSize.comfortable ? 4 : 3) * root.theme.text-scale;
+    private property <color> ink: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.validation == ValidationPresentation.valid ? root.theme.success : root.theme.text-primary;
+    private property <color> outline: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.validation == ValidationPresentation.valid ? root.theme.success : root.theme.border-strong;
     accessible-role: text; accessible-label: root.label;
+    accessible-live-region: polite;
     HorizontalLayout {
         alignment: center;
         spacing: root.theme.spacing.unit * 3;
@@ -167,9 +172,9 @@ export component KitCodeIndicator inherits Rectangle {
             private property <bool> set: index < root.filled;
             width: root.mark; height: root.mark;
             border-radius: min(root.theme.shape.radius-pill, self.height / 2);
-            background: self.set ? root.theme.text-primary : transparent;
+            background: self.set ? root.ink : transparent;
             border-width: self.set ? 0px : root.theme.shape.border-width-strong;
-            border-color: root.theme.border-strong;
+            border-color: root.outline;
         }
     }
 }

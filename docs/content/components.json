@@ -897,24 +897,64 @@
     "fr": {
       "summary": "Progression d’une saisie de code : une marque par chiffre attendu, les premières remplies.",
       "usage": "Fournissez `length`, le nombre de chiffres attendus, `filled`, le nombre déjà saisi, et un `label` accessible traduit, par exemple « 2 chiffres sur 4 ». Associez-le à `KitKeypad`.",
-      "behavior": "L’indicateur montre combien de chiffres l’hôte conserve, jamais lesquels. Une marque remplie prend la couleur du texte principal, une marque vide seulement un contour ; les marques grandissent avec le texte agrandi. Le rôle texte expose `label`.",
+      "behavior": "L’indicateur montre combien de chiffres l’hôte conserve, jamais lesquels. L’hôte fournit filled, validation et un label localisé ; invalid/valid utilisent danger/success, pristine/checking restent neutres. control-size règle les marques et text-scale les agrandit. Le rôle texte expose label avec accessible-live-region: polite standard ; une composition peut remplacer cette propriété Slint héritée, sans nouvel enum de mode live. Aucun message de validation interne, acceptation de code ou lien automatique au pavé.",
       "related": [
         "KitKeypad",
         "KitOtpField"
       ],
       "label": "Indicateur de code",
-      "seoTitle": "Indicateur de code pour Slint"
+      "seoTitle": "Indicateur de code pour Slint",
+      "properties": {
+        "validation": {
+          "effect": "ValidationPresentation détenue par l’hôte : invalid peint les marques avec les tokens danger, valid avec success ; pristine et checking restent neutres. Cet état ne valide ni n’accepte le code.",
+          "default": "ValidationPresentation.pristine",
+          "constraints": "Placez aussi le retour erreur/succès localisé dans label s’il doit être annoncé ; la couleur seule n’ajoute aucun message."
+        },
+        "control-size": {
+          "effect": "Diamètre des marques selon ControlSize.compact, medium ou comfortable, agrandi avec le texte.",
+          "default": "ControlSize.medium",
+          "constraints": "Utilise 2/3/4 unités d’espacement du thème multipliées par text-scale. Medium conserve 12px à 100% avec l’espacement livré."
+        },
+        "label": {
+          "effect": "Progression accessible et retour facultatif localisés par l’hôte, par exemple « 2 chiffres sur 4 saisis. Réessayez. ». L’indicateur expose le rôle texte et une région live polie standard.",
+          "constraints": "Décrivez nombre/état sans révéler le secret saisi. Aucun message interne ni association automatique au pavé n’est ajouté."
+        },
+        "filled": {
+          "effect": "Nombre de marques remplies fourni par l’hôte ; l’indicateur ne conserve pas les chiffres saisis."
+        }
+      },
+      "accessibility": "label est un texte en région live polie : actualisez progression et retour erreur/succès localisé lorsque ces changements doivent être annoncés. Les couleurs seules ne portent pas ce message. Ne placez pas le code dans le libellé ; qualifiez séparément backend et lecteur d’écran, les métadonnées/tests headless ne prouvant pas les annonces AT physiques."
     },
     "en": {
       "summary": "Progress of a code entry: one mark per expected digit, the first ones filled.",
       "usage": "Supply `length`, the number of expected digits, `filled`, the number already entered, and a localized accessible `label`, such as “2 of 4 digits”. Pair it with `KitKeypad`.",
-      "behavior": "The indicator shows how many digits the host holds, never which. A filled mark takes the primary text color, an empty one only an edge; the marks grow with enlarged text. The text role exposes `label`.",
+      "behavior": "The indicator shows how many digits the host holds, never which. The host supplies filled, validation and a localized label; invalid/valid use danger/success tokens while pristine/checking remain neutral. control-size changes the marks and text-scale enlarges them. The text role exposes label with standard accessible-live-region: polite; a composition may override that inherited Slint property without a new live-mode enum. There is no built-in validation message, code acceptance or keypad connection.",
       "related": [
         "KitKeypad",
         "KitOtpField"
       ],
       "label": "Code Indicator",
-      "seoTitle": "Code Indicator for Slint"
+      "seoTitle": "Code Indicator for Slint",
+      "properties": {
+        "validation": {
+          "effect": "Host-owned ValidationPresentation: invalid paints the marks with danger tokens, valid with success tokens; pristine and checking keep the neutral presentation. It does not validate or accept the code.",
+          "default": "ValidationPresentation.pristine",
+          "constraints": "Put localized error/success feedback in label as well if it should be announced; changing mark color alone does not add a message."
+        },
+        "control-size": {
+          "effect": "Mark diameter for ControlSize.compact, medium or comfortable, scaled with text.",
+          "default": "ControlSize.medium",
+          "constraints": "Uses 2/3/4 theme spacing units times text-scale. Medium preserves 12px marks at 100% with the shipped spacing."
+        },
+        "label": {
+          "effect": "Host-localized accessible progress and optional validation feedback, for example “2 of 4 digits entered. Try again.” The indicator exposes it through a text role and standard polite live region.",
+          "constraints": "Describe count/state without revealing the entered secret. No internal error/success message or automatic keypad association is added."
+        },
+        "filled": {
+          "effect": "Number of filled marks supplied by the host; the indicator does not retain the entered digits."
+        }
+      },
+      "accessibility": "The label is a polite live-region text: update it with progress and localized error/success feedback when those changes should be announced. Mark colors alone do not communicate that message. Keep the code itself out of the label; qualify the target backend and screen reader separately, since metadata/headless checks do not establish physical AT announcements."
     }
   },
   "KitCollapse": {
@@ -3446,8 +3486,8 @@
   "KitKeypad": {
     "fr": {
       "summary": "Pavé numérique pour un code, un NIP ou une quantité : chiffres 1 à 9, puis supprimer, 0 et confirmer.",
-      "usage": "Fournissez `label`, `confirm-label` et `can-confirm`, puis traitez `digit(int)`, `delete-requested()` (retirer le dernier chiffre) et `confirm()` dans le modèle propriétaire, qui conserve le code saisi. Traduisez `delete-label`, `confirm-label` et, au besoin, les dix `digit-labels` dans l’ordre du pavé. `delete-glyph` (par défaut l’icône `delete` du thème), `confirm-glyph` et `confirm-intent` personnalisent les deux touches d’action. Montrez la progression avec `KitCodeIndicator`. Utilisez `activation-started()` pour un retour immédiat au début de l’appui ; chiffres, suppression et confirmation restent validés par leurs callbacks existants.",
-      "behavior": "Le pavé n’émet que des intentions et ne conserve jamais les chiffres. 0 à 9 et Retour arrière atteignent les mêmes rappels lorsqu’une touche ou le pavé a le focus. Entrée confirme sur le pavé ; Entrée et Espace activent d’abord une touche qui montre le focus clavier, comme tout bouton. Une touche pressée au pointeur rend le focus au pavé sans anneau, donc Entrée après des chiffres touchés confirme. `take-focus()` donne le focus au pavé lui-même. Confirmer reste désactivé tant que `can-confirm` est faux, et un Entrée maintenu ne confirme qu’une fois. En lecture seule ou désactivé, rien n’est émis. Chaque touche garde une cible tactile minimale de douze unités d’espacement et grandit en hauteur avec le texte agrandi ; le groupe expose `label` et chaque touche son libellé. La largeur des touches peut diminuer indépendamment de leur hauteur : le pavé tient dans 320 px à 200 % de texte avec les thèmes livrés. L’appui pointeur ou Espace émet `activation-started` avant validation ; une annulation peut donc produire un retour sans chiffre. Les chiffres saisis, Retour arrière, Entrée et actions accessibles l’émettent juste avant leur action. Les touches désactivées, en lecture seule et la confirmation indisponible n’émettent rien.",
+      "usage": "Fournissez `label`, `confirm-label` et `can-confirm`, puis traitez `digit(int)`, `delete-requested()` (retirer le dernier chiffre) et `confirm()` dans le modèle propriétaire, qui conserve le code saisi. Traduisez `delete-label`, `confirm-label` et, au besoin, les dix `digit-labels` dans l’ordre du pavé. `delete-glyph` (par défaut l’icône `delete` du thème), `confirm-glyph` et `confirm-intent` personnalisent les deux touches d’action. Montrez la progression avec `KitCodeIndicator`. Utilisez `activation-started()` pour un retour immédiat au début de l’appui ; chiffres, suppression et confirmation restent validés par leurs callbacks existants. Composez explicitement KitCodeIndicator : actualisez filled et son label localisé depuis les callbacks digit/delete admis, puis liez validation à ValidationPresentation détenue par l’hôte. Ajoutez les retours erreur/succès au label si nécessaire, sans exposer le code.",
+      "behavior": "Le pavé n’émet que des intentions et ne conserve jamais les chiffres. 0 à 9 et Retour arrière atteignent les mêmes rappels lorsqu’une touche ou le pavé a le focus. Entrée confirme sur le pavé ; Entrée et Espace activent d’abord une touche qui montre le focus clavier, comme tout bouton. Une touche pressée au pointeur rend le focus au pavé sans anneau, donc Entrée après des chiffres touchés confirme. `take-focus()` donne le focus au pavé lui-même. Confirmer reste désactivé tant que `can-confirm` est faux, et un Entrée maintenu ne confirme qu’une fois. En lecture seule ou désactivé, rien n’est émis. Chaque touche garde une cible tactile minimale de douze unités d’espacement et grandit en hauteur avec le texte agrandi ; le groupe expose `label` et chaque touche son libellé. La largeur des touches peut diminuer indépendamment de leur hauteur : le pavé tient dans 320 px à 200 % de texte avec les thèmes livrés. L’appui pointeur ou Espace émet `activation-started` avant validation ; une annulation peut donc produire un retour sans chiffre. Les chiffres saisis, Retour arrière, Entrée et actions accessibles l’émettent juste avant leur action. Les touches désactivées, en lecture seule et la confirmation indisponible n’émettent rien. Le pavé ne met pas à jour et n’annonce pas automatiquement un indicateur. activation-started signale un début d’appui, pas un chiffre accepté ; pilotez la progression depuis digit/delete et la validation depuis le résultat hôte.",
       "related": [
         "KitCodeIndicator",
         "KitOtpField",
@@ -3458,8 +3498,8 @@
     },
     "en": {
       "summary": "Numeric keypad for a code, a PIN or a quantity: digits 1 to 9, then delete, 0 and confirm.",
-      "usage": "Supply `label`, `confirm-label` and `can-confirm`, and handle `digit(int)`, `delete-requested()` (remove the last digit) and `confirm()` in the owning model, which keeps the entered code. Localize `delete-label`, `confirm-label` and, when needed, the ten `digit-labels` in keypad order. `delete-glyph` (by default the theme’s `delete` icon), `confirm-glyph` and `confirm-intent` customize the two action keys. Show progress with `KitCodeIndicator`. Use `activation-started()` for immediate press feedback; digits, deletion and confirmation still commit through their existing callbacks.",
-      "behavior": "The keypad emits intentions only and never holds the digits. 0 to 9 and Backspace reach the same callbacks while a key or the keypad has focus. Return confirms on the keypad; Return and Space first activate a key that shows keyboard focus, as on any button. A key pressed with the pointer hands focus back to the keypad without a ring, so Return after tapped digits confirms. `take-focus()` focuses the keypad itself. Confirm stays disabled while `can-confirm` is false, and a held Return confirms once. A read-only or disabled keypad emits nothing. Each key keeps a minimum twelve-spacing-unit touch target and grows vertically with enlarged text; the group exposes `label` and each key its own label. Key width can shrink independently of height, so a 320px keypad remains usable at 200% text with the shipped themes. Pointer-down and Space-down emit `activation-started` before commit; cancellation can therefore produce feedback without a digit. Typed digits, Backspace, Return and accessible actions emit it immediately before their action. Disabled, read-only and unavailable confirm keys emit nothing.",
+      "usage": "Supply `label`, `confirm-label` and `can-confirm`, and handle `digit(int)`, `delete-requested()` (remove the last digit) and `confirm()` in the owning model, which keeps the entered code. Localize `delete-label`, `confirm-label` and, when needed, the ten `digit-labels` in keypad order. `delete-glyph` (by default the theme’s `delete` icon), `confirm-glyph` and `confirm-intent` customize the two action keys. Show progress with `KitCodeIndicator`. Use `activation-started()` for immediate press feedback; digits, deletion and confirmation still commit through their existing callbacks. Compose KitCodeIndicator explicitly: update filled and its localized label from admitted digit/delete callbacks, and bind its validation to host-owned ValidationPresentation. Include error/success feedback in that label when needed; do not expose the code.",
+      "behavior": "The keypad emits intentions only and never holds the digits. 0 to 9 and Backspace reach the same callbacks while a key or the keypad has focus. Return confirms on the keypad; Return and Space first activate a key that shows keyboard focus, as on any button. A key pressed with the pointer hands focus back to the keypad without a ring, so Return after tapped digits confirms. `take-focus()` focuses the keypad itself. Confirm stays disabled while `can-confirm` is false, and a held Return confirms once. A read-only or disabled keypad emits nothing. Each key keeps a minimum twelve-spacing-unit touch target and grows vertically with enlarged text; the group exposes `label` and each key its own label. Key width can shrink independently of height, so a 320px keypad remains usable at 200% text with the shipped themes. Pointer-down and Space-down emit `activation-started` before commit; cancellation can therefore produce feedback without a digit. Typed digits, Backspace, Return and accessible actions emit it immediately before their action. Disabled, read-only and unavailable confirm keys emit nothing. The keypad does not update or announce an indicator automatically. activation-started is press feedback, not evidence that a digit was accepted; drive progress from digit/delete callbacks and validation from the host result.",
       "related": [
         "KitCodeIndicator",
         "KitOtpField",
