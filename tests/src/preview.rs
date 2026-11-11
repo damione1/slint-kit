@@ -137,7 +137,16 @@ fn explicit_calendar_and_field_presentations_survive_without_rust_services() {
     let calendar = fixture(PreviewFamily::Calendar);
     assert!(has_label(&calendar, "November 8, 2026"));
     let select = fixture(PreviewFamily::Select);
-    assert_eq!(select_value(&select).as_deref(), Some("Choose an option"));
+    assert_eq!(select_value(&select).as_deref(), Some(""));
+    assert_eq!(
+        ElementQuery::from_root(&select)
+            .match_inherits("KitSelectTrigger")
+            .find_first()
+            .unwrap()
+            .accessible_placeholder_text()
+            .as_deref(),
+        Some("Choose an option")
+    );
 }
 
 #[test]
@@ -151,12 +160,12 @@ fn installed_select_keeps_an_explicit_empty_option_label() {
             ..Default::default()
         },
     ])));
-    assert_eq!(select_value(&window).as_deref(), Some("Choose an option"));
+    assert_eq!(select_value(&window).as_deref(), Some(""));
     slint_kit::install(&window);
     slint::platform::update_timers_and_animations();
     assert!(
-        has_label(&window, "Choose an option"),
-        "the field keeps its accessible name"
+        has_label(&window, "Destination"),
+        "the field keeps its explicit name independently of hint and value"
     );
     assert_eq!(
         select_value(&window).as_deref(),

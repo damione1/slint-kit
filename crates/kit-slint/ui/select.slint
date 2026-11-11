@@ -1,3 +1,4 @@
+import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
@@ -399,9 +400,14 @@ export component KitSelect inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
-    in property <string> placeholder: selection.selected-label != "" ? selection.selected-label : "Choose an option";
-    private property <string> trigger-label: root.options.length > 0 && root.selected.present && KitSelectionService.ready ? selection.selected-label : root.placeholder;
-    in property <string> unavailable-label: "Selected option is unavailable";
+    // The field name, empty hint and current value have separate semantics.
+    in property <string> label: KitStrings.select-label;
+    in property <string> placeholder: KitStrings.select-placeholder;
+    in property <string> selected-label: selection.selected-label;
+    in property <string> value-label: root.state.selected.present ? root.selected-label : "";
+    in property <string> unavailable-label: KitStrings.selection-unavailable-label;
+    private property <string> trigger-label: root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label
+        : root.state.selected.present && (root.state.selection-availability == SelectionAvailability.available || root.selected-label != "") ? root.selected-label : root.placeholder;
     in property <FieldAccess> access: FieldAccess.editable;
     // A composite (multi-select) reports its own constraint through this.
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
@@ -471,8 +477,9 @@ export component KitSelect inherits Rectangle {
         typeahead-timeout-ms: root.typeahead-timeout-ms;
         check-typeahead-active => { return selection.is-typeahead-active(); }
         validation: root.presented-validation;
-        accessible-name: root.placeholder;
-        accessible-value: root.trigger-label;
+        accessible-name: root.label;
+        accessible-placeholder-text: root.placeholder;
+        accessible-value: root.value-label;
         accessible-description: checks.show-error ? checks.validation-message : root.error-message != "" ? root.error-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
         open-requested => { root.handle-open-requested(); }
         navigate(step) => { root.handle-navigate(step); }
@@ -485,8 +492,11 @@ export component KitSelect inherits Rectangle {
             Text { text: root.trigger-label; color: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: trigger.theme.typography.family; font-size: trigger.recipe.font-size; overflow: elide; vertical-alignment: center; }
             Rectangle {
                 width: root.icon.size;
-                if root.state.selection-availability == SelectionAvailability.unavailable: Text {
-                    text: "!"; color: root.theme.danger; font-family: root.theme.typography.family; vertical-alignment: center; horizontal-alignment: center;
+                if root.state.selection-availability == SelectionAvailability.unavailable: KitIcon {
+                    theme: root.theme; control-size: root.control-size;
+                    y: (parent.height - self.height) / 2;
+                    glyph: root.theme.icons.warning;
+                    ink: trigger.disabled ? root.icon.disabled-color : root.theme.danger;
                 }
                 // Points up while the list is presented below the trigger.
                 if root.state.selection-availability != SelectionAvailability.unavailable: TurningIcon {
@@ -573,5 +583,4 @@ export component KitSelect inherits Rectangle {
     function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }
     function handle-query-edited(text: string) { root.query = text; root.query-edited(text); }
 
-    out property <string> selected-label: selection.selected-label;
 }

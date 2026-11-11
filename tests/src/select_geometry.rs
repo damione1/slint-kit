@@ -112,7 +112,9 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
     let placeholder = combobox
         .query_descendants()
         .match_type_name("Text")
-        .match_predicate(|element| element.accessible_label().as_deref() == Some("Workspace"))
+        .match_predicate(|element| {
+            element.accessible_label().as_deref() == Some("Search workspaces")
+        })
         .find_first()
         .expect("inline combobox field exposes its placeholder");
     assert!(placeholder.size().width > 100.0);

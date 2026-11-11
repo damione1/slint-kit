@@ -14,6 +14,7 @@ mod foundations;
 mod journeys;
 mod keyboard_scope;
 mod preview;
+mod selection_names;
 mod selection_service;
 mod table_cells;
 mod table_editing;
