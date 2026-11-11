@@ -12,7 +12,9 @@ struct Inner<T> {
     timer: slint::Timer,
 }
 /// Typed toast actions and lifetimes, with independent pointer/focus pauses.
-/// The timer owns a weak state reference and never retains a window.
+/// One single-shot timer targets the next running lifetime; idle, persistent
+/// and fully paused queues have no active timer. Its weak state reference
+/// never retains a window.
 pub struct ToastBinding<T> {
     inner: Rc<Inner<T>>,
 }
@@ -25,28 +27,45 @@ impl<T> Clone for ToastBinding<T> {
 }
 impl<T: Clone + 'static> ToastBinding<T> {
     pub fn new(capacity: NonZeroUsize) -> Self {
-        let result = Self {
+        Self {
             inner: Rc::new(Inner {
                 queue: RefCell::new(ToastQueue::new(capacity)),
                 rows: KeyedModel::new([]).expect("empty toast model"),
                 epoch: Instant::now(),
                 timer: slint::Timer::default(),
             }),
+        }
+    }
+    fn schedule(&self) {
+        let Some(delay) = self
+            .inner
+            .queue
+            .borrow()
+            .next_timeout(self.inner.epoch.elapsed())
+        else {
+            self.inner.timer.stop();
+            return;
         };
-        let weak = Rc::downgrade(&result.inner);
-        result.inner.timer.start(
-            slint::TimerMode::Repeated,
-            Duration::from_millis(50),
-            move || {
+        // Slint timers have millisecond resolution. A positive remainder
+        // must not truncate to a zero-delay spin before the clock catches up.
+        let delay = if delay.is_zero() {
+            delay
+        } else {
+            delay.max(Duration::from_millis(1))
+        };
+        let weak = Rc::downgrade(&self.inner);
+        self.inner
+            .timer
+            .start(slint::TimerMode::SingleShot, delay, move || {
                 if let Some(inner) = weak.upgrade() {
                     let expired = inner.queue.borrow_mut().advance(inner.epoch.elapsed());
+                    let binding = Self { inner };
                     if !expired.is_empty() {
-                        Self { inner }.refresh();
+                        binding.refresh();
                     }
+                    binding.schedule();
                 }
-            },
-        );
-        result
+            });
     }
     pub fn model(&self) -> slint::ModelRc<ui::ToastEntry> {
         self.inner.rows.model()
@@ -94,13 +113,14 @@ impl<T: Clone + 'static> ToastBinding<T> {
         view: ui::ToastEntry,
         lifetime: ToastLifetime,
     ) -> Result<ToastId, ToastQueueError> {
-        let id = self.inner.queue.borrow_mut().push(
+        let result = self.inner.queue.borrow_mut().push(
             (action, view),
             lifetime,
             self.inner.epoch.elapsed(),
-        )?;
+        );
         self.refresh();
-        Ok(id)
+        self.schedule();
+        result
     }
     pub fn dismiss(&self, token: i32) -> Option<T> {
         let id = self.inner.rows.key(token)?;
@@ -111,6 +131,7 @@ impl<T: Clone + 'static> ToastBinding<T> {
             .remove(id)
             .map(|(action, _)| action);
         self.refresh();
+        self.schedule();
         value
     }
     pub fn action_handler(&self, handler: impl Fn(T) + 'static) -> impl Fn(i32) + 'static {
@@ -146,6 +167,7 @@ impl<T: Clone + 'static> ToastBinding<T> {
             if changed {
                 binding.refresh();
             }
+            binding.schedule();
         }
     }
 }
