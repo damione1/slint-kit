@@ -154,7 +154,11 @@ fn accessible_actions_respect_read_only_disabled_and_uninstalled_services() {
             single.accessible_read_only(),
             Some(access == ui::FieldAccess::ReadOnly)
         );
-        let before = (app.get_value(), app.get_range_value(), app.get_color());
+        let before = (
+            app.get_value(),
+            app.get_range_value(),
+            app.get_accepted_color(),
+        );
         for element in [
             single.clone(),
             thumb(&app, "Interval — lower"),
@@ -172,7 +176,11 @@ fn accessible_actions_respect_read_only_disabled_and_uninstalled_services() {
             slider.set_accessible_value("123");
         }
         assert_eq!(
-            (app.get_value(), app.get_range_value(), app.get_color()),
+            (
+                app.get_value(),
+                app.get_range_value(),
+                app.get_accepted_color()
+            ),
             before
         );
         assert_eq!(app.get_chosen_count(), 0);
@@ -194,7 +202,7 @@ fn color_channel_sliders_publish_byte_domains_and_accept_accessible_values() {
         bounds(slider, 0., 255., 1., "124");
     }
     assert_eq!(
-        app.get_color(),
+        app.get_accepted_color(),
         ui::SrgbColorView {
             red: 124,
             green: 124,
