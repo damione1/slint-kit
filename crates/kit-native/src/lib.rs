@@ -386,7 +386,7 @@ mod tests {
                 Err(HandleError::Unavailable)
             }
         }
-        let (file, directory) = {
+        let (file, directory, save) = {
             let parent = Parent {
                 window: 0.into(),
                 display: 0.into(),
@@ -401,11 +401,12 @@ mod tests {
                 &parent,
             );
             let directory = pick_directory_with_parent(DirectoryRequest::default(), &parent);
-            assert_eq!(parent.window.get(), 2);
-            assert_eq!(parent.display.get(), 2);
-            (file, directory)
+            let save = save_file_with_parent(SaveFileRequest::default(), &parent);
+            assert_eq!(parent.window.get(), 3);
+            assert_eq!(parent.display.get(), 3);
+            (file, directory, save)
         };
-        drop((file, directory));
+        drop((file, directory, save));
     }
 
     #[test]
