@@ -4,6 +4,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 env:
@@ -28,18 +31,18 @@ jobs:
       - name: Test build helper path handling
         run: cargo test -p slint-kit-build --locked
   linux:
-    # Linux checks build the kit, exercise the headless component suite on the
-    # Slint testing backend with the software renderer, and check Linux cfg
-    # paths with clippy. Formatting, generated files, token lint and quickstart
-    # guards are file-level checks with no platform dependency; the macOS job
-    # runs them. Nothing here opens a window, so no display server is needed.
+    # Components use the Slint testing backend and software renderer; the
+    # documentation consumers are compiled only. No display server is needed.
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.99.1
         with:
-          components: clippy
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: slint-kit-linux
@@ -54,30 +57,10 @@ jobs:
           sudo timeout 600 apt-get install -y --no-install-recommends \
             libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-dev \
             libfontconfig-dev libwayland-dev
-      - name: Run the headless component suite
-        run: cargo test -p kit-tests --locked
-      - name: Test the rest of the workspace
-        run: cargo test --workspace --exclude kit-tests --locked
-      - name: Clippy with warnings denied on Linux targets
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
-  desktop:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          # Immutable released examples are checked alongside the current source.
-          fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@1.99.1
-        with:
-          components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: slint-kit-workspace
-          cache-on-failure: true
-          cache-workspace-crates: true
       - name: Check documentation dependency versions
         run: python3 -B docs/scripts/sync-doc-versions.py --check
-      - run: cargo run -p xtask --locked -- check
+      - name: Check the workspace and headless component suite
+        run: cargo run -p xtask --locked -- check
       - name: Check component starters against the local kit
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/target
