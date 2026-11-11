@@ -23,13 +23,15 @@ export component Example inherits Window {
         alignment: start;
         KitCardHeader { theme: root.theme; title: "Choisissez votre destination"; description: "Une sélection claire, des options descriptives et une navigation clavier familière."; }
         control := KitSelectSurface {
+            accessible-name: "Destinations";
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Choisi : " + row.label; }
             theme: root.theme; height: 240px; searchable: true; query <=> root.query;
             search-label: "Find destination"; focus-search-on-open: true;
             tab-navigation(reverse) => { return KitKeyResult.reject; }
             VerticalLayout {
                 alignment: start;
-                for row in control.rows: KitOption {
+                for row[index] in control.rows: KitOption {
+                    accessible-item-index: index; accessible-item-count: control.rows.length;
                     theme: root.theme; option-data: row; height: root.row-height; activate(token, generation) => { control.choose-option(token, generation); }
                     active: control.state.active.present && control.state.active.token == row.token;
                     selected: control.state.selected.present && control.state.selected.token == row.token;

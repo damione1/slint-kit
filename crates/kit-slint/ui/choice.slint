@@ -322,6 +322,7 @@ export component KitRadioGroup inherits Rectangle {
         return root.rows.length > 0 ? root.rows[index] : selection.preview-choice(index);
     }
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: root.theme.direction;
@@ -334,6 +335,12 @@ export component KitRadioGroup inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group;
+    accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
+    // The direct semantic children are [vertical:N, horizontal:N]. Both
+    // normal repeaters remain materialized when one layout is invisible.
+    // The hidden-layout offset is structural, never a viewport/model guess.
+    accessible-delegate-focus: root.active-index < 0 ? -1 : root.direction == ChoiceDirection.vertical ? root.active-index
+        : root.render-count + (root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - root.active-index : root.active-index);
     accessible-label: root.label;
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
@@ -351,6 +358,7 @@ export component KitRadioGroup inherits Rectangle {
             spacing: 0px;
         for index in root.render-count: option := ChoiceOption {
             private property <ChoiceRow> display-choice: root.render-row(index);
+            accessible-item-index: index; accessible-item-count: root.render-count;
             option-data: option.display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
@@ -373,6 +381,7 @@ export component KitRadioGroup inherits Rectangle {
             spacing: 0px;
         for index in root.render-count: flow-option := ChoiceOption {
             in property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
+            accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
             option-data: display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
@@ -486,6 +495,7 @@ export component KitSegmentedControl inherits Rectangle {
     in property <int> columns: max(1, root.render-count);
     private property <int> column-count: root.direction == ChoiceDirection.vertical ? 1 : clamp(root.columns, 1, max(1, root.render-count));
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     // Vertical segments stack in source order and navigate with Up and Down.
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
@@ -499,6 +509,10 @@ export component KitSegmentedControl inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group; accessible-label: root.label;
+    // One static row-major grid; every slot is materialized. RTL mirrors
+    // columns inside each row, including the unused slots of a partial row.
+    accessible-delegate-focus: root.active-index < 0 ? -1 : root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal
+        ? Math.floor(root.active-index / root.column-count) * root.column-count + root.column-count - 1 - Math.mod(root.active-index, root.column-count) : root.active-index;
     accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     border-radius: root.choice.group-radius; background: root.theme.canvas;
@@ -523,6 +537,7 @@ export component KitSegmentedControl inherits Rectangle {
                     private property <int> source-index: self.row-start + (root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal ? root.column-count - 1 - column : column);
                     visible: self.source-index < root.render-count;
                     disabled: self.source-index >= root.render-count || self.option-data.disabled || root.access == FieldAccess.disabled;
+                    accessible-item-index: self.source-index; accessible-item-count: root.render-count;
                     option-data: root.render-row(self.source-index); generation: root.generation; access: root.access;
                     icons: root.icons;
                     theme: root.theme; control-size: root.control-size;
@@ -596,6 +611,7 @@ export component KitToggleGroup inherits Rectangle {
         return root.rows.length > 0 ? root.rows[index] : selection.preview-choice(index);
     }
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.token;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: root.theme.direction;
@@ -607,6 +623,10 @@ export component KitToggleGroup inherits Rectangle {
     preferred-height: root.direction == ChoiceDirection.vertical ? max(vertical-choices.min-height, vertical-choices.preferred-height) : max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
+    // The direct semantic children are [horizontal:N, vertical:N], including
+    // the hidden layout. Native focus stays on the one persistent keyboard.
+    accessible-delegate-focus: root.active-index < 0 ? -1 : root.direction == ChoiceDirection.vertical ? root.render-count + root.active-index
+        : root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - root.active-index : root.active-index;
     accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     out property <bool> has-focus: keyboard.has-focus;
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
@@ -623,6 +643,7 @@ export component KitToggleGroup inherits Rectangle {
             spacing: root.choice.group-gap;
             for index in root.render-count: option := ChoiceOption {
                 private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
+                accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
                 option-data: option.display-choice; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size; accessible-name: option.display-choice.label;
@@ -646,6 +667,7 @@ export component KitToggleGroup inherits Rectangle {
             spacing: root.choice.group-gap;
             for index in root.render-count: v-option := ChoiceOption {
                 private property <ChoiceRow> display-choice: root.render-row(index);
+                accessible-item-index: index; accessible-item-count: root.render-count;
                 option-data: v-option.display-choice; generation: root.generation; access: root.access;
                 theme: root.theme; control-size: root.control-size; accessible-name: v-option.display-choice.label;
                 control-width: ControlWidth.fill;
@@ -1306,6 +1328,8 @@ export component KitCombobox inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
+            accessible-name: root.label;
+            accessible-item-count: root.rows.length;
             init => { root.measured-popup-page-rows = self.page-rows; root.popup-focused = self.has-focus; }
             changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             focus-observed(focused) => { root.popup-focused = focused; }
@@ -1358,8 +1382,9 @@ export component KitCombobox inherits Rectangle {
                 options := ListView {
                     vertical-stretch: 1;
                     theme: root.theme;
-                    for row in root.rows: KitOption {
+                    for row[index] in root.rows: KitOption {
                         theme: root.theme; option-data: row; height: root.row-height;
+                        accessible-item-index: index; accessible-item-count: root.rows.length;
                         focus-on-pointer: false;
                         active: root.state.active.present && row.token == root.state.active.token;
                         selected: root.state.selected.present && row.token == root.state.selected.token;
@@ -1803,6 +1828,7 @@ export component KitRating inherits Rectangle {
                 padding: parent.recipe.group-padding; spacing: parent.recipe.group-padding;
                 for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption {
                     theme: root.theme; control-size: root.control-size; access: root.access;
+                    accessible-item-index: index; accessible-item-count: root.scale;
                     option-data: {token: index + 1, label: "\{index + 1}", selected: root.value.present && root.value.step == index + 1};
                     tab-stop: false;
                 }
