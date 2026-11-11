@@ -197,10 +197,20 @@ fn edge_popup_geometry_and_scroll_keep_actions_reachable_in_both_themes_and_text
                 assert_action_visible(&app, "Cancel");
                 assert_action_visible(&app, "Apply color");
                 let frame = settle(&app);
-                crate::choice_presentation::save_capture(
-                    &frame,
-                    &format!("color-popup-{mode}-{scale}-{bottom}"),
-                );
+                if let Some(directory) = std::env::var_os("KIT_COLOR_POPUP_RENDER_DIR") {
+                    std::fs::create_dir_all(&directory).unwrap();
+                    let mut bytes =
+                        format!("P6\n{} {}\n255\n", frame.width(), frame.height()).into_bytes();
+                    for pixel in frame.as_slice() {
+                        bytes.extend([pixel.r, pixel.g, pixel.b]);
+                    }
+                    std::fs::write(
+                        std::path::PathBuf::from(directory)
+                            .join(format!("color-popup-{mode}-{scale}-{bottom}.ppm")),
+                        bytes,
+                    )
+                    .unwrap();
+                }
                 click(&app, &button(&app, "Apply color"));
                 assert!(!app.get_open());
                 assert_eq!(app.get_proposals(), 1);
