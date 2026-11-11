@@ -67,11 +67,11 @@ fn chosen(app: &MenuActiveFocusFixture) -> Rc<RefCell<Vec<OptionRow>>> {
 }
 
 fn capture_menu(app: &MenuActiveFocusFixture) {
-    let Some(directory) = std::env::var_os("KIT_CONTROL_CAPTURE_DIR") else {
-        return;
-    };
+    let directory = std::env::var_os("KIT_CONTROL_CAPTURE_DIR");
     use std::io::Write;
-    std::fs::create_dir_all(&directory).unwrap();
+    if let Some(directory) = directory.as_ref() {
+        std::fs::create_dir_all(directory).unwrap();
+    }
     for (name, base) in [
         ("light", app.get_light_theme()),
         ("dark", app.get_dark_theme()),
@@ -101,14 +101,16 @@ fn capture_menu(app: &MenuActiveFocusFixture) {
                 row_y + active.size().height,
                 viewport_y + viewport.size().height
             );
-            let mut output = std::fs::File::create(
-                std::path::PathBuf::from(&directory)
-                    .join(format!("menu-persistent-focus-{name}-{scale}.ppm")),
-            )
-            .unwrap();
-            write!(output, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
-            for pixel in image.as_slice() {
-                output.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+            if let Some(directory) = directory.as_ref() {
+                let mut output = std::fs::File::create(
+                    std::path::PathBuf::from(directory)
+                        .join(format!("menu-persistent-focus-{name}-{scale}.ppm")),
+                )
+                .unwrap();
+                write!(output, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
+                for pixel in image.as_slice() {
+                    output.write_all(&[pixel.r, pixel.g, pixel.b]).unwrap();
+                }
             }
         }
     }
