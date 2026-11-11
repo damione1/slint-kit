@@ -270,6 +270,9 @@ component TableCellView inherits Rectangle {
     in property <bool> pointed;
     callback point-requested();
     callback reveal-requested(length, length);
+    // A replacement column model can mount this cell already active. Change
+    // observers start from that state, so mounting must reveal it once too.
+    init => { if (root.focus-indicated || root.editing) { root.reveal-requested(root.absolute-position.x, root.width); } }
     in property <length> viewport-offset-x;
     // A manual horizontal scroll moves the viewport, not the column's layout.
     // Keep cursor reveal tied to column changes and the next cell action.

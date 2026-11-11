@@ -850,9 +850,9 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
         .collect::<Vec<_>>();
     window.set_columns(ModelRc::new(VecModel::from(columns)));
     window.set_table_active_column(2);
-    // A model replacement invalidates native layout. Resolve the real column
-    // geometry before testing its reveal; timer delivery alone does not paint
-    // a frame in the mock backend.
+    // The replacement delegates mount already active, without a subsequent
+    // cursor transition. Materialize their real geometry before checking the
+    // initial reveal, while there is still no editor to reveal the cell.
     let row = delegates(&window, "KitDataTable").remove(0);
     let cells = row
         .query_descendants()
@@ -876,6 +876,12 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     assert!(
         editor.absolute_position().x + editor.size().width
             <= bounds.absolute_position().x + bounds.size().width + 1.
+    );
+    text(&window, "Revealed owner");
+    assert_eq!(
+        window.get_table_edit_draft(),
+        "Revealed owner",
+        "F2 gives the revealed native editor focus and selects its value"
     );
 }
 
