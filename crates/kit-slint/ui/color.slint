@@ -216,9 +216,11 @@ export component KitColorField inherits Rectangle {
     function publish() {
         if (!root.result.valid) { return; }
         let value = root.result.value;
-        if (!value.present && !root.accepted-value.present) { return; }
+        let present = value.present;
+        let color = value.color;
+        if (!present && !root.accepted-value.present) { return; }
         if (root.ownership == Ownership.local) { root.accepted-value = value; }
-        if (value.present) { root.chosen(value.color); }
+        if (present) { root.chosen(color); }
         else { root.cleared(); }
         root.sync-text();
     }
@@ -382,9 +384,11 @@ export component KitColorPicker inherits Rectangle {
     }
     function publish-value(value: ColorValue) {
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
-        if (!value.present && !root.accepted-value.present) { return; }
+        let present = value.present;
+        let color = value.color;
+        if (!present && !root.accepted-value.present) { return; }
         if (root.ownership == Ownership.local) { root.accepted-value = value; }
-        if (value.present) { root.chosen(value.color); }
+        if (present) { root.chosen(color); }
         else { root.cleared(); }
     }
 }
