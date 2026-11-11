@@ -2941,7 +2941,7 @@
     "fr": {
       "summary": "Surface de saisie commune aux éditeurs et à leurs éléments adjacents.",
       "usage": "Placez un éditeur natif et ses préfixes ou actions dans une mise en page enfant unique. Projetez `access`, `validation` et `focused` depuis le contrôle composé. `decoration: FieldDecoration.underlined` remplace le cadre rempli par un soulignement sensible au focus ; `underline-segments` le divise en emplacements visibles, avec un minimum de un. Le style encadré par défaut conserve la surface habituelle du champ.",
-      "behavior": "La surface possède le fond, la bordure, l’inset et l’anneau de focus, sans créer d’éditeur ni de cible clavier. `ValidationPresentation.invalid` colore la bordure en erreur.",
+      "behavior": "La surface possède le fond, la bordure, l’inset et l’anneau de focus, sans créer d’éditeur ni de cible clavier. `ValidationPresentation.invalid` colore la bordure en erreur. FieldDecoration.cells utilise underline-segments et group-size pour des boîtes thémées et des séparations décoratives. Ce primitif fournit seulement la présentation, sans éditeur, modèle de texte ni cible de focus supplémentaire.",
       "related": [
         "KitInputGroupStart",
         "KitInputGroupEnd",
@@ -2953,7 +2953,7 @@
     "en": {
       "summary": "Shared input surface for editors and their adjoining content.",
       "usage": "Place a native editor and its prefixes or actions in one child layout. Project `access`, `validation` and `focused` from the composed control. `decoration: FieldDecoration.underlined` removes the filled frame and draws a focus-aware underline; `underline-segments` divides it into visible slots, clamped to at least one. The boxed default keeps the normal field surface.",
-      "behavior": "The surface owns the background, border, inset and focus ring without creating an editor or keyboard target. `ValidationPresentation.invalid` colors the border as an error.",
+      "behavior": "The surface owns the background, border, inset and focus ring without creating an editor or keyboard target. `ValidationPresentation.invalid` colors the border as an error. FieldDecoration.cells uses underline-segments and group-size for themed boxes and decorative boundaries. It supplies appearance only, with no editor, text model or extra focus target.",
       "related": [
         "KitInputGroupStart",
         "KitInputGroupEnd",
@@ -3671,7 +3671,7 @@
     "fr": {
       "summary": "Saisie native de code à usage unique avec validation regex configurable, emplacements visibles et masquage facultatif.",
       "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs. Les fonctions natives, callbacks, états et règles d’accessibilité communs sont décrits sur KitTextField.",
-      "behavior": "Un éditeur natif conserve le collage, le curseur, la sélection et l’historique. `validation-timing: ValidationTiming.on-submit` affiche les erreurs à l’acceptation plutôt que pendant la saisie d’un code incomplet. Seul un code complet valide remplace la valeur acceptée dans Rust. La vue masquée en lecture seule utilise `input-type: InputType.password` et `access: FieldAccess.read-only` ; elle suit le brouillon alphanumérique éditable sans publier le texte brut dans la valeur accessible redéfinie par le kit. Le masquage ne change que la présentation : Rust reçoit toujours le code. L’annulation d’un remplacement par un texte plus court peut provoquer un panic dans un éditeur de mot de passe Slint 1.18.1 ; l’exemple réserve donc le masquage à la lecture seule. L’IME et les lecteurs d’écran nécessitent une qualification sur le backend cible. Le défaut `length-policy: TextLengthPolicy.limit` impose `max-length` au texte natif réel. Une édition trop longue est refusée en entier, y compris un collage ou un remplacement de sélection ; le texte accepté précédemment est conservé sans deviner quels caractères répétés étaient sélectionnés. Cela diffère des navigateurs qui insèrent le préfixe du collage pouvant tenir. Les longueurs comptent les unités UTF-16 sans couper un caractère Unicode. `slots` fournit la limite par défaut ; un `max-length` explicite la remplace et -1 désactive la limite. Modifier la limite ou affecter une valeur trop longue depuis l’hôte conserve le préfixe qui tient. Slint 1.18.1 ne fournit pas de point de contrôle public avant insertion : le refus utilise l’annulation native avant de restaurer le texte accepté, ce qui peut effacer l’historique annuler/rétablir. Les autres éditions conservent l’historique natif. Le curseur est replacé sur une frontière UTF-8 sûre au préfixe commun ; un remplacement trop long peut perdre sa sélection. Initialisez la validation avant d’afficher la fenêtre ; les champs stricts restent en lecture seule avant initialisation. `length-policy: TextLengthPolicy.validate` rétablit la validation sans limitation. Accessibilité : l’éditeur natif expose l’espace réservé, l’aide et l’erreur visible, l’obligation, préfixe/suffixe, compteur et vérification en cours ; les mots de passe cachés taisent la valeur. Le libellé indique l’obligation localisable (`show-required-indicator` permet de la cacher). Les vérifications demandent une annonce polie. Slint 1.18 ne propose pas d’état accessible requis/invalide natif, de clavier courriel/URL/téléphone ni de remplissage OTP ; le texte descriptif constitue le contournement pris en charge. Les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil. OTP garde explicitement TextHorizontalAlignment.left lorsque le thème est RTL ; son code reste une suite de gauche à droite.",
+      "behavior": "Un éditeur natif conserve le collage, le curseur, la sélection et l’historique. `validation-timing: ValidationTiming.on-submit` affiche les erreurs à l’acceptation plutôt que pendant la saisie d’un code incomplet. Seul un code complet valide remplace la valeur acceptée dans Rust. La vue masquée en lecture seule utilise `input-type: InputType.password` et `access: FieldAccess.read-only` ; elle suit le brouillon alphanumérique éditable sans publier le texte brut dans la valeur accessible redéfinie par le kit. Le masquage ne change que la présentation : Rust reçoit toujours le code. L’annulation d’un remplacement par un texte plus court peut provoquer un panic dans un éditeur de mot de passe Slint 1.18.1 ; l’exemple réserve donc le masquage à la lecture seule. L’IME et les lecteurs d’écran nécessitent une qualification sur le backend cible. Le défaut `length-policy: TextLengthPolicy.limit` impose `max-length` au texte natif réel. Une édition trop longue est refusée en entier, y compris un collage ou un remplacement de sélection ; le texte accepté précédemment est conservé sans deviner quels caractères répétés étaient sélectionnés. Cela diffère des navigateurs qui insèrent le préfixe du collage pouvant tenir. Les longueurs comptent les unités UTF-16 sans couper un caractère Unicode. `slots` fournit la limite par défaut ; un `max-length` explicite la remplace et -1 désactive la limite. Modifier la limite ou affecter une valeur trop longue depuis l’hôte conserve le préfixe qui tient. Les dépassements sans événement avant insertion utilisent l’annulation native avant restauration et peuvent effacer l’historique. Les éditions ordinaires filtrées conservent l’historique natif. Le curseur est replacé sur une frontière UTF-8 sûre au préfixe commun ; un remplacement trop long peut perdre sa sélection. Initialisez la validation avant d’afficher la fenêtre ; les champs stricts restent en lecture seule avant initialisation. `length-policy: TextLengthPolicy.validate` rétablit la validation sans limitation. Accessibilité : l’éditeur natif expose l’espace réservé, l’aide et l’erreur visible, l’obligation, préfixe/suffixe, compteur et vérification en cours ; les mots de passe cachés taisent la valeur. Le libellé indique l’obligation localisable (`show-required-indicator` permet de la cacher). Les vérifications demandent une annonce polie. Slint 1.18 ne propose pas d’état accessible requis/invalide natif, de clavier courriel/URL/téléphone ni de remplissage OTP ; le texte descriptif constitue le contournement pris en charge. Les tests headless ne qualifient ni lecteur d’écran, ni IME, ni appareil. OTP garde explicitement TextHorizontalAlignment.left lorsque le thème est RTL ; son code reste une suite de gauche à droite. `alphabet` vaut `OtpAlphabet.ascii-digits` par défaut ; `ascii-alphanumeric` accepte aussi les lettres ASCII. Il fournit le `pattern` HTML par défaut. Pour ce motif d’alphabet, un `edit-filter` compilé vérifie les insertions ordinaires et le collage brut explicite avant l’édition native, y compris la longueur UTF-16 après remplacement de sélection. Un refus conserve la sélection et l’historique existant. Un motif personnalisé portant sur la valeur complète désactive le filtre par défaut pour ne pas bloquer un préfixe valide ; fournissez explicitement un edit-filter acceptant les préfixes si nécessaire. Les motifs Unicode restent pris en charge. Le motif de chiffres ASCII demande `InputType.number` natif ; les autres motifs utilisent le type texte. C’est une indication de plateforme, sans qualification du clavier logiciel d’un appareil ni du remplissage OTP. `completed(string)` signale une édition native complète valide une fois par brouillon complet distinct, après les callbacks edited/value-edited ; vider le texte ou revenir à un brouillon incomplet réarme l’événement. Les affectations hôtes ne simulent pas de complétion. Complétion ne vaut pas acceptation : conservez FieldSpec::accept et les gardes de soumission. `FieldDecoration.cells` est le défaut OTP ; `group-size` ajoute des séparations décoratives sans caractères ni éditeurs supplémentaires. Les styles boxed/underlined hérités restent disponibles. Le collage formaté natif reste indisponible sous Slint 1.18.1 : copiez le code brut sans espace, tiret ni saut de ligne final. Ctrl/Cmd+V, le collage explicite et le menu du kit gardent le chemin natif et ne réécrivent jamais le presse-papiers. OtpRules::normalize_paste et OtpDraft::normalize_paste du cœur normalisent une frontière de données explicite ; ce ne sont pas des hooks de collage de l’éditeur natif. Les chemins hors interception clavier/collage ordinaire, les éditions personnalisées non filtrées et les changements hôtes de texte/limite peuvent encore déclencher la correction stricte de dépassement et effacer l’historique. La composition et les lecteurs d’écran exigent une qualification du backend cible.",
       "related": [
         "KitPasswordField",
         "KitMaskedField",
@@ -3682,16 +3682,23 @@
       "seoTitle": "Champ code à usage unique pour Slint",
       "properties": {
         "slots": {
-          "effect": "Nombre de caractères du code. Il fixe `min-length` et `max-length` à la même valeur, un segment de soulignement par case, une cellule monospace par caractère et la largeur intrinsèque du champ ; `pattern` vaut `[0-9]*` et `length-policy` vaut `limit`.",
+          "effect": "Longueur du code et nombre de cellules décoratives ; fournit min-length/max-length égaux et la largeur monospace intrinsèque. La validation compte les unités UTF-16 ; un maximum explicite remplace le défaut.",
           "default": "`6`.",
           "example": "KitOtpField {\n    label: \"Code de vérification\";\n    slots: 4;\n}"
+        },
+        "alphabet": {
+          "effect": "Motif par défaut de chiffres ou caractères alphanumériques ASCII. Une surcharge de pattern conserve la validation complète déclarée et désactive le filtre implicite de préfixes.",
+          "default": "`OtpAlphabet.ascii-digits`.",
+          "example": "KitOtpField {\n    alphabet: OtpAlphabet.ascii-alphanumeric;\n}"
         }
-      }
+      },
+      "states": "Modifiable, lecture seule et désactivé ; complet, incomplet et invalide ; cellules, boîte ou soulignements. Les groupes décoratifs n’ont ni interaction ni arrêt Tab.",
+      "accessibility": "Un éditeur natif porte nom complet, valeur, curseur et sélection ; cellules et séparations décoratives n’ajoutent aucun contrôle accessible. Les mots de passe en lecture seule gardent la suppression existante de la valeur. Finalité numérique et remplissage varient selon le backend ; aucune qualification appareil/IME/lecteur d’écran n’est revendiquée."
     },
     "en": {
       "summary": "Native one-time code input with configurable regex validation, visible slots and optional password masking.",
       "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs. Shared native editing functions, callbacks, states and accessibility are documented on KitTextField.",
-      "behavior": "One native editor owns paste, caret, selection and undo. Use `validation-timing: ValidationTiming.on-submit` to show errors on acceptance rather than while entering a partial code. Only a complete valid code replaces the Rust accepted value. The read-only masked view uses `input-type: InputType.password` and `access: FieldAccess.read-only`; it follows the editable alphanumeric draft and does not publish its raw text through the kit accessibility value override. Masking changes presentation only: Rust still receives the code. Editable password undo can panic in Slint 1.18.1 after replacing a selection with shorter text, so the example intentionally offers masking only for the read-only view. IME and screen-reader behavior require qualification on the target backend. The default `length-policy: TextLengthPolicy.limit` enforces `max-length` on the actual native text. An edit that exceeds the limit is refused in full, including an overlong paste or selection replacement; previously accepted text is retained without guessing which repeated characters were selected. This differs from browsers that insert a fitting prefix of a paste. Lengths count UTF-16 units without splitting a Unicode scalar. `slots` supplies the default maximum; an explicit `max-length` overrides it and -1 removes the cap. Changing the maximum or assigning an overlong value from the host keeps its fitting prefix. Slint 1.18.1 has no public before-insert hook: refusal uses native undo before restoring the accepted text, which can discard undo/redo history. Ordinary edits retain native history. The caret is restored to a safe UTF-8 boundary at the common prefix; an overlong replacement may collapse its selection. Initialize form validation before showing the window; strict fields remain read-only until initialized. Set `length-policy: TextLengthPolicy.validate` to retain validation-only behavior. Accessibility: the native editor exposes placeholder, help plus visible error, required text, prefix/suffix, counter and pending state; hidden passwords omit the value. The label shows localisable required text (`show-required-indicator` can hide it). Pending checks request a polite live announcement. Slint 1.18 lacks native accessible required/invalid states, email/URL/telephone keyboard content types and OTP autofill; descriptive text is the supported workaround. Headless tests do not qualify screen-reader, IME or device behavior. The OTP explicitly keeps TextHorizontalAlignment.left when the surrounding theme direction is RTL; its code remains a left-to-right sequence.",
+      "behavior": "One native editor owns paste, caret, selection and undo. Use `validation-timing: ValidationTiming.on-submit` to show errors on acceptance rather than while entering a partial code. Only a complete valid code replaces the Rust accepted value. The read-only masked view uses `input-type: InputType.password` and `access: FieldAccess.read-only`; it follows the editable alphanumeric draft and does not publish its raw text through the kit accessibility value override. Masking changes presentation only: Rust still receives the code. Editable password undo can panic in Slint 1.18.1 after replacing a selection with shorter text, so the example intentionally offers masking only for the read-only view. IME and screen-reader behavior require qualification on the target backend. The default `length-policy: TextLengthPolicy.limit` enforces `max-length` on the actual native text. An edit that exceeds the limit is refused in full, including an overlong paste or selection replacement; previously accepted text is retained without guessing which repeated characters were selected. This differs from browsers that insert a fitting prefix of a paste. Lengths count UTF-16 units without splitting a Unicode scalar. `slots` supplies the default maximum; an explicit `max-length` overrides it and -1 removes the cap. Changing the maximum or assigning an overlong value from the host keeps its fitting prefix. Overflow paths without a pre-insertion event use native undo before restoring accepted text and can discard history. Ordinary filtered edits retain native history. The caret is restored to a safe UTF-8 boundary at the common prefix; an overlong replacement may collapse its selection. Initialize form validation before showing the window; strict fields remain read-only until initialized. Set `length-policy: TextLengthPolicy.validate` to retain validation-only behavior. Accessibility: the native editor exposes placeholder, help plus visible error, required text, prefix/suffix, counter and pending state; hidden passwords omit the value. The label shows localisable required text (`show-required-indicator` can hide it). Pending checks request a polite live announcement. Slint 1.18 lacks native accessible required/invalid states, email/URL/telephone keyboard content types and OTP autofill; descriptive text is the supported workaround. Headless tests do not qualify screen-reader, IME or device behavior. The OTP explicitly keeps TextHorizontalAlignment.left when the surrounding theme direction is RTL; its code remains a left-to-right sequence. `alphabet` defaults to `OtpAlphabet.ascii-digits`; `ascii-alphanumeric` also accepts ASCII letters. It supplies the default HTML `pattern`. For the default alphabet pattern, a compiled `edit-filter` checks ordinary insertions and explicit raw paste before native editing, including the resulting UTF-16 length after selection replacement. Rejected input preserves selection and existing undo history. A custom whole-value pattern keeps filtering off by default, so a valid prefix is not rejected; explicitly supply a prefix-accepting edit-filter when needed. Custom Unicode patterns remain supported. The ASCII digit pattern requests native `InputType.number`; other patterns use text input. This is a platform hint, without qualification of a device keyboard or OTP autofill. `completed(string)` reports a complete valid native edit once per distinct complete draft, after edited/value-edited callbacks; clearing or editing to an incomplete draft rearms it. Host text assignments do not simulate completion. Completion is not acceptance: retain FieldSpec::accept and submission guards. `FieldDecoration.cells` is the OTP default; `group-size` adds decorative boundaries without adding characters or editors. The inherited boxed/underlined styles remain available. Native formatted paste remains unsupported in Slint 1.18.1: copy the raw code without spaces, hyphens or trailing newline. Ctrl/Cmd+V, explicit paste and the kit menu retain the native paste path and never rewrite the clipboard. Core OtpRules::normalize_paste and OtpDraft::normalize_paste provide typed normalization for an explicit data boundary; they are not a native editor paste hook. Paths that bypass ordinary key/paste interception, custom unfiltered edits and host text/limit changes can still invoke strict overflow correction and discard native history. Composition and screen readers require target-backend qualification.",
       "related": [
         "KitPasswordField",
         "KitMaskedField",
@@ -3702,11 +3709,18 @@
       "seoTitle": "OTP Field for Slint",
       "properties": {
         "slots": {
-          "effect": "Number of code characters. It sets `min-length` and `max-length` to the same value, one underline segment per slot, a monospace cell per character and the intrinsic width of the field; `pattern` is `[0-9]*` and `length-policy` is `limit`.",
+          "effect": "Code length and decorative cell count; it supplies equal min-length/max-length and intrinsic monospace width. Length validation counts UTF-16 units; an explicit maximum overrides the default.",
           "default": "`6`.",
           "example": "KitOtpField {\n    label: \"Verification code\";\n    slots: 4;\n}"
+        },
+        "alphabet": {
+          "effect": "Default ASCII digit or ASCII alphanumeric pattern. Overriding pattern keeps the authored whole-value validation and disables the implicit prefix filter.",
+          "default": "`OtpAlphabet.ascii-digits`.",
+          "example": "KitOtpField {\n    alphabet: OtpAlphabet.ascii-alphanumeric;\n}"
         }
-      }
+      },
+      "states": "Editable, read-only and disabled; complete, incomplete and invalid; cells, boxed or underlined. Decorative groups have no interaction state or Tab stops.",
+      "accessibility": "One native editor owns its complete name, value, caret and selection; decorative cells and separators add no accessible controls. Hidden read-only passwords keep the existing value suppression. Numeric input-purpose and autofill behavior differ by backend; no device/IME/screen-reader qualification is claimed."
     }
   },
   "KitPagination": {
@@ -5393,7 +5407,7 @@
           "example": "KitTextField {\n    label: \"Filtre\";\n    control-size: ControlSize.compact;\n}"
         },
         "decoration": {
-          "effect": "La surface que le `KitInputGroup` dessine autour de l’éditeur : `boxed` dessine la boîte bordée de la recette de champ ; `underlined` seulement une ligne basse, divisée en `underline-segments` parties (`KitOtpField` en utilise une par case).",
+          "effect": "La surface que le `KitInputGroup` dessine autour de l’éditeur : `boxed` dessine la boîte bordée de la recette de champ ; `underlined` seulement une ligne basse, divisée en `underline-segments` parties (`KitOtpField` en utilise une par case). `cells` dessine une boîte thémée par underline-segments avec marqueurs group-size facultatifs ; le même éditeur natif unique reste au-dessus.",
           "default": "`FieldDecoration.boxed`.",
           "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.underlined;\n}"
         },
@@ -5495,6 +5509,26 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de la contrainte partagée, héritée des champs textuels. La présentation manuelle d’une erreur métier reste observable via validation-visible."
+        },
+        "edit-filter": {
+          "effect": "Politique typée d’insertion : unfiltered (défaut) ou motif HTML acceptant les préfixes valides. Le moteur HTML partagé conserve la règle compilée. Les vérifications clavier/collage explicite conservent sélection et annulation ; les chemins IME/backend hors interception restent validés après insertion sans modèle d’éditeur inventé.",
+          "example": "KitTextField {\n    edit-filter: {kind: TextFilterKind.pattern, source: \"[A-Z0-9]*\"};\n}"
+        },
+        "edit-filter-message": {
+          "effect": "Erreur localisée de configuration d’un filtre incorrect, issue de KitStrings.text-filter-message.",
+          "example": "KitTextField {\n    edit-filter-message: \"Invalid alphabet\";\n}"
+        },
+        "edit-filter-error": {
+          "effect": "Diagnostic en lecture seule ; une erreur non vide bloque l’acceptation via le moteur partagé.",
+          "example": "field := KitTextField { }\nKitFieldError { text: field.edit-filter-error; }"
+        },
+        "completion-policy": {
+          "effect": "manual par défaut ; at-max-length émet completed après une édition native atteignant un max-length positif et satisfaisant toutes les contraintes partagées. Une affectation hôte n’émet rien.",
+          "example": "KitTextField {\n    max-length: 6;\n    completion-policy: TextCompletionPolicy.at-max-length;\n}"
+        },
+        "group-size": {
+          "effect": "Intervalle décoratif de regroupement pour FieldDecoration.cells ; zéro désactive les marqueurs. Aucun séparateur n’est inséré dans text ni dans les offsets natifs.",
+          "example": "KitOtpField {\n    group-size: 3;\n}"
         }
       },
       "callbacks": {
@@ -5507,7 +5541,8 @@
         "cancelled": "Émis par cancel-edit() et la politique d’annulation Échap configurée.",
         "key-pressed": "Précède filtrage et édition native uniquement sans préédition IME active. Retournez reject pour préserver le comportement natif, accept pour un raccourci traité. Retournez KitKeyResult.accept ou KitKeyResult.reject.",
         "cleared": "Émis après qu’une action d’effacement ou clear() vide réellement un éditeur non vide, après les signaux d’édition et de commit habituels. Un effacement vide ou refusé n’émet rien ; Annuler reste natif.",
-        "secret-visibility-changed": "Observe une transition effective de SecretVisibility, depuis le bouton natif ou une mise à jour par l’hôte. Cette observation ne remplace pas la garde de l’action."
+        "secret-visibility-changed": "Observe une transition effective de SecretVisibility, depuis le bouton natif ou une mise à jour par l’hôte. Cette observation ne remplace pas la garde de l’action.",
+        "completed": "Brouillon complet valide issu d’une édition native, dédupliqué jusqu’à modification de la valeur complète ou retour incomplet. N’accepte ni ne soumet ; ne journalisez jamais le code et ne l’affichez pas dans un statut."
       },
       "functions": {
         "take-focus": "Ferme le menu d’édition du champ et focalise l’éditeur natif, sauf si désactivé.",
@@ -5712,7 +5747,7 @@
           "example": "KitTextField {\n    label: \"Filter\";\n    control-size: ControlSize.compact;\n}"
         },
         "decoration": {
-          "effect": "The surface the `KitInputGroup` draws around the editor: `boxed` draws the bordered box of the field recipe; `underlined` draws only a bottom line, split into `underline-segments` parts (`KitOtpField` uses one per slot).",
+          "effect": "The surface the `KitInputGroup` draws around the editor: `boxed` draws the bordered box of the field recipe; `underlined` draws only a bottom line, split into `underline-segments` parts (`KitOtpField` uses one per slot). `cells` draws one themed box per underline-segments with optional group-size markers; the same single native editor remains above it.",
           "default": "`FieldDecoration.boxed`.",
           "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.underlined;\n}"
         },
@@ -5814,6 +5849,26 @@
         },
         "error-visible": {
           "effect": "Read-only shared constraint visibility, inherited by text-based fields. Manual domain error presentation remains observable through validation-visible."
+        },
+        "edit-filter": {
+          "effect": "Typed insertion policy: unfiltered (default) or a complete-draft HTML pattern accepting valid prefixes. The shared HTML engine caches its compiled rule. Ordinary key/explicit-paste checks preserve native selection and undo; bypassed IME/backend paths remain validated after insertion without an invented editor model.",
+          "example": "KitTextField {\n    edit-filter: {kind: TextFilterKind.pattern, source: \"[A-Z0-9]*\"};\n}"
+        },
+        "edit-filter-message": {
+          "effect": "Localized configuration error for an invalid edit filter, from KitStrings.text-filter-message.",
+          "example": "KitTextField {\n    edit-filter-message: \"Invalid alphabet\";\n}"
+        },
+        "edit-filter-error": {
+          "effect": "Read-only diagnostic; nonempty errors block acceptance through the shared constraint engine.",
+          "example": "field := KitTextField { }\nKitFieldError { text: field.edit-filter-error; }"
+        },
+        "completion-policy": {
+          "effect": "manual by default; at-max-length emits completed after a native edit reaches a positive max-length and all shared constraints pass. Host assignments do not emit.",
+          "example": "KitTextField {\n    max-length: 6;\n    completion-policy: TextCompletionPolicy.at-max-length;\n}"
+        },
+        "group-size": {
+          "effect": "Decorative cell grouping interval for FieldDecoration.cells; zero disables group markers. It never inserts a separator into text or changes native selection offsets.",
+          "example": "KitOtpField {\n    group-size: 3;\n}"
         }
       },
       "callbacks": {
@@ -5826,7 +5881,8 @@
         "cancelled": "Emitted by cancel-edit() and the configured Escape cancellation policy.",
         "key-pressed": "Runs before filtering/native editing only without active IME preedit. Return reject to retain native behavior or accept for a handled shortcut. Return KitKeyResult.accept or KitKeyResult.reject.",
         "cleared": "Emitted after a nonempty clear action or clear() successfully empties the native editor, after ordinary edit/commit callbacks. An empty or refused clear emits nothing; undo remains native.",
-        "secret-visibility-changed": "Observe a real SecretVisibility transition, whether caused by the built-in reveal button or a host property update. This observation does not replace the native action guard."
+        "secret-visibility-changed": "Observe a real SecretVisibility transition, whether caused by the built-in reveal button or a host property update. This observation does not replace the native action guard.",
+        "completed": "A complete valid draft from a native edit, deduplicated until the complete value changes or becomes incomplete. It does not accept or submit; never log the code or expose it in status text."
       },
       "functions": {
         "take-focus": "Close the owned editing menu and focus the native editor unless disabled.",

@@ -1,9 +1,18 @@
 //! Bounded structured text parsers. Native text editing is never synthesized here.
-use crate::{DraftValue, HtmlPattern, ParseIssue, grapheme_count};
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum OtpAlphabet {
-    AsciiDigits,
-    AsciiAlphanumeric,
+use crate::{DraftValue, HtmlPattern, OtpAlphabet, ParseIssue, grapheme_count};
+impl OtpAlphabet {
+    pub fn accepts(self, value: char) -> bool {
+        match self {
+            Self::AsciiDigits => value.is_ascii_digit(),
+            Self::AsciiAlphanumeric => value.is_ascii_alphanumeric(),
+        }
+    }
+    pub fn html_pattern_source(self) -> &'static str {
+        match self {
+            Self::AsciiDigits => "[0-9]*",
+            Self::AsciiAlphanumeric => "[A-Za-z0-9]*",
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct OtpLength(u8);
@@ -29,10 +38,7 @@ impl OtpValue {
         if text.is_empty() {
             return DraftValue::Empty;
         }
-        if !text.bytes().all(|value| match alphabet {
-            OtpAlphabet::AsciiDigits => value.is_ascii_digit(),
-            OtpAlphabet::AsciiAlphanumeric => value.is_ascii_alphanumeric(),
-        }) || text.len() > usize::from(length.0)
+        if !text.chars().all(|value| alphabet.accepts(value)) || text.len() > usize::from(length.0)
         {
             return DraftValue::Invalid(ParseIssue::InvalidSyntax);
         }
@@ -63,6 +69,27 @@ impl OtpRules {
     pub fn accepts_draft(&self, text: &str) -> bool {
         text.encode_utf16().count() <= usize::from(self.length.get())
             && (text.is_empty() || self.pattern.matches(text))
+    }
+    /// Preserve custom Unicode patterns while normalizing copied separators before
+    /// the same UTF-16 length and pattern boundary used for an ordinary draft.
+    /// An empty result is a no-op for the editor, never a request to erase selection.
+    pub fn normalize_paste(&self, text: &str) -> Result<OtpDraft, ParseIssue> {
+        let mut normalized = String::new();
+        let mut used = 0;
+        for value in text.chars() {
+            if otp_separator(value) {
+                continue;
+            }
+            used += value.len_utf16();
+            if used > usize::from(self.length.get()) {
+                return Err(ParseIssue::AboveMaximum);
+            }
+            normalized.push(value);
+        }
+        if !normalized.is_empty() && !self.pattern.matches(&normalized) {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        Ok(OtpDraft(normalized))
     }
     pub fn parse(&self, text: &str) -> DraftValue<OtpValue> {
         if text.is_empty() {
@@ -488,5 +515,154 @@ fn validated_text<T>(
         DraftValue::Parsed(construct(canonical))
     } else {
         DraftValue::Invalid(ParseIssue::InvalidSyntax)
+    }
+}
+
+/// An OTP draft validated at its editing boundary. Alphabet-based constructors
+/// enforce ASCII; OtpRules retains its authored Unicode pattern. Empty and partial
+/// drafts stay editable; only OtpValue or OtpRules parsing accepts a complete code.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OtpDraft(String);
+impl OtpDraft {
+    pub fn parse(text: &str, length: OtpLength, alphabet: OtpAlphabet) -> Result<Self, ParseIssue> {
+        if !text.chars().all(|value| alphabet.accepts(value)) {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+        if text.len() > usize::from(length.get()) {
+            return Err(ParseIssue::AboveMaximum);
+        }
+        Ok(Self(text.into()))
+    }
+    /// Strip only whitespace and visual hyphens from copied codes, before the
+    /// same strict alphabet/length boundary used for ordinary input.
+    pub fn normalize_paste(
+        text: &str,
+        length: OtpLength,
+        alphabet: OtpAlphabet,
+    ) -> Result<Self, ParseIssue> {
+        let mut normalized = String::new();
+        for value in text.chars() {
+            if otp_separator(value) {
+                continue;
+            }
+            if !alphabet.accepts(value) {
+                return Err(ParseIssue::InvalidSyntax);
+            }
+            normalized.push(value);
+            if normalized.len() > usize::from(length.get()) {
+                return Err(ParseIssue::AboveMaximum);
+            }
+        }
+        Ok(Self(normalized))
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+fn otp_separator(value: char) -> bool {
+    value.is_whitespace()
+        || matches!(
+            value,
+            '-' | '\u{2010}' | '\u{2011}' | '\u{2012}' | '\u{2013}' | '\u{2014}' | '\u{2212}'
+        )
+}
+
+#[cfg(test)]
+mod otp_editing_tests {
+    use super::*;
+    #[test]
+    fn copied_separators_normalize_before_the_strict_length_boundary() {
+        let length = OtpLength::new(6).unwrap();
+        for source in [
+            "123 456",
+            "123-456",
+            "123\u{2011}456",
+            " 123\n456\t",
+            "123\u{00a0}456",
+            "123\u{202f}456",
+        ] {
+            let draft =
+                OtpDraft::normalize_paste(source, length, OtpAlphabet::AsciiDigits).unwrap();
+            assert_eq!(draft.as_str(), "123456");
+            assert!(matches!(
+                OtpValue::parse(draft.as_str(), length, OtpAlphabet::AsciiDigits),
+                DraftValue::Parsed(_)
+            ));
+        }
+        assert_eq!(
+            OtpDraft::normalize_paste("12 3", length, OtpAlphabet::AsciiDigits)
+                .unwrap()
+                .as_str(),
+            "123"
+        );
+        assert_eq!(
+            OtpDraft::normalize_paste(" --- ", length, OtpAlphabet::AsciiDigits)
+                .unwrap()
+                .as_str(),
+            ""
+        );
+    }
+    #[test]
+    fn copied_codes_keep_custom_unicode_rules_and_utf16_bounds() {
+        let letters = OtpRules::new(
+            OtpLength::new(2).unwrap(),
+            HtmlPattern::compile("\\p{Letter}*").unwrap(),
+        );
+        let draft = letters.normalize_paste("é - A").unwrap();
+        assert_eq!(draft.as_str(), "éA");
+        assert!(matches!(
+            letters.parse(draft.as_str()),
+            DraftValue::Parsed(_)
+        ));
+        assert_eq!(
+            letters.normalize_paste("é - 1"),
+            Err(ParseIssue::InvalidSyntax)
+        );
+        assert_eq!(
+            letters.normalize_paste("é - AB"),
+            Err(ParseIssue::AboveMaximum)
+        );
+        let emoji = OtpRules::new(
+            OtpLength::new(2).unwrap(),
+            HtmlPattern::compile(".*").unwrap(),
+        );
+        assert_eq!(emoji.normalize_paste("😀 - ").unwrap().as_str(), "😀");
+        assert_eq!(
+            emoji.normalize_paste("😀 - A"),
+            Err(ParseIssue::AboveMaximum)
+        );
+    }
+    #[test]
+    fn normalization_never_drops_letters_or_extra_digits_or_punctuation() {
+        let length = OtpLength::new(6).unwrap();
+        for source in ["12A456", "１２３４５６", "123.456", "123/456"] {
+            assert_eq!(
+                OtpDraft::normalize_paste(source, length, OtpAlphabet::AsciiDigits),
+                Err(ParseIssue::InvalidSyntax)
+            );
+        }
+        assert_eq!(
+            OtpDraft::normalize_paste("123 4567", length, OtpAlphabet::AsciiDigits),
+            Err(ParseIssue::AboveMaximum)
+        );
+        assert_eq!(
+            OtpDraft::normalize_paste("AB-12 cD", length, OtpAlphabet::AsciiAlphanumeric)
+                .unwrap()
+                .as_str(),
+            "AB12cD"
+        );
+    }
+    #[test]
+    fn shared_alphabet_produces_the_same_complete_html_rule() {
+        for alphabet in [OtpAlphabet::AsciiDigits, OtpAlphabet::AsciiAlphanumeric] {
+            let pattern = HtmlPattern::compile(alphabet.html_pattern_source()).unwrap();
+            for input in ["", "123", "AB12", "éA", "12-3", "1.2"] {
+                assert_eq!(
+                    pattern.matches(input),
+                    OtpDraft::parse(input, OtpLength::new(64).unwrap(), alphabet).is_ok()
+                );
+            }
+        }
     }
 }

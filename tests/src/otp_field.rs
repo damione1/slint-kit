@@ -50,7 +50,8 @@ fn redo(app: &OtpFixture) {
 #[test]
 fn otp_patterns_validate_numeric_and_alphanumeric_codes_on_submit() {
     let app = fixture();
-    key(&app, "A1B2C3");
+    // Programmatic drafts remain subject to validation even when user insertion is filtered.
+    app.set_text("A1B2C3".into());
     assert!(!app.get_validity().valid);
     assert!(
         !app.get_validation_visible(),
@@ -59,6 +60,7 @@ fn otp_patterns_validate_numeric_and_alphanumeric_codes_on_submit() {
     key(&app, &slint::SharedString::from(Key::Return));
     assert_eq!(app.get_commits(), 0);
     assert!(app.get_validation_visible());
+    app.set_alphabet(ui::OtpAlphabet::AsciiAlphanumeric);
     app.set_pattern("[A-Za-z0-9]*".into());
     assert!(app.get_validity().valid);
     key(&app, &slint::SharedString::from(Key::Return));
@@ -73,6 +75,7 @@ fn otp_patterns_validate_numeric_and_alphanumeric_codes_on_submit() {
 #[test]
 fn otp_read_only_mask_keeps_value_private_and_plain_editor_keeps_native_history() {
     let app = fixture();
+    app.set_alphabet(ui::OtpAlphabet::AsciiAlphanumeric);
     app.set_pattern("[A-Za-z0-9]*".into());
     key(&app, "A1B2C3");
     app.set_access(FieldAccess::ReadOnly);
@@ -216,6 +219,7 @@ fn otp_paste_rejects_overlong_edits_atomically_and_accepts_fitting_replacements(
 #[test]
 fn otp_limit_uses_effective_maximum_utf16_units_and_never_splits_a_scalar() {
     let app = fixture();
+    app.set_filter_kind(ui::TextFilterKind::Unfiltered);
     app.set_pattern(".*".into());
     app.set_slots(4);
     key(&app, "A😀B");
@@ -248,6 +252,8 @@ fn otp_limit_uses_effective_maximum_utf16_units_and_never_splits_a_scalar() {
 #[test]
 fn otp_history_stays_native_until_overflow_requires_a_public_text_rewrite() {
     let app = fixture();
+    // Explicitly exercise the existing fallback for edits that bypass pre-insertion filtering.
+    app.set_filter_kind(ui::TextFilterKind::Unfiltered);
     key(&app, "123456");
     app.invoke_select_code();
     key(&app, "12");
@@ -282,6 +288,8 @@ fn otp_history_stays_native_until_overflow_requires_a_public_text_rewrite() {
 #[test]
 fn otp_overflow_correction_keeps_undo_redo_safe_across_following_edits() {
     let app = fixture();
+    // Explicitly exercise the existing fallback for edits that bypass pre-insertion filtering.
+    app.set_filter_kind(ui::TextFilterKind::Unfiltered);
     key(&app, "12");
     shortcut(&app, "z");
     assert_eq!(app.get_text(), "");
@@ -520,6 +528,7 @@ fn otp_both_callbacks_can_change_text_and_bounds_in_one_native_transaction() {
 fn otp_grouped_display_keeps_the_raw_value_and_native_edit_history() {
     let app = fixture();
     app.set_slots(7);
+    app.set_alphabet(ui::OtpAlphabet::AsciiAlphanumeric);
     app.set_pattern("[A-Z]{2}[0-9]{5}".into());
     key(&app, "FG76657");
     app.set_display_text("FG‑76657".into());
@@ -962,6 +971,285 @@ fn masked_field_renders_the_unmodified_invalid_host_draft_in_both_themes_and_tex
                 &snapshot,
                 &format!("mask-invalid-native-{dark}-{scale}"),
             );
+        }
+    }
+}
+
+#[test]
+fn otp_insertion_filter_preserves_selection_and_can_be_explicitly_relaxed() {
+    let app = fixture();
+    key(&app, "A1");
+    assert_eq!(app.get_text(), "");
+    assert_eq!(app.get_edits(), 0);
+    key(&app, "12");
+    app.invoke_select_code();
+    key(&app, "x");
+    assert_eq!(app.get_text(), "12");
+    key(&app, "34");
+    assert_eq!(
+        app.get_text(),
+        "34",
+        "rejected insertion keeps the native selection"
+    );
+    app.set_alphabet(ui::OtpAlphabet::AsciiAlphanumeric);
+    app.set_pattern("[A-Za-z0-9]*".into());
+    app.invoke_select_code();
+    key(&app, "AB12cd");
+    assert_eq!(app.get_text(), "AB12cd");
+    app.set_filter_kind(ui::TextFilterKind::Unfiltered);
+    app.set_pattern("[0-9]*".into());
+    app.invoke_select_code();
+    key(&app, "ABCDEF");
+    assert_eq!(app.get_text(), "ABCDEF");
+    assert!(
+        !app.get_validity().valid,
+        "validation remains active when filtering is off"
+    );
+    app.set_slots(2);
+    app.set_pattern("\\p{Letter}*".into());
+    app.invoke_select_code();
+    key(&app, "éA");
+    assert_eq!(app.get_text(), "éA");
+    assert!(
+        app.get_validity().valid,
+        "custom Unicode patterns keep native text editing"
+    );
+}
+#[test]
+fn otp_completion_observes_final_native_edits_once_after_host_rewrites() {
+    let app = fixture();
+    key(&app, "12345");
+    assert_eq!(app.get_completions(), 0);
+    key(&app, "6");
+    assert_eq!(app.get_completions(), 1);
+    assert_eq!(app.get_completed_code(), "123456");
+    app.invoke_select_code();
+    key(&app, "123456");
+    assert_eq!(
+        app.get_completions(),
+        1,
+        "unchanged complete codes are deduplicated"
+    );
+    key(&app, &slint::SharedString::from(Key::LeftArrow));
+    assert_eq!(app.get_completions(), 1);
+    app.set_text("654321".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(
+        app.get_completions(),
+        1,
+        "model updates do not simulate native completion"
+    );
+    let weak = app.as_weak();
+    app.on_edit_observed(move |value| {
+        if value == "222222" {
+            weak.upgrade().unwrap().set_text("12".into());
+        }
+    });
+    app.invoke_select_code();
+    key(&app, "222222");
+    assert_eq!(app.get_text(), "12");
+    assert_eq!(
+        app.get_completions(),
+        1,
+        "an incomplete host rewrite cannot complete"
+    );
+    let weak = app.as_weak();
+    app.on_value_observed(move |value| {
+        if value == "123456" {
+            weak.upgrade().unwrap().set_text("765432".into());
+        }
+    });
+    app.invoke_select_code();
+    key(&app, "123456");
+    assert_eq!(app.get_text(), "765432");
+    assert_eq!(app.get_completed_code(), "765432");
+    assert_eq!(app.get_completions(), 2);
+    let weak = app.as_weak();
+    app.on_completion_observed(move |_| weak.upgrade().unwrap().set_text("".into()));
+    app.invoke_select_code();
+    key(&app, "111111");
+    assert_eq!(app.get_text(), "");
+    assert_eq!(app.get_completions(), 3);
+    key(&app, "999999");
+    assert_eq!(app.get_text(), "");
+    assert_eq!(
+        app.get_completions(),
+        4,
+        "clearing in an observer rearms the next completion"
+    );
+}
+#[test]
+fn text_filters_cache_typed_rules_and_keep_invalid_sources_distinct_from_disabled_filters() {
+    let engine = kit_slint::HtmlValidationEngine::default();
+    let first = engine
+        .text_filter(kit_core::TextFilterKind::Pattern, "[0-9]*")
+        .unwrap();
+    let again = engine
+        .text_filter(kit_core::TextFilterKind::Pattern, "[0-9]*")
+        .unwrap();
+    assert!(
+        std::rc::Rc::ptr_eq(&first, &again),
+        "one window reuses its compiled rule"
+    );
+    assert_eq!(
+        engine
+            .text_filter(kit_core::TextFilterKind::Pattern, "[")
+            .unwrap_err(),
+        kit_core::ParseIssue::InvalidSyntax
+    );
+    assert!(
+        engine
+            .text_filter(kit_core::TextFilterKind::Unfiltered, "[")
+            .unwrap()
+            .allows_draft("anything")
+    );
+    assert!(first.allows_draft("123"));
+    assert!(!first.allows_draft("12A"));
+}
+
+#[test]
+fn otp_rejected_letters_and_overflow_preserve_the_native_selection_and_history() {
+    let app = fixture();
+    // Start from an authored draft so the native insertion is one distinct undo item.
+    app.set_text("12".into());
+    key(&app, "3456");
+    assert_eq!(app.get_completions(), 1);
+    let cursor = app.get_cursor();
+    key(&app, "78");
+    key(&app, "X");
+    assert_eq!(app.get_text(), "123456");
+    assert_eq!(app.get_cursor(), cursor);
+    assert_eq!(app.get_completions(), 1);
+    app.invoke_undo_code();
+    assert_eq!(
+        app.get_text(),
+        "12",
+        "rejected edits leave the prior native transaction intact"
+    );
+    app.invoke_redo_code();
+    assert_eq!(app.get_text(), "123456");
+    select_from_start(&app, 2, 2);
+    let selection = (app.get_anchor(), app.get_cursor());
+    key(&app, "x");
+    assert_eq!((app.get_anchor(), app.get_cursor()), selection);
+    key(&app, "90");
+    assert_eq!(app.get_text(), "129056");
+    app.invoke_undo_code();
+    // Slint models replacing a selection as native deletion and insertion items.
+    app.invoke_undo_code();
+    assert_eq!(app.get_text(), "123456");
+}
+
+#[test]
+fn otp_native_raw_clipboard_paste_keeps_undo_while_formatted_paste_is_explicitly_unsupported() {
+    let app = fixture();
+    // Start from an authored draft so the native insertion is one distinct undo item.
+    app.set_text("12".into());
+    app.set_clipboard_text("3456".into());
+    app.invoke_prepare_paste();
+    shortcut(&app, "v");
+    assert_eq!(app.get_text(), "123456");
+    app.invoke_undo_code();
+    assert_eq!(app.get_text(), "12");
+    app.invoke_redo_code();
+    assert_eq!(app.get_text(), "123456");
+    app.invoke_select_code();
+    let selected = (app.get_anchor(), app.get_cursor());
+    for copied in ["123 456", "123-456", "123456\n", "1234567"] {
+        app.set_clipboard_text(copied.into());
+        app.invoke_prepare_paste();
+        shortcut(&app, "v");
+        assert_eq!(app.get_text(), "123456");
+        assert_eq!(
+            (app.get_anchor(), app.get_cursor()),
+            selected,
+            "rejecting an unsupported paste preserves selection"
+        );
+    }
+    app.invoke_undo_code();
+    assert_eq!(
+        app.get_text(),
+        "12",
+        "rejected formatted pastes do not clear undo"
+    );
+}
+
+#[test]
+fn otp_custom_whole_value_patterns_keep_native_prefixes_editable() {
+    let app = fixture();
+    app.set_slots(7);
+    app.set_pattern("[A-Z]{2}[0-9]{5}".into());
+    for character in ["F", "G", "7", "6", "6", "5", "7"] {
+        key(&app, character);
+    }
+    assert_eq!(app.get_text(), "FG76657");
+    assert!(app.get_validity().valid);
+    assert_eq!(app.get_completions(), 1);
+}
+
+#[test]
+fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let app = OtpFixture::new().unwrap();
+    kit_slint::install(&app);
+    app.window().set_size(slint::LogicalSize::new(1000., 600.));
+    app.show().unwrap();
+    for (name, theme) in [("light", app.get_theme()), ("dark", app.get_dark())] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            app.set_theme(theme);
+            app.set_group_size(3);
+            app.set_placeholder("000000".into());
+            app.set_text("123456".into());
+            app.invoke_focus_code();
+            select_from_start(&app, 1, 3);
+            slint::platform::update_timers_and_animations();
+            let selected = (app.get_anchor(), app.get_cursor());
+            let frame = app.window().take_snapshot().unwrap();
+            assert_eq!(app.get_text(), "123456");
+            assert_eq!(selected, (1, 4));
+            assert_eq!(
+                ElementQuery::from_root(&app)
+                    .match_type_name("TextInput")
+                    .match_predicate(
+                        |item| item.accessible_label().as_deref() == Some("Verification code")
+                    )
+                    .find_all()
+                    .len(),
+                1,
+                "all boxes share one real editor"
+            );
+            crate::choice_presentation::save_capture(
+                &frame,
+                &format!("otp-cells-selected-{name}-{scale}"),
+            );
+            app.set_text("12".into());
+            assert!(!app.invoke_report_code());
+            slint::platform::update_timers_and_animations();
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("otp-cells-invalid-{name}-{scale}"),
+            );
+            app.set_access(FieldAccess::ReadOnly);
+            slint::platform::update_timers_and_animations();
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("otp-cells-readonly-{name}-{scale}"),
+            );
+            app.set_access(FieldAccess::Disabled);
+            slint::platform::update_timers_and_animations();
+            crate::choice_presentation::save_capture(
+                &app.window().take_snapshot().unwrap(),
+                &format!("otp-cells-disabled-{name}-{scale}"),
+            );
+            app.set_access(FieldAccess::Editable);
+            app.invoke_reset_code();
         }
     }
 }

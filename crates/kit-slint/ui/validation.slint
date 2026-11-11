@@ -1,7 +1,7 @@
 import { FileViewEntry } from "file-contracts.slint";
 import { KitFileMessages, KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { HtmlInputKind, FieldAccess, NumberInputFormat } from "shared-contracts.slint";
+import { HtmlInputKind, FieldAccess, NumberInputFormat, TextFilterKind, OtpAlphabet } from "shared-contracts.slint";
 export { HtmlInputKind } from "shared-contracts.slint";
 import { ChoiceRow } from "contracts.slint";
 export enum FormEditorFocus { other, single-line, read-only-single-line, multiline, auxiliary, disabled }
@@ -9,6 +9,8 @@ export enum ValidationTiming { on-blur, on-input, on-submit }
 export struct ImplicitSubmitTicket { sequence: int, focus-generation: int }
 export struct KitTextEdit { text: string, cursor-byte-offset: int }
 export struct KitMaskRules { length: int, placeholder: string, pattern: string, error: string }
+// Authored view source; the Rust boundary caches a typed TextFilter or ParseIssue.
+export struct TextFilterSpec { kind: TextFilterKind, source: string }
 export struct KitValidityState {
     valid: bool, value-missing: bool, type-mismatch: bool, pattern-mismatch: bool,
     too-long: bool, too-short: bool, range-underflow: bool, range-overflow: bool,
@@ -45,6 +47,10 @@ export global KitFormValidation {
     pure callback compile-mask(string, string) -> KitMaskRules;
     pure callback mask-insertion(string, string, int, int, string) -> bool;
     pure callback mask-paste(string, string, int, int, string) -> bool;
+    pure callback otp-pattern(OtpAlphabet) -> string;
+    pure callback filter-insertion(TextFilterSpec, string, string, int, int, int) -> bool;
+    pure callback filter-key(TextFilterSpec, string, string, int, int, int) -> bool;
+    pure callback filter-error(TextFilterSpec, string) -> string;
     pure callback numeric-insertion(string) -> bool;
     pure callback phone-insertion(string) -> bool;
     pure callback phone-paste(string) -> bool;

@@ -5,12 +5,18 @@ use kit_core::{
 };
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
+type CachedTextFilter = (
+    (kit_core::TextFilterKind, String),
+    Result<Rc<kit_core::TextFilter>, kit_core::ParseIssue>,
+);
+
 /// Window-local, bounded pattern cache. Patterns are authored by the application.
 #[derive(Default)]
 pub struct HtmlValidationEngine {
     patterns: RefCell<VecDeque<(String, Result<HtmlPattern, String>)>>,
     masks: RefCell<VecDeque<CachedMask>>,
     files: RefCell<VecDeque<CachedFileRules>>,
+    text_filters: RefCell<VecDeque<CachedTextFilter>>,
 }
 struct CachedMask {
     source: String,
@@ -118,6 +124,35 @@ impl HtmlValidationEngine {
             source: source.into(),
             compiled: result.clone(),
         });
+        result
+    }
+
+    /// Parse a view-authored filter once and retain its typed rule or typed error.
+    /// HTML acceptance and insertion filtering reuse the same compiled pattern.
+    pub fn text_filter(
+        &self,
+        kind: kit_core::TextFilterKind,
+        source: &str,
+    ) -> Result<Rc<kit_core::TextFilter>, kit_core::ParseIssue> {
+        use kit_core::{ParseIssue, TextFilter, TextFilterKind};
+        let mut cache = self.text_filters.borrow_mut();
+        if let Some((_, result)) = cache.iter().find(|((cached_kind, cached_source), _)| {
+            *cached_kind == kind && cached_source == source
+        }) {
+            return result.clone();
+        }
+        let result = match kind {
+            TextFilterKind::Unfiltered => Ok(TextFilter::Unfiltered),
+            TextFilterKind::Pattern => self
+                .pattern(source)
+                .map(TextFilter::Pattern)
+                .map_err(|_| ParseIssue::InvalidSyntax),
+        }
+        .map(Rc::new);
+        if cache.len() == 64 {
+            cache.pop_front();
+        }
+        cache.push_back(((kind, source.into()), result.clone()));
         result
     }
 
@@ -452,6 +487,73 @@ where
             validity: view_validity(result.validity),
             message: message.into(),
         }
+    });
+    global.on_otp_pattern(|alphabet| {
+        let alphabet = match alphabet {
+            ui::OtpAlphabet::AsciiDigits => crate::__core::OtpAlphabet::AsciiDigits,
+            ui::OtpAlphabet::AsciiAlphanumeric => crate::__core::OtpAlphabet::AsciiAlphanumeric,
+        };
+        alphabet.html_pattern_source().into()
+    });
+    fn filter_kind(kind: ui::TextFilterKind) -> crate::__core::TextFilterKind {
+        match kind {
+            ui::TextFilterKind::Unfiltered => crate::__core::TextFilterKind::Unfiltered,
+            ui::TextFilterKind::Pattern => crate::__core::TextFilterKind::Pattern,
+        }
+    }
+    fn allows_insertion(
+        engine: &crate::HtmlValidationEngine,
+        spec: ui::TextFilterSpec,
+        text: &str,
+        insertion: &str,
+        anchor: i32,
+        cursor: i32,
+        maximum: i32,
+    ) -> bool {
+        let (anchor, cursor) = native_mask_offsets(text, anchor, cursor);
+        let selection = crate::__core::TextEditSelection::new(text, anchor, cursor).ok();
+        selection.is_some_and(|selection| {
+            engine
+                .text_filter(filter_kind(spec.kind), spec.source.as_str())
+                .is_ok_and(|filter| {
+                    let candidate = selection.replace(insertion);
+                    filter.allows_draft(&candidate)
+                        && usize::try_from(maximum)
+                            .ok()
+                            .is_none_or(|maximum| candidate.encode_utf16().count() <= maximum)
+                })
+        })
+    }
+    let insertion_engine = engine.clone();
+    global.on_filter_insertion(move |spec, text, insertion, anchor, cursor, maximum| {
+        allows_insertion(
+            &insertion_engine,
+            spec,
+            text.as_str(),
+            insertion.as_str(),
+            anchor,
+            cursor,
+            maximum,
+        )
+    });
+    let key_engine = engine.clone();
+    global.on_filter_key(move |spec, text, key, anchor, cursor, maximum| {
+        crate::__core::text_input_is_command(key.as_str())
+            || allows_insertion(
+                &key_engine,
+                spec,
+                text.as_str(),
+                key.as_str(),
+                anchor,
+                cursor,
+                maximum,
+            )
+    });
+    let filter_engine = engine.clone();
+    global.on_filter_error(move |spec, message| {
+        filter_engine
+            .text_filter(filter_kind(spec.kind), spec.source.as_str())
+            .map_or_else(|_issue| message, |_rule| slint::SharedString::default())
     });
     global.on_evaluate(move |c, text, user_edited, checked, selected_count| {
         let (rules, pattern_error) = engine.constraints(&c);
