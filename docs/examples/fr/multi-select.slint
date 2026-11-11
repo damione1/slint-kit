@@ -1,6 +1,6 @@
 import { KitStrings } from "@kit";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, ValidationTiming, KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
+import { KitFieldError, ValidationTiming, ChoiceRow, KitTheme, KitThemeContext, KitThemes, KitMetrics, TypographyRole, KitMultiSelect, OptionRow, SelectionRef } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // Développer ouvre seulement ; l’activation ordinaire bascule. Un hôte contrôlé acquitte l’état demandé.
     // L’édition garde le focus natif ; les positions ne créent pas de relation active-descendant.
@@ -22,12 +22,14 @@ export component Example inherits Window {
     in property <[OptionRow]> options: [{token: 1, generation: 1, label: "Email"}, {token: 2, generation: 1, label: "Push"}, {token: 3, generation: 1, label: "SMS"}, {token: 4, generation: 1, label: "Bureau"}, {token: 5, generation: 1, label: "Boîte de réception"}, {token: 6, generation: 1, label: "Résumé hebdomadaire"}, {token: 7, generation: 1, label: "Webhook"}, {token: 8, generation: 1, label: "Calendrier"}];
     in-out property <[SelectionRef]> selected: [{present: true, token: 1}, {present: true, token: 2}];
     in-out property <string> recherche;
+    // Marqueurs lisibles par l’hôte, liés aux jetons ; en contrôle, ils attendent selected acquitté.
+    out property <[ChoiceRow]> projected-choice-rows: field.choice-rows;
     callback membership-changed(OptionRow, bool);
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Restez au courant"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Choisissez vos canaux de notification. Chaque sélection conserve son identité lorsque la liste visible change."; color: root.theme.text-secondary; wrap: word-wrap; }
-        field := KitMultiSelect { required: true; validation-timing: ValidationTiming.on-blur; label: "Canaux de notification"; placeholder: "Ajouter un canal"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.recherche; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        field := KitMultiSelect { close-on-select: false; required: true; validation-timing: ValidationTiming.on-blur; label: "Canaux de notification"; placeholder: "Ajouter un canal"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.recherche; selection-changed(row, added) => { root.membership-changed(row, added); } }
         if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         Text { text: root.selected.length + " canaux sélectionnés"; color: root.theme.text-secondary; }
     }

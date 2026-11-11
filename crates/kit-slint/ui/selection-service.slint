@@ -33,7 +33,7 @@ export global KitSelectionService {
     pure callback previous-row([OptionRow], SelectionSession, int, Ownership) -> SelectionSession;
     pure callback next-row([OptionRow], SelectionSession, int, Ownership) -> SelectionSession;
     pure callback dismiss([OptionRow], SelectionSession, CloseReason, Ownership) -> SelectionSession;
-    pure callback activate([OptionRow], SelectionSession, int, int, Ownership) -> SelectionTransition;
+    pure callback activate([OptionRow], SelectionSession, int, int, Ownership, bool) -> SelectionTransition;
     pure callback typeahead([OptionRow], SelectionSession, string, int, Ownership) -> SelectionSession;
     pure callback typeahead-active(SelectionSession, int) -> bool;
     pure callback rows([OptionRow], string, int) -> [OptionRow];
@@ -59,6 +59,7 @@ export component KitSelection inherits Rectangle {
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
     in property <SelectionRetention> retention: SelectionRetention.bound-to-options;
+    in property <bool> close-on-select: true;
     in property <bool> persistent;
     in property <bool> wrap: false;
     in property <int> page-rows: 0;
@@ -144,7 +145,7 @@ export component KitSelection inherits Rectangle {
     }
     public function activate(token: int, generation: int) {
         if (!KitSelectionService.ready || root.source-generation < 0 || root.gesture-generation < 0 || root.gesture-source-generation != root.source-generation || root.gesture-query != root.query) { return; }
-        let update = KitSelectionService.activate(root.rows, root.current-session, token, generation, root.ownership);
+        let update = KitSelectionService.activate(root.rows, root.current-session, token, generation, root.ownership, root.close-on-select);
         let row = KitSelectionService.source(root.options, update.chosen.token);
         if (update.chosen.present) {
             root.last-chosen-token = update.chosen.token;
@@ -153,7 +154,7 @@ export component KitSelection inherits Rectangle {
         root.apply(update.session);
         if (update.chosen.present) {
             if (root.persistent) { root.session.state.active = {present: true, token: token}; }
-            let reset = root.reset-session-query();
+            let reset = root.close-on-select ? root.reset-session-query() : false;
             root.chosen(row);
             // Deliver the admitted row before a provider can replace its model.
             // A host callback may already have opened a different search session.
@@ -181,6 +182,7 @@ export component KitMultipleSelection inherits Rectangle {
     in property <[OptionRow]> options;
     in property <Ownership> ownership: Ownership.local;
     in property <int> limit;
+    in property <bool> close-on-select: false;
     in property <bool> persistent;
     in property <bool> wrap: false;
     in property <int> page-rows: 0;
@@ -199,17 +201,20 @@ export component KitMultipleSelection inherits Rectangle {
     callback changed-selection(OptionRow, bool);
     callback query-reset();
     keyboard := KitSelection {
-        options: root.options; ownership: Ownership.controlled; persistent: root.persistent;
+        options: root.options; ownership: Ownership.controlled; persistent: root.persistent; close-on-select: root.close-on-select;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
-        chosen(row) => { root.toggle(row.token, row.generation); }
+        chosen(row) => { root.apply-toggle(row); }
         query-reset => { root.query-reset(); }
     }
     function toggle(token: int, generation: int) {
         if (!KitSelectionService.ready) { return; }
         root.transition = KitSelectionService.toggle(root.options, root.selected, token, generation, root.limit);
+        root.apply-toggle(KitSelectionService.source(root.options, token));
+    }
+    function apply-toggle(row: OptionRow) {
         if (root.transition.accepted) {
             if (root.ownership == Ownership.local) { root.selected = root.transition.selected; }
-            root.changed-selection(KitSelectionService.source(root.options, token), root.transition.added);
+            root.changed-selection(row, root.transition.added);
         }
     }
     public function remove(token: int) {
@@ -218,7 +223,14 @@ export component KitMultipleSelection inherits Rectangle {
     public function open() { keyboard.open(); }
     public function navigate(step: NavigationStep) { keyboard.navigate(step); }
     public function navigate-by(step: NavigationStep, rows: int) { keyboard.navigate-by(step, rows); }
-    public function activate(token: int, generation: int) { keyboard.activate(token, generation); }
+    public function activate(token: int, generation: int) {
+        if (!KitSelectionService.ready) { return; }
+        let row = KitSelectionService.source(root.options, token);
+        // Validate the set transition once, before ending any keyboard session.
+        // The keyboard independently fences the visible generation/query.
+        root.transition = KitSelectionService.toggle(root.options, root.selected, token, row.generation, root.limit);
+        if (root.transition.accepted) { keyboard.activate(token, generation); }
+    }
     public function dismiss(reason: CloseReason) { keyboard.dismiss(reason); }
     public function typeahead(text: string) { keyboard.typeahead(text); }
     public function is-typeahead-active() -> bool { return keyboard.is-typeahead-active(); }

@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMultiSelect, KitTextField, KitTheme, KitThemes, OptionRow, ChoiceRow, SelectionRef, SelectState, Ownership, FieldAccess } from "@kit";
+export component MultiPopupFixture inherits Window {
+    width: 640px; height: 900px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[OptionRow]> options;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <bool> close-on-select: false;
+    in property <int> limit;
+    in-out property <[SelectionRef]> selected <=> multi.selected;
+    in-out property <string> query <=> multi.query;
+    out property <SelectState> state: multi.state;
+    out property <[OptionRow]> rows: multi.rows;
+    out property <[ChoiceRow]> choice-rows: multi.choice-rows;
+    out property <bool> focused: multi.has-focus;
+    callback selection-changed(OptionRow, bool);
+    callback query-edited(string);
+    public function focus-multi() { multi.take-focus(); }
+    public function focus-outside() { outside.take-focus(); }
+    VerticalLayout {
+        alignment: start; padding: 24px; spacing: 16px;
+        multi := KitMultiSelect {
+            theme: root.theme; options: root.options; label: "Multiple values";
+            ownership: root.ownership; access: root.access;
+            close-on-select: root.close-on-select; selection-limit: root.limit;
+            selection-changed(row, added) => { root.selection-changed(row, added); }
+            query-edited(query) => { root.query-edited(query); }
+        }
+        outside := KitTextField { theme: root.theme; label: "Outside editor"; }
+    }
+}

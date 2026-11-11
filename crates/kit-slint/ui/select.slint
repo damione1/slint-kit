@@ -11,7 +11,7 @@ import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
-import { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
+import { OptionRow, ChoiceRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 
 // One key translator is shared by both the standard and composed surfaces.
@@ -405,6 +405,12 @@ export component KitSelect inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <[OptionRow]> rows: selection.rows;
     in property <SelectState> state: selection.state;
+    in property <[ChoiceRow]> choice-rows: KitSelectionService.ready ? KitSelectionService.choices(root.rows, root.state.selected) : [];
+    pure function row-selected(token: int) -> bool {
+        if (!KitSelectionService.ready) { return root.state.selected.present && root.state.selected.token == token; }
+        let index = KitSelectionService.choice-index(root.choice-rows, token);
+        return index >= 0 && index < root.choice-rows.length && root.choice-rows[index].token == token && root.choice-rows[index].selected;
+    }
     // The field name, empty hint and current value have separate semantics.
     in property <string> label: KitStrings.select-label;
     in property <string> placeholder: KitStrings.select-placeholder;
@@ -554,7 +560,7 @@ export component KitSelect inherits Rectangle {
                     accessible-item-index: index; accessible-item-count: root.rows.length;
                     height: root.row-height;
                     active: root.state.active.present && root.state.active.token == row.token;
-                    selected: root.state.selected.present && root.state.selected.token == row.token;
+                    selected: root.row-selected(row.token);
                     activate(token, generation) => { root.handle-activate(token, generation); }
                     HorizontalLayout {
                         spacing: KitMetrics.inline-gap(root.theme);
@@ -564,7 +570,7 @@ export component KitSelect inherits Rectangle {
                             if row.description != "": Text { text: row.description; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); overflow: elide; }
                         }
                         Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                            if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
+                            if root.row-selected(row.token): KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
                         }
                     }
                 }

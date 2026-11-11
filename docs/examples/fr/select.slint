@@ -1,7 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, ValidationTiming, KitSelect, KitTheme, KitThemes, SelectionAvailability } from "@kit";
+import { KitFieldError, ValidationTiming, ChoiceRow, KitSelect, KitTheme, KitThemes, SelectionAvailability } from "@kit";
 
 // Développer ouvre seulement ; l’activation ordinaire bascule. Un hôte contrôlé acquitte l’état demandé.
     // L’édition garde le focus natif ; les positions ne créent pas de relation active-descendant.
@@ -19,6 +19,8 @@ export component Example inherits Window {
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <string> status;
+    // Marqueurs lisibles par l’hôte, liés aux jetons ; en contrôle, ils attendent selected acquitté.
+    out property <[ChoiceRow]> projected-choice-rows: field.choice-rows;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Sélecteur"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }

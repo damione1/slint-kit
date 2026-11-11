@@ -85,6 +85,8 @@ pub enum SelectEvent<K> {
         columns: usize,
     },
     Activate(K),
+    /// Admit a value while retaining the live popup session and active key.
+    ActivateKeepingOpen(K),
     Dismiss(DismissReason),
     Typeahead {
         text: String,
@@ -138,6 +140,7 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
         | SelectEvent::PreviousRow { .. }
         | SelectEvent::NextRow { .. }
         | SelectEvent::Activate(_)
+        | SelectEvent::ActivateKeepingOpen(_)
         | SelectEvent::Dismiss(_)
         | SelectEvent::Typeahead { .. } => match removal_policy {
             RemovalPolicy::Retain => RemovalPolicy::Retain,
@@ -193,6 +196,7 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
             None
         }
         SelectEvent::Activate(key) => controller.activate(&key),
+        SelectEvent::ActivateKeepingOpen(key) => controller.activate_keeping_open(&key),
         SelectEvent::Dismiss(reason) => {
             controller.dismiss(reason);
             None
@@ -549,6 +553,14 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
     }
 
     pub fn activate(&mut self, key: &K) -> Option<SelectionIntent<K>> {
+        self.activate_with_close(key, true)
+    }
+    /// Admit a choice without ending a popup session. This does not make an
+    /// in-place persistent list: normal dismissal still closes this session.
+    pub fn activate_keeping_open(&mut self, key: &K) -> Option<SelectionIntent<K>> {
+        self.activate_with_close(key, false)
+    }
+    fn activate_with_close(&mut self, key: &K, close: bool) -> Option<SelectionIntent<K>> {
         if !self.state.open || !self.eligible(key) {
             return None;
         }
@@ -556,7 +568,12 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         if self.ownership == Ownership::Local {
             self.state.selected = Some(key.clone());
         }
-        self.dismiss(DismissReason::Programmatic);
+        if close {
+            self.dismiss(DismissReason::Programmatic);
+        } else {
+            self.state.active = Some(key.clone());
+            self.reset_typeahead();
+        }
         Some(SelectionIntent::Commit(key))
     }
 
@@ -665,6 +682,69 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn keep_open_admission_preserves_active_session_and_ownership_until_real_dismissal() {
+        for ownership in [Ownership::Local, Ownership::Controlled] {
+            let mut options = vec![
+                SelectOption::new(1, "Amber"),
+                SelectOption::new(2, "Blocked"),
+                SelectOption::new(3, "Banana"),
+            ];
+            options[1].disabled = true;
+            let opened = reduce_selection(
+                options.clone(),
+                SelectSession::default(),
+                ownership,
+                SelectEvent::Open,
+            )
+            .unwrap()
+            .session;
+            let chosen = reduce_selection(
+                options.clone(),
+                opened,
+                ownership,
+                SelectEvent::ActivateKeepingOpen(3),
+            )
+            .unwrap();
+            assert_eq!(chosen.intent, Some(SelectionIntent::Commit(3)));
+            assert!(chosen.session.selection.open);
+            assert_eq!(chosen.session.selection.active, Some(3));
+            assert_eq!(
+                chosen.session.selection.selected,
+                match ownership {
+                    Ownership::Local => Some(3),
+                    Ownership::Controlled => None,
+                }
+            );
+            let blocked = reduce_selection(
+                options.clone(),
+                chosen.session.clone(),
+                ownership,
+                SelectEvent::ActivateKeepingOpen(2),
+            )
+            .unwrap();
+            assert_eq!(blocked.intent, None);
+            assert_eq!(blocked.session, chosen.session);
+            let closed = reduce_selection(
+                options.clone(),
+                chosen.session,
+                ownership,
+                SelectEvent::Dismiss(DismissReason::Escape),
+            )
+            .unwrap()
+            .session;
+            assert!(!closed.selection.open);
+            let rejected = reduce_selection(
+                options,
+                closed.clone(),
+                ownership,
+                SelectEvent::ActivateKeepingOpen(1),
+            )
+            .unwrap();
+            assert_eq!(rejected.intent, None);
+            assert_eq!(rejected.session, closed);
+        }
+    }
     #[test]
     fn explicit_sessions_preserve_typeahead_and_distinguish_filtering_from_removal() {
         let options = vec![
