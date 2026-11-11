@@ -210,6 +210,25 @@ fn searched_popup_geometry_and_localized_labels_render_in_both_themes_and_text_s
                     .find_first()
                     .unwrap();
                 assert!(row.size().height >= 48. && row.size().width > 0.);
+                let field = ElementQuery::from_root(&app)
+                    .match_inherits("KitSelect")
+                    .find_first()
+                    .unwrap();
+                let popup = ElementQuery::from_root(&app)
+                    .match_inherits("KitSelectSurface")
+                    .find_first()
+                    .unwrap();
+                let outside = ElementQuery::from_root(&app)
+                    .match_inherits("KitTextField")
+                    .find_first()
+                    .unwrap();
+                // Popup item positions are local to their detached tree. Check the
+                // actual anchor, intrinsic popup size and next field in window space.
+                let popup_bottom = field.absolute_position().y
+                    + field.size().height
+                    + app.get_theme().spacing.unit
+                    + popup.size().height;
+                assert!(popup_bottom <= outside.absolute_position().y);
                 let image = app.window().take_snapshot().unwrap();
                 if let Some(dir) = std::env::var_os("KIT_SELECT_SEARCH_RENDER_DIR") {
                     use std::io::Write;
