@@ -302,6 +302,26 @@ impl DatePattern {
     }
 }
 
+fn format_with_names(pattern: &str, date: CivilDate, names: &DateNames) -> String {
+    StrftimeItems::new(pattern)
+        .map(|item| {
+            let month = usize::try_from(date.month() - 1).expect("validated month");
+            let weekday = usize::try_from(date.weekday_index()).expect("weekday index");
+            if item == Item::Fixed(Fixed::LongMonthName) {
+                names.months[month].clone()
+            } else if item == Item::Fixed(Fixed::ShortMonthName) {
+                names.short_months[month].clone()
+            } else if item == Item::Fixed(Fixed::LongWeekdayName) {
+                names.weekdays[weekday].clone()
+            } else if item == Item::Fixed(Fixed::ShortWeekdayName) {
+                names.short_weekdays[weekday].clone()
+            } else {
+                date.0.format_with_items(std::iter::once(&item)).to_string()
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -464,24 +484,4 @@ mod tests {
             DraftValue::Invalid(ParseIssue::InvalidDate)
         );
     }
-}
-
-fn format_with_names(pattern: &str, date: CivilDate, names: &DateNames) -> String {
-    StrftimeItems::new(pattern)
-        .map(|item| {
-            let month = usize::try_from(date.month() - 1).expect("validated month");
-            let weekday = usize::try_from(date.weekday_index()).expect("weekday index");
-            if item == Item::Fixed(Fixed::LongMonthName) {
-                names.months[month].clone()
-            } else if item == Item::Fixed(Fixed::ShortMonthName) {
-                names.short_months[month].clone()
-            } else if item == Item::Fixed(Fixed::LongWeekdayName) {
-                names.weekdays[weekday].clone()
-            } else if item == Item::Fixed(Fixed::ShortWeekdayName) {
-                names.short_weekdays[weekday].clone()
-            } else {
-                date.0.format_with_items(std::iter::once(&item)).to_string()
-            }
-        })
-        .collect()
 }
