@@ -79,6 +79,24 @@ The application still chooses data, sorting, filtering, loading and commands. A 
 
 `ToastBinding<Action>` stores typed actions in `ToastQueue`, projects `ToastEntry` rows and manages a weak timer. Capacity and `ToastLifetime` are explicit. Its three handlers route action, dismissal and independent pointer/focus pauses; the application only performs the resulting business action. Surviving toast delegates retain keyboard focus and independent hover/focus pauses when another entry is appended, dismissed, expires or is evicted. Keep the `model()` handle installed; the binding applies incremental keyed insertions/removals. `KeyedModel::insert` and `remove_by_key` preserve surviving delegates while advancing the generation; `replace` and sorting still reset their projection.
 
+Use the stable `ToastId` from `ToastBinding::push` with `dismiss_id(id) -> Option<T>`, rather than treating a visual token as a queue ID. `clear()`, `len()` and `is_empty()` operate on the binding. `update(id, view, lifetime) -> bool` changes only the view and duration: it preserves the ID/token, typed action and separate hover/focus pauses, restarts lifetime at now and emits no close notification for the update itself. A missing or expired ID returns false and is not resurrected.
+
+Register `on_closed(&self, Fn(ToastId, T, ToastCloseReason) + 'static)` once; registering another observer replaces it. The reason is `Expired`, `Dismissed`, `Action`, `Evicted` or `Cleared`. `T: Clone + 'static` remains required: dismissal returns the action while the observer gets its clone. Notifications follow model/timer publication with no binding borrow held; callbacks may reenter without losing their mutations. `action_handler` delivers the Action close notification before the business action, exactly once. Persistent lifetime does not prevent capacity eviction or explicit removal. Capture `app.as_weak()` and upgrade it inside a callback that touches UI; do not capture a strong window.
+
+After creating `toasts`, this observer retains the complete typed records without logging user payloads:
+
+```rust
+use std::{cell::RefCell, rc::Rc};
+
+let closed = Rc::new(RefCell::new(Vec::new()));
+toasts.on_closed({
+    let closed = closed.clone();
+    move |id, action, reason| closed.borrow_mut().push((id, action, reason))
+});
+```
+
+For a custom runtime, consume every core closure record. `ToastQueue::push` now returns `Result<ToastChange<T, ToastId>, ToastQueueError>`: use `.result` for the new ID and handle `.closed`, including expirations before any capacity eviction. `advance(now)` and `clear(now)` return `Vec<ToastClosed<T>>`, each carrying `id`, full `value` and `reason`. `set_paused` and `update(id, lifetime, now, FnOnce(&mut T))` return `ToastChange<T, bool>`; process `.closed` even if `.result` is false because an entry may have expired. Core update explicitly mutates its payload; binding update preserves its typed action. `ToastBinding::push` keeps its existing `Result<ToastId, ToastQueueError>` return type.
+
 `ToastBinding` schedules only the next unpaused timed expiry with a single-shot timer. Empty, persistent-only and fully paused queues do not wake the event loop. Push, dismissal, pause changes and expiry recompute the next delay; releasing one pause source does not override the other. Custom runtime adapters can call `ToastQueue::next_timeout(now)` using the same injected monotonic clock as `advance(now)`: it returns the remaining delay, `None` when nothing is running, or zero for an overdue record. Reading it does not mutate the queue; call `advance` to remove expired records. The timer closure retains only weak binding state, and dropping the last binding stops it even if its projected model survives.
 
 `KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection. The [sortable table application](/guides/table-example/) wires `bind`, `navigation()`, `activation` and `sorting_by` to a `KitDataTable` in one short file.
