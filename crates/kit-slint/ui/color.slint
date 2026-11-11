@@ -27,7 +27,8 @@ component ColorDraftChannel inherits HorizontalLayout {
     spacing: root.theme.spacing.unit * 3;
     Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
     KitSlider {
-        theme: root.theme; control-size: root.control-size; access: root.access; label: root.label + " draft"; value-label: root.value; position: root.value / 255;
+        theme: root.theme; control-size: root.control-size; access: root.access; label: root.label + " draft"; value: root.value; position: root.value / 255;
+        ownership: Ownership.controlled; spec: {minimum: "0", maximum: "255", step: "1"};
         cancelled => { root.cancelled(); }
         position-requested(position) => { root.requested(round(max(0,min(1,position)) * 255)); }
         navigate(step) => {
@@ -239,7 +240,8 @@ component ColorChannelEditor inherits Rectangle {
             committed(value) => { root.value-committed(root.channel,value.value.text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
         }
-        KitSlider { theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value-label: root.text;
+        KitSlider { theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value: root.accepted-text;
+            ownership: Ownership.controlled; spec: {minimum: "0", maximum: "255", step: "1"};
             position-requested(position) => { root.position-requested(root.channel,position); }
             navigate(step) => { root.navigate(root.channel,step); }
             gesture-started => { root.gesture-started(root.channel); }

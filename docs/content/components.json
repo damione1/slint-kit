@@ -809,7 +809,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives."
     },
     "en": {
       "summary": "Hex text input with a color swatch and picker popup.",
@@ -824,7 +825,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology."
     }
   },
   "KitColorPicker": {
@@ -837,7 +839,8 @@
       "related": [
         "KitColorField",
         "KitSlider"
-      ]
+      ],
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives."
     },
     "en": {
       "summary": "Color editor with hex text, channel inputs and channel sliders.",
@@ -848,7 +851,8 @@
       "related": [
         "KitColorField",
         "KitSlider"
-      ]
+      ],
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology."
     }
   },
   "KitCombobox": {
@@ -3844,7 +3848,32 @@
       "seoTitle": "Curseur de plage pour Slint",
       "related": [
         "KitSlider"
-      ]
+      ],
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
+      "properties": {
+        "spec": {
+          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine.",
+          "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
+        },
+        "value": {
+          "effect": "Valeur décimale acceptée (KitSlider) ou bornes lower/upper ordonnées (KitRangeSlider). Gardez-la sur la grille de spec. Une valeur courante invalide ne produit pas de profil numérique accessible valide."
+        },
+        "ownership": {
+          "effect": "La propriété locale accepte immédiatement le candidat ; la propriété contrôlée garde value comme autorité et émet chosen pour l’acquittement hôte."
+        },
+        "lower-label": {
+          "effect": "Description accessible formatée facultative de la poignée lower ; sa valeur numérique accessible provient de value.lower."
+        },
+        "upper-label": {
+          "effect": "Description accessible formatée facultative de la poignée upper ; sa valeur numérique accessible provient de value.upper."
+        }
+      },
+      "callbacks": {
+        "chosen": "Proposition décimale exacte après une modification valide. Le réglage accessible émet une fois lorsque le candidat arrondi diffère de la valeur courante. Un hôte contrôlé doit acquitter value.",
+        "position-requested": "Proposition normalisée de rendu pour les intégrations personnalisées ; le réglage accessible l’émet aussi. Préférez chosen pour l’acceptation métier exacte.",
+        "committed": "Fin d’un geste ou d’un réglage accessible modifié. Les demandes accessibles mal formées, inchangées ou refusées par l’accès ne confirment pas."
+      },
+      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte."
     },
     "en": {
       "summary": "Two-thumb slider with local or controlled range selection.",
@@ -3854,7 +3883,32 @@
       "seoTitle": "Range Slider for Slint",
       "related": [
         "KitSlider"
-      ]
+      ],
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
+      "properties": {
+        "spec": {
+          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain.",
+          "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
+        },
+        "value": {
+          "effect": "The accepted decimal value (KitSlider) or ordered lower/upper endpoints (KitRangeSlider). Keep it aligned to spec. An invalid current value does not produce a valid accessible numeric profile."
+        },
+        "ownership": {
+          "effect": "Local ownership accepts the candidate immediately; controlled ownership keeps value authoritative and emits chosen for the host to acknowledge."
+        },
+        "lower-label": {
+          "effect": "Optional formatted accessible description of the lower thumb; its numeric accessible value comes from value.lower."
+        },
+        "upper-label": {
+          "effect": "Optional formatted accessible description of the upper thumb; its numeric accessible value comes from value.upper."
+        }
+      },
+      "callbacks": {
+        "chosen": "Exact decimal proposal after a valid edit. Accessible set-value emits once when its rounded candidate differs from the current value. A controlled host must acknowledge value.",
+        "position-requested": "Normalized renderer proposal for custom integrations; accessible set-value also emits it. Prefer chosen for exact domain acceptance.",
+        "committed": "Completion of a gesture or changed accessible set-value. Malformed, unchanged or access-blocked accessible requests do not commit."
+      },
+      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement."
     }
   },
   "KitRating": {
@@ -4383,7 +4437,30 @@
         "KitNumberStepper"
       ],
       "label": "Curseur",
-      "seoTitle": "Curseur pour Slint"
+      "seoTitle": "Curseur pour Slint",
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
+      "properties": {
+        "spec": {
+          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine.",
+          "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
+        },
+        "value": {
+          "effect": "Valeur décimale acceptée (KitSlider) ou bornes lower/upper ordonnées (KitRangeSlider). Gardez-la sur la grille de spec. Une valeur courante invalide ne produit pas de profil numérique accessible valide."
+        },
+        "ownership": {
+          "effect": "La propriété locale accepte immédiatement le candidat ; la propriété contrôlée garde value comme autorité et émet chosen pour l’acquittement hôte."
+        },
+        "value-label": {
+          "effect": "Description accessible formatée facultative. La valeur numérique accessible provient toujours de value. Ce n’est pas une propriété native distincte de texte de valeur.",
+          "example": "value-label: \"65 pour cent\";"
+        }
+      },
+      "callbacks": {
+        "chosen": "Proposition décimale exacte après une modification valide. Le réglage accessible émet une fois lorsque le candidat arrondi diffère de la valeur courante. Un hôte contrôlé doit acquitter value.",
+        "position-requested": "Proposition normalisée de rendu pour les intégrations personnalisées ; le réglage accessible l’émet aussi. Préférez chosen pour l’acceptation métier exacte.",
+        "committed": "Fin d’un geste ou d’un réglage accessible modifié. Les demandes accessibles mal formées, inchangées ou refusées par l’accès ne confirment pas."
+      },
+      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte."
     },
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
@@ -4394,7 +4471,30 @@
         "KitNumberStepper"
       ],
       "label": "Slider",
-      "seoTitle": "Slider for Slint"
+      "seoTitle": "Slider for Slint",
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
+      "properties": {
+        "spec": {
+          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain.",
+          "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
+        },
+        "value": {
+          "effect": "The accepted decimal value (KitSlider) or ordered lower/upper endpoints (KitRangeSlider). Keep it aligned to spec. An invalid current value does not produce a valid accessible numeric profile."
+        },
+        "ownership": {
+          "effect": "Local ownership accepts the candidate immediately; controlled ownership keeps value authoritative and emits chosen for the host to acknowledge."
+        },
+        "value-label": {
+          "effect": "Optional formatted accessible description. The numeric accessible value always comes from value. This is not a separate native value-text override.",
+          "example": "value-label: \"65 percent\";"
+        }
+      },
+      "callbacks": {
+        "chosen": "Exact decimal proposal after a valid edit. Accessible set-value emits once when its rounded candidate differs from the current value. A controlled host must acknowledge value.",
+        "position-requested": "Normalized renderer proposal for custom integrations; accessible set-value also emits it. Prefer chosen for exact domain acceptance.",
+        "committed": "Completion of a gesture or changed accessible set-value. Malformed, unchanged or access-blocked accessible requests do not commit."
+      },
+      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement."
     }
   },
   "KitSpinner": {

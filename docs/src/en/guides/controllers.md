@@ -24,6 +24,10 @@ Slint stores native drafts and formatted accepted-value projections. The pure se
 
 Money and decimals stay exact: use `Money`, `DecimalValue` and their explicit rules. Slider specs use decimal strings and a shared exact lattice; normalized floats are only pointer/display projections. `SliderSpec` defines minimum, maximum and step. `DecimalRangeView` converts to `OrderedRange<DecimalValue>`, whose endpoints cannot cross.
 
+Accessible slider metadata uses the same domain: `spec.minimum`, `maximum` and `step`, the current decimal value, and the other endpoint as each range thumb’s inward bound. Accessible set-value follows pointer rounding and bounds through `DecimalSlider::at_value`; it emits `chosen` and `committed` once for a changed valid candidate, and preserves controlled ownership. Supply matching `spec`/`value` even when overriding normalized positions. Color channel sliders use 0..255 with step 1.
+
+`value-label` and range `lower-label`/`upper-label` supply formatted accessible descriptions; the numeric accessible value remains the decimal text. Slint 1.18.1 has no independent value-text property and restricts accessible bounds/step to Float32, which can collapse large or closely spaced bounds. Do not use those projections to accept domain values. Metadata and synthetic action coverage is headless; qualify the named backend and screen reader separately.
+
 `FieldBinding` and explicit `FieldController` remain available for custom integrations. The ordinary field path needs no component-specific macro. `init_form_validation!` is deprecated in favor of `install`.
 
 The legacy `bind_select!` macro is retained for migration and deprecated in documentation. Replace its window callback convention with `Choices<K>`, the component’s `options`/`selected`/`chosen` contract and the shared installer. Explicit `SelectBinding` projections remain available for custom controlled integrations.
