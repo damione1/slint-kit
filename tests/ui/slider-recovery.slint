@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitRangeSlider, SliderSpec, DecimalRangeView, KitTheme, KitThemes, Ownership, FieldAccess } from "@kit";
+export component SliderRecoveryFixture inherits Window {
+    width: 800px; height: 600px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "5"};
+    in-out property <string> scalar: "7";
+    in-out property <DecimalRangeView> range: {lower: "7", upper: "83"};
+    out property <bool> scalar-spec-valid: single.spec-valid;
+    out property <bool> scalar-value-valid: single.value-valid;
+    out property <bool> range-spec-valid: ranged.spec-valid;
+    out property <bool> range-value-valid: ranged.value-valid;
+    out property <float> scalar-position: single.position;
+    out property <float> lower-position: ranged.lower-position;
+    out property <float> upper-position: ranged.upper-position;
+    public function focus-scalar() { single.take-focus(); }
+    public function focus-range() { ranged.take-focus(); }
+    callback scalar-chosen(string);
+    callback range-chosen(DecimalRangeView);
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        Text { text: "Loaded decimal values"; color: root.theme.text-primary; font-size: 16px * root.theme.text-scale; }
+        single := KitSlider { theme: root.theme; label: "Recovery slider"; ownership: root.ownership; access: root.access; spec: root.spec; value <=> root.scalar; chosen(value) => { root.scalar-chosen(value); } }
+        Text { text: !single.spec-valid ? "Invalid specification" : !single.value-valid ? "Value requires an admitted edit" : "Value on the decimal grid"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; }
+        ranged := KitRangeSlider { theme: root.theme; label: "Recovery range"; ownership: root.ownership; access: root.access; spec: root.spec; value <=> root.range; chosen(value) => { root.range-chosen(value); } }
+        Text { text: !ranged.spec-valid ? "Invalid specification" : !ranged.value-valid ? "Range requires an admitted edit" : "Range on the decimal grid"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; }
+    }
+}

@@ -48,6 +48,24 @@ fn range_values(
     rules.validate(range.end())?;
     Ok((range, rules))
 }
+fn normalize_range(
+    range: OrderedRange<DecimalValue>,
+    rules: DecimalSlider,
+) -> Result<OrderedRange<DecimalValue>, ParseIssue> {
+    OrderedRange::new(rules.at_value(range.start())?, rules.at_value(range.end())?)
+}
+#[cfg(debug_assertions)]
+fn install_spec_diagnostics(service: &ui::KitFieldService<'_>) {
+    let seen = std::cell::RefCell::new(std::collections::HashSet::new());
+    service.on_slider_invalid_spec(move |value| {
+        if let Err(issue) = spec(value.clone()) {
+            let key = (value.minimum.to_string(), value.maximum.to_string(), value.step.to_string());
+            if seen.borrow_mut().insert(key) {
+                eprintln!("Slint Kit: invalid slider specification ({issue:?}): minimum={}, maximum={}, step={}", value.minimum, value.maximum, value.step);
+            }
+        }
+    });
+}
 fn range_view(lower: DecimalValue, upper: DecimalValue) -> ui::DecimalRangeView {
     ui::DecimalRangeView {
         lower: lower.to_string().into(),
@@ -104,6 +122,9 @@ fn range_set_value(
     })
 }
 pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
+    service.on_slider_spec_valid(|value| spec(value).is_ok());
+    #[cfg(debug_assertions)]
+    install_spec_diagnostics(service);
     service.on_slider_accessibility(|value, rules| {
         slider_accessibility(value, rules).unwrap_or_default()
     });
@@ -159,8 +180,7 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
         let update = || -> Result<ui::DecimalRangeView, ParseIssue> {
             let range = OrderedRange::<DecimalValue>::try_from(current.clone())?;
             let rules = spec(rules)?;
-            rules.validate(range.start())?;
-            rules.validate(range.end())?;
+            let range = normalize_range(range, rules)?;
             let next = rules.at_position(position)?;
             let (lower, upper) = match thumb {
                 ui::RangeThumb::Lower => (next.min(range.end()), range.end()),
@@ -177,16 +197,16 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
         let update = || -> Result<ui::DecimalRangeView, ParseIssue> {
             let range = OrderedRange::<DecimalValue>::try_from(current.clone())?;
             let rules = spec(rules)?;
-            rules.validate(range.start())?;
-            rules.validate(range.end())?;
+            let raw = range;
+            let range = normalize_range(raw, rules)?;
             let (lower, upper) = match thumb {
                 ui::RangeThumb::Lower => (
-                    rules.navigate(range.start(), step.into())?.min(range.end()),
+                    rules.navigate(raw.start(), step.into())?.min(range.end()),
                     range.end(),
                 ),
                 ui::RangeThumb::Upper => (
                     range.start(),
-                    rules.navigate(range.end(), step.into())?.max(range.start()),
+                    rules.navigate(raw.end(), step.into())?.max(range.start()),
                 ),
             };
             Ok(ui::DecimalRangeView {

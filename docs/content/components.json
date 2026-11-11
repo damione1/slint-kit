@@ -4113,7 +4113,7 @@
     "fr": {
       "summary": "Curseur à deux poignées pour une sélection de plage locale ou contrôlée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + 10 et Page précédente plafond(position en pas) - 10, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial.",
       "label": "Curseur de plage",
       "seoTitle": "Curseur de plage pour Slint",
       "related": [
@@ -4126,7 +4126,7 @@
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
-          "effect": "Valeur décimale acceptée (KitSlider) ou bornes lower/upper ordonnées (KitRangeSlider). Gardez-la sur la grille de spec. Une valeur courante invalide ne produit pas de profil numérique accessible valide."
+          "effect": "Extrémités décimales lower/upper ordonnées, fournies par l’hôte ou acceptées localement. Une modification admise replace les deux extrémités sur la grille avant de borner la poignée active par sa voisine ; l’extrémité inactive peut donc changer aussi. Les plages inversées ou mal formées restent invalides. Consultez value-valid ; la propriété contrôlée attend toujours l’acquittement hôte. Une valeur courante invalide ne produit aucun profil numérique accessible valide."
         },
         "ownership": {
           "effect": "La propriété locale accepte immédiatement le candidat ; la propriété contrôlée garde value comme autorité et émet chosen pour l’acquittement hôte."
@@ -4136,6 +4136,16 @@
         },
         "upper-label": {
           "effect": "Description accessible formatée facultative de la poignée upper ; sa valeur numérique accessible provient de value.upper."
+        },
+        "spec-valid": {
+          "effect": "Lecture seule : vrai après install si minimum, maximum et step sont des décimaux exacts valides, minimum < maximum, step > 0 et les calculs requis sont représentables. Faux tant que le service numérique est indisponible.",
+          "default": "false",
+          "constraints": "Une spécification invalide bloque les modifications et affiche l’état désactivé. Les builds debug signalent chaque spécification minimum/maximum/step distincte une fois par fenêtre ; les builds release ne fournissent pas ce diagnostic."
+        },
+        "value-valid": {
+          "effect": "Lecture seule : vrai uniquement avec le service installé, une spécification valide et deux extrémités analysables, ordonnées, dans les bornes et sur minimum + n*step. Cet indicateur décrit toute la plage.",
+          "default": "false",
+          "constraints": "Charger une valeur ou remplacer spec ne corrige pas la valeur de l’hôte. Les valeurs mal formées et les plages inversées restent invalides ; une interaction admissible répare les nombres hors grille ou hors bornes."
         }
       },
       "callbacks": {
@@ -4143,12 +4153,12 @@
         "position-requested": "Proposition normalisée de rendu pour les intégrations personnalisées ; le réglage accessible l’émet aussi. Préférez chosen pour l’acceptation métier exacte.",
         "committed": "Fin d’un geste ou d’un réglage accessible modifié. Les demandes accessibles mal formées, inchangées ou refusées par l’accès ne confirment pas."
       },
-      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte."
+      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte. Après install, spec-valid et value-valid distinguent configuration invalide et données chargées invalides. Une spec confirmée invalide affiche l’état désactivé ; un nombre hors grille ou hors bornes reste réparable au clavier ou au pointeur. Les profils courants invalides gardent les actions accessibles de valeur désactivées ; ne comptez pas sur elles pour cette correction."
     },
     "en": {
       "summary": "Two-thumb slider with local or controlled range selection.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + 10 and Page Previous uses ceil(step position) - 10, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot.",
       "label": "Range Slider",
       "seoTitle": "Range Slider for Slint",
       "related": [
@@ -4161,7 +4171,7 @@
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
-          "effect": "The accepted decimal value (KitSlider) or ordered lower/upper endpoints (KitRangeSlider). Keep it aligned to spec. An invalid current value does not produce a valid accessible numeric profile."
+          "effect": "Ordered decimal lower/upper endpoints supplied by the host or accepted locally. An admitted edit repairs both endpoints onto the lattice before constraining the active thumb by its neighbor; the inactive endpoint can therefore change too. Reversed or malformed ranges remain invalid. Inspect value-valid; controlled ownership still requires host acknowledgement. An invalid current value has no valid accessible numeric profile."
         },
         "ownership": {
           "effect": "Local ownership accepts the candidate immediately; controlled ownership keeps value authoritative and emits chosen for the host to acknowledge."
@@ -4171,6 +4181,16 @@
         },
         "upper-label": {
           "effect": "Optional formatted accessible description of the upper thumb; its numeric accessible value comes from value.upper."
+        },
+        "spec-valid": {
+          "effect": "Read-only: true after install when minimum, maximum and step parse as exact decimals, minimum < maximum, step > 0 and the required arithmetic is representable. False while the numeric service is unavailable.",
+          "default": "false",
+          "constraints": "An invalid specification blocks edits and renders disabled. Debug builds report each distinct minimum/maximum/step specification once per window; release builds do not provide this diagnostic."
+        },
+        "value-valid": {
+          "effect": "Read-only: true only with an installed service, a valid specification and two parseable, ordered endpoints within bounds and on minimum + n*step. This flag describes the whole range.",
+          "default": "false",
+          "constraints": "Loading a value or replacing spec does not sanitize the host value. Malformed values and reversed ranges remain invalid; admissible interaction repairs numeric off-grid/out-of-range values."
         }
       },
       "callbacks": {
@@ -4178,7 +4198,7 @@
         "position-requested": "Normalized renderer proposal for custom integrations; accessible set-value also emits it. Prefer chosen for exact domain acceptance.",
         "committed": "Completion of a gesture or changed accessible set-value. Malformed, unchanged or access-blocked accessible requests do not commit."
       },
-      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement."
+      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement. After install, spec-valid and value-valid distinguish invalid configuration from invalid loaded data. A confirmed invalid spec renders disabled; numeric off-grid/out-of-range data remains repairable by keyboard or pointer. Invalid current profiles keep accessible value actions disabled; do not rely on them for recovery."
     }
   },
   "KitRating": {
@@ -4785,7 +4805,7 @@
     "fr": {
       "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + 10 et Page précédente plafond(position en pas) - 10, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -4799,7 +4819,7 @@
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
-          "effect": "Valeur décimale acceptée (KitSlider) ou bornes lower/upper ordonnées (KitRangeSlider). Gardez-la sur la grille de spec. Une valeur courante invalide ne produit pas de profil numérique accessible valide."
+          "effect": "Valeur décimale fournie par l’hôte ou acceptée localement. Un nombre chargé hors grille ou hors bornes reste inchangé jusqu’à une interaction admise proposant sa correction. Consultez value-valid ; la propriété contrôlée attend toujours l’acquittement hôte. Une valeur courante invalide ne produit aucun profil numérique accessible valide."
         },
         "ownership": {
           "effect": "La propriété locale accepte immédiatement le candidat ; la propriété contrôlée garde value comme autorité et émet chosen pour l’acquittement hôte."
@@ -4807,6 +4827,16 @@
         "value-label": {
           "effect": "Description accessible formatée facultative. La valeur numérique accessible provient toujours de value. Ce n’est pas une propriété native distincte de texte de valeur.",
           "example": "value-label: \"65 pour cent\";"
+        },
+        "spec-valid": {
+          "effect": "Lecture seule : vrai après install si minimum, maximum et step sont des décimaux exacts valides, minimum < maximum, step > 0 et les calculs requis sont représentables. Faux tant que le service numérique est indisponible.",
+          "default": "false",
+          "constraints": "Une spécification invalide bloque les modifications et affiche l’état désactivé. Les builds debug signalent chaque spécification minimum/maximum/step distincte une fois par fenêtre ; les builds release ne fournissent pas ce diagnostic."
+        },
+        "value-valid": {
+          "effect": "Lecture seule : vrai uniquement avec le service installé, une spécification valide et une valeur analysable, dans les bornes et sur minimum + n*step.",
+          "default": "false",
+          "constraints": "Charger une valeur ou remplacer spec ne corrige pas la valeur de l’hôte. Les valeurs mal formées restent invalides ; une interaction admissible répare les nombres hors grille ou hors bornes."
         }
       },
       "callbacks": {
@@ -4814,12 +4844,12 @@
         "position-requested": "Proposition normalisée de rendu pour les intégrations personnalisées ; le réglage accessible l’émet aussi. Préférez chosen pour l’acceptation métier exacte.",
         "committed": "Fin d’un geste ou d’un réglage accessible modifié. Les demandes accessibles mal formées, inchangées ou refusées par l’accès ne confirment pas."
       },
-      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte."
+      "states": "La lecture seule conserve sémantique numérique et focus mais refuse les actions de valeur ; la désactivation refuse l’édition. Des services numériques invalides ou non installés ne publient aucun profil numérique valide. Les valeurs contrôlées attendent l’acquittement hôte. Après install, spec-valid et value-valid distinguent configuration invalide et données chargées invalides. Une spec confirmée invalide affiche l’état désactivé ; un nombre hors grille ou hors bornes reste réparable au clavier ou au pointeur. Les profils courants invalides gardent les actions accessibles de valeur désactivées ; ne comptez pas sur elles pour cette correction."
     },
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + 10 and Page Previous uses ceil(step position) - 10, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -4833,7 +4863,7 @@
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
-          "effect": "The accepted decimal value (KitSlider) or ordered lower/upper endpoints (KitRangeSlider). Keep it aligned to spec. An invalid current value does not produce a valid accessible numeric profile."
+          "effect": "Decimal value supplied by the host or accepted locally. A loaded off-grid/out-of-range number remains unchanged until an admitted interaction proposes its repair. Inspect value-valid; controlled ownership still requires host acknowledgement. An invalid current value has no valid accessible numeric profile."
         },
         "ownership": {
           "effect": "Local ownership accepts the candidate immediately; controlled ownership keeps value authoritative and emits chosen for the host to acknowledge."
@@ -4841,6 +4871,16 @@
         "value-label": {
           "effect": "Optional formatted accessible description. The numeric accessible value always comes from value. This is not a separate native value-text override.",
           "example": "value-label: \"65 percent\";"
+        },
+        "spec-valid": {
+          "effect": "Read-only: true after install when minimum, maximum and step parse as exact decimals, minimum < maximum, step > 0 and the required arithmetic is representable. False while the numeric service is unavailable.",
+          "default": "false",
+          "constraints": "An invalid specification blocks edits and renders disabled. Debug builds report each distinct minimum/maximum/step specification once per window; release builds do not provide this diagnostic."
+        },
+        "value-valid": {
+          "effect": "Read-only: true only with an installed service, a valid specification and a parseable value within bounds and on minimum + n*step.",
+          "default": "false",
+          "constraints": "Loading a value or replacing spec does not sanitize the host value. Malformed values remain invalid; admissible interaction repairs numeric off-grid/out-of-range values."
         }
       },
       "callbacks": {
@@ -4848,7 +4888,7 @@
         "position-requested": "Normalized renderer proposal for custom integrations; accessible set-value also emits it. Prefer chosen for exact domain acceptance.",
         "committed": "Completion of a gesture or changed accessible set-value. Malformed, unchanged or access-blocked accessible requests do not commit."
       },
-      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement."
+      "states": "Read-only retains its numeric semantics and focus but refuses value actions; disabled refuses edits. Invalid or uninstalled numeric services publish no valid numeric profile. Controlled values remain unchanged until host acknowledgement. After install, spec-valid and value-valid distinguish invalid configuration from invalid loaded data. A confirmed invalid spec renders disabled; numeric off-grid/out-of-range data remains repairable by keyboard or pointer. Invalid current profiles keep accessible value actions disabled; do not rely on them for recovery."
     }
   },
   "KitSpinner": {

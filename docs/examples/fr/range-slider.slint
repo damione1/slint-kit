@@ -14,7 +14,12 @@ export component Example inherits Window {
     title: "Curseur d’intervalle"; preferred-width: 560px; preferred-height: 360px;
     background: KitThemeContext.current.canvas;
     callback limits-changed(DecimalRangeView);
+    // Lisez ces projections après install(&window) pour les messages hôte ; elles sont fausses avant.
+    // Ne liez pas disabled à !value-valid : clavier/pointeur peuvent réparer les nombres hors grille/hors bornes.
+    // value-valid couvre les deux extrémités ordonnées ; une modification admise peut aussi réparer l’inactive.
+    out property <bool> slider-spec-valid: slider.spec-valid;
+    out property <bool> slider-value-valid: slider.value-valid;
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        KitRangeSlider { label: "Intervalle autorisé"; value: {lower: "20", upper: "65"}; lower-label: "20 %"; upper-label: "65 %"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.limits-changed(value); } } }
+        slider := KitRangeSlider { label: "Intervalle autorisé"; value: {lower: "20", upper: "65"}; lower-label: "20 %"; upper-label: "65 %"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.limits-changed(value); } } }
 }
