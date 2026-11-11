@@ -604,8 +604,11 @@ fn otp_placeholder_paints_a_complete_digit_in_every_slot_at_200_percent() {
             // Count actual ink inside each slot, excluding the underline and
             // neighbouring glyphs, without relying on the placeholder Text's
             // own reported width (which stays unchanged when it elides).
-            let inset = theme.spacing.medium.padding_inline;
-            let cell = (size.width - 2. * inset) / 6.;
+            let inset = app.get_code_padding_inline();
+            // The cells exclude the native final-caret reserve. That space is
+            // outside the six decorative slots, not a seventh partial slot.
+            let trailing_caret = app.get_code_text_inset() + 2.;
+            let cell = (size.width - 2. * inset - trailing_caret) / 6.;
             for slot in 0..6 {
                 let left = (origin.x + inset + slot as f32 * cell + cell * 0.2).ceil() as u32;
                 let right = (origin.x + inset + slot as f32 * cell + cell * 0.8).floor() as u32;
