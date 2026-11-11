@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelect, KitMultiSelect, KitSelectSurface, KitOption, KitTextField, KitTheme, KitThemes, OptionRow, SelectionRef, SelectState, Ownership, FieldAccess, KitKeyResult, KitMetrics, TypographyRole } from "@kit";
+export enum SearchControl { single, multiple, surface }
+export component SelectSearchFixture inherits Window {
+    width: 620px; height: 720px;
+    in property <SearchControl> control;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[OptionRow]> options;
+    in property <bool> searchable;
+    in property <bool> focus-search-on-open: true;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <string> search-label: "Filtrer les destinations";
+    in property <string> empty-label: "Aucune destination";
+    in-out property <SelectionRef> single-selected <=> single.selected;
+    in-out property <[SelectionRef]> multi-selected <=> multi.selected;
+    out property <string> query: root.control == SearchControl.single ? single.query : root.control == SearchControl.multiple ? multi.query : surface.query;
+    out property <SelectState> state: root.control == SearchControl.single ? single.state : root.control == SearchControl.multiple ? multi.state : surface.state;
+    out property <[OptionRow]> rows: root.control == SearchControl.single ? single.rows : root.control == SearchControl.multiple ? multi.rows : surface.rows;
+    out property <bool> outside-focused: outside.has-focus;
+    callback query-edited(string);
+    public function focus-control() {
+        if (root.control == SearchControl.single) { single.take-focus(); }
+        else if (root.control == SearchControl.multiple) { multi.take-focus(); }
+        else { surface.take-focus(); }
+    }
+        single := KitSelect {
+            height: self.preferred-height;
+            visible: root.control == SearchControl.single;
+            x: 24px; y: 24px; width: root.width - 48px;
+            theme: root.theme; options: root.options; label: "Destination";
+            searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
+            search-label: root.search-label; empty-label: root.empty-label;
+            access: root.access; ownership: root.ownership;
+            query-edited(text) => { root.query-edited(text); }
+            tab-navigation(reverse) => { outside.take-focus(); return KitKeyResult.accept; }
+        }
+        multi := KitMultiSelect {
+            visible: root.control == SearchControl.multiple;
+            x: 24px; y: 24px; width: root.width - 48px;
+            theme: root.theme; options: root.options; label: "Destinations";
+            searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
+            search-label: root.search-label; empty-label: root.empty-label;
+            access: root.access; ownership: root.ownership;
+            query-edited(text) => { root.query-edited(text); }
+            tab-navigation(reverse) => { outside.take-focus(); return KitKeyResult.accept; }
+        }
+        surface := KitSelectSurface {
+            visible: root.control == SearchControl.surface;
+            focus-on-open: root.control == SearchControl.surface;
+            x: 24px; y: 24px; width: root.width - 48px;
+            theme: root.theme; options: root.options; height: 360px;
+            ownership: root.ownership; empty: self.rows.length == 0;
+            searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
+            search-label: root.search-label; empty-label: root.empty-label;
+            query-edited(text) => { root.query-edited(text); }
+            tab-navigation(reverse) => { outside.take-focus(); return KitKeyResult.accept; }
+            VerticalLayout {
+                alignment: start; spacing: 0px;
+                for row in surface.rows: KitOption {
+                    theme: root.theme; option-data: row;
+                    active: surface.state.active.present && surface.state.active.token == row.token;
+                    activate(token, generation) => { surface.choose-option(token, generation); }
+                    Text { text: row.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+                }
+            }
+        }
+        outside := KitTextField { theme: root.theme; label: "Outside editor"; x: 24px; y: 600px; width: root.width - 48px; }
+}

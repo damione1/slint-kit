@@ -29,7 +29,9 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Restez au courant"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; wrap: word-wrap; }
         Text { text: "Choisissez vos canaux de notification. Chaque sélection conserve son identité lorsque la liste visible change."; color: root.theme.text-secondary; wrap: word-wrap; }
-        field := KitMultiSelect { close-on-select: false; required: true; validation-timing: ValidationTiming.on-blur; label: "Canaux de notification"; placeholder: "Ajouter un canal"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.recherche; selection-changed(row, added) => { root.membership-changed(row, added); } }
+        // Active explicitement la recherche native ; le nouveau défaut est searchable:false.
+        // Appelez slint_kit::install une fois par fenêtre pour saisie native et sélection.
+        field := KitMultiSelect { searchable: true; focus-search-on-open: true; search-label: "Rechercher un canal"; empty-label: "Aucun canal correspondant"; close-on-select: false; required: true; validation-timing: ValidationTiming.on-blur; label: "Canaux de notification"; placeholder: "Ajouter un canal"; theme: root.theme; options: root.options; selected <=> root.selected; query <=> root.recherche; selection-changed(row, added) => { root.membership-changed(row, added); } }
         if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         Text { text: root.selected.length + " canaux sélectionnés"; color: root.theme.text-secondary; }
     }

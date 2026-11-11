@@ -5,6 +5,7 @@ export component SelectGeometryFixture inherits Window {
     width: 520px; height: 420px;
     out property <length> row-padding: KitThemes.option-recipe(KitThemeContext.current, ControlSize.medium).padding-inline;
     in property <bool> combobox;
+    in property <bool> searchable;
     in property <[OptionRow]> rows;
     in property <SelectState> state;
     in property <SearchPresentation> search-state: SearchPresentation.idle;
@@ -23,6 +24,7 @@ export component SelectGeometryFixture inherits Window {
         end-reached => { root.end-reached(); }
     }
     if !root.combobox: KitSelect {
+                searchable: root.searchable;
         x: 24px; y: 24px; width: 472px;
         rows: root.rows; state: root.state;
         popup-height: root.popup-height; row-height: root.row-height;

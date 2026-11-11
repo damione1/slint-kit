@@ -16,6 +16,9 @@ export component Example inherits Window {
     in property <[OptionRow]> options: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
 
     in-out property <string> query;
+    // La frappe personnalisée suit la recherche native (services installés par fenêtre).
+    // Avec searchable:false, la même API parcourt les préfixes.
+    public function type-ahead(text: string) { control.type-ahead(text); }
 
     VerticalLayout {
         padding: 24px;
@@ -27,6 +30,7 @@ export component Example inherits Window {
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Choisi : " + row.label; }
             theme: root.theme; height: 240px; searchable: true; query <=> root.query;
             search-label: "Find destination"; focus-search-on-open: true;
+            empty-label: "Aucune destination correspondante";
             tab-navigation(reverse) => { return KitKeyResult.reject; }
             VerticalLayout {
                 alignment: start;
