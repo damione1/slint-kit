@@ -771,8 +771,11 @@ export component KitOtpField inherits KitTextField {
     max-length: max(1, root.slots);
     length-policy: TextLengthPolicy.limit;
     pattern: root.alphabet-pattern;
-    private property <length> cell-width: KitMetrics.control-height(root.theme, root.control-size);
-    preferred-width: max(1, root.slots) * root.cell-width + 2 * root.padding-inline;
+    private property <length> preferred-cell-width: KitMetrics.control-height(root.theme, root.control-size);
+    // Match the cells' allocated pitch after the parent layout has measured us.
+    // Preferred sizing is independent so this does not feed geometry back into it.
+    private property <length> cell-width: max(0px, root.width - 2 * root.padding-inline) / max(1, root.slots);
+    preferred-width: max(1, root.slots) * root.preferred-cell-width + 2 * root.padding-inline;
     max-width: self.preferred-width; horizontal-stretch: 0;
     underline-segments: max(1, root.slots);
     // Monospace uses a predictable character cell, so partial drafts start

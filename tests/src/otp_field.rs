@@ -1232,8 +1232,11 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
                 + app.get_code_text_inset();
             assert!(
                 (native.absolute_position().x - expected_origin).abs() < 1.,
-                "native editor must stay aligned with fixed cells after focus/selection: actual={}, expected={expected_origin}",
-                native.absolute_position().x
+                "native editor must stay aligned with fixed cells after focus/selection: actual={}, expected={expected_origin}, editor-width={}, surface-width={}, inset={}",
+                native.absolute_position().x,
+                native.size().width,
+                surface.size().width,
+                app.get_code_text_inset()
             );
             assert!(
                 native.absolute_position().x + native.size().width
