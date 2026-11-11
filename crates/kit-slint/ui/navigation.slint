@@ -114,9 +114,9 @@ export component KitMenu inherits Rectangle {
         typeahead-timeout-ms: root.typeahead-timeout-ms;
         check-typeahead-active => { return selection.is-typeahead-active(); }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
-        // Row scopes remain outside Tab order. While one owns native focus,
-        // skip this ancestor too so Backtab exits instead of stopping twice.
-        focus-on-tab-navigation: !root.focused-navigation-row.present && root.focused-row-token < 0;
+        // Explicit Tab first returns to this persistent scope; native
+        // traversal then leaves the composite in either direction.
+        focus-on-tab-navigation: true;
         navigate(step) => { root.handle-navigate(step); }
         activate(token, generation) => { root.handle-activate(token, generation); }
         dismiss(reason) => { root.cancel-row-focus(); if (reason != CloseReason.programmatic) { root.handle-dismiss(reason); } }
@@ -153,7 +153,7 @@ export component KitMenu inherits Rectangle {
                     }
                 }
                 key-event(event) => {
-                    if (event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.PageDown || event.text == Key.PageUp || event.text == Key.Escape) { root.take-focus(); return keyboard.handle-key(event); }
+                    if (event.text == Key.DownArrow || event.text == Key.UpArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.PageDown || event.text == Key.PageUp || event.text == Key.Escape || event.text == Key.Tab || event.text == Key.Backtab) { root.take-focus(); return keyboard.handle-key(event); }
                     return KitKeyResult.reject;
                 }
                 activate(token, generation) => { root.take-focus(); root.handle-activate(token, generation); }
@@ -166,7 +166,20 @@ export component KitMenu inherits Rectangle {
                     focus-on-click: false;
                     token: row.token; generation: row.generation;
                     request: root.has-focus && !row.disabled && root.state.active.present && root.row-focus-request.token == root.state.active.token && root.row-focus-request.generation == root.state.generation ? root.row-focus-request : {};
-                    focus-observed(token, focused) => { root.focused-navigation-row = focused ? { present: true, token: token, generation: row.generation } : {}; }
+                    private property <FocusRequest> native-identity;
+                    focus-observed(token, focused) => {
+                        if (focused) {
+                            self.native-identity = { present: true, token: token, generation: row.generation };
+                            root.focused-navigation-row = self.native-identity;
+                        } else {
+                            if (root.focused-navigation-row.token == self.native-identity.token && root.focused-navigation-row.generation == self.native-identity.generation) { root.focused-navigation-row = {}; }
+                            self.native-identity = {};
+                        }
+                    }
+                    key-pressed(event) => {
+                        if (event.text == Key.Tab || event.text == Key.Backtab) { root.take-focus(); }
+                        return reject;
+                    }
                     focus-applied(token, generation, request) => {
                         if (root.row-focus-request.present && token == root.row-focus-request.token && generation == root.row-focus-request.generation && request == root.row-focus-request.request) { root.cancel-row-focus(); }
                     }
@@ -175,7 +188,12 @@ export component KitMenu inherits Rectangle {
                     private property <bool> menu-interactive: root.interactive;
                     changed menu-interactive => { if (!self.menu-interactive) { self.clear-focus(); } }
                     private property <OptionRow> row-identity: row;
-                    changed row-identity => { self.clear-focus(); }
+                    changed row-identity => {
+                        // The request handler can already have focused the new
+                        // identity before this deferred observer runs. Clear
+                        // only a focus still owned by the recycled identity.
+                        if (self.native-identity.present && (self.native-identity.token != row.token || self.native-identity.generation != row.generation)) { self.clear-focus(); }
+                    }
                 }
             }
         }

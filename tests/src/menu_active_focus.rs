@@ -175,7 +175,17 @@ fn a_pending_virtual_row_request_cannot_steal_editor_focus_selection_or_undo() {
     key(&app, "X");
     assert_eq!(app.get_reference_text(), "nXve");
     app.invoke_undo_reference();
-    assert_eq!(app.get_reference_text(), "native");
+    assert_eq!(
+        app.get_reference_text(),
+        "nve",
+        "native undo first removes the inserted text"
+    );
+    app.invoke_undo_reference();
+    assert_eq!(
+        app.get_reference_text(),
+        "native",
+        "native undo then restores the replaced selection"
+    );
     // Disable/re-enable and a fresh generation cannot revive the old nonce.
     app.set_interactive(false);
     settle(&app);
