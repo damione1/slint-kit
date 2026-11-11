@@ -1037,10 +1037,7 @@ mod file_constraint_tests {
             byte_length: bytes,
         }
     }
-    fn binding() -> (
-        ui::KitVirtualTextView,
-        FilePickerBinding<ui::KitVirtualTextView>,
-    ) {
+    fn binding() -> (PickerTestWindow, FilePickerBinding<PickerTestWindow>) {
         i_slint_backend_testing::init_no_event_loop();
         let window = PickerTestWindow::new().unwrap();
         let binding = FilePickerBinding::new(
@@ -1048,7 +1045,7 @@ mod file_constraint_tests {
             FilePickerPorts {
                 entries: |_, _| {},
                 state: |_, _| {},
-                error: ui::KitVirtualTextView::set_error,
+                error: PickerTestWindow::set_error,
             },
         );
         (window, binding)
