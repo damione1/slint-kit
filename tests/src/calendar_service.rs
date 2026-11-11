@@ -424,3 +424,174 @@ fn weekday_headers_follow_every_week_start_and_the_first_grid_column() {
         }
     }
 }
+
+#[test]
+fn explicit_today_is_window_local_and_both_pickers_focus_the_nearest_available_date() {
+    use crate::CalendarTodayFixture;
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::Model;
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = CalendarTodayFixture::new().unwrap();
+    let other = CalendarTodayFixture::new().unwrap();
+    slint_kit::install(&window);
+    slint_kit::install(&other);
+    let zone = slint_kit::TimeZoneId::new("UTC").unwrap();
+    let local = slint_kit::LocalDateTime::new(
+        slint_kit::CivilDate::new(2026, 10, 19).unwrap(),
+        slint_kit::LocalTime::new(12, 0, 0).unwrap(),
+    );
+    let instant = match zone.resolve(local) {
+        slint_kit::ZonedResolution::Unique(value) => value,
+        slint_kit::ZonedResolution::Ambiguous { .. } | slint_kit::ZonedResolution::Nonexistent => {
+            panic!("UTC is unambiguous")
+        }
+    };
+    let today = slint_kit::set_calendar_today_at(&window, zone, instant).unwrap();
+    slint::platform::update_timers_and_animations();
+    assert_eq!(today, local.date);
+    let projected: CivilDateView = today.into();
+    assert_eq!(window.get_date_today(), projected);
+    assert_eq!(window.get_range_today(), projected);
+    assert_eq!(window.get_date_focus(), projected);
+    assert_eq!(window.get_range_focus(), projected);
+    assert_eq!(other.get_date_today(), CivilDateView::default());
+    window.set_unavailable_weekdays(slint::ModelRc::new(slint::VecModel::from(vec![
+        slint_kit::ui::WeekStart::Monday,
+    ])));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_date_focus().day, 20);
+    assert_eq!(window.get_range_focus().day, 20);
+    window.set_min("2026-10-21".into());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_date_focus().day, 21);
+    assert_eq!(window.get_range_focus().day, 21);
+    let today_rows = window
+        .get_range_days()
+        .iter()
+        .filter(|day| day.today)
+        .collect::<Vec<_>>();
+    assert_eq!(today_rows.len(), 1);
+    assert_eq!(today_rows[0].day, 19);
+    assert!(!today_rows[0].enabled);
+    window.show().unwrap();
+    for (mode, base) in [
+        window.get_theme(),
+        window.global::<slint_kit::ui::KitThemes>().get_dark(),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        for scale in [1., 2.] {
+            let mut theme = base.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            slint::platform::update_timers_and_animations();
+            window.invoke_close_date();
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("calendar-today-range-{mode}-{scale}"),
+            );
+            window.invoke_open_date();
+            crate::choice_presentation::save_capture(
+                &window.window().take_snapshot().unwrap(),
+                &format!("calendar-today-date-{mode}-{scale}"),
+            );
+            assert_eq!(
+                window
+                    .get_date_days()
+                    .iter()
+                    .filter(|day| day.today)
+                    .count(),
+                1
+            );
+            window.invoke_close_date();
+        }
+    }
+}
+
+#[test]
+fn calendar_today_override_and_user_navigation_survive_window_clock_refresh() {
+    use crate::CalendarTodayFixture;
+    use slint::platform::{Key, WindowEvent};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = CalendarTodayFixture::new().unwrap();
+    let service_today = CivilDateView {
+        year: 2026,
+        month: 10,
+        day: 19,
+    };
+    window
+        .global::<slint_kit::ui::KitCalendarService>()
+        .set_today(service_today.clone());
+    slint_kit::install(&window);
+    assert_eq!(window.get_date_focus(), service_today);
+    let beyond = slint_kit::Instant::from_unix_seconds(253_402_300_799).unwrap();
+    assert!(
+        slint_kit::set_calendar_today_at(
+            &window,
+            slint_kit::TimeZoneId::new("Pacific/Kiritimati").unwrap(),
+            beyond,
+        )
+        .is_err()
+    );
+    assert_eq!(
+        window
+            .global::<slint_kit::ui::KitCalendarService>()
+            .get_today(),
+        service_today,
+        "invalid clock projection cannot overwrite the window date"
+    );
+    let explicit = CivilDateView {
+        year: 2026,
+        month: 11,
+        day: 4,
+    };
+    window.set_explicit_today(explicit.clone());
+    window.set_override_today(true);
+    assert_eq!(window.get_date_today(), explicit);
+    assert_eq!(window.get_date_focus(), explicit);
+    let accepted = CivilDateView {
+        year: 2026,
+        month: 12,
+        day: 8,
+    };
+    window.set_accepted_date(accepted.clone());
+    assert_eq!(
+        window.get_date_focus(),
+        accepted,
+        "stored value has initial priority"
+    );
+    window.show().unwrap();
+    window.invoke_focus_range();
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::RightArrow.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::RightArrow.into(),
+    });
+    let navigated = window.get_range_focus();
+    assert_eq!(navigated.day, 20);
+    window
+        .global::<slint_kit::ui::KitCalendarService>()
+        .set_today(CivilDateView {
+            year: 2026,
+            month: 11,
+            day: 2,
+        });
+    slint::platform::update_timers_and_animations();
+    assert_eq!(
+        window.get_range_focus(),
+        navigated,
+        "clock refresh preserves native navigation"
+    );
+    assert_eq!(
+        window.get_date_today(),
+        explicit,
+        "instance today override stays independent"
+    );
+}

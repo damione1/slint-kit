@@ -40,6 +40,74 @@ impl DateConstraints {
         }
         Ok(date)
     }
+    /// Closest allowed civil date within the bounds, preferring the future on a tie.
+    /// Returns None when every date is unavailable. Whole blocked intervals are
+    /// skipped rather than scanning their individual days.
+    pub fn nearest_allowed(&self, date: CivilDate) -> Option<CivilDate> {
+        let weekdays = [
+            WeekStart::Monday,
+            WeekStart::Tuesday,
+            WeekStart::Wednesday,
+            WeekStart::Thursday,
+            WeekStart::Friday,
+            WeekStart::Saturday,
+            WeekStart::Sunday,
+        ];
+        if weekdays
+            .iter()
+            .all(|day| self.unavailable_weekdays.contains(day))
+        {
+            return None;
+        }
+        let date = self.bounds.map_or(date, |bounds| {
+            date.max(bounds.minimum()).min(bounds.maximum())
+        });
+        let search = |forward: bool| -> Option<CivilDate> {
+            let mut candidate = date;
+            loop {
+                if self
+                    .bounds
+                    .is_some_and(|bounds| bounds.validate(candidate).is_err())
+                {
+                    return None;
+                }
+                let blocked = self
+                    .unavailable
+                    .iter()
+                    .filter(|range| range.contains(candidate));
+                let boundary = if forward {
+                    blocked.map(|range| range.end()).max()
+                } else {
+                    blocked.map(|range| range.start()).min()
+                };
+                if let Some(boundary) = boundary {
+                    candidate = boundary
+                        .checked_add_days(if forward { 1 } else { -1 })
+                        .ok()?;
+                } else if self
+                    .unavailable_weekdays
+                    .iter()
+                    .any(|day| day.index() == candidate.weekday_index())
+                {
+                    candidate = candidate
+                        .checked_add_days(if forward { 1 } else { -1 })
+                        .ok()?;
+                } else {
+                    return Some(candidate);
+                }
+            }
+        };
+        match (search(false), search(true)) {
+            (None, None) => None,
+            (Some(previous), None) => Some(previous),
+            (None, Some(next)) => Some(next),
+            (Some(previous), Some(next)) => {
+                let before = date.0.signed_duration_since(previous.0).num_days();
+                let after = next.0.signed_duration_since(date.0).num_days();
+                Some(if after <= before { next } else { previous })
+            }
+        }
+    }
     /// Inclusive endpoints and interior: a range cannot bridge blocked dates.
     pub fn validate_range(&self, range: DateRange) -> Result<DateRange, ParseIssue> {
         self.validate(range.start())?;
@@ -277,5 +345,50 @@ impl DateSetController {
     }
     pub fn clear(&mut self) {
         self.selected.clear();
+    }
+}
+
+#[cfg(test)]
+mod nearest_tests {
+    use super::*;
+    fn date(day: u32) -> CivilDate {
+        CivilDate::new(2026, 10, day).unwrap()
+    }
+    #[test]
+    fn nearest_dates_obey_bounds_weekdays_and_future_ties() {
+        let rules = DateConstraints::new(Some(NumericBounds::new(date(5), date(31)).unwrap()))
+            .with_unavailable_weekdays(vec![WeekStart::Saturday, WeekStart::Sunday]);
+        assert_eq!(rules.nearest_allowed(date(1)), Some(date(5)));
+        assert_eq!(rules.nearest_allowed(date(17)), Some(date(16)));
+        assert_eq!(rules.nearest_allowed(date(31)), Some(date(30)));
+        let one = DateConstraints::default()
+            .with_unavailable_ranges(vec![DateRange::new(date(15), date(15)).unwrap()]);
+        assert_eq!(one.nearest_allowed(date(15)), Some(date(16)));
+    }
+    #[test]
+    fn nearest_search_skips_whole_intervals_and_handles_empty_availability() {
+        let overlap = DateConstraints::default().with_unavailable_ranges(vec![
+            DateRange::new(date(10), date(20)).unwrap(),
+            DateRange::new(date(15), date(25)).unwrap(),
+        ]);
+        assert_eq!(overlap.nearest_allowed(date(18)), Some(date(26)));
+        let all = DateConstraints::default().with_unavailable_ranges(vec![
+            DateRange::new(
+                CivilDate::new(1, 1, 1).unwrap(),
+                CivilDate::new(9999, 12, 31).unwrap(),
+            )
+            .unwrap(),
+        ]);
+        assert_eq!(all.nearest_allowed(date(18)), None);
+        let weekdays = DateConstraints::default().with_unavailable_weekdays(vec![
+            WeekStart::Monday,
+            WeekStart::Tuesday,
+            WeekStart::Wednesday,
+            WeekStart::Thursday,
+            WeekStart::Friday,
+            WeekStart::Saturday,
+            WeekStart::Sunday,
+        ]);
+        assert_eq!(weekdays.nearest_allowed(date(18)), None);
     }
 }

@@ -3,8 +3,8 @@
 use crate::ui;
 use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints, DateRange,
-    DateRangeController, DateRangeRules, DraftValue, NumericBounds, ParseIssue, RangeSelection,
-    WeekStart,
+    DateRangeController, DateRangeRules, DraftValue, Instant, NumericBounds, ParseIssue,
+    RangeSelection, TimeZoneId, WeekStart,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -231,6 +231,63 @@ fn invalid_configuration_projection(
     projection
 }
 
+/// Set this window's calendar reference date from an explicit instant and zone.
+/// Component-level today values remain independent overrides.
+pub fn set_calendar_today_at<W>(
+    window: &W,
+    zone: TimeZoneId,
+    instant: Instant,
+) -> Result<CivilDate, ParseIssue>
+where
+    W: slint::ComponentHandle,
+    for<'a> ui::KitCalendarService<'a>: slint::Global<'a, W>,
+{
+    let date = zone.local_at(instant)?.date;
+    window
+        .global::<ui::KitCalendarService>()
+        .set_today(date.into());
+    Ok(date)
+}
+fn unix_seconds_at(now: web_time::SystemTime) -> Result<i64, ParseIssue> {
+    match now.duration_since(web_time::UNIX_EPOCH) {
+        Ok(duration) => i64::try_from(duration.as_secs()).map_err(|_| ParseIssue::InvalidTime),
+        Err(error) => {
+            let duration = error.duration();
+            let whole = i64::try_from(duration.as_secs()).map_err(|_| ParseIssue::InvalidTime)?;
+            whole
+                .checked_add(i64::from(duration.subsec_nanos() != 0))
+                .and_then(i64::checked_neg)
+                .ok_or(ParseIssue::InvalidTime)
+        }
+    }
+}
+/// Refresh the window-local today value using the current clock in an explicit zone.
+/// Call again at a date rollover; no timer or operating-system zone is inferred.
+pub fn refresh_calendar_today<W>(window: &W, zone: TimeZoneId) -> Result<CivilDate, ParseIssue>
+where
+    W: slint::ComponentHandle,
+    for<'a> ui::KitCalendarService<'a>: slint::Global<'a, W>,
+{
+    let instant = Instant::from_unix_seconds(unix_seconds_at(web_time::SystemTime::now())?)?;
+    set_calendar_today_at(window, zone, instant)
+}
+fn initial_focus(mut view: ui::CalendarView) -> ui::CivilDateView {
+    let candidate = optional_date(view.selected.clone())
+        .ok()
+        .flatten()
+        .or_else(|| optional_date(view.today.clone()).ok().flatten())
+        .unwrap_or_else(|| CivilDate::new(2000, 1, 1).expect("valid reference date"));
+    view.focused = candidate.into();
+    match parse(&view) {
+        Ok(calendar) => calendar
+            .constraints()
+            .nearest_allowed(calendar.focused())
+            .unwrap_or(calendar.focused())
+            .into(),
+        Err(_) => candidate.into(),
+    }
+}
+
 fn range_rules(
     view: &ui::CalendarView,
     minimum: &str,
@@ -265,6 +322,7 @@ where
     if service.get_ready() {
         return;
     }
+    service.on_initial_focus(initial_focus);
     service.on_range_choose(|view, draft, date, minimum, maximum| {
         let update = || {
             let rules = range_rules(&view, &minimum, &maximum)?;
@@ -291,7 +349,8 @@ where
         let Ok(calendar) = parse(&view) else {
             return invalid_configuration_projection(&view, &names);
         };
-        let mut projection = calendar_projection(&calendar, None, &names);
+        let mut projection =
+            calendar_projection(&calendar, optional_date(view.today).ok().flatten(), &names);
         let Ok(selection) = RangeSelection::try_from(draft) else {
             return projection;
         };
@@ -354,4 +413,30 @@ where
         CivilDate::try_from(date).is_ok_and(|date| calendar.constraints().validate(date).is_ok())
     });
     service.set_ready(true);
+}
+
+#[cfg(test)]
+mod clock_tests {
+    use super::unix_seconds_at;
+    #[test]
+    fn wall_clock_seconds_floor_fractional_instants_before_and_after_epoch() {
+        use web_time::{Duration, UNIX_EPOCH};
+        assert_eq!(unix_seconds_at(UNIX_EPOCH).unwrap(), 0);
+        assert_eq!(
+            unix_seconds_at(UNIX_EPOCH + Duration::from_millis(500)).unwrap(),
+            0
+        );
+        assert_eq!(
+            unix_seconds_at(UNIX_EPOCH + Duration::from_millis(1500)).unwrap(),
+            1
+        );
+        assert_eq!(
+            unix_seconds_at(UNIX_EPOCH - Duration::from_millis(500)).unwrap(),
+            -1
+        );
+        assert_eq!(
+            unix_seconds_at(UNIX_EPOCH - Duration::from_millis(1500)).unwrap(),
+            -2
+        );
+    }
 }

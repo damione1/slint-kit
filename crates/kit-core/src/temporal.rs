@@ -6,8 +6,8 @@ use crate::{ClockFormat, TimePrecision};
 use crate::{DraftValue, NumericBounds, ParseIssue};
 pub use availability::*;
 use chrono::{
-    DateTime, Datelike, Days, LocalResult, Months, NaiveDate, NaiveDateTime, NaiveTime, TimeZone,
-    Timelike, Utc, Weekday,
+    DateTime, Datelike, Days, LocalResult, Months, NaiveDate, NaiveDateTime, NaiveTime, Offset,
+    TimeDelta, TimeZone, Timelike, Utc, Weekday,
 };
 use chrono_tz::Tz;
 pub use date_pattern::*;
@@ -355,6 +355,23 @@ impl TimeZoneId {
     pub fn name(self) -> &'static str {
         self.0.name()
     }
+    /// Project an explicit instant into this zone, validating the supported civil years.
+    pub fn local_at(self, instant: Instant) -> Result<LocalDateTime, ParseIssue> {
+        let offset = self
+            .0
+            .offset_from_utc_datetime(&instant.0.naive_utc())
+            .fix()
+            .local_minus_utc();
+        let local = instant
+            .0
+            .naive_utc()
+            .checked_add_signed(TimeDelta::seconds(i64::from(offset)))
+            .ok_or(ParseIssue::InvalidDate)?;
+        Ok(LocalDateTime::new(
+            CivilDate::new(local.year(), local.month(), local.day())?,
+            LocalTime::new(local.hour(), local.minute(), local.second())?,
+        ))
+    }
     pub fn resolve(self, local: LocalDateTime) -> ZonedResolution {
         match self.0.from_local_datetime(&local.naive()) {
             LocalResult::Single(value) => {
@@ -371,6 +388,12 @@ impl TimeZoneId {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(DateTime<Utc>);
 impl Instant {
+    /// Parse Unix seconds once at the instant boundary; zone projection validates civil years.
+    pub fn from_unix_seconds(value: i64) -> Result<Self, ParseIssue> {
+        DateTime::<Utc>::from_timestamp(value, 0)
+            .map(Self)
+            .ok_or(ParseIssue::InvalidTime)
+    }
     pub fn unix_seconds(self) -> i64 {
         self.0.timestamp()
     }
@@ -970,5 +993,38 @@ mod tests {
                 RangeSelection::Complete(DateRange::new(minimum, date(2026, 10, 6)).unwrap())
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod calendar_clock_tests {
+    use super::*;
+    #[test]
+    fn explicit_clock_projects_the_local_date_and_rejects_unsupported_boundaries() {
+        let epoch = Instant::from_unix_seconds(0).unwrap();
+        assert_eq!(epoch.unix_seconds(), 0);
+        let local = TimeZoneId::new("America/Toronto")
+            .unwrap()
+            .local_at(epoch)
+            .unwrap();
+        assert_eq!(local.date, CivilDate::new(1969, 12, 31).unwrap());
+        assert_eq!(local.time, LocalTime::new(19, 0, 0).unwrap());
+        assert!(Instant::from_unix_seconds(i64::MAX).is_err());
+        let first = Instant::from_unix_seconds(-62_135_596_800).unwrap();
+        assert!(TimeZoneId::new("UTC").unwrap().local_at(first).is_ok());
+        assert!(
+            TimeZoneId::new("America/Toronto")
+                .unwrap()
+                .local_at(first)
+                .is_err()
+        );
+        let last = Instant::from_unix_seconds(253_402_300_799).unwrap();
+        assert!(TimeZoneId::new("UTC").unwrap().local_at(last).is_ok());
+        assert!(
+            TimeZoneId::new("Pacific/Kiritimati")
+                .unwrap()
+                .local_at(last)
+                .is_err()
+        );
     }
 }
