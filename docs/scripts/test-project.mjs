@@ -123,6 +123,7 @@ test('unreleased component starters do not link to an absent registry example', 
         const output = env.renderString(template, { component: { slug: 'avatar-group' }, locale, project: { registryExamples, version }, quickstart: { ...starters['avatar-group'], kitVersion: '0.7.2' } });
         assert(!output.includes('https://github.com/damione1/slint-kit/tree/v0.7.2/docs/quickstart/avatar-group'));
         assert(!output.includes('cargo run --locked'));
+        assert(output.includes('/quickstart/projects/avatar-group.zip'));
         assert(output.includes(locale === 'fr' ? 'Aucun exemple de ce nouveau composant' : 'This new component has no example'));
       }
     }

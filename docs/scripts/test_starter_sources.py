@@ -118,6 +118,22 @@ version = "0.3.0"
         self.assertFalse((consumers['checkbox'] / 'ui/assets/profile.jpg').exists())
         self.assertFalse((starter_sources.source_directory('checkbox', 'local', native=True) / 'ui/assets/profile.jpg').exists())
 
+    def test_unreleased_zip_requires_matching_sources_without_patching_its_public_manifest(self):
+        entries = self.root / 'docs/content/starters.json'
+        entries.write_text(json.dumps({'checkbox': {'registryExample': False}, 'radio-group': {}}))
+        consumers = starter_sources.prepare('local')
+        (self.root / 'LICENSE').write_text('GPL-3.0-or-later')
+        with patch.object(doc_inputs, 'ROOT', self.root), patch.object(doc_inputs, 'DOCS', self.root / 'docs'), patch.object(starter_sources, 'prepare', return_value=consumers):
+            runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')), run_name='__main__')
+        with zipfile.ZipFile(self.root / 'docs/.generated/starters/checkbox.zip') as archive:
+            readme = archive.read('checkbox/README.md').decode()
+            self.assertIn('APIs are absent from the published 0.4.0 packages', readme)
+            self.assertIn('Required source dependencies', readme)
+            self.assertIn('obligatoires', readme)
+            self.assertNotIn('use the matching registry release', readme)
+            self.assertNotIn('patch', tomllib.loads(archive.read('checkbox/Cargo.toml').decode()))
+            self.assertEqual(archive.read('checkbox/src/main.rs'), b'original')
+
     def test_release_generates_a_separate_registry_lock_without_any_path_patch(self):
         starter_sources.prepare('local')
         consumers = starter_sources.prepare('release')
