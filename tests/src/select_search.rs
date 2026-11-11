@@ -119,7 +119,13 @@ fn searchable_controls_route_the_opening_character_and_list_typing_to_native_edi
                 search(&app).unwrap().accessible_value().as_deref(),
                 Some("b")
             );
-            assert_eq!(app.get_rows().row_count(), 2); // Blocked and Banana.
+            assert_eq!(
+                app.get_rows()
+                    .iter()
+                    .map(|row| row.token)
+                    .collect::<Vec<_>>(),
+                [11, 33, 44], // Amber, Blocked and Banana match the filter.
+            );
             key(&app, Key::Backspace);
             assert!(app.get_query().is_empty());
             key(&app, "z");
