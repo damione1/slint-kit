@@ -860,6 +860,7 @@ mod tests {
 #[cfg(test)]
 mod request_tests {
     use super::*;
+    use crate::native_test_ui::PickerTestWindow;
     use std::{
         future::Future,
         pin::Pin,
@@ -1029,6 +1030,7 @@ mod request_tests {
 #[cfg(test)]
 mod file_constraint_tests {
     use super::*;
+    use crate::native_test_ui::PickerTestWindow;
     use slint::Model as _;
     fn handle(name: &str, bytes: Option<u64>) -> FileHandle {
         FileHandle {
@@ -1143,6 +1145,10 @@ mod file_constraint_tests {
 #[cfg(test)]
 mod cancelled_presentation_tests {
     use super::*;
+    use crate::native_test_ui::PickerTestWindow;
+    std::thread_local! {
+        static PRESENTED_STATE: Cell<Option<ui::HostRequestPresentation>> = const { Cell::new(None) };
+    }
     use std::{
         future::Future as _,
         task::{Context, Poll, Waker},
@@ -1150,13 +1156,14 @@ mod cancelled_presentation_tests {
     #[test]
     fn blocking_a_pending_picker_clears_busy_state_and_late_response_stays_cancelled() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitFilePicker::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
+        PRESENTED_STATE.with(|state| state.set(None));
         let binding = FilePickerBinding::new(
             &window,
             FilePickerPorts {
-                entries: ui::KitFilePicker::set_entries,
-                state: ui::KitFilePicker::set_request_state,
-                error: ui::KitFilePicker::set_error,
+                entries: |_, _| {},
+                state: |_, value| PRESENTED_STATE.with(|state| state.set(Some(value))),
+                error: PickerTestWindow::set_error,
             },
         );
         let ready = Rc::new(Cell::new(false));
@@ -1181,13 +1188,13 @@ mod cancelled_presentation_tests {
                 .is_pending()
         );
         assert_eq!(
-            window.get_request_state(),
-            ui::HostRequestPresentation::Pending
+            PRESENTED_STATE.with(Cell::get),
+            Some(ui::HostRequestPresentation::Pending)
         );
         binding.set_access(crate::FieldAccess::ReadOnly);
         assert_eq!(
-            window.get_request_state(),
-            ui::HostRequestPresentation::Cancelled
+            PRESENTED_STATE.with(Cell::get),
+            Some(ui::HostRequestPresentation::Cancelled)
         );
         ready.set(true);
         assert!(
@@ -1197,8 +1204,8 @@ mod cancelled_presentation_tests {
                 .is_ready()
         );
         assert_eq!(
-            window.get_request_state(),
-            ui::HostRequestPresentation::Cancelled
+            PRESENTED_STATE.with(Cell::get),
+            Some(ui::HostRequestPresentation::Cancelled)
         );
     }
 }
