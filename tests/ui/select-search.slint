@@ -25,9 +25,9 @@ export component SelectSearchFixture inherits Window {
         else if (root.control == SearchControl.multiple) { multi.take-focus(); }
         else { surface.take-focus(); }
     }
-    VerticalLayout {
-        padding: 24px; spacing: 16px; alignment: start;
-        if root.control == SearchControl.single: single := KitSelect {
+        single := KitSelect {
+            visible: root.control == SearchControl.single;
+            x: 24px; y: 24px; width: root.width - 48px;
             theme: root.theme; options: root.options; label: "Destination";
             searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
             search-label: root.search-label; empty-label: root.empty-label;
@@ -35,7 +35,9 @@ export component SelectSearchFixture inherits Window {
             query-edited(text) => { root.query-edited(text); }
             tab-navigation(reverse) => { outside.take-focus(); return KitKeyResult.accept; }
         }
-        if root.control == SearchControl.multiple: multi := KitMultiSelect {
+        multi := KitMultiSelect {
+            visible: root.control == SearchControl.multiple;
+            x: 24px; y: 24px; width: root.width - 48px;
             theme: root.theme; options: root.options; label: "Destinations";
             searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
             search-label: root.search-label; empty-label: root.empty-label;
@@ -43,7 +45,10 @@ export component SelectSearchFixture inherits Window {
             query-edited(text) => { root.query-edited(text); }
             tab-navigation(reverse) => { outside.take-focus(); return KitKeyResult.accept; }
         }
-        if root.control == SearchControl.surface: surface := KitSelectSurface {
+        surface := KitSelectSurface {
+            visible: root.control == SearchControl.surface;
+            focus-on-open: root.control == SearchControl.surface;
+            x: 24px; y: 24px; width: root.width - 48px;
             theme: root.theme; options: root.options; height: 360px;
             ownership: root.ownership; empty: self.rows.length == 0;
             searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
@@ -60,7 +65,5 @@ export component SelectSearchFixture inherits Window {
                 }
             }
         }
-        Rectangle { min-height: 380px; vertical-stretch: 1; }
-        outside := KitTextField { theme: root.theme; label: "Outside editor"; }
-    }
+        outside := KitTextField { theme: root.theme; label: "Outside editor"; x: 24px; y: 600px; width: root.width - 48px; }
 }
