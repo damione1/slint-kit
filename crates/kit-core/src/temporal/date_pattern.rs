@@ -20,61 +20,7 @@ use chrono::{
 pub struct DatePattern(String);
 impl DatePattern {
     pub fn new(pattern: impl Into<String>) -> Result<Self, ParseIssue> {
-        let pattern = pattern.into();
-        let mut chars = pattern.chars();
-        let (mut year, mut month, mut day, mut ordinal, mut iso_year, mut week, mut weekday) =
-            (false, false, false, false, false, false, false);
-        while let Some(ch) = chars.next() {
-            if ch != '%' {
-                continue;
-            }
-            let mut directive = chars.next().ok_or(ParseIssue::InvalidSyntax)?;
-            if matches!(directive, '-' | '_' | '0') {
-                directive = chars.next().ok_or(ParseIssue::InvalidSyntax)?;
-                if !matches!(directive, 'Y' | 'm' | 'd' | 'e' | 'j' | 'G' | 'V' | 'u') {
-                    return Err(ParseIssue::InvalidSyntax);
-                }
-            }
-            match directive {
-                'Y' => year = true,
-                'm' | 'b' | 'B' => month = true,
-                'd' | 'e' => day = true,
-                'j' => ordinal = true,
-                'G' => iso_year = true,
-                'V' => week = true,
-                'u' | 'a' | 'A' => weekday = true,
-                'F' => {
-                    year = true;
-                    month = true;
-                    day = true;
-                }
-                '%' => (),
-                _ => return Err(ParseIssue::InvalidSyntax),
-            }
-        }
-        if !(year && (month && day || ordinal) || iso_year && week && weekday) {
-            return Err(ParseIssue::InvalidSyntax);
-        }
-        let items = StrftimeItems::new(&pattern).collect::<Vec<_>>();
-        if items.contains(&Item::Error) {
-            return Err(ParseIssue::InvalidSyntax);
-        }
-        let variable_numeric =
-            |item: &Item<'_>| matches!(item, Item::Numeric(_, Pad::None | Pad::Space));
-        for pair in items.windows(2) {
-            let numeric_pair =
-                matches!(pair[0], Item::Numeric(..)) && matches!(pair[1], Item::Numeric(..));
-            let numeric_literal_boundary = matches!(&pair[1], Item::Literal(text) if text.starts_with(|ch: char| ch.is_ascii_digit()))
-                && variable_numeric(&pair[0])
-                || matches!(&pair[0], Item::Literal(text) if text.ends_with(|ch: char| ch.is_ascii_digit()))
-                    && variable_numeric(&pair[1]);
-            if numeric_pair && (variable_numeric(&pair[0]) || variable_numeric(&pair[1]))
-                || numeric_literal_boundary
-            {
-                return Err(ParseIssue::InvalidSyntax);
-            }
-        }
-        Ok(Self(pattern))
+        checked_pattern(pattern.into(), true).map(Self)
     }
     pub fn as_str(&self) -> &str {
         &self.0
@@ -97,6 +43,82 @@ impl DatePattern {
             Err(_) => DraftValue::Invalid(ParseIssue::InvalidDate),
         }
     }
+}
+
+/// A date-only pattern for display, including partial dates such as `%B %Y`.
+/// Uses the same directives and explicit names as [`DatePattern`], without a
+/// parsing API or a requirement to contain a complete date.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DateDisplayPattern(String);
+impl DateDisplayPattern {
+    pub fn new(pattern: impl Into<String>) -> Result<Self, ParseIssue> {
+        checked_pattern(pattern.into(), false).map(Self)
+    }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+    pub fn format(&self, date: CivilDate) -> String {
+        date.0.format(&self.0).to_string()
+    }
+    pub fn format_with_names(&self, date: CivilDate, names: &DateNames) -> String {
+        format_with_names(&self.0, date, names)
+    }
+}
+fn checked_pattern(pattern: String, complete: bool) -> Result<String, ParseIssue> {
+    let mut chars = pattern.chars();
+    let (mut year, mut month, mut day, mut ordinal, mut iso_year, mut week, mut weekday) =
+        (false, false, false, false, false, false, false);
+    while let Some(ch) = chars.next() {
+        if ch != '%' {
+            continue;
+        }
+        let mut directive = chars.next().ok_or(ParseIssue::InvalidSyntax)?;
+        if matches!(directive, '-' | '_' | '0') {
+            directive = chars.next().ok_or(ParseIssue::InvalidSyntax)?;
+            if !matches!(directive, 'Y' | 'm' | 'd' | 'e' | 'j' | 'G' | 'V' | 'u') {
+                return Err(ParseIssue::InvalidSyntax);
+            }
+        }
+        match directive {
+            'Y' => year = true,
+            'm' | 'b' | 'B' => month = true,
+            'd' | 'e' => day = true,
+            'j' => ordinal = true,
+            'G' => iso_year = true,
+            'V' => week = true,
+            'u' | 'a' | 'A' => weekday = true,
+            'F' => {
+                year = true;
+                month = true;
+                day = true;
+            }
+            '%' => (),
+            _ => return Err(ParseIssue::InvalidSyntax),
+        }
+    }
+    if complete && !(year && (month && day || ordinal) || iso_year && week && weekday) {
+        return Err(ParseIssue::InvalidSyntax);
+    }
+    let items = StrftimeItems::new(&pattern).collect::<Vec<_>>();
+    if items.contains(&Item::Error) {
+        return Err(ParseIssue::InvalidSyntax);
+    }
+    let variable_numeric =
+        |item: &Item<'_>| matches!(item, Item::Numeric(_, Pad::None | Pad::Space));
+    for pair in items.windows(2) {
+        let numeric_pair =
+            matches!(pair[0], Item::Numeric(..)) && matches!(pair[1], Item::Numeric(..));
+        let numeric_literal_boundary = matches!(&pair[1], Item::Literal(text) if text.starts_with(|ch: char| ch.is_ascii_digit()))
+            && variable_numeric(&pair[0])
+            || matches!(&pair[0], Item::Literal(text) if text.ends_with(|ch: char| ch.is_ascii_digit()))
+                && variable_numeric(&pair[1]);
+        if numeric_pair && (variable_numeric(&pair[0]) || variable_numeric(&pair[1]))
+            || numeric_literal_boundary
+        {
+            return Err(ParseIssue::InvalidSyntax);
+        }
+    }
+    Ok(pattern)
 }
 
 /// Host-supplied names keep formatting open to any language without silently
@@ -171,23 +193,7 @@ impl DateNames {
 }
 impl DatePattern {
     pub fn format_with_names(&self, date: CivilDate, names: &DateNames) -> String {
-        StrftimeItems::new(&self.0)
-            .map(|item| {
-                let month = usize::try_from(date.month() - 1).expect("validated month");
-                let weekday = usize::try_from(date.weekday_index()).expect("weekday index");
-                if item == Item::Fixed(Fixed::LongMonthName) {
-                    names.months[month].clone()
-                } else if item == Item::Fixed(Fixed::ShortMonthName) {
-                    names.short_months[month].clone()
-                } else if item == Item::Fixed(Fixed::LongWeekdayName) {
-                    names.weekdays[weekday].clone()
-                } else if item == Item::Fixed(Fixed::ShortWeekdayName) {
-                    names.short_weekdays[weekday].clone()
-                } else {
-                    date.0.format_with_items(std::iter::once(&item)).to_string()
-                }
-            })
-            .collect()
+        format_with_names(&self.0, date, names)
     }
     /// Name matching uses Unicode lowercase, without accent stripping or
     /// locale-specific case folding. Abbreviations must include their punctuation.
@@ -296,9 +302,46 @@ impl DatePattern {
     }
 }
 
+fn format_with_names(pattern: &str, date: CivilDate, names: &DateNames) -> String {
+    StrftimeItems::new(pattern)
+        .map(|item| {
+            let month = usize::try_from(date.month() - 1).expect("validated month");
+            let weekday = usize::try_from(date.weekday_index()).expect("weekday index");
+            if item == Item::Fixed(Fixed::LongMonthName) {
+                names.months[month].clone()
+            } else if item == Item::Fixed(Fixed::ShortMonthName) {
+                names.short_months[month].clone()
+            } else if item == Item::Fixed(Fixed::LongWeekdayName) {
+                names.weekdays[weekday].clone()
+            } else if item == Item::Fixed(Fixed::ShortWeekdayName) {
+                names.short_weekdays[weekday].clone()
+            } else {
+                date.0.format_with_items(std::iter::once(&item)).to_string()
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn display_patterns_share_named_formatting_without_weakening_date_parsing() {
+        let date = CivilDate::new(2026, 10, 1).unwrap();
+        let pattern = DateDisplayPattern::new("%Y — %B (%b)").unwrap();
+        assert_eq!(
+            pattern.format_with_names(date, &DateNames::french()),
+            "2026 — octobre (oct.)"
+        );
+        assert_eq!(
+            DateDisplayPattern::new("%B %Y").unwrap().format(date),
+            "October 2026"
+        );
+        assert!(DatePattern::new("%B %Y").is_err());
+        for invalid in ["%y", "%H", "%Z", "%", "%_B"] {
+            assert!(DateDisplayPattern::new(invalid).is_err(), "{invalid}");
+        }
+    }
     #[test]
     fn explicit_patterns_cover_numeric_textual_ordinal_and_iso_week_dates() {
         let date = CivilDate::new(2024, 2, 29).unwrap();
