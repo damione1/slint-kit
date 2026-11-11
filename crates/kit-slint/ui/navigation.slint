@@ -1,3 +1,4 @@
+import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { FocusOutline } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
@@ -541,6 +542,9 @@ export component KitCarousel inherits Rectangle {
     in property <string> previous-label: "Previous slide";
     in property <string> next-label: "Next slide";
     in property <string> empty-label: "No slides";
+    in property <string> position-label: KitStrings.carousel-position-template
+        .replace-all("{current}", "" + (root.rows.length == 0 ? 0 : root.display-index + 1))
+        .replace-all("{total}", "" + root.rows.length);
     callback navigate(NavigationStep);
     callback activate(int, int);
     in property <string> action-label;
@@ -616,7 +620,7 @@ export component KitCarousel inherits Rectangle {
                     }
                     activated => { root.handle-navigate(NavigationStep.previous); }
                 }
-                Text { text: root.rows.length == 0 ? "0 / 0" : (root.display-index + 1) + " / " + root.rows.length; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+                Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
                 KitButton {
                     theme: root.theme; control-size: root.control-size; text: root.next-label;
                     disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index >= root.rows.length - 1);
@@ -655,6 +659,7 @@ export component KitCarousel inherits Rectangle {
 export component KitBreadcrumbs inherits Rectangle {
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <string> accessible-name: KitStrings.breadcrumbs-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
     callback activate(int, int);
@@ -662,7 +667,7 @@ export component KitBreadcrumbs inherits Rectangle {
     preferred-height: self.min-height;
     vertical-stretch: 0;
     accessible-role: navigation;
-    accessible-label: "Breadcrumbs";
+    accessible-label: root.accessible-name;
     viewport := ScrollFrame {
         theme: root.theme;
         vertical-scrollbar-policy: ScrollBarPolicy.always-off;
@@ -714,6 +719,7 @@ export component KitBreadcrumbs inherits Rectangle {
 export component KitPagination inherits HorizontalLayout {
     in property <bool> interactive: true;
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <string> accessible-name: KitStrings.pagination-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in-out property <int> page-index;
     in property <Ownership> ownership: Ownership.local;
@@ -726,6 +732,9 @@ export component KitPagination inherits HorizontalLayout {
         root.page-changed(next);
     }
     in property <int> page-count;
+    in property <string> position-label: KitStrings.pagination-position-template
+        .replace-all("{current}", "" + (root.page-count <= 0 ? 0 : min(max(0, root.page-index), root.page-count - 1) + 1))
+        .replace-all("{total}", "" + max(0, root.page-count));
     in property <string> previous-label: "Previous";
     in property <string> next-label: "Next";
     callback navigate(NavigationStep);
@@ -733,9 +742,9 @@ export component KitPagination inherits HorizontalLayout {
     alignment: start;
     vertical-stretch: 0;
     accessible-role: navigation;
-    accessible-label: "Pagination";
+    accessible-label: root.accessible-name;
     KitButton { theme: root.theme; control-size: root.control-size; text: root.previous-label; disabled: !root.interactive || root.page-index <= 0 || root.page-count <= 0; activated => { root.change-page(root.page-index - 1); root.navigate(NavigationStep.previous); } }
-    Text { text: root.page-count <= 0 ? "0 / 0" : (min(max(0, root.page-index), root.page-count - 1) + 1) + " / " + root.page-count; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+    Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
     KitButton { theme: root.theme; control-size: root.control-size; text: root.next-label; disabled: !root.interactive || root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.change-page(root.page-index + 1); root.navigate(NavigationStep.next); } }
 }
 
@@ -846,6 +855,7 @@ component NotificationItem inherits Rectangle {
 
 export component KitNotificationCenter inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
+    in property <string> accessible-name: KitStrings.notifications-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[NotificationRow]> rows;
     in property <int> focus-token: -1;
@@ -861,7 +871,7 @@ export component KitNotificationCenter inherits Rectangle {
     callback mark-read(int, int);
     callback dismiss-row(int, int);
     accessible-role: AccessibleRole.list;
-    accessible-label: "Notifications";
+    accessible-label: root.accessible-name;
     min-height: 100px;
     // Measure a bounded inbox exactly. Unbounded message collections retain a
     // finite virtual viewport and never create every native action delegate.

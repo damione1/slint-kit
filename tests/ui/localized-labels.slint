@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitAlert, KitToast, KitToastHost, ToastEntry, KitBreadcrumbs, KitPagination, KitNotificationCenter, KitCarousel, KitTheme, KitThemes, OptionRow, SelectState, Ownership } from "@kit";
+export component LocalizedNavigationFixture inherits Window {
+    preferred-width: 1120px; preferred-height: 600px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[OptionRow]> options;
+    in property <int> page-count: 3;
+    in-out property <int> page-index <=> pagination.page-index;
+    in property <Ownership> ownership: Ownership.local;
+    out property <string> page-label: pagination.position-label;
+    out property <string> slide-label: carousel.position-label;
+    out property <SelectState> carousel-state: carousel.state;
+    out property <[OptionRow]> breadcrumb-rows: breadcrumbs.rows;
+    callback page-changed(int);
+    callback breadcrumb-activated(int, int);
+    public function focus-carousel() { carousel.take-focus(); }
+    public function override-labels() {
+        breadcrumbs.accessible-name = "Chemin personnalisé";
+        pagination.accessible-name = "Navigation personnalisée";
+        pagination.position-label = "Position personnalisée";
+        carousel.position-label = "Album personnalisé";
+    }
+    VerticalLayout {
+        alignment: start; padding: 24px; spacing: 24px;
+        breadcrumbs := KitBreadcrumbs {
+            theme: root.theme; options: root.options;
+            activate(token, generation) => { root.breadcrumb-activated(token, generation); }
+        }
+        pagination := KitPagination {
+            theme: root.theme; page-count: root.page-count; ownership: root.ownership;
+            previous-label: "Page précédente"; next-label: "Page suivante";
+            page-changed(value) => { root.page-changed(value); }
+        }
+        carousel := KitCarousel {
+            theme: root.theme; options: root.options; label: "Galerie";
+            previous-label: "Diapositive précédente"; next-label: "Diapositive suivante"; empty-label: "Aucune diapositive";
+        }
+    }
+}
+export component LocalizedFeedbackFixture inherits Window {
+    preferred-width: 760px; preferred-height: 720px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <string> alert-title: "Enregistré";
+    in property <[ToastEntry]> entries;
+    callback alert-dismissed();
+    callback toast-dismissed(int);
+    callback toast-action(int);
+    public function override-labels() {
+        alert.dismiss-label = "Fermer ce rapport";
+        toast.dismiss-label = "Retirer cette confirmation";
+        notifications.accessible-name = "Messages personnalisés";
+    }
+    VerticalLayout {
+        alignment: start; padding: 24px; spacing: 24px;
+        alert := KitAlert {
+            theme: root.theme; title: root.alert-title; message: "Les modifications sont disponibles."; dismissible: true;
+            dismissed => { root.alert-dismissed(); }
+        }
+        toast := KitToast {
+            theme: root.theme;
+            entry: {token: 17, title: "Confirmation", message: "Le rapport est disponible.", dismissible: true};
+            dismiss(token) => { root.toast-dismissed(token); }
+            action(token) => { root.toast-action(token); }
+        }
+        host := KitToastHost {
+            theme: root.theme; entries: root.entries;
+            dismiss(token) => { root.toast-dismissed(token); }
+            action(token) => { root.toast-action(token); }
+        }
+        notifications := KitNotificationCenter {
+            theme: root.theme;
+            empty-label: "Aucune notification"; empty-description: "Vous avez tout consulté.";
+        }
+    }
+}
