@@ -16,6 +16,8 @@ export component Example inherits Window {
     in property <[OptionRow]> options: [{ token:11,generation:1,label:"Overview",description:"Your project at a glance",disabled:false }, { token:23,generation:1,label:"Activity",description:"Recent changes and updates",disabled:false }, { token:38,generation:1,label:"Settings",description:"Team and project preferences",disabled:false }];
 
     in-out property <string> query;
+    // Use measured chrome when budgeting an option viewport; custom popup height adds chrome-height before applying window bounds.
+    out property <length> option-viewport-height: max(0px, control.height - control.chrome-height);
     // Custom typing uses the native search path (install services once per window).
     // With searchable:false, the same API performs prefix navigation instead.
     public function type-ahead(text: string) { control.type-ahead(text); }

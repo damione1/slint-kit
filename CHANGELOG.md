@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bound Select, Combobox and MultiSelect popups to the installed window, choosing space above/below and shifting horizontally while retaining virtualized scrolling. Add read-only KitSelectSurface.chrome-height for measured insets/search chrome in custom sizing; option rows and separate Combobox status content are excluded. No new placement/width policy; the separate native-popup Qt typing limitation remains.
+- Borne les popups Select, Combobox et MultiSelect à la fenêtre installée, choisit la place au-dessus/en dessous et décale horizontalement en conservant le défilement virtualisé. Ajoute KitSelectSurface.chrome-height en lecture seule pour mesurer marges/recherche dans les compositions ; options et état Combobox séparé sont exclus. Aucun mode de placement/largeur ajouté ; la limite de frappe du popup natif Qt séparé demeure.
+
 - Guard VirtualTextView native line commits, Save and Copy against negative/out-of-range active indices and stale token/generation actions after model changes. Invalid lines cannot emit fabricated commits or copy requests; valid Copy retains draft copying and editor focus, and read-only keeps its footer hidden. No public API change.
 - Protège les validations natives de ligne, Enregistrer et Copier de VirtualTextView contre les indices actifs hors limites et les actions de jeton/génération obsolètes après changement de modèle. Aucune ligne invalide ne produit de validation ni demande de copie fabriquée ; Copier conserve brouillon/focus pour une ligne valide et la lecture seule garde le pied masqué. API publique inchangée.
 
