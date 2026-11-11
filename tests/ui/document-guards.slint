@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitVirtualTextView, KitTextField, TextLine, TextViewAccess, KitTheme, KitThemes } from "@kit";
+export component DocumentGuardsFixture inherits Window {
+    preferred-width: 900px; preferred-height: 720px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[TextLine]> lines;
+    in property <int> generation: 7;
+    in property <int> active-index: -1;
+    in property <TextViewAccess> access: TextViewAccess.edit-line;
+    in-out property <string> draft;
+    out property <int> page-rows: document.page-rows;
+    out property <string> clipboard-text: clipboard.text;
+    callback selected(int,int);
+    callback committed(int,int,string);
+    callback copied(int,int);
+    public function focus-document() { document.take-focus(); }
+    public function seed-clipboard() { clipboard.text = "Clipboard sentinel"; clipboard.take-focus(); clipboard.select-all(); clipboard.copy-selection(); }
+    public function paste-clipboard() { clipboard.text = ""; clipboard.take-focus(); clipboard.paste(); }
+    VerticalLayout {
+        alignment: start; padding: 24px; spacing: 24px;
+        document := KitVirtualTextView {
+            theme: root.theme; height: 500px;
+            lines: root.lines; generation: root.generation; active-index: root.active-index;
+            access: root.access; line-draft <=> root.draft;
+            label: "Document"; editor-label: "Edit selected line";
+            save-label: "Save line"; copy-label: "Copy line";
+            select-line(token,generation) => { root.selected(token,generation); }
+            commit-line(token,generation,text) => { root.committed(token,generation,text); }
+            copy-requested(token,generation) => { root.copied(token,generation); }
+        }
+        clipboard := KitTextField { theme: root.theme; label: "Clipboard proof"; implicit-form-submit: false; }
+    }
+}

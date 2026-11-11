@@ -79,6 +79,8 @@ For collection views with explicit ports, `bind` takes the window and setters fo
 
 The application still chooses data, sorting, filtering, loading and commands. A large model belongs in a virtualized collection control, not repeated visual children. `action`, `event`, `event2` and `event3` connect business callbacks with a weak window and pass a temporary live handle to the handler.
 
+For `KitVirtualTextView`, `active-index` is a visual coordinate only. Native line editing, Save and Copy require `TextViewAccess.edit-line` and an index within the current `lines` model. Shrinking or clearing a model must not create a token from an invalid index. Save/Copy reject a captured token/generation that becomes stale, including around Copy’s focus/clipboard effects. For admitted lines Copy uses the current native draft and restores editor focus; read-only mode keeps the footer hidden. Validate `commit-line`/`copy-requested` with `KeyedModel::accept`; use `update_active` and `bind_active` to keep edits attached to the stable key rather than a displayed row or line number.
+
 ## Host effects and notifications
 
 Localize built-in action and region names once per window through `KitStrings.dismiss-label-template` (`Dismiss {title}`), `breadcrumbs-label`, `pagination-label` and `notifications-label`, or override each component’s `dismiss-label` / `accessible-name`. `ToastEntry.dismiss-label` carries a complete per-entry name through `KitToastHost`; empty uses the global template, and `KitToast.dismiss-label` can override it. Complete Rust `ToastEntry` literals now need `dismiss_label: Default::default()` (or a localized name); literals ending with `..Default::default()` remain compatible.

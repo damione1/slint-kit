@@ -11,6 +11,7 @@ mod calendar_outside;
 mod code_feedback;
 mod column_widths;
 mod dialog_composition;
+mod document_guards;
 mod direction;
 mod file_constraints;
 mod foundation_render;

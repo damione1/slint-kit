@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Guard VirtualTextView native line commits, Save and Copy against negative/out-of-range active indices and stale token/generation actions after model changes. Invalid lines cannot emit fabricated commits or copy requests; valid Copy retains draft copying and editor focus, and read-only keeps its footer hidden. No public API change.
+- Protège les validations natives de ligne, Enregistrer et Copier de VirtualTextView contre les indices actifs hors limites et les actions de jeton/génération obsolètes après changement de modèle. Aucune ligne invalide ne produit de validation ni demande de copie fabriquée ; Copier conserve brouillon/focus pour une ligne valide et la lecture seule garde le pied masqué. API publique inchangée.
+
 - Bound the ColorField palette popup, including its use inside ColorPicker, to the installation window; flip above or shift horizontally when needed. Native scrolling and themed bars keep oversized palette content and Cancel/Apply reachable at 200% text without changing the public API or color acceptance.
 - Borne le popup de palette ColorField, y compris dans ColorPicker, à la fenêtre d’installation ; placement au-dessus ou décalage horizontal selon la place. Le défilement natif et les barres thémées gardent le contenu et Annuler/Appliquer accessibles à 200 % de texte, sans changer l’API publique ni l’acceptation des couleurs.
 

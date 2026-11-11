@@ -7126,8 +7126,8 @@
       "label": "Vue de texte virtualisée",
       "seoTitle": "Vue de texte virtualisée pour Slint",
       "summary": "Vue de document Slint avec sélection et édition native d’une ligne.",
-      "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives. Voir [l’identité et la capacité du modèle](../../guides/controllers/) pour les générations locales, leur bouclage et `ModelError::IdentityExhausted`.",
-      "behavior": "Traitez `select-line` pour charger le brouillon sélectionné et `navigate` pour changer de ligne. `copy-requested` signale une copie. Utilisez `KitTextArea` pour éditer un tampon multiligne complet. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité. Lisez la plage visible indépendamment d’active-index. Les commandes de défilement préservent la sélection hôte et bornent les décalages signés au contenu courant. near-end signale une entrée de plage ; si un ajout laisse end-near vrai, l’hôte peut poursuivre le remplissage sans attendre une seconde transition.",
+      "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives. Voir [l’identité et la capacité du modèle](../../guides/controllers/) pour les générations locales, leur bouclage et `ModelError::IdentityExhausted`. Rattachez les éditions acceptées à la clé stable avec KeyedModel.accept, update_active et bind_active ; ne déduisez jamais un jeton d’active-index ni du numéro de ligne affiché.",
+      "behavior": "Traitez `select-line` pour charger le brouillon sélectionné et `navigate` pour changer de ligne. `copy-requested` signale une copie. Utilisez `KitTextArea` pour éditer un tampon multiligne complet. Pour PageUp/PageDown, lisez `page-rows` à chaque touche. Rust peut brancher `model.navigation(&window, Window::get_page_rows)` via une propriété exposée par la fenêtre ; un contrôleur direct fournit cette valeur à `navigate_page`. `navigate(step, page_rows)` exige aussi une capacité explicite ; `navigate_page` reste un alias explicite de compatibilité. Lisez la plage visible indépendamment d’active-index. Les commandes de défilement préservent la sélection hôte et bornent les décalages signés au contenu courant. near-end signale une entrée de plage ; si un ajout laisse end-near vrai, l’hôte peut poursuivre le remplissage sans attendre une seconde transition. L’éditeur natif de ligne, Enregistrer et Copier ne sont admis qu’avec access: TextViewAccess.edit-line et 0 <= active-index < lines.length. Un indice négatif ou au-delà du modèle, notamment après réduction ou vidage, désactive édition/actions et n’émet ni validation ni demande de copie pour une ligne fabriquée. Enregistrer/Copier capturent jeton et génération et rejettent une identité devenue obsolète avant la fin ; Copier revérifie autour des effets de focus et de presse-papiers. Pour une ligne valide, Copier copie le brouillon natif courant et rend le focus à l’éditeur. Le mode lecture seule continue de masquer le pied d’édition.",
       "related": [
         "KitTextArea",
         "KitContentList",
@@ -7181,10 +7181,20 @@
         "scroll-y": {
           "effect": "Décalage vertical courant en pixels logiques, nul en haut et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
           "example": "text: document.scroll-y / 1px;"
+        },
+        "active-index": {
+          "effect": "Coordonnée visuelle à partir de zéro de la ligne active, sans constituer son identité. L’édition exige un indice dans le modèle lines courant ; -1 signifie aucune ligne active.",
+          "default": "-1"
+        },
+        "access": {
+          "effect": "TextViewAccess.read-only masque le pied d’édition. TextViewAccess.edit-line autorise son éditeur et ses actions uniquement si l’indice actif est valide.",
+          "default": "TextViewAccess.read-only"
         }
       },
       "callbacks": {
-        "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte."
+        "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte.",
+        "commit-line": "Transmet jeton, génération et brouillon natif de la ligne admise. Validez l’identité côté hôte ; aucune validation n’est émise pour une ligne active absente ou obsolète.",
+        "copy-requested": "Signale jeton et génération capturés après une copie admise du brouillon natif ; les identités invalides ou obsolètes sont rejetées."
       },
       "functions": {
         "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
@@ -7197,8 +7207,8 @@
       "label": "Virtual text view",
       "seoTitle": "Virtual text view for Slint",
       "summary": "Slint document view with selection and native editing of one line.",
-      "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions. See [model identity and capacity](../../guides/controllers/) for local generation tags, their wrap policy and `ModelError::IdentityExhausted`.",
-      "behavior": "Handle `select-line` to load the selected draft and `navigate` to move between lines. `copy-requested` reports a copy action. Use `KitTextArea` for a complete editable multiline buffer. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias. Read the visible range independently of active-index. Scroll commands preserve host selection and clamp signed offsets to current content bounds. near-end is an edge notification; if appending leaves end-near true, the host may continue filling without waiting for a second edge.",
+      "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions. See [model identity and capacity](../../guides/controllers/) for local generation tags, their wrap policy and `ModelError::IdentityExhausted`. Keep accepted edits attached to the stable key with KeyedModel.accept, update_active and bind_active; never derive a token from active-index or the displayed line number.",
+      "behavior": "Handle `select-line` to load the selected draft and `navigate` to move between lines. `copy-requested` reports a copy action. Use `KitTextArea` for a complete editable multiline buffer. For PageUp/PageDown, read `page-rows` for each key. Rust can bind `model.navigation(&window, Window::get_page_rows)` through an exposed window property; direct controllers pass that value to `navigate_page`. `navigate(step, page_rows)` requires explicit capacity too; `navigate_page` remains an explicit compatibility alias. Read the visible range independently of active-index. Scroll commands preserve host selection and clamp signed offsets to current content bounds. near-end is an edge notification; if appending leaves end-near true, the host may continue filling without waiting for a second edge. The native line editor, Save and Copy are admitted only with access: TextViewAccess.edit-line and 0 <= active-index < lines.length. Negative or upper-out-of-range indices, including after shrinking or clearing the model, disable editing/actions and emit no commit or copy request for a fabricated line. Save/Copy capture the line token and generation and reject an identity that becomes stale before completion; Copy rechecks around focus and clipboard effects. For a valid line, Copy copies the current native draft and returns focus to the editor. Read-only mode continues to hide the editing footer.",
       "related": [
         "KitTextArea",
         "KitContentList",
@@ -7252,10 +7262,20 @@
         "scroll-y": {
           "effect": "Current vertical content offset in logical pixels, zero at the top and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
           "example": "text: document.scroll-y / 1px;"
+        },
+        "active-index": {
+          "effect": "Zero-based visual coordinate of the active line, not its identity. Editing requires an index inside the current lines model; -1 means no active line.",
+          "default": "-1"
+        },
+        "access": {
+          "effect": "TextViewAccess.read-only hides the editing footer. TextViewAccess.edit-line enables its editor/actions only while the active index is valid.",
+          "default": "TextViewAccess.read-only"
         }
       },
       "callbacks": {
-        "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host."
+        "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host.",
+        "commit-line": "Reports the admitted line token, generation and native draft. Validate identity in the host; a stale or missing active line emits no commit.",
+        "copy-requested": "Reports the captured token and generation after an admitted native-draft copy; invalid or stale identities are rejected."
       },
       "functions": {
         "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
