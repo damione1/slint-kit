@@ -1,5 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
-import { KitFieldService, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
+import { KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
@@ -1084,6 +1084,7 @@ export component KitCombobox inherits Rectangle {
     callback custom-chosen(string);
     callback end-reached();
     callback tab-navigation(bool) -> KitKeyResult;
+    private property <PopupViewport> popup-viewport;
     private property <bool> opened: root.state.open;
     private property <bool> editing-draft;
     private property <bool> syncing-text;
@@ -1246,11 +1247,15 @@ export component KitCombobox inherits Rectangle {
     }
     function advance-tab(reverse: bool) -> KitKeyResult {
         root.handle-dismiss(CloseReason.programmatic);
+        // Native close restores its parent focus. Complete it before the host
+        // advances Tab, while preserving a session reopened by dismiss().
+        if (!root.state.open) { popup.close(); }
         return root.tab-navigation(reverse);
     }
     changed opened => {
         if (root.opened) {
             if (root.access == FieldAccess.editable) { editor.take-focus(); }
+            root.popup-viewport = KitFieldService.popup-viewport();
             popup.show();
             if (root.access == FieldAccess.editable) { editor.take-focus(); }
         } else {
@@ -1338,8 +1343,11 @@ export component KitCombobox inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        x: 0px; y: root.height + root.theme.spacing.unit; width: root.width;
-        height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
+        width: min(root.width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + surface.chrome-height);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
             accessible-name: root.label;
@@ -1395,6 +1403,7 @@ export component KitCombobox inherits Rectangle {
                 }
                 options := ListView {
                     vertical-stretch: 1;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                     theme: root.theme;
                     for row[index] in root.rows: KitOption {
                         theme: root.theme; option-data: row; height: root.row-height;

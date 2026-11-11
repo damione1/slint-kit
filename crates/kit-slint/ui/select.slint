@@ -1,4 +1,4 @@
-import { KitFieldService } from "field-service.slint";
+import { KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { KitStrings } from "strings.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
@@ -229,7 +229,10 @@ export component KitSelectSurface inherits Rectangle {
         let top = root.state.active-index * root.row-height;
         if (top + root.scroll-y < 0px) { root.scroll-y = -top; }
         else if (top + root.row-height + root.scroll-y > root.viewport-height) {
-            root.scroll-y = min(0px, root.viewport-height - top - root.row-height);
+            // A virtual ListView aligns a large seek to the first row. Request
+            // whole visible rows so that alignment cannot clip the active row.
+            let first = max(0, root.state.active-index + 1 - root.page-rows);
+            root.scroll-y = -first * root.row-height;
         }
     }
     changed state => { root.ensure-active-visible(); }
@@ -241,6 +244,10 @@ export component KitSelectSurface inherits Rectangle {
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
     private property <length> inset: KitMetrics.popover-inset(root.theme);
+    // Intrinsic search measurement stays independent of allocated popup height.
+    private property <length> search-height: root.searchable ? KitMetrics.select-search-height(root.theme, search.preferred-height) : 0px;
+    // Options and an optional host status row consume the remaining viewport.
+    out property <length> chrome-height: 2 * root.inset + root.search-height + (root.searchable ? root.inset : 0px);
     // The surface and its two-layer shadow paint under the list.
     ElevatedSurface { recipe: root.recipe; }
     keyboard := KitSelectKeyboard {
@@ -266,9 +273,9 @@ export component KitSelectSurface inherits Rectangle {
         VerticalLayout {
             padding: root.inset;
             spacing: root.searchable ? root.inset : 0px;
-            Rectangle {
+            search-box := Rectangle {
                 visible: root.searchable;
-                height: root.searchable ? max(36px, search.preferred-height + 12px) : 0px;
+                height: root.search-height;
                 border-radius: max(0px, root.recipe.radius - root.inset);
                 background: root.theme.canvas;
                 border-width: root.theme.shape.border-width;
@@ -484,9 +491,10 @@ export component KitSelect inherits Rectangle {
         root.tab-restore-complete = true;
         return root.tab-navigation(reverse);
     }
+    private property <PopupViewport> popup-viewport;
     private property <bool> opened: root.state.open;
     changed opened => {
-        if (root.state.open) { popup.show(); root.popup-presented = true; }
+        if (root.state.open) { root.popup-viewport = KitFieldService.popup-viewport(); popup.show(); root.popup-presented = true; }
         else {
             root.popup-presented = false;
             root.pending-search-input = "";
@@ -547,10 +555,12 @@ export component KitSelect inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        x: 0px;
-        y: root.height + root.theme.spacing.unit;
-        width: max(root.width, 240px);
-        height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.searchable ? max(36px, 20px * root.theme.text-scale + 12px) : 0px) + 18px);
+        // Resolve width before measuring chrome; option rows remain virtualized.
+        width: min(max(root.width, KitMetrics.select-popup-min-width(root.theme)), max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: min(root.popup-height, max(1, root.rows.length) * root.row-height + surface.chrome-height);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
             searchable: root.searchable;
@@ -593,6 +603,7 @@ export component KitSelect inherits Rectangle {
             query-edited(text) => { root.handle-query-edited(text); }
             options := ListView {
                 theme: root.theme;
+                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                 for row[index] in root.rows: KitOption {
                     theme: root.theme;
                     option-data: row;
