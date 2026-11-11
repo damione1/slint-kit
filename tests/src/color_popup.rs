@@ -185,12 +185,14 @@ fn edge_popup_geometry_and_scroll_keep_actions_reachable_in_both_themes_and_text
                     [fill.red, fill.green, fill.blue],
                     "surface at the actual popup origin"
                 );
+                key(&app, Key::Tab);
+                let apply = button(&app, "Apply color");
                 wheel(&app, 10000.);
-                let before = button(&app, "Apply color").absolute_position().y;
+                let before = apply.absolute_position().y;
                 wheel(&app, -10000.);
                 if scale == 2. {
                     assert!(
-                        button(&app, "Apply color").absolute_position().y < before - 1.,
+                        apply.absolute_position().y < before - 1.,
                         "200% requires and performs scrolling"
                     );
                 }

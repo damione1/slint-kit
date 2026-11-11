@@ -8,6 +8,7 @@ use std::{cell::RefCell, rc::Rc};
 fn fixture() -> FormCorrectionsFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = FormCorrectionsFixture::new().unwrap();
+    kit_slint::install(&window);
     window.show().unwrap();
     window
 }

@@ -127,7 +127,9 @@ fn control_elevation_lifts_filled_buttons_without_moving_the_layout() {
 
 fn state_fixture() -> ControlStateFixture {
     i_slint_backend_testing::init_no_event_loop();
-    show(ControlStateFixture::new().unwrap())
+    let window = ControlStateFixture::new().unwrap();
+    kit_slint::install(&window);
+    show(window)
 }
 
 #[test]
