@@ -43,6 +43,7 @@ async fn choose_document() -> SelectionOutcome<Vec<slint_kit::FileHandle>> {
         selection: FileSelectionMode::Single,
         filters: Vec::new(),
         suggested_name: None,
+        ..Default::default()
     }).await
 }
 ```
@@ -68,3 +69,16 @@ Set the window’s `KitStrings` once for file browse/remove/status text and step
 The facade bindings provide the Slint window as the native dialog parent. Raw host integrations can call pick_files_with_parent or pick_directory_with_parent with a raw-window-handle provider. Show the window first; parent support depends on the OS/backend (macOS, Windows and Linux XDG). Providers are read before returning the future, preserving weak-window lifetime; native modal behavior still needs target qualification.
 
 `KitFileDropZone` is also a browse action: connect `browse-requested` to the same binding as the picker button. Its click/Enter/Space/accessibility action works independently of OS drop capability. Set `description` and `leading-icon`, or compose `@children`; read-only/disabled access blocks both action paths.
+
+## Request options
+
+`FileRequest` carries validated filters, title, initial directory and optional suggested name. `DirectoryRequest` carries title and initial directory. On either binding, `set_request` configures future browse callbacks, `request` returns the typed configuration and `browse_with` configures and launches it. A file browse callback still updates selection mode from the component, retaining the other options. Options are captured before spawning the request, so later configuration does not mutate an open dialog. Native backends may interpret starting directories differently; these options do not grant filesystem access.
+
+```rust
+picker.set_request(slint_kit::FileRequest {
+    filters: vec![slint_kit::FileFilter::new("Documents".into(), vec!["pdf".into()])?],
+    title: Some("Attach a document".into()),
+    directory: Some(std::path::PathBuf::from("/home/me/Documents")),
+    ..Default::default()
+});
+```

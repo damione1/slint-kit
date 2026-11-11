@@ -51,6 +51,12 @@ fn file_picker(request: &FileRequest) -> rfd::AsyncFileDialog {
     if let Some(name) = &request.suggested_name {
         picker = picker.set_file_name(name);
     }
+    if let Some(title) = &request.title {
+        picker = picker.set_title(title);
+    }
+    if let Some(directory) = &request.directory {
+        picker = picker.set_directory(directory);
+    }
     picker
 }
 #[cfg(any(
@@ -103,6 +109,9 @@ pub async fn pick_directory(request: DirectoryRequest) -> SelectionOutcome<Direc
     let mut picker = rfd::AsyncFileDialog::new();
     if let Some(title) = request.title {
         picker = picker.set_title(title);
+    }
+    if let Some(directory) = request.directory {
+        picker = picker.set_directory(directory);
     }
     match picker.pick_folder().await {
         Some(handle) => SelectionOutcome::Selected(DirectoryHandle {
@@ -180,6 +189,9 @@ pub fn pick_directory_with_parent(
         if let Some(title) = request.title {
             picker = picker.set_title(title);
         }
+        if let Some(directory) = request.directory {
+            picker = picker.set_directory(directory);
+        }
         Box::pin(async move {
             match picker.pick_folder().await {
                 Some(handle) => SelectionOutcome::Selected(DirectoryHandle {
@@ -247,6 +259,7 @@ mod tests {
                     selection: kit_core::FileSelectionMode::Single,
                     filters: vec![],
                     suggested_name: None,
+                    ..Default::default()
                 },
                 &parent,
             );

@@ -6,6 +6,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::install(&app);
     let picker = DirectoryPickerBinding::new(&app, DirectoryPickerPorts {selected: App::set_selected, state: App::set_request_state, error: App::set_error});
+    picker.set_request(slint_kit::DirectoryRequest { title: Some("Choose a project folder".into()), ..Default::default() });
     picker.on_selection(|directory| println!("Directory: {directory:?}"));
     app.on_browse(picker.browse_handler());
     app.on_clear(picker.clear_handler());

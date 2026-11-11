@@ -521,6 +521,7 @@ pub fn install(window: &ui::Showcase) {
                     selection,
                     filters: Vec::new(),
                     suggested_name: None,
+                    ..Default::default()
                 })
                 .await;
                 if let Some(window) = weak_async.upgrade() {
@@ -582,6 +583,7 @@ pub fn install(window: &ui::Showcase) {
             if slint::spawn_local(async move {
                 let outcome = slint_kit::native::pick_directory(DirectoryRequest {
                     title: Some("Choose a project folder".into()),
+                    ..Default::default()
                 })
                 .await;
                 if let Some(window) = weak_async.upgrade() {

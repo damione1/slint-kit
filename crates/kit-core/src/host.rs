@@ -70,10 +70,24 @@ pub struct FileRequest {
     pub selection: FileSelectionMode,
     pub filters: Vec<FileFilter>,
     pub suggested_name: Option<String>,
+    pub title: Option<String>,
+    pub directory: Option<PathBuf>,
+}
+impl Default for FileRequest {
+    fn default() -> Self {
+        Self {
+            selection: FileSelectionMode::Single,
+            filters: Vec::new(),
+            suggested_name: None,
+            title: None,
+            directory: None,
+        }
+    }
 }
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DirectoryRequest {
     pub title: Option<String>,
+    pub directory: Option<PathBuf>,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SelectionOutcome<T> {

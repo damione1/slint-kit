@@ -43,6 +43,7 @@ async fn choose_document() -> SelectionOutcome<Vec<slint_kit::FileHandle>> {
         selection: FileSelectionMode::Single,
         filters: Vec::new(),
         suggested_name: None,
+        ..Default::default()
     }).await
 }
 ```
@@ -68,3 +69,16 @@ Définissez `KitStrings` une fois pour la fenêtre afin de traduire parcours, su
 Les bindings fournissent la fenêtre Slint comme parent de la boîte de dialogue native. Une intégration directe utilise pick_files_with_parent ou pick_directory_with_parent avec un fournisseur raw-window-handle. Affichez d’abord la fenêtre ; le support dépend du système/backend (macOS, Windows et Linux XDG). Les handles sont lus avant de retourner le futur pour préserver la durée de vie faible ; le comportement modal natif reste à qualifier sur la cible.
 
 `KitFileDropZone` sert aussi au parcours : raccordez `browse-requested` au même binding que le bouton du sélecteur. Clic/Entrée/Espace/action d’accessibilité fonctionnent indépendamment de la capacité de dépôt système. Définissez `description` et `leading-icon`, ou composez `@children` ; lecture seule et désactivation bloquent les deux chemins.
+
+## Options des requêtes
+
+`FileRequest` porte les filtres validés, le titre, le dossier initial et un nom suggéré facultatif. `DirectoryRequest` porte le titre et le dossier initial. Dans chaque binding, `set_request` configure les prochaines demandes, `request` retourne la configuration typée et `browse_with` la configure puis l’ouvre. Le callback fichier actualise encore le mode de sélection depuis le composant, en conservant les autres options. Elles sont capturées avant le lancement asynchrone : modifier la configuration ne modifie pas une boîte ouverte. Les backends natifs peuvent interpréter différemment le dossier initial ; ces options n’accordent aucun accès au système de fichiers.
+
+```rust
+picker.set_request(slint_kit::FileRequest {
+    filters: vec![slint_kit::FileFilter::new("Documents".into(), vec!["pdf".into()])?],
+    title: Some("Joindre un document".into()),
+    directory: Some(std::path::PathBuf::from("/home/me/Documents")),
+    ..Default::default()
+});
+```
