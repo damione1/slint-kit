@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitZonedDateTimeField, ZonedTimePresentation, AmbiguousTimeChoice, FieldAccess } from "@kit";
+import { KitTheme, KitThemes, KitZonedDateTimeField, ZonedTimePresentation, AmbiguousTimeChoice, FieldAccess, ZonedOccurrenceSelection } from "@kit";
 export component DateTimeLocalizationFixture inherits Window {
     width: 640px; height: 800px;
     in property <KitTheme> theme: KitThemes.light;
@@ -7,7 +7,9 @@ export component DateTimeLocalizationFixture inherits Window {
     callback chosen(AmbiguousTimeChoice);
     callback started();
     callback focused(bool);
-    KitZonedDateTimeField {
+    in-out property <string> date-text <=> editor.date-text;
+    out property <ZonedOccurrenceSelection> occurrence-selection: editor.occurrence-selection;
+    editor := KitZonedDateTimeField {
         theme: root.theme; access: root.access; label: "Début";
         date-label: "Date civile"; time-label: "Heure locale"; zone-label: "Fuseau horaire";
         zone-placeholder: "Europe/Paris"; zone-description: "Fuseau explicite";
