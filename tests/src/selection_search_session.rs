@@ -298,9 +298,19 @@ fn stale_and_disabled_activation_do_not_clear_an_open_search() {
             .match_predicate(|row| row.accessible_label().as_deref() == Some("Apricot"))
             .find_first()
             .unwrap();
+        // absolute_position is popup-tree local. Pointer dispatch needs the
+        // actual popup anchor in the window, not a point in the main form.
+        let anchor = ElementQuery::from_root(&app)
+            .match_inherits("KitSelect")
+            .find_first()
+            .unwrap();
         let position = slint::LogicalPosition::new(
-            row.absolute_position().x + row.size().width / 2.,
-            row.absolute_position().y + row.size().height / 2.,
+            anchor.absolute_position().x + row.absolute_position().x + row.size().width / 2.,
+            anchor.absolute_position().y
+                + anchor.size().height
+                + app.get_theme().spacing.unit
+                + row.absolute_position().y
+                + row.size().height / 2.,
         );
         app.window()
             .dispatch_event(WindowEvent::PointerMoved { position });
@@ -308,6 +318,15 @@ fn stale_and_disabled_activation_do_not_clear_an_open_search() {
             position,
             button: PointerEventButton::Left,
         });
+        assert!(
+            app.get_single_state().open,
+            "the press must stay inside the popup"
+        );
+        assert_eq!(
+            app.get_single_query(),
+            "Ap",
+            "the press must not dismiss the search"
+        );
         let mut replacement = options();
         replacement[1].disabled = disable;
         choices.replace(replacement).unwrap();
