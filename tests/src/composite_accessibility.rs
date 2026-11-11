@@ -144,12 +144,22 @@ fn static_composite_delegation_matches_physical_order_while_positions_keep_logic
             choices.selection(&2).unwrap().token,
             "disabled row is skipped"
         );
+        assert_eq!(
+            app.get_radio_delegate(),
+            7,
+            "radio's hidden vertical set precedes the horizontal set"
+        );
         assert_positions(&component(&app, "KitRadioGroup"), "ChoiceOption", reversed);
         app.invoke_focus_toggles();
         key(&app, Key::End);
         assert_eq!(
             app.get_toggles_active(),
             choices.selection(&4).unwrap().token
+        );
+        assert_eq!(
+            app.get_toggles_delegate(),
+            if reversed { 0 } else { 4 },
+            "toggle's horizontal set precedes the hidden vertical set"
         );
         assert_positions(&component(&app, "KitToggleGroup"), "ChoiceOption", reversed);
         app.invoke_focus_segments();
@@ -180,6 +190,16 @@ fn static_composite_delegation_matches_physical_order_while_positions_keep_logic
     app.set_direction(ChoiceDirection::Vertical);
     app.set_flow(ChoiceFlow::LeftToRight);
     settle(&app);
+    assert_eq!(
+        app.get_radio_delegate(),
+        2,
+        "vertical radio is the first direct semantic set"
+    );
+    assert_eq!(
+        app.get_toggles_delegate(),
+        9,
+        "vertical toggle follows its horizontal semantic set"
+    );
     assert_positions(&component(&app, "KitRadioGroup"), "ChoiceOption", false);
     assert_positions(&component(&app, "KitToggleGroup"), "ChoiceOption", false);
     let surface = component(&app, "KitSelectSurface");

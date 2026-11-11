@@ -49,20 +49,3 @@ export component FocusOutline inherits Rectangle {
     border-color: root.ring.color;
     background: transparent;
 }
-
-// Persistent native owner for one nonvirtualized option layout. Its direct
-// accessible children are exactly that layout's semantic options. Tab returns
-// to the enclosing composite stop before native traversal starts.
-export component KitCompositeFocusScope inherits FocusScope {
-    in property <bool> interactive: true;
-    changed interactive => { if (!root.interactive) { root.clear-focus(); } }
-    accessible-role: groupbox;
-    focus-on-tab-navigation: false;
-    focus-on-click: false;
-    callback tab-exit();
-    key-pressed(event) => {
-        if (event.text == Key.Tab || event.text == Key.Backtab) { root.tab-exit(); }
-        return reject;
-    }
-    @children
-}
