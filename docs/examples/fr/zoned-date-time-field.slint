@@ -3,7 +3,7 @@ import { LayoutSpace, KitMetrics, TypographyRole } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
-import { KitZonedDateTimeField, ZonedDateTimeCommit, KitStack, KitButton } from "@kit";
+import { KitZonedDateTimeField, ZonedDateTimeCommit, ZonedOccurrenceSelection, KitStack, KitButton } from "@kit";
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
     public function report-validation() -> bool { return control.report-validity(); }
@@ -17,9 +17,12 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Date et heure avec fuseau";
     callback chosen(ZonedDateTimeCommit);
+    // État d’acceptation lisible par l’hôte ; resolution décrit toujours une heure ambiguë.
+    // Modifier le brouillon ou rappeler resolve() efface cette sélection.
+    out property <ZonedOccurrenceSelection> occurrence-selection: control.occurrence-selection;
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        control := KitZonedDateTimeField { label: "Rendez-vous"; date-label: "Date du rendez-vous"; time-label: "Heure du rendez-vous"; zone-label: "Fuseau horaire"; earlier-label: "Première occurrence"; later-label: "Seconde occurrence"; date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto"; required: true; chosen(value) => { root.chosen(value); } }
+        control := KitZonedDateTimeField { label: "Rendez-vous"; date-label: "Date du rendez-vous"; time-label: "Heure du rendez-vous"; zone-label: "Fuseau horaire"; earlier-label: "Première occurrence"; later-label: "Seconde occurrence"; date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto"; required: true; earlier-accepted-message: "Première occurrence acceptée."; later-accepted-message: "Seconde occurrence acceptée."; chosen(value) => { root.chosen(value); } }
         KitButton { text: "Résoudre l’heure"; activated => { control.resolve(); } }
     }
 }

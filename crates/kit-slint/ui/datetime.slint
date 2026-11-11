@@ -15,8 +15,8 @@ import { FieldAccess } from "contracts.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 
-import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
-export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
+import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
+export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
 import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 
 component TimeSegmentControl inherits Rectangle {
@@ -250,6 +250,9 @@ export component KitDateTimeField inherits Rectangle {
 }
 
 export component KitZonedDateTimeField inherits Rectangle {
+    out property <ZonedOccurrenceSelection> occurrence-selection: root.selected-occurrence;
+    private property <ZonedOccurrenceSelection> selected-occurrence;
+    changed resolution => { if (root.resolution != ZonedTimePresentation.ambiguous) { root.selected-occurrence = ZonedOccurrenceSelection.unselected; } }
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     private property <ZonedDateTimeResult> result;
     private property <ZonedDateTimeDraft> current: {date: root.date-text, time: root.time-text, zone: root.zone-text};
@@ -264,6 +267,7 @@ export component KitZonedDateTimeField inherits Rectangle {
     // shows its own errors.
     function resolve-draft(action: FieldAction) {
         if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
+        root.selected-occurrence = ZonedOccurrenceSelection.unselected;
         root.result = {state: ZonedTimePresentation.unresolved};
         if (action == FieldAction.blur ? !root.validity.valid : !root.report-validity()) { return; }
         root.draft-dirty = false;
@@ -273,13 +277,20 @@ export component KitZonedDateTimeField inherits Rectangle {
         if (root.result.state == ZonedTimePresentation.unique) { root.chosen({local: root.result.local, zone: root.zone-text, acceptance: ZonedAcceptance.unique}); }
     }
     function accept-occurrence(choice: AmbiguousTimeChoice) {
-        if (root.access != FieldAccess.editable || root.pressed-draft != root.current || root.resolution != ZonedTimePresentation.ambiguous) { return; }
+        if (root.access != FieldAccess.editable || root.pressed-draft != root.current || root.resolution != ZonedTimePresentation.ambiguous || root.selected-occurrence != ZonedOccurrenceSelection.unselected) { return; }
+        root.selected-occurrence = choice == AmbiguousTimeChoice.earlier ? ZonedOccurrenceSelection.earlier : ZonedOccurrenceSelection.later;
         if (root.resolved-draft == root.current && root.result.state == ZonedTimePresentation.ambiguous) {
             root.chosen({local: root.result.local, zone: root.zone-text, acceptance: choice == AmbiguousTimeChoice.earlier ? ZonedAcceptance.earlier : ZonedAcceptance.later});
         }
         root.ambiguity-chosen(choice);
     }
-    changed current => { root.result = {state: ZonedTimePresentation.unresolved}; }
+    changed current => {
+        // A host may resolve its new draft synchronously inside chosen().
+        if (root.resolved-draft != root.current) {
+            root.selected-occurrence = ZonedOccurrenceSelection.unselected;
+            root.result = {state: ZonedTimePresentation.unresolved};
+        }
+    }
 
     in property <bool> required;
     in property <string> min;
@@ -312,6 +323,8 @@ export component KitZonedDateTimeField inherits Rectangle {
     in property <string> zone-label: "Time zone";
     in property <string> zone-placeholder: "America/Toronto";
     in property <string> zone-description: "IANA time zone identifier";
+    in property <string> earlier-accepted-message: "Earlier occurrence accepted.";
+    in property <string> later-accepted-message: "Later occurrence accepted.";
     in property <string> earlier-label: "Use the earlier occurrence";
     in property <string> later-label: "Use the later occurrence";
     in property <string> date-error;
@@ -344,7 +357,7 @@ export component KitZonedDateTimeField inherits Rectangle {
             commit-policy: CommitPolicy.on-submit;
             required: root.required || root.zone-text != ""; min: root.min; max: root.max; step: root.step;
             custom-validity: root.custom-validity != "" ? root.custom-validity
-                : root.resolution == ZonedTimePresentation.ambiguous || root.resolution == ZonedTimePresentation.nonexistent || root.resolution == ZonedTimePresentation.invalid-zone
+                : (root.resolution == ZonedTimePresentation.ambiguous && root.selected-occurrence == ZonedOccurrenceSelection.unselected) || root.resolution == ZonedTimePresentation.nonexistent || root.resolution == ZonedTimePresentation.invalid-zone
                     ? (root.resolution-message != "" ? root.resolution-message : "Resolve the local time in this time zone.") : "";
             invalid => { root.invalid(); }
             theme: root.theme; control-size: root.control-size; access: root.access; accepted-value: root.accepted-local; clock-format: root.clock-format; precision: root.precision; label: root.label; date-label: root.date-label; time-label: root.time-label; date-placeholder: root.date-placeholder; date-description: root.date-description; time-description: root.time-description; date-error: root.date-error; time-error: root.time-error; date-text <=> root.date-text; time-text <=> root.time-text;
@@ -361,15 +374,15 @@ export component KitZonedDateTimeField inherits Rectangle {
             commit-requested(text) => { root.resolve(); }
         }
         if root.resolution != ZonedTimePresentation.unresolved: Text {
-            text: root.resolution-message;
-            color: root.resolution == ZonedTimePresentation.unique ? root.theme.text-secondary : root.theme.danger;
+            text: root.selected-occurrence == ZonedOccurrenceSelection.unselected ? root.resolution-message : root.selected-occurrence == ZonedOccurrenceSelection.earlier ? root.earlier-accepted-message : root.later-accepted-message;
+            color: root.resolution == ZonedTimePresentation.unique || root.selected-occurrence != ZonedOccurrenceSelection.unselected ? root.theme.text-secondary : root.theme.danger;
             font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap;
             accessible-live-region: polite;
         }
         if root.resolution == ZonedTimePresentation.ambiguous: VerticalLayout {
             spacing: root.theme.spacing.unit * 2;
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.earlier-label; disabled: root.access != FieldAccess.editable; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.earlier); } }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.later-label; disabled: root.access != FieldAccess.editable; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.later); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.earlier-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.earlier; intent: root.selected-occurrence == ZonedOccurrenceSelection.earlier ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.earlier); } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.later-label; accessible-checkable: true; accessible-checked: root.selected-occurrence == ZonedOccurrenceSelection.later; intent: root.selected-occurrence == ZonedOccurrenceSelection.later ? ButtonIntent.primary : ButtonIntent.secondary; disabled: root.access != FieldAccess.editable || root.selected-occurrence != ZonedOccurrenceSelection.unselected; activation-started => { root.pressed-draft = root.current; root.ambiguity-started(); } activated => { root.accept-occurrence(AmbiguousTimeChoice.later); } }
         }
     }
 }

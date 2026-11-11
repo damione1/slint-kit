@@ -39,14 +39,24 @@ export component AutonomousFixture inherits Window {
     }
 }
 
-import { KitZonedDateTimeField, ZonedDateTimeCommit, ZonedTimePresentation } from "@kit";
+import { KitZonedDateTimeField, ZonedDateTimeCommit, ZonedTimePresentation, ZonedOccurrenceSelection } from "@kit";
 export component ZonedServiceFixture inherits Window {
-    width: 700px; height: 600px;
+    width: 800px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <string> custom-validity;
+    in-out property <string> time-text <=> editor.time-text;
+    in-out property <string> zone-text <=> editor.zone-text;
+    out property <ZonedOccurrenceSelection> occurrence-selection: editor.occurrence-selection;
+    public function check-validity() -> bool { return editor.check-validity(); }
+    background: root.theme.canvas;
     in-out property <string> date-text <=> editor.date-text;
     out property <ZonedTimePresentation> resolution: editor.resolution;
     callback chosen(ZonedDateTimeCommit);
     public function resolve() { editor.resolve(); }
     editor := KitZonedDateTimeField {
+        x: 24px; y: 24px; width: parent.width - 48px;
+        theme: root.theme; access: root.access; custom-validity: root.custom-validity;
         date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto";
         earlier-label: "Earlier occurrence"; later-label: "Later occurrence";
         chosen(value) => { root.chosen(value); }
