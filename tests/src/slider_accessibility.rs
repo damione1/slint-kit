@@ -51,7 +51,9 @@ fn single_slider_exports_domain_bounds_step_and_numeric_value_with_separate_desc
     assert_eq!(app.get_value(), "12.75");
     bounds(&single, -12.5, 37.5, 0.25, "12.75");
     single.invoke_accessible_decrement_action();
-    assert_eq!(app.get_value(), "12.5");
+    // Decimal navigation retains the arithmetic scale; metadata follows it.
+    assert_eq!(app.get_value(), "12.50");
+    bounds(&single, -12.5, 37.5, 0.25, "12.50");
 }
 #[test]
 fn accessible_set_value_rounds_clamps_and_emits_one_exact_commit_only_for_a_change() {
