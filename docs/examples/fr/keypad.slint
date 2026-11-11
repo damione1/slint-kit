@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { InterFont } from "@kit/fonts/inter.slint";
-import { KitKeypad, KitCodeIndicator, KitTheme, KitThemes, KitMetrics, TypographyRole } from "@kit";
+import { KitKeypad, KitCodeIndicator, ValidationPresentation, ControlSize, KitTheme, KitThemes, KitMetrics, TypographyRole } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     default-font-size: KitMetrics.font-size(root.theme, TypographyRole.body);
@@ -11,17 +11,20 @@ export component Example inherits Window {
     background: root.theme.canvas;
     // L’exemple ne compte que les chiffres ; un vrai hôte conserve le code en Rust.
     in-out property <int> entered;
+    // L’hôte fournit validation et retour localisé ; le libellé ne contient jamais le code.
+    in-out property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in-out property <string> feedback;
     in-out property <string> status;
     VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Code du casier"; color: root.theme.text-primary; font-size: 22px * root.theme.text-scale; font-weight: 600; }
         Text { text: "Saisissez le code à quatre chiffres imprimé sur votre reçu."; color: root.theme.text-secondary; wrap: word-wrap; }
-        KitCodeIndicator { theme: root.theme; length: 4; filled: root.entered; label: root.entered + " chiffres sur 4 saisis"; }
+        KitCodeIndicator { theme: root.theme; validation: root.validation; control-size: ControlSize.medium; length: 4; filled: root.entered; label: root.entered + " chiffres sur 4 saisis" + (root.feedback == "" ? "" : ". " + root.feedback); }
         HorizontalLayout { alignment: center;
             KitKeypad { theme: root.theme; label: "Code du casier"; delete-label: "Effacer"; confirm-label: "Ouvrir le casier"; can-confirm: root.entered == 4;
                 activation-started => { root.status = "Touche pressée"; }
-                digit(value) => { root.entered = min(4, root.entered + 1); }
-                delete-requested => { root.entered = max(0, root.entered - 1); }
-                confirm => { root.status = "Code envoyé pour vérification"; root.entered = 0; }
+                digit(value) => { root.entered = min(4, root.entered + 1); root.validation = ValidationPresentation.pristine; root.feedback = ""; }
+                delete-requested => { root.entered = max(0, root.entered - 1); root.validation = ValidationPresentation.pristine; root.feedback = ""; }
+                confirm => { root.status = "Code envoyé pour vérification"; root.entered = 0; root.validation = ValidationPresentation.checking; root.feedback = root.status; }
             }
         }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; wrap: word-wrap; }

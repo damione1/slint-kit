@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCodeIndicator, KitKeypad, KitTheme, KitThemes, KitMetrics, TypographyRole, ControlSize, ValidationPresentation, FieldAccess } from "@kit";
+export component CodeFeedbackFixture inherits Window {
+    preferred-width: 560px; preferred-height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <int> filled;
+    in-out property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <string> progress-format: "{filled} of 4 digits entered";
+    in-out property <string> message;
+    private property <string> progress: root.progress-format.replace-all("{filled}", "" + root.filled);
+    out property <string> announcement: root.progress + (root.message == "" ? "" : ". " + root.message);
+    public function focus-keypad() { keypad.take-focus(); }
+    function digit() { root.filled = min(4, root.filled + 1); root.validation = ValidationPresentation.pristine; root.message = ""; }
+    function delete() { root.filled = max(0, root.filled - 1); root.validation = ValidationPresentation.pristine; root.message = ""; }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        Text { text: "Verification"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); }
+        compact := KitCodeIndicator { theme: root.theme; control-size: ControlSize.compact; length: 4; filled: root.filled; validation: root.validation; label: root.announcement; }
+        standard := KitCodeIndicator { theme: root.theme; length: 4; filled: root.filled; validation: root.validation; label: root.announcement; }
+        comfortable := KitCodeIndicator { theme: root.theme; control-size: ControlSize.comfortable; length: 4; filled: root.filled; validation: root.validation; label: root.announcement; }
+        Text { text: root.announcement; color: root.theme.text-primary; wrap: word-wrap; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); }
+        HorizontalLayout {
+            alignment: center;
+            keypad := KitKeypad {
+                theme: root.theme; access: root.access; label: "Verification keypad"; confirm-label: "Check";
+                can-confirm: root.filled == 4;
+                digit(value) => { root.digit(); }
+                delete-requested => { root.delete(); }
+                confirm => { root.validation = ValidationPresentation.invalid; root.message = "Code incorrect. Try again."; }
+            }
+        }
+    }
+}

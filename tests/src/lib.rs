@@ -7,6 +7,7 @@ mod ui {
 pub use ui::*;
 mod accessible_expansion;
 mod avatar_group;
+mod code_feedback;
 mod column_widths;
 mod dialog_composition;
 mod direction;
