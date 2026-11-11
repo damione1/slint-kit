@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
@@ -15,7 +16,7 @@ export global KitAlertMarks {
     }
 }
 export enum ToastInteraction { pointer, focus }
-export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool }
+export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool, dismiss-label: string }
 
 export component KitAlert inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -23,6 +24,7 @@ export component KitAlert inherits Rectangle {
     in property <string> title;
     in property <string> message;
     in property <bool> dismissible;
+    in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
     callback dismissed();
     // Measure wrapped copy at the allocated width, including when this component
     // lives inside a conditional layout. An unconstrained row's preferred height
@@ -58,7 +60,7 @@ export component KitAlert inherits Rectangle {
         x: root.width - self.width - root.inset; y: root.inset;
         visible: root.dismissible; disabled: !root.dismissible;
         theme: root.theme; control-size: ControlSize.compact;
-        glyph: root.theme.icons.close; accessible-name: "Dismiss " + root.title;
+        glyph: root.theme.icons.close; accessible-name: root.dismiss-label;
         activated => { root.dismissed(); }
     }
 }
@@ -248,6 +250,7 @@ export component KitTooltip inherits Rectangle {
 export component KitToast inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ToastEntry> entry;
+    in property <string> dismiss-label: root.entry.dismiss-label != "" ? root.entry.dismiss-label : KitStrings.dismiss-label-template.replace-all("{title}", root.entry.title);
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
@@ -271,7 +274,7 @@ export component KitToast inherits Rectangle {
                 Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                 if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
-            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: "Dismiss " + root.entry.title; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
+            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: root.dismiss-label; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }
         if root.entry.action-label != "": KitButton { theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } focus-observed(focused) => { root.action-focused = focused; } }
     }

@@ -68,6 +68,7 @@ impl Examples {
                     action_label: action_label.into(),
                     severity,
                     dismissible: true,
+                    dismiss_label: Default::default(),
                 })
             })
             .collect()

@@ -17,6 +17,7 @@ mod foundation_render;
 mod foundations;
 mod journeys;
 mod keyboard_scope;
+mod localized_labels;
 mod multi_popup;
 mod preview;
 mod select_search;
