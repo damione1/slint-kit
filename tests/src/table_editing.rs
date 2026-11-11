@@ -850,8 +850,25 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
         .collect::<Vec<_>>();
     window.set_columns(ModelRc::new(VecModel::from(columns)));
     window.set_table_active_column(2);
+    // The replacement delegates mount already active, without a subsequent
+    // cursor transition. Materialize their real geometry before checking the
+    // initial reveal, while there is still no editor to reveal the cell.
+    let row = delegates(&window, "KitDataTable").remove(0);
+    let cells = row
+        .query_descendants()
+        .match_inherits("TableCellView")
+        .find_all();
+    assert!(!cells.is_empty());
+    for cell in cells {
+        assert!((cell.size().width - 500.).abs() < 1.);
+    }
     flush();
-    assert!(window.get_table_scroll_x() < 0.);
+    assert!(
+        window.get_table_scroll_x() < 0.,
+        "the resolved cell is revealed before F2"
+    );
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
     key(&window, Key::F2);
     let editor = editors(&window).remove(0);
     let bounds = table(&window);
@@ -859,6 +876,12 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     assert!(
         editor.absolute_position().x + editor.size().width
             <= bounds.absolute_position().x + bounds.size().width + 1.
+    );
+    text(&window, "Revealed owner");
+    assert_eq!(
+        window.get_table_edit_draft(),
+        "Revealed owner",
+        "F2 gives the revealed native editor focus and selects its value"
     );
 }
 
@@ -2505,4 +2528,195 @@ fn an_immediate_keyboard_commit_after_source_replacement_never_calls_a_stale_ver
 #[test]
 fn an_immediate_programmatic_commit_after_source_replacement_never_calls_a_stale_verdict() {
     assert_immediate_commit_after_source_replacement(ImmediateCommitRequest::Programmatic);
+}
+
+#[test]
+fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_density() {
+    use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+    use slint::{LogicalPosition, platform::WindowEvent};
+    slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+        mock_time: true,
+        renderer_name: Some("software".into()),
+        ..Default::default()
+    })))
+    .unwrap();
+    let window = BaseDataFixture::new().unwrap();
+    slint_kit::install(&window);
+    let wide = columns()
+        .iter()
+        .map(|mut column| {
+            column.width = ColumnWidth {
+                sizing: ColumnSizing::Fixed,
+                basis: 500.,
+                ..Default::default()
+            };
+            column
+        })
+        .collect::<Vec<_>>();
+    window.set_columns(ModelRc::new(VecModel::from(wide)));
+    window.set_rows(ModelRc::new(VecModel::from(records())));
+    window.set_table_active(0);
+    window.show().unwrap();
+    let frame = || {
+        slint::platform::update_timers_and_animations();
+        let snapshot = window.window().take_snapshot().unwrap();
+        slint::platform::update_timers_and_animations();
+        snapshot
+    };
+    frame();
+    let viewport = ElementHandle::find_by_element_id(&window, "KitDataTable::list")
+        .next()
+        .expect("table viewport")
+        .query_descendants()
+        .match_type_name("Flickable")
+        .find_first()
+        .expect("native body viewport");
+    let committed: Commits = Rc::default();
+    let observed = committed.clone();
+    window.on_cell_committed(move |row, column, generation, commit| {
+        observed
+            .borrow_mut()
+            .push((row, column, generation, commit));
+    });
+    for (name, theme) in [
+        ("light", window.get_theme()),
+        ("dark", window.get_dark_theme()),
+    ] {
+        for scale in [1., 2.] {
+            let mut theme = theme.clone();
+            theme.text_scale = scale;
+            window.set_theme(theme);
+            for (size_name, size) in [
+                ("compact", ControlSize::Compact),
+                ("medium", ControlSize::Medium),
+                ("comfortable", ControlSize::Comfortable),
+            ] {
+                window.set_table_size(size);
+                window.invoke_focus_table();
+                // Establish the far column, then move the actual native viewport
+                // with a horizontal wheel event before each keyboard action.
+                window.set_table_active_column(2);
+                frame();
+                let right_scroll = window.get_table_scroll_x();
+                assert!(
+                    right_scroll < -250.,
+                    "the fixture must have enough real horizontal overflow"
+                );
+                for (direction, expected, edge, wheel_delta) in [
+                    (Key::LeftArrow, 1, "left", 250.),
+                    (Key::RightArrow, 2, "right", -250.),
+                ] {
+                    let active_before_wheel = window.get_table_active_column();
+                    let scroll_before_wheel = window.get_table_scroll_x();
+                    let row_before_wheel = delegates(&window, "KitDataTable").remove(0);
+                    let origin = viewport.absolute_position();
+                    window
+                        .window()
+                        .dispatch_event(WindowEvent::PointerScrolled {
+                            position: LogicalPosition::new(
+                                origin.x + viewport.size().width / 2.,
+                                row_before_wheel.absolute_position().y
+                                    + row_before_wheel.size().height / 2.,
+                            ),
+                            delta_x: wheel_delta,
+                            delta_y: 0.,
+                        });
+                    frame();
+                    let wheel_scroll = window.get_table_scroll_x();
+                    assert!(
+                        (wheel_scroll - scroll_before_wheel).abs() > 1.,
+                        "the wheel must actually scroll before {edge}"
+                    );
+                    assert!(
+                        wheel_scroll < -1.,
+                        "each arrow begins with a horizontally scrolled viewport"
+                    );
+                    assert_eq!(
+                        window.get_table_active_column(),
+                        active_before_wheel,
+                        "wheel motion must not select a different cell"
+                    );
+                    assert_eq!(window.get_table_active(), 0);
+                    assert!(!window.get_table_editing());
+                    assert!(editors(&window).is_empty());
+                    // Do not refocus or reveal the table between wheel and key.
+                    key(&window, direction);
+                    let snapshot = frame();
+                    assert_eq!(window.get_table_active(), 0);
+                    assert_eq!(window.get_table_active_column(), expected);
+                    assert!(!window.get_table_editing());
+                    assert!(
+                        editors(&window).is_empty(),
+                        "measure the cell frame, never an editor frame"
+                    );
+                    let row = delegates(&window, "KitDataTable").remove(0);
+                    let cells = row
+                        .query_descendants()
+                        .match_inherits("TableCellView")
+                        .find_all();
+                    assert!(!cells.is_empty() && cells.len() <= 3);
+                    let total_rings = cells
+                        .iter()
+                        .map(|cell| {
+                            cell.query_descendants()
+                                .match_inherits("FocusOutline")
+                                .find_all()
+                                .len()
+                        })
+                        .sum::<usize>();
+                    assert_eq!(total_rings, 1, "only the active cell owns a frame");
+                    // Offscreen cells need not appear in the realized test tree.
+                    // Identify the active cell by its unique actual frame, never
+                    // by treating a visible-child ordinal as a model column.
+                    let cell = cells
+                        .iter()
+                        .find(|cell| {
+                            !cell
+                                .query_descendants()
+                                .match_inherits("FocusOutline")
+                                .find_all()
+                                .is_empty()
+                        })
+                        .expect("one visible cell owns the active frame");
+                    let rings = cell
+                        .query_descendants()
+                        .match_inherits("FocusOutline")
+                        .find_all();
+                    assert_eq!(rings.len(), 1, "the active cell has its own visible ring");
+                    let ring = &rings[0];
+                    assert!(ring.size().width > 0. && ring.size().height > 0.);
+                    assert_eq!(ring.computed_opacity(), 1.);
+                    assert!((ring.size().width - cell.size().width).abs() < 1.);
+                    assert!((ring.size().height - cell.size().height).abs() < 1.);
+                    assert!((ring.absolute_position().x - cell.absolute_position().x).abs() < 1.);
+                    assert!((ring.absolute_position().y - cell.absolute_position().y).abs() < 1.);
+                    assert!(ring.absolute_position().y >= row.absolute_position().y - 1.);
+                    assert!(
+                        ring.absolute_position().y + ring.size().height
+                            <= row.absolute_position().y + row.size().height + 1.
+                    );
+                    assert!(ring.absolute_position().x >= viewport.absolute_position().x - 1.);
+                    assert!(
+                        ring.absolute_position().x + ring.size().width
+                            <= viewport.absolute_position().x + viewport.size().width + 1.
+                    );
+                    if expected == 1 {
+                        assert!(window.get_table_scroll_x() > right_scroll);
+                        assert_eq!(table(&window).accessible_value().as_deref(), Some("12"));
+                    } else {
+                        assert!((window.get_table_scroll_x() - right_scroll).abs() < 1.);
+                        assert_eq!(table(&window).accessible_value().as_deref(), Some("Elliot"));
+                    }
+                    crate::choice_presentation::save_capture(
+                        &snapshot,
+                        &format!("table-scrolled-arrow-{edge}-{size_name}-{name}-{scale}"),
+                    );
+                }
+            }
+        }
+    }
+    assert!(
+        committed.borrow().is_empty(),
+        "scrolling and cell arrows never submit a value"
+    );
 }

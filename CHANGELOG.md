@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Preserve manual horizontal table scrolling until the next cell-navigation action; verify Left/Right after real wheel events and measure the cell focus frame independently of editors at every control size and doubled text.
+- Conserve le défilement horizontal manuel du tableau jusqu’à la prochaine navigation de cellule ; vérifie Gauche/Droite après de vraies molettes et mesure le cadre de cellule indépendamment des éditeurs à chaque taille de contrôle et au texte doublé.
+
 - Add KitButton.text-wrap for multiline labels with intrinsic height and preserved icon, busy, disabled, keyboard and pointer behavior; single-line elision remains the default.
 - Ajoute KitButton.text-wrap pour les libellés multilignes avec hauteur intrinsèque et conservation des icônes, des états occupé/désactivé et des actions clavier/pointeur ; l’élision monoligne reste le défaut.
 
