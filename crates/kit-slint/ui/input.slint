@@ -776,7 +776,7 @@ export component KitOtpField inherits KitTextField {
     private property <length> preferred-cell-width: KitMetrics.control-height(root.theme, root.control-size);
     // W = slots * pitch + inset + cursor guard, with inset = (pitch - glyph) / 2.
     // Solve directly so both the native cursor and cell frames fit at caller widths.
-    private property <length> cell-width: max(root.text-cell-width, (max(0px, root.width - 2 * root.padding-inline) - 2px + root.text-cell-width / 2) / (max(1, root.slots) + 0.5));
+    private property <length> cell-width: root.decoration == FieldDecoration.cells ? max(root.text-cell-width, (max(0px, root.width - 2 * root.padding-inline) - 2px + root.text-cell-width / 2) / (max(1, root.slots) + 0.5)) : max(0px, root.width - 2 * root.padding-inline) / max(1, root.slots);
     min-width: max(1, root.slots) * root.text-cell-width + 2 * root.padding-inline + (root.decoration == FieldDecoration.cells ? 2px : 0px);
     preferred-width: max(1, root.slots) * root.preferred-cell-width + 2 * root.padding-inline + (root.decoration == FieldDecoration.cells ? max(0px, (root.preferred-cell-width - root.text-cell-width) / 2) + 2px : 0px);
     max-width: self.preferred-width; horizontal-stretch: 0;
