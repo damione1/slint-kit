@@ -100,3 +100,84 @@ macro_rules! bind_select {
         binding
     }};
 }
+
+/// Declare a typed form record and its conventional window ports once.
+///
+/// Each `field: required(Type, FieldSpec, message)` names a required native draft;
+/// `field: checked` converts a checkbox to `bool`. The window exposes the matching
+/// `field-field`, `field-candidate`, `report-field`, `focus-field`, `reset-field`
+/// and `field-error` ports. Its stable enum has the corresponding CamelCase
+/// variants. Missing ports, wrong codecs and unregistered enum variants are
+/// compile errors. Global form callbacks and projections are connected here.
+///
+/// `Record::bind(&window)` returns the transactional `TypedFormBinding` for
+/// asynchronous requests and field server errors. `Record::on_submit` is the
+/// synchronous convenience: it admits a typed record, calls business code and
+/// completes that ticket successfully. Call `install` once before either API.
+#[macro_export]
+macro_rules! form_schema {
+    ($record:ident, $window:path, $keys:path, { $($field:ident: $mode:ident $(($($args:tt)*))?),+ $(,)? }) => {
+        $crate::__form_identifiers! {
+            pub struct $record {
+                $(pub $field: $crate::form_schema!(@type $mode $(($($args)*))?)),+
+            }
+            impl $record {
+                pub fn bind(app: &$window) -> $crate::TypedFormBinding<$window, $keys, Self> {
+                    use $keys as FormKey;
+                    let form = $crate::FormBinding::new(app, |app: &$window, view| {
+                        app.set_valid(view.valid);
+                        app.set_dirty(view.dirty);
+                        app.set_submitting(view.submitting);
+                        app.set_errors(view.errors);
+                    });
+                    $(let $field = $crate::form_schema!(@bind form, $window, FormKey::[<$field:camel>],
+                        [<get_ $field _candidate>], [<get_ $field _state>],
+                        $crate::FormFieldPorts {
+                            snapshot: <$window>::[<get_ $field _field>],
+                            report: <$window>::[<invoke_report_ $field>],
+                            focus: <$window>::[<invoke_focus_ $field>],
+                            reset: <$window>::[<invoke_reset_ $field>],
+                            set_error: <$window>::[<set_ $field _error>],
+                        }, $mode $(($($args)*))?);)+
+                    form.set_focus_fallback(<$window>::invoke_focus_form);
+                    let validate = form.clone();
+                    app.on_validate_form(move || validate.report_validity());
+                    let edited = form.clone();
+                    app.on_field_edited(move |field| match field {
+                        $(FormKey::[<$field:camel>] => edited.field_edited(&field)),+
+                    });
+                    let reset = form.clone();
+                    app.on_reset_form(move || reset.reset());
+                    let focus = form.clone();
+                    app.on_focus_error(move |target| { focus.focus_target(&target); });
+                    form.with_schema($crate::form_schema!(@zip $($field),+).map(
+                        |$crate::form_schema!(@pattern $($field),+)| Self { $($field),+ }
+                    ))
+                }
+                pub fn on_submit(app: &$window, business: impl Fn(&$window, Self) + 'static) {
+                    let form = Self::bind(app);
+                    app.on_send_form($crate::action(app, move |app| {
+                        if let Ok(submission) = form.submit() {
+                            business(&app, submission.payload);
+                            form.finish(submission.ticket, Vec::new());
+                        }
+                    }));
+                }
+            }
+        }
+    };
+    (@type required($value:ty, $spec:expr, $message:expr)) => { $value };
+    (@type checked) => { bool };
+    (@bind $form:ident, $window:path, $key:expr, $candidate:ident, $state:ident, $ports:expr,
+        required($value:ty, $spec:expr, $message:expr)) => {
+        $form.bind_required($key, $spec, <$window>::$candidate, $ports,
+            move |_| ($message).into()).expect("schema field keys are unique")
+    };
+    (@bind $form:ident, $window:path, $key:expr, $candidate:ident, $state:ident, $ports:expr, checked) => {
+        $form.bind_checked($key, $ports, <$window>::$state).expect("schema field keys are unique")
+    };
+    (@zip $field:ident) => { $field };
+    (@zip $field:ident, $($rest:ident),+) => { $field.zip($crate::form_schema!(@zip $($rest),+)) };
+    (@pattern $field:ident) => { $field };
+    (@pattern $field:ident, $($rest:ident),+) => { ($field, $crate::form_schema!(@pattern $($rest),+)) };
+}

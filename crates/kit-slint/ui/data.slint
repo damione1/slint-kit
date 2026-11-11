@@ -333,6 +333,7 @@ component TableCellView inherits Rectangle {
             return reject;
         }
         editor := KitTextField {
+            implicit-form-submit: false;
             x: 0px; y: (parent.height - self.height) / 2; width: parent.width; height: self.preferred-height;
             theme: root.theme; control-size: root.control-size;
             accessible-name: root.editor-name;
@@ -1037,7 +1038,8 @@ export component KitVirtualTextView inherits Rectangle {
                 spacing:KitMetrics.inline-gap(root.theme);
                 // Resolve the editor width before measuring its wrapped label
                 // and help. Its height must not feed back into flexbox width.
-                line-editor:=KitTextField {width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
+                line-editor:=KitTextField {
+                    implicit-form-submit: false;width:root.footer-stacked ? root.width : max(0px, root.width - save-line.preferred-width - copy-line.preferred-width - 2 * KitMetrics.inline-gap(root.theme));theme:root.theme;text<=>root.line-draft;accessible-name:root.editor-label;placeholder:root.editor-placeholder;access:root.active-index>=0?FieldAccess.editable:FieldAccess.disabled;commit-requested(text)=>{if(root.active-index>=0){root.commit-line(root.lines[root.active-index].token,root.generation,text);}}}
                 HorizontalLayout {
                     width:save-line.preferred-width + copy-line.preferred-width + KitMetrics.inline-gap(root.theme);
                     spacing:KitMetrics.inline-gap(root.theme);alignment:start;vertical-stretch:0;

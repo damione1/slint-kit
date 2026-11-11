@@ -456,6 +456,18 @@ impl<K, E> FormCoordinator<K, E> {
         };
         true
     }
+    /// Dismiss a server error for a field whose draft changed, preserving other fields.
+    pub fn clear_error(&mut self, field: &K)
+    where
+        K: PartialEq,
+    {
+        if let SubmissionState::Rejected(errors) = &mut self.state {
+            errors.retain(|error| &error.field != field);
+            if errors.is_empty() {
+                self.state = SubmissionState::Idle;
+            }
+        }
+    }
     pub fn first_error(&self) -> Option<&K> {
         match &self.state {
             SubmissionState::Rejected(errors) => errors.first().map(|error| &error.field),

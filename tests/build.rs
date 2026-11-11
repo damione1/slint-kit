@@ -42,6 +42,20 @@ fn main() {
             "unexpected failure for {path}: {error:?}"
         );
     }
+    // Each catalogue source exports `Example`. Generate isolated Rust modules,
+    // as the public preview host does, rather than colliding in one root tree.
+    for (locale, source) in [
+        ("en", "../docs/examples/form.slint"),
+        ("fr", "../docs/examples/fr/form.slint"),
+    ] {
+        kit_build::compile(source).expect("public form catalogue compiles");
+        let output = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+        std::fs::copy(
+            output.join("kit-app.rs"),
+            output.join(format!("form-{locale}.rs")),
+        )
+        .expect("keep each catalogue window in its own module");
+    }
     kit_build::compile_with_config(
         "ui/fixture.slint",
         kit_build::config().with_debug_info(true),

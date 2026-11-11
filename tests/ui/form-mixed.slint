@@ -1,0 +1,108 @@
+import { KitForm, FormFieldView, CheckState } from "@kit";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { FieldAccess, KitCheckbox, KitColorField, KitCombobox, KitDatePicker, KitDateTimeField, KitDirectoryPicker, KitFilePicker, KitMultiSelect, KitNumberStepper, KitRadioGroup, KitSegmentedControl, KitSelect, KitSwitch, KitTagInput, KitTextField, KitTheme, KitThemes, KitTimePicker, KitToggleGroup, KitValidityState, KitZonedDateTimeField } from "@kit";
+import { ScrollView } from "std-widgets.slint";
+
+export enum MixedFormField { checkbox, switch, radio, segmented, toggle, multi, tags, combo, select, files, directory, date-time, zoned, stepper, date, time, color }
+export component MixedFormFixture inherits Window {
+    width: 800px; height: 800px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <FieldAccess> file-access: root.access;
+    in-out property <int> invalid-count;
+    out property <bool> checkbox-checked: checkbox.state == CheckState.checked;
+    out property <bool> checkbox-focused: checkbox.has-focus;
+    out property <bool> form-focused: form.has-focus;
+    callback validate() -> bool;
+    callback submitted();
+    public function focus-checkbox() { checkbox.take-focus(); }
+    public function focus-form() { form.take-focus(); }
+    out property <[FormFieldView]> fields: [
+        {will-validate: checkbox.will-validate, validity: checkbox.validity, dirty: false, message: checkbox.validation-message, target: {present: true, token: 1, generation: 1, request: 1}},
+        {will-validate: switch.will-validate, validity: switch.validity, dirty: false, message: switch.validation-message, target: {present: true, token: 2, generation: 1, request: 1}},
+        {will-validate: radio.will-validate, validity: radio.validity, dirty: false, message: radio.validation-message, target: {present: true, token: 3, generation: 1, request: 1}},
+        {will-validate: segmented.will-validate, validity: segmented.validity, dirty: false, message: segmented.validation-message, target: {present: true, token: 4, generation: 1, request: 1}},
+        {will-validate: toggle.will-validate, validity: toggle.validity, dirty: false, message: toggle.validation-message, target: {present: true, token: 5, generation: 1, request: 1}},
+        {will-validate: multi.will-validate, validity: multi.validity, dirty: false, message: multi.validation-message, target: {present: true, token: 6, generation: 1, request: 1}},
+        {will-validate: tags.will-validate, validity: tags.validity, dirty: false, message: tags.validation-message, target: {present: true, token: 7, generation: 1, request: 1}},
+        {will-validate: combo.will-validate, validity: combo.validity, dirty: false, message: combo.validation-message, target: {present: true, token: 8, generation: 1, request: 1}},
+        {will-validate: select.will-validate, validity: select.validity, dirty: false, message: select.validation-message, target: {present: true, token: 9, generation: 1, request: 1}},
+        {will-validate: files.will-validate, validity: files.validity, dirty: false, message: files.validation-message, target: {present: true, token: 10, generation: 1, request: 1}},
+        {will-validate: directory.will-validate, validity: directory.validity, dirty: false, message: directory.validation-message, target: {present: true, token: 11, generation: 1, request: 1}},
+        {will-validate: date-time.will-validate, validity: date-time.validity, dirty: false, message: date-time.validation-message, target: {present: true, token: 12, generation: 1, request: 1}},
+        {will-validate: zoned.will-validate, validity: zoned.validity, dirty: false, message: zoned.validation-message, target: {present: true, token: 13, generation: 1, request: 1}},
+        {will-validate: stepper.will-validate, validity: stepper.validity, dirty: false, message: stepper.validation-message, target: {present: true, token: 14, generation: 1, request: 1}},
+        {will-validate: date.will-validate, validity: date.validity, dirty: false, message: date.validation-message, target: {present: true, token: 15, generation: 1, request: 1}},
+        {will-validate: time.will-validate, validity: time.validity, dirty: false, message: time.validation-message, target: {present: true, token: 16, generation: 1, request: 1}},
+        {will-validate: color.will-validate, validity: color.validity, dirty: false, message: color.validation-message, target: {present: true, token: 17, generation: 1, request: 1}}
+    ];
+    public function report-field(field: MixedFormField) -> bool {
+        if (field == MixedFormField.checkbox) { return checkbox.report-validity(); }
+        if (field == MixedFormField.switch) { return switch.report-validity(); }
+        if (field == MixedFormField.radio) { return radio.report-validity(); }
+        if (field == MixedFormField.segmented) { return segmented.report-validity(); }
+        if (field == MixedFormField.toggle) { return toggle.report-validity(); }
+        if (field == MixedFormField.multi) { return multi.report-validity(); }
+        if (field == MixedFormField.tags) { return tags.report-validity(); }
+        if (field == MixedFormField.combo) { return combo.report-validity(); }
+        if (field == MixedFormField.select) { return select.report-validity(); }
+        if (field == MixedFormField.files) { return files.report-validity(); }
+        if (field == MixedFormField.directory) { return directory.report-validity(); }
+        if (field == MixedFormField.date-time) { return date-time.report-validity(); }
+        if (field == MixedFormField.zoned) { return zoned.report-validity(); }
+        if (field == MixedFormField.stepper) { return stepper.report-validity(); }
+        if (field == MixedFormField.date) { return date.report-validity(); }
+        if (field == MixedFormField.time) { return time.report-validity(); }
+        if (field == MixedFormField.color) { return color.report-validity(); }
+        return false;
+    }
+    public function focus-field(field: MixedFormField) -> bool {
+        if (field == MixedFormField.checkbox) { return checkbox.focus-if-invalid(); }
+        if (field == MixedFormField.switch) { return switch.focus-if-invalid(); }
+        if (field == MixedFormField.radio) { return radio.focus-if-invalid(); }
+        if (field == MixedFormField.segmented) { return segmented.focus-if-invalid(); }
+        if (field == MixedFormField.toggle) { return toggle.focus-if-invalid(); }
+        if (field == MixedFormField.multi) { return multi.focus-if-invalid(); }
+        if (field == MixedFormField.tags) { return tags.focus-if-invalid(); }
+        if (field == MixedFormField.combo) { return combo.focus-if-invalid(); }
+        if (field == MixedFormField.select) { return select.focus-if-invalid(); }
+        if (field == MixedFormField.files) { return files.focus-if-invalid(); }
+        if (field == MixedFormField.directory) { return directory.focus-if-invalid(); }
+        if (field == MixedFormField.date-time) { return date-time.focus-if-invalid(); }
+        if (field == MixedFormField.zoned) { return zoned.focus-if-invalid(); }
+        if (field == MixedFormField.stepper) { return stepper.focus-if-invalid(); }
+        if (field == MixedFormField.date) { return date.focus-if-invalid(); }
+        if (field == MixedFormField.time) { return time.focus-if-invalid(); }
+        if (field == MixedFormField.color) { return color.focus-if-invalid(); }
+        return false;
+    }
+    public function reset-fields() { checkbox.reset-validation(); switch.reset-validation(); radio.reset-validation(); segmented.reset-validation(); toggle.reset-validation(); multi.reset-validation(); tags.reset-validation(); combo.reset-validation(); select.reset-validation(); files.reset-validation(); directory.reset-validation(); date-time.reset-validation(); zoned.reset-validation(); stepper.reset-validation(); date.reset-validation(); time.reset-validation(); color.reset-validation(); }
+    background: root.theme.canvas;
+    VerticalLayout { padding: 16px;
+        form := KitForm {
+            theme: root.theme; accessible-name: "Mixed form";
+            validation-requested => { return root.validate(); }
+            submit-requested => { root.submitted(); }
+            ScrollView { height: 700px; VerticalLayout { spacing: 12px;
+                checkbox := KitCheckbox { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitCheckbox"; invalid => { root.invalid-count += 1; } }
+                switch := KitSwitch { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitSwitch"; invalid => { root.invalid-count += 1; } }
+                radio := KitRadioGroup { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                segmented := KitSegmentedControl { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                toggle := KitToggleGroup { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                multi := KitMultiSelect { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                tags := KitTagInput { access: root.access; required: true; custom-validity: "Rejected value";  invalid => { root.invalid-count += 1; } }
+                combo := KitCombobox { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; invalid => { root.invalid-count += 1; } }
+                select := KitSelect { access: root.access; required: true; custom-validity: "Rejected value"; options: [{token: 17, generation: 1, label: "Available option", description: "Available option", disabled: false}]; placeholder: "KitSelect"; invalid => { root.invalid-count += 1; } }
+                files := KitFilePicker { access: root.file-access; required: true; custom-validity: "Rejected value";  label: "KitFilePicker"; invalid => { root.invalid-count += 1; } }
+                directory := KitDirectoryPicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDirectoryPicker"; invalid => { root.invalid-count += 1; } }
+                date-time := KitDateTimeField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDateTimeField"; invalid => { root.invalid-count += 1; } }
+                zoned := KitZonedDateTimeField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitZonedDateTimeField"; invalid => { root.invalid-count += 1; } }
+                stepper := KitNumberStepper { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitNumberStepper"; invalid => { root.invalid-count += 1; } }
+                date := KitDatePicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitDatePicker"; invalid => { root.invalid-count += 1; } }
+                time := KitTimePicker { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitTimePicker"; invalid => { root.invalid-count += 1; } }
+                color := KitColorField { access: root.access; required: true; custom-validity: "Rejected value";  label: "KitColorField"; invalid => { root.invalid-count += 1; } }
+            } }
+        }
+    }
+}

@@ -5,11 +5,18 @@
 - Preserve manual horizontal table scrolling until the next cell-navigation action; verify Left/Right after real wheel events and measure the cell focus frame independently of editors at every control size and doubled text.
 - Conserve le défilement horizontal manuel du tableau jusqu’à la prochaine navigation de cellule ; vérifie Gauche/Droite après de vraies molettes et mesure le cadre de cellule indépendamment des éditeurs à chaque taille de contrôle et au texte doublé.
 
+- File and directory focus-if-invalid now rejects an inactive or busy browse action, allowing a form to focus its next invalid field or fallback. Form-owned error projections do not accumulate on refresh.
+- focus-if-invalid des fichiers et dossiers refuse désormais un parcours inactif ou occupé, pour permettre au formulaire de cibler le champ invalide suivant ou son repli. Les erreurs projetées par le formulaire ne s’accumulent pas au rafraîchissement.
+
 - Add KitButton.text-wrap for multiline labels with intrinsic height and preserved icon, busy, disabled, keyboard and pointer behavior; single-line elision remains the default.
 - Ajoute KitButton.text-wrap pour les libellés multilignes avec hauteur intrinsèque et conservation des icônes, des états occupé/désactivé et des actions clavier/pointeur ; l’élision monoligne reste le défaut.
 
 - Document Slint 1.18.1 numeric editor platform limits, the retained numeric draft grammar and backend-specific input-purpose behavior. This does not restore a numeric soft keyboard or the native editor’s NumberInput role.
 - Documente les limites de plateforme des éditeurs numériques sous Slint 1.18.1, la grammaire conservée des brouillons et les différences de finalité de saisie entre backends. Cela ne rétablit ni clavier numérique logiciel ni rôle NumberInput de l’éditeur natif.
+
+- Add KitForm and weak-window FormBinding: stable field registration, typed parse-once submission, HTML validity/dirty aggregation, focus admission with a form fallback, field/server error routing, reset and stale-response guards. Native accepted Enter coordinates single-line fields; checkbox/switch/radio/toggle Enter submits an enclosing form while auxiliary editors keep their actions. Outside a KitForm their activation behavior is unchanged. form_schema! generates the typed record, conventional field ports and global callbacks from one declaration. The complete four-field starter fits in fifteen Rust lines, including schema and business logic; its transactional binding remains available for asynchronous requests.
+- Ajoute KitForm et FormBinding à fenêtre faible : champs à clés stables, soumission typée analysée une fois, agrégation HTML validité/modification, admission du focus avec repli formulaire, erreurs de champs/serveur, reset et protection contre les réponses périmées. Entrée acceptée nativement coordonne les champs monolignes ; Entrée sur case/interrupteur/radio/choix multiple envoie le formulaire englobant, les éditeurs auxiliaires gardent leurs actions. Hors KitForm, leur activation reste inchangée. form_schema! génère la struct typée, les ports conventionnels et les callbacks globaux à partir d’une déclaration. Le projet de quatre champs tient en quinze lignes Rust, schéma et métier inclus ; le binding transactionnel reste disponible pour les requêtes asynchrones.
+
 
 - **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
 - **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.

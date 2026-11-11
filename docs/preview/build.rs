@@ -53,14 +53,14 @@ fn main() {
                     );
                     "let app = App::new()?;"
                 };
-                host.replacen(creation, &format!("{creation}\n{}\nif let Some((width, height)) = options.viewport {{ app.window().set_size(slint::LogicalSize::new(width, height)); }}", theme_setup()), 1)
+                host.replacen(creation, &format!("{creation}\n{}\nif let Some((width, height)) = options.viewport {{ slint::ComponentHandle::window(&app).set_size(slint::LogicalSize::new(width, height)); }}", theme_setup()), 1)
             } else {
                 format!(
                     "{include}\npub fn run(options: crate::PreviewOptions) -> Result<(), slint::PlatformError> {{\n\
                      use slint::ComponentHandle;\nlet app = Example::new()?;\n\
                      slint_kit::install(&app);\n{}\n\
                      if let Some((width, height)) = options.viewport {{\n\
-                       app.window().set_size(slint::LogicalSize::new(width, height));\n}}\n\
+                       slint::ComponentHandle::window(&app).set_size(slint::LogicalSize::new(width, height));\n}}\n\
                      app.run()\n}}",
                     theme_setup()
                 )
@@ -86,10 +86,10 @@ fn main() {
 
 fn theme_setup() -> &'static str {
     r#"
-    let theme_window = app.as_weak();
+    let theme_window = slint::ComponentHandle::as_weak(&app);
     crate::register_theme(move |mode| {
         if let Some(app) = theme_window.upgrade() {
-            let palettes = app.global::<slint_kit::ui::KitThemes>();
+            let palettes = slint::ComponentHandle::global::<slint_kit::ui::KitThemes>(&app);
             let mut theme = match mode {
                 crate::PreviewTheme::Light => palettes.get_light(),
                 crate::PreviewTheme::Dark => palettes.get_dark(),
@@ -99,7 +99,7 @@ fn theme_setup() -> &'static str {
                 crate::PreviewKind::Starter => crate::prefers_reduced_motion(),
             };
             theme.text_scale = options.text_scale;
-            app.global::<slint_kit::ui::KitThemeContext>().set_current(theme.clone());
+            slint::ComponentHandle::global::<slint_kit::ui::KitThemeContext>(&app).set_current(theme.clone());
             app.set_theme(theme);
         }
     });

@@ -1,4 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
+import { KitFormValidation } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitIcon, IconGlyph } from "icons.slint";
 import { KitTheme, KitThemes, KitThemeContext, KitFocusRing, KitMetrics, ButtonRecipe, ButtonIntent, ControlSize, ControlWidth, ChoiceFlow, ElevationLevel, FocusRingStyle } from "theme.slint";
@@ -44,6 +45,7 @@ export component KitPressable inherits Rectangle {
     in property <string> busy-label: KitStrings.busy-label;
     in property <bool> tab-stop: true;
     in property <bool> activate-on-return: true;
+    in property <bool> form-submit-on-return: false;
     // A pressable whose children host an open native editor hands the
     // pointer to them; keyboard activation and focus are unaffected.
     in property <bool> pointer-enabled: true;
@@ -172,6 +174,10 @@ export component KitPressable inherits Rectangle {
             root.keyboard-focus = true;
             if (root.disabled || root.busy) { return reject; }
             if (root.key-event(event) == KitKeyResult.accept) { return accept; }
+            if (root.form-submit-on-return && event.text == Key.Return && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation)) {
+                KitFormValidation.note-native-submit(KitFormValidation.focus-generation);
+                return accept;
+            }
             if (event.text == Key.Space) {
                 if (!root.space-held) { root.activation-started(); root.space-held = true; }
                 return accept;

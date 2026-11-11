@@ -3,7 +3,9 @@ import { KitStrings } from "strings.slint";
 import { HtmlInputKind, FieldAccess, NumberInputFormat } from "shared-contracts.slint";
 export { HtmlInputKind } from "shared-contracts.slint";
 import { ChoiceRow } from "contracts.slint";
+export enum FormEditorFocus { other, single-line, read-only-single-line, multiline, auxiliary, disabled }
 export enum ValidationTiming { on-blur, on-input, on-submit }
+export struct ImplicitSubmitTicket { sequence: int, focus-generation: int }
 export struct KitTextEdit { text: string, cursor-byte-offset: int }
 export struct KitMaskRules { length: int, placeholder: string, pattern: string, error: string }
 export struct KitValidityState {
@@ -24,9 +26,14 @@ export struct KitValidationResult {
 export global KitFormValidation {
     in-out property <bool> ready;
     in-out property <bool> phone-focused;
+    in-out property <FormEditorFocus> focused-editor: FormEditorFocus.other;
     in-out property <int> focus-generation;
     public pure function combine(a: KitValidityState, b: KitValidityState) -> KitValidityState { return {valid: a.valid && b.valid, value-missing: a.value-missing || b.value-missing, type-mismatch: a.type-mismatch || b.type-mismatch, pattern-mismatch: a.pattern-mismatch || b.pattern-mismatch, too-long: a.too-long || b.too-long, too-short: a.too-short || b.too-short, range-underflow: a.range-underflow || b.range-underflow, range-overflow: a.range-overflow || b.range-overflow, step-mismatch: a.step-mismatch || b.step-mismatch, bad-input: a.bad-input || b.bad-input, custom-error: a.custom-error || b.custom-error}; }
 
+    callback begin-implicit-submit(int) -> ImplicitSubmitTicket;
+    pure callback implicit-submit-active(int) -> bool;
+    callback note-native-submit(int);
+    callback take-implicit-submit(ImplicitSubmitTicket, int) -> bool;
     pure callback grapheme-count(string) -> int;
     pure callback utf16-count(string) -> int;
     pure callback valid-time-zone(string) -> bool;

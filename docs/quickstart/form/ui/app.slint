@@ -1,0 +1,100 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitForm, FormFieldView, KitTextField, KitEmailField, KitDateField, KitCheckbox, KitFieldError, CheckState, KitButton, KitFormErrorSummary, KitTheme, KitThemeContext, FieldCommit, KitValidityState, FormErrorRow, CommitPolicy, ValidationPresentation, FieldAccess, FocusRequest } from "@kit";
+export enum RegistrationField { name, email, birth, consent }
+export component App inherits Window {
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    default-font-family: InterFont.family;
+    background: root.theme.canvas;
+    title: "Registration"; preferred-width: 560px; preferred-height: 950px;
+    in property <bool> valid;
+    in property <bool> dirty;
+    in property <bool> submitting;
+    in property <[FormErrorRow]> errors;
+    in property <string> result;
+    callback validate-form() -> bool;
+    callback send-form(); callback reset-form(); callback edited();
+    callback field-edited(RegistrationField);
+    callback focus-error(FocusRequest);
+    callback field-committed(FieldCommit);
+    out property <bool> birth-focused: birth.has-focus;
+    public function select-email() { email.select-all(); }
+    public function undo-email() { email.undo(); }
+    public function focus-form() { form.take-focus(); }
+    in-out property <string> name-text: "Ada";
+    in property <string> name-error;
+    out property <FieldCommit> name-candidate: {value: {present: name.value != "", text: name.value}, constraints: name.constraints};
+    out property <FormFieldView> name-field: {will-validate: name.will-validate, validity: name.validity, dirty: name.dirty, message: name.validation-message, target: {present: true, token: 1, generation: 1, request: 1}};
+    public function report-name() -> bool { return name.report-validity(); }
+    public function focus-name() -> bool { name.take-focus(); return name.access != FieldAccess.disabled; }
+    public function reset-name() { name.reset-field(); }
+    in-out property <string> email-text: "hello@example.com";
+    in property <string> email-error;
+    out property <FieldCommit> email-candidate: {value: {present: email.value != "", text: email.value}, constraints: email.constraints};
+    out property <FormFieldView> email-field: {will-validate: email.will-validate, validity: email.validity, dirty: email.dirty, message: email.validation-message, target: {present: true, token: 2, generation: 1, request: 1}};
+    public function report-email() -> bool { return email.report-validity(); }
+    public function focus-email() -> bool { email.take-focus(); return email.access != FieldAccess.disabled; }
+    public function reset-email() { email.reset-field(); }
+    in-out property <string> birth-text: "2026-10-19";
+    in property <string> birth-error;
+    out property <FieldCommit> birth-candidate: {value: {present: birth.value != "", text: birth.value}, constraints: birth.constraints};
+    out property <FormFieldView> birth-field: {will-validate: birth.will-validate, validity: birth.validity, dirty: birth.dirty, message: birth.validation-message, target: {present: true, token: 3, generation: 1, request: 1}};
+    public function report-birth() -> bool { return birth.report-validity(); }
+    public function focus-birth() -> bool { birth.take-focus(); return birth.access != FieldAccess.disabled; }
+    public function reset-birth() { birth.reset-field(); }
+    out property <KitValidityState> email-validity: email.validity;
+    out property <bool> email-will-validate: email.will-validate;
+    out property <bool> email-dirty: email.dirty;
+    out property <string> email-message: email.validation-message;
+    out property <FieldCommit> candidate: root.email-candidate;
+    in-out property <CheckState> consent-state: CheckState.checked;
+    in-out property <bool> consent-dirty;
+    in property <string> consent-error;
+    out property <FormFieldView> consent-field: {will-validate: consent.will-validate, validity: consent.validity, dirty: root.consent-dirty, message: consent.validation-message, target: {present: true, token: 4, generation: 1, request: 1}};
+    public function report-consent() -> bool { return consent.report-validity(); }
+    public function focus-consent() -> bool { consent.take-focus(); return consent.access != FieldAccess.disabled; }
+    public function reset-consent() { root.consent-state = CheckState.checked; root.consent-dirty = false; consent.reset-validation(); }
+    VerticalLayout { padding: 24px; alignment: start;
+        form := KitForm {
+            theme: root.theme; accessible-name: "Registration form";
+            valid: root.valid; dirty: root.dirty; submitting: root.submitting; errors: root.errors;
+            validation-requested => { return root.validate-form(); }
+            submit-requested => { root.send-form(); }
+            reset-requested => { root.reset-form(); }
+            KitFormErrorSummary { theme: root.theme; errors: root.errors; error-activated(target) => { root.focus-error(target); } }
+            name := KitTextField {
+                theme: root.theme; label: "Name"; required: true;
+                default-value: "Ada"; text <=> root.name-text;
+                commit-policy: CommitPolicy.on-submit;
+                error: root.name-error; validation: root.name-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+                edited(value) => { root.field-edited(RegistrationField.name); root.edited(); }
+            }
+            email := KitEmailField {
+                theme: root.theme; label: "Email"; required: true;
+                default-value: "hello@example.com"; text <=> root.email-text;
+                commit-policy: CommitPolicy.on-submit;
+                error: root.email-error; validation: root.email-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+                edited(value) => { root.field-edited(RegistrationField.email); root.edited(); }
+                committed(value) => { root.field-committed(value); }
+            }
+            birth := KitDateField {
+                theme: root.theme; label: "Birth date"; required: true;
+                default-value: "2026-10-19"; text <=> root.birth-text;
+                commit-policy: CommitPolicy.on-submit;
+                error: root.birth-error; validation: root.birth-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+                edited(value) => { root.field-edited(RegistrationField.birth); root.edited(); }
+            }
+            consent := KitCheckbox {
+                theme: root.theme; label: "Accept the terms"; required: true; state <=> root.consent-state;
+                toggled(value) => { root.consent-dirty = true; root.field-edited(RegistrationField.consent); }
+            }
+            if root.consent-error != "": KitFieldError { theme: root.theme; text: root.consent-error; }
+            HorizontalLayout {
+                alignment: start;
+                KitButton { theme: root.theme; text: "Register"; disabled: root.submitting; activated => { form.submit(); } }
+                KitButton { theme: root.theme; text: "Reset"; activated => { form.reset(); } }
+            }
+            Text { text: root.result != "" ? "Registered " + root.result : "Edit the fields, then Register or Reset."; color: root.theme.text-primary; wrap: word-wrap; }
+        }
+    }
+}

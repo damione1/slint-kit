@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitForm, KitTextField, KitButton, KitFormErrorSummary, KitTheme, KitThemes, KitValidityState, FormErrorRow, FieldCommit, FieldAccess, CommitPolicy, KitKeyResult, TextLineMode } from "@kit";
+export component FormKeyboardFixture inherits Window {
+    width: 520px; height: 760px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in-out property <string> first-text;
+    in-out property <string> second-text;
+    in-out property <bool> multiline;
+    in-out property <bool> auxiliary;
+    in-out property <bool> consume-return;
+    in-out property <bool> implicit-submit: true;
+    in-out property <bool> form-no-validate;
+    in-out property <FieldAccess> access: FieldAccess.editable;
+    in-out property <bool> submitting;
+    in-out property <[FormErrorRow]> errors;
+    callback validate() -> bool;
+    callback submitted(); callback reset-requested();
+    callback first-committed(FieldCommit);
+    callback first-invalid(); callback second-invalid();
+    out property <bool> first-focus: first.has-focus;
+    out property <KitValidityState> first-validity: first.validity;
+    out property <KitValidityState> second-validity: second.validity;
+    out property <bool> first-will-validate: first.will-validate;
+    out property <bool> second-will-validate: second.will-validate;
+    out property <bool> first-dirty: first.dirty;
+    out property <bool> second-dirty: second.dirty;
+    out property <string> first-message: first.validation-message;
+    out property <string> second-message: second.validation-message;
+    public function focus-first() { first.take-focus(); }
+    public function focus-second() { second.take-focus(); }
+    public function focus-action() { action.take-focus(); }
+    public function report-first() -> bool { return first.report-validity(); }
+    public function report-second() -> bool { return second.report-validity(); }
+    public function reset-first() { first.reset-field(); }
+    public function reset-second() { second.reset-field(); }
+    public function submit() -> bool { return form.submit(); }
+    public function reset() { form.reset(); }
+    VerticalLayout { padding: 24px;
+        form := KitForm {
+            theme: root.theme; accessible-name: "Example form";
+            implicit-submit: root.implicit-submit; form-no-validate: root.form-no-validate;
+            submitting: root.submitting; errors: root.errors;
+            validation-requested => { return root.validate(); }
+            submit-requested => { root.submitted(); }
+            reset-requested => { root.reset-requested(); }
+            KitFormErrorSummary { theme: root.theme; errors: root.errors; }
+            first := KitTextField {
+                theme: root.theme; label: "First"; required: true; text <=> root.first-text;
+                line-mode: root.multiline ? TextLineMode.multiline : TextLineMode.single-line; access: root.access;
+                commit-policy: CommitPolicy.on-submit;
+                key-pressed(event) => { return root.consume-return && event.text == Key.Return ? KitKeyResult.accept : KitKeyResult.reject; }
+                committed(value) => { root.first-committed(value); }
+                invalid => { root.first-invalid(); }
+            }
+            second := KitTextField {
+                theme: root.theme; label: "Second"; required: true; text <=> root.second-text;
+                implicit-form-submit: !root.auxiliary;
+                invalid => { root.second-invalid(); }
+            }
+            action := KitButton { theme: root.theme; text: "Other action"; }
+            KitButton { theme: root.theme; text: "Submit"; activated => { form.submit(); } }
+            KitButton { theme: root.theme; text: "Reset"; activated => { form.reset(); } }
+        }
+    }
+}

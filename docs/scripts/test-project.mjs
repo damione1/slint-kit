@@ -89,3 +89,22 @@ test('verification-code examples retain typed accepted codes without exposing th
   }
   assert.doesNotMatch(rust, /(?:println!|eprintln!|dbg!)\s*\(/);
 });
+
+test('registration form declares its typed schema and business code within fifteen Rust lines', async () => {
+  const { default: nunjucks } = await import('nunjucks');
+  const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
+  const template = fs.readFileSync(new URL('../src/_includes/component-quickstart.njk', import.meta.url), 'utf8');
+  const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
+  env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
+  for (const locale of ['en', 'fr']) {
+    const rendered = env.renderString(template, {component: {slug: 'form'}, locale, project: {registryExamples: false, version: '0.7.2'}, quickstart: starters.form});
+    assert.doesNotMatch(rendered, /tree\/v0\.7\.2\/docs\/quickstart\/form/);
+  }
+  const main = fs.readFileSync(new URL('../quickstart/form/src/main.rs', import.meta.url), 'utf8');
+  assert.ok(main.trim().split('\n').length <= 15);
+  assert.deepEqual(fs.readdirSync(new URL('../quickstart/form/src/', import.meta.url), {recursive: true}).filter(name => name.endsWith('.rs')), ['main.rs']);
+  assert.match(main, /form_schema!\(Registration, App, RegistrationField/);
+  assert.equal((main.match(/: required\(/g) || []).length, 3);
+  assert.match(main, /consent: checked/);
+  assert.doesNotMatch(main, /FormFieldPorts|on_field_edited|register_view|\.accept\(|pub fn parse/);
+});
