@@ -168,37 +168,77 @@ fn outside_policy_guards_stale_pointer_admission_and_preserves_controlled_keyboa
     assert_eq!(window.get_focused(), date(2026, 10, 2));
 }
 fn capture(window: &CalendarOutsideFixture, mode: &str, scale: f32, policy: &str, expected: usize) {
-    let mut calendars = ElementQuery::from_root(window)
+    let standalone = ElementQuery::from_root(window)
+        .match_id("CalendarOutsideFixture::calendar")
+        .find_first()
+        .unwrap();
+    let picker = ElementQuery::from_root(window)
+        .match_inherits("KitDatePicker")
+        .find_first()
+        .unwrap();
+    let popup = picker
+        .query_descendants()
         .match_inherits("KitCalendar")
-        .find_all();
-    assert_eq!(calendars.len(), 3);
-    calendars.sort_by(|left, right| {
-        left.absolute_position()
-            .x
-            .total_cmp(&right.absolute_position().x)
-    });
-    for pair in calendars.windows(2) {
+        .find_first()
+        .unwrap();
+    let range = ElementQuery::from_root(window)
+        .match_inherits("KitDateRangePicker")
+        .find_first()
+        .unwrap()
+        .query_descendants()
+        .match_inherits("KitCalendar")
+        .find_first()
+        .unwrap();
+    // SDK 1.18.1 ElementHandle::absolute_position uses map_to_window, which
+    // excludes a ChildWindow popup offset (item_tree.rs test_map_to_window_popup).
+    // DatePicker anchors its popup below the field with the theme spacing gap.
+    let anchor = picker.absolute_position();
+    let popup_offset = slint::LogicalPosition::new(
+        anchor.x,
+        anchor.y + picker.size().height + window.get_theme().spacing.unit,
+    );
+    let zero = slint::LogicalPosition::new(0., 0.);
+    let calendars = [(standalone, zero), (popup, popup_offset), (range, zero)];
+    let mut rectangles: Vec<_> = calendars
+        .iter()
+        .map(|(calendar, offset)| {
+            let local = calendar.absolute_position();
+            (
+                slint::LogicalPosition::new(local.x + offset.x, local.y + offset.y),
+                calendar.size(),
+            )
+        })
+        .collect();
+    rectangles.sort_by(|left, right| left.0.x.total_cmp(&right.0.x));
+    for pair in rectangles.windows(2) {
         assert!(
-            pair[0].absolute_position().x + pair[0].size().width <= pair[1].absolute_position().x,
-            "the popup and neighboring calendars must not overlap"
+            pair[0].0.x + pair[0].1.width <= pair[1].0.x,
+            "the popup and neighboring calendars must not overlap: {rectangles:?}"
         );
     }
-    let entries = cells(window);
-    assert_eq!(entries.len(), expected);
     let size = window
         .window()
         .size()
         .to_logical(window.window().scale_factor());
-    for cell in entries {
-        let origin = cell.absolute_position();
-        let bounds = cell.size();
-        assert!(bounds.width > 0. && bounds.height > 0.);
-        assert!(
-            origin.x >= 0.
-                && origin.y >= 0.
-                && origin.x + bounds.width <= size.width + 1.
-                && origin.y + bounds.height <= size.height + 1.
-        );
+    for (calendar, offset) in calendars {
+        let entries = calendar
+            .query_descendants()
+            .match_inherits("CalendarOption")
+            .find_all();
+        assert_eq!(entries.len(), expected / 3);
+        for cell in entries {
+            let local = cell.absolute_position();
+            let origin = slint::LogicalPosition::new(local.x + offset.x, local.y + offset.y);
+            let bounds = cell.size();
+            assert!(bounds.width > 0. && bounds.height > 0.);
+            assert!(
+                origin.x >= 0.
+                    && origin.y >= 0.
+                    && origin.x + bounds.width <= size.width + 1.
+                    && origin.y + bounds.height <= size.height + 1.,
+                "cell {origin:?} {bounds:?} in {size:?}"
+            );
+        }
     }
     let image = window.window().take_snapshot().unwrap();
     if let Some(dir) = std::env::var_os("KIT_CALENDAR_OUTSIDE_RENDER_DIR") {
