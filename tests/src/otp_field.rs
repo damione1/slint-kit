@@ -1218,6 +1218,30 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
             let frame = app.window().take_snapshot().unwrap();
             assert_eq!(app.get_text(), "123456");
             assert_eq!(selected, (1, 4));
+            let native = code(&app);
+            let surface = ElementQuery::from_root(&app)
+                .match_inherits("KitOtpField")
+                .find_first()
+                .unwrap()
+                .query_descendants()
+                .match_inherits("KitInputGroup")
+                .find_first()
+                .unwrap();
+            let expected_origin = surface.absolute_position().x
+                + app.get_code_padding_inline()
+                + app.get_code_text_inset();
+            assert!(
+                (native.absolute_position().x - expected_origin).abs() < 1.,
+                "native editor must stay aligned with fixed cells after focus/selection: actual={}, expected={expected_origin}",
+                native.absolute_position().x
+            );
+            assert!(
+                native.absolute_position().x + native.size().width
+                    <= surface.absolute_position().x + surface.size().width
+                        - app.get_code_padding_inline()
+                        + 1.,
+                "native focus rectangle must fit the decorative cells viewport"
+            );
             assert_eq!(
                 ElementQuery::from_root(&app)
                     .match_type_name("TextInput")

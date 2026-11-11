@@ -497,7 +497,10 @@ export component KitTextField inherits KitField {
                         interactive: root.multiline;
                         mouse-drag-pan-enabled: false;
                         width: parent.width - (root.multiline ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
-                        content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width, formatted-measure.preferred-width) + 2px + root.text-inset);
+                        // Fixed cells include the final glyph, not the trailing letter-spacing
+                        // advance. Keep the real editor inside its viewport so native
+                        // focus reveal cannot pan it away from the decorative cells.
+                        content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width - (root.decoration == FieldDecoration.cells ? root.text-letter-spacing : 0px), formatted-measure.preferred-width) + 2px + root.text-inset);
                         content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
                         glyph-measure := Text { visible: false; text: "0"; font-family: root.text-font-family; font-size: root.text-size; }
                         measure := Text {
@@ -529,7 +532,7 @@ export component KitTextField inherits KitField {
                         }
                         editor := TextInput {
                             x: root.text-inset;
-                            width: root.multiline ? viewport.width : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
+                            width: root.multiline ? viewport.width : root.decoration == FieldDecoration.cells ? Math.max(0px, viewport.width - root.text-inset - 2px) : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
                             height: viewport.content-height;
                             text <=> root.text;
                             enabled: root.access != FieldAccess.disabled;
