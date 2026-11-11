@@ -1,4 +1,4 @@
-import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
+import { FormConstraintState, KitFormValidation, KitFileValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ButtonIntent, ControlSize, KitThemeContext, KitMetrics, TypographyRole } from "theme.slint";
@@ -6,12 +6,13 @@ import { KitIcon, IconGlyph } from "icons.slint";
 import { KitButton, KitPressable } from "button.slint";
 import { FieldAccess } from "contracts.slint";
 import { FileSelectionMode } from "shared-contracts.slint";
-import { KitStrings } from "strings.slint";
+import { KitFileMessages, KitStrings } from "strings.slint";
 export { FileSelectionMode } from "shared-contracts.slint";
 
 export enum HostRequestPresentation { idle, pending, cancelled, failed, unsupported }
 export enum DropCapability { unsupported, available }
-export struct FileViewEntry { token: int, generation: int, name: string, detail: string, removable: bool }
+import { FileViewEntry } from "file-contracts.slint";
+export { FileViewEntry } from "file-contracts.slint";
 
 component FileRemoveButton inherits KitButton {
     in property <FileViewEntry> entry;
@@ -70,6 +71,12 @@ export component KitFileList inherits Rectangle {
 }
 
 export component KitFilePicker inherits Rectangle {
+    in property <string> accept;
+    in property <int> max-files: -1;
+    // Exact per-file bytes, empty means no bound; never a renderer float.
+    in property <string> max-size;
+    in property <KitFileMessages> file-messages: KitStrings.file-constraints;
+    private property <KitFileValidation> file-result: KitFormValidation.ready ? KitFormValidation.file-validation(root.accept, root.max-files, root.max-size, root.entries, root.file-messages) : { validity: {valid: false, bad-input: true} };
     in property <bool> required;
     in property <string> required-message: KitStrings.selection-required-message;
     in-out property <string> custom-validity;
@@ -86,6 +93,7 @@ export component KitFilePicker inherits Rectangle {
         kind: HtmlInputKind.file; access: root.access; required: root.required;
         custom-validity <=> root.custom-validity; required-message: root.required-message;
         selected-count: root.entries.length;
+        additional-validity: root.file-result.validity; additional-message: root.file-result.message;
         invalid => { root.invalid(); }
     }
 

@@ -51,10 +51,12 @@ impl FileFilter {
     pub fn new(label: String, extensions: Vec<String>) -> Result<Self, HostError> {
         if extensions.is_empty()
             || extensions.iter().any(|value| {
-                value.is_empty()
-                    || !value
-                        .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                value.split('.').any(|part| {
+                    part.is_empty()
+                        || !part
+                            .chars()
+                            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+                })
             })
         {
             return Err(HostError::InvalidFilter);
@@ -70,10 +72,32 @@ pub struct FileRequest {
     pub selection: FileSelectionMode,
     pub filters: Vec<FileFilter>,
     pub suggested_name: Option<String>,
+    pub title: Option<String>,
+    pub directory: Option<PathBuf>,
+}
+impl Default for FileRequest {
+    fn default() -> Self {
+        Self {
+            selection: FileSelectionMode::Single,
+            filters: Vec::new(),
+            suggested_name: None,
+            title: None,
+            directory: None,
+        }
+    }
+}
+/// A save-target dialog request. Selecting a target never creates or writes it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct SaveFileRequest {
+    pub filters: Vec<FileFilter>,
+    pub suggested_name: Option<String>,
+    pub title: Option<String>,
+    pub directory: Option<PathBuf>,
 }
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DirectoryRequest {
     pub title: Option<String>,
+    pub directory: Option<PathBuf>,
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SelectionOutcome<T> {
@@ -98,6 +122,7 @@ pub enum HostCapability {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HostCapabilities {
     pub files: HostCapability,
+    pub save_files: HostCapability,
     pub directories: HostCapability,
     pub drop: HostCapability,
 }

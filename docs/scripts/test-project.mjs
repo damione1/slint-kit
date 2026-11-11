@@ -47,8 +47,8 @@ test('quickstart pages distinguish development APIs from immutable registry exam
   const env = new nunjucks.Environment(null, { autoescape: false, throwOnUndefined: true });
   env.addFilter('quickstartSource', (file, slug) => `source:${slug}/${file}`);
   const starters = JSON.parse(fs.readFileSync(new URL('../content/starters.json', import.meta.url), 'utf8'));
-  for (const slug of ['button-group', 'steps', 'timeline', 'date-picker', 'date-time-field']) assert.equal(starters[slug].development, true);
-  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view', 'button-group', 'steps', 'timeline', 'date-picker', 'date-time-field', 'form-error-summary']) {
+  for (const slug of ['button-group', 'steps', 'timeline', 'date-picker', 'date-time-field', 'file-picker', 'directory-picker']) assert.equal(starters[slug].development, true);
+  for (const slug of ['text-field', 'password-field', 'search-field', 'data-table', 'content-list', 'virtual-text-view', 'button-group', 'steps', 'timeline', 'date-picker', 'date-time-field', 'form-error-summary', 'file-picker', 'directory-picker']) {
     for (const locale of ['en', 'fr']) {
       for (const registryExamples of [false, true]) {
         for (const version of ['0.7.2', '0.7.3']) {

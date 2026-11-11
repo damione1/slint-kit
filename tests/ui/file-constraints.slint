@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitFilePicker, KitFileMessages, KitStrings, FileViewEntry, KitTheme, KitThemes, KitValidityState, FieldAccess } from "@kit";
+export component FileConstraintsFixture inherits Window {
+    width: 720px; height: 560px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark: KitThemes.dark;
+    in property <[FileViewEntry]> entries;
+    in property <string> accept: ".pdf";
+    in property <int> max-files: 2;
+    in property <string> max-size: "9007199254740993";
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <KitFileMessages> messages: KitStrings.file-constraints;
+    out property <KitValidityState> validity: picker.validity;
+    out property <string> message: picker.validation-message;
+    out property <bool> will-validate: picker.will-validate;
+    public function report() -> bool { return picker.report-validity(); }
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        picker := KitFilePicker {
+            theme: root.theme; label: "Project documents"; required: true;
+            entries: root.entries; accept: root.accept; max-files: root.max-files; max-size: root.max-size;
+            access: root.access; file-messages: root.messages;
+        }
+    }
+}
