@@ -122,8 +122,8 @@ export component KitInputGroup inherits Rectangle {
             background: root.recipe.fill;
             border-radius: root.corner-radius;
             border-width: root.recipe.border-width;
-            border-color: root.validation == ValidationPresentation.invalid ? root.theme.danger : root.focused ? root.theme.focus.color : root.hovered ? root.recipe.hover-border : root.recipe.border;
-            if root.focused: FocusOutline {
+            border-color: root.access == FieldAccess.disabled ? root.recipe.border : root.validation == ValidationPresentation.invalid ? root.theme.danger : root.focused ? root.theme.focus.color : root.hovered ? root.recipe.hover-border : root.recipe.border;
+            if root.focused && root.access != FieldAccess.disabled: FocusOutline {
                 ring: root.recipe.focus; radius: root.corner-radius;
                 host-width: parent.width; host-height: parent.height;
             }

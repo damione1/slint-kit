@@ -1279,6 +1279,17 @@ fn otp_cells_groups_and_native_selection_render_at_both_theme_text_scales() {
             );
             app.set_access(FieldAccess::Disabled);
             slint::platform::update_timers_and_animations();
+            assert!(
+                ElementQuery::from_root(&app)
+                    .match_inherits("KitOtpField")
+                    .find_first()
+                    .unwrap()
+                    .query_descendants()
+                    .match_inherits("FocusOutline")
+                    .find_all()
+                    .is_empty(),
+                "disabled cells do not paint a stale native focus ring"
+            );
             crate::choice_presentation::save_capture(
                 &app.window().take_snapshot().unwrap(),
                 &format!("otp-cells-disabled-{name}-{scale}"),
