@@ -105,10 +105,25 @@ fn choosing_an_overlap_occurrence_clears_validity_and_accepts_only_once() {
                 );
                 assert!(!window.invoke_check_validity());
                 let save = |state: &str| {
+                    let image = window.window().take_snapshot().unwrap();
+                    let bounds = window
+                        .window()
+                        .size()
+                        .to_logical(window.window().scale_factor());
+                    for label in ["Earlier occurrence", "Later occurrence"] {
+                        let button = ElementHandle::find_by_accessible_label(&window, label)
+                            .next()
+                            .unwrap();
+                        let position = button.absolute_position();
+                        let size = button.size();
+                        assert!(size.width > 0. && size.height > 0., "{label}");
+                        assert!(position.x >= 0. && position.y >= 0., "{label}");
+                        assert!(position.x + size.width <= bounds.width + 1., "{label}");
+                        assert!(position.y + size.height <= bounds.height + 1., "{label}");
+                    }
                     if let Some(dir) = std::env::var_os("KIT_ZONED_OCCURRENCE_RENDER_DIR") {
                         use std::io::Write;
                         std::fs::create_dir_all(&dir).unwrap();
-                        let image = window.window().take_snapshot().unwrap();
                         let path = std::path::PathBuf::from(dir).join(format!(
                             "zoned-overlap-{mode}-{scale}-{expected:?}-{state}.ppm"
                         ));

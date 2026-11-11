@@ -54,12 +54,14 @@ export component ZonedServiceFixture inherits Window {
     out property <ZonedTimePresentation> resolution: editor.resolution;
     callback chosen(ZonedDateTimeCommit);
     public function resolve() { editor.resolve(); }
-    editor := KitZonedDateTimeField {
-        x: 24px; y: 24px; width: parent.width - 48px;
-        theme: root.theme; access: root.access; custom-validity: root.custom-validity;
-        date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto";
-        earlier-label: "Earlier occurrence"; later-label: "Later occurrence";
-        chosen(value) => { root.chosen(value); }
+    VerticalLayout {
+        alignment: start; padding: 24px;
+        editor := KitZonedDateTimeField {
+            theme: root.theme; access: root.access; custom-validity: root.custom-validity;
+            date-text: "2026-11-01"; time-text: "01:30"; zone-text: "America/Toronto";
+            earlier-label: "Earlier occurrence"; later-label: "Later occurrence";
+            chosen(value) => { root.chosen(value); }
+        }
     }
 }
 
