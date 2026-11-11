@@ -850,8 +850,25 @@ fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
         .collect::<Vec<_>>();
     window.set_columns(ModelRc::new(VecModel::from(columns)));
     window.set_table_active_column(2);
+    // A model replacement invalidates native layout. Resolve the real column
+    // geometry before testing its reveal; timer delivery alone does not paint
+    // a frame in the mock backend.
+    let row = delegates(&window, "KitDataTable").remove(0);
+    let cells = row
+        .query_descendants()
+        .match_inherits("TableCellView")
+        .find_all();
+    assert!(!cells.is_empty());
+    for cell in cells {
+        assert!((cell.size().width - 500.).abs() < 1.);
+    }
     flush();
-    assert!(window.get_table_scroll_x() < 0.);
+    assert!(
+        window.get_table_scroll_x() < 0.,
+        "the resolved cell is revealed before F2"
+    );
+    assert!(!window.get_table_editing());
+    assert!(editors(&window).is_empty());
     key(&window, Key::F2);
     let editor = editors(&window).remove(0);
     let bounds = table(&window);
