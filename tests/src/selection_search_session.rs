@@ -288,24 +288,39 @@ fn stale_and_disabled_activation_do_not_clear_an_open_search() {
     let output = count.clone();
     app.on_single_chosen(move |_| output.set(output.get() + 1));
     search(&app, Kind::Single);
-    let stale = app.get_single_rows().row_data(0).unwrap();
-    choices.replace(options()).unwrap();
-    settle(&app);
-    app.invoke_choose_single(stale.token, stale.generation);
-    settle(&app);
-    assert_eq!(app.get_single_query(), "Ap");
-    assert!(app.get_single_state().open);
-    assert_eq!(count.get(), 0);
-    let mut disabled = options();
-    disabled[1].disabled = true;
-    choices.replace(disabled).unwrap();
-    settle(&app);
-    let blocked = app.get_single_rows().row_data(0).unwrap();
-    app.invoke_choose_single(blocked.token, blocked.generation);
-    settle(&app);
-    assert_eq!(app.get_single_query(), "Ap");
-    assert!(app.get_single_state().open);
-    assert_eq!(count.get(), 0);
+    for disable in [false, true] {
+        let row = ElementQuery::from_root(&app)
+            .match_inherits("KitSelectSurface")
+            .find_first()
+            .unwrap()
+            .query_descendants()
+            .match_inherits("KitOption")
+            .match_predicate(|row| row.accessible_label().as_deref() == Some("Apricot"))
+            .find_first()
+            .unwrap();
+        let position = slint::LogicalPosition::new(
+            row.absolute_position().x + row.size().width / 2.,
+            row.absolute_position().y + row.size().height / 2.,
+        );
+        app.window()
+            .dispatch_event(WindowEvent::PointerMoved { position });
+        app.window().dispatch_event(WindowEvent::PointerPressed {
+            position,
+            button: PointerEventButton::Left,
+        });
+        let mut replacement = options();
+        replacement[1].disabled = disable;
+        choices.replace(replacement).unwrap();
+        settle(&app);
+        app.window().dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+        settle(&app);
+        assert_eq!(app.get_single_query(), "Ap");
+        assert!(app.get_single_state().open);
+        assert_eq!(count.get(), 0);
+    }
 }
 
 fn projected(app: &SelectionSearchSessionFixture) -> SelectBinding<u32> {
