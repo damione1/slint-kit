@@ -204,7 +204,7 @@ fn static_composite_delegation_matches_physical_order_while_positions_keep_logic
         ("multi", "Multiple choices"),
     ] {
         let host = ElementQuery::from_root(&app)
-            .match_id(id)
+            .match_id(format!("CompositeAccessibilityFixture::{id}"))
             .find_first()
             .unwrap();
         let expander = if host.accessible_expandable() == Some(true) {
@@ -249,6 +249,19 @@ fn persistent_composite_scopes_survive_model_replacement_space_and_single_tab_ex
         app.invoke_focus_radio();
         key(&app, Key::End);
         assert!(app.get_radio_focused());
+        app.set_direction(if horizontal {
+            ChoiceDirection::Vertical
+        } else {
+            ChoiceDirection::Horizontal
+        });
+        settle(&app);
+        let count = app.get_chosen_count();
+        key(&app, Key::Space);
+        assert_eq!(
+            app.get_chosen_count(),
+            count + 1,
+            "an orientation change preserves the owned native keyboard scope"
+        );
         choices.replace(options()).unwrap();
         settle(&app);
         let count = app.get_chosen_count();
@@ -268,6 +281,19 @@ fn persistent_composite_scopes_survive_model_replacement_space_and_single_tab_ex
         assert!(app.get_radio_focused());
         app.invoke_focus_toggles();
         key(&app, Key::End);
+        app.set_direction(if horizontal {
+            ChoiceDirection::Horizontal
+        } else {
+            ChoiceDirection::Vertical
+        });
+        settle(&app);
+        let count = app.get_chosen_count();
+        key(&app, Key::Space);
+        assert_eq!(
+            app.get_chosen_count(),
+            count + 1,
+            "toggle orientation does not lose the next native key"
+        );
         choices.replace(options()).unwrap();
         settle(&app);
         let count = app.get_chosen_count();
@@ -315,6 +341,11 @@ fn static_composite_host_redirection_and_background_replacement_preserve_native_
                 && !app.get_segments_focused()
         );
         choices.replace(options()).unwrap();
+        app.set_direction(if app.get_direction() == ChoiceDirection::Horizontal {
+            ChoiceDirection::Vertical
+        } else {
+            ChoiceDirection::Horizontal
+        });
         settle(&app);
         assert!(
             app.get_editor_focused(),

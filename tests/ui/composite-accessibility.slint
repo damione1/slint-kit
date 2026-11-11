@@ -75,9 +75,10 @@ export component CompositeAccessibilityFixture inherits Window {
         combo := KitCombobox { theme: root.theme; options: root.options; label: "Editable choices"; }
         multi := KitMultiSelect { theme: root.theme; options: root.options; label: "Multiple choices"; }
         surface := KitSelectSurface {
-            theme: root.theme; options: root.options; height: 150px;
+            theme: root.theme; options: root.options;
+            height: composed-options.preferred-height + 2 * KitMetrics.popover-inset(root.theme);
             searchable: false; focus-on-open: false; accessible-name: "Composed choices";
-            VerticalLayout {
+            composed-options := VerticalLayout {
                 for row[index] in surface.rows: KitOption {
                     theme: root.theme; option-data: row;
                     accessible-item-index: index; accessible-item-count: surface.rows.length;

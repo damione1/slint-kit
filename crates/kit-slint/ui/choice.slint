@@ -339,6 +339,11 @@ export component KitRadioGroup inherits Rectangle {
     changed keyboard-entry => { if (root.keyboard-entry) { root.focus-active-layout(); } }
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { if (root.access != FieldAccess.disabled) { keyboard.focus(); } }
+    changed direction => {
+        // Both layout scopes stay alive. Transfer only an actual native owner
+        // before the previously focused orientation becomes an invisible stop.
+        if (root.has-focus) { root.take-focus(); root.focus-active-layout(); }
+    }
     function focus-active-layout() {
         // These are persistent native scopes, never cached row-focus flags.
         // A host redirect in navigate wins before this explicit action.
@@ -657,6 +662,11 @@ export component KitToggleGroup inherits Rectangle {
     changed keyboard-entry => { if (root.keyboard-entry) { root.focus-active-layout(); } }
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { if (root.access != FieldAccess.disabled) { keyboard.focus(); } }
+    changed direction => {
+        // Both layout scopes stay alive. Transfer only an actual native owner
+        // before the previously focused orientation becomes an invisible stop.
+        if (root.has-focus) { root.take-focus(); root.focus-active-layout(); }
+    }
     function focus-active-layout() {
         // These are persistent native scopes, never cached row-focus flags.
         // A host redirect in navigate wins before this explicit action.
