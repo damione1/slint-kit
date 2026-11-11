@@ -357,6 +357,7 @@ fn optional_native_clear_accepts_absence_once_and_renders_it_apart_from_transpar
     app.set_clearable(true);
     settle(&app);
     action(&app, "Clear standalone color").mock_single_click(PointerEventButton::Left);
+    settle(&app);
     assert_eq!(app.get_field_text(), "");
     assert!(
         app.get_field_value().present,
@@ -370,6 +371,7 @@ fn optional_native_clear_accepts_absence_once_and_renders_it_apart_from_transpar
     blur(&app);
     assert_eq!(app.get_field_cleared(), 1);
     action(&app, "Clear picker color").mock_single_click(PointerEventButton::Left);
+    settle(&app);
     key(&app, Key::Return);
     key(&app, Key::Tab);
     assert!(!app.get_picker_value().present);

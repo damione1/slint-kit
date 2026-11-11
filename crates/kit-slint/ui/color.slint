@@ -202,7 +202,13 @@ export component KitColorField inherits Rectangle {
     private property <ColorResult> result;
     // The native field engine admits required/custom-validity and deduplicates
     // Enter/blur before the color codec sees a value, including absence.
-    public function commit() { editor.commit(); }
+    // Preserve the imperative API: a host can assign text and submit it in
+    // the same call, independently of the native editor's blur baseline.
+    public function commit() {
+        if (root.access != FieldAccess.editable || !KitFieldService.ready || !editor.report-validity()) { return; }
+        root.result = KitFieldService.color-parse(root.text, root.alpha-mode);
+        root.publish();
+    }
     function accept-typed(value: FieldCommit) {
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
         root.result = KitFieldService.color-parse(value.value.text, root.alpha-mode);
