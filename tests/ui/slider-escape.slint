@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSlider, KitRangeSlider, KitColorPicker, KitTheme, KitThemes, FieldAccess, DecimalRangeView, SrgbColorView } from "@kit";
+import { KitSlider, KitRangeSlider, KitColorPicker, KitTheme, KitThemes, FieldAccess, DecimalRangeView, SrgbColorView, ColorValue } from "@kit";
 export component SliderEscapeFixture inherits Window {
     width: 760px; height: 1000px;
     in property <KitTheme> theme: KitThemes.light;
@@ -7,7 +7,8 @@ export component SliderEscapeFixture inherits Window {
     in property <FieldAccess> access: FieldAccess.editable;
     in-out property <string> value <=> single.value;
     in-out property <DecimalRangeView> range-value <=> range.value;
-    in-out property <SrgbColorView> accepted-color <=> picker.accepted-color;
+    in-out property <ColorValue> accepted-value <=> picker.accepted-value;
+    out property <SrgbColorView> accepted-color: picker.accepted-value.color;
     in-out property <int> escaped;
     in-out property <int> cancelled-count;
     in-out property <int> chosen-count;
@@ -34,7 +35,7 @@ export component SliderEscapeFixture inherits Window {
             }
             picker := KitColorPicker {
                 theme: root.theme; access: root.access; label: "Color";
-                accepted-color: {red: 40, green: 60, blue: 80, alpha: 255};
+                accepted-value: {present: true, color: {red: 40, green: 60, blue: 80, alpha: 255}};
                 cancelled(channel) => { root.cancelled-count += 1; }
             }
         }

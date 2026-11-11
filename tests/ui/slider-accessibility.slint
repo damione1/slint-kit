@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSlider, KitRangeSlider, KitColorPicker, KitColorField, KitTheme, KitThemes, FieldAccess, Ownership, DecimalRangeView, SrgbColorView, ColorAlphaMode } from "@kit";
+import { KitSlider, KitRangeSlider, KitColorPicker, KitColorField, KitTheme, KitThemes, FieldAccess, Ownership, DecimalRangeView, SrgbColorView, ColorValue, ColorAlphaMode } from "@kit";
 export component SliderAccessibilityFixture inherits Window {
     width: 800px; height: 1100px;
     in property <KitTheme> theme: KitThemes.light;
@@ -8,8 +8,9 @@ export component SliderAccessibilityFixture inherits Window {
     in property <Ownership> ownership: Ownership.local;
     in-out property <string> value <=> single.value;
     in-out property <DecimalRangeView> range-value <=> range.value;
-    in-out property <SrgbColorView> accepted-color <=> picker.accepted-color;
-    out property <SrgbColorView> draft-color: draft-field.accepted-color;
+    in-out property <ColorValue> accepted-value <=> picker.accepted-value;
+    out property <SrgbColorView> accepted-color: picker.accepted-value.color;
+    out property <SrgbColorView> draft-color: draft-field.accepted-value.color;
     public function open-draft() { draft-field.open-picker(); }
     in-out property <string> controlled-value: "1000000000000.25";
     in-out property <string> chosen-value;
@@ -45,11 +46,11 @@ export component SliderAccessibilityFixture inherits Window {
         }
         draft-field := KitColorField {
             theme: root.theme; access: root.access; label: "Draft color";
-            accepted-color: {red: 40, green: 60, blue: 80, alpha: 255};
+            accepted-value: {present: true, color: {red: 40, green: 60, blue: 80, alpha: 255}};
         }
         picker := KitColorPicker {
             theme: root.theme; access: root.access; label: "Color"; alpha-mode: ColorAlphaMode.editable;
-            accepted-color: {red: 40, green: 60, blue: 80, alpha: 200};
+            accepted-value: {present: true, color: {red: 40, green: 60, blue: 80, alpha: 200}};
         }
     }
 }

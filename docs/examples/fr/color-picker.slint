@@ -5,7 +5,7 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { KitColorPicker, KitStack, KitThemeContext, SrgbColorView, KitButton } from "@kit";
+import { KitColorPicker, KitStack, KitThemeContext, SrgbColorView, ColorValue, KitButton } from "@kit";
 // Les curseurs des canaux exposent 0..255 au pas de 1 aux aides techniques.
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -14,11 +14,16 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Sélecteur de couleur"; preferred-width: 560px; preferred-height: 550px;
     background: KitThemeContext.current.canvas;
+    // L’état facultatif hôte est atomique ; alpha zéro ne signifie pas absence.
+    in-out property <ColorValue> accent-value: {present: true, color: {red: 79, green: 70, blue: 229, alpha: 255}};
     callback accent-changed(SrgbColorView);
+    callback accent-cleared();
+    // L’effacement natif édite le brouillon ; le blur ou Appliquer accepte l’absence.
+    public function clear-accent() { control.clear(); }
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         // Une nouvelle couleur acceptée actualise le texte sans focus ; le brouillon actif garde curseur et historique.
-        control := KitColorPicker { label: "Couleur d’accent"; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; chosen(value) => { root.accent-changed(value); } }
+        control := KitColorPicker { label: "Couleur d’accent"; accepted-value <=> root.accent-value; required: false; clearable: false; clear-label: "Effacer la couleur"; empty-label: "Aucune couleur"; chosen(value) => { root.accent-changed(value); } cleared => { root.accent-cleared(); } }
         // Les éditions natives valides se valident aussi au blur ; ce bouton demande une validation immédiate.
         KitButton { text: "Appliquer la couleur"; activated => { control.commit(); } } }
 }

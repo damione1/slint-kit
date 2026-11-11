@@ -49,13 +49,13 @@ export component KitColorWheel inherits Rectangle {
         if (!root.candidate.valid) { return; }
         root.selected-hue = mod(hue, 360);
         // Changing hue on white/gray is local intent, not an RGB alteration.
-        if (!root.known || root.position.saturation > 0) { root.chosen(root.candidate.value); }
+        if (!root.known || root.position.saturation > 0) { root.chosen(root.candidate.value.color); }
     }
     function choose(x: float, y: float) {
         if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
         root.candidate = KitFieldService.color-wheel(x,y);
-        if (x != 0 || y != 0) { root.selected-hue = KitFieldService.color-wheel-position(root.candidate.value).hue; }
-        if (root.candidate.valid) { root.chosen(root.candidate.value); }
+        if (x != 0 || y != 0) { root.selected-hue = KitFieldService.color-wheel-position(root.candidate.value.color).hue; }
+        if (root.candidate.valid) { root.chosen(root.candidate.value.color); }
     }
     function move() {
         if (root.diameter > 0px) {
@@ -96,7 +96,7 @@ export component KitColorWheel inherits Rectangle {
                     root.choose-hue(hue);
                 } else {
                     root.candidate = KitFieldService.color-hue(root.hue,saturation);
-                    if (root.candidate.valid) { root.chosen(root.candidate.value); }
+                    if (root.candidate.valid) { root.chosen(root.candidate.value.color); }
                 }
                 return accept;
             }

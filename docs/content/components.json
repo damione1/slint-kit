@@ -1004,8 +1004,8 @@
   "KitColorField": {
     "fr": {
       "summary": "Saisie hexadécimale avec aperçu de couleur et sélecteur contextuel.",
-      "usage": "Définissez `accepted-color: SrgbColorView` et la politique alpha ; l’échantillon et l’hexadécimal canonique dérivent de cette valeur. Le composant possède son brouillon natif, valide les octets et émet `chosen(SrgbColorView)`. Utilisez `SrgbColor::try_from` à la frontière Rust. Le popup applique ou annule un brouillon privé ; le sélecteur complet édite aussi les canaux. Le mode contrôlé émet une couleur proposée.",
-      "behavior": "Un texte valide ou une sélection contextuelle actualise la couleur acceptée. Un texte invalide conserve l’aperçu précédent. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Les changements de accepted-color ou alpha-mode actualisent les textes sans focus. Un éditeur ayant le focus conserve son brouillon natif, son curseur et son historique ; la valeur acceptée est projetée à la perte du focus. En mode contrôlé, l’acquittement de l’hôte reste la référence. Les brouillons hexadécimaux et de canaux valides sont acceptés à la perte du focus ou sur Entrée, une fois par brouillon modifié. Un texte invalide ou incomplet retrouve la projection de la couleur acceptée à la perte du focus. Les observations commit-requested restent propres à Entrée ; chosen signale aussi les éditions acceptées au blur.",
+      "usage": "Liez accepted-value: ColorValue de façon atomique pour une couleur facultative ; le défaut est noir opaque présent. Définissez required:false pour accepter l’absence et traitez cleared() séparément de chosen(SrgbColorView), réservé aux couleurs présentes. Utilisez SrgbColor::try_from pour chosen et Option<SrgbColor> côté Rust si facultatif. accepted-color est supprimé : remplacez ses affectations et bindings par accepted-value:{present:true,color:...} ; ne lisez accepted-value.color que si present vaut true. Le composant possède les brouillons natifs ; install(&window) active analyse/acceptation. Le mode contrôlé propose puis attend l’acquittement hôte.",
+      "behavior": "Un texte valide ou une sélection contextuelle actualise la couleur acceptée. Un texte invalide conserve l’aperçu précédent. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Les changements de accepted-value ou alpha-mode actualisent les textes sans focus. Un éditeur ayant le focus conserve son brouillon natif, son curseur et son historique ; la valeur acceptée est projetée à la perte du focus. En mode contrôlé, l’acquittement de l’hôte reste la référence. Les brouillons hexadécimaux et de canaux valides sont acceptés à la perte du focus ou sur Entrée, une fois par brouillon modifié. Un texte invalide ou incomplet retrouve la projection de la couleur acceptée à la perte du focus. Les observations commit-requested restent propres à Entrée ; chosen signale aussi les éditions acceptées au blur. Un vide facultatif valide émet cleared, jamais une couleur invalide ou transparente dans chosen ; un vide requis ou refusé par custom-validity conserve la valeur acceptée. clear() modifie le brouillon par le chemin natif partagé, puis le blur ordinaire ou commit() l’accepte. Une mise à jour hôte accepted-value préserve brouillon/curseur/undo ayant le focus et actualise les projections inactives. Une absence initiale laisse hexadécimal/canaux vides. Éditer un canal depuis l’absence crée une couleur depuis RGB zéro/alpha255 ; un choix du popup établit la présence, Annuler conserve l’absence antérieure. Pour réintroduire une couleur absente, affectez accepted-value:{present:true,color:...}, même avec les mêmes RGB.",
       "related": [
         "KitColorPicker",
         "KitTextField"
@@ -1014,14 +1014,49 @@
       "seoTitle": "Champ couleur pour Slint",
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "clear": "Efface le brouillon natif avec les gardes accès/service/préédition existantes ; le blur ou commit() réalise l’acceptation. Ce n’est pas un reset inconditionnel de accepted-value.",
+        "check-validity": "Retourne la validité required/custom partagée sans révéler d’erreurs ni déplacer le focus."
       },
-      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives."
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
+      "properties": {
+        "accepted-value": {
+          "effect": "ColorValue { present, color } atomique accepté par l’hôte/le propriétaire local. present:false (ou {}) signifie aucune couleur ; alpha:0 reste une couleur, pas une absence.",
+          "default": "{present: true, color: {red: 0, green: 0, blue: 0, alpha: 255}}",
+          "constraints": "En mode contrôlé, chosen/cleared proposent sans changer cette valeur avant acquittement. Pour rétablir une couleur absente, publiez {present:true,color:...}, même avec les mêmes RGB."
+        },
+        "required": {
+          "effect": "Contrainte partagée : false permet d’accepter un brouillon natif vide comme absence ; true le refuse. La validité personnalisée hôte reste appliquée.",
+          "default": "true"
+        },
+        "custom-validity": {
+          "effect": "Erreur personnalisée de l’hôte transmise à la validation partagée, y compris dans le sélecteur complet. Une erreur non vide bloque aussi l’acceptation du vide."
+        },
+        "validity": {
+          "effect": "Projection de validation partagée, avec required/custom-validity, disponible sur le sélecteur comme sur le champ."
+        },
+        "clearable": {
+          "effect": "Active l’action native partagée d’effacement. clear() reste disponible sans afficher cette action.",
+          "default": "false"
+        },
+        "clear-label": {
+          "effect": "Nom localisé de l’action d’effacement facultative.",
+          "default": "KitStrings.clear-label"
+        },
+        "empty-label": {
+          "effect": "Libellé localisé de l’aperçu absent, distinct d’une couleur présente transparente.",
+          "default": "KitStrings.color-empty-label (No color)"
+        }
+      },
+      "callbacks": {
+        "chosen": "Signale uniquement un SrgbColorView présent admis. La propriété locale l’applique ; la propriété contrôlée attend l’acquittement de accepted-value.",
+        "cleared": "Signale l’absence admise d’un brouillon facultatif vide valide, séparément de chosen. Ne contourne ni required, ni custom-validity, ni accès."
+      }
     },
     "en": {
       "summary": "Hex text input with a color swatch and picker popup.",
-      "usage": "Set `accepted-color: SrgbColorView` and the alpha policy; the swatch and canonical hex default to this value. The component owns its native draft, validates channel bytes and emits `chosen(SrgbColorView)`. Use `SrgbColor::try_from` at the Rust boundary. The field popup applies or cancels a private draft; the full picker also edits individual channels. Controlled ownership emits a proposed color.",
-      "behavior": "A valid text commit or popup selection updates the accepted color. Invalid text keeps the previous swatch. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. Host changes to accepted-color or alpha-mode refresh idle text projections. A focused editor keeps its native draft, caret and undo history; the accepted value is projected when focus leaves. In controlled ownership the host acknowledgement remains authoritative. Valid typed hex and channel drafts are accepted on blur or Enter, once per changed draft. Invalid or incomplete text restores the accepted color projection on blur. Explicit commit-requested observations remain Enter-only; chosen also reports accepted blur edits.",
+      "usage": "Bind accepted-value: ColorValue atomically for optional colors; it defaults to a present opaque black. Set required:false to admit absence and handle cleared() separately from chosen(SrgbColorView), which only carries present colors. Use SrgbColor::try_from for a chosen value and keep Option<SrgbColor> at the Rust boundary when optional. accepted-color is removed: replace its assignments and bindings with accepted-value:{present:true,color:...}; read accepted-value.color only when present is true. The component owns native drafts; install(&window) enables parsing/acceptance. Controlled ownership emits proposals and waits for host acknowledgement.",
+      "behavior": "A valid text commit or popup selection updates the accepted color. Invalid text keeps the previous swatch. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. Host changes to accepted-value or alpha-mode refresh idle text projections. A focused editor keeps its native draft, caret and undo history; the accepted value is projected when focus leaves. In controlled ownership the host acknowledgement remains authoritative. Valid typed hex and channel drafts are accepted on blur or Enter, once per changed draft. Invalid or incomplete text restores the accepted color projection on blur. Explicit commit-requested observations remain Enter-only; chosen also reports accepted blur edits. Optional empty commits emit cleared rather than an invalid or transparent chosen color; required/custom-invalid empties preserve the accepted value. clear() edits through the native shared path, then normal blur or explicit commit() performs acceptance. Host accepted-value updates preserve a focused draft/caret/undo and refresh idle projections. Initially absent values leave hex/channel editors empty. An admitted channel edit from absence builds a new color from RGB zero/alpha255; popup color choice establishes presence, while Cancel preserves the prior absence. To reintroduce a color after absence, assign accepted-value:{present:true,color:...}, even for the same RGB.",
       "related": [
         "KitColorPicker",
         "KitTextField"
@@ -1030,35 +1065,146 @@
       "seoTitle": "Color Field for Slint",
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "clear": "Clear the native draft with existing access/service/preedit guards; acceptance follows blur or explicit commit(). This is not an unconditional accepted-value reset.",
+        "check-validity": "Return the shared required/custom validity without revealing errors or forcing focus."
       },
-      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology."
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
+      "properties": {
+        "accepted-value": {
+          "effect": "Atomic ColorValue { present, color } accepted by the host/local owner. present:false (or {}) means no color; alpha:0 remains a color, not absence.",
+          "default": "{present: true, color: {red: 0, green: 0, blue: 0, alpha: 255}}",
+          "constraints": "Controlled ownership proposes chosen/cleared without changing this value until host acknowledgement. To restore a color after absence, publish {present:true,color:...}, even for the same RGB."
+        },
+        "required": {
+          "effect": "Shared required constraint: false permits an empty native draft to be accepted as absence; true rejects it. Host custom validity remains effective.",
+          "default": "true"
+        },
+        "custom-validity": {
+          "effect": "Host-owned custom error passed to shared validation, including on the full picker. A nonempty error prevents empty acceptance as well as other commits."
+        },
+        "validity": {
+          "effect": "Current shared validation projection, including required/custom validity; available through the picker as well as the field."
+        },
+        "clearable": {
+          "effect": "Opt into the shared native clear action. clear() remains available without showing that action.",
+          "default": "false"
+        },
+        "clear-label": {
+          "effect": "Localized name of the optional clear action.",
+          "default": "KitStrings.clear-label"
+        },
+        "empty-label": {
+          "effect": "Localized label of the absent-color preview, which is distinct from a transparent present color.",
+          "default": "KitStrings.color-empty-label (No color)"
+        }
+      },
+      "callbacks": {
+        "chosen": "Reports only an admitted present SrgbColorView. Local ownership applies it; controlled ownership keeps accepted-value until acknowledgement.",
+        "cleared": "Reports admitted absence for an optional valid empty draft, separately from chosen. It does not bypass required, custom validity or access guards."
+      }
     }
   },
   "KitColorPicker": {
     "fr": {
       "summary": "Éditeur de couleur avec texte hexadécimal, champs de canaux et curseurs.",
-      "usage": "Définissez `accepted-color: SrgbColorView` et la politique alpha ; l’échantillon et l’hexadécimal canonique dérivent de cette valeur. Le composant possède son brouillon natif, valide les octets et émet `chosen(SrgbColorView)`. Utilisez `SrgbColor::try_from` à la frontière Rust. Le popup applique ou annule un brouillon privé ; le sélecteur complet édite aussi les canaux. Le mode contrôlé émet une couleur proposée.",
-      "behavior": "L’exemple accepte les couleurs hexadécimales opaques et les canaux de 0 à 255. Échap pendant un geste de curseur de canal restaure la couleur enregistrée au début de ce geste. Hors geste de pointeur, il conserve la couleur courante et remonte au parent. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Les changements de accepted-color ou alpha-mode actualisent les textes sans focus. Un éditeur ayant le focus conserve son brouillon natif, son curseur et son historique ; la valeur acceptée est projetée à la perte du focus. En mode contrôlé, l’acquittement de l’hôte reste la référence. Les brouillons hexadécimaux et de canaux valides sont acceptés à la perte du focus ou sur Entrée, une fois par brouillon modifié. Un texte invalide ou incomplet retrouve la projection de la couleur acceptée à la perte du focus. Les observations commit-requested restent propres à Entrée ; chosen signale aussi les éditions acceptées au blur. Les éditeurs textuels des canaux partagent les [limites de saisie de plateforme](../../guides/forms/) des champs numériques installés ; un clavier numérique logiciel n’est pas garanti.",
+      "usage": "Liez accepted-value: ColorValue de façon atomique pour une couleur facultative ; le défaut est noir opaque présent. Définissez required:false pour accepter l’absence et traitez cleared() séparément de chosen(SrgbColorView), réservé aux couleurs présentes. Utilisez SrgbColor::try_from pour chosen et Option<SrgbColor> côté Rust si facultatif. accepted-color est supprimé : remplacez ses affectations et bindings par accepted-value:{present:true,color:...} ; ne lisez accepted-value.color que si present vaut true. Le composant possède les brouillons natifs ; install(&window) active analyse/acceptation. Le mode contrôlé propose puis attend l’acquittement hôte.",
+      "behavior": "L’exemple accepte les couleurs hexadécimales opaques et les canaux de 0 à 255. Échap pendant un geste de curseur de canal restaure la couleur enregistrée au début de ce geste. Hors geste de pointeur, il conserve la couleur courante et remonte au parent. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Les changements de accepted-value ou alpha-mode actualisent les textes sans focus. Un éditeur ayant le focus conserve son brouillon natif, son curseur et son historique ; la valeur acceptée est projetée à la perte du focus. En mode contrôlé, l’acquittement de l’hôte reste la référence. Les brouillons hexadécimaux et de canaux valides sont acceptés à la perte du focus ou sur Entrée, une fois par brouillon modifié. Un texte invalide ou incomplet retrouve la projection de la couleur acceptée à la perte du focus. Les observations commit-requested restent propres à Entrée ; chosen signale aussi les éditions acceptées au blur. Les éditeurs textuels des canaux partagent les [limites de saisie de plateforme](../../guides/forms/) des champs numériques installés ; un clavier numérique logiciel n’est pas garanti. Un vide facultatif valide émet cleared, jamais une couleur invalide ou transparente dans chosen ; un vide requis ou refusé par custom-validity conserve la valeur acceptée. clear() modifie le brouillon par le chemin natif partagé, puis le blur ordinaire ou commit() l’accepte. Une mise à jour hôte accepted-value préserve brouillon/curseur/undo ayant le focus et actualise les projections inactives. Une absence initiale laisse hexadécimal/canaux vides. Éditer un canal depuis l’absence crée une couleur depuis RGB zéro/alpha255 ; un choix du popup établit la présence, Annuler conserve l’absence antérieure. Pour réintroduire une couleur absente, affectez accepted-value:{present:true,color:...}, même avec les mêmes RGB.",
       "label": "Sélecteur de couleur",
       "seoTitle": "Sélecteur de couleur pour Slint",
       "related": [
         "KitColorField",
         "KitSlider"
       ],
-      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives."
+      "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
+      "properties": {
+        "accepted-value": {
+          "effect": "ColorValue { present, color } atomique accepté par l’hôte/le propriétaire local. present:false (ou {}) signifie aucune couleur ; alpha:0 reste une couleur, pas une absence.",
+          "default": "{present: true, color: {red: 0, green: 0, blue: 0, alpha: 255}}",
+          "constraints": "En mode contrôlé, chosen/cleared proposent sans changer cette valeur avant acquittement. Pour rétablir une couleur absente, publiez {present:true,color:...}, même avec les mêmes RGB."
+        },
+        "required": {
+          "effect": "Contrainte partagée : false permet d’accepter un brouillon natif vide comme absence ; true le refuse. La validité personnalisée hôte reste appliquée.",
+          "default": "true"
+        },
+        "custom-validity": {
+          "effect": "Erreur personnalisée de l’hôte transmise à la validation partagée, y compris dans le sélecteur complet. Une erreur non vide bloque aussi l’acceptation du vide."
+        },
+        "validity": {
+          "effect": "Projection de validation partagée, avec required/custom-validity, disponible sur le sélecteur comme sur le champ."
+        },
+        "clearable": {
+          "effect": "Active l’action native partagée d’effacement. clear() reste disponible sans afficher cette action.",
+          "default": "false"
+        },
+        "clear-label": {
+          "effect": "Nom localisé de l’action d’effacement facultative.",
+          "default": "KitStrings.clear-label"
+        },
+        "empty-label": {
+          "effect": "Libellé localisé de l’aperçu absent, distinct d’une couleur présente transparente.",
+          "default": "KitStrings.color-empty-label (No color)"
+        }
+      },
+      "functions": {
+        "clear": "Efface le brouillon natif avec les gardes accès/service/préédition existantes ; le blur ou commit() réalise l’acceptation. Ce n’est pas un reset inconditionnel de accepted-value.",
+        "check-validity": "Retourne la validité required/custom partagée sans révéler d’erreurs ni déplacer le focus.",
+        "report-validity": "Signale les erreurs partagées required/custom sans déplacer le focus ; le sélecteur transmet ce contrat du champ."
+      },
+      "callbacks": {
+        "chosen": "Signale uniquement un SrgbColorView présent admis. La propriété locale l’applique ; la propriété contrôlée attend l’acquittement de accepted-value.",
+        "cleared": "Signale l’absence admise d’un brouillon facultatif vide valide, séparément de chosen. Ne contourne ni required, ni custom-validity, ni accès."
+      }
     },
     "en": {
       "summary": "Color editor with hex text, channel inputs and channel sliders.",
-      "usage": "Set `accepted-color: SrgbColorView` and the alpha policy; the swatch and canonical hex default to this value. The component owns its native draft, validates channel bytes and emits `chosen(SrgbColorView)`. Use `SrgbColor::try_from` at the Rust boundary. The field popup applies or cancels a private draft; the full picker also edits individual channels. Controlled ownership emits a proposed color.",
-      "behavior": "The example accepts opaque hex colors and channel values from 0 to 255. Escape during a channel slider gesture restores the color saved at that gesture’s start. Outside a pointer gesture it leaves the current color unchanged and bubbles to the parent. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. Host changes to accepted-color or alpha-mode refresh idle text projections. A focused editor keeps its native draft, caret and undo history; the accepted value is projected when focus leaves. In controlled ownership the host acknowledgement remains authoritative. Valid typed hex and channel drafts are accepted on blur or Enter, once per changed draft. Invalid or incomplete text restores the accepted color projection on blur. Explicit commit-requested observations remain Enter-only; chosen also reports accepted blur edits. Channel text editors share the installed numeric editor’s [platform input-purpose limits](../../guides/forms/); a numeric soft keyboard is not guaranteed.",
+      "usage": "Bind accepted-value: ColorValue atomically for optional colors; it defaults to a present opaque black. Set required:false to admit absence and handle cleared() separately from chosen(SrgbColorView), which only carries present colors. Use SrgbColor::try_from for a chosen value and keep Option<SrgbColor> at the Rust boundary when optional. accepted-color is removed: replace its assignments and bindings with accepted-value:{present:true,color:...}; read accepted-value.color only when present is true. The component owns native drafts; install(&window) enables parsing/acceptance. Controlled ownership emits proposals and waits for host acknowledgement.",
+      "behavior": "The example accepts opaque hex colors and channel values from 0 to 255. Escape during a channel slider gesture restores the color saved at that gesture’s start. Outside a pointer gesture it leaves the current color unchanged and bubbles to the parent. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. Host changes to accepted-value or alpha-mode refresh idle text projections. A focused editor keeps its native draft, caret and undo history; the accepted value is projected when focus leaves. In controlled ownership the host acknowledgement remains authoritative. Valid typed hex and channel drafts are accepted on blur or Enter, once per changed draft. Invalid or incomplete text restores the accepted color projection on blur. Explicit commit-requested observations remain Enter-only; chosen also reports accepted blur edits. Channel text editors share the installed numeric editor’s [platform input-purpose limits](../../guides/forms/); a numeric soft keyboard is not guaranteed. Optional empty commits emit cleared rather than an invalid or transparent chosen color; required/custom-invalid empties preserve the accepted value. clear() edits through the native shared path, then normal blur or explicit commit() performs acceptance. Host accepted-value updates preserve a focused draft/caret/undo and refresh idle projections. Initially absent values leave hex/channel editors empty. An admitted channel edit from absence builds a new color from RGB zero/alpha255; popup color choice establishes presence, while Cancel preserves the prior absence. To reintroduce a color after absence, assign accepted-value:{present:true,color:...}, even for the same RGB.",
       "label": "Color Picker",
       "seoTitle": "Color Picker for Slint",
       "related": [
         "KitColorField",
         "KitSlider"
       ],
-      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology."
+      "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
+      "properties": {
+        "accepted-value": {
+          "effect": "Atomic ColorValue { present, color } accepted by the host/local owner. present:false (or {}) means no color; alpha:0 remains a color, not absence.",
+          "default": "{present: true, color: {red: 0, green: 0, blue: 0, alpha: 255}}",
+          "constraints": "Controlled ownership proposes chosen/cleared without changing this value until host acknowledgement. To restore a color after absence, publish {present:true,color:...}, even for the same RGB."
+        },
+        "required": {
+          "effect": "Shared required constraint: false permits an empty native draft to be accepted as absence; true rejects it. Host custom validity remains effective.",
+          "default": "true"
+        },
+        "custom-validity": {
+          "effect": "Host-owned custom error passed to shared validation, including on the full picker. A nonempty error prevents empty acceptance as well as other commits."
+        },
+        "validity": {
+          "effect": "Current shared validation projection, including required/custom validity; available through the picker as well as the field."
+        },
+        "clearable": {
+          "effect": "Opt into the shared native clear action. clear() remains available without showing that action.",
+          "default": "false"
+        },
+        "clear-label": {
+          "effect": "Localized name of the optional clear action.",
+          "default": "KitStrings.clear-label"
+        },
+        "empty-label": {
+          "effect": "Localized label of the absent-color preview, which is distinct from a transparent present color.",
+          "default": "KitStrings.color-empty-label (No color)"
+        }
+      },
+      "functions": {
+        "clear": "Clear the native draft with existing access/service/preedit guards; acceptance follows blur or explicit commit(). This is not an unconditional accepted-value reset.",
+        "check-validity": "Return the shared required/custom validity without revealing errors or forcing focus.",
+        "report-validity": "Report shared required/custom validation errors without moving focus; the picker forwards this field contract."
+      },
+      "callbacks": {
+        "chosen": "Reports only an admitted present SrgbColorView. Local ownership applies it; controlled ownership keeps accepted-value until acknowledgement.",
+        "cleared": "Reports admitted absence for an optional valid empty draft, separately from chosen. It does not bypass required, custom validity or access guards."
+      }
     }
   },
   "KitCombobox": {

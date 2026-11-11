@@ -21,7 +21,7 @@ export component QaPolishFixture inherits Window {
     skeleton := KitSkeleton { x: 24px; y: 140px; width: 300px; height: 20px; theme: root.theme; running: false; }
     otp := KitOtpField { x: 24px; y: 185px; theme: root.theme; label: "Code"; decoration: FieldDecoration.underlined; text <=> root.code; }
     toggles := KitToggleGroup { x: 24px; y: 300px; width: 450px; height: self.preferred-height; theme: root.theme; label: "Delivery channels"; toggled(token,generation) => { root.last-toggled = token; } active-token: root.active-token; generation: 1; rows: [{token:11,label:"Email",disabled:false,selected:true},{token:23,label:"Push",disabled:false,selected:false}]; navigate(step) => { root.active-token = root.active-token == 11 ? 23 : 11; } }
-    color-field := KitColorField { x: 24px; y: 390px; width: 350px; theme: root.theme; text: "#4f46e5"; label: "Accent"; accepted-color: { red:79, green:70, blue:229, alpha:255 }; }
+    color-field := KitColorField { x: 24px; y: 390px; width: 350px; theme: root.theme; text: "#4f46e5"; label: "Accent"; accepted-value: {present: true, color: { red:79, green:70, blue:229, alpha:255 }}; }
     summary := KitFormErrorSummary { x: 400px; y: 390px; width: 270px;
         theme: root.theme; errors: [{target:{present:true,token:11,generation:1,request:1},message:"Enter a descriptive project name so everyone in the team can recognize this workspace and distinguish it from archived projects."}];
     }
