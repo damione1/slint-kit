@@ -229,7 +229,10 @@ export component KitSelectSurface inherits Rectangle {
         let top = root.state.active-index * root.row-height;
         if (top + root.scroll-y < 0px) { root.scroll-y = -top; }
         else if (top + root.row-height + root.scroll-y > root.viewport-height) {
-            root.scroll-y = min(0px, root.viewport-height - top - root.row-height);
+            // A virtual ListView aligns a large seek to the first row. Request
+            // whole visible rows so that alignment cannot clip the active row.
+            let first = max(0, root.state.active-index + 1 - root.page-rows);
+            root.scroll-y = -first * root.row-height;
         }
     }
     changed state => { root.ensure-active-visible(); }
