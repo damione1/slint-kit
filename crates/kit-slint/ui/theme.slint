@@ -131,6 +131,8 @@ export struct ScrollBarRecipe {
 // The resize handle at the trailing edge of a resizable data-table column:
 // `width` is its pointer target, `thickness` the divider it draws, `step`
 // the width change of one keyboard or accessible increment.
+export struct ColorPopupRecipe { width: length, inset: length, gap: length, preview-height: length }
+
 export struct ColumnHandleRecipe {
     width: length, thickness: length, active-thickness: length, step: length,
     ink: color, hover-ink: color, active-ink: color,
@@ -177,6 +179,10 @@ export global KitMetrics {
 }
 
 export global KitThemes {
+    public pure function color-popup-recipe(theme: KitTheme) -> ColorPopupRecipe {
+        return { width: 340px * theme.text-scale, inset: theme.spacing.unit * 4, gap: theme.spacing.unit, preview-height: theme.spacing.unit * 12 };
+    }
+
     out property <KitTheme> light: {
         canvas: #f1f5f9 /* slate-100 */, surface: #ffffff /* white */, surface-raised: #ffffff /* white */,
         text-primary: #0f172a /* slate-900 */, text-secondary: #475569 /* slate-600 */, placeholder: #475569 /* slate-600: AA on the slate-100 canvas */,
