@@ -47,9 +47,9 @@ case "$kit_workflow" in
     ;;
   docs)
     python3 -B docs/scripts/sync-doc-versions.py --check
-    /usr/bin/time -v python3 docs/scripts/check-starters.py --mode local
     python3 -B -m unittest discover -s docs/scripts -p 'test_complete_consumers.py'
-    /usr/bin/time -v python3 docs/scripts/check-complete-consumers.py --mode local
     python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+    /usr/bin/time -v python3 docs/scripts/check-starters.py --mode local
+    /usr/bin/time -v python3 docs/scripts/check-complete-consumers.py --mode local
     ;;
 esac

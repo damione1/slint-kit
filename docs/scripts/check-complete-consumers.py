@@ -40,12 +40,24 @@ def copy_sources(destination, name, revision):
         path.write_bytes(subprocess.check_output(['git', 'show', f'{revision}:{file}'], cwd=ROOT))
 
 
-def main():
+def parse_consumer(value):
+    if value not in CONSUMERS:
+        raise argparse.ArgumentTypeError(f'unknown consumer {value!r}; choose from {", ".join(CONSUMERS)}')
+    return value
+
+
+def parse_arguments(arguments=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', required=True, choices=[mode.value for mode in BuildMode])
     parser.add_argument('--revision', help='Verify an immutable release example instead of the current source')
-    parser.add_argument('consumers', nargs='*', choices=CONSUMERS)
-    args = parser.parse_args()
+    # Python 3.11 checks an empty nargs='*' list against choices as one value.
+    # Validate each supplied name instead, preserving the all-consumers default.
+    parser.add_argument('consumers', nargs='*', type=parse_consumer, metavar='CONSUMER')
+    return parser.parse_args(arguments)
+
+
+def main():
+    args = parse_arguments()
     mode = BuildMode(args.mode)
     if args.revision and (args.revision.startswith('-') or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._/-' for c in args.revision)):
         raise ValueError('Invalid source revision')
