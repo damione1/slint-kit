@@ -72,6 +72,7 @@ export component KitMenu inherits Rectangle {
         // Only an explicit action in this focus group may move native focus.
         // Host observers run first and can redirect it to an editor instead.
         if (!root.has-focus || !root.state.active.present || !KitSelectionService.ready) { return; }
+        root.ensure-active-visible();
         let next = KitSelectionService.next-generation(root.focus-nonce);
         if (next < 0) { root.cancel-row-focus(); return; }
         root.focus-nonce = next;
@@ -191,10 +192,19 @@ export component KitMenu inherits Rectangle {
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.chosen(row); }
     }
-    function handle-navigate(step: NavigationStep) { selection.navigate(step); root.navigate(step); root.request-active-focus(); }
+    function handle-navigate(step: NavigationStep) {
+        // Keep the persistent scope as the native owner while virtualization
+        // replaces the previously focused row. This is an explicit key action,
+        // never a model observer, and host redirection still runs afterwards.
+        if (root.has-focus) { root.take-focus(); }
+        selection.navigate(step); root.navigate(step); root.request-active-focus();
+    }
     function handle-activate(token: int, generation: int) { root.cancel-row-focus(); selection.activate(token, generation); root.activate(token, generation); }
     function handle-dismiss(reason: CloseReason) { root.cancel-row-focus(); selection.dismiss(reason); root.dismiss(reason); }
-    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); root.request-active-focus(); }
+    function handle-typeahead(text: string) {
+        if (root.has-focus) { root.take-focus(); }
+        selection.typeahead(text); root.typeahead(text); root.request-active-focus();
+    }
 
     out property <string> selected-label: selection.selected-label;
 }

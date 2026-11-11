@@ -225,19 +225,19 @@ fn host_redirection_and_consumed_requests_survive_projection_recreation_without_
 }
 
 #[test]
-fn pointer_down_cancels_a_pending_row_transfer_without_cancelling_the_press() {
+fn pointer_down_keeps_its_row_press_while_navigation_focus_settles() {
     let (app, choices) = fixture();
     let events = chosen(&app);
     app.invoke_focus_menu();
     key_without_flush(&app, Key::End);
-    let first = rows(&app)
+    let destination = rows(&app)
         .into_iter()
-        .find(|row| row.accessible_label().as_deref() == Some("Row 0"))
+        .find(|row| row.accessible_label().as_deref() == Some("Row 1999"))
         .unwrap();
-    let origin = first.absolute_position();
+    let origin = destination.absolute_position();
     let position = slint::LogicalPosition::new(
-        origin.x + first.size().width / 2.,
-        origin.y + first.size().height / 2.,
+        origin.x + destination.size().width / 2.,
+        origin.y + destination.size().height / 2.,
     );
     app.window()
         .dispatch_event(WindowEvent::PointerMoved { position });
@@ -260,7 +260,7 @@ fn pointer_down_cancels_a_pending_row_transfer_without_cancelling_the_press() {
     );
     assert_eq!(
         events.borrow()[0].token,
-        choices.selection(&0).unwrap().token
+        choices.selection(&1999).unwrap().token
     );
     assert_eq!(app.get_selected(), choices.selection(&0).unwrap());
 }
