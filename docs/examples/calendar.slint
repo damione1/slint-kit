@@ -3,7 +3,7 @@ import { LayoutSpace, KitMetrics, TypographyRole, KitStack } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
-import { KitCalendar, CivilDateView, WeekStart } from "@kit";
+import { KitCalendar, CivilDateView, WeekStart, CalendarOutsideDays, CalendarWeekRows } from "@kit";
 export component Example inherits Window {
     max-width: 100000px; max-height: 100000px;
     default-font-family: InterFont.family;
@@ -22,6 +22,9 @@ export component Example inherits Window {
             configuration-message: "Check calendar dates and bounds.";
             // Names stay Monday-first even when the week begins on Sunday.
             week-start: WeekStart.sunday;
+            // Corrected default: adjacent-month days are dimmed; the grid keeps six weeks.
+            outside-days: CalendarOutsideDays.dim;
+            week-rows: CalendarWeekRows.fixed;
             // Formatting names are independent of the short visible weekday labels.
             month-short-names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             weekday-names: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
