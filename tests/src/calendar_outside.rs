@@ -168,6 +168,21 @@ fn outside_policy_guards_stale_pointer_admission_and_preserves_controlled_keyboa
     assert_eq!(window.get_focused(), date(2026, 10, 2));
 }
 fn capture(window: &CalendarOutsideFixture, mode: &str, scale: f32, policy: &str, expected: usize) {
+    let mut calendars = ElementQuery::from_root(window)
+        .match_inherits("KitCalendar")
+        .find_all();
+    assert_eq!(calendars.len(), 3);
+    calendars.sort_by(|left, right| {
+        left.absolute_position()
+            .x
+            .total_cmp(&right.absolute_position().x)
+    });
+    for pair in calendars.windows(2) {
+        assert!(
+            pair[0].absolute_position().x + pair[0].size().width <= pair[1].absolute_position().x,
+            "the popup and neighboring calendars must not overlap"
+        );
+    }
     let entries = cells(window);
     assert_eq!(entries.len(), expected);
     let size = window
