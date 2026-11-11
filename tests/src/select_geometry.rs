@@ -53,7 +53,10 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
         assert!(
             expected_three.contains(&height),
             "three rows need a compact popup: {height}; combobox={combobox}, searchable={searchable}, window={:?}, trigger={:?}",
-            window.window().size().to_logical(window.window().scale_factor()),
+            window
+                .window()
+                .size()
+                .to_logical(window.window().scale_factor()),
             ElementQuery::from_root(&window)
                 .match_inherits(if combobox { "KitCombobox" } else { "KitSelect" })
                 .find_first()
