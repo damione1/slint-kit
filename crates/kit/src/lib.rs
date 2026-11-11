@@ -75,3 +75,12 @@ pub use kit_native as native;
 mod native_bindings;
 #[cfg(feature = "native")]
 pub use native_bindings::*;
+
+#[cfg(all(test, feature = "native"))]
+mod native_test_ui {
+    slint::slint! {
+        export component PickerTestWindow inherits Window {
+            in-out property <string> error;
+        }
+    }
+}

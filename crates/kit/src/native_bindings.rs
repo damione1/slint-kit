@@ -506,7 +506,9 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::native_test_ui::PickerTestWindow;
     use slint::Model;
+
     #[test]
     fn unsupported_picker_uses_capability_state_without_a_field_error() {
         let (state, message) = error_presentation(&HostError::Unsupported);
@@ -526,13 +528,13 @@ mod tests {
     #[test]
     fn both_picker_bindings_localize_typed_errors_and_preserve_platform_detail() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let files = FilePickerBinding::new(
             &window,
             FilePickerPorts {
                 entries: |_, _| {},
                 state: |_, _| {},
-                error: ui::KitVirtualTextView::set_error,
+                error: PickerTestWindow::set_error,
             },
         );
         files.fail(HostError::Platform("device unavailable".into()));
@@ -547,7 +549,7 @@ mod tests {
             DirectoryPickerPorts {
                 selected: |_, _| {},
                 state: |_, _| {},
-                error: ui::KitVirtualTextView::set_error,
+                error: PickerTestWindow::set_error,
             },
         );
         directory.set_error_mapper(|error| format!("Dossier : {error:?}").into());
@@ -561,7 +563,7 @@ mod tests {
     #[test]
     fn dropped_files_respect_single_selection_and_field_access() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let binding = FilePickerBinding::new(
             &window,
             FilePickerPorts {
@@ -600,7 +602,7 @@ mod tests {
     #[test]
     fn file_collection_deduplicates_paths_fences_removal_and_releases_window() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let weak = window.as_weak();
         let binding = FilePickerBinding::new(
             &window,
