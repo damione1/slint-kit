@@ -856,6 +856,7 @@ mod color_lifecycle;
 mod range_coincident;
 
 mod form_registration;
+mod toast_lifecycle;
 mod toast_timer;
 
 mod slider_accessibility;

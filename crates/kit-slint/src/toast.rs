@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::{KeyedModel, ui};
-use kit_core::{ToastId, ToastLifetime, ToastPause, ToastQueue, ToastQueueError};
+use kit_core::{
+    ToastCloseReason, ToastClosed, ToastId, ToastLifetime, ToastPause, ToastQueue, ToastQueueError,
+};
 use slint::Model;
 use std::{cell::RefCell, collections::HashSet, num::NonZeroUsize, rc::Rc, time::Duration};
 use web_time::Instant;
+type CloseHandler<T> = Rc<dyn Fn(ToastId, T, ToastCloseReason)>;
 struct Inner<T> {
+    on_closed: RefCell<Option<CloseHandler<T>>>,
     queue: RefCell<ToastQueue<(T, ui::ToastEntry)>>,
     rows: KeyedModel<ToastId, ui::ToastEntry>,
     epoch: Instant,
@@ -30,6 +34,7 @@ impl<T: Clone + 'static> ToastBinding<T> {
         Self {
             inner: Rc::new(Inner {
                 queue: RefCell::new(ToastQueue::new(capacity)),
+                on_closed: RefCell::new(None),
                 rows: KeyedModel::new([]).expect("empty toast model"),
                 epoch: Instant::now(),
                 timer: slint::Timer::default(),
@@ -60,46 +65,73 @@ impl<T: Clone + 'static> ToastBinding<T> {
                 if let Some(inner) = weak.upgrade() {
                     let expired = inner.queue.borrow_mut().advance(inner.epoch.elapsed());
                     let binding = Self { inner };
-                    if !expired.is_empty() {
-                        binding.refresh();
-                    }
-                    binding.schedule();
+                    binding.finish(expired);
                 }
             });
     }
     pub fn model(&self) -> slint::ModelRc<ui::ToastEntry> {
         self.inner.rows.model()
     }
+    /// Replace this binding's closure observer. Capture UI windows weakly.
+    /// The model and timer are current and no queue borrow is held when called.
+    pub fn on_closed(&self, handler: impl Fn(ToastId, T, ToastCloseReason) + 'static) {
+        *self.inner.on_closed.borrow_mut() = Some(Rc::new(handler));
+    }
+    pub fn len(&self) -> usize {
+        self.inner.queue.borrow().len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.inner.queue.borrow().is_empty()
+    }
+    fn finish(&self, closed: Vec<ToastClosed<(T, ui::ToastEntry)>>) {
+        self.refresh();
+        self.schedule();
+        let handler = self.inner.on_closed.borrow().clone();
+        if let Some(handler) = handler {
+            for record in closed {
+                handler(record.id, record.value.0, record.reason);
+            }
+        }
+    }
     fn refresh(&self) {
-        let rows = self
+        let ids = self
             .inner
             .queue
             .borrow()
             .entries()
-            .map(|entry| (entry.id, entry.value.1.clone()))
+            .map(|entry| entry.id)
             .collect::<Vec<_>>();
-        let retained: HashSet<_> = rows.iter().map(|(id, _)| *id).collect();
-        let removed: Vec<_> = self
+        let retained: HashSet<_> = ids.iter().copied().collect();
+        let removed = self
             .inner
             .rows
             .model()
             .iter()
             .filter_map(|row| self.inner.rows.key(row.token))
             .filter(|id| !retained.contains(id))
-            .collect();
+            .collect::<Vec<_>>();
         for id in removed {
             self.inner.rows.remove_by_key(&id);
         }
-        for (id, row) in rows {
-            // Queue records are immutable and IDs are never reused. Keep the
-            // existing row/delegate; only append genuinely new live records.
-            let live = self
+        for id in ids {
+            // Publications can re-enter this binding. Read each current value
+            // after the preceding publication, without keeping the queue borrowed.
+            let row = self
                 .inner
                 .queue
                 .borrow()
                 .entries()
-                .any(|entry| entry.id == id);
-            if live && self.inner.rows.get(&id).is_none() {
+                .find(|entry| entry.id == id)
+                .map(|entry| entry.value.1.clone());
+            let Some(mut row) = row else {
+                continue;
+            };
+            if let Some(current) = self.inner.rows.get(&id) {
+                row.token = current.token;
+                if current != row {
+                    self.inner.rows.update_by_key(&id, |current| *current = row);
+                }
+            } else {
                 self.inner
                     .rows
                     .insert(id, row)
@@ -113,31 +145,66 @@ impl<T: Clone + 'static> ToastBinding<T> {
         view: ui::ToastEntry,
         lifetime: ToastLifetime,
     ) -> Result<ToastId, ToastQueueError> {
-        let result = self.inner.queue.borrow_mut().push(
+        let change = self.inner.queue.borrow_mut().push(
             (action, view),
             lifetime,
             self.inner.epoch.elapsed(),
-        );
-        self.refresh();
-        self.schedule();
-        result
+        )?;
+        let id = change.result;
+        self.finish(change.closed);
+        Ok(id)
+    }
+    fn close_id(&self, id: ToastId, reason: ToastCloseReason) -> Option<T> {
+        let (mut closed, value) = {
+            let mut queue = self.inner.queue.borrow_mut();
+            let closed = queue.advance(self.inner.epoch.elapsed());
+            (closed, queue.remove(id))
+        };
+        if let Some(value) = &value {
+            closed.push(ToastClosed {
+                id,
+                value: value.clone(),
+                reason,
+            });
+        }
+        self.finish(closed);
+        value.map(|(action, _)| action)
     }
     pub fn dismiss(&self, token: i32) -> Option<T> {
         let id = self.inner.rows.key(token)?;
-        let value = self
+        self.dismiss_id(id)
+    }
+    pub fn dismiss_id(&self, id: ToastId) -> Option<T> {
+        self.close_id(id, ToastCloseReason::Dismissed)
+    }
+    pub fn clear(&self) {
+        let closed = self
             .inner
             .queue
             .borrow_mut()
-            .remove(id)
-            .map(|(action, _)| action);
-        self.refresh();
-        self.schedule();
-        value
+            .clear(self.inner.epoch.elapsed());
+        self.finish(closed);
+    }
+    /// Keep the action, identity and pause flags, and restart the live lifetime.
+    /// An expired or missing ID cannot be revived.
+    pub fn update(&self, id: ToastId, view: ui::ToastEntry, lifetime: ToastLifetime) -> bool {
+        let change = self.inner.queue.borrow_mut().update(
+            id,
+            lifetime,
+            self.inner.epoch.elapsed(),
+            |value| value.1 = view,
+        );
+        let updated = change.result;
+        self.finish(change.closed);
+        updated
     }
     pub fn action_handler(&self, handler: impl Fn(T) + 'static) -> impl Fn(i32) + 'static {
         let binding = self.clone();
         move |token| {
-            if let Some(action) = binding.dismiss(token) {
+            let Some(id) = binding.inner.rows.key(token) else {
+                return;
+            };
+            if let Some(action) = binding.close_id(id, ToastCloseReason::Action) {
                 handler(action);
             }
         }
@@ -158,16 +225,13 @@ impl<T: Clone + 'static> ToastBinding<T> {
                 ui::ToastInteraction::Pointer => ToastPause::Pointer,
                 ui::ToastInteraction::Focus => ToastPause::Focus,
             };
-            let changed = {
-                let mut queue = binding.inner.queue.borrow_mut();
-                let before = queue.entries().count();
-                queue.set_paused(id, source, engaged, binding.inner.epoch.elapsed());
-                before != queue.entries().count()
-            };
-            if changed {
-                binding.refresh();
-            }
-            binding.schedule();
+            let change = binding.inner.queue.borrow_mut().set_paused(
+                id,
+                source,
+                engaged,
+                binding.inner.epoch.elapsed(),
+            );
+            binding.finish(change.closed);
         }
     }
 }

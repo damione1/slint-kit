@@ -79,6 +79,24 @@ L’application choisit toujours données, tri, filtrage, chargement et commande
 
 `ToastBinding<Action>` stocke les actions typées dans `ToastQueue`, projette les lignes `ToastEntry` et gère un minuteur faible. Capacité et `ToastLifetime` sont explicites. Ses trois handlers routent action, fermeture et pauses indépendantes pointeur/focus ; l’application exécute uniquement l’action métier reçue. Les délégués conservés gardent le focus clavier et leurs pauses indépendantes de survol/focus quand une autre entrée est ajoutée, fermée, expire ou est évincée. Gardez le modèle `model()` installé ; le binding applique des insertions/retraits incrémentaux par clé. `KeyedModel::insert` et `remove_by_key` conservent les délégués survivants tout en avançant la génération ; `replace` et le tri réinitialisent encore leur projection.
 
+Utilisez le `ToastId` stable de `ToastBinding::push` avec `dismiss_id(id) -> Option<T>` ; un jeton visuel n’est pas un identifiant de file. `clear()`, `len()` et `is_empty()` agissent sur le binding. `update(id, view, lifetime) -> bool` ne change que la vue et la durée : ID/jeton, action typée et pauses survol/focus distinctes sont conservés, la durée repart de maintenant et la mise à jour elle-même ne signale aucune fermeture. Un ID absent ou expiré renvoie false sans résurrection.
+
+Enregistrez une fois `on_closed(&self, Fn(ToastId, T, ToastCloseReason) + 'static)` ; un nouvel observateur remplace le précédent. Le motif vaut `Expired`, `Dismissed`, `Action`, `Evicted` ou `Cleared`. `T: Clone + 'static` reste requis : la fermeture retourne l’action et l’observateur reçoit son clone. Les notifications suivent la publication du modèle/minuteur sans emprunt du binding retenu ; les callbacks peuvent y revenir sans perdre leurs mutations. `action_handler` notifie Action avant l’action métier, une seule fois. Une durée persistante n’empêche pas l’éviction de capacité ni le retrait explicite. Capturez `app.as_weak()` et récupérez la fenêtre dans un callback UI, sans garder de fenêtre forte.
+
+Après création de `toasts`, cet observateur conserve les événements typés complets sans journaliser les données utilisateur :
+
+```rust
+use std::{cell::RefCell, rc::Rc};
+
+let closed = Rc::new(RefCell::new(Vec::new()));
+toasts.on_closed({
+    let closed = closed.clone();
+    move |id, action, reason| closed.borrow_mut().push((id, action, reason))
+});
+```
+
+Pour un runtime personnalisé, traitez chaque fermeture du cœur. `ToastQueue::push` renvoie désormais `Result<ToastChange<T, ToastId>, ToastQueueError>` : `.result` contient le nouvel ID et `.closed` les fermetures, avec les expirations avant toute éviction de capacité. `advance(now)` et `clear(now)` retournent `Vec<ToastClosed<T>>`, avec `id`, `value` entier et `reason`. `set_paused` et `update(id, lifetime, now, FnOnce(&mut T))` retournent `ToastChange<T, bool>` ; traitez `.closed` même si `.result` vaut false, car une entrée a pu expirer. update du cœur modifie explicitement sa charge utile ; celui du binding conserve son action typée. `ToastBinding::push` garde son retour `Result<ToastId, ToastQueueError>`.
+
 `ToastBinding` programme seulement la prochaine expiration temporisée hors pause avec un minuteur à déclenchement unique. Les files vides, entièrement persistantes ou entièrement en pause ne réveillent pas la boucle d’événements. Ajout, fermeture, changement de pause et expiration recalculent le prochain délai ; libérer une source de pause n’annule pas l’autre. Un adaptateur de runtime personnalisé peut appeler `ToastQueue::next_timeout(now)` avec la même horloge monotone injectée que `advance(now)` : il renvoie le délai restant, `None` si rien ne tourne, ou zéro pour une entrée échue. La lecture ne modifie pas la file ; appelez `advance` pour retirer les entrées expirées. Le callback du minuteur ne garde qu’une référence faible au binding ; détruire son dernier propriétaire arrête le minuteur même si le modèle projeté subsiste.
 
 `KeyedModel::sorting_by` transforme un comparateur de clés métier en handler de tri alterné. Le tri conserve sélection et identité active et avance la génération : un geste commencé avant le réordonnancement ne peut pas cibler la nouvelle projection. L’[application de tableau triable](/fr/guides/table-example/) raccorde `bind`, `navigation()`, `activation` et `sorting_by` à un `KitDataTable` dans un seul fichier court.

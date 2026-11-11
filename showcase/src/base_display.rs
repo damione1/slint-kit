@@ -238,21 +238,28 @@ pub fn install(window: &ui::Showcase) {
         arm(&examples, window.as_weak());
     });
     let examples = Rc::clone(&state);
+    let weak = window.as_weak();
     global.on_toast_interaction(move |token, source, engaged| {
-        let mut state = examples.borrow_mut();
-        let Some(id) = state.id(token) else {
-            return;
+        let expired = {
+            let mut state = examples.borrow_mut();
+            let Some(id) = state.id(token) else {
+                return;
+            };
+            let now = state.clock.elapsed();
+            let change = state.queue.set_paused(
+                id,
+                match source {
+                    ui::ToastInteraction::Pointer => ToastPause::Pointer,
+                    ui::ToastInteraction::Focus => ToastPause::Focus,
+                },
+                engaged,
+                now,
+            );
+            !change.closed.is_empty()
         };
-        let now = state.clock.elapsed();
-        state.queue.set_paused(
-            id,
-            match source {
-                ui::ToastInteraction::Pointer => ToastPause::Pointer,
-                ui::ToastInteraction::Focus => ToastPause::Focus,
-            },
-            engaged,
-            now,
-        );
+        if expired && let Some(window) = weak.upgrade() {
+            publish(&examples, &window);
+        }
     });
     let weak = window.as_weak();
     let examples = Rc::clone(&state);
