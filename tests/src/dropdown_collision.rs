@@ -323,7 +323,10 @@ fn edge_popups_keep_controlled_admission_multi_sessions_and_native_tab_exit() {
         }
         key(&app, Key::Tab);
         assert!(!app.get_state().open);
-        assert!(app.get_outside_focused());
+        assert!(
+            app.get_outside_focused(),
+            "{kind:?}: native Tab must leave focus in the host editor"
+        );
         key(&app, "Z");
         assert_eq!(app.get_outside_text(), "Z");
         open(&app);

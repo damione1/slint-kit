@@ -1247,6 +1247,9 @@ export component KitCombobox inherits Rectangle {
     }
     function advance-tab(reverse: bool) -> KitKeyResult {
         root.handle-dismiss(CloseReason.programmatic);
+        // Native close restores its parent focus. Complete it before the host
+        // advances Tab, while preserving a session reopened by dismiss().
+        if (!root.state.open) { popup.close(); }
         return root.tab-navigation(reverse);
     }
     changed opened => {
