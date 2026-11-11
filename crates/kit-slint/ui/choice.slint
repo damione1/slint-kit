@@ -1,7 +1,7 @@
 import { KitKeyResult } from "keyboard.slint";
-import { KitFieldService, SliderSpec, DecimalRangeView } from "field-service.slint";
+import { KitFieldService, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
-import { Ownership } from "shared-contracts.slint";
+import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
 import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -1420,10 +1420,15 @@ export component KitSlider inherits Rectangle {
     vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: slider; accessible-label: root.label;
     accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
-    accessible-value: root.value-label;
-    accessible-value-minimum: 0; accessible-value-maximum: 1;
-    accessible-value-step: 0.01;
-    accessible-enabled: !root.disabled;
+    private property <SliderAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.slider-accessibility(root.value, root.spec) : {valid: false};
+    accessible-value: root.accessible-domain.value;
+    accessible-description: root.value-label != root.value ? root.value-label : "";
+    accessible-value-minimum: root.accessible-domain.minimum;
+    accessible-value-maximum: root.accessible-domain.maximum;
+    accessible-value-step: root.accessible-domain.step;
+    accessible-enabled: !root.disabled && root.accessible-domain.valid;
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-action-set-value(value) => { root.handle-accessible-value(value); }
     accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(NavigationStep.next); } }
     accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.handle-navigate(NavigationStep.previous); } }
     public function take-focus() { keyboard.focus(); }
@@ -1517,6 +1522,15 @@ export component KitSlider inherits Rectangle {
     private property <string> snapshot: root.value;
     private property <string> candidate;
     callback chosen(string);
+    function handle-accessible-value(value: string) {
+        if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
+        let result = KitFieldService.slider-set-value(root.value, value, root.spec);
+        if (result.status != NumberStepStatus.stepped) { return; }
+        root.candidate = result.text;
+        if (root.ownership == Ownership.local) { root.value = root.candidate; }
+        root.position-requested(KitFieldService.slider-position(root.candidate, root.spec));
+        root.handle-commit();
+    }
     function handle-position(position: float) {
         if (root.access != FieldAccess.editable) { return; }
         if (KitFieldService.ready) {
@@ -1578,10 +1592,18 @@ export component KitRangeSlider inherits Rectangle {
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
+    private property <RangeAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.range-accessibility(root.value, root.spec) : {lower: {valid: false}, upper: {valid: false}};
     lower := SliderKeyboard {
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — lower";
-        accessible-value: root.lower-label; accessible-value-minimum: 0; accessible-value-maximum: root.upper-position;
+        accessible-value: root.accessible-domain.lower.value;
+        accessible-description: root.lower-label != root.value.lower ? root.lower-label : "";
+        accessible-value-minimum: root.accessible-domain.lower.minimum;
+        accessible-value-maximum: root.accessible-domain.lower.maximum;
+        accessible-value-step: root.accessible-domain.lower.step;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.lower.valid;
+        accessible-read-only: root.access == FieldAccess.read-only;
+        accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.lower, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.next); } }
         accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.previous); } }
         focus-gained(reason) => { root.active-thumb = RangeThumb.lower; }
@@ -1592,7 +1614,14 @@ export component KitRangeSlider inherits Rectangle {
     upper := SliderKeyboard {
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — upper";
-        accessible-value: root.upper-label; accessible-value-minimum: root.lower-position; accessible-value-maximum: 1;
+        accessible-value: root.accessible-domain.upper.value;
+        accessible-description: root.upper-label != root.value.upper ? root.upper-label : "";
+        accessible-value-minimum: root.accessible-domain.upper.minimum;
+        accessible-value-maximum: root.accessible-domain.upper.maximum;
+        accessible-value-step: root.accessible-domain.upper.step;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.upper.valid;
+        accessible-read-only: root.access == FieldAccess.read-only;
+        accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.upper, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.next); } }
         accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.previous); } }
         focus-gained(reason) => { root.active-thumb = RangeThumb.upper; }
@@ -1635,6 +1664,15 @@ export component KitRangeSlider inherits Rectangle {
     private property <DecimalRangeView> snapshot: root.value;
     private property <DecimalRangeView> candidate;
     callback chosen(DecimalRangeView);
+    function handle-accessible-value(thumb: RangeThumb, value: string) {
+        if (root.access != FieldAccess.editable || !KitFieldService.ready) { return; }
+        let result = KitFieldService.range-set-value(root.value, thumb, value, root.spec);
+        if (result.status != NumberStepStatus.stepped) { return; }
+        root.candidate = result.value;
+        if (root.ownership == Ownership.local) { root.value = root.candidate; }
+        root.position-requested(thumb, KitFieldService.slider-position(thumb == RangeThumb.lower ? root.candidate.lower : root.candidate.upper, root.spec));
+        root.handle-commit(thumb);
+    }
     function handle-position(thumb: RangeThumb, position: float) {
         if (root.access != FieldAccess.editable) { return; }
         if (KitFieldService.ready) {

@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitRangeSlider, KitColorPicker, KitColorField, KitTheme, KitThemes, FieldAccess, Ownership, DecimalRangeView, SrgbColorView, ColorAlphaMode } from "@kit";
+export component SliderAccessibilityFixture inherits Window {
+    width: 800px; height: 1100px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <string> value <=> single.value;
+    in-out property <DecimalRangeView> range-value <=> range.value;
+    in-out property <SrgbColorView> accepted-color <=> picker.accepted-color;
+    out property <SrgbColorView> draft-color: draft-field.accepted-color;
+    public function open-draft() { draft-field.open-picker(); }
+    in-out property <string> controlled-value: "1000000000000.25";
+    in-out property <string> chosen-value;
+    in-out property <int> chosen-count;
+    in-out property <int> commit-count;
+    in-out property <int> position-count;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        single := KitSlider {
+            theme: root.theme; access: root.access; label: "Temperature";
+            value: "12.5"; value-label: "12.5 °C";
+            spec: {minimum: "-12.5", maximum: "37.5", step: "0.25"};
+            chosen(value) => { root.chosen-value = value; root.chosen-count += 1; }
+            committed => { root.commit-count += 1; }
+            position-requested(position) => { root.position-count += 1; }
+        }
+        controlled := KitSlider {
+            theme: root.theme; access: root.access; label: "Exact controlled";
+            ownership: Ownership.controlled; value: root.controlled-value;
+            spec: {minimum: "1000000000000", maximum: "1000000000001", step: "0.01"};
+            chosen(value) => { root.chosen-value = value; root.chosen-count += 1; }
+            committed => { root.commit-count += 1; }
+            position-requested(position) => { root.position-count += 1; }
+        }
+        range := KitRangeSlider {
+            theme: root.theme; access: root.access; label: "Interval"; ownership: root.ownership;
+            spec: {minimum: "-10", maximum: "50", step: "2"};
+            value: {lower: "10", upper: "30"}; lower-label: "Lower bound"; upper-label: "Upper bound";
+            chosen(value) => { root.chosen-count += 1; }
+            committed(thumb) => { root.commit-count += 1; }
+            position-requested(thumb, position) => { root.position-count += 1; }
+        }
+        draft-field := KitColorField {
+            theme: root.theme; access: root.access; label: "Draft color";
+            accepted-color: {red: 40, green: 60, blue: 80, alpha: 255};
+        }
+        picker := KitColorPicker {
+            theme: root.theme; access: root.access; label: "Color"; alpha-mode: ColorAlphaMode.editable;
+            accepted-color: {red: 40, green: 60, blue: 80, alpha: 200};
+        }
+    }
+}

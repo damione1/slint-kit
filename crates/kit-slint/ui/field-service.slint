@@ -22,6 +22,10 @@ export struct NumberStepResult { status: NumberStepStatus, text: string }
 // Float projection for accessible value bounds only. An absent bound is
 // -inf/+inf and `step="any"` is 0, because Slint always publishes the floats.
 export struct NumberRangeView { minimum: float, maximum: float, step: float }
+// Float fields are projections for the platform; value remains canonical text.
+export struct SliderAccessibleValue { valid: bool, minimum: float, maximum: float, step: float, value: string }
+export struct RangeAccessibleValue { lower: SliderAccessibleValue, upper: SliderAccessibleValue }
+export struct RangeSetValueResult { status: NumberStepStatus, value: DecimalRangeView }
 export global KitFieldService {
     pure callback color-wheel-image() -> image;
     pure callback color-wheel-position(SrgbColorView) -> ColorWheelPosition;
@@ -36,6 +40,10 @@ export global KitFieldService {
     pure callback color-parse(string, ColorAlphaMode) -> ColorResult;
     pure callback color-component(SrgbColorView, ColorChannel) -> string;
     pure callback color-channel(SrgbColorView, ColorChannel, string, ColorAlphaMode) -> ColorResult;
+    pure callback slider-accessibility(string, SliderSpec) -> SliderAccessibleValue;
+    pure callback range-accessibility(DecimalRangeView, SliderSpec) -> RangeAccessibleValue;
+    pure callback slider-set-value(string, string, SliderSpec) -> NumberStepResult;
+    pure callback range-set-value(DecimalRangeView, RangeThumb, string, SliderSpec) -> RangeSetValueResult;
     pure callback slider-valid(string, SliderSpec) -> bool;
     pure callback range-valid(DecimalRangeView, SliderSpec) -> bool;
     pure callback slider-position(string, SliderSpec) -> float;

@@ -24,6 +24,10 @@ Slint conserve les brouillons natifs et les projections formatées des valeurs a
 
 Argent et décimaux restent exacts : utilisez `Money`, `DecimalValue` et leurs règles explicites. Les curseurs utilisent des chaînes décimales et une grille exacte partagée ; les flottants normalisés servent uniquement au pointeur et au rendu. `SliderSpec` définit minimum, maximum et pas. `DecimalRangeView` se convertit en `OrderedRange<DecimalValue>`, dont les bornes ne peuvent se croiser.
 
+Les métadonnées accessibles des curseurs partagent le même domaine : `spec.minimum`, `maximum`, `step`, valeur décimale courante et autre borne comme limite intérieure de chaque poignée de plage. Le réglage accessible applique arrondi et bornes du pointeur avec `DecimalSlider::at_value` ; il émet `chosen` et `committed` une fois pour un candidat valide modifié et conserve la propriété contrôlée. Fournissez `spec`/`value` cohérents même avec des positions normalisées explicites. Les curseurs des canaux couleur utilisent 0..255 au pas de 1.
+
+`value-label` et `lower-label`/`upper-label` des plages fournissent des descriptions accessibles formatées ; la valeur numérique accessible reste le texte décimal. Slint 1.18.1 n’a pas de propriété distincte de texte de valeur et limite bornes/pas accessibles à Float32, ce qui peut confondre des bornes grandes ou très rapprochées. N’acceptez pas de valeur métier depuis ces projections. La couverture des métadonnées et actions synthétiques est headless ; qualifiez séparément le backend nommé et le lecteur d’écran.
+
 `FieldBinding` et `FieldController` restent disponibles pour les intégrations personnalisées. Le chemin ordinaire n’exige aucune macro propre au composant. `init_form_validation!` est dépréciée au profit de `install`.
 
 La macro historique `bind_select!` reste disponible pour la migration et est dépréciée dans la documentation. Remplacez sa convention de callbacks de fenêtre par `Choices<K>`, le contrat `options`/`selected`/`chosen` du composant et l’installateur partagé. Les projections explicites `SelectBinding` restent disponibles pour les intégrations contrôlées personnalisées.

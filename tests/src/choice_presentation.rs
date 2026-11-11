@@ -241,7 +241,14 @@ fn vertical_slider_keys_step_up_and_right_forward() {
         slider.accessible_orientation(),
         Some(i_slint_backend_testing::Orientation::Vertical)
     );
-    assert_eq!(slider.accessible_value().as_deref(), Some("70 percent"));
+    assert_eq!(slider.accessible_value().as_deref(), Some("100"));
+    assert_eq!(
+        slider.accessible_description().as_deref(),
+        Some("70 percent")
+    );
+    assert_eq!(slider.accessible_value_minimum(), Some(0.));
+    assert_eq!(slider.accessible_value_maximum(), Some(100.));
+    assert_eq!(slider.accessible_value_step(), Some(1.));
     // Read-only and disabled sliders ignore keys and pointer gestures.
     let requests = record_positions(&window);
     for access in [FieldAccess::ReadOnly, FieldAccess::Disabled] {

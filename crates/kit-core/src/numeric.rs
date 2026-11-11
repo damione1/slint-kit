@@ -30,6 +30,15 @@ impl DecimalValue {
             .map(Self)
             .map_err(|_| ParseIssue::Overflow)
     }
+    /// Approximate renderer/accessibility projection only. Accepted values and
+    /// lattice arithmetic retain DecimalValue; this is never a domain conversion.
+    pub fn renderer_float(self) -> Result<f32, ParseIssue> {
+        use rust_decimal::prelude::ToPrimitive;
+        self.0
+            .to_f32()
+            .filter(|value| value.is_finite())
+            .ok_or(ParseIssue::Overflow)
+    }
     pub fn scale(self) -> u32 {
         self.0.scale()
     }
@@ -881,6 +890,9 @@ impl DecimalSlider {
     pub fn maximum(self) -> DecimalValue {
         self.maximum
     }
+    pub fn step(self) -> DecimalValue {
+        self.step
+    }
     pub fn validate(self, value: DecimalValue) -> Result<DecimalValue, ParseIssue> {
         if value < self.minimum {
             return Err(ParseIssue::BelowMinimum);
@@ -916,9 +928,23 @@ impl DecimalSlider {
         let fraction = Decimal::from_str(&position.clamp(0.0, 1.0).to_string())
             .map_err(|_| ParseIssue::InvalidSyntax)?;
         let span = self.maximum.checked_sub(self.minimum)?.0;
-        let projected = span
-            .checked_mul(fraction)
-            .and_then(|value| value.checked_div(self.step.0))
+        let offset = span.checked_mul(fraction).ok_or(ParseIssue::Overflow)?;
+        self.at_offset(offset)
+    }
+    /// Clamp and round an exact domain request on the same lattice as pointer
+    /// input, without a domain -> float position -> domain round trip.
+    pub fn at_value(self, value: DecimalValue) -> Result<DecimalValue, ParseIssue> {
+        self.at_offset(
+            value
+                .clamp(self.minimum, self.maximum)
+                .checked_sub(self.minimum)?
+                .0,
+        )
+    }
+    fn at_offset(self, offset: Decimal) -> Result<DecimalValue, ParseIssue> {
+        let span = self.maximum.checked_sub(self.minimum)?.0;
+        let projected = offset
+            .checked_div(self.step.0)
             .ok_or(ParseIssue::Overflow)?;
         let maximum_steps = span
             .checked_div(self.step.0)
@@ -960,6 +986,46 @@ impl DecimalSlider {
 #[cfg(test)]
 mod slider_tests {
     use super::*;
+    #[test]
+    fn domain_requests_clamp_and_round_on_the_pointer_lattice() {
+        let slider = DecimalSlider::new(
+            "-12.5".parse().unwrap(),
+            "37.6".parse().unwrap(),
+            "0.25".parse().unwrap(),
+        )
+        .unwrap();
+        for (input, expected) in [
+            ("-99", "-12.5"),
+            ("99", "37.5"),
+            ("12.63", "12.75"),
+            ("12.62", "12.5"),
+        ] {
+            assert_eq!(
+                slider.at_value(input.parse().unwrap()).unwrap(),
+                expected.parse().unwrap()
+            );
+        }
+        assert_eq!(slider.step(), "0.25".parse().unwrap());
+    }
+    #[test]
+    fn exact_domain_request_does_not_round_trip_through_a_renderer_float() {
+        let slider = DecimalSlider::new(
+            "1000000000000".parse().unwrap(),
+            "1000000000001".parse().unwrap(),
+            "0.01".parse().unwrap(),
+        )
+        .unwrap();
+        let next = slider
+            .at_value("1000000000000.266".parse().unwrap())
+            .unwrap();
+        assert_eq!(next, "1000000000000.27".parse().unwrap());
+        // The platform's Float32 metadata cannot distinguish these endpoints.
+        assert_eq!(
+            slider.minimum().renderer_float().unwrap(),
+            slider.maximum().renderer_float().unwrap()
+        );
+        assert_eq!(slider.position(next).unwrap(), 0.27);
+    }
     #[test]
     fn pointer_rounding_and_navigation_keep_decimal_lattice_exact() {
         let slider = DecimalSlider::new(

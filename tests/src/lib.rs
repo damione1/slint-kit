@@ -851,3 +851,5 @@ mod range_coincident;
 
 mod form_registration;
 mod toast_timer;
+
+mod slider_accessibility;
