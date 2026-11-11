@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDatePicker, KitDateRangePicker, KitTheme, KitThemes, CalendarOutsideDays, CalendarWeekRows, CalendarDay, CivilDateView, DateRangeView, FieldAccess, Ownership, WeekStart, ChoiceFlow } from "@kit";
+export component CalendarOutsideFixture inherits Window {
+    preferred-width: 1800px; preferred-height: 1100px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <CalendarOutsideDays> outside-days: CalendarOutsideDays.dim;
+    in property <CalendarWeekRows> week-rows: CalendarWeekRows.fixed;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <Ownership> ownership: Ownership.local;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <string> min;
+    in property <string> max;
+    in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 1};
+    in-out property <CivilDateView> selected: {year: 2026, month: 10, day: 1};
+    in-out property <DateRangeView> range-selection: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}};
+    out property <[CalendarDay]> calendar-days: calendar.days;
+    out property <[CalendarDay]> date-days: date.days;
+    out property <[CalendarDay]> range-days: range.days;
+    out property <length> calendar-height: calendar.height;
+    callback calendar-chosen(CivilDateView);
+    public function focus-calendar() { calendar.take-focus(); }
+    public function open-date() { date.open = true; }
+    public function close-date() { date.open = false; }
+    HorizontalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        VerticalLayout { alignment: start; calendar := KitCalendar {
+            theme: root.theme; label: "Calendar"; today: {year: 2026, month: 10, day: 2};
+            outside-days: root.outside-days; week-rows: root.week-rows;
+            access: root.access; ownership: root.ownership; week-start: root.week-start; flow: root.flow; min: root.min; max: root.max;
+            focused <=> root.focused; selected <=> root.selected;
+            chosen(date) => { root.calendar-chosen(date); }
+        }
+        }
+        VerticalLayout { alignment: start; min-width: Math.max(calendar.preferred-width, calendar.min-width + root.theme.spacing.unit * 6); date := KitDatePicker {
+            theme: root.theme; label: "Date picker"; today: {year: 2026, month: 10, day: 2};
+            outside-days: root.outside-days; week-rows: root.week-rows;
+            access: root.access; ownership: root.ownership; week-start: root.week-start; flow: root.flow; min: root.min; max: root.max;
+            focused <=> root.focused; accepted-date <=> root.selected;
+        }
+        }
+        VerticalLayout { alignment: start; range := KitDateRangePicker {
+            theme: root.theme; label: "Range picker"; today: {year: 2026, month: 10, day: 2};
+            outside-days: root.outside-days; week-rows: root.week-rows;
+            access: root.access; ownership: root.ownership; week-start: root.week-start; flow: root.flow; min: root.min; max: root.max;
+            focused <=> root.focused; selected <=> root.range-selection;
+        } }
+    }
+}

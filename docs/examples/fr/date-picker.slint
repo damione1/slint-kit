@@ -3,7 +3,7 @@ import { LayoutSpace, KitMetrics, TypographyRole, KitStack } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
-import { KitDatePicker, CivilDateView, WeekStart } from "@kit";
+import { KitDatePicker, CivilDateView, WeekStart, CalendarOutsideDays, CalendarWeekRows } from "@kit";
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
     public function report-validation() -> bool { return field.report-validity(); }
@@ -28,6 +28,9 @@ export component Example inherits Window {
             configuration-message: "Vérifiez les dates et les bornes du calendrier.";
             // Les noms restent lundi en premier même si la semaine commence dimanche.
             week-start: WeekStart.sunday;
+            // Défaut corrigé : jours adjacents atténués, avec six semaines conservées.
+            outside-days: CalendarOutsideDays.dim;
+            week-rows: CalendarWeekRows.fixed;
             // Les noms de formatage sont distincts des initiales visibles weekdays.
             month-short-names: ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."];
             weekday-names: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];

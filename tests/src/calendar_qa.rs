@@ -17,6 +17,7 @@ fn day(enabled: bool) -> CalendarDay {
         selected: false,
         in_range: false,
         today: false,
+        outside_month: false,
     }
 }
 fn key(window: &CalendarQaFixture, key: Key) {

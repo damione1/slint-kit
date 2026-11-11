@@ -35,6 +35,8 @@ jobs:
     # documentation consumers are compiled only. No display server is needed.
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      CARGO_BUILD_JOBS: '2'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -60,7 +62,39 @@ jobs:
       - name: Check documentation dependency versions
         run: python3 -B docs/scripts/sync-doc-versions.py --check
       - name: Check the workspace and headless component suite
-        run: cargo run -p xtask --locked -- check
+        run: |
+          printf 'Available CPUs: '
+          nproc
+          free -m
+          df -h .
+          ulimit -a
+          for kit_limit in memory.max memory.swap.max; do
+            if [ -r "/sys/fs/cgroup/$kit_limit" ]; then
+              printf '%s: ' "$kit_limit"
+              cat "/sys/fs/cgroup/$kit_limit"
+            fi
+          done
+          kit_report_resources() {
+            date -u '+Resources at %Y-%m-%dT%H:%M:%SZ'
+            awk '/^(MemAvailable|SwapFree):/' /proc/meminfo
+            for kit_metric in memory.current memory.peak memory.events; do
+              if [ -r "/sys/fs/cgroup/$kit_metric" ]; then
+                printf '%s: ' "$kit_metric"
+                cat "/sys/fs/cgroup/$kit_metric"
+              fi
+            done
+            ps -eo pid,ppid,rss,comm --sort=-rss | sed -n '1,8p'
+          }
+          kit_report_resources
+          (while sleep 30; do kit_report_resources; done) &
+          kit_monitor_pid=$!
+          trap 'kill "$kit_monitor_pid" 2>/dev/null || true; wait "$kit_monitor_pid" 2>/dev/null || true' EXIT
+          set +e
+          cargo run -p xtask --locked -- check
+          kit_check_status=$?
+          set -e
+          kit_report_resources || true
+          exit "$kit_check_status"
       - name: Check component starters against the local kit
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/target

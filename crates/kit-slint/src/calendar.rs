@@ -185,6 +185,7 @@ pub fn calendar_projection(
                     selected: cell.selected,
                     in_range: false,
                     today: today == Some(cell.date),
+                    outside_month: !cell.in_displayed_month,
                 }
             })
         })
@@ -203,6 +204,24 @@ pub fn calendar_projection(
         title: title.into(),
         previous_enabled: calendar.can_navigate(CalendarMove::PreviousMonth),
         next_enabled: calendar.can_navigate(CalendarMove::NextMonth),
+    }
+}
+fn with_week_rows(
+    mut projection: ui::CalendarProjection,
+    rows: ui::CalendarWeekRows,
+) -> ui::CalendarProjection {
+    match rows {
+        ui::CalendarWeekRows::Fixed => projection,
+        ui::CalendarWeekRows::Variable => {
+            let mut days = projection.days.iter().collect::<Vec<_>>();
+            let last = days
+                .iter()
+                .rposition(|day| day.year > 0 && !day.outside_month)
+                .expect("a displayed month contains civil dates");
+            days.truncate((last + 1).div_ceil(7) * 7);
+            projection.days = ModelRc::new(VecModel::from(days));
+            projection
+        }
     }
 }
 struct CalendarLabels {
@@ -249,7 +268,10 @@ fn localized_projection(
     selection: RangeSelection,
 ) -> ui::CalendarProjection {
     let Ok(labels) = CalendarLabels::try_from(text.clone()) else {
-        return invalid_configuration_projection(&view, &text.months);
+        return with_week_rows(
+            invalid_configuration_projection(&view, &text.months),
+            view.week_rows,
+        );
     };
     let calendar = parse(&view);
     let mut projection = match &calendar {
@@ -313,7 +335,7 @@ fn localized_projection(
             })
             .collect::<Vec<_>>(),
     ));
-    projection
+    with_week_rows(projection, view.week_rows)
 }
 fn invalid_configuration_projection(
     view: &ui::CalendarView,
