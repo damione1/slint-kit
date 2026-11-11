@@ -397,6 +397,7 @@ fn optional_native_clear_accepts_absence_once_and_renders_it_apart_from_transpar
         Some("Aucune couleur")
     );
     let transparent = color(18, 52, 86, 0);
+    let themes = [("light", app.get_theme()), ("dark", app.get_dark_theme())];
     for state in ["empty", "transparent"] {
         if state == "transparent" {
             app.set_field_value(value(transparent.clone()));
@@ -406,7 +407,7 @@ fn optional_native_clear_accepts_absence_once_and_renders_it_apart_from_transpar
             assert_eq!(app.get_field_text(), "#12345600");
             assert_eq!(app.get_hex_text(), "#12345600");
         }
-        for (name, mut theme) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+        for (name, mut theme) in themes.clone() {
             for scale in [1., 2.] {
                 theme.text_scale = scale;
                 app.set_theme(theme.clone());

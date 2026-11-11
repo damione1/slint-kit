@@ -113,7 +113,9 @@ export component KitColorField inherits Rectangle {
             spacing: root.theme.spacing.unit * 3;
             editor := KitTextField {
                 required: root.required; custom-validity <=> root.custom-validity;
-                ownership: root.ownership; clearable: root.clearable; clear-label: root.clear-label;
+                // This is the native draft's commit baseline, not host color
+                // ownership. A proposal must not repeat on the following blur.
+                ownership: Ownership.local; clearable: root.clearable; clear-label: root.clear-label;
                 pattern: root.alpha-mode == ColorAlphaMode.editable ? "#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?" : "#[0-9a-fA-F]{6}";
                 pattern-message: root.alpha-mode == ColorAlphaMode.editable ? "Use #RRGGBB or #RRGGBBAA." : "Use #RRGGBB.";
                 error: root.error; show-validation-message: false;
