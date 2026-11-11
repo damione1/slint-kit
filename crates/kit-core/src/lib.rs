@@ -24,6 +24,7 @@ mod phone;
 mod select;
 mod temporal;
 mod text;
+mod text_filter;
 
 pub use choices::*;
 pub use color::*;
@@ -40,6 +41,7 @@ pub use phone::*;
 pub use select::*;
 pub use temporal::*;
 pub use text::*;
+pub use text_filter::*;
 
 macro_rules! contract_enums {
     ($( $rust_name:ident => $slint_name:literal { $( $variant:ident => $slint_variant:literal ),+ $(,)? } )+) => {
@@ -58,6 +60,8 @@ contract_enums! {
     Ownership => "Ownership" { Local => "local", Controlled => "controlled" }
     WeekStart => "WeekStart" { Monday => "monday", Tuesday => "tuesday", Wednesday => "wednesday", Thursday => "thursday", Friday => "friday", Saturday => "saturday", Sunday => "sunday" }
     PhoneNumberMode => "PhoneNumberMode" { National => "national", International => "international", Either => "either" }
+    OtpAlphabet => "OtpAlphabet" { AsciiDigits => "ascii-digits", AsciiAlphanumeric => "ascii-alphanumeric" }
+    TextFilterKind => "TextFilterKind" { Unfiltered => "unfiltered", Pattern => "pattern" }
     NumberInputFormat => "NumberInputFormat" { Canonical => "canonical", DecimalComma => "decimal-comma" }
     HtmlInputKind => "HtmlInputKind" {
         Text => "text", Search => "search", Telephone => "telephone", Email => "email", Url => "url",

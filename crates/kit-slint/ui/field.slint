@@ -9,7 +9,7 @@ import { FocusRequest } from "contracts.slint";
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 export { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 
-export enum FieldDecoration { boxed, underlined }
+export enum FieldDecoration { boxed, underlined, cells }
 
 export component KitField inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
@@ -95,6 +95,10 @@ export component KitInputGroup inherits Rectangle {
     in property <bool> focused;
     in property <FieldDecoration> decoration: FieldDecoration.boxed;
     in property <int> underline-segments: 1;
+    // Decorative group boundaries; one native editor still owns all text.
+    in property <int> group-size;
+    // Leave room for a native editor's final caret after fixed decorative cells.
+    in property <length> cell-trailing-space: 0px;
     out property <bool> hovered: hover.has-hover;
     private property <FieldRecipe> recipe: KitThemes.field-recipe(root.theme, root.control-size, root.access, root.validation);
     in property <length> corner-radius: root.recipe.radius;
@@ -107,6 +111,31 @@ export component KitInputGroup inherits Rectangle {
     border-radius: root.corner-radius;
     border-width: root.decoration == FieldDecoration.boxed ? root.recipe.border-width : 0px;
     border-color: root.hovered && !root.focused ? root.recipe.hover-border : root.recipe.border;
+    if root.decoration == FieldDecoration.cells: Rectangle {
+        x: root.padding-inline; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - root.cell-trailing-space); height: root.height;
+        for index in max(1, root.underline-segments): Rectangle {
+            private property <length> cell-width: parent.width / max(1, root.underline-segments);
+            private property <length> gap: root.theme.spacing.unit * 2 * root.theme.text-scale;
+            x: index * self.cell-width + self.gap / 2; y: 0px;
+            width: max(0px, self.cell-width - self.gap); height: parent.height;
+            background: root.recipe.fill;
+            border-radius: root.corner-radius;
+            border-width: root.recipe.border-width;
+            border-color: root.access == FieldAccess.disabled ? root.recipe.border : root.validation == ValidationPresentation.invalid ? root.theme.danger : root.focused ? root.theme.focus.color : root.hovered ? root.recipe.hover-border : root.recipe.border;
+            if root.focused && root.access != FieldAccess.disabled: FocusOutline {
+                ring: root.recipe.focus; radius: root.corner-radius;
+                host-width: parent.width; host-height: parent.height;
+            }
+            if root.group-size > 0 && index + 1 < max(1, root.underline-segments) && Math.mod(index + 1, root.group-size) == 0: Rectangle {
+                x: parent.width + parent.gap / 2 - self.width / 2;
+                y: (parent.height - self.height) / 2;
+                width: root.theme.shape.border-width-strong;
+                height: root.theme.spacing.unit * 2 * root.theme.text-scale;
+                background: root.access == FieldAccess.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+            }
+        }
+    }
     // A parent TouchArea observes hover before its children see the event,
     // so the native editor and actions keep every press, caret and selection.
     hover := TouchArea {

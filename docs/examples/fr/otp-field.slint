@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { InterFont } from "@kit/fonts/inter.slint";
-import { KitOtpField, FieldDecoration, KitTheme, KitThemes, FieldAccess, ValidationTiming } from "@kit";
+import { KitOtpField, FieldDecoration, KitTheme, KitThemes, FieldAccess, ValidationTiming, OtpAlphabet } from "@kit";
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitOtpField";
@@ -8,17 +8,20 @@ export component Example inherits Window {
     max-width: 100000px; max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <bool> code-complete;
     VerticalLayout {
         padding: 24px; spacing: 24px; alignment: start;
         KitOtpField {
             theme: root.theme; label: "Code vide, six emplacements";
-            decoration: FieldDecoration.underlined; slots: 6;
-            description: "Six chiffres maximum ; un collage plus long est refusé.";
+            group-size: 3; slots: 6;
+            completed(code) => { root.code-complete = true; }
+            edited(code) => { root.code-complete = false; }
+            description: root.code-complete ? "Code complet saisi" : "Six chiffres bruts ; copiez sans espace ni tiret.";
             validation-timing: ValidationTiming.on-submit;
         }
         KitOtpField {
             theme: root.theme; label: "Lettres et chiffres";
-            slots: 6; pattern: "[A-Za-z0-9]*"; text: "ABC123";
+            slots: 6; alphabet: OtpAlphabet.ascii-alphanumeric; text: "ABC123";
             validation-timing: ValidationTiming.on-submit;
         }
         KitOtpField {
@@ -27,10 +30,9 @@ export component Example inherits Window {
             validation-timing: ValidationTiming.on-submit;
         }
         KitOtpField {
-            theme: root.theme; label: "Affichage groupé au repos";
+            theme: root.theme; label: "Cellules natives groupées";
             slots: 7; pattern: "[A-Z]{2}[0-9]{5}"; text: "FG76657";
-            text-letter-spacing: 0px; text-inset: 0px;
-            display-text: self.text == "FG76657" ? "FG‑76657" : self.text;
+            group-size: 2;
             validation-timing: ValidationTiming.on-submit;
         }
     }

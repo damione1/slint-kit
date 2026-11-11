@@ -4,7 +4,7 @@ import { OptionRow } from "contracts.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { FieldState, FieldValue, FieldCommit, KitFieldService, NumberStepResult, NumberRangeView } from "field-service.slint";
-import { FieldAction, CommitPolicy, Ownership, StepDirection, NumberStepStatus } from "shared-contracts.slint";
+import { FieldAction, CommitPolicy, Ownership, StepDirection, NumberStepStatus, OtpAlphabet, TextFilterKind } from "shared-contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitMetrics, TypographyRole, OptionRecipe, ControlSize, ButtonIntent, ControlWidth, KitThemeContext, FieldRecipe, IconRecipe, ChoiceFlow } from "theme.slint";
 import { KitScrollBar } from "scroll.slint";
@@ -16,7 +16,7 @@ import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } fr
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
 import { NumberInputFormat, PhoneNumberMode } from "shared-contracts.slint";
 export { PhoneNumberMode } from "shared-contracts.slint";
-import { KitFormValidation, FormConstraintState, FormEditorFocus, KitInputConstraints, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
+import { KitFormValidation, FormConstraintState, FormEditorFocus, KitInputConstraints, KitMaskRules, KitValidityState, HtmlInputKind, ValidationTiming, TextFilterSpec } from "validation.slint";
 
 export { FieldDecoration } from "field.slint";
 
@@ -27,6 +27,7 @@ export enum TextEscapeBehavior { bubble, cancel, clear }
 export enum TextContextMenu { standard, disabled }
 export enum TextLengthPolicy { validate, limit }
 export enum SecretToggleVisibility { shown, hidden }
+export enum TextCompletionPolicy { manual, at-max-length }
 
 // An action shares the field's compact icon recipe and keeps pointer activation
 // on the native editor; keyboard users can still tab to the button normally.
@@ -154,6 +155,31 @@ export component KitTextField inherits KitField {
     in property <int> max-length: -1;
     // Strict edits need the shared UTF-16 bridge installed before input begins.
     in property <TextLengthPolicy> length-policy: TextLengthPolicy.validate;
+    // Authored source is compiled into a typed window-local rule once.
+    in property <TextFilterSpec> edit-filter: { kind: TextFilterKind.unfiltered, source: "" };
+    in property <string> edit-filter-message: KitStrings.text-filter-message;
+    out property <string> edit-filter-error: KitFormValidation.ready ? KitFormValidation.filter-error(root.edit-filter, root.edit-filter-message) : "";
+    in property <TextCompletionPolicy> completion-policy: TextCompletionPolicy.manual;
+    callback completed(string);
+    private property <FieldValue> completion-value;
+    function observe-completion() {
+        if (root.access == FieldAccess.editable && root.completion-policy == TextCompletionPolicy.at-max-length && KitFormValidation.ready && root.max-length > 0
+            && KitFormValidation.utf16-count(root.text) == root.max-length && root.check-validity()) {
+            if (!root.completion-value.present || root.completion-value.text != root.text) {
+                root.completion-value = {present: true, text: root.text};
+                root.completed(root.text);
+            }
+        } else {
+            root.completion-value = {present: false, text: ""};
+        }
+    }
+    function insertion-allowed(insertion: string) -> bool {
+        return root.edit-filter.kind == TextFilterKind.unfiltered || (KitFormValidation.ready && KitFormValidation.filter-insertion(root.edit-filter, root.text, insertion, root.selection-anchor, root.cursor-position, root.length-policy == TextLengthPolicy.limit ? root.max-length : -1));
+    }
+    function key-allowed(key: string) -> bool {
+        return root.edit-filter.kind == TextFilterKind.unfiltered || (KitFormValidation.ready && KitFormValidation.filter-key(root.edit-filter, root.text, key, root.selection-anchor, root.cursor-position, root.length-policy == TextLengthPolicy.limit ? root.max-length : -1));
+    }
+
     private property <string> previous-edit-text;
     private property <bool> limiting-edit;
     private property <bool> length-limit-ready: KitFormValidation.ready;
@@ -164,7 +190,7 @@ export component KitTextField inherits KitField {
         }
         root.previous-edit-text = root.text;
     }
-    changed text => { root.field-state.error = ""; root.synchronize-length-limit(); }
+    changed text => { root.field-state.error = ""; if (root.completion-value.text != root.text) { root.completion-value = {present: false, text: ""}; } root.synchronize-length-limit(); }
     changed max-length => { root.synchronize-length-limit(); }
     changed length-policy => { root.synchronize-length-limit(); }
     changed length-limit-ready => { root.synchronize-length-limit(); }
@@ -232,9 +258,10 @@ export component KitTextField inherits KitField {
     in property <string> placeholder;
     in property <FieldDecoration> decoration: FieldDecoration.boxed;
     in property <int> underline-segments: 1;
+    in property <int> group-size;
     in property <string> text-font-family: root.theme.typography.family;
     in property <length> text-inset: 0px;
-    out property <length> text-cell-width: glyph-measure.preferred-width;
+    out property <length> text-cell-width: glyph-measure.preferred-width / 100;
     in property <length> text-letter-spacing: 0px;
     in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.start;
     // Logical edges follow the explicit kit direction. Slint 1.18.1's software
@@ -297,7 +324,7 @@ export component KitTextField inherits KitField {
     }
     public function blur() { text-menu.close(); editor.clear-focus(); }
     public function set-selection(anchor: int, cursor: int) { editor.set-selection-offsets(anchor, cursor); }
-    public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "") { root.take-focus(); KitFieldService.edit-selection(text); } }
+    public function insert-at-cursor(text: string) { if (root.access == FieldAccess.editable && KitFieldService.ready && editor.preedit-text == "" && root.insertion-allowed(text)) { root.take-focus(); KitFieldService.edit-selection(text); } }
     out property <int> cursor-position: editor.cursor-position-byte-offset;
     out property <int> selection-anchor: editor.anchor-position-byte-offset;
     in property <TextContextMenu> context-menu: TextContextMenu.standard;
@@ -320,6 +347,7 @@ export component KitTextField inherits KitField {
     function paste-allowed() -> bool {
         if (!root.mask-ready) { return false; }
         clipboard-probe.text = ""; clipboard-probe.paste();
+        if (!root.insertion-allowed(clipboard-probe.text)) { return false; }
         if (root.validation-mask != "" && KitFormValidation.ready && !KitFormValidation.mask-paste(root.validation-mask, root.text, root.selection-anchor, root.cursor-position, clipboard-probe.text)) { return false; }
         if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !KitFormValidation.phone-paste(clipboard-probe.text)) { return false; }
         if (root.input-type == InputType.decimal) {
@@ -390,7 +418,8 @@ export component KitTextField inherits KitField {
     surface := KitInputGroup {
         theme: root.theme; control-size: root.control-size; access: root.access; validation: root.effective-validation;
         focused: root.has-focus;
-        decoration: root.decoration; underline-segments: root.underline-segments;
+        decoration: root.decoration; underline-segments: root.underline-segments; group-size: root.group-size;
+        cell-trailing-space: root.decoration == FieldDecoration.cells ? root.text-inset + 2px : 0px;
         corner-radius: root.corner-radius; padding-inline: root.padding-inline; padding-block: root.padding-block;
         preferred-height: Math.max(root.editor-height, editor-row.preferred-height) + 2 * root.padding-block;
         max-height: self.preferred-height;
@@ -400,7 +429,7 @@ export component KitTextField inherits KitField {
             pattern: root.pattern; pattern-enabled: root.pattern-enabled;
             min: root.min; max: root.max; step: root.step; default-value: root.default-value;
             text: root.validation-text; validation-timing: root.validation-timing;
-            custom-validity: root.custom-validity != "" ? root.custom-validity : root.field-state.error != "" ? root.field-state.error : root.intrinsic-error != "" ? root.intrinsic-error : root.validation == ValidationPresentation.invalid ? root.error : "";
+            custom-validity: root.custom-validity != "" ? root.custom-validity : root.edit-filter-error != "" ? root.edit-filter-error : root.field-state.error != "" ? root.field-state.error : root.intrinsic-error != "" ? root.intrinsic-error : root.validation == ValidationPresentation.invalid ? root.error : "";
             required-message: root.required-message; email-message: root.email-message;
             url-message: root.url-message; pattern-message: root.pattern-message;
             too-short-message: root.too-short-message; too-long-message: root.too-long-message;
@@ -469,9 +498,13 @@ export component KitTextField inherits KitField {
                         interactive: root.multiline;
                         mouse-drag-pan-enabled: false;
                         width: parent.width - (root.multiline ? KitThemes.scroll-bar-recipe(root.theme).thickness : 0px);
-                        content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width, formatted-measure.preferred-width) + 2px + root.text-inset);
+                        // Fixed cells include the final glyph, not the trailing letter-spacing
+                        // advance. Keep the real editor inside its viewport so native
+                        // focus reveal cannot pan it away from the decorative cells.
+                        content-width: root.multiline ? self.width : Math.max(self.width, Math.max(editor.preferred-width - (root.decoration == FieldDecoration.cells ? root.text-letter-spacing : 0px), formatted-measure.preferred-width) + 2px + root.text-inset);
                         content-height: Math.max(self.height, root.multiline ? measure.preferred-height : self.height);
-                        glyph-measure := Text { visible: false; text: "0"; font-family: root.text-font-family; font-size: root.text-size; }
+                        // Amortize layout's whole-pixel rounding before deriving a glyph advance.
+                        glyph-measure := Text { visible: false; text: "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"; font-family: root.text-font-family; font-size: root.text-size; }
                         measure := Text {
                             visible: false;
                             width: viewport.width;
@@ -501,11 +534,11 @@ export component KitTextField inherits KitField {
                         }
                         editor := TextInput {
                             x: root.text-inset;
-                            width: root.multiline ? viewport.width : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
+                            width: root.multiline ? viewport.width : root.decoration == FieldDecoration.cells ? Math.max(0px, viewport.width - root.text-inset - 2px) : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
                             height: viewport.content-height;
                             text <=> root.text;
                             enabled: root.access != FieldAccess.disabled;
-                            read-only: root.access == FieldAccess.read-only || !root.mask-ready || (root.length-policy == TextLengthPolicy.limit && !root.length-limit-ready);
+                            read-only: root.access == FieldAccess.read-only || !root.mask-ready || ((root.length-policy == TextLengthPolicy.limit || root.edit-filter.kind != TextFilterKind.unfiltered) && !root.length-limit-ready);
                             single-line: !root.multiline;
                             wrap: root.multiline ? word-wrap : no-wrap;
                             input-type: root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden ? InputType.password : root.purpose == TextPurpose.search ? InputType.search : root.input-type == InputType.decimal && KitFormValidation.ready ? InputType.text : root.input-type;
@@ -551,6 +584,7 @@ export component KitTextField inherits KitField {
                                 if (root.access == FieldAccess.editable && (((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && (event.text == "v" || event.text == "V")) || (event.modifiers.shift && event.text == Key.Insert))) {
                                     if (!root.paste-allowed()) { return accept; }
                                 } else {
+                                    if (self.preedit-text == "" && !(event.modifiers.control || event.modifiers.meta) && !root.key-allowed(event.text)) { return accept; }
                                     if (root.validation-mask != "" && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.mask-insertion(root.validation-mask, self.text, root.selection-anchor, root.cursor-position, event.text)) { return accept; }
                                     if (root.purpose == TextPurpose.telephone && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.phone-insertion(event.text)) { return accept; }
                                     if (root.input-type == InputType.decimal && KitFormValidation.ready && !(event.modifiers.control || event.modifiers.meta) && !KitFormValidation.numeric-insertion(event.text)) { return accept; }
@@ -602,6 +636,7 @@ export component KitTextField inherits KitField {
                                 }
                                 root.previous-edit-text = self.text;
                                 root.reduce-field(FieldAction.edit);
+                                if (self.preedit-text == "") { root.observe-completion(); }
                             }
                             accepted => {
                                 if (!root.multiline && root.access == FieldAccess.editable) {
@@ -726,12 +761,24 @@ export component KitTextArea inherits KitTextField {
 // edits can discard native history; ordinary edits retain the same editor.
 export component KitOtpField inherits KitTextField {
     in property <int> slots: 6;
+    in property <OtpAlphabet> alphabet: OtpAlphabet.ascii-digits;
+    private property <string> alphabet-pattern: KitFormValidation.ready ? KitFormValidation.otp-pattern(root.alphabet) : "";
+    // A custom whole-value pattern may reject every prefix; keep its native draft editable.
+    // Authors can opt into an explicit prefix-accepting edit-filter independently.
+    edit-filter: {kind: root.pattern == root.alphabet-pattern ? TextFilterKind.pattern : TextFilterKind.unfiltered, source: root.alphabet-pattern};
+    completion-policy: TextCompletionPolicy.at-max-length;
+    decoration: FieldDecoration.cells;
+    input-type: root.pattern == "[0-9]*" ? InputType.number : InputType.text;
     min-length: max(1, root.slots);
     max-length: max(1, root.slots);
     length-policy: TextLengthPolicy.limit;
-    pattern: "[0-9]*";
-    private property <length> cell-width: KitMetrics.control-height(root.theme, root.control-size);
-    preferred-width: max(1, root.slots) * root.cell-width + 2 * root.padding-inline;
+    pattern: root.alphabet-pattern;
+    private property <length> preferred-cell-width: KitMetrics.control-height(root.theme, root.control-size);
+    // W = slots * pitch + inset + cursor guard, with inset = (pitch - glyph) / 2.
+    // Solve directly so both the native cursor and cell frames fit at caller widths.
+    private property <length> cell-width: root.decoration == FieldDecoration.cells ? max(root.text-cell-width, (max(0px, root.width - 2 * root.padding-inline) - 2px + root.text-cell-width / 2) / (max(1, root.slots) + 0.5)) : max(0px, root.width - 2 * root.padding-inline) / max(1, root.slots);
+    min-width: max(1, root.slots) * root.text-cell-width + 2 * root.padding-inline + (root.decoration == FieldDecoration.cells ? 2px : 0px);
+    preferred-width: max(1, root.slots) * root.preferred-cell-width + 2 * root.padding-inline + (root.decoration == FieldDecoration.cells ? max(0px, (root.preferred-cell-width - root.text-cell-width) / 2) + 2px : 0px);
     max-width: self.preferred-width; horizontal-stretch: 0;
     underline-segments: max(1, root.slots);
     // Monospace uses a predictable character cell, so partial drafts start
