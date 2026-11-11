@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Replace ToastBinding’s permanent 50ms poll with a single-shot timer for the next running toast expiry. Empty, persistent-only and fully paused queues have no active timer; independent hover/focus pauses and surviving toast identities are preserved. Add nonmutating ToastQueue::next_timeout(now) for custom runtime scheduling; no breaking API change.
+- Remplace le polling permanent de 50ms de ToastBinding par un minuteur unique pour la prochaine expiration active. Les files vides, persistantes ou entièrement en pause n’ont aucun minuteur actif ; les pauses survol/focus indépendantes et les identités des toasts conservés sont préservées. Ajoute ToastQueue::next_timeout(now), sans mutation, pour la planification personnalisée ; aucune rupture d’API.
+
 - Preserve manual horizontal table scrolling until the next cell-navigation action; verify Left/Right after real wheel events and measure the cell focus frame independently of editors at every control size and doubled text.
 - Conserve le défilement horizontal manuel du tableau jusqu’à la prochaine navigation de cellule ; vérifie Gauche/Droite après de vraies molettes et mesure le cadre de cellule indépendamment des éditeurs à chaque taille de contrôle et au texte doublé.
 

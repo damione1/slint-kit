@@ -850,3 +850,4 @@ mod color_lifecycle;
 mod range_coincident;
 
 mod form_registration;
+mod toast_timer;
