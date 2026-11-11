@@ -3,6 +3,7 @@ import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitMenuBar, KitTheme, KitThemes, SelectionAvailability } from "@kit";
 
+    // Les portées natives persistantes conservent le clavier quand le modèle d’options change.
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitMenuBar — exemple";
@@ -11,13 +12,14 @@ export component Example inherits Window {
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
+    out property <bool> keyboard-focused: control.has-focus;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <bool> interactive: true;
     in-out property <string> status;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Barre de menus"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitMenuBar { interactive: root.interactive; accessible-name: "Actions"; theme: root.theme; options: [{ token: 11, generation: 1, label: "Vue d’ensemble", description: "Résumé du projet", disabled: false }, { token: 23, generation: 1, label: "Activité", description: "Modifications récentes", disabled: false }, { token: 38, generation: 1, label: "Réglages", description: "Préférences du projet", disabled: false }]; selected: { present: true, token: 11 };  chosen(row) => { root.status = "Choisi : " + row.label; } }
+        control := KitMenuBar { interactive: root.interactive; accessible-name: "Actions"; theme: root.theme; options: [{ token: 11, generation: 1, label: "Vue d’ensemble", description: "Résumé du projet", disabled: false }, { token: 23, generation: 1, label: "Activité", description: "Modifications récentes", disabled: false }, { token: 38, generation: 1, label: "Réglages", description: "Préférences du projet", disabled: false }]; selected: { present: true, token: 11 };  chosen(row) => { root.status = "Choisi : " + row.label; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

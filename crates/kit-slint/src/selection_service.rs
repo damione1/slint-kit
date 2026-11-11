@@ -399,6 +399,23 @@ where
                 .collect::<Vec<_>>(),
         ))
     });
+    service.on_choice_index(|model, token| {
+        let rows = tracked(&model);
+        let mut tokens = HashSet::new();
+        let mut active = None;
+        for (index, row) in rows.iter().enumerate() {
+            let Some(key) = ChoiceToken::new(row.token) else {
+                return -1;
+            };
+            if !tokens.insert(key) {
+                return -1;
+            }
+            if row.token == token && !row.disabled {
+                active = i32::try_from(index).ok();
+            }
+        }
+        active.unwrap_or(-1)
+    });
     service.on_choices(|model, selected| {
         ModelRc::new(VecModel::from(
             tracked(&model)

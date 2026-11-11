@@ -1,6 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitCard, KitBadge, Tone, KitTabs, KitProgress, OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, KitTheme, KitThemes } from "@kit";
+    // Les portées natives persistantes conservent le clavier quand le modèle d’options change.
 export component Example inherits Window {
     in-out property <string> status;
     default-font-family: InterFont.family;
@@ -10,6 +11,7 @@ export component Example inherits Window {
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
+    out property <bool> keyboard-focused: control.has-focus;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <bool> interactive: true;
     in property <[OptionRow]> options: [{ token: 11, generation: 1, label: "Overview", description: "", disabled: false }, { token: 25, generation: 1, label: "Activity", description: "", disabled: false }, { token: 39, generation: 1, label: "Settings", description: "", disabled: false }];

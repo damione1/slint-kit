@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitMenuBar, KitTabs, KitRadioGroup, KitSegmentedControl, KitToggleGroup, KitRating, KitSelect, KitCombobox, KitMultiSelect, KitSelectSurface, KitOption, KitTextField, KitTheme, KitThemes, OptionRow, SelectionRef, Ownership, ChoiceFlow, ChoiceDirection, TabActivation, KitMetrics, TypographyRole } from "@kit";
+export component CompositeAccessibilityFixture inherits Window {
+    width: 720px; height: content.preferred-height;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> light-theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <ChoiceDirection> direction: ChoiceDirection.vertical;
+    in property <bool> redirect;
+    in property <TabActivation> activation: TabActivation.manual;
+    in-out property <SelectionRef> bar-selected;
+    in-out property <SelectionRef> tabs-selected;
+    out property <int> bar-active: bar.state.active.token;
+    out property <int> tabs-active: tabs.state.active.token;
+    out property <int> radio-active: radio.active-token;
+    out property <int> segments-active: segments.active-token;
+    out property <int> toggles-active: toggles.active-token;
+    out property <int> bar-delegate: bar.accessible-delegate-focus;
+    out property <int> tabs-delegate: tabs.accessible-delegate-focus;
+    out property <int> segments-delegate: segments.accessible-delegate-focus;
+    out property <bool> bar-focused: bar.has-focus;
+    out property <bool> tabs-focused: tabs.has-focus;
+    out property <bool> radio-focused: radio.has-focus;
+    out property <bool> segments-focused: segments.has-focus;
+    out property <bool> toggles-focused: toggles.has-focus;
+    out property <string> combo-text: combo.text;
+    out property <bool> editor-focused: editor.has-focus;
+    in-out property <string> editor-text: "native";
+    out property <int> editor-anchor: editor.selection-anchor;
+    out property <int> editor-cursor: editor.cursor-position;
+    in-out property <int> chosen-count;
+    public function focus-bar() { bar.take-focus(); }
+    public function focus-tabs() { tabs.take-focus(); }
+    public function focus-radio() { radio.take-focus(); }
+    public function focus-segments() { segments.take-focus(); }
+    public function focus-toggles() { toggles.take-focus(); }
+    public function focus-editor() { editor.take-focus(); }
+    public function select-editor() { editor.set-selection(1, 4); }
+    public function undo-editor() { editor.undo(); }
+    content := VerticalLayout {
+        padding: root.theme.spacing.unit;
+        spacing: root.theme.spacing.unit;
+        bar := KitMenuBar {
+            theme: root.theme; options: root.options; flow: root.flow; accessible-name: "Action strip";
+            ownership: Ownership.controlled; selected <=> root.bar-selected;
+            navigate(step) => { if (root.redirect) { editor.take-focus(); } }
+            chosen(row) => { root.chosen-count += 1; }
+        }
+        tabs := KitTabs {
+            theme: root.theme; options: root.options; flow: root.flow; accessible-name: "Pages"; activation: root.activation;
+            ownership: Ownership.controlled; selected <=> root.tabs-selected;
+            navigate(step) => { if (root.redirect) { editor.take-focus(); } }
+            chosen(row) => { root.chosen-count += 1; }
+        }
+        radio := KitRadioGroup {
+            theme: root.theme; options: root.options; flow: root.flow; direction: root.direction; label: "Radio choices";
+            navigate(step) => { if (root.redirect) { editor.take-focus(); } }
+            chosen(row) => { root.chosen-count += 1; }
+        }
+        segments := KitSegmentedControl {
+            theme: root.theme; options: root.options; flow: root.flow; columns: 3; label: "Wrapped choices";
+            navigate(step) => { if (root.redirect) { editor.take-focus(); } }
+            chosen(row) => { root.chosen-count += 1; }
+        }
+        toggles := KitToggleGroup {
+            theme: root.theme; options: root.options; flow: root.flow; direction: root.direction; label: "Toggle choices";
+            navigate(step) => { if (root.redirect) { editor.take-focus(); } }
+            selection-changed(row, selected) => { root.chosen-count += 1; }
+        }
+        rating := KitRating { theme: root.theme; scale: 5; label: "Score"; }
+        select := KitSelect { theme: root.theme; options: root.options; label: "Select choices"; }
+        combo := KitCombobox { theme: root.theme; options: root.options; label: "Editable choices"; }
+        multi := KitMultiSelect { theme: root.theme; options: root.options; label: "Multiple choices"; }
+        surface := KitSelectSurface {
+            theme: root.theme; options: root.options; height: 150px;
+            searchable: false; focus-on-open: false; accessible-name: "Composed choices";
+            VerticalLayout {
+                for row[index] in surface.rows: KitOption {
+                    theme: root.theme; option-data: row;
+                    accessible-item-index: index; accessible-item-count: surface.rows.length;
+                    activate(token, generation) => { surface.choose-option(token, generation); }
+                    Text { text: row.label; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); }
+                }
+            }
+        }
+        editor := KitTextField { theme: root.theme; label: "Native reference"; text <=> root.editor-text; }
+    }
+}

@@ -1021,7 +1021,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Les champs obligatoires ajoutent KitStrings.required-label localisé aux descriptions du combobox et de l’éditeur natif ; Slint 1.18.1 ne fournit pas de propriété publique accessible-required. label nomme le contrôle indépendamment de sa valeur. Le texte choisi est exposé séparément ; un éditeur natif expose son brouillon affiché pendant l’édition. L’indication vide n’est pas une valeur choisie. Conservez la projection selected-label acceptée indépendamment des résultats de query."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le focus natif reste dans le TextInput éditable, préservant sélection, curseur, annulation et routage IME. Les options du popup exposent leurs positions, mais Slint 1.18.1 n’a pas de relation publique active-descendant/controls par identifiant entre l’éditeur feuille et les options sœurs ou de popup. Déplacer le focus natif vers une option casserait l’édition et n’est pas utilisé. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "label": "Editable combobox",
@@ -1158,7 +1158,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. Required fields use the localized KitStrings.required-label in the combobox and native editor descriptions; Slint 1.18.1 has no public accessible-required property. label names the control independently of its value. The chosen display text is exposed separately; a native editor exposes its current displayed draft while editing. The empty hint is not a selected value. Preserve the accepted selected-label projection independently of query results."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Native focus remains in the editable TextInput, preserving selection, caret, undo and IME routing. Popup options expose positions, but Slint 1.18.1 has no public active-descendant/controls identifier relation from the editor leaf to sibling or popup options. Moving native focus to an option would break editing and is not used. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitContainer": {
@@ -3169,7 +3169,7 @@
     "fr": {
       "summary": "Menu vertical à options virtualisées et navigation contrôlée.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `wrap` (`true` par défaut) contrôle le bouclage aux bornes, `typeahead-timeout-ms` (700 par défaut) règle le délai de frappe (espaces inclus dans une requête active, réinitialisée par flèches/Début/Fin/PageUp/PageDown), et PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées). `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Après navigation clavier explicite ou frappe de recherche lorsque le menu possède le focus, une requête unique token/génération focalise la ligne réellement matérialisée. Un callback hôte peut d’abord rediriger le focus ; blur, pression pointeur, fermeture, désactivation ou changement d’identité empêchent toute répétition. La sélection contrôlée attend toujours son acquittement.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `wrap` (`true` par défaut) contrôle le bouclage aux bornes, `typeahead-timeout-ms` (700 par défaut) règle le délai de frappe (espaces inclus dans une requête active, réinitialisée par flèches/Début/Fin/PageUp/PageDown), et PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées). `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
       "related": [
         "KitMenuBar",
         "KitTabs"
@@ -3177,19 +3177,12 @@
       "label": "Menu",
       "seoTitle": "Menu pour Slint",
       "callbacks": {},
-      "properties": {
-        "active-row-focused": {
-          "effect": "Vrai lorsque la ligne active courante possède le focus natif, après navigation explicite ou via sa portée pointeur. Distinct du curseur actif peint et du has-focus du groupe.",
-          "default": "Calculé depuis le focus natif et le token/la génération actifs.",
-          "example": "out property <bool> active-row-focused: menu.active-row-focused;"
-        }
-      },
-      "accessibility": "Les lignes exposent leur index de modèle à base zéro et le nombre total, y compris les positions hors viewport. Le focus natif de navigation se situe dans la ligne sémantique, sans délégation accessible indexée. Le menu conserve un seul arrêt Tab. Ce correctif concerne uniquement KitMenu : autres composites, panneaux d’onglet et VoiceOver/NVDA restent à qualifier séparément. Slint 1.18.1 ne propose pas les rôles menu/menu-item ; list/list-item sont conservés."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le menu virtualisé conserve sa portée clavier native persistante après fermeture et remplacement du modèle. Slint 1.18.1 n’expose ni ordinal public des enfants matérialisés ni hook de focus sûr avant destruction. Le focus AT de l’option active reste non pris en charge ici ; un indice de modèle ne doit pas servir de accessible-delegate-focus. Les rôles sont list/list-item, le SDK ne proposant pas menu/menu-item. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Vertical menu with virtualized options and controlled navigation.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `wrap` (`true` by default) controls wrap-around at bounds, `typeahead-timeout-ms` (default 700) sets the typeahead window (allowing spaces inside an active query and resetting on arrow/Home/End/PageUp/PageDown navigation), and PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected). `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. After explicit keyboard navigation or typeahead while the menu owns focus, a one-shot token/generation request focuses the actual materialized row. A host callback may redirect focus first; blur, pointer-down, dismissal, disable or a changed identity prevents replay. Controlled selection still requires acknowledgment.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `wrap` (`true` by default) controls wrap-around at bounds, `typeahead-timeout-ms` (default 700) sets the typeahead window (allowing spaces inside an active query and resetting on arrow/Home/End/PageUp/PageDown navigation), and PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected). `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
       "related": [
         "KitMenuBar",
         "KitTabs"
@@ -3197,14 +3190,7 @@
       "label": "Menu",
       "seoTitle": "Menu for Slint",
       "callbacks": {},
-      "properties": {
-        "active-row-focused": {
-          "effect": "True when the current active row owns native focus, from explicit menu navigation or its pointer scope. This is distinct from the painted active cursor and group has-focus.",
-          "default": "Computed from native focus and the current active token/generation.",
-          "example": "out property <bool> active-row-focused: menu.active-row-focused;"
-        }
-      },
-      "accessibility": "Rows expose their zero-based model index and total count, including offscreen model positions. Native navigation focus is inside the semantic row, without indexed accessible delegation. The menu remains one Tab stop. This covers KitMenu only: other composites, tab panels and VoiceOver/NVDA remain separately unqualified. Slint 1.18.1 has no menu/menu-item roles; list/list-item are retained."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The virtualized menu retains its persistent native keyboard scope across dismissal and model replacement. Slint 1.18.1 exposes neither a public materialized-child ordinal nor a safe before-destroy focus hook. Active-option AT focus remains unsupported here; a model index must not be used as accessible-delegate-focus. Roles are list/list-item, because this SDK has no menu/menu-item roles. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitMenuBar": {
@@ -3218,7 +3204,14 @@
         "KitMenu",
         "KitTabs"
       ],
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La bande horizontale non virtualisée délègue depuis sa portée native persistante vers son option sémantique directe, dans l’ordre RTL exact. Naviguer n’acquitte pas une sélection contrôlée. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "has-focus": {
+          "effect": "Vrai lorsque la portée clavier native persistante du composite possède le focus. Le focus de ligne au pointeur reste distinct jusqu’au retour dans cette portée après activation.",
+          "example": "out property <bool> keyboard-focused: control.has-focus;"
+        }
+      }
     },
     "en": {
       "label": "Menu Bar",
@@ -3230,7 +3223,14 @@
         "KitMenu",
         "KitTabs"
       ],
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The horizontal nonvirtualized strip delegates from its persistent native scope to its direct semantic option, with exact RTL order. Navigation does not acknowledge a controlled selection. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "has-focus": {
+          "effect": "True while the persistent native composite keyboard scope owns focus. Pointer-down row focus is separate until activation returns to that scope.",
+          "example": "out property <bool> keyboard-focused: control.has-focus;"
+        }
+      }
     }
   },
   "KitMoneyField": {
@@ -3353,7 +3353,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Le déclencheur partagé nomme le champ depuis label et publie le nombre/libellé des puces comme valeur. Sans sélection, la valeur est vide avec une indication accessible séparée. Une suppression contrôlée change la valeur après acquittement de l’hôte ; les sélections en lecture seule/désactivées restent inchangées. **Rupture :** placeholder ne nomme plus le champ."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Son sélecteur hérite du popup nommé et des positions logiques de KitSelect, ainsi que des limites SDK du focus d’option active virtualisée. Le focus des chips et la valeur libellés/nombre sélectionnés restent indépendants. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
@@ -3424,7 +3424,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. The shared trigger names the field from label and reports the selected chip count/labels as its value. Empty membership reports an empty value with a separate accessible placeholder. Controlled removals change this value only after host acknowledgment; read-only/disabled membership stays unchanged. **Breaking:** placeholder no longer names the field."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Its selector inherits the named popup and logical option positions of KitSelect, together with the SDK limits for virtualized active-option focus. Chip focus and the selected label/count value remain independent. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitNavigationAction": {
@@ -3436,7 +3436,8 @@
         "KitOption"
       ],
       "label": "Action de navigation",
-      "seoTitle": "Action de navigation pour Slint"
+      "seoTitle": "Action de navigation pour Slint",
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Les contrôles de navigation fournissent les positions logiques des options. La même primitive conserve les protections d’activation token/génération et la propriété de la pression pointeur. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Labeled navigation action built on a stable-identity option.",
@@ -3446,7 +3447,8 @@
         "KitOption"
       ],
       "label": "Navigation Action",
-      "seoTitle": "Navigation Action for Slint"
+      "seoTitle": "Navigation Action for Slint",
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Navigation composites supply logical option positions. The same option primitive keeps token/generation activation guards and pointer press ownership. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitNotificationButton": {
@@ -3649,7 +3651,8 @@
         "KitNavigationAction"
       ],
       "label": "Option",
-      "seoTitle": "Option pour Slint"
+      "seoTitle": "Option pour Slint",
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Les sélecteurs complets fournissent accessible-item-index/count depuis le modèle projeté. Une composition personnalisée doit lier elle-même ces deux propriétés héritées. Un indice logique d’option n’est jamais un ordinal accessible-delegate-focus d’une vue virtualisée. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Customizable option row that captures identity when pressing begins.",
@@ -3660,7 +3663,8 @@
         "KitNavigationAction"
       ],
       "label": "Option",
-      "seoTitle": "Option for Slint"
+      "seoTitle": "Option for Slint",
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Complete selectors supply accessible-item-index/count from the projected model. Custom compositions must bind both inherited properties themselves. A logical item index is never an accessible-delegate-focus ordinal for a virtualized view. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitOtpField": {
@@ -3962,7 +3966,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Chaque orientation possède une portée native persistante dont les enfants directs sont ses options radio. La délégation accessible unique suit l’ordre réel de cette disposition, RTL inclus. Entrée native et navigation explicite préservent un arrêt Tab ; une redirection hôte prime avant transfert et les mises à jour du modèle ne reprennent pas le focus à un éditeur. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Exclusive choice group with a shared keyboard target.",
@@ -4022,7 +4027,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Each orientation has a persistent native layout scope whose direct children are its radio options. One-step accessible delegation uses that layout’s actual order, including RTL. Native entry and explicit navigation preserve one Tab stop; a host focus redirect wins before transfer, and background model updates never refocus an editor. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitRangeSlider": {
@@ -4106,7 +4112,8 @@
       "seoTitle": "Évaluation pour Slint",
       "related": [
         "KitSegmentedControl"
-      ]
+      ],
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Les notes héritent de la délégation à portée persistante et des positions logiques du contrôle segmenté non virtualisé. Effacer la note reste une action distincte. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Score selection with an explicit clear action.",
@@ -4116,7 +4123,8 @@
       "seoTitle": "Rating for Slint",
       "related": [
         "KitSegmentedControl"
-      ]
+      ],
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Scores inherit the nonvirtualized segmented control’s persistent-scope delegation and logical positions. Clear rating remains a separate action. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitResetButton": {
@@ -4264,7 +4272,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La portée native persistante délègue une fois dans sa grille entièrement matérialisée en ordre ligne par ligne. RTL inverse chaque ligne ; une ligne partielle conserve ses emplacements vides matérialisés dans cet ordinal. Ces ordinaux diffèrent des positions logiques des options. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
@@ -4314,7 +4323,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The persistent native scope delegates once into its fully materialized row-major grid. RTL mirrors each row; a partial row retains its materialized empty slots in that ordinal. These ordinals are distinct from logical item positions. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitSelect": {
@@ -4431,7 +4441,7 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
       },
-      "accessibility": "Le déclencheur partagé déclare `accessible-expandable`, publie `accessible-expanded` depuis l’état présenté et traite `accessible-action-expand` de Slint, sans argument, comme une demande d’ouverture. Répéter Développer sur une liste ouverte ne la ferme pas et ne réémet pas de demande ; l’activation ordinaire conserve la bascule. Les déclencheurs en lecture seule, désactivés ou occupés refusent l’ouverture. Avec un état fourni par l’hôte, acquittez `open-requested` en publiant l’état ouvert. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran. Le nom du champ est label ; l’indication vide est placeholder et value-label représente la sélection courante. Changer d’option ne renomme jamais le champ. Une sélection contrôlée absente conserve son identité stable et affiche unavailable-label avec l’icône d’avertissement du thème. Donnez des noms propres aux champs. **Rupture :** placeholder n’est plus qu’une indication vide et ne fournit plus le nom accessible ni la valeur ; déplacez le nom vers label et les valeurs externes vers selected-label/value-label."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La surface nommée du popup et ses options virtualisées exposent la sémantique de liste et les positions. L’édition native de recherche conserve son focus. Le SDK n’offre pas de relation publique sûre entre cet éditeur ou la portée clavier virtualisée et l’option active ; le focus AT de l’option active reste non qualifié. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Popup selector with search, keyboard navigation and virtualized options.",
@@ -4546,7 +4556,7 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
       },
-      "accessibility": "The shared trigger declares `accessible-expandable`, reports `accessible-expanded` from the presented state and handles Slint’s argument-free `accessible-action-expand` as an opening request. Repeating Expand on an open popup does not close it or emit another request; ordinary activation still toggles. Read-only, disabled and busy triggers reject expansion. With externally supplied state, acknowledge `open-requested` by publishing the open state. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader. The field name is label; the empty hint is placeholder, and value-label represents the current selection. Changing a choice never renames the field. Missing controlled choices retain their stable identity and display unavailable-label with the themed warning glyph. Use meaningful field-specific labels. **Breaking:** placeholder is now only an empty hint and no longer supplies the accessible name or current value; move the name to label and external display values to selected-label/value-label."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The named popup surface and virtualized options expose list semantics and positions. Native search editing retains its own focus. The SDK has no safe public relation from that editor or the virtualized keyboard scope to the active option; active-option AT focus remains unqualified. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitSelectKeyboard": {
@@ -4600,8 +4610,13 @@
       "properties": {
         "has-focus": {
           "effect": "Focus en lecture seule de l’éditeur de recherche natif ou du clavier de liste ; l’ouverture seule ne signifie pas focus."
+        },
+        "accessible-name": {
+          "effect": "Nom stable de la liste du popup, distinct de l’indice de recherche éditable.",
+          "example": "accessible-name: \"Destinations\";"
         }
-      }
+      },
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Définissez accessible-name comme nom de champ stable du popup. En composant des enfants KitOption, liez accessible-item-index/count depuis la boucle des rows projetées. Ils décrivent les positions de modèle, pas les ordinaux des enfants accessibles matérialisés. Le focus de recherche natif est préservé ; la relation d’option active virtualisée/éditeur reste une limite du SDK Slint. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Popup surface combining native search, keyboard handling and active-option visibility.",
@@ -4621,8 +4636,13 @@
       "properties": {
         "has-focus": {
           "effect": "Read-only focus of the native search editor or list keyboard; opening alone does not imply focus."
+        },
+        "accessible-name": {
+          "effect": "Stable name of the popup list; separate from the editable search hint.",
+          "example": "accessible-name: \"Destinations\";"
         }
-      }
+      },
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Set accessible-name to the popup’s stable field name. When composing KitOption children, bind accessible-item-index/count from the projected rows loop. These describe model positions, not materialized accessible-child ordinals. Native search focus is preserved; the virtualized/editor active-option relation remains a Slint SDK limitation. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitSelectTrigger": {
@@ -5010,7 +5030,14 @@
       ],
       "label": "Onglets",
       "seoTitle": "Onglets pour Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La bande horizontale non virtualisée délègue depuis sa portée native persistante vers son onglet direct, en préservant activation manuelle/automatique et acquittement contrôlé. Slint 1.18.1 n’a pas de relation publique par identifiant entre onglet et panneau ; composez visibilité et nom du panneau depuis selected sans prétendre exposer cette relation. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "has-focus": {
+          "effect": "Vrai lorsque la portée clavier native persistante du composite possède le focus. Le focus de ligne au pointeur reste distinct jusqu’au retour dans cette portée après activation.",
+          "example": "out property <bool> keyboard-focused: control.has-focus;"
+        }
+      }
     },
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
@@ -5022,7 +5049,14 @@
       ],
       "label": "Tabs",
       "seoTitle": "Tabs for Slint",
-      "callbacks": {}
+      "callbacks": {},
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The horizontal nonvirtualized strip delegates from its persistent native scope to its direct tab, preserving manual/automatic activation and controlled acknowledgment. Slint 1.18.1 has no public identifier relation connecting a tab to its panel; compose panel visibility and naming from selected without claiming that relation. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "has-focus": {
+          "effect": "True while the persistent native composite keyboard scope owns focus. Pointer-down row focus is separate until activation returns to that scope.",
+          "example": "out property <bool> keyboard-focused: control.has-focus;"
+        }
+      }
     }
   },
   "KitTagInput": {
@@ -5992,7 +6026,8 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
-      }
+      },
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Chaque orientation possède une portée native persistante et une délégation unique vers l’option directe dans l’ordre physique. Ce détenteur natif survit au remplacement du modèle d’options, conserve un arrêt Tab et respecte la redirection vers un éditeur hôte. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
     "en": {
       "summary": "Group of actions with local or controlled multiple selection.",
@@ -6036,7 +6071,8 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
-      }
+      },
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Each orientation has a persistent native layout scope and one-step direct-option delegation in physical order. The native owner survives option-model replacement, keeps one Tab stop and honors a host editor redirect. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
   },
   "KitTooltip": {

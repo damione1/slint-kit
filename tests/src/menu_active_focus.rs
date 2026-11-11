@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Prepared runtime regressions for actual row-scope focus, not an AT verdict.
+//! Persistent native ownership and virtualized metadata; not an AT verdict.
 use crate::{MenuActiveFocusFixture, OptionRow};
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::{
@@ -82,11 +82,11 @@ fn capture_menu(app: &MenuActiveFocusFixture) {
             theme.reduced_motion = true;
             app.set_theme(theme);
             key(app, Key::End);
-            assert!(app.get_active_row_focused());
+            assert!(app.get_menu_focused());
             let image = app.window().take_snapshot().unwrap();
             let mut output = std::fs::File::create(
                 std::path::PathBuf::from(&directory)
-                    .join(format!("menu-native-row-focus-{name}-{scale}.ppm")),
+                    .join(format!("menu-persistent-focus-{name}-{scale}.ppm")),
             )
             .unwrap();
             write!(output, "P6\n{} {}\n255\n", image.width(), image.height()).unwrap();
@@ -98,20 +98,16 @@ fn capture_menu(app: &MenuActiveFocusFixture) {
 }
 
 #[test]
-fn explicit_menu_navigation_focuses_the_materialized_row_and_preserves_controlled_selection() {
+fn virtualized_menu_positions_and_controlled_navigation_keep_the_persistent_keyboard_owner() {
     let (app, choices) = fixture();
     let events = chosen(&app);
     app.invoke_focus_menu();
     assert!(app.get_menu_focused());
-    assert!(
-        !app.get_active_row_focused(),
-        "initial entry keeps the composite Tab stop"
-    );
     key(&app, Key::End);
     assert_eq!(app.get_active_index(), 1999);
     assert!(
-        app.get_active_row_focused(),
-        "the actual native row scope reported FocusIn"
+        app.get_menu_focused(),
+        "the persistent keyboard scope retains native ownership"
     );
     let materialized = rows(&app);
     assert!(
@@ -124,20 +120,14 @@ fn explicit_menu_navigation_focuses_the_materialized_row_and_preserves_controlle
         .unwrap();
     assert_eq!(last.accessible_item_index(), Some(1999));
     assert_eq!(last.accessible_item_count(), Some(2000));
-    assert!(
-        last.query_descendants()
-            .match_inherits("KitFocusTarget")
-            .find_first()
-            .is_some()
-    );
     assert_eq!(app.get_selected(), choices.selection(&0).unwrap());
     key(&app, Key::UpArrow);
     assert_eq!(
         app.get_active_index(),
         1997,
-        "keys bubble from the row scope and skip disabled"
+        "navigation skips disabled rows"
     );
-    assert!(app.get_active_row_focused());
+    assert!(app.get_menu_focused());
     assert!(
         events.borrow().is_empty(),
         "focus/navigation do not accept a controlled value"
@@ -159,7 +149,7 @@ fn explicit_menu_navigation_focuses_the_materialized_row_and_preserves_controlle
 }
 
 #[test]
-fn a_pending_virtual_row_request_cannot_steal_editor_focus_selection_or_undo() {
+fn virtualized_menu_navigation_cannot_steal_editor_focus_selection_or_undo() {
     let (app, _) = fixture();
     app.invoke_focus_menu();
     key_without_flush(&app, Key::End);
@@ -167,7 +157,7 @@ fn a_pending_virtual_row_request_cannot_steal_editor_focus_selection_or_undo() {
     app.invoke_select_reference();
     settle(&app);
     assert!(app.get_reference_focused());
-    assert!(!app.get_active_row_focused());
+    assert!(!app.get_menu_focused());
     assert_eq!(
         (app.get_reference_anchor(), app.get_reference_cursor()),
         (1, 4)
@@ -186,7 +176,7 @@ fn a_pending_virtual_row_request_cannot_steal_editor_focus_selection_or_undo() {
         "native",
         "native undo then restores the replaced selection"
     );
-    // Disable/re-enable and a fresh generation cannot revive the old nonce.
+    // Disable/re-enable and a fresh generation must not refocus the menu.
     app.set_interactive(false);
     settle(&app);
     app.set_interactive(true);
@@ -204,7 +194,7 @@ fn a_pending_virtual_row_request_cannot_steal_editor_focus_selection_or_undo() {
 }
 
 #[test]
-fn host_redirection_and_consumed_requests_survive_projection_recreation_without_refocusing() {
+fn host_redirection_survives_projection_recreation_without_refocusing() {
     let (app, choices) = fixture();
     app.set_redirect_navigation(true);
     app.invoke_focus_menu();
@@ -213,13 +203,13 @@ fn host_redirection_and_consumed_requests_survive_projection_recreation_without_
         app.get_reference_focused(),
         "host callback wins before a request can be emitted"
     );
-    assert!(!app.get_active_row_focused());
+    assert!(!app.get_menu_focused());
     app.set_redirect_navigation(false);
     app.invoke_focus_menu();
     key(&app, Key::Home);
-    assert!(app.get_active_row_focused());
+    assert!(app.get_menu_focused());
     key(&app, Key::End);
-    assert!(app.get_active_row_focused());
+    assert!(app.get_menu_focused());
     app.invoke_focus_reference();
     let mut reversed = choices.model().iter().collect::<Vec<_>>();
     reversed.reverse();
@@ -227,9 +217,9 @@ fn host_redirection_and_consumed_requests_survive_projection_recreation_without_
     settle(&app);
     assert!(
         app.get_reference_focused(),
-        "a recreated target cannot replay an applied request"
+        "replacing the projection cannot steal editor focus"
     );
-    assert!(!app.get_active_row_focused());
+    assert!(!app.get_menu_focused());
     key(&app, "Y");
     assert!(app.get_reference_text().contains('Y'));
 }
@@ -276,21 +266,17 @@ fn pointer_down_keeps_its_row_press_while_navigation_focus_settles() {
 }
 
 #[test]
-fn dismissal_cancels_the_unmaterialized_request_and_next_navigation_still_works() {
+fn dismissal_and_next_navigation_preserve_the_persistent_native_owner() {
     let (app, _) = fixture();
     app.invoke_focus_menu();
     key_without_flush(&app, Key::End);
     key_without_flush(&app, Key::Escape);
     settle(&app);
     assert!(app.get_menu_focused());
-    assert!(
-        !app.get_active_row_focused(),
-        "dismissed request cannot apply during later layout"
-    );
     key(&app, Key::Home);
     assert!(
-        app.get_active_row_focused(),
-        "a fresh explicit action can request a new nonce"
+        app.get_menu_focused(),
+        "Home must still reach the menu after dismissal"
     );
 }
 
@@ -299,20 +285,16 @@ fn native_tab_and_backtab_keep_one_menu_stop_after_row_navigation() {
     let (app, _) = fixture();
     app.invoke_focus_menu();
     key(&app, Key::End);
-    assert!(app.get_active_row_focused());
+    assert!(app.get_menu_focused());
     key(&app, Key::Tab);
     assert!(app.get_reference_focused());
     key(&app, Key::Backtab);
     assert!(app.get_menu_focused());
-    assert!(
-        !app.get_active_row_focused(),
-        "Tab entry starts on the composite scope"
-    );
     key(&app, Key::End);
-    assert!(app.get_active_row_focused());
+    assert!(app.get_menu_focused());
     key(&app, Key::Backtab);
     assert!(
         app.get_reference_focused(),
-        "Backtab leaves the row without a second ancestor stop"
+        "Backtab leaves the menu without a second ancestor stop"
     );
 }

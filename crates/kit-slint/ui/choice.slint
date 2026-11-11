@@ -8,7 +8,7 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
-import { FocusOutline } from "focus.slint";
+import { FocusOutline, KitCompositeFocusScope } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
@@ -322,6 +322,7 @@ export component KitRadioGroup inherits Rectangle {
         return root.rows.length > 0 ? root.rows[index] : selection.preview-choice(index);
     }
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     in property <ChoiceDirection> direction: ChoiceDirection.vertical;
     in property <ChoiceFlow> flow: root.theme.direction;
@@ -330,9 +331,22 @@ export component KitRadioGroup inherits Rectangle {
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     callback navigate(NavigationStep);
     callback activate(int, int);
-    out property <bool> has-focus: keyboard.has-focus;
+    out property <bool> has-focus: root.access != FieldAccess.disabled && (keyboard.has-focus || vertical-focus.has-focus || horizontal-focus.has-focus);
+    // A native Tab/programmatic entry requests the current persistent layout.
+    // Pointer entry leaves focus-visible false; redirects cancel this observer
+    // through the current native scope flags before it can transfer focus.
+    private property <bool> keyboard-entry: keyboard.focus-visible;
+    changed keyboard-entry => { if (root.keyboard-entry) { root.focus-active-layout(); } }
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
-    public function take-focus() { keyboard.focus(); }
+    public function take-focus() { if (root.access != FieldAccess.disabled) { keyboard.focus(); } }
+    function focus-active-layout() {
+        // These are persistent native scopes, never cached row-focus flags.
+        // A host redirect in navigate wins before this explicit action.
+        if (!root.has-focus || root.access == FieldAccess.disabled) { return; }
+        if (root.direction == ChoiceDirection.vertical) { vertical-focus.focus(); }
+        else { horizontal-focus.focus(); }
+    }
+    accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     accessible-role: radio-group;
     accessible-label: root.label;
     accessible-description: checks.show-error ? checks.validation-message : "";
@@ -345,19 +359,27 @@ export component KitRadioGroup inherits Rectangle {
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.handle-activate(root.active-token, root.generation); } }
         // Box layouts measure horizontal and vertical constraints separately,
         // so wrapping labels do not feed Flexbox height back into window width.
+        vertical-focus := KitCompositeFocusScope {
+            interactive: root.access != FieldAccess.disabled;
+            width: root.width; height: vertical.preferred-height;
+            visible: root.direction == ChoiceDirection.vertical;
+            accessible-orientation: Orientation.vertical;
+            accessible-delegate-focus: root.active-index;
+            tab-exit => { root.take-focus(); }
         vertical := VerticalLayout {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: 0px;
         for index in root.render-count: option := ChoiceOption {
             private property <ChoiceRow> display-choice: root.render-row(index);
+            accessible-item-index: index; accessible-item-count: root.render-count;
             option-data: option.display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
             disabled: option.display-choice.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: option.display-choice.label;
             accessible-role: radio-button; accessible-checked: option.display-choice.selected;
-            focus-indicated: keyboard.focus-visible && root.active-token == option.display-choice.token;
+            focus-indicated: (keyboard.focus-visible || vertical-focus.has-focus || horizontal-focus.has-focus) && root.active-token == option.display-choice.token;
             focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
             HorizontalLayout {
@@ -367,19 +389,28 @@ export component KitRadioGroup inherits Rectangle {
             }
         }
         }
+        }
+        horizontal-focus := KitCompositeFocusScope {
+            interactive: root.access != FieldAccess.disabled;
+            width: root.width; height: horizontal.preferred-height;
+            visible: root.direction == ChoiceDirection.horizontal;
+            accessible-orientation: Orientation.horizontal;
+            accessible-delegate-focus: root.active-index < 0 ? -1 : root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - root.active-index : root.active-index;
+            tab-exit => { root.take-focus(); }
         horizontal := HorizontalLayout {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: 0px;
         for index in root.render-count: flow-option := ChoiceOption {
             in property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
+            accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
             option-data: display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
             control-width: ControlWidth.fill; min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet;
             disabled: display-choice.disabled || root.access == FieldAccess.disabled;
             tab-stop: false; accessible-name: display-choice.label;
             accessible-role: radio-button; accessible-checked: display-choice.selected;
-            focus-indicated: keyboard.focus-visible && root.active-token == display-choice.token;
+            focus-indicated: (keyboard.focus-visible || vertical-focus.has-focus || horizontal-focus.has-focus) && root.active-token == display-choice.token;
             focus-ring: KitThemes.inset-focus(root.theme);
             activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
             HorizontalLayout {
@@ -387,6 +418,7 @@ export component KitRadioGroup inherits Rectangle {
                 RadioMark { theme: root.theme; control-size: root.control-size; selected: flow-option.display-choice.selected; invalid: checks.show-error; disabled: flow-option.disabled; }
                 Text { text: flow-option.display-choice.label; font-family: flow-option.theme.typography.family; font-size: flow-option.recipe.font-size; color: flow-option.disabled ? flow-option.recipe.disabled-foreground : flow-option.recipe.foreground; wrap: word-wrap; vertical-alignment: center; }
             }
+        }
         }
         }
     }
@@ -401,11 +433,13 @@ export component KitRadioGroup inherits Rectangle {
         chosen(row) => { checks.note-edit(); root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) {
+        if (root.has-focus) { keyboard.focus(); }
         selection.navigate(step);
         if (root.access == FieldAccess.editable && selection.state.active.present) {
             selection.activate(selection.state.active.token, selection.state.generation);
         }
         root.navigate(step);
+        root.focus-active-layout();
     }
     function handle-activate(token: int, generation: int) {
         if (root.access == FieldAccess.editable) {
@@ -486,6 +520,7 @@ export component KitSegmentedControl inherits Rectangle {
     in property <int> columns: max(1, root.render-count);
     private property <int> column-count: root.direction == ChoiceDirection.vertical ? 1 : clamp(root.columns, 1, max(1, root.render-count));
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.present ? selection.state.active.token : -1;
     // Vertical segments stack in source order and navigate with Up and Down.
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
@@ -499,6 +534,10 @@ export component KitSegmentedControl inherits Rectangle {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     public function take-focus() { keyboard.focus(); }
     accessible-role: radio-group; accessible-label: root.label;
+    // One static row-major grid; every slot is materialized. RTL mirrors
+    // columns inside each row, including the unused slots of a partial row.
+    accessible-delegate-focus: root.active-index < 0 ? -1 : root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal
+        ? Math.floor(root.active-index / root.column-count) * root.column-count + root.column-count - 1 - Math.mod(root.active-index, root.column-count) : root.active-index;
     accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     border-radius: root.choice.group-radius; background: root.theme.canvas;
@@ -523,6 +562,7 @@ export component KitSegmentedControl inherits Rectangle {
                     private property <int> source-index: self.row-start + (root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal ? root.column-count - 1 - column : column);
                     visible: self.source-index < root.render-count;
                     disabled: self.source-index >= root.render-count || self.option-data.disabled || root.access == FieldAccess.disabled;
+                    accessible-item-index: self.source-index; accessible-item-count: root.render-count;
                     option-data: root.render-row(self.source-index); generation: root.generation; access: root.access;
                     icons: root.icons;
                     theme: root.theme; control-size: root.control-size;
@@ -596,6 +636,7 @@ export component KitToggleGroup inherits Rectangle {
         return root.rows.length > 0 ? root.rows[index] : selection.preview-choice(index);
     }
     in property <int> generation: selection.state.generation;
+    private property <int> active-index: KitSelectionService.ready ? KitSelectionService.choice-index(root.rows, root.active-token) : -1;
     in property <int> active-token: selection.state.active.token;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: root.theme.direction;
@@ -608,21 +649,41 @@ export component KitToggleGroup inherits Rectangle {
     vertical-stretch: 0;
     accessible-role: groupbox; accessible-label: root.label;
     accessible-orientation: root.direction == ChoiceDirection.vertical ? Orientation.vertical : Orientation.horizontal;
-    out property <bool> has-focus: keyboard.has-focus;
+    out property <bool> has-focus: root.access != FieldAccess.disabled && (keyboard.has-focus || vertical-focus.has-focus || horizontal-focus.has-focus);
+    // A native Tab/programmatic entry requests the current persistent layout.
+    // Pointer entry leaves focus-visible false; redirects cancel this observer
+    // through the current native scope flags before it can transfer focus.
+    private property <bool> keyboard-entry: keyboard.focus-visible;
+    changed keyboard-entry => { if (root.keyboard-entry) { root.focus-active-layout(); } }
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
-    public function take-focus() { keyboard.focus(); }
+    public function take-focus() { if (root.access != FieldAccess.disabled) { keyboard.focus(); } }
+    function focus-active-layout() {
+        // These are persistent native scopes, never cached row-focus flags.
+        // A host redirect in navigate wins before this explicit action.
+        if (!root.has-focus || root.access == FieldAccess.disabled) { return; }
+        if (root.direction == ChoiceDirection.vertical) { vertical-focus.focus(); }
+        else { horizontal-focus.focus(); }
+    }
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard {
         direction: root.direction; flow: root.flow; access: root.access;
-        navigate(step) => { selection.navigate(step); root.navigate(step); }
+        navigate(step) => { if (root.has-focus) { keyboard.focus(); } selection.navigate(step); root.navigate(step); root.focus-active-layout(); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.toggle-option(root.active-token, root.generation); } }
+        horizontal-focus := KitCompositeFocusScope {
+            interactive: root.access != FieldAccess.disabled;
+            width: root.width; height: choices.preferred-height;
+            visible: root.direction == ChoiceDirection.horizontal;
+            accessible-orientation: Orientation.horizontal;
+            accessible-delegate-focus: root.active-index < 0 ? -1 : root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - root.active-index : root.active-index;
+            tab-exit => { root.take-focus(); }
         choices := HorizontalLayout {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: root.choice.group-gap;
             for index in root.render-count: option := ChoiceOption {
                 private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
+                accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
                 option-data: option.display-choice; generation: root.generation; access: root.access;
 
                 theme: root.theme; control-size: root.control-size; accessible-name: option.display-choice.label;
@@ -632,7 +693,7 @@ export component KitToggleGroup inherits Rectangle {
                 accessible-checked: option.display-choice.selected;
                 border-width: root.theme.shape.border-width;
                 border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
-                focus-indicated: keyboard.focus-visible && root.active-token == option.display-choice.token;
+                focus-indicated: (keyboard.focus-visible || vertical-focus.has-focus || horizontal-focus.has-focus) && root.active-token == option.display-choice.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { root.toggle-option(token,generation); } }
                 // Children are injected into the padded pressable content, but
@@ -640,12 +701,21 @@ export component KitToggleGroup inherits Rectangle {
                 option-label := Text { width: max(0px, option.width - 2 * option.padding-inline); height: max(0px, option.height - 2 * option.padding-block); text: option.display-choice.label; color: option.disabled ? option.recipe.disabled-foreground : option.recipe.foreground; font-family: option.theme.typography.family; font-size: option.recipe.font-size; font-weight: option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
         }
+        }
+        vertical-focus := KitCompositeFocusScope {
+            interactive: root.access != FieldAccess.disabled;
+            width: root.width; height: vertical-choices.preferred-height;
+            visible: root.direction == ChoiceDirection.vertical;
+            accessible-orientation: Orientation.vertical;
+            accessible-delegate-focus: root.active-index;
+            tab-exit => { root.take-focus(); }
         vertical-choices := VerticalLayout {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: root.choice.group-gap;
             for index in root.render-count: v-option := ChoiceOption {
                 private property <ChoiceRow> display-choice: root.render-row(index);
+                accessible-item-index: index; accessible-item-count: root.render-count;
                 option-data: v-option.display-choice; generation: root.generation; access: root.access;
                 theme: root.theme; control-size: root.control-size; accessible-name: v-option.display-choice.label;
                 control-width: ControlWidth.fill;
@@ -654,11 +724,12 @@ export component KitToggleGroup inherits Rectangle {
                 accessible-checked: v-option.display-choice.selected;
                 border-width: root.theme.shape.border-width;
                 border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
-                focus-indicated: keyboard.focus-visible && root.active-token == v-option.display-choice.token;
+                focus-indicated: (keyboard.focus-visible || vertical-focus.has-focus || horizontal-focus.has-focus) && root.active-token == v-option.display-choice.token;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 activate(token,generation) => { keyboard.pointer-focus(); if (root.access == FieldAccess.editable) { checks.note-edit(); root.toggle-option(token,generation); } }
                 Text { width: max(0px, v-option.width - 2 * v-option.padding-inline); height: max(0px, v-option.height - 2 * v-option.padding-block); text: v-option.display-choice.label; color: v-option.disabled ? v-option.recipe.disabled-foreground : v-option.recipe.foreground; font-family: v-option.theme.typography.family; font-size: v-option.recipe.font-size; font-weight: v-option.recipe.font-weight; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: center; }
             }
+        }
         }
     }
     in property <[OptionRow]> options;
@@ -1306,6 +1377,8 @@ export component KitCombobox inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + 2 * KitMetrics.popover-inset(root.theme));
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
+            accessible-name: root.label;
+            accessible-item-count: root.rows.length;
             init => { root.measured-popup-page-rows = self.page-rows; root.popup-focused = self.has-focus; }
             changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
             focus-observed(focused) => { root.popup-focused = focused; }
@@ -1358,8 +1431,9 @@ export component KitCombobox inherits Rectangle {
                 options := ListView {
                     vertical-stretch: 1;
                     theme: root.theme;
-                    for row in root.rows: KitOption {
+                    for row[index] in root.rows: KitOption {
                         theme: root.theme; option-data: row; height: root.row-height;
+                        accessible-item-index: index; accessible-item-count: root.rows.length;
                         focus-on-pointer: false;
                         active: root.state.active.present && row.token == root.state.active.token;
                         selected: root.state.selected.present && row.token == root.state.selected.token;
@@ -1803,6 +1877,7 @@ export component KitRating inherits Rectangle {
                 padding: parent.recipe.group-padding; spacing: parent.recipe.group-padding;
                 for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption {
                     theme: root.theme; control-size: root.control-size; access: root.access;
+                    accessible-item-index: index; accessible-item-count: root.scale;
                     option-data: {token: index + 1, label: "\{index + 1}", selected: root.value.present && root.value.step == index + 1};
                     tab-stop: false;
                 }

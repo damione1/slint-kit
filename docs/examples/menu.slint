@@ -12,11 +12,9 @@ export component Example inherits Window {
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <string> status;
-    out property <bool> active-row-focused: menu.active-row-focused;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Menu"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        // Observe actual row focus separately from selection; host callbacks may redirect focus.
         menu := KitMenu { theme: root.theme; options: [{ token: 11, generation: 1, label: "Overview", description: "Project summary", disabled: false }, { token: 23, generation: 1, label: "Activity", description: "Recent changes", disabled: false }, { token: 38, generation: 1, label: "Settings", description: "Project preferences", disabled: false }]; selected: { present: true, token: 11 };  chosen(row) => { root.status = "Chosen: " + row.label; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }

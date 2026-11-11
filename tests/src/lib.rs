@@ -859,3 +859,5 @@ mod slider_accessibility;
 mod choice_validity;
 
 mod menu_active_focus;
+
+mod composite_accessibility;
