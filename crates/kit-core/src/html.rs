@@ -851,6 +851,7 @@ mod tests {
         assert!(validate(&c, "Infinity").bad_input);
         assert!(validate(&c, "1e400").bad_input);
         assert!(validate(&c, "+1").valid());
+        assert_eq!(c.sanitize("+1"), "1");
         assert_eq!(html_number("+1"), None, "attributes keep HTML syntax");
         assert!(validate(&c, "1.").bad_input);
         assert!(validate(&c, "-").bad_input);
