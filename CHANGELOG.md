@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Share the popup search query with KitSelect and expose KitMultiSelect.query. **Search behavior change:** admitted choices and closed popup sessions clear a nonempty query and notify query-edited(""); rejected gestures and persistent-list filters are preserved. Combobox session closure cancels pending debounce without erasing native text or acknowledging controlled selection.
+- Partage la recherche du popup avec KitSelect et expose KitMultiSelect.query. **Changement du comportement de recherche :** les choix admissibles et sessions fermées effacent une recherche non vide et notifient query-edited("") ; les gestes refusés et filtres de listes persistantes sont préservés. Fermer les suggestions du Combobox annule le debounce en attente sans effacer le texte natif ni acquitter la sélection contrôlée.
+
 - Fix KitProgress and KitRadialProgress accessible values to publish plain numbers from 0 to 100, preserving numeric platform range values. **Accessibility behavior change:** accessible values no longer include a `%` suffix; visible percentages are unchanged.
 - Corrige les valeurs accessibles de KitProgress et KitRadialProgress : nombres simples de 0 à 100 pour conserver une valeur numérique de plage sur les plateformes. **Changement de comportement accessible :** les valeurs accessibles n’incluent plus le suffixe `%` ; les pourcentages visibles restent identiques.
 

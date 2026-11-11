@@ -927,7 +927,7 @@
           "example": "KitCombobox {\n    label: \"Client\";\n    placeholder: \"Rechercher par nom ou société…\";\n    options: root.clients;\n}"
         },
         "query": {
-          "effect": "Requête de filtrage issue de l’éditeur en ligne, liée dans les deux sens. Elle filtre `rows` localement (libellé ou description, insensible à la casse) et déclenche `query-edited(string)` lorsque sa longueur atteint `min-query-length` (ou lorsqu’elle est effacée), après `query-debounce`.",
+          "effect": "Recherche de filtrage issue de l’éditeur en ligne, liée dans les deux sens. Elle filtre `rows` localement (libellé ou description, insensible à la casse). Les notifications de saisie respectent `min-query-length` et `query-debounce` ; l’effacement d’une recherche non vide à la fermeture des suggestions émet immédiatement `query-edited(\"\")` et annule le debounce en attente. Le nettoyage de session n’efface pas le `text` natif et n’acquitte pas `selected` contrôlé.",
           "default": "`\"\"`.",
           "example": "KitCombobox {\n    options: root.resultats;\n    query <=> root.requete;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
         },
@@ -957,7 +957,7 @@
           "example": "KitCombobox {\n    options: root.resultats;\n    min-query-length: 2;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
         },
         "query-debounce": {
-          "effect": "Délai avant l’émission de `query-edited(string)` après une frappe en ligne. `0ms` émet immédiatement à chaque frappe.",
+          "effect": "Délai avant l’émission de `query-edited(string)` après une frappe en ligne. `0ms` émet immédiatement à chaque frappe. La fermeture des suggestions annule la notification en attente.",
           "default": "`0ms`.",
           "example": "KitCombobox {\n    options: root.resultats;\n    query-debounce: 200ms;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
         },
@@ -1016,7 +1016,8 @@
         "cleared": "Émis après l’effacement du texte et de la sélection via `clear()` ou le bouton `clearable`.",
         "custom-chosen": "Émis avec le texte libre accepté lorsque `allow-custom-value` vaut `true` et que l’utilisateur valide sur Entrée ou quitte le champ sans option correspondante.",
         "end-reached": "Émis à l’entrée de la fenêtre visible du popup dans les `near-end-rows` dernières lignes pour charger la page suivante.",
-        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
+        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
+        "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection."
       },
       "functions": {
         "clear": "Délègue la suppression du texte modifiable non vide à l’éditeur natif, en conservant annulation et protection de composition ; cleared() suit une suppression terminée et la recherche vide est émise une fois. La propriété locale efface selected immédiatement ; l’hôte contrôlé acquitte via selected. Une action vide ou refusée n’émet pas cleared(). Un popup déjà ouvert reste ouvert.",
@@ -1064,7 +1065,7 @@
           "example": "KitCombobox {\n    label: \"Customer\";\n    placeholder: \"Search by name or company…\";\n    options: root.customers;\n}"
         },
         "query": {
-          "effect": "Filter query driven by the inline editor, two-way. It filters `rows` locally (label or description, case-insensitive) and emits `query-edited(string)` once its length reaches `min-query-length` (or when cleared), after `query-debounce`.",
+          "effect": "Two-way filter query driven by the inline editor. It filters `rows` locally (label or description, case-insensitive). Typing notifications honor `min-query-length` and `query-debounce`; clearing a nonempty query when the suggestion session closes emits `query-edited(\"\")` immediately and cancels pending debounce. Session cleanup does not erase native `text` or acknowledge controlled `selected`.",
           "default": "`\"\"`.",
           "example": "KitCombobox {\n    options: root.results;\n    query <=> root.search-query;\n    query-edited(text) => { root.search(text); }\n}"
         },
@@ -1094,7 +1095,7 @@
           "example": "KitCombobox {\n    options: root.results;\n    min-query-length: 2;\n    query-edited(text) => { root.search(text); }\n}"
         },
         "query-debounce": {
-          "effect": "Delay before emitting `query-edited(string)` after inline typing. `0ms` emits immediately on every edit.",
+          "effect": "Delay before emitting `query-edited(string)` after inline typing. `0ms` emits immediately on every edit. Closing the suggestion session cancels its pending notification.",
           "default": "`0ms`.",
           "example": "KitCombobox {\n    options: root.results;\n    query-debounce: 200ms;\n    query-edited(text) => { root.search(text); }\n}"
         },
@@ -1153,7 +1154,8 @@
         "cleared": "Emitted after clearing the text and selection through `clear()` or the `clearable` button.",
         "custom-chosen": "Emitted with the accepted free-form text when `allow-custom-value` is `true` and the user commits with Enter or blurs without a matching option.",
         "end-reached": "Emitted when the popup viewport enters the last `near-end-rows` rows so the host can load the next page.",
-        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
+        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
+        "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection."
       },
       "functions": {
         "clear": "Delegate nonempty editable text deletion to the native editor, preserving undo and its composition guard; cleared() follows a completed deletion and the empty query is published once. Local ownership clears selected immediately; controlled owners acknowledge through selected. Empty or refused native actions do not emit cleared(). An already-open suggestion popup remains open.",
@@ -3358,10 +3360,16 @@
           "effect": "Résumé accessible localisable du nombre et des libellés des puces ; vide sans puce. Surchargez la formulation selon l’application. Les formats et le séparateur sont dans KitStrings ; les références stables contrôlent les sélections, pas cette chaîne.",
           "default": "Calculée depuis `chips` et `KitStrings.multi-selection-count-format` / `multi-selection-value-format` avec `{count}` et `{labels}`.",
           "example": "KitMultiSelect { label: \"Members\"; options: root.members; value-label: root.localized-membership; }"
+        },
+        "query": {
+          "effect": "Texte de recherche partagé dans les deux sens entre l’éditeur du popup, le sélecteur et le contrôleur de sélection multiple. Il filtre `rows` puis se réinitialise après un choix admissible ou la fermeture de la session, indépendamment des puces sélectionnées. `query-edited(\"\")` informe l’hôte de l’effacement d’une recherche non vide.",
+          "default": "`\"\"`.",
+          "example": "KitMultiSelect {\n    options: root.canaux;\n    query <=> root.recherche;\n}"
         }
       },
       "callbacks": {
-        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
+        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
+        "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection."
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
@@ -3429,10 +3437,16 @@
           "effect": "Localizable accessible summary of selected chip count and labels; empty with no chips. Override for application-specific wording. Default templates and the label separator live in KitStrings; membership remains controlled by stable refs, not this string.",
           "default": "Computed from `chips` and `KitStrings.multi-selection-count-format` / `multi-selection-value-format` using `{count}` and `{labels}`.",
           "example": "KitMultiSelect { label: \"Members\"; options: root.members; value-label: root.localized-membership; }"
+        },
+        "query": {
+          "effect": "Two-way search text shared by the popup editor, selector and multiple-selection controller. It filters `rows` and resets on an admitted choice or session close, independently of the selected chips. `query-edited(\"\")` notifies the host when a nonempty session query is cleared.",
+          "default": "`\"\"`.",
+          "example": "KitMultiSelect {\n    options: root.channels;\n    query <=> root.search-query;\n}"
         }
       },
       "callbacks": {
-        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
+        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
+        "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection."
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
@@ -4423,7 +4437,7 @@
           "example": "KitSelect {\n    options: root.pays;\n    row-height: 56px;\n}"
         },
         "query": {
-          "effect": "Le texte de recherche saisi dans l’éditeur du popup, lié dans les deux sens : il filtre `rows` et `query-edited(string)` rapporte chaque changement. Effacez-le pour revoir toutes les options.",
+          "effect": "Texte de recherche partagé dans les deux sens avec l’éditeur du popup et utilisé pour filtrer `rows`. Un choix admissible ou la fermeture de la session l’efface ; `query-edited(\"\")` signale l’effacement d’une recherche non vide. Une activation refusée ou périmée conserve la recherche. Effacer le filtre n’acquitte pas une valeur `selected` contrôlée.",
           "default": "`\"\"`.",
           "example": "KitSelect {\n    options: root.pays;\n    query-edited(texte) => { root.rechercher(texte); }\n}"
         },
@@ -4463,7 +4477,8 @@
         }
       },
       "callbacks": {
-        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
+        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
+        "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection."
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
@@ -4538,7 +4553,7 @@
           "example": "KitSelect {\n    options: root.countries;\n    row-height: 56px;\n}"
         },
         "query": {
-          "effect": "The search text typed in the popup's search editor, two-way: it filters `rows` and `query-edited(string)` reports each change. Clear it to show every option again.",
+          "effect": "Two-way search text shared with the popup editor and used to filter `rows`. Admitted choices and closing the search session clear it; `query-edited(\"\")` reports a nonempty session query being cleared. A rejected or stale activation leaves the query intact. Clearing the filter does not acknowledge a controlled `selected` value.",
           "default": "`\"\"`.",
           "example": "KitSelect {\n    options: root.countries;\n    query-edited(text) => { root.search(text); }\n}"
         },
@@ -4578,7 +4593,8 @@
         }
       },
       "callbacks": {
-        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
+        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
+        "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection."
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",

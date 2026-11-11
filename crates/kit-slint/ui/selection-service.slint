@@ -93,6 +93,13 @@ export component KitSelection inherits Rectangle {
     }
     private property <SelectionSession> current-session: { state: root.state, typeahead: root.session.typeahead, has-timestamp: root.session.has-timestamp, timestamp: root.session.timestamp, typeahead-timeout-ms: root.typeahead-timeout-ms, wrap: root.wrap };
     callback chosen(OptionRow);
+    // A session reset is distinct from typing or a host query assignment.
+    callback query-reset();
+    function reset-session-query() -> bool {
+        if (root.persistent || root.query == "") { return false; }
+        root.query = "";
+        return true;
+    }
     function sync-retained-label() {
         if (!root.selected.present) {
             root.retained-label = "";
@@ -146,11 +153,18 @@ export component KitSelection inherits Rectangle {
         root.apply(update.session);
         if (update.chosen.present) {
             if (root.persistent) { root.session.state.active = {present: true, token: token}; }
+            let reset = root.reset-session-query();
             root.chosen(row);
+            // Deliver the admitted row before a provider can replace its model.
+            // A host callback may already have opened a different search session.
+            if (reset && root.query == "" && !root.state.open) { root.query-reset(); }
         }
     }
     public function dismiss(reason: CloseReason) {
-        if (KitSelectionService.ready) { root.apply(KitSelectionService.dismiss(root.rows, root.current-session, reason, root.ownership)); }
+        if (!KitSelectionService.ready) { return; }
+        let was-open = root.state.open;
+        root.apply(KitSelectionService.dismiss(root.rows, root.current-session, reason, root.ownership));
+        if (was-open && root.reset-session-query()) { root.query-reset(); }
     }
     public function typeahead(text: string) {
         if (KitSelectionService.ready) { root.apply(KitSelectionService.typeahead(root.rows, root.current-session, text, KitSelectionService.timestamp(), root.ownership)); }
@@ -183,10 +197,12 @@ export component KitMultipleSelection inherits Rectangle {
     }
     private property <MultipleTransition> transition;
     callback changed-selection(OptionRow, bool);
+    callback query-reset();
     keyboard := KitSelection {
         options: root.options; ownership: Ownership.controlled; persistent: root.persistent;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         chosen(row) => { root.toggle(row.token, row.generation); }
+        query-reset => { root.query-reset(); }
     }
     function toggle(token: int, generation: int) {
         if (!KitSelectionService.ready) { return; }
