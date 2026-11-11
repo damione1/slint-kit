@@ -972,6 +972,7 @@ fn stationary_handle_double_click_requests_only_autosize_and_blocked_handles_ign
                 target.size().width >= 24. * scale,
                 "the divider target scales with text"
             );
+            let original_width = header_cells(&window)[0].size().width;
             let position = LogicalPosition::new(
                 target.absolute_position().x + target.size().width / 2.,
                 target.absolute_position().y + target.size().height / 2.,
@@ -998,7 +999,7 @@ fn stationary_handle_double_click_requests_only_autosize_and_blocked_handles_ign
                 activated.borrow().is_empty(),
                 "the handle does not activate a row"
             );
-            assert!(near(header_cells(&window)[0].size().width, 180.));
+            assert!(near(header_cells(&window)[0].size().width, original_width));
             crate::choice_presentation::save_capture(
                 &frame(),
                 &format!("table-handle-autosize-{name}-{scale}"),

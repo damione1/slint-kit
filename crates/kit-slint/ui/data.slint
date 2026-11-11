@@ -42,6 +42,8 @@ export enum ColumnVisibility { visible, hidden }
 export enum ColumnSourceMode { position, data-index }
 export struct TableColumnSource { mode: ColumnSourceMode, index: int }
 export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth, source: TableColumnSource, visibility: ColumnVisibility }
+// Projection of an optional, validated internal drag payload.
+export struct TableColumnDrop { valid: bool, token: int }
 // Pure view projection, installed once with the other module services. It
 // filters presentation visibility and resolves positional sources before the
 // header/body use the resulting shared column model.
@@ -68,8 +70,6 @@ export enum TableCellKind { text, badge, check, field }
 export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
 export enum ColumnStep { previous, next }
-// Projection of an optional, validated internal drag payload.
-export struct TableColumnDrop { valid: bool, token: int }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
@@ -770,7 +770,6 @@ export component KitDataTable inherits Rectangle {
                     }
                     if column-drop.has-drag: Rectangle {
                         width: parent.width; height: parent.height;
-                        background: root.theme.hover;
                         border-width: root.theme.shape.border-width-strong;
                         border-color: root.theme.accent;
                     }
