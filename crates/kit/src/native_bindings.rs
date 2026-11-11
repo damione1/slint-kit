@@ -297,9 +297,7 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         if self.access.get() != crate::FieldAccess::Editable {
             return None;
         }
-        let Some(window) = self.window.upgrade() else {
-            return None;
-        };
+        let window = self.window.upgrade()?;
         let selection = match mode {
             ui::FileSelectionMode::Single => FileSelectionMode::Single,
             ui::FileSelectionMode::Multiple => FileSelectionMode::Multiple,
@@ -576,9 +574,7 @@ impl<W: ComponentHandle + 'static> DirectoryPickerBinding<W> {
         launch: impl FnOnce(DirectoryRequest, &W) -> crate::native::PickerFuture<DirectoryHandle>
         + 'static,
     ) -> Option<impl std::future::Future<Output = ()> + 'static> {
-        let Some(window) = self.window.upgrade() else {
-            return None;
-        };
+        let window = self.window.upgrade()?;
         let request = self.request();
         let ticket = self.requests.borrow_mut().begin();
         (self.ports.state)(&window, ui::HostRequestPresentation::Pending);
@@ -661,9 +657,34 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
                                 binding.accept_drop([path.clone()]);
                             }
                         }
-                        // Winit events are an evolving external set. Other OS
-                        // events remain owned by Slint and propagate below.
-                        _ => {}
+                        // These SDK events remain owned by Slint. Keep this
+                        // boundary exhaustive: a new winit variant must receive
+                        // a deliberate policy here when updating the SDK.
+                        WindowEvent::ActivationTokenDone { .. }
+                        | WindowEvent::Resized(_)
+                        | WindowEvent::Moved(_)
+                        | WindowEvent::CloseRequested
+                        | WindowEvent::Destroyed
+                        | WindowEvent::Focused(_)
+                        | WindowEvent::KeyboardInput { .. }
+                        | WindowEvent::ModifiersChanged(_)
+                        | WindowEvent::Ime(_)
+                        | WindowEvent::CursorMoved { .. }
+                        | WindowEvent::CursorEntered { .. }
+                        | WindowEvent::CursorLeft { .. }
+                        | WindowEvent::MouseWheel { .. }
+                        | WindowEvent::MouseInput { .. }
+                        | WindowEvent::PinchGesture { .. }
+                        | WindowEvent::PanGesture { .. }
+                        | WindowEvent::DoubleTapGesture { .. }
+                        | WindowEvent::RotationGesture { .. }
+                        | WindowEvent::TouchpadPressure { .. }
+                        | WindowEvent::AxisMotion { .. }
+                        | WindowEvent::Touch(_)
+                        | WindowEvent::ScaleFactorChanged { .. }
+                        | WindowEvent::ThemeChanged(_)
+                        | WindowEvent::Occluded(_)
+                        | WindowEvent::RedrawRequested => {}
                     }
                 }
                 slint::winit_030::EventResult::Propagate
