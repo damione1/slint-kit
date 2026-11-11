@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitAvatarGroup, AvatarInteraction, KitTheme, KitThemes, Tone, KitStrings } from "@kit";
+export component Example inherits Window {
+    init => { KitStrings.avatar-more-singular = "1 autre avatar"; KitStrings.avatar-more-template = "{count} autres avatars"; }
+    default-font-family: InterFont.family;
+    preferred-width: 540px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    title: "Membres du projet";
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status;
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Membres du projet"; color: root.theme.text-primary; font-size: root.theme.typography.size-subtitle * root.theme.text-scale; }
+        KitAvatarGroup { theme: root.theme; max-visible: 3; accessible-name: "Membres du projet"; interaction: AvatarInteraction.action;
+            entries: [{ token: 11, generation: 1, label: "Elliot Alderson", initials: "EA", tone: Tone.accent }, { token: 23, generation: 1, label: "Darlene Alderson", initials: "DA", tone: Tone.success }, { token: 37, generation: 1, label: "Angela Moss", initials: "AM", tone: Tone.information }, { token: 41, generation: 1, label: "Tyrell Wellick", initials: "TW", tone: Tone.warning }];
+            activated(token, generation) => { root.status = "Profil " + token; }
+            overflow-activated => { root.status = "Autres profils demandés"; }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; font-size: root.theme.typography.size-control * root.theme.text-scale; wrap: word-wrap; accessible-live-region: polite; }
+    }
+}

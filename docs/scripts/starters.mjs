@@ -11,6 +11,8 @@ export function loadStarters() {
   const captures = JSON.parse(fs.readFileSync(path.join(docsDirectory, 'content/starter-captures.json'), 'utf8'));
   return Object.fromEntries(Object.entries(entries).map(([slug, entry]) => {
     if (!/^[a-z]+(?:-[a-z]+)*$/.test(slug)) throw new Error(`Invalid starter slug: ${slug}`);
+    if (entry.registryExample !== undefined && typeof entry.registryExample !== 'boolean') throw new Error(`${slug}: registryExample must be a boolean`);
+    if (entry.registryExample === false && entry.development !== true) throw new Error(`${slug}: an unreleased example must use development APIs`);
     const manifest = fs.readFileSync(path.join(docsDirectory, '.generated/consumers', slug, 'Cargo.toml'), 'utf8');
     const kitVersion = manifest.match(/^slint-kit\s*=\s*(?:\{[^\n]*?version\s*=\s*)?"=([0-9]+\.[0-9]+\.[0-9]+)"/m)?.[1];
     if (!kitVersion) throw new Error(`${slug}: expected an exact Slint Kit registry version`);

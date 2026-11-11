@@ -126,6 +126,7 @@ export const mockups = Object.freeze({
   spinner: p => {p.arc(160,84,32,0,Math.PI*2,'soft',6);p.arc(160,84,32,-Math.PI/2,Math.PI*.35,'accent',6);},
   skeleton: p => {p.circle(78,58,20,'soft');p.rect(113,43,128,12,'soft');p.rect(113,65,93,9,'soft');p.rect(58,99,204,11,'soft');p.rect(58,120,167,11,'soft');},
   'empty-state': p => {p.folder(135,26,50);p.line(101,95,118);p.line(77,114,166,'soft');p.button(119,133,82,'Add',true);},
+  'avatar-group': p => { [112,160,208].forEach((x,i)=>{p.circle(x,84,32,'paper');p.mark(x,85,['EA','DA','+2'][i],i===2?'ink':'accent',16);}); },
   avatar: p => {p.circle(160,83,48,'paper');p.circle(160,69,15,'soft');p.rect(134,92,52,23,'accent',13);},
   badge: p => {p.rect(91,68,138,32,'soft',16);p.circle(109,84,4,'accent');p.mark(167,85,'Available','accent');},
   chip: p => p.chip(98,66,124,'Rust'),

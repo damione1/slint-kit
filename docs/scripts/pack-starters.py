@@ -2,17 +2,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Package deterministic standalone consumers, retaining unchanged archives."""
 import io
+import json
 import zipfile
 import tomllib
 from doc_inputs import ROOT, DOCS, write_changed
 from starter_sources import source_files, prepare
 
-def readme(slug, kit_version, rust_version, slint_version):
+def readme(slug, kit_version, rust_version, slint_version, development=False):
+    introduction = (f"Development source example. Its APIs are absent from the published {kit_version} packages. A matching Slint Kit source checkout is required; follow the dependency changes below before building."
+                    if development else f"This example targets Slint Kit **{kit_version}**. Run `cargo run --locked` in this folder to use the matching registry release.")
+    introduction_fr = (f"Exemple de sources de développement. Ses API sont absentes des paquets {kit_version} publiés. Un checkout Slint Kit correspondant est nécessaire ; modifiez les dépendances ci-dessous avant de compiler."
+                       if development else f"Cet exemple cible Slint Kit **{kit_version}**. Exécutez `cargo run --locked` dans ce dossier pour utiliser la version correspondante du registre.")
+    heading = "Required source dependencies" if development else "Optional local source dependencies"
+    source_note_fr = "Les dépendances sources ci-dessus sont obligatoires pour cet exemple de développement." if development else "Les dépendances sources ci-dessus sont une option pour le développement local."
     return f"""# Slint Kit: {slug}
 
-Requires Rust {rust_version}+ and Slint {slint_version}. This example targets Slint Kit **{kit_version}**. Run `cargo run --locked` in this folder to use the matching registry release.
+Requires Rust {rust_version}+ and Slint {slint_version}. {introduction}
 
-## Optional local source dependencies
+## {heading}
 
 Place the example folder beside a `slint-kit` checkout. Replace only the two kit dependency entries in `Cargo.toml` with the following paths, keeping the existing `slint` dependency:
 
@@ -28,9 +35,9 @@ Run `cargo generate-lockfile` once to resolve the source graph, then `cargo run 
 
 ## Français
 
-Rust {rust_version}+ et Slint {slint_version} sont nécessaires. Cet exemple cible Slint Kit **{kit_version}**. Exécutez `cargo run --locked` dans ce dossier pour utiliser la version correspondante du registre.
+Rust {rust_version}+ et Slint {slint_version} sont nécessaires. {introduction_fr}
 
-Les dépendances sources ci-dessus sont une option pour le développement local.
+{source_note_fr}
 
 Placez le dossier de l’exemple à côté du checkout `slint-kit`. Remplacez uniquement les deux entrées de dépendance du kit dans `Cargo.toml` par ces chemins et conservez la dépendance `slint`. Exécutez `cargo generate-lockfile` une fois, puis `cargo run --locked` dans ce dossier.
 
@@ -43,13 +50,14 @@ def main():
     output = DOCS / '.generated/starters'
     output.mkdir(parents=True, exist_ok=True)
     consumers = prepare()
+    entries = json.loads((DOCS / "content/starters.json").read_text())
     changed = 0
     for slug, folder in consumers.items():
         files = {name: (folder / name).read_bytes() for name in source_files(folder)}
         dependency = tomllib.loads(files['Cargo.toml'].decode())['dependencies']['slint-kit']
         kit_version = (dependency if isinstance(dependency, str) else dependency['version']).removeprefix('=')
         files['LICENSE'] = (ROOT / 'LICENSE').read_bytes()
-        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].lstrip('=~'))
+        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].lstrip('=~'), entries[slug].get('registryExample') is False)
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
             for name, content in sorted(files.items()):

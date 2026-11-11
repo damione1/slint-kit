@@ -49,6 +49,9 @@
 - Add window-local today defaults and explicit-zone clock helpers for calendar/date/range pickers, including range today markers and nearest allowed initial focus. Add DateConstraints::nearest_allowed with bounded interval skipping and deterministic tie handling; keep user navigation independent of clock refresh. Validated Instant::from_unix_seconds and TimeZoneId::local_at provide the typed clock boundary.
 - Ajoute aujourd’hui par fenêtre et des helpers d’horloge à fuseau explicite pour les calendriers et sélecteurs de date/période, avec marqueur de période et focus initial disponible le plus proche. Ajoute DateConstraints::nearest_allowed, qui saute les périodes bloquées et tranche les égalités de façon déterministe ; actualiser l’horloge ne réinitialise pas le parcours utilisateur. Instant::from_unix_seconds et TimeZoneId::local_at valident la frontière typée de l’horloge.
 
+- Add public `KitAvatarGroup` and keyed `AvatarEntry` rows, with bounded mounting, mirrored overlap, accessible overflow and shared avatar interaction states.
+- Ajoute `KitAvatarGroup` et les lignes `AvatarEntry` à clés stables, avec nombre monté borné, superposition inversée en RTL, compteur accessible et états d’interaction partagés avec les avatars.
+
 - **Breaking Rust API:** exhaustive matches on `RemovalPolicy` must now handle the `Retain` variant.
 - **Rupture API Rust :** les correspondances exhaustives sur `RemovalPolicy` doivent désormais traiter la variante `Retain`.
 - Expose uniform choice `validation-timing`/`error-visible`, native chip/editor/popup focus groups, and the inherited text-field constraint visibility alias. **Breaking:** MultiSelect and TagInput no longer render their error text internally; render `KitFieldError` in the form, gated by `error-visible`, and render any TagInput business `error` there with explicit precedence.

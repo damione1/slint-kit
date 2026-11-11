@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { InterFont } from "@kit/fonts/inter.slint";
+import { KitAvatarGroup, AvatarEntry, AvatarInteraction, KitTheme, KitThemeContext, KitMetrics, TypographyRole } from "@kit";
+export component App inherits Window {
+    default-font-family: InterFont.family;
+    preferred-width: 540px; preferred-height: 260px;
+    max-width: 100000px; max-height: 100000px;
+    title: "Project members";
+    in-out property <KitTheme> theme: KitThemeContext.current;
+    in property <[AvatarEntry]> entries;
+    in property <string> status: "Choose a member or +1.";
+    callback profile-requested(int, int);
+    callback more-requested();
+    background: root.theme.canvas;
+    VerticalLayout { padding: 24px; spacing: 20px; alignment: start;
+        Text { text: "Project members"; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); }
+        KitAvatarGroup { theme: root.theme; entries: root.entries; max-visible: 3; accessible-name: "Project members"; interaction: AvatarInteraction.action;
+            activated(token, generation) => { root.profile-requested(token, generation); }
+            overflow-activated => { root.more-requested(); }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
+    }
+}
