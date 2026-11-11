@@ -12,6 +12,7 @@
 mod choices;
 mod color;
 mod field;
+mod file;
 mod focus;
 mod geometry;
 mod host;
@@ -27,6 +28,7 @@ mod text;
 pub use choices::*;
 pub use color::*;
 pub use field::*;
+pub use file::*;
 pub use focus::*;
 pub use geometry::*;
 pub use host::*;

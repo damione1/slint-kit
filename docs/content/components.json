@@ -2599,7 +2599,7 @@
     "fr": {
       "summary": "Lignes de fichiers avec nom, détail et action de retrait.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives. Les noms d’action et d’état suivent les valeurs KitStrings de la fenêtre et restent remplaçables par instance. Les noms de suppression utilisent remove-accessible-template avec {action} et {name} ; les étapes utilisent current/complete/error/pending-label.",
-      "behavior": "L’exemple retire les entrées de sa sélection en mémoire. Retirer une ligne ne supprime pas le fichier du disque.",
+      "behavior": "L’exemple retire les entrées de sa sélection en mémoire. Retirer une ligne ne supprime pas le fichier du disque. FileViewEntry.byte-length conserve les métadonnées exactes facultatives en texte décimal (vide signifie inconnu) ; detail reste un texte de présentation formaté par l’hôte. Les métadonnées ne lisent pas le contenu et ne changent pas l’identité stable de suppression.",
       "label": "Liste de fichiers",
       "seoTitle": "Liste de fichiers pour Slint",
       "related": [
@@ -2610,7 +2610,7 @@
     "en": {
       "summary": "File rows with names, details and remove actions.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions. Built-in action/status names read the window-local KitStrings defaults and remain overridable per instance. File removal names use remove-accessible-template with {action} and {name}; step state names use current/complete/error/pending-label.",
-      "behavior": "The example removes entries from its in-memory selection. Removing a row does not delete a file from disk.",
+      "behavior": "The example removes entries from its in-memory selection. Removing a row does not delete a file from disk. FileViewEntry.byte-length stores exact optional metadata as decimal text (empty means unknown); detail remains caller-formatted display text. Metadata alone does not read content or change stable removal identity.",
       "label": "File List",
       "seoTitle": "File List for Slint",
       "related": [
@@ -2625,7 +2625,7 @@
       "seoTitle": "Sélecteur de fichiers pour Slint",
       "summary": "Action Parcourir et liste des fichiers reliées à une boîte de dialogue native.",
       "usage": "Activez la fonctionnalité `native` de la façade et créez `FilePickerBinding` avec les setters explicites de ses ports. Connectez ses handlers de parcours/suppression ou d’effacement, puis recevez des ressources typées avec `on_selection`. Les requêtes utilisent des fenêtres faibles et des gardes de génération. Pour les dépôts natifs sur la fenêtre, activez `native-winit` et appelez `install_winit_drop` ; la capacité est explicite et les plateformes indisponibles refusent l’opération. Le pont winit traite les dépôts de la fenêtre ; les callbacks de chemins exigent aussi un backend compatible. Synchronisez le binding avec le contrôle via set_mode(FileSelectionMode) et set_access(FieldAccess) ; les valeurs initiales sont sélection simple et édition autorisée. Un dépôt simple remplace la ressource et les bindings désactivés ou en lecture seule ignorent les dépôts natifs. Les noms d’action et d’état suivent les valeurs KitStrings de la fenêtre et restent remplaçables par instance. Les noms de suppression utilisent remove-accessible-template avec {action} et {name} ; les étapes utilisent current/complete/error/pending-label. Les bindings fournissent la fenêtre Slint comme parent de la boîte de dialogue native. Une intégration directe utilise pick_files_with_parent ou pick_directory_with_parent avec un fournisseur raw-window-handle. Affichez d’abord la fenêtre ; le support dépend du système/backend (macOS, Windows et Linux XDG). Les handles sont lus avant de retourner le futur pour préserver la durée de vie faible ; le comportement modal natif reste à qualifier sur la cible.",
-      "behavior": "L’exemple gère attente, sélection, annulation, absence de prise en charge et erreur. L’aperçu navigateur n’ouvre pas de boîte de dialogue native. Configurez la requête native avec set_request/request/browse_with du binding : titre et dossier initial, et filtres validés pour les fichiers. Le mode de sélection du composant conserve les autres options configurées.",
+      "behavior": "L’exemple gère attente, sélection, annulation, absence de prise en charge et erreur. L’aperçu navigateur n’ouvre pas de boîte de dialogue native. Configurez la requête native avec set_request/request/browse_with du binding : titre et dossier initial, et filtres validés pour les fichiers. Le mode de sélection du composant conserve les autres options configurées. Configurez `accept`, `max-files` et `max-size` en octets décimaux exacts pour le signalement intrinsèque du formulaire. Le moteur HTML partagé analyse extensions/indications MIME une fois puis vérifie nombre, noms et tailles connues ; une taille inconnue échoue si une limite est définie. Installez une fois avant affichage. Configurez les mêmes FileConstraints typées sur FilePickerBinding pour garder aussi l’acceptation native/dépôt/fournisseur en Rust. Les types MIME sont rapprochés des extensions de noms, sans lire le contenu. Une indication sans correspondance en filtre natif d’extensions retourne un résultat unsupported explicite. Les tailles natives sont obtenues hors du thread UI et stockées dans FileViewEntry.byte-length ; vide signifie inconnu. Le détail du binding affiche les octets exacts par défaut ; set_detail_formatter le personnalise sans changer l’identité des lignes. Les requêtes ouvrir, dossier et enregistrer restent distinctes ; save_file choisit une destination sans écrire de contenu. Callbacks et captures ne qualifient ni dialogue de plateforme, ni appareil, ni lecteur d’écran.",
       "related": [
         "KitFileList",
         "KitDirectoryPicker",
@@ -2634,6 +2634,24 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus seulement si le champ est invalide et l’action Parcourir active et au repos ; retourne false en lecture seule, désactivation, indisponibilité ou requête en cours pour permettre le repli du formulaire. Ne signale pas les erreurs de nouveau."
+      },
+      "properties": {
+        "accept": {
+          "effect": "Extensions ou indications MIME séparées par virgules, par exemple .pdf,image/*. Analyse via FileAccept ; les extensions suivent la grammaire native validée de FileFilter. Filtre les noms sans vérifier le contenu.",
+          "example": "KitFilePicker {\n    accept: \".pdf,image/*\";\n}"
+        },
+        "max-files": {
+          "effect": "Nombre maximal de ressources ; -1 ne limite pas le nombre et 0 autorise seulement une sélection vide.",
+          "example": "KitFilePicker {\n    max-files: 4;\n}"
+        },
+        "max-size": {
+          "effect": "Limite exacte par fichier en octets, sous forme de chaîne décimale non signée ; vide signifie sans limite. Une taille inconnue échoue si une limite est définie.",
+          "example": "KitFilePicker {\n    max-size: \"10000000\";\n}"
+        },
+        "file-messages": {
+          "effect": "Snapshot KitFileMessages localisé pour configuration invalide, erreurs de type/nombre/taille et taille indisponible. Les défauts viennent de KitStrings.file-constraints.",
+          "example": "KitFilePicker {\n    file-messages: KitStrings.file-constraints;\n}"
+        }
       }
     },
     "en": {
@@ -2641,7 +2659,7 @@
       "seoTitle": "File Picker for Slint",
       "summary": "Browse action and selected-file list connected to a native dialog.",
       "usage": "Enable the facade `native` feature and create `FilePickerBinding` with explicit property setters in its ports. Connect its browse/remove or clear handlers, then receive typed handles through `on_selection`. Requests use weak windows and generation guards. For native window drops enable `native-winit` and call `install_winit_drop`; capability is explicit and unavailable platforms fail closed. The winit bridge handles drops for the window; direct path-drop callbacks still require a supported backend. Keep the binding synchronized with the control through set_mode(FileSelectionMode) and set_access(FieldAccess); the defaults are single selection and editable. Single-file drops replace the previous resource, and read-only or disabled bindings ignore native drops. Built-in action/status names read the window-local KitStrings defaults and remain overridable per instance. File removal names use remove-accessible-template with {action} and {name}; step state names use current/complete/error/pending-label. The facade bindings provide the Slint window as the native dialog parent. Raw host integrations can call pick_files_with_parent or pick_directory_with_parent with a raw-window-handle provider. Show the window first; parent support depends on the OS/backend (macOS, Windows and Linux XDG). Providers are read before returning the future, preserving weak-window lifetime; native modal behavior still needs target qualification.",
-      "behavior": "The sample handles pending, selected, cancelled, unsupported and failed outcomes. Browser previews do not open a native OS dialog. Configure the native request through the binding’s set_request/request/browse_with APIs: title and initial directory, plus validated file filters for file selection. The component’s browse mode updates selection without discarding the other configured options.",
+      "behavior": "The sample handles pending, selected, cancelled, unsupported and failed outcomes. Browser previews do not open a native OS dialog. Configure the native request through the binding’s set_request/request/browse_with APIs: title and initial directory, plus validated file filters for file selection. The component’s browse mode updates selection without discarding the other configured options. Configure `accept`, `max-files` and exact decimal `max-size` bytes for intrinsic form reporting. The shared HTML constraint engine parses extensions/MIME hints once and validates count, filename hints and known sizes; unknown size fails a configured bound. Install once before showing the window. Configure matching typed FileConstraints on FilePickerBinding to guard native/drop/provider acceptance in Rust as well. MIME matching uses filename-extension mappings, not file contents. A mapping unavailable to native extension filters returns an explicit unsupported outcome. Native size metadata is collected off the UI thread and stored in FileViewEntry.byte-length; empty means unknown. The default binding detail is exact bytes, customizable through set_detail_formatter without changing row identity. Native open, directory and save requests remain distinct; save_file chooses a destination without writing content. Callbacks and screenshots do not qualify a platform dialog, device or screen reader.",
       "related": [
         "KitFileList",
         "KitDirectoryPicker",
@@ -2650,6 +2668,24 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request focus only if invalid and the browse action is enabled and idle; return false for read-only, disabled, unsupported or pending actions so the enclosing form can try another field or its fallback. Does not report errors again."
+      },
+      "properties": {
+        "accept": {
+          "effect": "Comma-separated extension or MIME hints, such as .pdf,image/*. Parsed through FileAccept; extensions follow the validated native FileFilter grammar. This is filename filtering, not content verification.",
+          "example": "KitFilePicker {\n    accept: \".pdf,image/*\";\n}"
+        },
+        "max-files": {
+          "effect": "Maximum resource count; -1 has no count bound and 0 allows only an empty selection.",
+          "example": "KitFilePicker {\n    max-files: 4;\n}"
+        },
+        "max-size": {
+          "effect": "Exact per-file byte bound as an unsigned decimal string; empty has no size bound. Unknown byte metadata fails a configured bound.",
+          "example": "KitFilePicker {\n    max-size: \"10000000\";\n}"
+        },
+        "file-messages": {
+          "effect": "Localized KitFileMessages snapshot for invalid configuration, type/count/size errors and unavailable size. Defaults come from KitStrings.file-constraints.",
+          "example": "KitFilePicker {\n    file-messages: KitStrings.file-constraints;\n}"
+        }
       }
     }
   },

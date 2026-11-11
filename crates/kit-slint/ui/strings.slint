@@ -70,6 +70,7 @@ export struct KitFieldMessages {
     step-error: string,
     step-pending: string,
 }
+export struct KitFileMessages { invalid: string, type-mismatch: string, too-many: string, too-large: string, size-unknown: string }
 export global KitStrings {
     in-out property <string> select-label: "Selection";
     in-out property <string> multi-select-label: "Selections";
@@ -216,6 +217,16 @@ export global KitStrings {
     in-out property <string> file-remove: "Remove";
     in-out property <string> file-remove-template: "{action} {name}";
     in-out property <string> selection-required-message: "Please make a selection.";
+    out property <KitFileMessages> file-constraints: {
+        invalid: self.file-constraints-invalid,
+        type-mismatch: self.file-type-template, too-many: self.file-count-template,
+        too-large: self.file-size-template, size-unknown: self.file-size-unknown-template,
+    };
+    in-out property <string> file-constraints-invalid: "The file constraints or metadata are invalid.";
+    in-out property <string> file-type-template: "{name}: this file type is not accepted.";
+    in-out property <string> file-count-template: "Choose at most {count} files.";
+    in-out property <string> file-size-template: "{name}: choose a file of at most {bytes} bytes.";
+    in-out property <string> file-size-unknown-template: "{name}: file size is unavailable.";
     in-out property <string> file-list: "Selected files";
     in-out property <string> file-choose-one: "Choose file…";
     in-out property <string> file-choose-many: "Choose files…";

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::{
-    DirectoryHandle, DirectoryRequest, FileHandle, FileLocation, FileRequest, FileSelectionMode,
-    HostCapability, HostError, HostRequestController, KeyedModel, SelectionOutcome, ui,
+    DirectoryHandle, DirectoryRequest, FileConstraints, FileHandle, FileLocation, FileMetadata,
+    FileRequest, FileSelectionMode, FileViolation, HostCapability, HostError,
+    HostRequestController, KeyedModel, SelectionOutcome, ui,
 };
 use slint::{ComponentHandle, ModelRc, SharedString};
 use std::{
@@ -24,6 +25,20 @@ struct Files {
 }
 type FileHandler = Rc<dyn Fn(Vec<FileHandle>)>;
 type ErrorMapper = Rc<dyn Fn(&HostError) -> SharedString>;
+type DetailFormatter = Rc<dyn Fn(&FileHandle) -> SharedString>;
+type ConstraintMapper = Rc<dyn Fn(&FileViolation) -> SharedString>;
+fn constraint_message(issue: &FileViolation) -> SharedString {
+    match issue {
+        FileViolation::TypeMismatch { name } => {
+            format!("{name}: file type is not accepted.").into()
+        }
+        FileViolation::TooMany { maximum } => format!("Choose at most {maximum} files.").into(),
+        FileViolation::TooLarge { name, maximum } => {
+            format!("{name}: choose a file of at most {maximum} bytes.").into()
+        }
+        FileViolation::UnknownSize { name } => format!("{name}: file size is unavailable.").into(),
+    }
+}
 fn default_error_text(error: &HostError) -> SharedString {
     let (_, message) = error_presentation(error);
     match error {
@@ -49,6 +64,9 @@ fn mapped_error(
 pub struct FilePickerBinding<W: ComponentHandle + 'static> {
     drop_available: Rc<Cell<bool>>,
     request: Rc<RefCell<FileRequest>>,
+    constraints: Rc<RefCell<FileConstraints>>,
+    detail: Rc<RefCell<DetailFormatter>>,
+    constraint_mapper: Rc<RefCell<ConstraintMapper>>,
     access: Rc<Cell<crate::FieldAccess>>,
     window: slint::Weak<W>,
     ports: Rc<FilePickerPorts<W>>,
@@ -61,6 +79,9 @@ impl<W: ComponentHandle + 'static> Clone for FilePickerBinding<W> {
         Self {
             drop_available: self.drop_available.clone(),
             request: self.request.clone(),
+            constraints: self.constraints.clone(),
+            detail: self.detail.clone(),
+            constraint_mapper: self.constraint_mapper.clone(),
             access: self.access.clone(),
             window: self.window.clone(),
             ports: self.ports.clone(),
@@ -100,6 +121,12 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         let result = Self {
             drop_available: Rc::new(Cell::new(false)),
             request: Rc::new(RefCell::new(FileRequest::default())),
+            constraints: Rc::new(RefCell::new(FileConstraints::default())),
+            detail: Rc::new(RefCell::new(Rc::new(|file: &FileHandle| {
+                file.byte_length
+                    .map_or_else(SharedString::default, |bytes| format!("{bytes} B").into())
+            }))),
+            constraint_mapper: Rc::new(RefCell::new(Rc::new(constraint_message))),
             access: Rc::new(Cell::new(crate::FieldAccess::Editable)),
             window: window.as_weak(),
             ports: Rc::new(ports),
@@ -137,11 +164,52 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
         self.set_request(request);
         self.browse(mode);
     }
+    /// Guard accepted resources with the shared HTML file rules. Set equivalent
+    /// accept/max-files/max-size on the component for form reporting.
+    pub fn set_constraints(&self, constraints: FileConstraints) {
+        *self.constraints.borrow_mut() = constraints;
+    }
+    pub fn constraints(&self) -> FileConstraints {
+        self.constraints.borrow().clone()
+    }
+    pub fn set_constraint_mapper(&self, mapper: impl Fn(&FileViolation) -> SharedString + 'static) {
+        *self.constraint_mapper.borrow_mut() = Rc::new(mapper);
+    }
+    /// Format known or unavailable metadata in the caller's locale. Formatting
+    /// updates existing row identities; it does not reselect accepted resources.
+    pub fn set_detail_formatter(&self, formatter: impl Fn(&FileHandle) -> SharedString + 'static) {
+        *self.detail.borrow_mut() = Rc::new(formatter);
+        let (handles, rows) = {
+            let files = self.files.borrow();
+            (files.handles.clone(), files.rows.clone())
+        };
+        let formatter = self.detail.borrow().clone();
+        for handle in handles {
+            let detail = formatter(&handle);
+            rows.update_by_key(&handle.location, |row| row.detail = detail);
+        }
+    }
+    fn fail_constraint(&self, issue: FileViolation) {
+        let mapper = self.constraint_mapper.borrow().clone();
+        let message = mapper(&issue);
+        if let Some(window) = self.window.upgrade() {
+            (self.ports.state)(&window, ui::HostRequestPresentation::Failed);
+            (self.ports.error)(&window, message);
+        }
+    }
     /// Set the current field access before forwarding native window events.
     pub fn set_access(&self, access: crate::FieldAccess) {
         self.access.set(access);
         if access != crate::FieldAccess::Editable {
-            self.files.borrow_mut().requests.cancel();
+            let pending = {
+                let mut files = self.files.borrow_mut();
+                let pending = files.requests.pending();
+                files.requests.cancel();
+                pending
+            };
+            if pending && let Some(window) = self.window.upgrade() {
+                (self.ports.state)(&window, ui::HostRequestPresentation::Cancelled);
+            }
         }
     }
     pub fn on_selection(&self, handler: impl Fn(Vec<FileHandle>) + 'static) {
@@ -168,20 +236,34 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             .into_iter()
             .filter(|handle| seen.insert(handle.location.clone()))
             .collect::<Vec<_>>();
+        let metadata = handles.iter().map(FileMetadata::from).collect::<Vec<_>>();
+        if let Err(issue) = self.constraints().validate(&metadata) {
+            self.fail_constraint(issue);
+            return;
+        }
+        let formatter = self.detail.borrow().clone();
+        let entries = handles
+            .iter()
+            .map(|handle| {
+                (
+                    handle.location.clone(),
+                    ui::FileViewEntry {
+                        name: handle.display_name.as_str().into(),
+                        detail: formatter(handle),
+                        byte_length: handle
+                            .byte_length
+                            .map_or_else(SharedString::default, |bytes| bytes.to_string().into()),
+                        removable: true,
+                        ..Default::default()
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
         {
             let mut state = self.files.borrow_mut();
             state
                 .rows
-                .replace(handles.iter().map(|handle| {
-                    (
-                        handle.location.clone(),
-                        ui::FileViewEntry {
-                            name: handle.display_name.as_str().into(),
-                            removable: true,
-                            ..Default::default()
-                        },
-                    )
-                }))
+                .replace(entries)
                 .expect("deduplicated resource locations");
             state.handles = handles.clone();
         }
@@ -223,7 +305,21 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             ui::FileSelectionMode::Multiple => FileSelectionMode::Multiple,
         };
         self.set_mode(selection);
-        let request = self.request();
+        let mut request = self.request();
+        if request.filters.is_empty() {
+            let constraints = self.constraints();
+            match constraints
+                .accept
+                .native_filter(constraints.accept.description())
+            {
+                Ok(Some(filter)) => request.filters.push(filter),
+                Ok(None) => {}
+                Err(error) => {
+                    self.fail(error);
+                    return None;
+                }
+            }
+        }
         let ticket = self.files.borrow_mut().requests.begin();
         (self.ports.state)(&window, ui::HostRequestPresentation::Pending);
         (self.ports.error)(&window, SharedString::default());
@@ -315,21 +411,54 @@ impl<W: ComponentHandle + 'static> FilePickerBinding<W> {
             slint::language::DragAction::Copy
         }
     }
+    /// Resolve path metadata off the UI thread before accepting a drop. A
+    /// superseding selection, removal, blocked field or dead window fences it.
     pub fn accept_drop(&self, paths: impl IntoIterator<Item = std::path::PathBuf>) {
-        if self.access.get() != crate::FieldAccess::Editable || self.window.upgrade().is_none() {
+        let paths = paths.into_iter().collect::<Vec<_>>();
+        if paths.is_empty() {
             return;
         }
-        let incoming: Vec<_> = paths
-            .into_iter()
-            .map(|path| FileHandle {
-                display_name: path
-                    .file_name()
-                    .map_or_else(String::new, |name| name.to_string_lossy().into_owned()),
-                location: FileLocation::Path(path),
-                byte_length: None,
+        let mode = self.request.borrow().selection;
+        let previous = match mode {
+            FileSelectionMode::Single => Vec::new(),
+            FileSelectionMode::Multiple => self.selected(),
+        };
+        let view_mode = match mode {
+            FileSelectionMode::Single => ui::FileSelectionMode::Single,
+            FileSelectionMode::Multiple => ui::FileSelectionMode::Multiple,
+        };
+        let Some(operation) = self.browse_operation(view_mode, move |_, _| {
+            Box::pin(async move {
+                match crate::native::inspect_file_paths(paths).await {
+                    SelectionOutcome::Selected(incoming) => {
+                        SelectionOutcome::Selected(match mode {
+                            FileSelectionMode::Single => {
+                                incoming.into_iter().last().into_iter().collect()
+                            }
+                            FileSelectionMode::Multiple => {
+                                previous.into_iter().chain(incoming).collect()
+                            }
+                        })
+                    }
+                    SelectionOutcome::Cancelled => SelectionOutcome::Cancelled,
+                    SelectionOutcome::Failed(error) => SelectionOutcome::Failed(error),
+                }
             })
-            .collect();
-        if incoming.is_empty() {
+        }) else {
+            return;
+        };
+        if slint::spawn_local(operation).is_err() {
+            self.files.borrow_mut().requests.cancel();
+            self.fail(HostError::Unavailable);
+        }
+    }
+    /// Accept already-resolved resources from a host provider, using the same
+    /// access, identity, count, type and size checks as native picker results.
+    pub fn accept_handles(&self, incoming: Vec<FileHandle>) {
+        if incoming.is_empty()
+            || self.access.get() != crate::FieldAccess::Editable
+            || self.window.upgrade().is_none()
+        {
             return;
         }
         self.files.borrow_mut().requests.cancel();
@@ -551,10 +680,20 @@ mod tests {
     use crate::native_test_ui::PickerTestWindow;
     use slint::Model;
 
+    fn handles(paths: impl IntoIterator<Item = std::path::PathBuf>) -> Vec<FileHandle> {
+        paths
+            .into_iter()
+            .map(|path| FileHandle {
+                display_name: path.file_name().unwrap().to_string_lossy().into_owned(),
+                location: FileLocation::Path(path),
+                byte_length: Some(12),
+            })
+            .collect()
+    }
     #[test]
     fn configured_picker_requests_survive_clones_and_mode_updates() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let files = FilePickerBinding::new(
             &window,
             FilePickerPorts {
@@ -659,7 +798,7 @@ mod tests {
         );
         let first = std::path::PathBuf::from("/example/first.txt");
         let last = std::path::PathBuf::from("/example/last.txt");
-        binding.accept_drop([first.clone(), last.clone()]);
+        binding.accept_handles(handles([first.clone(), last.clone()]));
         assert_eq!(binding.selected().len(), 1);
         assert_eq!(
             binding.selected()[0].location,
@@ -667,16 +806,16 @@ mod tests {
         );
         for access in [crate::FieldAccess::ReadOnly, crate::FieldAccess::Disabled] {
             binding.set_access(access);
-            binding.accept_drop([first.clone()]);
+            binding.accept_handles(handles([first.clone()]));
             assert_eq!(
                 binding.selected()[0].location,
                 FileLocation::Path(last.clone())
             );
         }
         binding.set_access(crate::FieldAccess::Editable);
-        binding.accept_drop([first.clone()]);
+        binding.accept_handles(handles([first.clone()]));
         assert_eq!(binding.selected()[0].location, FileLocation::Path(first));
-        binding.accept_drop([]);
+        binding.accept_handles(handles([]));
         assert_eq!(
             binding.selected().len(),
             1,
@@ -699,10 +838,10 @@ mod tests {
         );
         binding.set_mode(FileSelectionMode::Multiple);
         let path = std::path::PathBuf::from("/example/project.txt");
-        binding.accept_drop([path.clone(), path]);
+        binding.accept_handles(handles([path.clone(), path]));
         assert_eq!(binding.selected().len(), 1);
         let row = binding.files.borrow().rows.model().row_data(0).unwrap();
-        binding.accept_drop([std::path::PathBuf::from("/example/second.txt")]);
+        binding.accept_handles(handles([std::path::PathBuf::from("/example/second.txt")]));
         binding.remove(row.token, row.generation);
         assert_eq!(
             binding.selected().len(),
@@ -748,7 +887,7 @@ mod request_tests {
     #[test]
     fn configured_file_request_reaches_mock_host_and_late_results_are_fenced() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let binding = FilePickerBinding::new(
             &window,
             FilePickerPorts {
@@ -805,7 +944,7 @@ mod request_tests {
     #[test]
     fn directory_request_snapshot_clear_and_window_lifetime_share_the_real_path() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let binding = DirectoryPickerBinding::new(
             &window,
             DirectoryPickerPorts {
@@ -860,7 +999,7 @@ mod request_tests {
     #[test]
     fn access_change_invalidates_pending_file_response_without_retaining_window() {
         i_slint_backend_testing::init_no_event_loop();
-        let window = ui::KitVirtualTextView::new().unwrap();
+        let window = PickerTestWindow::new().unwrap();
         let binding = FilePickerBinding::new(
             &window,
             FilePickerPorts {
@@ -884,5 +1023,185 @@ mod request_tests {
         let weak = window.as_weak();
         drop(window);
         assert!(weak.upgrade().is_none());
+    }
+}
+
+#[cfg(test)]
+mod file_constraint_tests {
+    use super::*;
+    use slint::Model as _;
+    fn handle(name: &str, bytes: Option<u64>) -> FileHandle {
+        FileHandle {
+            location: FileLocation::Path(name.into()),
+            display_name: name.into(),
+            byte_length: bytes,
+        }
+    }
+    fn binding() -> (
+        ui::KitVirtualTextView,
+        FilePickerBinding<ui::KitVirtualTextView>,
+    ) {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = PickerTestWindow::new().unwrap();
+        let binding = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: |_, _| {},
+                state: |_, _| {},
+                error: ui::KitVirtualTextView::set_error,
+            },
+        );
+        (window, binding)
+    }
+    #[test]
+    fn accepted_resources_share_count_type_size_guards_and_preserve_prior_selection() {
+        let (window, binding) = binding();
+        binding.set_constraints(FileConstraints {
+            accept: crate::FileAccept::parse(".pdf").unwrap(),
+            max_files: Some(1),
+            max_size: Some(100),
+        });
+        binding.accept_handles(vec![handle("report.pdf", Some(100))]);
+        let accepted = binding.selected();
+        for incoming in [
+            handle("wrong.exe", Some(1)),
+            handle("large.pdf", Some(101)),
+            handle("unknown.pdf", None),
+        ] {
+            binding.accept_handles(vec![incoming]);
+            assert_eq!(binding.selected(), accepted);
+            assert!(!window.get_error().is_empty());
+        }
+        binding.set_mode(FileSelectionMode::Multiple);
+        binding.accept_handles(vec![handle("second.pdf", Some(1))]);
+        assert_eq!(binding.selected(), accepted);
+        assert!(window.get_error().contains("at most 1"));
+    }
+    #[test]
+    fn detail_formatter_uses_exact_metadata_without_changing_row_identity() {
+        let (_window, binding) = binding();
+        let bytes = 9_007_199_254_740_993;
+        binding.accept_handles(vec![handle("large.pdf", Some(bytes))]);
+        let before = binding.files.borrow().rows.model().row_data(0).unwrap();
+        assert_eq!(before.byte_length, bytes.to_string());
+        assert_eq!(before.detail, format!("{bytes} B"));
+        binding.set_detail_formatter(|file| {
+            file.byte_length.map_or_else(
+                || "Taille inconnue".into(),
+                |value| format!("{value} octets").into(),
+            )
+        });
+        let after = binding.files.borrow().rows.model().row_data(0).unwrap();
+        assert_eq!(
+            (before.token, before.generation),
+            (after.token, after.generation)
+        );
+        assert_eq!(after.detail, format!("{bytes} octets"));
+    }
+    #[test]
+    fn configured_accept_becomes_native_filter_and_mock_result_is_checked_on_return() {
+        use std::{
+            future::Future as _,
+            task::{Context, Waker},
+        };
+        let (window, binding) = binding();
+        binding.set_constraints(FileConstraints {
+            accept: crate::FileAccept::parse(".pdf").unwrap(),
+            max_files: Some(1),
+            max_size: Some(2),
+        });
+        binding.set_constraint_mapper(|issue| match issue {
+            FileViolation::TooLarge { .. } => "Fichier trop grand".into(),
+            FileViolation::TypeMismatch { .. } => "Type incorrect".into(),
+            FileViolation::TooMany { .. } => "Trop de fichiers".into(),
+            FileViolation::UnknownSize { .. } => "Taille inconnue".into(),
+        });
+        let launched = Rc::new(RefCell::new(None));
+        let request = launched.clone();
+        let mut operation = Box::pin(
+            binding
+                .browse_operation(ui::FileSelectionMode::Single, move |options, _| {
+                    *request.borrow_mut() = Some(options);
+                    Box::pin(async {
+                        SelectionOutcome::Selected(vec![handle("large.pdf", Some(3))])
+                    })
+                })
+                .unwrap(),
+        );
+        assert!(
+            operation
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_ready()
+        );
+        assert_eq!(
+            launched.borrow().as_ref().unwrap().filters[0].extensions(),
+            &["pdf"]
+        );
+        assert!(binding.selected().is_empty());
+        assert_eq!(window.get_error(), "Fichier trop grand");
+    }
+}
+
+#[cfg(test)]
+mod cancelled_presentation_tests {
+    use super::*;
+    use std::{
+        future::Future as _,
+        task::{Context, Poll, Waker},
+    };
+    #[test]
+    fn blocking_a_pending_picker_clears_busy_state_and_late_response_stays_cancelled() {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ui::KitFilePicker::new().unwrap();
+        let binding = FilePickerBinding::new(
+            &window,
+            FilePickerPorts {
+                entries: ui::KitFilePicker::set_entries,
+                state: ui::KitFilePicker::set_request_state,
+                error: ui::KitFilePicker::set_error,
+            },
+        );
+        let ready = Rc::new(Cell::new(false));
+        let response = ready.clone();
+        let mut operation = Box::pin(
+            binding
+                .browse_operation(ui::FileSelectionMode::Single, move |_, _| {
+                    Box::pin(std::future::poll_fn(move |_| {
+                        if response.get() {
+                            Poll::Ready(SelectionOutcome::Cancelled)
+                        } else {
+                            Poll::Pending
+                        }
+                    }))
+                })
+                .unwrap(),
+        );
+        assert!(
+            operation
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending()
+        );
+        assert_eq!(
+            window.get_request_state(),
+            ui::HostRequestPresentation::Pending
+        );
+        binding.set_access(crate::FieldAccess::ReadOnly);
+        assert_eq!(
+            window.get_request_state(),
+            ui::HostRequestPresentation::Cancelled
+        );
+        ready.set(true);
+        assert!(
+            operation
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_ready()
+        );
+        assert_eq!(
+            window.get_request_state(),
+            ui::HostRequestPresentation::Cancelled
+        );
     }
 }

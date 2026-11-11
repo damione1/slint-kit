@@ -1,4 +1,5 @@
-import { KitStrings } from "strings.slint";
+import { FileViewEntry } from "file-contracts.slint";
+import { KitFileMessages, KitStrings } from "strings.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { HtmlInputKind, FieldAccess, NumberInputFormat } from "shared-contracts.slint";
 export { HtmlInputKind } from "shared-contracts.slint";
@@ -18,6 +19,7 @@ export struct KitInputConstraints {
     pattern: string, pattern-enabled: bool, min: string, max: string, step: string,
     default-value: string, custom-error: string, disabled: bool, read-only: bool,
 }
+export struct KitFileValidation { validity: KitValidityState, message: string }
 export struct KitValidationResult {
     validity: KitValidityState, value: string, will-validate: bool, pattern-error: string, hard-error: bool,
 }
@@ -50,6 +52,7 @@ export global KitFormValidation {
     pure callback phone-display(string, string) -> string;
     pure callback phone-mask-error(string, string) -> string;
     pure callback phone-error(string, bool, bool, int, int, string, string, string) -> string;
+    pure callback file-validation(string, int, string, [FileViewEntry], KitFileMessages) -> KitFileValidation;
     pure callback evaluate(KitInputConstraints, string, bool, bool, int) -> KitValidationResult;
 }
 // A nonvisual state component, reusable with custom skins and composed fields.
@@ -74,6 +77,8 @@ export component FormConstraintState inherits Rectangle {
     in property <int> selected-count;
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
+    in property <KitValidityState> additional-validity: {valid: true};
+    in property <string> additional-message;
     in property <string> required-message: KitStrings.required-message;
     in property <string> email-message: KitStrings.email-message;
     in property <string> url-message: KitStrings.url-message;
@@ -96,12 +101,13 @@ export component FormConstraintState inherits Rectangle {
     private property <KitValidationResult> result: KitFormValidation.ready ? KitFormValidation.evaluate(root.constraints, root.text, root.dirty, root.checked, root.selected-count) : {
         validity: {valid: false, bad-input: true}, value: root.text, will-validate: false,
     };
-    out property <KitValidityState> validity: root.result.validity;
+    out property <KitValidityState> validity: KitFormValidation.combine(root.result.validity, root.additional-validity);
     out property <bool> will-validate: root.result.will-validate;
     out property <string> value: root.result.value;
     out property <string> pattern-error: root.result.pattern-error;
     out property <string> validation-message: !root.will-validate || root.validity.valid ? ""
         : root.validity.custom-error ? root.custom-validity
+        : !root.additional-validity.valid ? root.additional-message
         : root.validity.value-missing ? root.required-message
         : root.validity.type-mismatch ? (root.kind == HtmlInputKind.email ? root.email-message : root.url-message)
         : root.validity.pattern-mismatch ? root.pattern-message

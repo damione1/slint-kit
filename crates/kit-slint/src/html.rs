@@ -10,12 +10,85 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 pub struct HtmlValidationEngine {
     patterns: RefCell<VecDeque<(String, Result<HtmlPattern, String>)>>,
     masks: RefCell<VecDeque<CachedMask>>,
+    files: RefCell<VecDeque<CachedFileRules>>,
 }
 struct CachedMask {
     source: String,
     compiled: Result<Rc<MaskPattern>, ParseIssue>,
 }
+struct CachedFileRules {
+    accept: String,
+    max_files: i32,
+    max_size: String,
+    rules: Result<Rc<kit_core::FileConstraints>, kit_core::HostError>,
+}
+fn view_validity(v: HtmlValidity) -> crate::ui::KitValidityState {
+    crate::ui::KitValidityState {
+        valid: v.valid(),
+        value_missing: v.value_missing,
+        type_mismatch: v.type_mismatch,
+        pattern_mismatch: v.pattern_mismatch,
+        too_long: v.too_long,
+        too_short: v.too_short,
+        range_underflow: v.range_underflow,
+        range_overflow: v.range_overflow,
+        step_mismatch: v.step_mismatch,
+        bad_input: v.bad_input,
+        custom_error: v.custom_error,
+    }
+}
 impl HtmlValidationEngine {
+    fn file_constraints(
+        &self,
+        accept: &str,
+        max_files: i32,
+        max_size: &str,
+    ) -> Result<Rc<kit_core::FileConstraints>, kit_core::HostError> {
+        if accept.len() > 4096 || max_size.len() > 20 {
+            return Err(kit_core::HostError::InvalidFilter);
+        }
+        let mut cache = self.files.borrow_mut();
+        if let Some(entry) = cache.iter().find(|entry| {
+            entry.accept == accept && entry.max_files == max_files && entry.max_size == max_size
+        }) {
+            return entry.rules.clone();
+        }
+        let parse = || {
+            let max_files = if max_files == -1 {
+                None
+            } else {
+                Some(usize::try_from(max_files).map_err(|_| kit_core::HostError::InvalidResource)?)
+            };
+            let max_size = if max_size.is_empty() {
+                None
+            } else {
+                if !max_size.chars().all(|value| value.is_ascii_digit()) {
+                    return Err(kit_core::HostError::InvalidResource);
+                }
+                Some(
+                    max_size
+                        .parse::<u64>()
+                        .map_err(|_| kit_core::HostError::InvalidResource)?,
+                )
+            };
+            Ok(Rc::new(kit_core::FileConstraints {
+                accept: kit_core::FileAccept::parse(accept)?,
+                max_files,
+                max_size,
+            }))
+        };
+        let rules = parse();
+        if cache.len() == 64 {
+            cache.pop_front();
+        }
+        cache.push_back(CachedFileRules {
+            accept: accept.into(),
+            max_files,
+            max_size: max_size.into(),
+            rules: rules.clone(),
+        });
+        rules
+    }
     pub fn pattern(&self, source: &str) -> Result<HtmlPattern, String> {
         let mut cache = self.patterns.borrow_mut();
         if let Some((_, result)) = cache.iter().find(|(key, _)| key == source) {
@@ -314,6 +387,72 @@ where
             }
         },
     );
+    let file_engine = Rc::clone(&engine);
+    global.on_file_validation(move |accept, max_files, max_size, entries, messages| {
+        use slint::{Model as _, ModelExt as _};
+        let invalid = || ui::KitFileValidation {
+            validity: view_validity(HtmlValidity {
+                bad_input: true,
+                ..Default::default()
+            }),
+            message: messages.invalid.clone(),
+        };
+        let Ok(rules) = file_engine.file_constraints(accept.as_str(), max_files, max_size.as_str())
+        else {
+            return invalid();
+        };
+        entries.model_tracker().track_row_count_changes();
+        let entries = (0..entries.row_count())
+            .filter_map(|index| entries.row_data_tracked(index))
+            .collect::<Vec<_>>();
+        let mut metadata = Vec::with_capacity(entries.len());
+        for entry in &entries {
+            let byte_length = if entry.byte_length.is_empty() {
+                None
+            } else {
+                if !entry
+                    .byte_length
+                    .chars()
+                    .all(|value| value.is_ascii_digit())
+                {
+                    return invalid();
+                }
+                let Ok(bytes) = entry.byte_length.parse::<u64>() else {
+                    return invalid();
+                };
+                Some(bytes)
+            };
+            metadata.push(kit_core::FileMetadata {
+                name: entry.name.as_str(),
+                byte_length,
+            });
+        }
+        let html = HtmlConstraints {
+            kind: kit_core::HtmlInputKind::File,
+            ..Default::default()
+        };
+        let result = html.validate_file_selection(&rules, &metadata);
+        let message = match result.violation {
+            None => String::new(),
+            Some(kit_core::FileViolation::TypeMismatch { name }) => {
+                messages.type_mismatch.replace("{name}", &name)
+            }
+            Some(kit_core::FileViolation::TooMany { maximum }) => {
+                messages.too_many.replace("{count}", &maximum.to_string())
+            }
+            Some(kit_core::FileViolation::TooLarge { name, maximum }) => messages
+                .too_large
+                .replace("{name}", &name)
+                .replace("{bytes}", &maximum.to_string()),
+            Some(kit_core::FileViolation::UnknownSize { name }) => {
+                messages.size_unknown.replace("{name}", &name)
+            }
+        };
+        ui::KitFileValidation {
+            validity: view_validity(result.validity),
+            message: message.into(),
+        }
+    });
     global.on_evaluate(move |c, text, user_edited, checked, selected_count| {
         let (rules, pattern_error) = engine.constraints(&c);
         let (v, value, will_validate) = engine.evaluate(
@@ -331,19 +470,7 @@ where
             pattern_error: pattern_error.into(),
             hard_error: rules.kind == crate::__core::HtmlInputKind::Email
                 && crate::__core::html_email_hard_error(text.as_str(), c.multiple),
-            validity: ui::KitValidityState {
-                valid: v.valid(),
-                value_missing: v.value_missing,
-                type_mismatch: v.type_mismatch,
-                pattern_mismatch: v.pattern_mismatch,
-                too_long: v.too_long,
-                too_short: v.too_short,
-                range_underflow: v.range_underflow,
-                range_overflow: v.range_overflow,
-                step_mismatch: v.step_mismatch,
-                bad_input: v.bad_input,
-                custom_error: v.custom_error,
-            },
+            validity: view_validity(v),
         }
     });
     global.set_ready(true);
@@ -409,5 +536,34 @@ mod mask_cache_tests {
             entries,
             "oversized sources are not retained"
         );
+    }
+}
+
+#[cfg(test)]
+mod file_constraint_cache_tests {
+    use super::*;
+    #[test]
+    fn file_rules_parse_once_and_preserve_exact_renderer_boundaries() {
+        let engine = HtmlValidationEngine::default();
+        let first = engine
+            .file_constraints(".pdf", 2, "9007199254740993")
+            .unwrap();
+        let again = engine
+            .file_constraints(".pdf", 2, "9007199254740993")
+            .unwrap();
+        assert!(Rc::ptr_eq(&first, &again));
+        assert_eq!(first.max_size, Some(9_007_199_254_740_993));
+        for (count, size) in [
+            (-2, ""),
+            (-1, "-1"),
+            (-1, "1.5"),
+            (-1, "18446744073709551616"),
+        ] {
+            assert!(engine.file_constraints(".pdf", count, size).is_err());
+        }
+        assert!(engine.file_constraints("*.pdf", -1, "").is_err());
+        let unbounded = engine.file_constraints("", -1, "").unwrap();
+        assert_eq!(unbounded.max_files, None);
+        assert_eq!(unbounded.max_size, None);
     }
 }

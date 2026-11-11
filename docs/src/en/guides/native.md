@@ -82,3 +82,28 @@ picker.set_request(slint_kit::FileRequest {
     ..Default::default()
 });
 ```
+
+
+## Save targets, metadata and file constraints
+
+`SaveFileRequest` is distinct from an open `FileRequest` and from `DirectoryRequest`. Call `native::save_file` or `save_file_with_parent` to select one destination; the kit returns `SelectionOutcome<FileHandle>` and does not write the document or create its contents. Filters, suggested name, title and initial directory are retained. Check `capabilities().save_files`; unsupported targets return `Failed(HostError::Unsupported)`. Use the existing weak-window and `HostRequestController` ticket pattern when presenting the result of a raw save operation.
+
+Open file requests and `native::inspect_file_paths` collect path metadata on a worker, without reading contents. Known byte length becomes `Some(u64)`; unavailable metadata stays `None`, including provider resources without a path. The picker binding renders exact bytes by default. `set_detail_formatter` receives the typed handle for localized units or an unavailable-size label and updates existing rows without replacing their stable identity.
+
+Set matching intrinsic rules in the component and binding. `KitFilePicker.accept` accepts comma-separated extensions or MIME hints, `max-files: -1` means no count limit and `max-size: ""` means no byte limit. Maximum sizes and `FileViewEntry.byte-length` are decimal strings at the renderer boundary, preserving all u64 values; empty metadata means unknown. Configure `FileConstraints` once in Rust before accepting native selections, drops or provider resources:
+
+```rust
+picker.set_constraints(slint_kit::FileConstraints {
+    accept: slint_kit::FileAccept::parse(".pdf,image/*")?,
+    max_files: Some(4),
+    max_size: Some(10_000_000),
+});
+picker.set_detail_formatter(|file| file.byte_length.map_or_else(
+    || "Size unavailable".into(), |bytes| format!("{bytes} bytes").into()));
+```
+
+The same shared HTML boundary is available as `HtmlConstraints::validate_file_selection`, combining required/access/custom validity with typed `FileConstraints`. Retain this Rust check at submission. Accepted sets must satisfy type, count and each known size; an unknown size fails a configured size bound explicitly. Rejected sets preserve the previously accepted resources. `set_constraint_mapper` localizes the typed `FileViolation`; `KitStrings.file-constraints` and per-control `file-messages` localize form reporting.
+
+MIME hints use the pinned filename-extension mapping, not a content or security check. Known MIME hints expand into native extension filters when no explicit request filter was supplied; an unknown mapping returns Unsupported. Extensions use the validated FileFilter grammar, including compound suffixes such as `.tar.gz`. See [the mapping library’s documented limits](https://docs.rs/mime_guess/2.0.5/mime_guess/). The filesystem/provider remains responsible for actual content and permissions.
+
+`accept_drop` now resolves metadata asynchronously using the same weak-window, access and request-ticket guards as browse. Removal, replacement, blocking or a newer request fences an old response. `accept_handles` accepts metadata already resolved by a host provider through the same constraints. Native dialog cancellation remains distinct from unavailable/unsupported outcomes. These contracts and headless tests do not qualify a device dialog or screen reader.

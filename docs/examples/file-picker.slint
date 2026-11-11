@@ -20,7 +20,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "File Picker"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        field := KitFilePicker { browse-label: "Choose a file…"; mode: FileSelectionMode.single; access: FieldAccess.editable; theme: root.theme; entries: [{ token: 11, generation: 1, name: "project-brief.txt", detail: "Text document · 2.4 KB", removable: true }, { token: 23, generation: 1, name: "meeting-notes.md", detail: "Markdown · 1.2 KB", removable: true }]; remove-requested(token, generation) => { root.status = "Remove file token " + token; } }
+        field := KitFilePicker { browse-label: "Choose a file…"; accept: ".txt,.md"; max-files: 2; max-size: "5000000"; mode: FileSelectionMode.multiple; access: FieldAccess.editable; theme: root.theme; entries: [{ token: 11, generation: 1, name: "project-brief.txt", byte-length: "2400", detail: "Text document · 2.4 KB", removable: true }, { token: 23, generation: 1, name: "meeting-notes.md", byte-length: "1200", detail: "Markdown · 1.2 KB", removable: true }]; remove-requested(token, generation) => { root.status = "Remove file token " + token; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

@@ -153,6 +153,12 @@ impl Resources {
                     token: file.id.0,
                     generation: self.generation,
                     name: file.handle.display_name.as_str().into(),
+                    byte_length: file
+                        .handle
+                        .byte_length
+                        .map_or_else(slint::SharedString::default, |bytes| {
+                            bytes.to_string().into()
+                        }),
                     detail: file
                         .handle
                         .byte_length
