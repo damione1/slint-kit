@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `flow: ChoiceFlow` to KitCalendar, KitDatePicker and KitDateRangePicker, inheriting `theme.direction` with per-instance overrides. RTL mirrors weekday/day columns, month controls and horizontal date navigation; date and range rules are unchanged. **Behavior change:** calendars now follow an RTL theme by default; set `flow: ChoiceFlow.left-to-right` to retain LTR within that theme.
+- Ajoute `flow: ChoiceFlow` à KitCalendar, KitDatePicker et KitDateRangePicker, hérité de `theme.direction` avec surcharge par instance. RTL inverse colonnes de jours/en-têtes, contrôles mensuels et navigation horizontale ; les règles de dates/périodes restent identiques. **Changement de comportement :** les calendriers suivent désormais un thème RTL par défaut ; définissez `flow: ChoiceFlow.left-to-right` pour conserver LTR dans ce thème.
+
 - Share the popup search query with KitSelect and expose KitMultiSelect.query. **Search behavior change:** admitted choices and closed popup sessions clear a nonempty query and notify query-edited(""); rejected gestures and persistent-list filters are preserved. Combobox session closure cancels pending debounce without erasing native text or acknowledging controlled selection.
 - Partage la recherche du popup avec KitSelect et expose KitMultiSelect.query. **Changement du comportement de recherche :** les choix admissibles et sessions fermées effacent une recherche non vide et notifient query-edited("") ; les gestes refusés et filtres de listes persistantes sont préservés. Fermer les suggestions du Combobox annule le debounce en attente sans effacer le texte natif ni acquitter la sélection contrôlée.
 
