@@ -56,6 +56,9 @@ fn off_grid_and_loaded_bounds_recover_on_native_keys_without_controlled_ack() {
     key(&window, Key::RightArrow);
     assert_eq!(window.get_range(), range("10", "85"));
     assert!(window.get_range_value_valid());
+    window.set_range(range("10.00", "85.00"));
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_range(), range("15.00", "85.00"));
     window.set_range(range("-20", "120"));
     assert_eq!(
         (window.get_lower_position(), window.get_upper_position()),

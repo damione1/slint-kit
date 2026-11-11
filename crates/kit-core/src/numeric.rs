@@ -977,6 +977,31 @@ impl DecimalSlider {
         if value > self.maximum {
             return self.at_position(1.0);
         }
+        if self.validate(value).is_ok() {
+            // Keep the established arithmetic scale of already-valid values.
+            // Reconstructing them from a step ordinal would normalize 12.50.
+            let boundary = || {
+                if amount > 0 {
+                    self.at_position(1.0)
+                } else {
+                    Ok(self.minimum)
+                }
+            };
+            let Some(delta) = self.step.0.checked_mul(Decimal::from(amount)) else {
+                return boundary();
+            };
+            let Some(next) = value.0.checked_add(delta) else {
+                return boundary();
+            };
+            let next = DecimalValue(next);
+            return if next < self.minimum {
+                Ok(self.minimum)
+            } else if next > self.maximum {
+                self.at_position(1.0)
+            } else {
+                Ok(next)
+            };
+        }
         let steps = value
             .checked_sub(self.minimum)?
             .0

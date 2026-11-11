@@ -52,7 +52,14 @@ fn normalize_range(
     range: OrderedRange<DecimalValue>,
     rules: DecimalSlider,
 ) -> Result<OrderedRange<DecimalValue>, ParseIssue> {
-    OrderedRange::new(rules.at_value(range.start())?, rules.at_value(range.end())?)
+    let admitted = |value| {
+        if rules.validate(value).is_ok() {
+            Ok(value)
+        } else {
+            rules.at_value(value)
+        }
+    };
+    OrderedRange::new(admitted(range.start())?, admitted(range.end())?)
 }
 #[cfg(debug_assertions)]
 fn install_spec_diagnostics(service: &ui::KitFieldService<'_>) {
