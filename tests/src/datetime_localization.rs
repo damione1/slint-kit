@@ -286,10 +286,11 @@ fn host_resolution_inside_the_choice_callback_keeps_the_new_state() {
         .unwrap()
         .mock_single_click(PointerEventButton::Left);
     slint::platform::update_timers_and_animations();
-    assert_eq!(
-        *choices.borrow(),
-        [ui::ZonedAcceptance::Earlier, ui::ZonedAcceptance::Unique]
-    );
+    // Slint Callback::call temporarily takes its handler. Re-entering the same
+    // chosen handler cannot deliver another notification until it returns.
+    assert_eq!(*choices.borrow(), [ui::ZonedAcceptance::Earlier]);
+    assert_eq!(window.get_date_text(), "2026-11-02");
+    assert_eq!(window.get_resolution(), ui::ZonedTimePresentation::Unique);
     assert_eq!(
         window.get_occurrence_selection(),
         ui::ZonedOccurrenceSelection::Unselected
