@@ -2,7 +2,7 @@ import { KitKeyResult } from "keyboard.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
-import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind } from "validation.slint";
+import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind, ValidationTiming } from "validation.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { FieldAccess, ValidationPresentation } from "shared-contracts.slint";
 import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
@@ -202,6 +202,9 @@ export component KitSelectSurface inherits Rectangle {
     in-out property <string> query <=> selection.query;
     in-out property <length> scroll-y;
     out property <length> active-scroll-y: root.scroll-y;
+    out property <bool> has-focus: keyboard.has-focus || search.has-focus;
+    callback focus-observed(bool);
+    changed has-focus => { root.focus-observed(root.has-focus); }
     callback navigate(NavigationStep);
     callback activate(int, int);
     callback dismiss(CloseReason);
@@ -227,7 +230,7 @@ export component KitSelectSurface inherits Rectangle {
     changed viewport-height => { root.ensure-active-visible(); }
     private property <bool> opened: root.state.open;
     changed opened => { if (root.opened) { if (root.focus-on-open) { root.take-focus(); } root.ensure-active-visible(); } }
-    init => { if (root.state.open) { if (root.focus-on-open) { root.take-focus(); } root.ensure-active-visible(); } }
+    init => { if (root.state.open) { if (root.focus-on-open) { root.take-focus(); } root.ensure-active-visible(); } root.focus-observed(root.has-focus); }
     private property <SurfaceRecipe> recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     // Content inset; nested corners follow the outer radius minus this inset.
     private property <length> inset: KitMetrics.popover-inset(root.theme);
@@ -373,10 +376,12 @@ export component KitOption inherits KitPressable {
 export component KitSelect inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: checks.validity;
     out property <bool> will-validate: checks.will-validate;
     out property <string> validation-message: checks.validation-message;
+    out property <bool> error-visible: checks.show-error;
     callback invalid();
     public function check-validity() -> bool { return checks.check-validity(); }
     public function report-validity() -> bool { return checks.report-validity(); }
@@ -385,6 +390,7 @@ export component KitSelect inherits Rectangle {
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.select; access: root.access; required: root.required;
+        validation-timing: root.validation-timing;
         custom-validity: root.custom-validity != "" ? root.custom-validity : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : ""; required-message: root.required-message;
         selected-count: root.state.selected.present && root.state.selection-availability != SelectionAvailability.unavailable ? 1 : 0;
         invalid => { root.invalid(); }
@@ -399,6 +405,7 @@ export component KitSelect inherits Rectangle {
     in property <FieldAccess> access: FieldAccess.editable;
     // A composite (multi-select) reports its own constraint through this.
     in property <ValidationPresentation> validation: ValidationPresentation.pristine;
+    in property <string> error-message;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <length> popup-height: 320px;
     in property <length> row-height: max(48px, 32px * root.theme.text-scale);
@@ -414,8 +421,9 @@ export component KitSelect inherits Rectangle {
     callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
-    out property <bool> has-focus: trigger.has-focus;
-    changed has-focus => { if (!root.has-focus && !root.state.open && root.access != FieldAccess.disabled) { checks.note-blur(); } }
+    private property <bool> popup-focused;
+    out property <bool> has-focus: trigger.has-focus || root.popup-focused;
+    changed has-focus => { if (!root.has-focus && !root.state.open && root.access == FieldAccess.editable) { checks.note-blur(); } }
     changed access => {
         trigger.cancel-press();
         // The controller's closed state then closes the presentation once.
@@ -434,8 +442,8 @@ export component KitSelect inherits Rectangle {
     function advance-tab(reverse: bool) -> KitKeyResult {
         // Close native presentation before the host advances focus. The deferred
         // state change must not restore over the host's next focus request.
-        popup.close();
         trigger.take-focus();
+        popup.close();
         root.tab-restore-complete = true;
         return root.tab-navigation(reverse);
     }
@@ -443,12 +451,13 @@ export component KitSelect inherits Rectangle {
     changed opened => {
         if (root.state.open) { popup.show(); }
         else {
-            popup.close();
             if (!root.tab-restore-complete && root.access != FieldAccess.disabled) { trigger.take-focus(); }
+            popup.close();
             root.tab-restore-complete = false;
         }
     }
     changed popup-visible => {
+        if (!root.popup-visible) { root.popup-focused = false; }
         // Native presentation closure does not expose its precise cause.
         if (!root.popup-visible && root.state.open) { root.handle-dismiss(CloseReason.host-closed); }
     }
@@ -464,7 +473,7 @@ export component KitSelect inherits Rectangle {
         validation: root.presented-validation;
         accessible-name: root.placeholder;
         accessible-value: root.trigger-label;
-        accessible-description: checks.show-error ? checks.validation-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
+        accessible-description: checks.show-error ? checks.validation-message : root.error-message != "" ? root.error-message : root.state.selection-availability == SelectionAvailability.unavailable ? root.unavailable-label : "";
         open-requested => { root.handle-open-requested(); }
         navigate(step) => { root.handle-navigate(step); }
         activate(token, generation) => { root.handle-activate(token, generation); }
@@ -498,8 +507,9 @@ export component KitSelect inherits Rectangle {
         height: min(root.popup-height, max(1, root.rows.length) * root.row-height + max(36px, 20px * root.theme.text-scale + 12px) + 18px);
         close-policy: close-on-click-outside;
         surface := KitSelectSurface {
-            init => { root.measured-popup-page-rows = self.page-rows; }
+            init => { root.measured-popup-page-rows = self.page-rows; root.popup-focused = self.has-focus; }
             changed page-rows => { root.measured-popup-page-rows = self.page-rows; }
+            focus-observed(focused) => { root.popup-focused = focused; }
             theme: root.theme;
             state: root.state;
             row-height: root.row-height;
@@ -549,10 +559,15 @@ export component KitSelect inherits Rectangle {
     selection := KitSelection {
         options: root.options; ownership: root.ownership; persistent: false;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
-        chosen(row) => { root.chosen(row); }
+        chosen(row) => { checks.note-edit(); root.chosen(row); }
     }
     function handle-navigate(step: NavigationStep) { if (root.access != FieldAccess.editable) { return; } selection.navigate(step); root.navigate(step); }
-    function handle-activate(token: int, generation: int) { if (root.access != FieldAccess.editable) { return; } selection.activate(token, generation); root.activate(token, generation); }
+    function handle-activate(token: int, generation: int) {
+        if (root.access != FieldAccess.editable) { return; }
+        let row = KitSelectionService.source(root.rows, token);
+        if (KitSelectionService.ready && root.options.length == 0 && generation == root.state.generation && row.token == token && !row.disabled) { checks.note-edit(); }
+        selection.activate(token, generation); root.activate(token, generation);
+    }
     function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
     function handle-typeahead(text: string) { if (root.access != FieldAccess.editable) { return; } selection.typeahead(text); root.typeahead(text); }
     function handle-open-requested() { if (root.access != FieldAccess.editable) { return; } selection.open(); root.open-requested(); }

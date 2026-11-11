@@ -88,7 +88,7 @@ export component App inherits Window {
                 theme: root.theme; label: "Accept the terms"; required: true; state <=> root.consent-state;
                 toggled(value) => { root.consent-dirty = true; root.field-edited(RegistrationField.consent); }
             }
-            if root.consent-error != "": KitFieldError { theme: root.theme; text: root.consent-error; }
+            if root.consent-error != "" || consent.error-visible: KitFieldError { theme: root.theme; text: root.consent-error != "" ? root.consent-error : consent.validation-message; }
             HorizontalLayout {
                 alignment: start;
                 KitButton { theme: root.theme; text: "Register"; disabled: root.submitting; activated => { form.submit(); } }

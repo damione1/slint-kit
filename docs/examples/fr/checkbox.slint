@@ -1,7 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { CheckState, KitCheckbox, KitTheme, KitThemes } from "@kit";
+import { KitFieldError, ValidationTiming, CheckState, KitCheckbox, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
@@ -20,7 +20,8 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Case à cocher"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        field := KitCheckbox { theme: root.theme; label: "Recevoir les nouveautés du produit"; state: CheckState.checked; toggled(state) => { root.status = "Changement de case à cocher demandé"; } }
+        field := KitCheckbox { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme; label: "Recevoir les nouveautés du produit"; state: CheckState.checked; toggled(state) => { root.status = "Changement de case à cocher demandé"; } }
+        if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

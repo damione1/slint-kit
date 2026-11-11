@@ -613,7 +613,7 @@
     "fr": {
       "summary": "Case à cocher contrôlée avec un véritable état mixte.",
       "usage": "`state` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `toggled` uniquement pour les effets métier. Projetez `CheckState.unchecked`, `.checked` ou `.mixed` et acceptez la demande `toggled(CheckState)` dans le contrôleur. Fournissez `label` et `FieldAccess`. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
-      "behavior": "Une activation par clic ou Espace demande l’état coché sauf depuis `.checked`, qui demande l’état décoché ; Entrée n’est pas consommée et remonte au formulaire parent. L’état mixte reste distinct et la lecture seule permet le focus sans modification. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
+      "behavior": "Une activation par clic ou Espace demande l’état coché sauf depuis `.checked`, qui demande l’état décoché ; Entrée n’est pas consommée et remonte au formulaire parent. L’état mixte reste distinct et la lecture seule permet le focus sans modification. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitSwitch",
         "KitRadioGroup"
@@ -646,6 +646,13 @@
           "effect": "Exige `checked` pour le moteur partagé (nature HTML `checkbox`) ; `mixed` ne le satisfait pas. Le message `required-message` apparaît après la perte du focus ou `report-validity()`.",
           "default": "`false`.",
           "example": "KitCheckbox {\n    label: \"J’accepte les conditions\";\n    required: true;\n    required-message: \"Acceptez les conditions pour continuer.\";\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "functions": {
@@ -656,7 +663,7 @@
     "en": {
       "summary": "Controlled checkbox with a genuine mixed state.",
       "usage": "`state` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `toggled` only for business effects. Project `CheckState.unchecked`, `.checked` or `.mixed` and accept `toggled(CheckState)` requests in the controller. Supply `label` and `FieldAccess`. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
-      "behavior": "Click or Space activation requests checked unless currently `.checked`, which requests unchecked; Enter is not consumed so enclosing forms can handle submission. Mixed remains distinct, and read-only access allows focus without modification. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
+      "behavior": "Click or Space activation requests checked unless currently `.checked`, which requests unchecked; Enter is not consumed so enclosing forms can handle submission. Mixed remains distinct, and read-only access allows focus without modification. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitSwitch",
         "KitRadioGroup"
@@ -689,6 +696,13 @@
           "effect": "Requires `checked` for the shared engine (HTML `checkbox` kind); `mixed` does not satisfy it. The message `required-message` shows after blur or `report-validity()`.",
           "default": "`false`.",
           "example": "KitCheckbox {\n    label: \"I accept the terms\";\n    required: true;\n    required-message: \"Accept the terms to continue.\";\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "functions": {
@@ -861,7 +875,7 @@
       "seoTitle": "Combobox éditable avec recherche pour Slint",
       "summary": "Combobox Slint à éditeur natif en ligne, popup d’autocomplétion et clés de choix Rust stables via Choices.",
       "usage": "Passez `options` depuis `Choices<K>::model()`, liez éventuellement `selected` et traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. En recherche distante, `retention: SelectionRetention.retain` (par défaut) conserve la sélection acceptée et son dernier libellé affiché lors du remplacement de la page. Pour une clé retenue jamais affichée, enregistrez-la via `Choices::retain` puis fournissez `Choices::label` à `selected-label`.",
-      "behavior": "L’éditeur en ligne `KitTextField` conserve le focus, le curseur, la sélection, l’annulation et l’IME natifs pendant que le popup d’autocomplétion (`PopupWindow` sans capture de focus) présente les options filtrées avec leur `label` et leur `description`. Haut/Bas ouvrent la liste et déplacent l’élément actif, Entrée accepte l’option active (ou émet `custom-chosen(text)` lorsque `allow-custom-value` vaut `true`), Échap ferme le popup en conservant le texte saisi, et la perte de focus restaure `selected-label` lorsque `allow-custom-value` vaut `false`. `min-query-length` et `query-debounce` encadrent `query-edited(string)`, `search-state: SearchPresentation.loading` affiche un indicateur en ligne et un pied de popup sans masquer les résultats existants, et `end-reached()` signale l’approche de la fin de liste. Les hooks clavier publics renvoient `KitKeyResult` (`accept` ou `reject`). Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les changements de libellé distant conservent le brouillon natif actif, son curseur et son historique. Fermer les suggestions par un clic extérieur laisse le focus sur la destination cliquée. Repasser sous min-query-length ferme les suggestions sans remplacer le texte saisi. La racine combobox exposée publie les états expandable/expanded et une action d’ouverture idempotente sans argument ; les contrôles en lecture seule ou désactivés ne s’ouvrent pas. Avec les popups enfants Slint 1.18.1, le premier appui extérieur ferme les suggestions et est consommé par le popup ; l’appui suivant atteint le contrôle extérieur. Tab ferme les suggestions et avance normalement. Le champ garde la hauteur intrinsèque de son éditeur natif même hors layout ; le popup de suggestions s’ancre sous ce champ.",
+      "behavior": "L’éditeur en ligne `KitTextField` conserve le focus, le curseur, la sélection, l’annulation et l’IME natifs pendant que le popup d’autocomplétion (`PopupWindow` sans capture de focus) présente les options filtrées avec leur `label` et leur `description`. Haut/Bas ouvrent la liste et déplacent l’élément actif, Entrée accepte l’option active (ou émet `custom-chosen(text)` lorsque `allow-custom-value` vaut `true`), Échap ferme le popup en conservant le texte saisi, et la perte de focus restaure `selected-label` lorsque `allow-custom-value` vaut `false`. `min-query-length` et `query-debounce` encadrent `query-edited(string)`, `search-state: SearchPresentation.loading` affiche un indicateur en ligne et un pied de popup sans masquer les résultats existants, et `end-reached()` signale l’approche de la fin de liste. Les hooks clavier publics renvoient `KitKeyResult` (`accept` ou `reject`). Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les changements de libellé distant conservent le brouillon natif actif, son curseur et son historique. Fermer les suggestions par un clic extérieur laisse le focus sur la destination cliquée. Repasser sous min-query-length ferme les suggestions sans remplacer le texte saisi. La racine combobox exposée publie les états expandable/expanded et une action d’ouverture idempotente sans argument ; les contrôles en lecture seule ou désactivés ne s’ouvrent pas. Avec les popups enfants Slint 1.18.1, le premier appui extérieur ferme les suggestions et est consommé par le popup ; l’appui suivant atteint le contrôle extérieur. Tab ferme les suggestions et avance normalement. Le champ garde la hauteur intrinsèque de son éditeur natif même hors layout ; le popup de suggestions s’ancre sous ce champ. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitSelect",
         "KitMultiSelect",
@@ -971,6 +985,13 @@
           "effect": "`read-only` place l’éditeur en ligne en lecture seule et empêche l’ouverture du popup ; `disabled` refuse toute interaction et ferme un popup ouvert.",
           "default": "`FieldAccess.editable`.",
           "example": "KitCombobox {\n    options: root.clients;\n    selected: root.client;\n    access: FieldAccess.read-only;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "callbacks": {
@@ -991,7 +1012,7 @@
       "seoTitle": "Editable searchable combobox for Slint",
       "summary": "Editable Slint combobox with an inline native text field, autocomplete popup and stable Rust choice keys through Choices.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. For remote search, keep `retention: SelectionRetention.retain` (the default) so replacing `options` with a new result page preserves an accepted selection and its last displayed label. For a retained key never shown in the component, register it with `Choices::retain` and supply `Choices::label` through `selected-label`.",
-      "behavior": "The inline `KitTextField` keeps native focus, caret, selection, undo and IME while the non-focus-stealing `PopupWindow` displays filtered options with both `label` and `description`. Up/Down open the popup and move the active option, Enter accepts the active option (or emits `custom-chosen(text)` when `allow-custom-value` is `true`), Escape closes the popup while keeping typed text, and blur restores `selected-label` when `allow-custom-value` is `false`. `min-query-length` and `query-debounce` gate `query-edited(string)`, `search-state: SearchPresentation.loading` shows inline and popup loading indicators without hiding current rows, and `end-reached()` signals incremental pagination. Public keyboard hooks return `KitKeyResult` (`accept` or `reject`). See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Remote label changes preserve an active native query draft and its caret/undo history. Closing suggestions by an outside click leaves focus on the clicked destination. Dropping below min-query-length closes suggestions without replacing the typed text. The exposed combobox root publishes expandable/expanded state and an idempotent, argument-free expand action; read-only and disabled controls do not expand. With Slint 1.18.1 child popups, the first outside pointer press dismisses suggestions and is consumed by the popup; a following press reaches the outside control. Keyboard Tab closes suggestions and advances normally. The field keeps its native editor’s intrinsic height even outside a layout; the suggestion popup anchors below that field.",
+      "behavior": "The inline `KitTextField` keeps native focus, caret, selection, undo and IME while the non-focus-stealing `PopupWindow` displays filtered options with both `label` and `description`. Up/Down open the popup and move the active option, Enter accepts the active option (or emits `custom-chosen(text)` when `allow-custom-value` is `true`), Escape closes the popup while keeping typed text, and blur restores `selected-label` when `allow-custom-value` is `false`. `min-query-length` and `query-debounce` gate `query-edited(string)`, `search-state: SearchPresentation.loading` shows inline and popup loading indicators without hiding current rows, and `end-reached()` signals incremental pagination. Public keyboard hooks return `KitKeyResult` (`accept` or `reject`). See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Remote label changes preserve an active native query draft and its caret/undo history. Closing suggestions by an outside click leaves focus on the clicked destination. Dropping below min-query-length closes suggestions without replacing the typed text. The exposed combobox root publishes expandable/expanded state and an idempotent, argument-free expand action; read-only and disabled controls do not expand. With Slint 1.18.1 child popups, the first outside pointer press dismisses suggestions and is consumed by the popup; a following press reaches the outside control. Keyboard Tab closes suggestions and advances normally. The field keeps its native editor’s intrinsic height even outside a layout; the suggestion popup anchors below that field. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitSelect",
         "KitMultiSelect",
@@ -1101,6 +1122,13 @@
           "effect": "`read-only` makes the inline text field read-only and prevents opening the popup; `disabled` refuses interaction and closes an open popup.",
           "default": "`FieldAccess.editable`.",
           "example": "KitCombobox {\n    options: root.customers;\n    selected: root.customer;\n    access: FieldAccess.read-only;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "callbacks": {
@@ -3155,7 +3183,7 @@
     "fr": {
       "summary": "Sélecteur multiple avec des étiquettes amovibles pour les valeurs retenues.",
       "usage": "Fournissez `options` depuis `Choices<K>::model()`. Le composant possède sa sélection multiple et le focus clavier ; `selected` accepte une liaison bidirectionnelle et `selection-limit` borne le nombre de choix (zéro signifie sans limite). Traitez `selection-changed(OptionRow, bool)` puis `Choices::accept` pour retrouver la clé métier stable. Le mode contrôlé émet des propositions sans modifier `selected`.",
-      "behavior": "La navigation ignore les choix désactivés. PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées), `wrap` (`false` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
+      "behavior": "La navigation ignore les choix désactivés. PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées), `wrap` (`false` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition. `has-focus` inclut l’éditeur/déclencheur, les puces amovibles et le popup associé. Un déplacement dans le groupe ne révèle pas d’erreur on-blur ; supprimer une puce rend le focus à l’éditeur/déclencheur. Le texte d’erreur n’est plus affiché en interne.",
       "related": [
         "KitCombobox",
         "KitTagInput",
@@ -3192,6 +3220,16 @@
           "effect": "`read-only` affiche les puces comme champs texte en lecture seule sans retrait et ne s’ouvre jamais ; `disabled` refuse l’interaction et ferme un popup ouvert.",
           "default": "`FieldAccess.editable`.",
           "example": "KitMultiSelect {\n    options: root.etiquettes;\n    selected: root.selection-etiquettes;\n    access: FieldAccess.read-only;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "has-focus": {
+          "effect": "Focus du groupe en lecture seule : éditeur/déclencheur natif, puces et popup associé."
         }
       },
       "callbacks": {
@@ -3206,7 +3244,7 @@
     "en": {
       "summary": "Multiple-choice selector with removable chips for accepted values.",
       "usage": "Supply `options` from `Choices<K>::model()`. The component owns its selected set and keyboard focus; `selected` supports two-way binding and `selection-limit` bounds membership (zero means unlimited). Handle `selection-changed(OptionRow, bool)` and pass the row to `Choices::accept` to recover the stable domain key. Controlled ownership emits membership proposals without changing `selected`.",
-      "behavior": "Navigation skips disabled choices. PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected), `wrap` (`false` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
+      "behavior": "Navigation skips disabled choices. PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected), `wrap` (`false` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits. `has-focus` includes the editor/trigger, removable chips and owned popup. Moving inside the group does not reveal an on-blur error; removing a chip returns focus to its editor/trigger. Error text is no longer rendered internally.",
       "related": [
         "KitCombobox",
         "KitTagInput",
@@ -3243,6 +3281,16 @@
           "effect": "`read-only` shows the chips as read-only text fields with no removal and never opens; `disabled` refuses interaction and closes an open popup.",
           "default": "`FieldAccess.editable`.",
           "example": "KitMultiSelect {\n    options: root.tags;\n    selected: root.tag-selection;\n    access: FieldAccess.read-only;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "has-focus": {
+          "effect": "Read-only group focus across the native editor/trigger, chips and owned popup."
         }
       },
       "callbacks": {
@@ -3735,7 +3783,7 @@
     "fr": {
       "summary": "Groupe de choix exclusifs avec une cible clavier commune.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Haut/Bas ainsi que Gauche/Droite (selon `flow`) sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; Espace active le bouton radio courant tandis qu’Entrée remonte au formulaire parent. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Haut/Bas ainsi que Gauche/Droite (selon `flow`) sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; Espace active le bouton radio courant tandis qu’Entrée remonte au formulaire parent. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitSegmentedControl",
         "KitToggleGroup"
@@ -3778,6 +3826,13 @@
           "effect": "Exige une ligne cochée pour le moteur partagé (nature HTML `radio`) : sinon `validity.value-missing` avec `required-message`, affiché après la perte du focus ou `report-validity()`.",
           "default": "`false`.",
           "example": "KitRadioGroup {\n    options: root.modes;\n    required: true;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "functions": {
@@ -3788,7 +3843,7 @@
     "en": {
       "summary": "Exclusive choice group with a shared keyboard target.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Up/Down and flow-aware Left/Right arrows select locally and wrap at bounds when `wrap` is enabled (`true` by default); Space activates the active radio while Enter is not consumed so enclosing forms can submit. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Up/Down and flow-aware Left/Right arrows select locally and wrap at bounds when `wrap` is enabled (`true` by default); Space activates the active radio while Enter is not consumed so enclosing forms can submit. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitSegmentedControl",
         "KitToggleGroup"
@@ -3831,6 +3886,13 @@
           "effect": "Requires one checked row for the shared engine (HTML `radio` kind): otherwise `validity.value-missing` with `required-message`, shown after blur or `report-validity()`.",
           "default": "`false`.",
           "example": "KitRadioGroup {\n    options: root.methods;\n    required: true;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "functions": {
@@ -4033,7 +4095,7 @@
     "fr": {
       "summary": "Choix exclusif compact présenté sous forme de segments.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les flèches sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; dans une grille horizontale sur plusieurs rangées (`rows.length > columns`), Haut/Bas avancent ou reculent de `columns` tandis que Gauche/Droite suivent `flow`. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les flèches verticales conservent la colonne rendue, en ignorant ses cellules désactivées et les cellules absentes de la dernière rangée incomplète. Le bouclage reste dans cette colonne. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les flèches sélectionnent localement et bouclent aux bornes lorsque `wrap` est actif (`true` par défaut) ; dans une grille horizontale sur plusieurs rangées (`rows.length > columns`), Haut/Bas avancent ou reculent de `columns` tandis que Gauche/Droite suivent `flow`. La lecture seule permet de parcourir sans accepter une nouvelle valeur. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les flèches verticales conservent la colonne rendue, en ignorant ses cellules désactivées et les cellules absentes de la dernière rangée incomplète. Le bouclage reste dans cette colonne. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -4066,6 +4128,13 @@
           "effect": "`horizontal` dispose les segments en rangées et navigue avec Gauche et Droite ; `vertical` les empile dans l’ordre source et navigue avec Haut et Bas.",
           "default": "`ChoiceDirection.horizontal`.",
           "example": "KitSegmentedControl {\n    options: root.etapes;\n    direction: ChoiceDirection.vertical;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "functions": {
@@ -4076,7 +4145,7 @@
     "en": {
       "summary": "Compact exclusive choice presented as segments.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Arrow navigation selects locally and wraps at bounds when `wrap` is enabled (`true` by default); in a wrapped multi-row horizontal grid (`rows.length > columns`), Up/Down step by `columns` while Left/Right follow `flow`. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Vertical arrows preserve the rendered column, skipping disabled cells within that column and missing cells in a partial final row. Wrapping stays in that column. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Arrow navigation selects locally and wraps at bounds when `wrap` is enabled (`true` by default); in a wrapped multi-row horizontal grid (`rows.length > columns`), Up/Down step by `columns` while Left/Right follow `flow`. Read-only keeps browsing without accepting a new value. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Vertical arrows preserve the rendered column, skipping disabled cells within that column and missing cells in a partial final row. Wrapping stays in that column. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitRadioGroup",
         "KitToggleGroup",
@@ -4109,6 +4178,13 @@
           "effect": "`horizontal` lays the segments in rows and navigates with Left and Right; `vertical` stacks them in source order and navigates with Up and Down.",
           "default": "`ChoiceDirection.horizontal`.",
           "example": "KitSegmentedControl {\n    options: root.steps;\n    direction: ChoiceDirection.vertical;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "functions": {
@@ -4121,7 +4197,7 @@
     "fr": {
       "summary": "Sélecteur à popup avec recherche, navigation clavier et options virtualisées.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. Déclencheur fermé : Bas/Haut/Entrée/Espace ouvrent la liste ; Début, Fin et la frappe imprimable ouvrent la liste sur la première, la dernière ou la première option correspondante. `typeahead-timeout-ms` (700 par défaut) règle la fenêtre de frappe (espaces inclus dans une requête active, réinitialisée par flèches/Début/Fin/PageUp/PageDown), PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées) et `wrap` (`false` par défaut) contrôle le bouclage aux bornes. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. La recherche préserve l’édition native. Les contrôles en lecture seule ou désactivés ne s’ouvrent pas et ne choisissent rien ; la fermeture restitue le focus au déclencheur, et Tab suit le parcours configuré. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. Déclencheur fermé : Bas/Haut/Entrée/Espace ouvrent la liste ; Début, Fin et la frappe imprimable ouvrent la liste sur la première, la dernière ou la première option correspondante. `typeahead-timeout-ms` (700 par défaut) règle la fenêtre de frappe (espaces inclus dans une requête active, réinitialisée par flèches/Début/Fin/PageUp/PageDown), PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées) et `wrap` (`false` par défaut) contrôle le bouclage aux bornes. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. La recherche préserve l’édition native. Les contrôles en lecture seule ou désactivés ne s’ouvrent pas et ne choisissent rien ; la fermeture restitue le focus au déclencheur, et Tab suit le parcours configuré. Les aperçus Slint seuls conservent le texte déclaré et exposent les options statiques selon le composant. Résolution du libellé sélectionné, chips, filtrage et navigation des popups nécessitent Rust ; fournissez les propriétés de présentation pour un état statique exact. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitCombobox",
         "KitMultiSelect",
@@ -4201,6 +4277,16 @@
           "effect": "Présentation demandée par un composite ; `KitMultiSelect` y transmet sa propre contrainte. L’échec de la contrainte propre du contrôle ou une sélection indisponible peint la présentation invalide quoi qu’il en soit.",
           "default": "`ValidationPresentation.pristine`.",
           "example": "in property <bool> conflit-forfait;\nKitSelect {\n    options: root.forfaits;\n    validation: root.conflit-forfait ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "error-message": {
+          "effect": "Description accessible d’erreur fournie par un composite avec validation ; le formulaire affiche le texte visible. L’erreur de contrainte visible du contrôle est prioritaire."
         }
       },
       "callbacks": {
@@ -4215,7 +4301,7 @@
     "en": {
       "summary": "Popup selector with search, keyboard navigation and virtualized options.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. While closed, Down/Up/Enter/Space open the list, and Home, End or printable typeahead open the list at the first, last or matched option. `typeahead-timeout-ms` (default 700) sets the typeahead window (allowing spaces inside an active query and resetting on arrow/Home/End/PageUp/PageDown navigation), PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected), and `wrap` (`false` by default) controls wrap-around at bounds. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Search preserves native text editing. Read-only and disabled controls do not open or choose; popup closure restores the trigger focus, while Tab follows the configured traversal. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. While closed, Down/Up/Enter/Space open the list, and Home, End or printable typeahead open the list at the first, last or matched option. `typeahead-timeout-ms` (default 700) sets the typeahead window (allowing spaces inside an active query and resetting on arrow/Home/End/PageUp/PageDown navigation), PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected), and `wrap` (`false` by default) controls wrap-around at bounds. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Search preserves native text editing. Read-only and disabled controls do not open or choose; popup closure restores the trigger focus, while Tab follows the configured traversal. Pure-Slint previews preserve authored text and expose static options where supported. Selected-label lookup, chips, filtering and popup navigation require Rust; use explicit presentation properties for an exact static state. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitCombobox",
         "KitMultiSelect",
@@ -4295,6 +4381,16 @@
           "effect": "Presentation a composite asks for; `KitMultiSelect` passes its own constraint through it. The control's own constraint failure or an unavailable selection paints the invalid presentation regardless.",
           "default": "`ValidationPresentation.pristine`.",
           "example": "in property <bool> plan-conflict;\nKitSelect {\n    options: root.plans;\n    validation: root.plan-conflict ? ValidationPresentation.invalid : ValidationPresentation.pristine;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "error-message": {
+          "effect": "Accessible error description supplied by a composite alongside validation; the host renders the visible text. The control’s own visible constraint error has priority."
         }
       },
       "callbacks": {
@@ -4352,7 +4448,13 @@
       "label": "Surface de sélection",
       "seoTitle": "Surface de sélection pour Slint",
       "callbacks": {
-        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
+        "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
+        "focus-observed": "Observe le focus natif recherche/liste depuis le popup et le projette vers le contrôle parent ; aucune lecture du parent dans PopupWindow n’est nécessaire."
+      },
+      "properties": {
+        "has-focus": {
+          "effect": "Focus en lecture seule de l’éditeur de recherche natif ou du clavier de liste ; l’ouverture seule ne signifie pas focus."
+        }
       }
     },
     "en": {
@@ -4367,7 +4469,13 @@
       "label": "Select Surface",
       "seoTitle": "Select Surface for Slint",
       "callbacks": {
-        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
+        "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
+        "focus-observed": "Observe actual native search/list focus from inside the popup and project it to the enclosing control; no parent read into PopupWindow is needed."
+      },
+      "properties": {
+        "has-focus": {
+          "effect": "Read-only focus of the native search editor or list keyboard; opening alone does not imply focus."
+        }
       }
     }
   },
@@ -4659,7 +4767,7 @@
     "fr": {
       "summary": "Interrupteur contrôlé pour une préférence booléenne.",
       "usage": "`checked` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `toggled` uniquement pour les effets métier. Projetez `checked` et traitez `toggled(bool)` pour accepter le nouvel état. Utilisez un `label` décrivant la préférence activée. La présentation locale utilise `corner-radius`, `padding-inline`, `padding-block`, `text-size` et `text-weight`, avec défauts réactifs de recette ; le contrôle conserve les couleurs d’état et le focus.",
-      "behavior": "Une activation par clic ou Espace propose l’inverse de la valeur actuelle sans la modifier localement en mode contrôlé ; Entrée n’est pas consommée et remonte au formulaire parent. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions. Les pistes en lecture seule utilisent des couleurs neutres et un contour visible, conservent la position cochée de la poignée et suppriment les remplissages de survol/appui ; le focus reste disponible et l’état « Read only » est annoncé. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
+      "behavior": "Une activation par clic ou Espace propose l’inverse de la valeur actuelle sans la modifier localement en mode contrôlé ; Entrée n’est pas consommée et remonte au formulaire parent. `FieldAccess.read-only` conserve le contrôle consultable et `.disabled` bloque les interactions. Les pistes en lecture seule utilisent des couleurs neutres et un contour visible, conservent la position cochée de la poignée et suppriment les remplissages de survol/appui ; le focus reste disponible et l’état « Read only » est annoncé. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "related": [
         "KitPressable"
       ],
@@ -4686,6 +4794,13 @@
           "effect": "Le texte à côté de la piste et le nom accessible de l’interrupteur ; toute la rangée est la cible du clic.",
           "default": "`\"\"`.",
           "example": "KitSwitch {\n    label: \"Notifications par courriel\";\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "functions": {
@@ -4696,7 +4811,7 @@
     "en": {
       "summary": "Controlled switch for a boolean preference.",
       "usage": "`checked` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `toggled` only for business effects. Project `checked` and handle `toggled(bool)` to accept the new state. Use a `label` describing the enabled preference. Local presentation uses `corner-radius`, `padding-inline`, `padding-block`, `text-size` and `text-weight`, with reactive recipe defaults; state colors and focus remain owned by the control.",
-      "behavior": "Click or Space activation proposes the inverse of the current value without changing it locally when controlled; Enter is not consumed so enclosing forms can handle submission. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction. Read-only tracks use neutral colors and a visible edge, preserve the checked thumb position and suppress hover/press fills; they stay focusable and announce “Read only”. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
+      "behavior": "Click or Space activation proposes the inverse of the current value without changing it locally when controlled; Enter is not consumed so enclosing forms can handle submission. `FieldAccess.read-only` keeps the control available for inspection and `.disabled` blocks interaction. Read-only tracks use neutral colors and a visible edge, preserve the checked thumb position and suppress hover/press fills; they stay focusable and announce “Read only”. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "related": [
         "KitPressable"
       ],
@@ -4723,6 +4838,13 @@
           "effect": "The text beside the track and the accessible name of the switch; the whole row is the press target.",
           "default": "`\"\"`.",
           "example": "KitSwitch {\n    label: \"Email notifications\";\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "functions": {
@@ -4761,7 +4883,7 @@
     "fr": {
       "summary": "Saisie de nouvelles étiquettes avec liste de puces contrôlée.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives.",
-      "behavior": "Entrée transmet le brouillon au contrôleur sans ajouter de puce localement. Les erreurs restent visibles près de l’éditeur et les actions respectent `FieldAccess`. Les aperçus statiques affichent les `chips` et le `text` fournis explicitement ; création et suppression restent des callbacks applicatifs. L’installation Rust fournit le service de validation HTML.",
+      "behavior": "Entrée transmet le brouillon au contrôleur sans ajouter de puce localement. Le formulaire affiche le texte d’erreur ; l’éditeur conserve son apparence invalide et les actions respectent `FieldAccess`. Les aperçus statiques affichent les `chips` et le `text` fournis explicitement ; création et suppression restent des callbacks applicatifs. L’installation Rust fournit le service de validation HTML. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition. `has-focus` inclut l’éditeur/déclencheur, les puces amovibles et le popup associé. Un déplacement dans le groupe ne révèle pas d’erreur on-blur ; supprimer une puce rend le focus à l’éditeur/déclencheur. Le texte d’erreur n’est plus affiché en interne.",
       "label": "Saisie d’étiquettes",
       "seoTitle": "Saisie d’étiquettes pour Slint",
       "related": [
@@ -4771,12 +4893,24 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+      },
+      "properties": {
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "has-focus": {
+          "effect": "Focus du groupe en lecture seule : éditeur/déclencheur natif, puces et popup associé."
+        }
       }
     },
     "en": {
       "summary": "Input for creating tags with a controlled chip list.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions.",
-      "behavior": "Enter passes the draft to the controller without adding a chip locally. Errors remain visible near the editor and actions respect `FieldAccess`. Static previews render explicitly supplied `chips` and `text`; creation and removal remain application callbacks. Rust installation provides the HTML validation service.",
+      "behavior": "Enter passes the draft to the controller without adding a chip locally. The form renders error text; the editor keeps its invalid appearance and actions respect `FieldAccess`. Static previews render explicitly supplied `chips` and `text`; creation and removal remain application callbacks. Rust installation provides the HTML validation service. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits. `has-focus` includes the editor/trigger, removable chips and owned popup. Moving inside the group does not reveal an on-blur error; removing a chip returns focus to its editor/trigger. Error text is no longer rendered internally.",
       "label": "Tag Input",
       "seoTitle": "Tag Input for Slint",
       "related": [
@@ -4786,6 +4920,18 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+      },
+      "properties": {
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "has-focus": {
+          "effect": "Read-only group focus across the native editor/trigger, chips and owned popup."
+        }
       }
     }
   },
@@ -5166,6 +5312,9 @@
         "implicit-form-submit": {
           "effect": "Participe au protocole Entrée natif du KitForm englobant. Définissez false sur les éditeurs auxiliaires dont Entrée appartient au widget.",
           "default": "`true`."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de la contrainte partagée, héritée des champs textuels. La présentation manuelle d’une erreur métier reste observable via validation-visible."
         }
       },
       "callbacks": {
@@ -5482,6 +5631,9 @@
         "implicit-form-submit": {
           "effect": "Participates in the enclosing KitForm’s native Enter protocol. Set false on auxiliary editors whose Enter action belongs to their own widget.",
           "default": "`true`."
+        },
+        "error-visible": {
+          "effect": "Read-only shared constraint visibility, inherited by text-based fields. Manual domain error presentation remains observable through validation-visible."
         }
       },
       "callbacks": {
@@ -5655,7 +5807,7 @@
     "fr": {
       "summary": "Groupe d’actions à sélection multiple locale ou contrôlée.",
       "usage": "Fournissez `options` depuis `Choices<K>::model()`. Le composant possède sa sélection multiple et le focus clavier ; `selected` accepte une liaison bidirectionnelle et `selection-limit` borne le nombre de choix (zéro signifie sans limite). Traitez `selection-changed(OptionRow, bool)` puis `Choices::accept` pour retrouver la clé métier stable. Le mode contrôlé émet des propositions sans modifier `selected`.",
-      "behavior": "La navigation ignore les choix désactivés. `direction` (`horizontal` par défaut ou `vertical`), `flow` (hérité de `theme.direction`, inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`) et `wrap` (`true` par défaut) pilotent le parcours clavier. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les libellés reviennent à la ligne dans les limites du bouton avec sa marge interne, y compris à 200 % de texte ; leur texte complet reste exposé à l’accessibilité. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Fournissez `rows` explicitement pour les marques de sélection exactes d’un aperçu statique. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire.",
+      "behavior": "La navigation ignore les choix désactivés. `direction` (`horizontal` par défaut ou `vertical`), `flow` (hérité de `theme.direction`, inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`) et `wrap` (`true` par défaut) pilotent le parcours clavier. Remplacer la source invalide les anciens gestes pointeur ; les clés stables survivent au réordonnancement. Lecture seule et désactivation empêchent de changer l’ensemble ; la sélection obligatoire utilise le moteur partagé de contraintes HTML. Les libellés reviennent à la ligne dans les limites du bouton avec sa marge interne, y compris à 200 % de texte ; leur texte complet reste exposé à l’accessibilité. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Fournissez `rows` explicitement pour les marques de sélection exactes d’un aperçu statique. Dans KitForm, Entrée sans modificateur envoie le formulaire englobant ; Espace garde l’activation du choix. Hors formulaire coordonné, Entrée conserve son activation existante. Un raccourci consommé par l’hôte est prioritaire. `validation-timing` utilise `ValidationTiming.on-blur` par défaut ; choisissez `on-input` pour les éditions utilisateur admissibles ou `on-submit` pour le signalement explicite. `validation-message` peut être non vide avant interaction : affichez un `KitFieldError` dans le formulaire uniquement si `error-visible` vaut vrai. `check-validity()` ne révèle pas les erreurs ; `report-validity()` les révèle sans déplacer le focus et `reset-validation()` efface les indicateurs d’interaction. Les propositions contrôlées comptent comme éditions avant acquittement ; les actions désactivées/en lecture seule n’en sont pas. Un changement de sélection programmatique seul ne compte pas comme édition.",
       "label": "Groupe de boutons à bascule",
       "seoTitle": "Groupe de boutons à bascule pour Slint",
       "related": [
@@ -5682,6 +5834,13 @@
           "effect": "Nom accessible du groupe (rôle `groupbox`). Aucune ligne de libellé visible n’est rendue.",
           "default": "`\"\"`.",
           "example": "KitToggleGroup {\n    label: \"Jours\";\n    options: root.jours;\n}"
+        },
+        "validation-timing": {
+          "effect": "Choisit le moment d’affichage des erreurs de contrainte : on-blur, on-input ou on-submit ; report-validity les révèle toujours.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
         }
       },
       "functions": {
@@ -5692,7 +5851,7 @@
     "en": {
       "summary": "Group of actions with local or controlled multiple selection.",
       "usage": "Supply `options` from `Choices<K>::model()`. The component owns its selected set and keyboard focus; `selected` supports two-way binding and `selection-limit` bounds membership (zero means unlimited). Handle `selection-changed(OptionRow, bool)` and pass the row to `Choices::accept` to recover the stable domain key. Controlled ownership emits membership proposals without changing `selected`.",
-      "behavior": "Navigation skips disabled choices. `direction` (`horizontal` by default or `vertical`), `flow` (inherited from `theme.direction`, reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`) and `wrap` (`true` by default) configure keyboard traversal. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Labels wrap within the padded button bounds, including at 200% text, while accessibility exposes their complete text. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Supply explicit `rows` for exact selected marks in a static preview. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence.",
+      "behavior": "Navigation skips disabled choices. `direction` (`horizontal` by default or `vertical`), `flow` (inherited from `theme.direction`, reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`) and `wrap` (`true` by default) configure keyboard traversal. Source replacement invalidates old pointer gestures, while stable keys survive reorderings. Read-only and disabled controls never change membership; required selection uses the shared HTML constraint engine. Labels wrap within the padded button bounds, including at 200% text, while accessibility exposes their complete text. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Supply explicit `rows` for exact selected marks in a static preview. Within KitForm, unmodified Enter submits the enclosing form; Space retains choice activation. Outside a coordinated form, Enter keeps its existing activation. Host-consumed shortcuts take precedence. `validation-timing` defaults to `ValidationTiming.on-blur`; choose `on-input` for admitted user edits or `on-submit` for explicit reporting. `validation-message` can be nonempty while pristine: render a host-owned `KitFieldError` only when `error-visible` is true. `check-validity()` does not reveal errors; `report-validity()` reveals them without moving focus, and `reset-validation()` clears the interaction flags. Controlled proposals count as edits even before acknowledgment; disabled/read-only actions do not. Programmatic selection changes alone do not count as edits.",
       "label": "Toggle Group",
       "seoTitle": "Toggle Group for Slint",
       "related": [
@@ -5719,6 +5878,13 @@
           "effect": "Accessible name of the group (`groupbox` role). No visible label row is rendered.",
           "default": "`\"\"`.",
           "example": "KitToggleGroup {\n    label: \"Days\";\n    options: root.days;\n}"
+        },
+        "validation-timing": {
+          "effect": "Controls when constraint errors become visible: on-blur, on-input or on-submit; explicit report-validity always reveals them.",
+          "default": "ValidationTiming.on-blur."
+        },
+        "error-visible": {
+          "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
         }
       },
       "functions": {
