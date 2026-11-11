@@ -188,7 +188,7 @@ fn stored_dates_outside_new_bounds_or_availability_do_not_block_replacement() {
             1,
             "the host value is preserved until a replacement is chosen"
         );
-        let old = ElementHandle::find_by_accessible_label(&window, "2026-10-01")
+        let old = ElementHandle::find_by_accessible_label(&window, "Thursday 1 October 2026")
             .next()
             .unwrap();
         old.invoke_accessible_default_action();
@@ -197,7 +197,7 @@ fn stored_dates_outside_new_bounds_or_availability_do_not_block_replacement() {
             1,
             "an invalid stored day is still unavailable"
         );
-        ElementHandle::find_by_accessible_label(&window, "2026-10-06")
+        ElementHandle::find_by_accessible_label(&window, "Tuesday 6 October 2026")
             .next()
             .unwrap()
             .mock_single_click(slint::platform::PointerEventButton::Left);
@@ -292,9 +292,10 @@ fn invalid_date_configuration_keeps_a_disabled_grid_and_a_localized_diagnostic()
                         .is_some()
                 );
                 let old = window.get_selected();
-                let unavailable = ElementHandle::find_by_accessible_label(&window, "2026-10-07")
-                    .next()
-                    .unwrap();
+                let unavailable =
+                    ElementHandle::find_by_accessible_label(&window, "Wednesday 7 October 2026")
+                        .next()
+                        .unwrap();
                 assert_eq!(unavailable.accessible_enabled(), Some(false));
                 unavailable.invoke_accessible_default_action();
                 assert_eq!(
@@ -327,7 +328,7 @@ fn invalid_date_configuration_keeps_a_disabled_grid_and_a_localized_diagnostic()
                     .next()
                     .is_none()
             );
-            ElementHandle::find_by_accessible_label(&window, "2026-10-06")
+            ElementHandle::find_by_accessible_label(&window, "Tuesday 6 October 2026")
                 .next()
                 .unwrap()
                 .invoke_accessible_default_action();
@@ -360,7 +361,15 @@ fn weekday_headers_follow_every_week_start_and_the_first_grid_column() {
         (slint_kit::ui::WeekStart::Saturday, "2026-09-26"),
         (slint_kit::ui::WeekStart::Sunday, "2026-09-27"),
     ];
-    let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    let names = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ];
     for (mode, base) in [
         window.get_theme(),
         window.global::<slint_kit::ui::KitThemes>().get_dark(),
@@ -394,7 +403,14 @@ fn weekday_headers_follow_every_week_start_and_the_first_grid_column() {
                         Some(names[(column + offset) % 7])
                     );
                 }
-                let first_day = ElementHandle::find_by_accessible_label(&window, first_date)
+                let date = match kit_core::CivilDate::parse_iso(first_date) {
+                    kit_core::DraftValue::Parsed(date) => date,
+                    other => panic!("invalid fixture date: {other:?}"),
+                };
+                let label = kit_core::DatePattern::new("%A %-d %B %Y")
+                    .unwrap()
+                    .format(date);
+                let first_day = ElementHandle::find_by_accessible_label(&window, &label)
                     .next()
                     .unwrap();
                 assert!(headers[0].size().width > 0.);
@@ -663,7 +679,15 @@ macro_rules! calendar_flow_regression {
                                 a.absolute_position().x.total_cmp(&b.absolute_position().x)
                             });
                             assert_eq!(headers.len(), 7);
-                            let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                            let names = [
+                                "Monday",
+                                "Tuesday",
+                                "Wednesday",
+                                "Thursday",
+                                "Friday",
+                                "Saturday",
+                                "Sunday",
+                            ];
                             for (position, header) in headers.iter().enumerate() {
                                 let logical = if flow == ChoiceFlow::RightToLeft {
                                     6 - position

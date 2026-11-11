@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDatePicker, KitDateRangePicker, CalendarDay, CalendarConfigurationState, DateRangePhase, CivilDateView, DateRangeView, WeekStart, KitTheme, KitThemes } from "@kit";
+export component CalendarLabelsFixture inherits Window {
+    width: 800px; height: 1300px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    in property <[string]> month-short-names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    in property <[string]> weekday-names: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    in property <[string]> weekday-short-names: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    in property <[string]> weekdays: ["M", "T", "W", "T", "F", "S", "S"];
+    in property <string> accessible-date-pattern: "%A %-d %B %Y";
+    in property <string> title-pattern: "%B %Y";
+    in property <string> today-label: "Today";
+    in property <string> range-start-label: "Range start";
+    in property <string> range-end-label: "Range end";
+    in property <string> in-range-label: "In selected range";
+    in property <WeekStart> week-start: WeekStart.sunday;
+    in-out property <DateRangeView> range-selection: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}};
+    public function open-date() { date.open = true; }
+    public function focus-range() { range.take-focus(); }
+    public function close-date() { date.open = false; }
+    out property <DateRangePhase> range-phase: range.phase;
+    out property <[CalendarDay]> calendar-days: calendar.days;
+    out property <string> calendar-title: calendar.title;
+    out property <CalendarConfigurationState> calendar-configuration: calendar.configuration-state;
+    out property <[CalendarDay]> date-days: date.days;
+    out property <string> date-title: date.title;
+    out property <CalendarConfigurationState> date-configuration: date.configuration-state;
+    out property <[CalendarDay]> range-days: range.days;
+    out property <string> range-title: range.title;
+    out property <CalendarConfigurationState> range-configuration: range.configuration-state;
+    VerticalLayout { alignment: start;
+        calendar := KitCalendar {
+            theme: root.theme; label: "calendar"; today: {year: 2026, month: 10, day: 2}; week-start: root.week-start;
+            selected: {year: 2026, month: 10, day: 1};
+            month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; weekdays: root.weekdays; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label;
+        }
+        date := KitDatePicker {
+            theme: root.theme; label: "date"; today: {year: 2026, month: 10, day: 2}; week-start: root.week-start;
+            accepted-date: {year: 2026, month: 10, day: 1};
+            month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; weekdays: root.weekdays; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label;
+        }
+        range := KitDateRangePicker {
+            theme: root.theme; label: "range"; today: {year: 2026, month: 10, day: 2}; week-start: root.week-start;
+            selected <=> root.range-selection;
+            month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; weekdays: root.weekdays; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label;
+        }
+    }
+}
+
+export component CalendarLabelsRenderFixture inherits Window {
+    preferred-width: 520px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 24px;
+        calendar := KitCalendar {
+            theme: root.theme;
+            selected: {year: 2026, month: 10, day: 1};
+            today: {year: 2026, month: 10, day: 2};
+            month-names: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+            weekday-names: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"];
+            weekdays: ["L", "M", "M", "J", "V", "S", "D"];
+            title-pattern: "%B %Y — calendrier de réservation";
+            today-label: "Aujourd’hui";
+        }
+    }
+}

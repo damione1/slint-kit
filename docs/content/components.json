@@ -376,8 +376,8 @@
   "KitCalendar": {
     "fr": {
       "summary": "Calendrier grégorien navigable au clavier, avec sélection locale ou contrôlée, règles de disponibilité et libellés localisés.",
-      "usage": "Définissez `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` et `unavailable-ranges`. Après un unique `install(&app)`, chaque calendrier possède sa date focalisée et calcule sa grille avec le service pur partagé. Traitez `chosen(CivilDateView)` et convertissez avec `CivilDate::try_from`. `days`, `active-index`, `title` et la disponibilité de navigation restent des ports de projection explicites pour les compositions personnalisées. L’application fournit `month-names`, `weekdays` et les libellés accessibles localisés. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. today suit KitCalendarService.today, propre à la fenêtre. Fournissez cette date ou appelez refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) après install et avant show. set_calendar_today_at accepte un Instant injecté pour une horloge déterministe. Aucun fuseau système n’est deviné ; actualisez à votre changement de date.",
-      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance.",
+      "usage": "Définissez `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` et `unavailable-ranges`. Après un unique `install(&app)`, chaque calendrier possède sa date focalisée et calcule sa grille avec le service pur partagé. Traitez `chosen(CivilDateView)` et convertissez avec `CivilDate::try_from`. `days`, `active-index`, `title` et la disponibilité de navigation restent des ports de projection explicites pour les compositions personnalisées. Fournissez les noms et motifs localisés via les propriétés de texte ; le service installé compose les noms de jours accessibles sans reconstruire le modèle days. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. today suit KitCalendarService.today, propre à la fenêtre. Fournissez cette date ou appelez refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) après install et avant show. set_calendar_today_at accepte un Instant injecté pour une horloge déterministe. Aucun fuseau système n’est deviné ; actualisez à votre changement de date.",
+      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance. Noms de formatage et motifs d’affichage sont aussi validés : une configuration invalide désactive la projection et l’acceptation du calendrier sans remplacer dates acceptées ou brouillons. Une erreur de libellés ne désactive pas l’éditeur natif du DatePicker et ne change pas ses contraintes de dates indépendantes.",
       "label": "Calendrier",
       "seoTitle": "Calendrier pour Slint",
       "related": [
@@ -386,7 +386,7 @@
       ],
       "properties": {
         "configuration-state": {
-          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid. Des noms ou motifs d’affichage invalides invalident aussi la projection du calendrier, sans désactiver la saisie native de date.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -396,7 +396,7 @@
           "example": "KitCalendar { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Sept noms de jours localisés, toujours lundi en premier ; les en-têtes suivent week-start.",
+          "effect": "Sept libellés courts visibles dans l’ordre lundi à dimanche. Ils peuvent se répéter (initiales, par exemple) ; weekday-names fournit les noms accessibles longs. week-start et flow fixent leur position sans réordonner les modèles fournis.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitCalendar { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -418,13 +418,64 @@
           "default": "theme.direction",
           "example": "KitCalendar { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Gardez les noms de jours dans l’ordre lundi à dimanche. week-start, Haut/Bas, Début/Fin, Page précédente/suivante (avec Maj), bornes, disponibilités et règles de période conservent leur sens."
+        },
+        "month-names": {
+          "effect": "Douze noms de mois longs, de janvier à décembre, utilisés par %B dans les dates accessibles et les titres.",
+          "default": "Noms longs anglais",
+          "constraints": "Exactement douze noms non vides et distincts ; aucune langue n’est déduite."
+        },
+        "month-short-names": {
+          "effect": "Douze noms de mois abrégés, de janvier à décembre, utilisés par %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactement douze noms non vides et distincts."
+        },
+        "weekday-names": {
+          "effect": "Sept noms de jours longs, de lundi à dimanche, utilisés par %A et les noms accessibles des en-têtes.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactement sept noms non vides et distincts ; gardez lundi en premier quels que soient week-start et flow."
+        },
+        "weekday-short-names": {
+          "effect": "Sept noms de jours abrégés, de lundi à dimanche, utilisés par %a indépendamment du modèle weekdays visible.",
+          "default": "Mon … Sun",
+          "constraints": "Exactement sept noms non vides et distincts, dans l’ordre lundi à dimanche."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formate la date civile réelle de chaque cellule pour son nom accessible, avant ajout des suffixes d’état.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Syntaxe DateDisplayPattern limitée aux dates ; ces noms/motifs ne changent ni la saisie native ni les contraintes de dates."
+        },
+        "title-pattern": {
+          "effect": "Formate le titre du mois affiché ; %B %Y conserve l’ordre mois/année existant.",
+          "default": "%B %Y",
+          "constraints": "Un motif d’affichage peut omettre le jour ; l’analyse de saisie DatePattern exige toujours une date complète."
+        },
+        "today-label": {
+          "effect": "Suffixe accessible de la cellule correspondant à today.",
+          "default": "Today",
+          "constraints": "Un suffixe vide est omis sans virgule résiduelle."
+        },
+        "range-start-label": {
+          "effect": "Suffixe accessible du début de la période affichée, y compris un début provisoire.",
+          "default": "Range start",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "range-end-label": {
+          "effect": "Suffixe accessible de la fin de la période affichée.",
+          "default": "Range end",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "in-range-label": {
+          "effect": "Suffixe accessible des dates strictement à l’intérieur de la période affichée.",
+          "default": "In selected range",
+          "constraints": "Les extrémités reçoivent les suffixes début/fin. Un suffixe vide est omis."
         }
-      }
+      },
+      "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé."
     },
     "en": {
       "summary": "Keyboard-friendly Gregorian calendar with local or controlled selection, availability rules and localized labels.",
-      "usage": "Set `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` and `unavailable-ranges`. After one `install(&app)`, each calendar owns its focused date and computes its grid through the shared pure service. Handle `chosen(CivilDateView)` and convert with `CivilDate::try_from`. `days`, `active-index`, `title` and navigation availability remain explicit projection ports for custom compositions. Localized `month-names`, `weekdays` and accessible labels belong to the application. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. today defaults to the window-local KitCalendarService.today. Supply it explicitly, or call refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) after install and before show. set_calendar_today_at accepts an injected Instant for deterministic clocks. No system zone is guessed; refresh again at your chosen date rollover.",
-      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned.",
+      "usage": "Set `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` and `unavailable-ranges`. After one `install(&app)`, each calendar owns its focused date and computes its grid through the shared pure service. Handle `chosen(CivilDateView)` and convert with `CivilDate::try_from`. `days`, `active-index`, `title` and navigation availability remain explicit projection ports for custom compositions. Supply localized names and display patterns through the text properties; the installed service composes accessible day labels without rebuilding the days model. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. today defaults to the window-local KitCalendarService.today. Supply it explicitly, or call refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) after install and before show. set_calendar_today_at accepts an injected Instant for deterministic clocks. No system zone is guessed; refresh again at your chosen date rollover.",
+      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned. Formatting names and display patterns are validated too: invalid configuration disables the calendar projection and calendar acceptance without replacing accepted dates or drafts. Label configuration does not disable the DatePicker native editor or change its independent date constraints.",
       "label": "Calendar",
       "seoTitle": "Calendar for Slint",
       "related": [
@@ -433,7 +484,7 @@
       ],
       "properties": {
         "configuration-state": {
-          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid. Invalid formatting names or display patterns also invalidate the calendar projection; this does not disable native date entry.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -443,7 +494,7 @@
           "example": "KitCalendar { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Seven localized weekday names, always Monday-first; headers rotate with week-start.",
+          "effect": "Seven short visual weekday labels in Monday-to-Sunday order. They may repeat (for example initials); weekday-names supplies their full accessible names. week-start and flow determine their physical positions without reordering either input model.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitCalendar { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -465,8 +516,59 @@
           "default": "theme.direction",
           "example": "KitCalendar { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Keep weekday names in Monday-to-Sunday order. week-start, Up/Down, Home/End, Page Up/Down (including Shift), date bounds, availability and range rules retain their meaning."
+        },
+        "month-names": {
+          "effect": "Twelve full month names, January to December, used by %B in date labels and titles.",
+          "default": "English full month names",
+          "constraints": "Exactly twelve nonempty, distinct names; no locale is inferred."
+        },
+        "month-short-names": {
+          "effect": "Twelve abbreviated month names, January to December, used by %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactly twelve nonempty, distinct names."
+        },
+        "weekday-names": {
+          "effect": "Seven full weekday names, Monday to Sunday, used by %A and weekday-header accessible labels.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order for every week-start and flow."
+        },
+        "weekday-short-names": {
+          "effect": "Seven abbreviated weekday names, Monday to Sunday, used by %a independently of the visible weekdays model.",
+          "default": "Mon … Sun",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formats each actual civil date for its accessible name before state suffixes are appended.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Date-only DateDisplayPattern syntax; formatting names/patterns do not change native date entry or date constraints."
+        },
+        "title-pattern": {
+          "effect": "Formats the displayed month title; %B %Y preserves the existing month/year order.",
+          "default": "%B %Y",
+          "constraints": "Date-only display patterns may omit day fields; DatePattern input parsing still requires a complete date."
+        },
+        "today-label": {
+          "effect": "Accessible suffix for the cell matching today.",
+          "default": "Today",
+          "constraints": "An empty suffix is omitted without a trailing comma."
+        },
+        "range-start-label": {
+          "effect": "Accessible suffix for the displayed range start, including a provisional start.",
+          "default": "Range start",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "range-end-label": {
+          "effect": "Accessible suffix for the displayed range end.",
+          "default": "Range end",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "in-range-label": {
+          "effect": "Accessible suffix only for dates strictly inside the displayed range.",
+          "default": "In selected range",
+          "constraints": "Range endpoints use their start/end suffixes instead. An empty suffix is omitted."
         }
-      }
+      },
+      "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately."
     }
   },
   "KitCard": {
@@ -1789,7 +1891,7 @@
       "seoTitle": "Sélecteur de date pour Slint",
       "summary": "Champ de date ISO éditable, avec calendrier déroulant et règles de réservation communes.",
       "usage": "Fournissez `accepted-date`, les libellés et les mêmes contraintes calendaires que `KitCalendar`. Le popup, le texte natif et le calendrier partagent l’état de cette instance. Traitez `chosen(CivilDateView)` pour la date acceptée ; utilisez `CivilDate::try_from` à la frontière Rust. Le projet complet ne nécessite que l’installation et un callback métier. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-date` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. Une date saisie est acceptée avec Entrée ou lorsque le focus quitte l’éditeur (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; un texte invalide ou indisponible conserve la date acceptée et le brouillon, et une date inchangée ne répète pas `chosen`. today suit KitCalendarService.today, propre à la fenêtre. Fournissez cette date ou appelez refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) après install et avant show. set_calendar_today_at accepte un Instant injecté pour une horloge déterministe. Aucun fuseau système n’est deviné ; actualisez à votre changement de date.",
-      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Un engagement vide facultatif et valide émet cleared() et remet accepted-date à vide en ownership local ; chosen contient toujours une vraie date civile. En mode controlled, la valeur reste inchangée jusqu’à confirmation de l’absence par l’hôte. Une valeur vide requise ou invalide selon custom-validity conserve la valeur acceptée. clearable active l’action native d’effacement en fin de champ ; clear-label localise son nom. clear() modifie le brouillon natif et préserve le curseur, l’annulation et la garde de préédition ; l’acceptation suit commit-policy. commit() demande une acceptation explicite validée. L’initialisation confirme la date acceptée après install sans remplacer un brouillon explicite de l’hôte. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance.",
+      "behavior": "L’exemple accepte les jours ouvrables dans les bornes de réservation et refuse week-ends et 13–15 octobre depuis les deux chemins de saisie. L’ouverture préserve l’éditeur natif. La popup réserve la largeur de sept colonnes en texte agrandi. DatePattern et DateNames couvrent les formats gérés par l’application ; le champ HTML date conserve ISO. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Un engagement vide facultatif et valide émet cleared() et remet accepted-date à vide en ownership local ; chosen contient toujours une vraie date civile. En mode controlled, la valeur reste inchangée jusqu’à confirmation de l’absence par l’hôte. Une valeur vide requise ou invalide selon custom-validity conserve la valeur acceptée. clearable active l’action native d’effacement en fin de champ ; clear-label localise son nom. clear() modifie le brouillon natif et préserve le curseur, l’annulation et la garde de préédition ; l’acceptation suit commit-policy. commit() demande une acceptation explicite validée. L’initialisation confirme la date acceptée après install sans remplacer un brouillon explicite de l’hôte. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance. Noms de formatage et motifs d’affichage sont aussi validés : une configuration invalide désactive la projection et l’acceptation du calendrier sans remplacer dates acceptées ou brouillons. Une erreur de libellés ne désactive pas l’éditeur natif du DatePicker et ne change pas ses contraintes de dates indépendantes.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1813,7 +1915,7 @@
           "example": "KitDatePicker { clear-label: \"Effacer le rendez-vous\"; }"
         },
         "configuration-state": {
-          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid. Des noms ou motifs d’affichage invalides invalident aussi la projection du calendrier, sans désactiver la saisie native de date.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -1823,7 +1925,7 @@
           "example": "KitDatePicker { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Sept noms de jours localisés, toujours lundi en premier ; les en-têtes suivent week-start.",
+          "effect": "Sept libellés courts visibles dans l’ordre lundi à dimanche. Ils peuvent se répéter (initiales, par exemple) ; weekday-names fournit les noms accessibles longs. week-start et flow fixent leur position sans réordonner les modèles fournis.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitDatePicker { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -1845,18 +1947,69 @@
           "default": "theme.direction",
           "example": "KitDatePicker { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Gardez les noms de jours dans l’ordre lundi à dimanche. week-start, Haut/Bas, Début/Fin, Page précédente/suivante (avec Maj), bornes, disponibilités et règles de période conservent leur sens."
+        },
+        "month-names": {
+          "effect": "Douze noms de mois longs, de janvier à décembre, utilisés par %B dans les dates accessibles et les titres.",
+          "default": "Noms longs anglais",
+          "constraints": "Exactement douze noms non vides et distincts ; aucune langue n’est déduite."
+        },
+        "month-short-names": {
+          "effect": "Douze noms de mois abrégés, de janvier à décembre, utilisés par %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactement douze noms non vides et distincts."
+        },
+        "weekday-names": {
+          "effect": "Sept noms de jours longs, de lundi à dimanche, utilisés par %A et les noms accessibles des en-têtes.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactement sept noms non vides et distincts ; gardez lundi en premier quels que soient week-start et flow."
+        },
+        "weekday-short-names": {
+          "effect": "Sept noms de jours abrégés, de lundi à dimanche, utilisés par %a indépendamment du modèle weekdays visible.",
+          "default": "Mon … Sun",
+          "constraints": "Exactement sept noms non vides et distincts, dans l’ordre lundi à dimanche."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formate la date civile réelle de chaque cellule pour son nom accessible, avant ajout des suffixes d’état.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Syntaxe DateDisplayPattern limitée aux dates ; ces noms/motifs ne changent ni la saisie native ni les contraintes de dates."
+        },
+        "title-pattern": {
+          "effect": "Formate le titre du mois affiché ; %B %Y conserve l’ordre mois/année existant.",
+          "default": "%B %Y",
+          "constraints": "Un motif d’affichage peut omettre le jour ; l’analyse de saisie DatePattern exige toujours une date complète."
+        },
+        "today-label": {
+          "effect": "Suffixe accessible de la cellule correspondant à today.",
+          "default": "Today",
+          "constraints": "Un suffixe vide est omis sans virgule résiduelle."
+        },
+        "range-start-label": {
+          "effect": "Suffixe accessible du début de la période affichée, y compris un début provisoire.",
+          "default": "Range start",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "range-end-label": {
+          "effect": "Suffixe accessible de la fin de la période affichée.",
+          "default": "Range end",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "in-range-label": {
+          "effect": "Suffixe accessible des dates strictement à l’intérieur de la période affichée.",
+          "default": "In selected range",
+          "constraints": "Les extrémités reçoivent les suffixes début/fin. Un suffixe vide est omis."
         }
       },
       "callbacks": {
         "cleared": "Absence valide engagée. Stockez None dans la valeur Rust facultative ; chosen n’émet pas de date nulle invalide. Ce signal diffère de KitTextField.cleared, qui décrit l’action d’effacement du brouillon natif."
-      }
+      },
+      "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé."
     },
     "en": {
       "label": "Date Picker",
       "seoTitle": "Date Picker for Slint",
       "summary": "Editable ISO date field with a calendar popover and consistent booking constraints.",
       "usage": "Provide `accepted-date`, labels and the same calendar constraints as `KitCalendar`. The popup, native text and calendar share instance state. Handle `chosen(CivilDateView)` for the accepted date; use `CivilDate::try_from` at the Rust boundary. The complete quickstart needs only installation and a business callback. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-date`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. A typed date is accepted on Enter or when focus leaves the editor (`commit-policy`, default `CommitPolicy.on-blur`); invalid or unavailable text keeps the accepted date and the draft, and an unchanged date does not repeat `chosen`. today defaults to the window-local KitCalendarService.today. Supply it explicitly, or call refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) after install and before show. set_calendar_today_at accepts an injected Instant for deterministic clocks. No system zone is guessed; refresh again at your chosen date rollover.",
-      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. An optional valid empty commit emits cleared() and resets accepted-date for local ownership; chosen always carries a real civil date. Controlled ownership keeps the old value until the host acknowledges absence. Required or custom-invalid empties preserve the accepted value. clearable enables the trailing native clear action; clear-label localizes its name. clear() edits the native draft and preserves its caret/undo/IME guard; acceptance follows commit-policy. commit() requests an explicit validated acceptance. Initialization acknowledges the accepted date after install without replacing an explicit host draft. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned.",
+      "behavior": "The example accepts available weekdays within its booking bounds and rejects weekends and October 13–15 from both entry paths. Opening the popover preserves the native editor. The popup reserves the full seven-column width at enlarged text. DatePattern and DateNames support custom application-owned formats; the HTML date input itself remains ISO. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. An optional valid empty commit emits cleared() and resets accepted-date for local ownership; chosen always carries a real civil date. Controlled ownership keeps the old value until the host acknowledges absence. Required or custom-invalid empties preserve the accepted value. clearable enables the trailing native clear action; clear-label localizes its name. clear() edits the native draft and preserves its caret/undo/IME guard; acceptance follows commit-policy. commit() requests an explicit validated acceptance. Initialization acknowledges the accepted date after install without replacing an explicit host draft. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned. Formatting names and display patterns are validated too: invalid configuration disables the calendar projection and calendar acceptance without replacing accepted dates or drafts. Label configuration does not disable the DatePicker native editor or change its independent date constraints.",
       "related": [
         "KitDateField",
         "KitCalendar",
@@ -1880,7 +2033,7 @@
           "example": "KitDatePicker { clear-label: \"Clear appointment\"; }"
         },
         "configuration-state": {
-          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid. Invalid formatting names or display patterns also invalidate the calendar projection; this does not disable native date entry.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -1890,7 +2043,7 @@
           "example": "KitDatePicker { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Seven localized weekday names, always Monday-first; headers rotate with week-start.",
+          "effect": "Seven short visual weekday labels in Monday-to-Sunday order. They may repeat (for example initials); weekday-names supplies their full accessible names. week-start and flow determine their physical positions without reordering either input model.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitDatePicker { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -1912,18 +2065,69 @@
           "default": "theme.direction",
           "example": "KitDatePicker { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Keep weekday names in Monday-to-Sunday order. week-start, Up/Down, Home/End, Page Up/Down (including Shift), date bounds, availability and range rules retain their meaning."
+        },
+        "month-names": {
+          "effect": "Twelve full month names, January to December, used by %B in date labels and titles.",
+          "default": "English full month names",
+          "constraints": "Exactly twelve nonempty, distinct names; no locale is inferred."
+        },
+        "month-short-names": {
+          "effect": "Twelve abbreviated month names, January to December, used by %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactly twelve nonempty, distinct names."
+        },
+        "weekday-names": {
+          "effect": "Seven full weekday names, Monday to Sunday, used by %A and weekday-header accessible labels.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order for every week-start and flow."
+        },
+        "weekday-short-names": {
+          "effect": "Seven abbreviated weekday names, Monday to Sunday, used by %a independently of the visible weekdays model.",
+          "default": "Mon … Sun",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formats each actual civil date for its accessible name before state suffixes are appended.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Date-only DateDisplayPattern syntax; formatting names/patterns do not change native date entry or date constraints."
+        },
+        "title-pattern": {
+          "effect": "Formats the displayed month title; %B %Y preserves the existing month/year order.",
+          "default": "%B %Y",
+          "constraints": "Date-only display patterns may omit day fields; DatePattern input parsing still requires a complete date."
+        },
+        "today-label": {
+          "effect": "Accessible suffix for the cell matching today.",
+          "default": "Today",
+          "constraints": "An empty suffix is omitted without a trailing comma."
+        },
+        "range-start-label": {
+          "effect": "Accessible suffix for the displayed range start, including a provisional start.",
+          "default": "Range start",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "range-end-label": {
+          "effect": "Accessible suffix for the displayed range end.",
+          "default": "Range end",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "in-range-label": {
+          "effect": "Accessible suffix only for dates strictly inside the displayed range.",
+          "default": "In selected range",
+          "constraints": "Range endpoints use their start/end suffixes instead. An empty suffix is omitted."
         }
       },
       "callbacks": {
         "cleared": "Committed valid absence. Store None in the Rust optional value; chosen is not emitted with an invalid zero date. This differs from KitTextField.cleared, which reports a native draft-clear action."
-      }
+      },
+      "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately."
     }
   },
   "KitDateRangePicker": {
     "fr": {
       "summary": "Sélection provisoire d’une période, avec confirmation, annulation et durée de séjour validée par le service partagé.",
       "usage": "Fournissez `selected: DateRangeView` et les contraintes calendaires. Le composant possède les bornes du brouillon, sa phase, la date focalisée et la projection. `chosen(DateRangeView)` n’est émis qu’après l’acceptation d’un intervalle complet et autorisé par Appliquer. Convertissez avec `DateRange::try_from` ; Annuler restaure l’intervalle accepté. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. `min-nights` et `max-nights` bornent la durée exacte en nuits ; une chaîne vide retire la borne correspondante, une contrainte mal formée interdit la confirmation. today suit KitCalendarService.today, propre à la fenêtre. Fournissez cette date ou appelez refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) après install et avant show. set_calendar_today_at accepte un Instant injecté pour une horloge déterministe. Aucun fuseau système n’est deviné ; actualisez à votre changement de date.",
-      "behavior": "L’exemple commence du 19 au 23 octobre et accepte 2 à 14 nuits. Les week-ends et les 13–15 octobre sont indisponibles, même à l’intérieur d’une période dont les extrémités sont valides. Une fin refusée conserve le début ; Cancel restaure la période acceptée. Une période d’un seul jour vaut zéro nuit. La lecture seule permet le parcours sans changer la période ; les contrôles désactivés ne confirment ni n’annulent. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance.",
+      "behavior": "L’exemple commence du 19 au 23 octobre et accepte 2 à 14 nuits. Les week-ends et les 13–15 octobre sont indisponibles, même à l’intérieur d’une période dont les extrémités sont valides. Une fin refusée conserve le début ; Cancel restaure la période acceptée. Une période d’un seul jour vaut zéro nuit. La lecture seule permet le parcours sans changer la période ; les contrôles désactivés ne confirment ni n’annulent. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance. Noms de formatage et motifs d’affichage sont aussi validés : une configuration invalide désactive la projection et l’acceptation du calendrier sans remplacer dates acceptées ou brouillons. Une erreur de libellés ne désactive pas l’éditeur natif du DatePicker et ne change pas ses contraintes de dates indépendantes.",
       "label": "Sélecteur de plage de dates",
       "seoTitle": "Sélecteur de plage de dates pour Slint",
       "related": [
@@ -1932,7 +2136,7 @@
       ],
       "properties": {
         "configuration-state": {
-          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid.",
+          "effect": "État typé en lecture seule de la configuration des dates : unchecked, valid ou invalid. Des noms ou motifs d’affichage invalides invalident aussi la projection du calendrier, sans désactiver la saisie native de date.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -1942,7 +2146,7 @@
           "example": "KitDateRangePicker { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Sept noms de jours localisés, toujours lundi en premier ; les en-têtes suivent week-start.",
+          "effect": "Sept libellés courts visibles dans l’ordre lundi à dimanche. Ils peuvent se répéter (initiales, par exemple) ; weekday-names fournit les noms accessibles longs. week-start et flow fixent leur position sans réordonner les modèles fournis.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitDateRangePicker { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -1964,13 +2168,64 @@
           "default": "theme.direction",
           "example": "KitDateRangePicker { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Gardez les noms de jours dans l’ordre lundi à dimanche. week-start, Haut/Bas, Début/Fin, Page précédente/suivante (avec Maj), bornes, disponibilités et règles de période conservent leur sens."
+        },
+        "month-names": {
+          "effect": "Douze noms de mois longs, de janvier à décembre, utilisés par %B dans les dates accessibles et les titres.",
+          "default": "Noms longs anglais",
+          "constraints": "Exactement douze noms non vides et distincts ; aucune langue n’est déduite."
+        },
+        "month-short-names": {
+          "effect": "Douze noms de mois abrégés, de janvier à décembre, utilisés par %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactement douze noms non vides et distincts."
+        },
+        "weekday-names": {
+          "effect": "Sept noms de jours longs, de lundi à dimanche, utilisés par %A et les noms accessibles des en-têtes.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactement sept noms non vides et distincts ; gardez lundi en premier quels que soient week-start et flow."
+        },
+        "weekday-short-names": {
+          "effect": "Sept noms de jours abrégés, de lundi à dimanche, utilisés par %a indépendamment du modèle weekdays visible.",
+          "default": "Mon … Sun",
+          "constraints": "Exactement sept noms non vides et distincts, dans l’ordre lundi à dimanche."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formate la date civile réelle de chaque cellule pour son nom accessible, avant ajout des suffixes d’état.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Syntaxe DateDisplayPattern limitée aux dates ; ces noms/motifs ne changent ni la saisie native ni les contraintes de dates."
+        },
+        "title-pattern": {
+          "effect": "Formate le titre du mois affiché ; %B %Y conserve l’ordre mois/année existant.",
+          "default": "%B %Y",
+          "constraints": "Un motif d’affichage peut omettre le jour ; l’analyse de saisie DatePattern exige toujours une date complète."
+        },
+        "today-label": {
+          "effect": "Suffixe accessible de la cellule correspondant à today.",
+          "default": "Today",
+          "constraints": "Un suffixe vide est omis sans virgule résiduelle."
+        },
+        "range-start-label": {
+          "effect": "Suffixe accessible du début de la période affichée, y compris un début provisoire.",
+          "default": "Range start",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "range-end-label": {
+          "effect": "Suffixe accessible de la fin de la période affichée.",
+          "default": "Range end",
+          "constraints": "Une période d’un jour reçoit les suffixes début et fin ; un suffixe vide est omis."
+        },
+        "in-range-label": {
+          "effect": "Suffixe accessible des dates strictement à l’intérieur de la période affichée.",
+          "default": "In selected range",
+          "constraints": "Les extrémités reçoivent les suffixes début/fin. Un suffixe vide est omis."
         }
-      }
+      },
+      "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé."
     },
     "en": {
       "summary": "Staged date-range selection with explicit Apply/Cancel actions and shared stay-length validation.",
       "usage": "Provide `selected: DateRangeView` and calendar constraints. The component owns its draft endpoints, phase, focused date and range projection. `chosen(DateRangeView)` fires only after Apply accepts a complete allowed interval. Convert the result with `DateRange::try_from`; Cancel restores the accepted interval. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. `min-nights` and `max-nights` constrain the exact stay length; an empty string leaves that endpoint unbounded, and malformed constraints prevent acceptance. today defaults to the window-local KitCalendarService.today. Supply it explicitly, or call refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) after install and before show. set_calendar_today_at accepts an injected Instant for deterministic clocks. No system zone is guessed; refresh again at your chosen date rollover.",
-      "behavior": "The example starts with October 19–23 selected and accepts stays of 2–14 nights. Weekends and October 13–15 are unavailable, including when they lie between otherwise valid endpoints. A failed end selection preserves the start; Cancel restores the accepted range. A same-day range is zero nights. Read-only calendars browse without changing the range; disabled controls cannot apply or cancel. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned.",
+      "behavior": "The example starts with October 19–23 selected and accepts stays of 2–14 nights. Weekends and October 13–15 are unavailable, including when they lie between otherwise valid endpoints. A failed end selection preserves the start; Cancel restores the accepted range. A same-day range is zero nights. Read-only calendars browse without changing the range; disabled controls cannot apply or cancel. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned. Formatting names and display patterns are validated too: invalid configuration disables the calendar projection and calendar acceptance without replacing accepted dates or drafts. Label configuration does not disable the DatePicker native editor or change its independent date constraints.",
       "label": "Date Range Picker",
       "seoTitle": "Date Range Picker for Slint",
       "related": [
@@ -1979,7 +2234,7 @@
       ],
       "properties": {
         "configuration-state": {
-          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid.",
+          "effect": "Read-only typed status for calendar date configuration: unchecked, valid or invalid. Invalid formatting names or display patterns also invalidate the calendar projection; this does not disable native date entry.",
           "default": "CalendarConfigurationState.unchecked before install",
           "example": "Text { text: calendar.configuration-state == CalendarConfigurationState.invalid ? \"Configuration error\" : \"\"; }"
         },
@@ -1989,7 +2244,7 @@
           "example": "KitDateRangePicker { configuration-message: \"Check calendar date bounds\"; }"
         },
         "weekdays": {
-          "effect": "Seven localized weekday names, always Monday-first; headers rotate with week-start.",
+          "effect": "Seven short visual weekday labels in Monday-to-Sunday order. They may repeat (for example initials); weekday-names supplies their full accessible names. week-start and flow determine their physical positions without reordering either input model.",
           "default": "[\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]",
           "example": "KitDateRangePicker { weekdays: [\"Mon\", \"Tue\", \"Wed\", \"Thu\", \"Fri\", \"Sat\", \"Sun\"]; }"
         },
@@ -2011,8 +2266,59 @@
           "default": "theme.direction",
           "example": "KitDateRangePicker { flow: ChoiceFlow.right-to-left; }",
           "constraints": "Keep weekday names in Monday-to-Sunday order. week-start, Up/Down, Home/End, Page Up/Down (including Shift), date bounds, availability and range rules retain their meaning."
+        },
+        "month-names": {
+          "effect": "Twelve full month names, January to December, used by %B in date labels and titles.",
+          "default": "English full month names",
+          "constraints": "Exactly twelve nonempty, distinct names; no locale is inferred."
+        },
+        "month-short-names": {
+          "effect": "Twelve abbreviated month names, January to December, used by %b.",
+          "default": "Jan … Dec",
+          "constraints": "Exactly twelve nonempty, distinct names."
+        },
+        "weekday-names": {
+          "effect": "Seven full weekday names, Monday to Sunday, used by %A and weekday-header accessible labels.",
+          "default": "Monday … Sunday",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order for every week-start and flow."
+        },
+        "weekday-short-names": {
+          "effect": "Seven abbreviated weekday names, Monday to Sunday, used by %a independently of the visible weekdays model.",
+          "default": "Mon … Sun",
+          "constraints": "Exactly seven nonempty, distinct names; keep Monday-first order."
+        },
+        "accessible-date-pattern": {
+          "effect": "Formats each actual civil date for its accessible name before state suffixes are appended.",
+          "default": "%A %-d %B %Y",
+          "constraints": "Date-only DateDisplayPattern syntax; formatting names/patterns do not change native date entry or date constraints."
+        },
+        "title-pattern": {
+          "effect": "Formats the displayed month title; %B %Y preserves the existing month/year order.",
+          "default": "%B %Y",
+          "constraints": "Date-only display patterns may omit day fields; DatePattern input parsing still requires a complete date."
+        },
+        "today-label": {
+          "effect": "Accessible suffix for the cell matching today.",
+          "default": "Today",
+          "constraints": "An empty suffix is omitted without a trailing comma."
+        },
+        "range-start-label": {
+          "effect": "Accessible suffix for the displayed range start, including a provisional start.",
+          "default": "Range start",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "range-end-label": {
+          "effect": "Accessible suffix for the displayed range end.",
+          "default": "Range end",
+          "constraints": "A single-day range has both start and end suffixes; an empty suffix is omitted."
+        },
+        "in-range-label": {
+          "effect": "Accessible suffix only for dates strictly inside the displayed range.",
+          "default": "In selected range",
+          "constraints": "Range endpoints use their start/end suffixes instead. An empty suffix is omitted."
         }
-      }
+      },
+      "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately."
     }
   },
   "KitDateTimeField": {

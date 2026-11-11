@@ -2,9 +2,9 @@
 #![forbid(unsafe_code)]
 use crate::ui;
 use kit_core::{
-    CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints, DateRange,
-    DateRangeController, DateRangeRules, DraftValue, Instant, NumericBounds, ParseIssue,
-    RangeSelection, TimeZoneId, WeekStart,
+    CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
+    DateDisplayPattern, DateNames, DatePattern, DateRange, DateRangeController, DateRangeRules,
+    DraftValue, Instant, NumericBounds, ParseIssue, RangeSelection, TimeZoneId, WeekStart,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -205,6 +205,116 @@ pub fn calendar_projection(
         next_enabled: calendar.can_navigate(CalendarMove::NextMonth),
     }
 }
+struct CalendarLabels {
+    names: DateNames,
+    date: DatePattern,
+    title: DateDisplayPattern,
+    today: slint::SharedString,
+    range_start: slint::SharedString,
+    range_end: slint::SharedString,
+    in_range: slint::SharedString,
+}
+impl TryFrom<ui::CalendarText> for CalendarLabels {
+    type Error = ParseIssue;
+    fn try_from(text: ui::CalendarText) -> Result<Self, Self::Error> {
+        fn names<const N: usize>(
+            model: &ModelRc<slint::SharedString>,
+        ) -> Result<[String; N], ParseIssue> {
+            model
+                .iter()
+                .map(|name| name.to_string())
+                .collect::<Vec<_>>()
+                .try_into()
+                .map_err(|_| ParseIssue::InvalidSyntax)
+        }
+        Ok(Self {
+            names: DateNames::new(
+                names(&text.months)?,
+                names(&text.short_months)?,
+                names(&text.weekdays)?,
+                names(&text.short_weekdays)?,
+            )?,
+            date: DatePattern::new(text.date_pattern.as_str())?,
+            title: DateDisplayPattern::new(text.title_pattern.as_str())?,
+            today: text.today,
+            range_start: text.range_start,
+            range_end: text.range_end,
+            in_range: text.in_range,
+        })
+    }
+}
+fn localized_projection(
+    view: ui::CalendarView,
+    text: ui::CalendarText,
+    selection: RangeSelection,
+) -> ui::CalendarProjection {
+    let Ok(labels) = CalendarLabels::try_from(text.clone()) else {
+        return invalid_configuration_projection(&view, &text.months);
+    };
+    let calendar = parse(&view);
+    let mut projection = match &calendar {
+        Ok(calendar) => calendar_projection(
+            calendar,
+            optional_date(view.today.clone()).ok().flatten(),
+            &text.months,
+        ),
+        Err(_) => invalid_configuration_projection(&view, &text.months),
+    };
+    let reference = match calendar {
+        Ok(calendar) => calendar.displayed(),
+        Err(_) => CivilDate::try_from(view.focused)
+            .unwrap_or_else(|_| CivilDate::new(2000, 1, 1).expect("valid reference date"))
+            .year_month(),
+    };
+    let first =
+        CivilDate::new(reference.year(), reference.month(), 1).expect("validated displayed month");
+    projection.title = labels.title.format_with_names(first, &labels.names).into();
+    projection.days = ModelRc::new(VecModel::from(
+        projection
+            .days
+            .iter()
+            .map(|mut day| {
+                if let Ok(date) = CivilDate::try_from(day.clone()) {
+                    let mut label = labels.date.format_with_names(date, &labels.names);
+                    let mut append = |suffix: &str| {
+                        if !suffix.is_empty() {
+                            label.push_str(", ");
+                            label.push_str(suffix);
+                        }
+                    };
+                    if day.today {
+                        append(&labels.today);
+                    }
+                    match selection {
+                        RangeSelection::ChoosingStart => {}
+                        RangeSelection::ChoosingEnd { start } => {
+                            day.selected = date == start;
+                            if day.selected {
+                                append(&labels.range_start);
+                            }
+                        }
+                        RangeSelection::Complete(range) => {
+                            day.selected = date == range.start() || date == range.end();
+                            day.in_range = range.contains(date);
+                            if date == range.start() {
+                                append(&labels.range_start);
+                            }
+                            if date == range.end() {
+                                append(&labels.range_end);
+                            }
+                            if day.in_range && !day.selected {
+                                append(&labels.in_range);
+                            }
+                        }
+                    }
+                    day.accessible_label = label.into();
+                }
+                day
+            })
+            .collect::<Vec<_>>(),
+    ));
+    projection
+}
 fn invalid_configuration_projection(
     view: &ui::CalendarView,
     names: &ModelRc<slint::SharedString>,
@@ -345,36 +455,12 @@ where
         };
         DateRange::try_from(range).is_ok_and(|range| rules.validate(range).is_ok())
     });
-    service.on_range_project(|view, draft, names| {
-        let Ok(calendar) = parse(&view) else {
-            return invalid_configuration_projection(&view, &names);
+    service.on_range_project(|view, draft, text| {
+        let selection = match RangeSelection::try_from(draft) {
+            Ok(selection) => selection,
+            Err(_) => RangeSelection::ChoosingStart,
         };
-        let mut projection =
-            calendar_projection(&calendar, optional_date(view.today).ok().flatten(), &names);
-        let Ok(selection) = RangeSelection::try_from(draft) else {
-            return projection;
-        };
-        let rows = projection
-            .days
-            .iter()
-            .map(|mut day| {
-                if let Ok(date) = CivilDate::try_from(day.clone()) {
-                    match selection {
-                        RangeSelection::ChoosingStart => {}
-                        RangeSelection::ChoosingEnd { start } => {
-                            day.selected = date == start;
-                        }
-                        RangeSelection::Complete(range) => {
-                            day.selected = date == range.start() || date == range.end();
-                            day.in_range = range.contains(date);
-                        }
-                    }
-                }
-                day
-            })
-            .collect::<Vec<_>>();
-        projection.days = ModelRc::new(VecModel::from(rows));
-        projection
+        localized_projection(view, text, selection)
     });
     service.on_parse_date(|text| match CivilDate::parse_iso(text.as_str()) {
         DraftValue::Parsed(date) => date.into(),
@@ -388,12 +474,8 @@ where
             |date| date.iso_string().into(),
         )
     });
-    service.on_project(|view, names| match parse(&view) {
-        Ok(calendar) => {
-            calendar_projection(&calendar, optional_date(view.today).ok().flatten(), &names)
-        }
-        Err(_) => invalid_configuration_projection(&view, &names),
-    });
+    service
+        .on_project(|view, text| localized_projection(view, text, RangeSelection::ChoosingStart));
     service.on_navigate(|view, direction| {
         let Ok(calendar) = parse(&view) else {
             return view.focused;

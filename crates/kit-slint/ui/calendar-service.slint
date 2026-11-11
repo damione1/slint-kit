@@ -20,16 +20,21 @@ export struct CalendarProjection {
     days: [CalendarDay], active-index: int, title: string,
     previous-enabled: bool, next-enabled: bool,
 }
+export struct CalendarText {
+    months: [string], short-months: [string], weekdays: [string], short-weekdays: [string],
+    date-pattern: string, title-pattern: string,
+    today: string, range-start: string, range-end: string, in-range: string,
+}
 export global KitCalendarService {
     in-out property <bool> ready;
     in-out property <CivilDateView> today;
     pure callback initial-focus(CalendarView) -> CivilDateView;
     pure callback range-choose(CalendarView, DateRangeDraft, CivilDateView, string, string) -> DateRangeUpdate;
-    pure callback range-project(CalendarView, DateRangeDraft, [string]) -> CalendarProjection;
+    pure callback range-project(CalendarView, DateRangeDraft, CalendarText) -> CalendarProjection;
     pure callback range-valid(CalendarView, DateRangeView, string, string) -> bool;
     pure callback parse-date(string) -> CivilDateView;
     pure callback format-date(CivilDateView) -> string;
-    pure callback project(CalendarView, [string]) -> CalendarProjection;
+    pure callback project(CalendarView, CalendarText) -> CalendarProjection;
     pure callback navigate(CalendarView, CalendarNavigation) -> CivilDateView;
     pure callback allowed(CalendarView, CivilDateView) -> bool;
 }
