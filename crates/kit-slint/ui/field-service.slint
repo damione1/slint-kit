@@ -15,8 +15,10 @@ export struct SliderSpec { minimum: string, maximum: string, step: string }
 export struct DecimalRangeView { lower: string, upper: string }
 export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
+// Slint projection of Option<SrgbColor>. The payload is ignored when absent.
+export struct ColorValue { present: bool, color: SrgbColorView }
 export struct ColorWheelPosition { x: float, y: float, hue: float, saturation: float }
-export struct ColorResult { valid: bool, value: SrgbColorView, text: string }
+export struct ColorResult { valid: bool, value: ColorValue, text: string }
 // `text` is the next draft only when `status` is `stepped`.
 export struct NumberStepResult { status: NumberStepStatus, text: string }
 // Float projection for accessible value bounds only. An absent bound is

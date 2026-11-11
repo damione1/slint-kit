@@ -331,3 +331,248 @@ fn controlled_blur_proposes_once_and_readonly_or_disabled_blur_cannot_publish_a_
         assert_eq!(app.get_field_text(), "#11223344");
     }
 }
+
+fn value(color: ui::SrgbColorView) -> ui::ColorValue {
+    ui::ColorValue {
+        present: true,
+        color,
+    }
+}
+fn action(app: &ColorLifecycleFixture, label: &str) -> ElementHandle {
+    ElementHandle::find_by_accessible_label(app, label)
+        .next()
+        .unwrap_or_else(|| panic!("missing action {label}"))
+}
+fn settle(app: &ColorLifecycleFixture) -> slint::SharedPixelBuffer<slint::Rgba8Pixel> {
+    slint::platform::update_timers_and_animations();
+    app.window().take_snapshot().unwrap();
+    slint::platform::update_timers_and_animations();
+    app.window().take_snapshot().unwrap()
+}
+
+#[test]
+fn optional_native_clear_accepts_absence_once_and_renders_it_apart_from_transparent_color() {
+    let app = fixture();
+    app.set_required(false);
+    app.set_clearable(true);
+    settle(&app);
+    action(&app, "Clear standalone color").mock_single_click(PointerEventButton::Left);
+    assert_eq!(app.get_field_text(), "");
+    assert!(
+        app.get_field_value().present,
+        "clear edits the native draft first"
+    );
+    assert_eq!(app.get_field_cleared(), 0);
+    key(&app, Key::Tab);
+    assert!(!app.get_field_value().present);
+    assert_eq!(app.get_field_cleared(), 1);
+    app.invoke_commit_field();
+    blur(&app);
+    assert_eq!(app.get_field_cleared(), 1);
+    action(&app, "Clear picker color").mock_single_click(PointerEventButton::Left);
+    key(&app, Key::Return);
+    key(&app, Key::Tab);
+    assert!(!app.get_picker_value().present);
+    assert_eq!(app.get_picker_cleared(), 1);
+    assert_eq!((app.get_field_chosen(), app.get_picker_chosen()), (0, 0));
+    assert!(app.get_field_valid() && app.get_picker_valid());
+    assert_eq!(
+        (
+            app.get_hex_text(),
+            app.get_red_text(),
+            app.get_green_text(),
+            app.get_blue_text(),
+            app.get_alpha_text()
+        ),
+        ("".into(), "".into(), "".into(), "".into(), "".into())
+    );
+    app.set_empty_label("Aucune couleur".into());
+    settle(&app);
+    assert_eq!(
+        action(&app, "Open color picker for Standalone color")
+            .accessible_description()
+            .as_deref(),
+        Some("Aucune couleur")
+    );
+    let transparent = color(18, 52, 86, 0);
+    for state in ["empty", "transparent"] {
+        if state == "transparent" {
+            app.set_field_value(value(transparent.clone()));
+            app.set_picker_value(value(transparent.clone()));
+            slint::platform::update_timers_and_animations();
+            assert!(app.get_field_value().present && app.get_picker_value().present);
+            assert_eq!(app.get_field_text(), "#12345600");
+            assert_eq!(app.get_hex_text(), "#12345600");
+        }
+        for (name, mut theme) in [("light", app.get_theme()), ("dark", app.get_dark_theme())] {
+            for scale in [1., 2.] {
+                theme.text_scale = scale;
+                app.set_theme(theme.clone());
+                app.window()
+                    .set_size(slint::LogicalSize::new(900., 1100. * scale));
+                let frame = settle(&app);
+                crate::choice_presentation::save_capture(
+                    &frame,
+                    &format!("optional-color-{state}-{name}-{scale}"),
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn required_custom_invalid_and_blocked_access_never_publish_color_absence() {
+    let app = fixture();
+    for custom in ["", "A color is locked by the form"] {
+        app.set_required(custom.is_empty());
+        app.set_custom_validity(custom.into());
+        app.invoke_clear_field();
+        assert_eq!(app.get_field_text(), "");
+        app.invoke_commit_field();
+        assert!(!app.get_field_valid());
+        assert!(app.get_field_value().present);
+        app.invoke_clear_picker();
+        assert_eq!(app.get_hex_text(), "");
+        app.invoke_commit_picker();
+        assert!(!app.get_picker_valid());
+        assert!(app.get_picker_value().present);
+        blur(&app);
+    }
+    app.set_custom_validity("".into());
+    app.set_required(false);
+    for access in [ui::FieldAccess::ReadOnly, ui::FieldAccess::Disabled] {
+        app.set_access(access);
+        app.invoke_clear_field();
+        app.invoke_clear_picker();
+        app.invoke_commit_field();
+        app.invoke_commit_picker();
+        assert_eq!(app.get_field_text(), "#010203FF");
+        assert_eq!(app.get_hex_text(), "#040506FF");
+        assert!(app.get_field_value().present && app.get_picker_value().present);
+    }
+    assert_eq!((app.get_field_cleared(), app.get_picker_cleared()), (0, 0));
+    assert_eq!((app.get_field_chosen(), app.get_picker_chosen()), (0, 0));
+}
+
+#[test]
+fn controlled_empty_acknowledgment_and_same_color_reintroduction_keep_payload_alias_honest() {
+    let app = fixture();
+    app.set_required(false);
+    app.set_ownership(ui::Ownership::Controlled);
+    let old_field = app.get_field_color();
+    let old_picker = app.get_picker_color();
+    app.invoke_clear_field();
+    key(&app, Key::Return);
+    assert!(app.get_field_value().present);
+    assert_eq!(app.get_field_cleared(), 1);
+    key(&app, Key::Tab);
+    assert_eq!(app.get_field_cleared(), 1);
+    assert_eq!(app.get_field_text(), "#010203FF");
+    app.set_field_value(ui::ColorValue::default());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_field_text(), "");
+    app.set_field_color(old_field.clone());
+    slint::platform::update_timers_and_animations();
+    assert!(
+        !app.get_field_value().present,
+        "legacy payload setter does not acknowledge presence"
+    );
+    assert_eq!(app.get_field_text(), "");
+    app.set_field_value(value(old_field));
+    slint::platform::update_timers_and_animations();
+    assert!(app.get_field_value().present);
+    assert_eq!(app.get_field_text(), "#010203FF");
+    app.invoke_clear_picker();
+    key(&app, Key::Return);
+    assert!(app.get_picker_value().present);
+    assert_eq!(app.get_picker_cleared(), 1);
+    key(&app, Key::Tab);
+    assert_eq!(app.get_picker_cleared(), 1);
+    app.set_picker_value(ui::ColorValue::default());
+    slint::platform::update_timers_and_animations();
+    assert_eq!(app.get_hex_text(), "");
+    assert_eq!(app.get_red_text(), "");
+    app.set_picker_color(old_picker.clone());
+    slint::platform::update_timers_and_animations();
+    assert!(!app.get_picker_value().present);
+    assert_eq!(app.get_hex_text(), "");
+    app.set_picker_value(value(old_picker));
+    slint::platform::update_timers_and_animations();
+    assert!(app.get_picker_value().present);
+    assert_eq!(app.get_hex_text(), "#040506FF");
+    assert_eq!(app.get_red_text(), "4");
+    assert_eq!((app.get_field_chosen(), app.get_picker_chosen()), (0, 0));
+}
+
+#[test]
+fn host_absence_and_native_clear_preserve_editor_selection_identity_and_undo_history() {
+    let app = fixture();
+    app.set_required(false);
+    app.set_ownership(ui::Ownership::Controlled);
+    let reference = crate::ColorNativeEditingReference::new().unwrap();
+    slint_kit::install(&reference);
+    reference.show().unwrap();
+    replace(&reference, "Native reference", "#123456");
+    key(&reference, Key::LeftArrow);
+    key(&reference, "A");
+    reference.set_host_version(1);
+    key(&reference, "B");
+    let before = reference.get_text();
+    menu(&reference, "Undo");
+    let after = reference.get_text();
+    assert_ne!(before, after);
+    reference.hide().unwrap();
+    let editor = replace(&app, "Standalone color", "#123456");
+    key(&app, Key::LeftArrow);
+    key(&app, "A");
+    app.set_field_value(ui::ColorValue::default());
+    slint::platform::update_timers_and_animations();
+    key(&app, "B");
+    assert!(editor.is_valid());
+    assert_eq!(
+        app.get_field_text(),
+        before,
+        "host absence must not move the native caret"
+    );
+    menu(&app, "Undo");
+    assert_eq!(app.get_field_text(), after);
+    // The shared clear uses select-all + native edit-selection, so undo restores
+    // the exact draft rather than a color layer's replacement history.
+    app.invoke_clear_field();
+    assert_eq!(app.get_field_text(), "");
+    menu(&app, "Undo");
+    assert_eq!(app.get_field_text(), after);
+    assert!(editor.is_valid());
+    assert_eq!(app.get_field_cleared(), 0);
+    blur(&app);
+    assert_eq!(app.get_field_text(), "");
+}
+
+#[test]
+fn empty_picker_channels_and_popup_cancel_never_invent_an_accepted_color() {
+    let app = fixture();
+    app.set_required(false);
+    app.set_field_value(ui::ColorValue::default());
+    app.set_picker_value(ui::ColorValue::default());
+    settle(&app);
+    app.invoke_open_field_picker();
+    settle(&app);
+    app.invoke_cancel_field_picker();
+    settle(&app);
+    assert!(!app.get_field_value().present);
+    assert_eq!((app.get_field_chosen(), app.get_field_cleared()), (0, 0));
+    app.invoke_open_field_picker();
+    settle(&app);
+    action(&app, "Choose RGB 239, 68, 68").mock_single_click(PointerEventButton::Left);
+    action(&app, "Apply color").mock_single_click(PointerEventButton::Left);
+    settle(&app);
+    assert!(app.get_field_value().present);
+    assert_eq!(app.get_field_color(), color(239, 68, 68, 255));
+    assert_eq!(app.get_field_chosen(), 1);
+    replace(&app, "Red", "27");
+    key(&app, Key::Tab);
+    assert!(app.get_picker_value().present);
+    assert_eq!(app.get_picker_color(), color(27, 0, 0, 255));
+    assert_eq!(app.get_picker_chosen(), 1);
+    assert_eq!(app.get_picker_cleared(), 0);
+}

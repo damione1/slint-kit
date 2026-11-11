@@ -5,7 +5,7 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { KitColorPicker, KitStack, KitThemeContext, SrgbColorView, KitButton } from "@kit";
+import { KitColorPicker, KitStack, KitThemeContext, SrgbColorView, ColorValue, KitButton } from "@kit";
 // Channel sliders expose the 0..255 byte domain and step 1 to assistive technology.
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -14,11 +14,16 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Color picker"; preferred-width: 560px; preferred-height: 550px;
     background: KitThemeContext.current.canvas;
+    // Optional host state is atomic; alpha zero is not absence.
+    in-out property <ColorValue> accent-value: {present: true, color: {red: 79, green: 70, blue: 229, alpha: 255}};
     callback accent-changed(SrgbColorView);
+    callback accent-cleared();
+    // Native clear edits the draft; blur or the existing Apply button accepts absence.
+    public function clear-accent() { control.clear(); }
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        // Host accepted-color updates refresh idle text; focused native drafts keep their caret and undo.
-        control := KitColorPicker { label: "Accent color"; accepted-color: {red: 79, green: 70, blue: 229, alpha: 255}; chosen(value) => { root.accent-changed(value); } }
+        // Host accepted-value updates refresh idle text; focused native drafts keep their caret and undo.
+        control := KitColorPicker { label: "Accent color"; accepted-value <=> root.accent-value; required: false; clearable: false; clear-label: "Clear color"; empty-label: "No color"; chosen(value) => { root.accent-changed(value); } cleared => { root.accent-cleared(); } }
         // Valid native edits also commit on blur; this button requests an immediate commit.
         KitButton { text: "Apply color"; activated => { control.commit(); } } }
 }

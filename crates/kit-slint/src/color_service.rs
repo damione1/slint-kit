@@ -24,24 +24,49 @@ impl TryFrom<ui::SrgbColorView> for SrgbColor {
         })
     }
 }
+impl From<Option<SrgbColor>> for ui::ColorValue {
+    fn from(value: Option<SrgbColor>) -> Self {
+        match value {
+            Some(color) => Self {
+                present: true,
+                color: color.into(),
+            },
+            None => Self::default(),
+        }
+    }
+}
+impl TryFrom<ui::ColorValue> for Option<SrgbColor> {
+    type Error = ParseIssue;
+    fn try_from(value: ui::ColorValue) -> Result<Self, Self::Error> {
+        if value.present {
+            SrgbColor::try_from(value.color).map(Some)
+        } else {
+            Ok(None)
+        }
+    }
+}
 fn policy(value: ui::ColorAlphaMode) -> AlphaPolicy {
     match value {
         ui::ColorAlphaMode::Opaque => AlphaPolicy::Opaque,
         ui::ColorAlphaMode::Editable => AlphaPolicy::Editable,
     }
 }
-fn project(value: Result<SrgbColor, ParseIssue>, mode: AlphaPolicy) -> ui::ColorResult {
+fn project(value: Result<Option<SrgbColor>, ParseIssue>, mode: AlphaPolicy) -> ui::ColorResult {
     match value {
-        Ok(mut value) => {
+        Ok(Some(mut value)) => {
             if mode == AlphaPolicy::Opaque {
                 value.alpha = 255;
             }
             ui::ColorResult {
                 valid: true,
                 text: value.hex(mode).into(),
-                value: value.into(),
+                value: Some(value).into(),
             }
         }
+        Ok(None) => ui::ColorResult {
+            valid: true,
+            ..Default::default()
+        },
         Err(_) => ui::ColorResult::default(),
     }
 }
@@ -70,8 +95,12 @@ pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
         wheel_color(hue, saturation)
     });
     service.on_color_hue(wheel_color);
-    service.on_color_format(|value, mode| project(value.try_into(), policy(mode)).text);
-    service.on_color_validate(|value, mode| project(value.try_into(), policy(mode)));
+    service.on_color_format(|value, mode| {
+        project(SrgbColor::try_from(value).map(Some), policy(mode)).text
+    });
+    service.on_color_validate(|value, mode| {
+        project(SrgbColor::try_from(value).map(Some), policy(mode))
+    });
     service.on_color_parse(|text, mode| {
         let mode = policy(mode);
         let text = if mode == AlphaPolicy::Editable && text.len() == 7 {
@@ -80,10 +109,9 @@ pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
             text.to_string()
         };
         let value = match SrgbColor::parse_hex(&text, mode) {
-            DraftValue::Parsed(value) => Ok(value),
-            DraftValue::Empty | DraftValue::Incomplete | DraftValue::Invalid(_) => {
-                Err(ParseIssue::InvalidColor)
-            }
+            DraftValue::Parsed(value) => Ok(Some(value)),
+            DraftValue::Empty => Ok(None),
+            DraftValue::Incomplete | DraftValue::Invalid(_) => Err(ParseIssue::InvalidColor),
         };
         project(value, mode)
     });
@@ -109,7 +137,7 @@ pub(crate) fn install_color(service: &ui::KitFieldService<'_>) {
             };
             Ok(value)
         };
-        project(update(), policy(mode))
+        project(update().map(Some), policy(mode))
     });
 }
 
@@ -125,12 +153,12 @@ fn wheel_color(hue: f32, saturation: f32) -> ui::ColorResult {
     }
     let color = slint::Color::from_hsva(hue.rem_euclid(360.0), saturation, 1.0, 1.0);
     project(
-        Ok(SrgbColor {
+        Ok(Some(SrgbColor {
             red: color.red(),
             green: color.green(),
             blue: color.blue(),
             alpha: 255,
-        }),
+        })),
         AlphaPolicy::Opaque,
     )
 }
@@ -170,6 +198,40 @@ mod wheel_tests {
     use super::*;
 
     #[test]
+    fn optional_color_projection_distinguishes_absence_transparency_and_invalid_payloads() {
+        let empty = project(Ok(None), AlphaPolicy::Editable);
+        assert!(empty.valid);
+        assert!(!empty.value.present);
+        assert!(empty.text.is_empty());
+        assert_eq!(Option::<SrgbColor>::try_from(empty.value), Ok(None));
+        let transparent = SrgbColor {
+            red: 1,
+            green: 2,
+            blue: 3,
+            alpha: 0,
+        };
+        let result = project(Ok(Some(transparent)), AlphaPolicy::Editable);
+        assert!(result.valid && result.value.present);
+        assert_eq!(result.text, "#01020300");
+        assert_eq!(
+            Option::<SrgbColor>::try_from(result.value),
+            Ok(Some(transparent))
+        );
+        let invalid = ui::ColorValue {
+            present: true,
+            color: ui::SrgbColorView {
+                red: -1,
+                ..Default::default()
+            },
+        };
+        assert_eq!(
+            Option::<SrgbColor>::try_from(invalid),
+            Err(ParseIssue::InvalidColor)
+        );
+        assert!(!project(Err(ParseIssue::InvalidColor), AlphaPolicy::Opaque).valid);
+    }
+
+    #[test]
     fn spectrum_choices_are_opaque_and_invalid_coordinates_fail_closed() {
         for (hue, channels) in [
             (0.0, [255, 0, 0]),
@@ -180,14 +242,23 @@ mod wheel_tests {
             let result = wheel_color(hue, 1.0);
             assert!(result.valid);
             assert_eq!(
-                [result.value.red, result.value.green, result.value.blue],
+                [
+                    result.value.color.red,
+                    result.value.color.green,
+                    result.value.color.blue
+                ],
                 channels
             );
-            assert_eq!(result.value.alpha, 255);
+            assert!(result.value.present);
+            assert_eq!(result.value.color.alpha, 255);
         }
         let white = wheel_color(37.0, 0.0);
         assert_eq!(
-            [white.value.red, white.value.green, white.value.blue],
+            [
+                white.value.color.red,
+                white.value.color.green,
+                white.value.color.blue
+            ],
             [255, 255, 255]
         );
         for (hue, saturation) in [
