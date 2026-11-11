@@ -130,3 +130,59 @@ export component CalendarTodayFixture inherits Window {
         range := KitDateRangePicker {theme: root.theme; min: root.min; max: root.max; unavailable-weekdays: root.unavailable-weekdays;}
     }
 }
+
+import { ChoiceFlow } from "@kit";
+
+export component CalendarFlowFixture inherits Window {
+    width: 800px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in-out property <CivilDateView> focused <=> control.focused;
+    out property <ChoiceFlow> flow: control.flow;
+    out property <[CalendarDay]> days: control.days;
+    public function override-flow(value: ChoiceFlow) { control.flow = value; }
+    public function focus-current() { control.take-focus(); }
+    background: root.theme.canvas;
+    control := KitCalendar {
+        x: 24px; y: 24px; width: 700px; height: self.preferred-height;
+        theme: root.theme; week-start: root.week-start;
+        min: "2026-09-01"; max: "2026-11-30";
+        selected: {year: 2026, month: 10, day: 19};
+    }
+}
+
+export component DatePickerFlowFixture inherits Window {
+    width: 800px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in-out property <CivilDateView> focused <=> control.focused;
+    out property <ChoiceFlow> flow: control.flow;
+    out property <[CalendarDay]> days: control.days;
+    public function override-flow(value: ChoiceFlow) { control.flow = value; }
+    public function focus-current() { control.open = true; }
+    background: root.theme.canvas;
+    control := KitDatePicker {
+        x: 24px; y: 24px; width: 700px; height: self.preferred-height;
+        theme: root.theme; week-start: root.week-start;
+        min: "2026-09-01"; max: "2026-11-30";
+        accepted-date: {year: 2026, month: 10, day: 19};
+    }
+}
+
+export component RangePickerFlowFixture inherits Window {
+    width: 800px; height: 1000px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <WeekStart> week-start: WeekStart.monday;
+    in-out property <CivilDateView> focused <=> control.focused;
+    out property <ChoiceFlow> flow: control.flow;
+    out property <[CalendarDay]> days: control.days;
+    public function override-flow(value: ChoiceFlow) { control.flow = value; }
+    public function focus-current() { control.take-focus(); }
+    background: root.theme.canvas;
+    control := KitDateRangePicker {
+        x: 24px; y: 24px; width: 700px; height: self.preferred-height;
+        theme: root.theme; week-start: root.week-start;
+        min: "2026-09-01"; max: "2026-11-30";
+        selected: {start: {year: 2026, month: 10, day: 19}, end: {year: 2026, month: 10, day: 21}};
+    }
+}

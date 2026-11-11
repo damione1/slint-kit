@@ -595,3 +595,182 @@ fn calendar_today_override_and_user_navigation_survive_window_clock_refresh() {
         "instance today override stays independent"
     );
 }
+
+macro_rules! calendar_flow_regression {
+    ($test:ident, $fixture:ident, $scene:literal) => {
+        #[test]
+        fn $test() {
+            use i_slint_backend_testing::{
+                ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions,
+            };
+            use slint::{Model, platform::PointerEventButton};
+            use slint_kit::ui::{ChoiceFlow, KitThemes, WeekStart};
+            slint::platform::set_platform(Box::new(TestingBackend::new(TestingBackendOptions {
+                mock_time: true,
+                renderer_name: Some("software".into()),
+                ..Default::default()
+            })))
+            .unwrap();
+            for (mode, dark) in [("light", false), ("dark", true)] {
+                for scale in [1., 2.] {
+                    let window = crate::$fixture::new().unwrap();
+                    slint_kit::install(&window);
+                    let mut theme = if dark {
+                        window.global::<KitThemes>().get_dark()
+                    } else {
+                        window.get_theme()
+                    };
+                    theme.text_scale = scale;
+                    theme.reduced_motion = true;
+                    window.set_theme(theme.clone());
+                    window.show().unwrap();
+                    window.invoke_focus_current();
+                    let frame = || {
+                        slint::platform::update_timers_and_animations();
+                        window.window().take_snapshot().unwrap()
+                    };
+                    let key = |key: Key| {
+                        window
+                            .window()
+                            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+                        window
+                            .window()
+                            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+                        frame();
+                    };
+                    let october = CivilDateView {
+                        year: 2026,
+                        month: 10,
+                        day: 19,
+                    };
+                    for flow in [ChoiceFlow::LeftToRight, ChoiceFlow::RightToLeft] {
+                        theme.direction = flow;
+                        window.set_theme(theme.clone());
+                        frame();
+                        assert_eq!(
+                            window.get_flow(),
+                            flow,
+                            "flow defaults to this component's theme"
+                        );
+                        for (start, offset) in [(WeekStart::Monday, 0), (WeekStart::Sunday, 6)] {
+                            window.set_week_start(start);
+                            window.set_focused(october.clone());
+                            frame();
+                            let mut headers = ElementQuery::from_root(&window)
+                                .match_id("KitCalendar::weekday-header")
+                                .find_all();
+                            headers.sort_by(|a, b| {
+                                a.absolute_position().x.total_cmp(&b.absolute_position().x)
+                            });
+                            assert_eq!(headers.len(), 7);
+                            let names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                            for (position, header) in headers.iter().enumerate() {
+                                let logical = if flow == ChoiceFlow::RightToLeft {
+                                    6 - position
+                                } else {
+                                    position
+                                };
+                                assert_eq!(
+                                    header.accessible_label().as_deref(),
+                                    Some(names[(logical + offset) % 7])
+                                );
+                            }
+                            let first = window.get_days().row_data(0).unwrap();
+                            let first_cell = ElementHandle::find_by_accessible_label(
+                                &window,
+                                &first.accessible_label,
+                            )
+                            .next()
+                            .unwrap();
+                            let edge = if flow == ChoiceFlow::RightToLeft {
+                                6
+                            } else {
+                                0
+                            };
+                            assert!(
+                                (first_cell.absolute_position().x
+                                    - headers[edge].absolute_position().x)
+                                    .abs()
+                                    < 1.
+                            );
+                            key(Key::LeftArrow);
+                            assert_eq!(
+                                window.get_focused().day,
+                                if flow == ChoiceFlow::RightToLeft {
+                                    20
+                                } else {
+                                    18
+                                }
+                            );
+                            key(Key::RightArrow);
+                            assert_eq!(window.get_focused(), october);
+                            key(Key::UpArrow);
+                            assert_eq!(window.get_focused().day, 12);
+                            key(Key::DownArrow);
+                            assert_eq!(window.get_focused(), october);
+                            key(Key::Home);
+                            assert_eq!(
+                                window.get_focused().day,
+                                if start == WeekStart::Monday { 19 } else { 18 }
+                            );
+                            key(Key::End);
+                            assert_eq!(
+                                window.get_focused().day,
+                                if start == WeekStart::Monday { 25 } else { 24 }
+                            );
+                            window.set_focused(october.clone());
+                            key(Key::PageUp);
+                            assert_eq!(window.get_focused().month, 9);
+                            key(Key::PageDown);
+                            assert_eq!(window.get_focused(), october);
+                            if flow == ChoiceFlow::RightToLeft && start == WeekStart::Monday {
+                                crate::choice_presentation::save_capture(
+                                    &frame(),
+                                    &format!("calendar-flow-{}-{mode}-{scale}", $scene),
+                                );
+                            }
+                        }
+                    }
+                    // An explicit override is independent of an RTL theme and
+                    // must pass through each picker's internal calendar.
+                    window.invoke_override_flow(ChoiceFlow::LeftToRight);
+                    window.set_focused(october.clone());
+                    frame();
+                    key(Key::RightArrow);
+                    assert_eq!(window.get_focused().day, 20);
+                    window.invoke_override_flow(ChoiceFlow::RightToLeft);
+                    frame();
+                    let previous =
+                        ElementHandle::find_by_accessible_label(&window, "Previous month")
+                            .next()
+                            .unwrap();
+                    let next = ElementHandle::find_by_accessible_label(&window, "Next month")
+                        .next()
+                        .unwrap();
+                    assert!(previous.absolute_position().x > next.absolute_position().x);
+                    previous.mock_single_click(PointerEventButton::Left);
+                    frame();
+                    assert_eq!(window.get_focused().month, 9);
+                    next.mock_single_click(PointerEventButton::Left);
+                    frame();
+                    assert_eq!(window.get_focused().month, 10);
+                }
+            }
+        }
+    };
+}
+calendar_flow_regression!(
+    calendar_flow_mirrors_geometry_and_keyboard,
+    CalendarFlowFixture,
+    "calendar"
+);
+calendar_flow_regression!(
+    date_picker_flow_reaches_the_popup_calendar,
+    DatePickerFlowFixture,
+    "date-picker"
+);
+calendar_flow_regression!(
+    range_picker_flow_reaches_the_embedded_calendar,
+    RangePickerFlowFixture,
+    "range-picker"
+);
