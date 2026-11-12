@@ -34,6 +34,16 @@ Les métadonnées accessibles des curseurs partagent le même domaine : `spec.mi
 
 La macro historique `bind_select!` reste disponible pour la migration et est dépréciée dans la documentation. Remplacez sa convention de callbacks de fenêtre par `Choices<K>`, le contrat `options`/`selected`/`chosen` du composant et l’installateur partagé. Les projections explicites `SelectBinding` restent disponibles pour les intégrations contrôlées personnalisées.
 
+## Unités de durée et règles monétaires
+
+`KitDurationField` édite une quantité décimale. Son suffixe est visuel : associez `text: "5"; suffix: "s";` à `FieldSpec::duration(DurationUnit::Seconds, rules)`. L’unité obligatoire vaut `Milliseconds`, `Seconds`, `Minutes` ou `Hours`. `DecimalRules` vérifie locale, précision, signe et bornes de la quantité saisie. Les propriétés `min`, `max` et `step` emploient cette même quantité visible et la syntaxe canonique des attributs ; elles ne représentent des millisecondes que si cette unité est choisie. Un texte horaire comme `01:30` n’est pas un format du codec de durée.
+
+La fabrique retourne `DurationFieldSpec`, qui réutilise le moteur partagé et conserve la quantité analysée pour formater les brouillons acceptés. `accept(commit)` retourne `Result<Option<DurationValue>, FieldSpecError<ParseIssue>>` ; transmettez cette valeur retournée. Enregistrez `named(key)` normalement ; `with_display` et `with_grouping` restent disponibles. `DurationValue` stocke des millisecondes entières non négatives dans un `u64` : `5` secondes → `5000` ms, `5` minutes → `300000` ms et `1.5` seconde → `1500` ms en saisie canonique. Avec une précision de 3, `0.001` seconde → `1` ms. Les résultats sous la milliseconde et une précision de saisie excessive retournent `ScaleExceeded` ; débordement de conversion ou valeur convertie négative retournent `Overflow`, tandis que `SignPolicy::NonNegative` refuse les négatifs avant conversion.
+
+Pour le chargement et l’acquittement contrôlé, traitez d’abord `spec.format(&value) -> Result<String, ParseIssue>`. Cette méthode utilise `DurationValue::quantity(unit)` pour une conversion inverse exacte et refuse une quantité hors précision ou bornes configurées. Un décimal périodique comme `1` ms en minutes/heures retourne `ScaleExceeded` ; aucun arrondi ni flottant ne masque la perte. Traitez l’erreur avant de modifier la valeur UI. Les autres formateurs `FieldSpec` retournent toujours `String`.
+
+`KitMoneyField` est un alias de présentation décimale. `FieldSpec::money(currency, rules)` associe le `CurrencyCode` fourni et applique les `DecimalRules` fournies ; il ne déduit pas la précision monétaire de `CurrencyMetadata`. L’application choisit devise, précision autorisée, signe, bornes et arrondi métier. Le codec formate des brouillons numériques simples. Pour l’affichage groupé et les symboles, appelez `Money::format(&metadata, locale, rounding)` et traitez son `Result` : il vérifie la correspondance de devise et applique la précision des métadonnées avec l’arrondi explicite. Préfixe et suffixe n’imposent aucune de ces règles.
+
 ## Choix stables
 
 ```rust

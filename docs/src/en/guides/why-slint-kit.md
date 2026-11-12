@@ -39,7 +39,7 @@ In the [sortable table application](/guides/table-example/), select Atlas, then 
 
 ### Formatting and rendering preserve domain values
 
-The [money field](/components/money-field/) connects editing to exact `Money` values and currency rules. A [zoned date-time field](/components/zoned-date-time-field/) rejects a nonexistent local time and requires an explicit choice when a local time occurs twice. These rules are implemented in Rust and shared with component interaction. Renderer floats and formatted labels remain projections.
+The [money field](/components/money-field/) connects editing to exact `Money` values using the currency and decimal rules supplied by the application. A visual currency symbol alone enforces no rule. A [zoned date-time field](/components/zoned-date-time-field/) rejects a nonexistent local time and requires an explicit choice when a local time occurs twice. These rules are implemented in Rust and shared with component interaction. Renderer floats and formatted labels remain projections.
 
 ## Customize presentation while reusing behavior
 

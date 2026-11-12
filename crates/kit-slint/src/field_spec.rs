@@ -322,15 +322,73 @@ impl FieldSpec<IsoWeek> {
     }
 }
 impl FieldSpec<DurationValue> {
-    pub fn duration(rules: DecimalRules) -> Self {
-        Self::codec(
-            move |text| {
-                map_draft(rules.parse(text), |value| {
-                    DurationValue::from_quantity(value, DurationUnit::Milliseconds)
-                })
-            },
-            |value| value.milliseconds().to_string(),
-        )
+    /// Configure the visible numeric unit explicitly. A suffix is presentation.
+    /// Loaded values use the fallible DurationFieldSpec::format boundary.
+    pub fn duration(unit: DurationUnit, rules: DecimalRules) -> DurationFieldSpec {
+        DurationFieldSpec {
+            unit,
+            rules,
+            codec: FieldSpec::codec(
+                move |text| {
+                    map_draft(rules.parse(text), |quantity| {
+                        DurationValue::from_quantity(quantity, unit)
+                            .map(|duration| DurationDraft { duration, quantity })
+                    })
+                },
+                move |value| decimal_draft(value.quantity, rules.locale),
+            ),
+        }
+    }
+}
+// Only the parser constructs this pair: quantity is the exact accepted value
+// in the configured unit, retained for native canonicalization and display.
+#[derive(Clone)]
+struct DurationDraft {
+    duration: DurationValue,
+    quantity: DecimalValue,
+}
+/// Duration codec using the shared field engine, with an explicit unit and a
+/// fallible loaded-value formatting boundary. No conversion rounds silently.
+#[derive(Clone)]
+pub struct DurationFieldSpec {
+    unit: DurationUnit,
+    rules: DecimalRules,
+    codec: FieldSpec<DurationDraft>,
+}
+impl DurationFieldSpec {
+    /// Express a loaded duration in this unit and configured input scale/bounds.
+    /// Recurring or too-precise quantities return ScaleExceeded. Overflow and
+    /// out-of-bounds values retain their ordinary ParseIssue variants.
+    pub fn format(&self, value: &DurationValue) -> Result<String, ParseIssue> {
+        let quantity = value
+            .quantity(self.unit)?
+            .quantize(self.rules.scale, RoundingPolicy::Reject)?;
+        let quantity = self
+            .rules
+            .bounds
+            .map_or(Ok(quantity), |bounds| bounds.validate(quantity))?;
+        Ok(decimal_draft(quantity, self.rules.locale))
+    }
+    pub fn accept(
+        &self,
+        commit: ui::FieldCommit,
+    ) -> Result<Option<DurationValue>, FieldSpecError<ParseIssue>> {
+        self.codec
+            .accept(commit)
+            .map(|value| value.map(|draft| draft.duration))
+    }
+    pub fn named(&self, key: FieldSpecKey) -> NamedFieldSpec {
+        self.codec.named(key)
+    }
+    pub fn with_display(mut self, display: impl Fn(&DurationValue) -> String + 'static) -> Self {
+        self.codec = self
+            .codec
+            .with_display(move |value| display(&value.duration));
+        self
+    }
+    pub fn with_grouping(mut self, prefix: usize, separator: impl Into<String>) -> Self {
+        self.codec = self.codec.with_grouping(prefix, separator);
+        self
     }
 }
 impl FieldSpec<PhoneNumber> {

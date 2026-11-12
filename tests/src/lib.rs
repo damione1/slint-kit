@@ -824,6 +824,7 @@ mod variants;
 mod base_feedback;
 
 mod datetime_localization;
+mod duration_unit;
 mod number_stepping;
 mod numeric_input;
 mod numeric_locale;

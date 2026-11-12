@@ -49,12 +49,12 @@ values = {
 'KitOtpField':('Verification code','482913'), 'KitMaskedField':('Reference','AB-2048'),
 'KitIntegerField':('Seats','12'), 'KitDecimalField':('Distance','12.75'),
 'KitMoneyField':('Budget','129.95'), 'KitPercentField':('Tax rate','8.25'),
-'KitQuantityField':('Weight','2.50'), 'KitDurationField':('Duration','01:30'),
+'KitQuantityField':('Weight','2.50'), 'KitDurationField':('Duration','5'),
 'KitNumberStepper':('Guests','3'), 'KitDateField':('Event date','2026-10-17'),
 'KitMonthField':('Billing month','2026-10'), 'KitYearField':('Fiscal year','2026'),
 'KitIsoWeekField':('Sprint week','2026-W42'), 'KitTimeField':('Start time','09:30')}
 for name,(label,value) in values.items():
-    suffix = ' prefix: "$";' if name == 'KitMoneyField' else ' suffix: "kg";' if name == 'KitQuantityField' else ''
+    suffix = ' prefix: "$";' if name == 'KitMoneyField' else ' suffix: "kg";' if name == 'KitQuantityField' else ' suffix: "s";' if name == 'KitDurationField' else ''
     suffix += ' step-requested(direction) => { root.status = "Step requested; validate in Rust"; };' if name == 'KitNumberStepper' else ''
     add(name, f'{name} {{ theme: root.theme; label: "{label}"; text: "{value}";{suffix} edited(value) => {{ root.status = "Draft: " + value; }} }}', 300 if name == 'KitTextArea' else 240)
 
