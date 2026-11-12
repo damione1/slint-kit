@@ -143,7 +143,6 @@ export component KitDateTimeField inherits Rectangle {
     private property <LocalDateTimeDraft> initial-draft;
     private property <LocalDateTimeView> observed-value;
     private property <bool> model-initialized;
-    private property <bool> mounted;
     private property <bool> pending-model;
     private property <bool> service-ready: KitTimeService.ready;
     function model-draft() -> LocalDateTimeDraft {
@@ -162,7 +161,7 @@ export component KitDateTimeField inherits Rectangle {
         root.proposal-baseline = root.accepted-value;
     }
     function initialize-model() {
-        if (root.mounted && root.service-ready && !root.model-initialized) {
+        if (root.service-ready && !root.model-initialized) {
             root.model-initialized = true;
             root.observed-value = root.accepted-value;
             if (root.valid-model()) {
@@ -178,8 +177,7 @@ export component KitDateTimeField inherits Rectangle {
         if (root.time-text != draft.time) { root.time-text = draft.time; }
         root.draft-dirty = false;
     }
-    init => { root.mounted = true; }
-    changed mounted => { root.initialize-model(); }
+    init => { root.initialize-model(); }
     changed service-ready => { root.initialize-model(); }
     changed accepted-value => {
         if (!root.model-initialized) { root.initialize-model(); }

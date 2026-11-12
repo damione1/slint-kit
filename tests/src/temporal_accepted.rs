@@ -3,7 +3,7 @@ use crate::{
     CivilDateView, LocalDateTimeView, LocalTimeValue, LocalTimeView, Ownership,
     TemporalAcceptedFixture,
 };
-use i_slint_backend_testing::{TestingBackend, TestingBackendOptions};
+use i_slint_backend_testing::{ElementHandle, TestingBackend, TestingBackendOptions};
 use slint::{
     ComponentHandle,
     platform::{Key, WindowEvent},
@@ -288,9 +288,18 @@ fn explicit_empty_draft_and_dynamic_post_install_fields_preserve_midnight_baseli
     dynamic.set_mounted(true);
     dynamic.show().unwrap();
     frame(&dynamic);
-    assert!(dynamic.get_state().accepted.present);
-    assert_eq!(dynamic.get_state().accepted.text, "00:00");
-    assert_eq!(dynamic.get_current_text(), "");
+    ElementHandle::find_by_accessible_label(&dynamic, "Dynamic midnight")
+        .next()
+        .unwrap()
+        .mock_single_click(slint::platform::PointerEventButton::Left);
+    key(&dynamic, "2");
+    key(&dynamic, Key::Backspace);
+    key(&dynamic, Key::Tab);
+    assert_eq!(
+        dynamic.get_clears(),
+        1,
+        "an empty native blur differs from accepted midnight"
+    );
     app.invoke_cancel_time();
     frame(&app);
     assert_eq!(app.get_time_text(), "00:00");

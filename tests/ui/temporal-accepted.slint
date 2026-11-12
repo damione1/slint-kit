@@ -59,14 +59,14 @@ export component TemporalAcceptedFixture inherits Window {
     }
 }
 export component DynamicTimeFixture inherits Window {
-    width: 400px; height: 160px;
+    width: 400px; height: 360px;
     in property <bool> mounted;
-    out property <FieldState> state;
-    out property <string> current-text;
-    if root.mounted: KitTimeField {
+    in-out property <int> clears;
+    if root.mounted: KitTimePicker {
+        x: 16px; y: 16px; width: 368px;
+        label: "Dynamic midnight";
         accepted-time: {present: true, time: {}}; text: "";
-        private property <FieldState> snapshot: self.field-state;
-        changed snapshot => { root.state = self.snapshot; root.current-text = self.text; }
+        cleared => { root.clears += 1; }
     }
 }
 
