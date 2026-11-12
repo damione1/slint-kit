@@ -24,13 +24,13 @@ fn tap(window: &ScrollKeysFixture, key: Key) {
     slint::platform::update_timers_and_animations();
 }
 fn shifted(window: &ScrollKeysFixture, key: Key) {
-    window
-        .window()
-        .dispatch_event(WindowEvent::KeyPressed { text: Key::Shift.into() });
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Shift.into(),
+    });
     tap(window, key);
-    window
-        .window()
-        .dispatch_event(WindowEvent::KeyReleased { text: Key::Shift.into() });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Shift.into(),
+    });
 }
 fn near(actual: f32, expected: f32) {
     assert!((actual - expected).abs() < 0.01, "{actual} != {expected}");
@@ -123,13 +123,13 @@ fn keys_bubbling_from_focused_content_scroll_the_viewport() {
 fn shortcuts_with_a_command_modifier_are_not_consumed() {
     let window = fixture(ScrollAxes::Vertical, true);
     tap(&window, Key::Tab);
-    window
-        .window()
-        .dispatch_event(WindowEvent::KeyPressed { text: Key::Control.into() });
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::Control.into(),
+    });
     tap(&window, Key::End);
-    window
-        .window()
-        .dispatch_event(WindowEvent::KeyReleased { text: Key::Control.into() });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::Control.into(),
+    });
     near(window.get_offset_y(), 0.);
 }
 
