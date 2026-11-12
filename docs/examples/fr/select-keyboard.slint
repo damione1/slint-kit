@@ -1,3 +1,4 @@
+import { ChoiceDirection } from "@kit";
 import { KitKeyResult } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
@@ -24,6 +25,8 @@ export component Example inherits Window {
         KitCardHeader { theme: root.theme; title: "Choisissez votre destination"; description: "Une sélection claire, des options descriptives et une navigation clavier familière."; }
         KitSurface { theme: root.theme;
         control := KitSelectKeyboard {
+            navigation-direction: ChoiceDirection.vertical; flow: root.theme.direction;
+            typeahead-enabled: true; dismiss-on-escape: true;
             height: root.options.length * root.row-height; vertical-stretch: 0;
             options: root.options; selected: { present: true, token: 11 }; chosen(row) => { root.status = "Choisi : " + row.label; } init => { self.focus(); }
             tab-navigation(reverse) => { return KitKeyResult.reject; }

@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTabs, KitTabPanel, KitStack, KitFieldDescription, LayoutSpace, OptionRow, SelectionRef, KitTheme, KitThemes } from "@kit";
+import { InterFont } from "@kit/fonts/inter.slint";
+export component App inherits Window {
+    preferred-width: 620px; preferred-height: 360px;
+    max-width: 100000px; max-height: 100000px;
+    default-font-family: InterFont.family;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    private property <SelectionRef> overview: {present: true, token: 11};
+    private property <SelectionRef> settings: {present: true, token: 37};
+    in-out property <SelectionRef> selected: root.overview;
+    KitStack {
+        theme: root.theme; inset: LayoutSpace.roomy;
+        tabs := KitTabs {
+            theme: root.theme; selected <=> root.selected;
+            typeahead-enabled: false;
+            options: [
+                {token: root.overview.token, generation: 1, label: "Overview"},
+                {token: root.settings.token, generation: 1, label: "Settings"},
+            ];
+        }
+        KitStack { theme: root.theme; gap: LayoutSpace.none;
+            KitTabPanel {
+                theme: root.theme; state: tabs.state; tab: root.overview;
+                accessible-name: "Overview"; tab-stop: true; inset: LayoutSpace.compact;
+                KitFieldDescription { theme: root.theme; text: "The panel stays associated with its key when the tab order changes."; }
+            }
+            KitTabPanel {
+                theme: root.theme; state: tabs.state; tab: root.settings;
+                accessible-name: "Settings"; tab-stop: true; inset: LayoutSpace.compact;
+                KitFieldDescription { theme: root.theme; text: "Editors can remain mounted: selection changes only the visible panel."; }
+            }
+        }
+    }
+}

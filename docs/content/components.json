@@ -3923,7 +3923,7 @@
       "seoTitle": "Barre de menus pour Slint",
       "summary": "Barre de menus Slint pour les actions ou destinations d’une fenêtre.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Le clavier partagé est horizontal : Haut/Bas et les pages ne changent plus l’action active. Les combinaisons Contrôle/Alt/Méta sont laissées à l’hôte ; les préfixes et la fermeture Échap existants restent disponibles.",
       "related": [
         "KitMenu",
         "KitTabs"
@@ -3942,7 +3942,7 @@
       "seoTitle": "Menu Bar for Slint",
       "summary": "Horizontal Slint menu bar for actions or destinations inside a window.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `flow` inherits `theme.direction` (reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `flow` inherits `theme.direction` (reversing horizontal item order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. The shared keyboard is horizontal: Up/Down and page keys no longer change the active action. Control/Alt/Meta chords reach the host; existing typeahead and Escape dismissal remain available.",
       "related": [
         "KitMenu",
         "KitTabs"
@@ -5563,6 +5563,24 @@
       "seoTitle": "Clavier de sélection pour Slint",
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject."
+      },
+      "properties": {
+        "navigation-direction": {
+          "default": "ChoiceDirection.vertical",
+          "effect": "Axe du clavier partagé : vertical gère Haut/Bas et les pages mesurées ; horizontal gère Gauche/Droite et refuse les touches verticales/pages ainsi que les combinaisons Contrôle/Alt/Méta. La composition garde sa mise en page."
+        },
+        "flow": {
+          "default": "ChoiceFlow.left-to-right",
+          "effect": "Inverse le parcours horizontal pour une lecture de droite à gauche. Ne réorganise pas les enfants."
+        },
+        "typeahead-enabled": {
+          "default": "true",
+          "effect": "Admet les caractères imprimables pour le parcours par préfixe si vrai ; sinon les laisse à l’hôte. Les listes conservent leur valeur par défaut."
+        },
+        "dismiss-on-escape": {
+          "default": "true",
+          "effect": "Émet la fermeture Échap existante seulement si vrai ; sinon laisse Échap à la portée englobante."
+        }
       }
     },
     "en": {
@@ -5578,6 +5596,24 @@
       "seoTitle": "Select Keyboard for Slint",
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject."
+      },
+      "properties": {
+        "navigation-direction": {
+          "default": "ChoiceDirection.vertical",
+          "effect": "The shared key axis: vertical handles Up/Down and measured page keys; horizontal handles Left/Right and rejects vertical/page keys and Control/Alt/Meta chords. Layout remains owned by the composition."
+        },
+        "flow": {
+          "default": "ChoiceFlow.left-to-right",
+          "effect": "Mirrors horizontal arrow navigation for right-to-left reading direction. It does not lay out children."
+        },
+        "typeahead-enabled": {
+          "default": "true",
+          "effect": "Admits native printable keys for prefix navigation when true; false leaves them to the host. Lists keep their existing default."
+        },
+        "dismiss-on-escape": {
+          "default": "true",
+          "effect": "Emit the existing escape dismissal only when true; false returns Escape to the enclosing scope."
+        }
       }
     }
   },
@@ -6085,10 +6121,11 @@
     "fr": {
       "summary": "Barre d’onglets contrôlée séparant le focus de la destination sélectionnée.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `activation` vaut `TabActivation.manual` par défaut (Gauche/Droite/Début/Fin déplacent le focus itinérant et Entrée/Espace sélectionne) ou `TabActivation.automatic` (la navigation sélectionne aussi l’onglet actif en mode modifiable). `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `activation` vaut `TabActivation.manual` par défaut (Gauche/Droite/Début/Fin déplacent le focus itinérant et Entrée/Espace sélectionne) ou `TabActivation.automatic` (la navigation sélectionne aussi l’onglet actif en mode modifiable). `flow` hérite de `theme.direction` (inversant l’ordre horizontal et les flèches Gauche/Droite en `ChoiceFlow.right-to-left`), `wrap` (`true` par défaut) contrôle le bouclage aux bornes et `typeahead-timeout-ms` vaut 700 par défaut. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Gauche/Droite suivent flow ; Début/Fin restent disponibles. Haut/Bas, pages, Échap et raccourcis Contrôle/Alt/Méta sont laissés au parent. En activation automatique, flèches et préfixe optionnel proposent la sélection ; en ownership controlled, le panneau attend la confirmation du propriétaire. Composez KitTabPanel avec state et une référence de la même source Choices.",
       "related": [
         "KitMenuBar",
-        "KitNavigationAction"
+        "KitNavigationAction",
+        "KitTabPanel"
       ],
       "label": "Onglets",
       "seoTitle": "Onglets pour Slint",
@@ -6098,16 +6135,21 @@
         "has-focus": {
           "effect": "Vrai lorsque la portée clavier native persistante du composite possède le focus. Le focus de ligne au pointeur reste distinct jusqu’au retour dans cette portée après activation.",
           "example": "out property <bool> keyboard-focused: control.has-focus;"
+        },
+        "typeahead-enabled": {
+          "default": "false",
+          "effect": "Active explicitement le parcours par préfixe. Par défaut, les caractères imprimables sont laissés à l’application. Espace et Entrée acceptent toujours l’onglet actif."
         }
       }
     },
     "en": {
       "summary": "Controlled tab bar separating focus from the selected destination.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `activation` defaults to `TabActivation.manual` (Left/Right/Home/End move roving focus and Enter/Space selects) or `TabActivation.automatic` (roving navigation also selects the active tab while editable). `flow` inherits `theme.direction` (reversing horizontal tab order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `activation` defaults to `TabActivation.manual` (Left/Right/Home/End move roving focus and Enter/Space selects) or `TabActivation.automatic` (roving navigation also selects the active tab while editable). `flow` inherits `theme.direction` (reversing horizontal tab order and Left/Right arrows in `ChoiceFlow.right-to-left`), `wrap` (`true` by default) controls wrap-around at bounds, and `typeahead-timeout-ms` defaults to 700. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. Left/Right follow flow; Home/End remain available. Up/Down, page keys, Escape and Control/Alt/Meta chords reach the parent. Automatic activation proposes selection for arrow and optional prefix navigation; with controlled ownership the panel waits for acknowledgment. Compose KitTabPanel with state and a reference from the same Choices source.",
       "related": [
         "KitMenuBar",
-        "KitNavigationAction"
+        "KitNavigationAction",
+        "KitTabPanel"
       ],
       "label": "Tabs",
       "seoTitle": "Tabs for Slint",
@@ -6117,6 +6159,10 @@
         "has-focus": {
           "effect": "True while the persistent native composite keyboard scope owns focus. Pointer-down row focus is separate until activation returns to that scope.",
           "example": "out property <bool> keyboard-focused: control.has-focus;"
+        },
+        "typeahead-enabled": {
+          "default": "false",
+          "effect": "Opt into prefix navigation. Printable keys reach the application by default. Space and Enter always accept the active tab."
         }
       }
     }
@@ -8047,6 +8093,86 @@
       },
       "states": "Les membres statiques sont des images ; les membres actifs et le compteur partagent pointeur, clavier, focus et état désactivé. L’ordre source reste l’ordre Tab dans les deux directions ; theme.direction inverse les positions. Un groupe vide a une géométrie intrinsèque nulle.",
       "accessibility": "Groupe nommé avec images ou boutons de membres et compteur nommé séparément. Le nom complet du compteur reste disponible si le texte visible est élidé. Les lecteurs d’écran natifs doivent être qualifiés séparément."
+    }
+  },
+  "KitTabPanel": {
+    "en": {
+      "label": "Tab panel",
+      "seoTitle": "Tab panel for Slint",
+      "summary": "Composed panel associated with stable selection, retaining its native content.",
+      "usage": "Bind state to tabs.state and tab to Choices::selection(&key), using the same source. Never identify a panel by a visible index. Group panels in KitStack with gap: LayoutSpace.none so collapsed items reserve no inter-panel spacing.",
+      "behavior": "The active panel follows the available accepted selection, independently of the merely focused tab. Absent, uninitialized or unavailable selections collapse to zero and hide content. Children stay mounted with their native text/history. Selection changes never refocus automatically. The panel composes KitStack and forwards theme/gap/inset; give supplied children their theme explicitly. Editable/read-only/disabled access remains owned by each child.",
+      "accessibility": "Exposes tab-panel with accessible-name. Leave tab-stop false to reach native child controls directly; enable it for static content. take-focus() focuses its scope only while active. The scope uses the theme focus indicator. Slint 1.18.1 provides no tab-to-panel identifier relation; role and name do not qualify VoiceOver/NVDA or physical IME.",
+      "related": [
+        "KitTabs",
+        "KitStack",
+        "KitTextField"
+      ],
+      "functions": {
+        "take-focus": "Focus the active panel scope; do nothing while inactive."
+      },
+      "properties": {
+        "state": {
+          "effect": "Current SelectState projection from the tab strip."
+        },
+        "tab": {
+          "effect": "Stable SelectionRef projected from this panel’s domain key."
+        },
+        "active": {
+          "effect": "Read-only computed output matching the available accepted selection."
+        },
+        "tab-stop": {
+          "default": "false",
+          "effect": "Add a scope stop for static content; child controls keep native traversal."
+        },
+        "gap": {
+          "default": "LayoutSpace.regular",
+          "effect": "Spacing forwarded to the composed KitStack."
+        },
+        "inset": {
+          "default": "LayoutSpace.none",
+          "effect": "Padding forwarded to the composed KitStack."
+        }
+      }
+    },
+    "fr": {
+      "label": "Panneau d’onglet",
+      "seoTitle": "Panneau d’onglet pour Slint",
+      "summary": "Panneau composé associé à une sélection stable, avec contenu natif conservé.",
+      "usage": "Liez state à tabs.state et tab à Choices::selection(&key), avec des références de la même source. N’utilisez jamais l’indice visible pour identifier un panneau. Regroupez les panneaux dans KitStack avec gap: LayoutSpace.none afin que les éléments réduits ne réservent aucun espacement entre eux.",
+      "behavior": "Le panneau actif suit la sélection acceptée disponible, indépendamment de l’onglet seulement focalisé. Les états absents, non initialisés ou indisponibles sont réduits à zéro et masqués. Les enfants restent montés, avec leur texte et leur historique natifs. Aucune reprise de focus automatique au changement de sélection. Le panneau compose KitStack et transmet theme/gap/inset ; les enfants fournis reçoivent leur thème explicitement. Les droits editable/read-only/disabled restent ceux des enfants.",
+      "accessibility": "Expose tab-panel avec accessible-name. tab-stop reste false pour rejoindre directement les contrôles natifs du panneau ; activez-le pour un contenu statique. take-focus() focalise sa portée seulement lorsqu’il est actif. La portée reçoit l’indicateur de focus du thème. Slint 1.18.1 ne fournit pas de relation d’identifiants entre onglet et panneau ; le rôle et le nom ne constituent pas une qualification VoiceOver/NVDA ou IME physique.",
+      "related": [
+        "KitTabs",
+        "KitStack",
+        "KitTextField"
+      ],
+      "functions": {
+        "take-focus": "Focalise la portée du panneau actif ; n’agit pas sur un panneau inactif."
+      },
+      "properties": {
+        "state": {
+          "effect": "Projection SelectState actuelle de la barre d’onglets."
+        },
+        "tab": {
+          "effect": "SelectionRef stable produite depuis la clé métier du panneau."
+        },
+        "active": {
+          "effect": "Sortie calculée en lecture seule ; correspond à la sélection acceptée disponible."
+        },
+        "tab-stop": {
+          "default": "false",
+          "effect": "Ajoute un arrêt sur la portée pour un contenu statique ; les contrôles enfants gardent leur parcours natif."
+        },
+        "gap": {
+          "default": "LayoutSpace.regular",
+          "effect": "Espacement transmis au KitStack interne."
+        },
+        "inset": {
+          "default": "LayoutSpace.none",
+          "effect": "Padding transmis au KitStack interne."
+        }
+      }
     }
   }
 }
