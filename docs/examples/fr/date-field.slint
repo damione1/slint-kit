@@ -4,6 +4,7 @@ import { InterFont } from "@kit/fonts/inter.slint";
 // Installez les services partagés une fois par fenêtre. Le projet complet ajoute un FieldSpec typé.
 import { KitDateField, KitTheme, KitThemes } from "@kit";
 
+// Les valeurs hôtes typées exigent install(&window) ; le texte correspondant conserve la prévisualisation statique.
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitDateField — exemple";
@@ -17,7 +18,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Champ de date"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitDateField { placeholder: "AAAA-MM-JJ"; description: "Date civile, sans fuseau horaire"; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Date de l’événement"; text: "2026-10-17"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
+        KitDateField { accepted-date: {year: 2026, month: 10, day: 17}; placeholder: "AAAA-MM-JJ"; description: "Date civile, sans fuseau horaire"; character-count-label: "caractères"; checking-label: "Vérification…"; clear-label: "Effacer la recherche"; hide-label: "Masquer le mot de passe"; reveal-label: "Afficher le mot de passe"; theme: root.theme; label: "Date de l’événement"; text: "2026-10-17"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

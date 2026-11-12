@@ -34,6 +34,28 @@ Accessible slider metadata uses the same domain: `spec.minimum`, `maximum` and `
 
 The legacy `bind_select!` macro is retained for migration and deprecated in documentation. Replace its window callback convention with `Choices<K>`, the component’s `options`/`selected`/`chosen` contract and the shared installer. Explicit `SelectBinding` projections remain available for custom controlled integrations.
 
+## Typed temporal host values
+
+Temporal host inputs synchronize the accepted baseline and idle display after `slint_kit::install(&window)`, including controls mounted later. Supply typed values directly; no text-mirroring callback is needed. The complete installed starters load [dates](/components/date-field/), [times](/components/time-field/) and [date/time pairs](/components/date-time-field/) from typed properties without authored draft strings. Catalogue snippets keep explicitly labelled static text for pure-Slint previews; that preview text does not demonstrate service synchronization.
+
+| Component | Host property | Absence |
+| --- | --- | --- |
+| `KitDateField` | input `accepted-date: CivilDateView` | `{}` |
+| `KitMonthField` | inputs `accepted-year`, `accepted-month` | both `0` |
+| `KitYearField` | input `accepted-year` | `0` |
+| `KitIsoWeekField` | inputs `accepted-week-year`, `accepted-week` | both `0` |
+| `KitTimeField` | input `accepted-time: LocalTimeValue` | `{present: false}` or `{}` |
+| `KitTimePicker` | in-out `accepted-time: LocalTimeValue` | `{present: false}` or `{}` |
+| `KitDateTimeField` | in-out `accepted-value: LocalDateTimeView` | `{}` |
+
+`LocalTimeValue` contains `present: bool` and `time: LocalTimeView`. Midnight is `{present: true, time: {}}`; an empty wrapper means absence. **Migration:** replace every bare `accepted-time: {hour: 9, minute: 30}` with `accepted-time: {present: true, time: {hour: 9, minute: 30}}`. Wrap host assignments and two-way bindings too, and check `.present` before reading `.time`.
+
+The input properties on DateField/MonthField/YearField/IsoWeekField/TimeField remain host snapshots. Local/Controlled ownership governs their shared `FieldState` and `committed(FieldCommit)`; local acceptance does not write those input properties. Accept the commit with the matching Rust `FieldSpec` and keep the returned typed value. `acknowledge(FieldValue)` changes the native accepted baseline only; it does not set a typed host property or rewrite the active draft.
+
+TimePicker additionally emits `chosen(LocalTimeView)` for an accepted present time and `cleared()` for valid optional absence, preserving `committed(FieldCommit)`. Local ownership updates its in-out model. Controlled ownership proposes without replacing it: acknowledge with the complete `accepted-time` wrapper. DateTime similarly publishes/proposes an entire `LocalDateTimeView` through `chosen`, and absence through `cleared()`; acknowledge by assigning the whole `accepted-value`. Both date and time must be valid together, or both empty for optional absence. Moving between its editors never accepts half a pair, and Enter followed by blur does not repeat an unchanged proposal.
+
+A valid host assignment or clear updates idle text and the accepted baseline. An authored initial draft, including an explicitly empty one, is preserved. During native focus a host update acknowledges the new baseline while preserving draft, caret, selection and undo; blur/cancel reconciles through the existing ownership policy. Do not implement a host text rewrite to force synchronization. Invalid typed dates, times or year/month/week combinations are ignored, preserving the prior state; they are never converted to absence. Partial month/week pairs are invalid, while the historical all-zero pair means absence. These contracts do not qualify native IME, devices or screen readers.
+
 ## Duration units and money rules
 
 `KitDurationField` edits a decimal quantity. Its suffix is visual: pair `text: "5"; suffix: "s";` with `FieldSpec::duration(DurationUnit::Seconds, rules)`. The required unit is one of `Milliseconds`, `Seconds`, `Minutes` or `Hours`. `DecimalRules` checks the input quantity's locale, scale, sign and bounds. Widget `min`, `max` and `step` use that same visible quantity and canonical attribute syntax; they are not milliseconds unless the selected unit is milliseconds. Clock text such as `01:30` is not a duration codec format.

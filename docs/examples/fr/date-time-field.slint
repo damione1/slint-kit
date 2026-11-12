@@ -4,6 +4,7 @@ import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
 import { KitDateTimeField, LocalDateTimeView, KitStack, KitButton } from "@kit";
+// Les valeurs hôtes typées exigent install(&window) ; le texte correspondant conserve la prévisualisation statique.
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
     public function report-validation() -> bool { return control.report-validity(); }
@@ -20,7 +21,7 @@ export component Example inherits Window {
     callback cleared();
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        control := KitDateTimeField { clearable: true; clear-label: "Effacer la date et l’heure"; label: "Rendez-vous"; date-label: "Date du rendez-vous"; time-label: "Heure du rendez-vous"; date-description: "Date civile, sans fuseau horaire"; time-description: "Heure locale au format 24 heures"; date-text: "2026-10-17"; time-text: "09:30"; required: false; chosen(value) => { root.chosen(value); } cleared => { root.cleared(); } }
+        control := KitDateTimeField { accepted-value: {date: {year: 2026, month: 10, day: 17}, time: {hour: 9, minute: 30}}; clearable: true; clear-label: "Effacer la date et l’heure"; label: "Rendez-vous"; date-label: "Date du rendez-vous"; time-label: "Heure du rendez-vous"; date-description: "Date civile, sans fuseau horaire"; time-description: "Heure locale au format 24 heures"; date-text: "2026-10-17"; time-text: "09:30"; required: false; chosen(value) => { root.chosen(value); } cleared => { root.cleared(); } }
         KitButton { text: "Appliquer"; activated => { control.commit(); } }
     }
 }

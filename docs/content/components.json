@@ -2114,25 +2114,39 @@
   "KitDateField": {
     "fr": {
       "summary": "Saisie texte d’une valeur CivilDate.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
+      "usage": "`accepted-date: CivilDateView` est une entrée contenant l’instantané hôte ; `{}` signifie absence. Les validations locales ne la réécrivent pas. La propriété Local/Controlled gouverne le FieldState partagé et `committed(FieldCommit)`, pas ces entrées. Protégez l’acceptation Rust avec le FieldSpec correspondant et conservez son résultat analysé. Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
       "related": [
         "KitDatePicker",
         "KitCalendar"
       ],
       "label": "Champ date",
-      "seoTitle": "Champ date pour Slint"
+      "seoTitle": "Champ date pour Slint",
+      "properties": {
+        "accepted-date": {
+          "effect": "Instantané hôte de type `CivilDateView`. `accepted-date: CivilDateView` est une entrée contenant l’instantané hôte ; `{}` signifie absence. Les validations locales ne la réécrivent pas.",
+          "default": "`{}`.",
+          "example": "KitDateField { accepted-date: {year: 2026, month: 10, day: 17}; }"
+        }
+      }
     },
     "en": {
       "summary": "Text entry for a CivilDate value.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
+      "usage": "`accepted-date: CivilDateView` is an input host snapshot; `{}` means absence. It is not rewritten by local commits. Local/Controlled ownership governs the shared FieldState and `committed(FieldCommit)`, not these input properties. Guard Rust acceptance with the matching FieldSpec and retain its parsed result. Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
       "related": [
         "KitDatePicker",
         "KitCalendar"
       ],
       "label": "Date Field",
-      "seoTitle": "Date Field for Slint"
+      "seoTitle": "Date Field for Slint",
+      "properties": {
+        "accepted-date": {
+          "effect": "Host snapshot of type `CivilDateView`. `accepted-date: CivilDateView` is an input host snapshot; `{}` means absence. It is not rewritten by local commits.",
+          "default": "`{}`.",
+          "example": "KitDateField { accepted-date: {year: 2026, month: 10, day: 17}; }"
+        }
+      }
     }
   },
   "KitDatePicker": {
@@ -2614,8 +2628,8 @@
   "KitDateTimeField": {
     "fr": {
       "summary": "Deux brouillons texte validés comme une seule date et heure locale.",
-      "usage": "Liez `accepted-value: LocalDateTimeView` si l’hôte a besoin de la date et de l’heure locales acceptées. Le composant valide ses deux champs natifs et émet `chosen(LocalDateTimeView)`. Utilisez `LocalDateTime::try_from` à la frontière Rust. Une date-heure locale n’a aucun fuseau implicite. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-value` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance.",
-      "behavior": "La validation est atomique : une partie invalide laisse la paire acceptée inchangée. La paire est acceptée avec Entrée, `commit()` ou lorsque le focus quitte les deux éditeurs (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer de la date à l’heure n’est pas une perte de focus, et une paire inchangée ne répète pas `chosen`. Cette valeur ne contient pas de fuseau horaire. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Une paire vide valide représente une absence : les deux brouillons natifs doivent être vides. Un seul éditeur vide reste une paire incomplète invalide. cleared() signale l’absence engagée sans chosen portant une date nulle ; accepted-value est vidé en mode local, ou attend la confirmation de l’hôte en mode controlled. clearable ajoute une action finale unique qui efface les deux éditeurs par leur chemin d’édition natif. Chaque éditeur garde son historique d’annulation ; toute préédition dans l’un d’eux bloque cet effacement. clear() modifie le brouillon ; on-blur accepte en quittant tout le contrôle, action comprise, on-submit attend commit()/Entrée et on-change-when-valid accepte une paire complète valide. editor-focused décrit toujours les éditeurs natifs ; focus-observed inclut aussi l’action auxiliaire.",
+      "usage": "`accepted-value: LocalDateTimeView` est un modèle hôte date/heure atomique ; `{}` signifie absence. Une valeur initiale valide, une affectation ultérieure ou un effacement synchronise ensemble les deux éditeurs et leurs valeurs acceptées de référence ; une paire invalide est ignorée. La propriété locale actualise le modèle entier et émet `chosen` ; la propriété contrôlée propose puis attend l’affectation complète de `accepted-value`. Une absence facultative admise émet `cleared()` ; acquittez-la avec `{}`. Entrée puis perte de focus ne répète pas une proposition inchangée. Un enfant valide n’accepte jamais une demi-paire.  Liez `accepted-value: LocalDateTimeView` si l’hôte a besoin de la date et de l’heure locales acceptées. Le composant valide ses deux champs natifs et émet `chosen(LocalDateTimeView)`. Utilisez `LocalDateTime::try_from` à la frontière Rust. Une date-heure locale n’a aucun fuseau implicite. `ownership: Ownership.controlled` émet `chosen` sans remplacer `accepted-value` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. La validation est atomique : une partie invalide laisse la paire acceptée inchangée. La paire est acceptée avec Entrée, `commit()` ou lorsque le focus quitte les deux éditeurs (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer de la date à l’heure n’est pas une perte de focus, et une paire inchangée ne répète pas `chosen`. Cette valeur ne contient pas de fuseau horaire. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus. Une paire vide valide représente une absence : les deux brouillons natifs doivent être vides. Un seul éditeur vide reste une paire incomplète invalide. cleared() signale l’absence engagée sans chosen portant une date nulle ; accepted-value est vidé en mode local, ou attend la confirmation de l’hôte en mode controlled. clearable ajoute une action finale unique qui efface les deux éditeurs par leur chemin d’édition natif. Chaque éditeur garde son historique d’annulation ; Slint 1.18.1 ne fournit pas d’API documentée d’état de composition ni de transaction entre éditeurs. clear() modifie le brouillon ; on-blur accepte en quittant tout le contrôle, action comprise, on-submit attend commit()/Entrée et on-change-when-valid accepte une paire complète valide. editor-focused décrit toujours les éditeurs natifs ; focus-observed inclut aussi l’action auxiliaire.",
       "related": [
         "KitDateField",
         "KitTimeField",
@@ -2639,6 +2653,11 @@
           "effect": "Nom accessible de l’action d’effacement.",
           "default": "KitStrings.clear-label",
           "example": "KitDateTimeField { clear-label: \"Effacer le rendez-vous\"; }"
+        },
+        "accepted-value": {
+          "effect": "Instantané hôte de type `LocalDateTimeView`. `accepted-value: LocalDateTimeView` est un modèle hôte date/heure atomique ; `{}` signifie absence. Une valeur initiale valide, une affectation ultérieure ou un effacement synchronise ensemble les deux éditeurs et leurs valeurs acceptées de référence ; une paire invalide est ignorée. La propriété locale actualise le modèle entier et émet `chosen` ; la propriété contrôlée propose puis attend l’affectation complète de `accepted-value`. Une absence facultative admise émet `cleared()` ; acquittez-la avec `{}`. Entrée puis perte de focus ne répète pas une proposition inchangée. Un enfant valide n’accepte jamais une demi-paire.",
+          "default": "`{}`.",
+          "example": "KitDateTimeField { accepted-value: {date: {year: 2026, month: 10, day: 17}, time: {hour: 9, minute: 30}}; }"
         }
       },
       "callbacks": {
@@ -2647,8 +2666,8 @@
     },
     "en": {
       "summary": "Two text drafts accepted as one local date and time.",
-      "usage": "Bind `accepted-value: LocalDateTimeView` if the host needs the accepted local date and time. The component validates its native date/time parts and emits `chosen(LocalDateTimeView)`. Use `LocalDateTime::try_from` at the Rust boundary. A local date-time has no implicit time zone. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-value`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned.",
-      "behavior": "Commit is atomic: an invalid part leaves the accepted pair unchanged. The pair is accepted on Enter, `commit()` or when focus leaves both editors (`commit-policy`, default `CommitPolicy.on-blur`); moving from the date to the time editor is not a blur, and an unchanged pair does not repeat `chosen`. This value has no time zone. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. A valid empty pair means absence: both native drafts must be empty. One empty editor is an invalid incomplete pair. cleared() emits committed absence without a zero-date chosen payload, resetting the local accepted-value or waiting for controlled host acknowledgement. clearable adds one trailing action that clears both native editors through their edit path. It preserves each editor’s own undo history and refuses to edit while either has preedit. clear() edits the draft; on-blur commits only after leaving the whole control including that action, on-submit waits for commit()/Enter, and on-change-when-valid accepts a complete valid pair. editor-focused still describes the native editors; focus-observed also includes the auxiliary action.",
+      "usage": "`accepted-value: LocalDateTimeView` is an atomic date/time host model; `{}` means absence. A valid initial value, later assignment or clear synchronizes both editors and their accepted baselines together; an invalid pair is ignored. Local ownership updates the whole model and emits `chosen`; Controlled emits a proposal and waits for the whole `accepted-value` assignment. An admitted optional clear emits `cleared()`; acknowledge it with `{}`. Enter followed by blur does not repeat an unchanged proposal. One valid child never accepts half a pair.  Bind `accepted-value: LocalDateTimeView` if the host needs the accepted local date and time. The component validates its native date/time parts and emits `chosen(LocalDateTimeView)`. Use `LocalDateTime::try_from` at the Rust boundary. A local date-time has no implicit time zone. `ownership: Ownership.controlled` emits `chosen` without replacing `accepted-value`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. Commit is atomic: an invalid part leaves the accepted pair unchanged. The pair is accepted on Enter, `commit()` or when focus leaves both editors (`commit-policy`, default `CommitPolicy.on-blur`); moving from the date to the time editor is not a blur, and an unchanged pair does not repeat `chosen`. This value has no time zone. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations. A valid empty pair means absence: both native drafts must be empty. One empty editor is an invalid incomplete pair. cleared() emits committed absence without a zero-date chosen payload, resetting the local accepted-value or waiting for controlled host acknowledgement. clearable adds one trailing action that clears both native editors through their edit path. It preserves each editor’s own undo history. clear() edits the draft; on-blur commits only after leaving the whole control including that action, on-submit waits for commit()/Enter, and on-change-when-valid accepts a complete valid pair. editor-focused still describes the native editors; focus-observed also includes the auxiliary action.",
       "related": [
         "KitDateField",
         "KitTimeField",
@@ -2672,6 +2691,11 @@
           "effect": "Accessible name of the clear action.",
           "default": "KitStrings.clear-label",
           "example": "KitDateTimeField { clear-label: \"Clear appointment\"; }"
+        },
+        "accepted-value": {
+          "effect": "Host snapshot of type `LocalDateTimeView`. `accepted-value: LocalDateTimeView` is an atomic date/time host model; `{}` means absence. A valid initial value, later assignment or clear synchronizes both editors and their accepted baselines together; an invalid pair is ignored. Local ownership updates the whole model and emits `chosen`; Controlled emits a proposal and waits for the whole `accepted-value` assignment. An admitted optional clear emits `cleared()`; acknowledge it with `{}`. Enter followed by blur does not repeat an unchanged proposal. One valid child never accepts half a pair.",
+          "default": "`{}`.",
+          "example": "KitDateTimeField { accepted-value: {date: {year: 2026, month: 10, day: 17}, time: {hour: 9, minute: 30}}; }"
         }
       },
       "callbacks": {
@@ -3740,25 +3764,49 @@
   "KitIsoWeekField": {
     "fr": {
       "summary": "Saisie texte d’une valeur IsoWeek.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
+      "usage": "`accepted-week-year` et `accepted-week` sont des entrées contenant l’instantané hôte. Deux zéros signifient absence ; les combinaisons année/semaine ISO partielles ou invalides sont ignorées atomiquement. Les validations locales ne réécrivent pas ces entrées. La propriété Local/Controlled gouverne le FieldState partagé et `committed(FieldCommit)`, pas ces entrées. Protégez l’acceptation Rust avec le FieldSpec correspondant et conservez son résultat analysé. Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
       "related": [
         "KitDateField",
         "KitYearField"
       ],
       "label": "Champ semaine ISO",
-      "seoTitle": "Champ semaine ISO pour Slint"
+      "seoTitle": "Champ semaine ISO pour Slint",
+      "properties": {
+        "accepted-week-year": {
+          "effect": "Instantané hôte de type `int`. `accepted-week-year` et `accepted-week` sont des entrées contenant l’instantané hôte. Deux zéros signifient absence ; les combinaisons année/semaine ISO partielles ou invalides sont ignorées atomiquement. Les validations locales ne réécrivent pas ces entrées.",
+          "default": "`0`.",
+          "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        },
+        "accepted-week": {
+          "effect": "Instantané hôte de type `int`. `accepted-week-year` et `accepted-week` sont des entrées contenant l’instantané hôte. Deux zéros signifient absence ; les combinaisons année/semaine ISO partielles ou invalides sont ignorées atomiquement. Les validations locales ne réécrivent pas ces entrées.",
+          "default": "`0`.",
+          "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        }
+      }
     },
     "en": {
       "summary": "Text entry for a IsoWeek value.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
+      "usage": "`accepted-week-year` and `accepted-week` are input host snapshots. Both zero means absence; partial or invalid ISO year/week combinations are ignored atomically. Local commits do not rewrite these inputs. Local/Controlled ownership governs the shared FieldState and `committed(FieldCommit)`, not these input properties. Guard Rust acceptance with the matching FieldSpec and retain its parsed result. Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
       "related": [
         "KitDateField",
         "KitYearField"
       ],
       "label": "ISO Week Field",
-      "seoTitle": "ISO Week Field for Slint"
+      "seoTitle": "ISO Week Field for Slint",
+      "properties": {
+        "accepted-week-year": {
+          "effect": "Host snapshot of type `int`. `accepted-week-year` and `accepted-week` are input host snapshots. Both zero means absence; partial or invalid ISO year/week combinations are ignored atomically. Local commits do not rewrite these inputs.",
+          "default": "`0`.",
+          "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        },
+        "accepted-week": {
+          "effect": "Host snapshot of type `int`. `accepted-week-year` and `accepted-week` are input host snapshots. Both zero means absence; partial or invalid ISO year/week combinations are ignored atomically. Local commits do not rewrite these inputs.",
+          "default": "`0`.",
+          "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        }
+      }
     }
   },
   "KitKeypad": {
@@ -3952,25 +4000,49 @@
   "KitMonthField": {
     "fr": {
       "summary": "Saisie texte d’une valeur YearMonth.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
+      "usage": "`accepted-year` et `accepted-month` sont des entrées contenant l’instantané hôte. La paire `{year: 0, month: 0}` signifie absence ; une paire partielle ou invalide est ignorée atomiquement. Les validations locales ne réécrivent pas ces entrées. La propriété Local/Controlled gouverne le FieldState partagé et `committed(FieldCommit)`, pas ces entrées. Protégez l’acceptation Rust avec le FieldSpec correspondant et conservez son résultat analysé. Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
       "related": [
         "KitDateField",
         "KitYearField"
       ],
       "label": "Champ mois",
-      "seoTitle": "Champ mois pour Slint"
+      "seoTitle": "Champ mois pour Slint",
+      "properties": {
+        "accepted-year": {
+          "effect": "Instantané hôte de type `int`. `accepted-year` et `accepted-month` sont des entrées contenant l’instantané hôte. La paire `{year: 0, month: 0}` signifie absence ; une paire partielle ou invalide est ignorée atomiquement. Les validations locales ne réécrivent pas ces entrées.",
+          "default": "`0`.",
+          "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        },
+        "accepted-month": {
+          "effect": "Instantané hôte de type `int`. `accepted-year` et `accepted-month` sont des entrées contenant l’instantané hôte. La paire `{year: 0, month: 0}` signifie absence ; une paire partielle ou invalide est ignorée atomiquement. Les validations locales ne réécrivent pas ces entrées.",
+          "default": "`0`.",
+          "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        }
+      }
     },
     "en": {
       "summary": "Text entry for a YearMonth value.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
+      "usage": "`accepted-year` and `accepted-month` are input host snapshots. The pair `{year: 0, month: 0}` means absence; a partial or invalid pair is ignored atomically. Local commits do not rewrite these inputs. Local/Controlled ownership governs the shared FieldState and `committed(FieldCommit)`, not these input properties. Guard Rust acceptance with the matching FieldSpec and retain its parsed result. Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
       "related": [
         "KitDateField",
         "KitYearField"
       ],
       "label": "Month Field",
-      "seoTitle": "Month Field for Slint"
+      "seoTitle": "Month Field for Slint",
+      "properties": {
+        "accepted-year": {
+          "effect": "Host snapshot of type `int`. `accepted-year` and `accepted-month` are input host snapshots. The pair `{year: 0, month: 0}` means absence; a partial or invalid pair is ignored atomically. Local commits do not rewrite these inputs.",
+          "default": "`0`.",
+          "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        },
+        "accepted-month": {
+          "effect": "Host snapshot of type `int`. `accepted-year` and `accepted-month` are input host snapshots. The pair `{year: 0, month: 0}` means absence; a partial or invalid pair is ignored atomically. Local commits do not rewrite these inputs.",
+          "default": "`0`.",
+          "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        }
+      }
     }
   },
   "KitMultiSelect": {
@@ -6892,25 +6964,39 @@
   "KitTimeField": {
     "fr": {
       "summary": "Saisie native d’une heure locale.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "LocalTime ne contient ni date ni fuseau horaire. Le libellé visible ne change pas le format 24 heures du parseur. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
+      "usage": "`accepted-time: LocalTimeValue` est une entrée contenant l’instantané hôte. `{}` ou `{present: false}` signifie absence ; `{present: true, time: {}}` représente minuit. Remplacez les anciennes affectations directes de `LocalTimeView` par `{present: true, time: value}`. Ne lisez `.time` que si `.present` vaut true. Les validations locales ne réécrivent pas cette entrée. La propriété Local/Controlled gouverne le FieldState partagé et `committed(FieldCommit)`, pas ces entrées. Protégez l’acceptation Rust avec le FieldSpec correspondant et conservez son résultat analysé. Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs. L’heure typée doit respecter `precision` ; la précision à la minute refuse une seconde non nulle au lieu de la tronquer. `clock-format` gouverne le formatage sur 12/24 heures.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. LocalTime ne contient ni date ni fuseau horaire. Le libellé visible ne change pas le clock-format explicite. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
       "related": [
         "KitTimePicker",
         "KitDateTimeField"
       ],
       "label": "Champ heure",
-      "seoTitle": "Champ heure pour Slint"
+      "seoTitle": "Champ heure pour Slint",
+      "properties": {
+        "accepted-time": {
+          "effect": "Instantané hôte de type `LocalTimeValue`. `accepted-time: LocalTimeValue` est une entrée contenant l’instantané hôte. `{}` ou `{present: false}` signifie absence ; `{present: true, time: {}}` représente minuit. Remplacez les anciennes affectations directes de `LocalTimeView` par `{present: true, time: value}`. Ne lisez `.time` que si `.present` vaut true. Les validations locales ne réécrivent pas cette entrée.",
+          "default": "`{}`.",
+          "example": "KitTimeField { accepted-time: {present: true, time: {hour: 9, minute: 30}}; }"
+        }
+      }
     },
     "en": {
       "summary": "Native text input for a local time of day.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "LocalTime has no date or time zone. The visible label does not change the parser’s 24-hour format. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
+      "usage": "`accepted-time: LocalTimeValue` is an input host snapshot. `{}` or `{present: false}` means absence; `{present: true, time: {}}` is midnight. Replace former bare `LocalTimeView` assignments with `{present: true, time: value}`. Read `.time` only when `.present` is true. Local commits do not rewrite this input. Local/Controlled ownership governs the shared FieldState and `committed(FieldCommit)`, not these input properties. Guard Rust acceptance with the matching FieldSpec and retain its parsed result. Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs. The typed time must fit `precision`; minute precision rejects a nonzero second instead of truncating it. `clock-format` controls 12/24-hour formatting.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. LocalTime has no date or time zone. The visible label does not change the explicit clock-format. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
       "related": [
         "KitTimePicker",
         "KitDateTimeField"
       ],
       "label": "Time Field",
-      "seoTitle": "Time Field for Slint"
+      "seoTitle": "Time Field for Slint",
+      "properties": {
+        "accepted-time": {
+          "effect": "Host snapshot of type `LocalTimeValue`. `accepted-time: LocalTimeValue` is an input host snapshot. `{}` or `{present: false}` means absence; `{present: true, time: {}}` is midnight. Replace former bare `LocalTimeView` assignments with `{present: true, time: value}`. Read `.time` only when `.present` is true. Local commits do not rewrite this input.",
+          "default": "`{}`.",
+          "example": "KitTimeField { accepted-time: {present: true, time: {hour: 9, minute: 30}}; }"
+        }
+      }
     }
   },
   "KitTimeline": {
@@ -6940,8 +7026,8 @@
   "KitTimePicker": {
     "fr": {
       "summary": "Saisie d’heure locale avec réglage des heures et minutes.",
-      "usage": "Choisissez précision et format d’horloge, enregistrez un `FieldSpec` d’heure et traitez `committed(FieldCommit)`. Le kit ajuste les segments et le format ; `commit()` et `cancel-edit()` conservent le contrat partagé des champs. Les anciens callbacks d’ajustement restent des ports d’observation.",
-      "behavior": "Les réglages bouclent sur une journée. Corrigez un brouillon invalide avant d’accepter un réglage. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
+      "usage": "`accepted-time` est un `LocalTimeValue` en entrée-sortie : `{}` signifie absence et `{present: true, time: {}}` signifie minuit. La propriété locale actualise ce modèle typé et émet `chosen(LocalTimeView)` pour une valeur présente ou `cleared()` pour une absence facultative valide. La propriété contrôlée propose les mêmes événements sans remplacer le modèle ; acquittez par l’affectation complète `{present: true, time: value}` ou `{present: false}`. `committed(FieldCommit)` reste disponible pour la frontière Rust FieldSpec partagée. Migrez toute ancienne affectation directe de LocalTimeView vers ce conteneur de présence.  Choisissez précision et format d’horloge, enregistrez un `FieldSpec` d’heure et traitez `committed(FieldCommit)`. Le kit ajuste les segments et le format ; `commit()` et `cancel-edit()` conservent le contrat partagé des champs. Les anciens callbacks d’ajustement restent des ports d’observation. L’heure typée doit respecter `precision` ; la précision à la minute refuse une seconde non nulle au lieu de la tronquer. `clock-format` gouverne le formatage sur 12/24 heures.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. Les réglages bouclent sur une journée. Corrigez un brouillon invalide avant d’accepter un réglage. Les aperçus Slint seuls affichent le texte déclaré ; formatage typé, analyse et acceptation nécessitent les services Rust installés par `install(&window)`. Le guide de l’éditeur détaille les limites des aperçus.",
       "label": "Sélecteur d’heure",
       "seoTitle": "Sélecteur d’heure pour Slint",
       "related": [
@@ -6951,12 +7037,24 @@
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+      },
+      "properties": {
+        "accepted-time": {
+          "effect": "Instantané hôte de type `LocalTimeValue`. `accepted-time` est un `LocalTimeValue` en entrée-sortie : `{}` signifie absence et `{present: true, time: {}}` signifie minuit. La propriété locale actualise ce modèle typé et émet `chosen(LocalTimeView)` pour une valeur présente ou `cleared()` pour une absence facultative valide. La propriété contrôlée propose les mêmes événements sans remplacer le modèle ; acquittez par l’affectation complète `{present: true, time: value}` ou `{present: false}`. `committed(FieldCommit)` reste disponible pour la frontière Rust FieldSpec partagée. Migrez toute ancienne affectation directe de LocalTimeView vers ce conteneur de présence.",
+          "default": "`{}`.",
+          "example": "KitTimePicker { accepted-time: {present: true, time: {hour: 9, minute: 30}}; }"
+        }
+      },
+      "callbacks": {
+        "chosen": "`chosen(LocalTimeView)` : heure locale présente validée. Local actualise accepted-time ; Controlled attend l’acquittement hôte.",
+        "cleared": "Absence facultative valide acceptée ; acquittez avec accepted-time: {present: false} en mode Controlled. Il s’agit d’une acceptation, pas d’une observation d’effacement du brouillon.",
+        "committed": "`committed(FieldCommit)` : validation partagée conservée pour l’acceptation Rust typée."
       }
     },
     "en": {
       "summary": "Local-time input with hour and minute adjustment controls.",
-      "usage": "Choose precision and clock format, register a time `FieldSpec`, and handle `committed(FieldCommit)`. Segment adjustment and formatting run in the kit; `commit()` and `cancel-edit()` preserve the shared field contract. Legacy adjustment callbacks remain observation ports.",
-      "behavior": "Adjustments wrap within one day. An invalid text draft must be corrected before a step can be accepted. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
+      "usage": "`accepted-time` is an in-out `LocalTimeValue`: `{}` means absence and `{present: true, time: {}}` means midnight. Local ownership updates this typed model and emits `chosen(LocalTimeView)` for a present value or `cleared()` for valid optional absence. Controlled ownership proposes the same events without replacing the model; acknowledge with the complete `{present: true, time: value}` or `{present: false}` assignment. `committed(FieldCommit)` remains available for the shared Rust FieldSpec boundary. Migrate every former bare LocalTimeView assignment to the presence wrapper.  Choose precision and clock format, register a time `FieldSpec`, and handle `committed(FieldCommit)`. Segment adjustment and formatting run in the kit; `commit()` and `cancel-edit()` preserve the shared field contract. Legacy adjustment callbacks remain observation ports. The typed time must fit `precision`; minute precision rejects a nonzero second instead of truncating it. `clock-format` controls 12/24-hour formatting.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. Adjustments wrap within one day. An invalid text draft must be corrected before a step can be accepted. Pure-Slint previews display authored text; typed formatting, parsing and acceptance need the Rust services installed with `install(&window)`. See the editor guide for static preview limitations.",
       "label": "Time Picker",
       "seoTitle": "Time Picker for Slint",
       "related": [
@@ -6966,6 +7064,18 @@
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+      },
+      "properties": {
+        "accepted-time": {
+          "effect": "Host snapshot of type `LocalTimeValue`. `accepted-time` is an in-out `LocalTimeValue`: `{}` means absence and `{present: true, time: {}}` means midnight. Local ownership updates this typed model and emits `chosen(LocalTimeView)` for a present value or `cleared()` for valid optional absence. Controlled ownership proposes the same events without replacing the model; acknowledge with the complete `{present: true, time: value}` or `{present: false}` assignment. `committed(FieldCommit)` remains available for the shared Rust FieldSpec boundary. Migrate every former bare LocalTimeView assignment to the presence wrapper.",
+          "default": "`{}`.",
+          "example": "KitTimePicker { accepted-time: {present: true, time: {hour: 9, minute: 30}}; }"
+        }
+      },
+      "callbacks": {
+        "chosen": "`chosen(LocalTimeView)`: validated present local time. Local updates accepted-time; Controlled waits for host acknowledgement.",
+        "cleared": "Committed valid optional absence; acknowledge with accepted-time: {present: false} in Controlled mode. This is acceptance, not a draft-clear observation.",
+        "committed": "`committed(FieldCommit)`: preserved shared field commit for typed Rust acceptance."
       }
     }
   },
@@ -7402,25 +7512,39 @@
   "KitYearField": {
     "fr": {
       "summary": "Saisie texte d’une valeur Year.",
-      "usage": "Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
-      "behavior": "Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
+      "usage": "`accepted-year: int` est une entrée contenant l’instantané hôte. Zéro signifie absence ; les années valides vont de 1 à 9999. Les validations locales ne réécrivent pas cette entrée. La propriété Local/Controlled gouverne le FieldState partagé et `committed(FieldCommit)`, pas ces entrées. Protégez l’acceptation Rust avec le FieldSpec correspondant et conservez son résultat analysé. Importez le composant depuis `@kit`, définissez libellés et contraintes, puis appelez `slint_kit::install(&app)` une fois avant d’afficher la fenêtre. Le champ possède son brouillon natif `text` et sa valeur acceptée. Pour un codec métier, enregistrez un `FieldSpec<T, E>` nommé avec `install_field_specs`, définissez `spec-key` et recevez `committed(FieldCommit)` ; `spec.accept(commit)` retourne la valeur métier validée à Rust. `commit-policy` choisit la perte de focus, la soumission ou chaque changement valide. `ownership: Ownership.controlled` émet des propositions et attend `acknowledge(FieldValue)`. `field-state` et `accepted-text` exposent l’état partagé ; le brouillon natif reste modifiable lorsqu’il est incomplet. Les guides Formulaires et Contrôleurs détaillent contraintes partagées et codecs.",
+      "behavior": "Après `slint_kit::install(&window)`, un instantané hôte typé valide initialise la valeur acceptée de référence et formate le texte au repos, y compris pour un champ monté après installation. Les mises à jour hôte et l’absence explicite actualisent ensuite texte au repos et référence. Un brouillon initial explicitement défini, même vide, est conservé. Pendant le focus de l’éditeur natif, les mises à jour hôte acquittent la référence sans remplacer texte, curseur, sélection ni historique d’annulation ; la réconciliation intervient à la perte de focus ou à l’annulation. Les modèles typés invalides sont ignorés et ne représentent jamais une absence. La prévisualisation Slint seule nécessite un texte explicite ; la synchronisation typée exige les services Rust installés. Les preuves headless ne qualifient ni IME natif ni lecteur d’écran. Un libellé traduit ne modifie pas le format du parseur. Les valeurs calendaires invalides conservent la dernière valeur acceptée.",
       "related": [
         "KitMonthField",
         "KitIsoWeekField"
       ],
       "label": "Champ année",
-      "seoTitle": "Champ année pour Slint"
+      "seoTitle": "Champ année pour Slint",
+      "properties": {
+        "accepted-year": {
+          "effect": "Instantané hôte de type `int`. `accepted-year: int` est une entrée contenant l’instantané hôte. Zéro signifie absence ; les années valides vont de 1 à 9999. Les validations locales ne réécrivent pas cette entrée.",
+          "default": "`0`.",
+          "example": "KitYearField { accepted-year: 2026; }"
+        }
+      }
     },
     "en": {
       "summary": "Text entry for a Year value.",
-      "usage": "Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
-      "behavior": "A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
+      "usage": "`accepted-year: int` is an input host snapshot. Zero means absence; valid years are 1–9999. Local commits do not rewrite this input. Local/Controlled ownership governs the shared FieldState and `committed(FieldCommit)`, not these input properties. Guard Rust acceptance with the matching FieldSpec and retain its parsed result. Import the component from `@kit`, set its labels and constraints, then call `slint_kit::install(&app)` once before showing the window. The field owns its native `text` draft and accepted value. For a domain codec, register a named `FieldSpec<T, E>` with `install_field_specs`, set `spec-key` and receive `committed(FieldCommit)`; `spec.accept(commit)` returns the validated domain value to Rust. `commit-policy` chooses blur, submit or each valid change. `ownership: Ownership.controlled` emits proposals and waits for `acknowledge(FieldValue)`. `field-state` and `accepted-text` expose the shared state; the native draft stays editable while incomplete. See the Forms guide for shared constraints and the Controllers guide for codecs.",
+      "behavior": "After `slint_kit::install(&window)`, a valid typed host snapshot initializes the accepted baseline and formats idle text, including fields mounted after installation. Later host updates and explicit absence refresh idle text and baseline. An explicitly authored initial draft, even empty, is preserved. While the native editor has focus, host updates acknowledge the baseline without replacing its text, caret, selection or undo; reconciliation occurs at blur/cancel. Invalid typed models are ignored and never treated as absence. Pure-Slint previews need authored text; typed synchronization requires installed Rust services. Headless evidence does not qualify native IME or screen readers. A localized label does not change the parser format. Invalid calendar values keep the last accepted value.",
       "related": [
         "KitMonthField",
         "KitIsoWeekField"
       ],
       "label": "Year Field",
-      "seoTitle": "Year Field for Slint"
+      "seoTitle": "Year Field for Slint",
+      "properties": {
+        "accepted-year": {
+          "effect": "Host snapshot of type `int`. `accepted-year: int` is an input host snapshot. Zero means absence; valid years are 1–9999. Local commits do not rewrite this input.",
+          "default": "`0`.",
+          "example": "KitYearField { accepted-year: 2026; }"
+        }
+      }
     }
   },
   "KitZonedDateTimeField": {
