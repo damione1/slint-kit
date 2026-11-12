@@ -834,12 +834,18 @@ component NotificationAction inherits KitOption {
 enum NotificationItemPhase { visible, dismissing }
 component NotificationItem inherits Rectangle {
     accessible-role: list-item;
-    accessible-label: root.notice.item.label;
+    accessible-label: root.notice.read ? root.notice.item.label : root.notice.item.label + ", " + root.unread-label;
+    accessible-description: root.notice.item.description;
     in property <KitTheme> theme;
     in property <ControlSize> control-size;
     in property <NotificationRow> notice;
     in property <int> focus-token;
     in property <int> focus-request;
+    // The center holds a reveal pending until the row owning the token mounts
+    // and takes focus; a row mounted by the scroll applies it from `init`.
+    in property <bool> focus-pending;
+    in property <string> unread-label;
+    callback focus-taken();
     in property <string> open-label;
     in property <string> mark-read-label;
     in property <string> read-label;
@@ -849,6 +855,12 @@ component NotificationItem inherits Rectangle {
     callback mark-read(int,int);
     callback dismiss-row(int,int);
     preferred-height: notice-content.preferred-height + root.theme.shape.border-width;
+    function apply-focus() {
+        if (root.focus-pending && root.focus-token == root.notice.item.token) {
+            open-preview.take-focus();
+            root.focus-taken();
+        }
+    }
     private property <NotificationItemPhase> phase;
     private property <int> dismiss-token;
     private property <int> dismiss-generation;
@@ -869,7 +881,14 @@ component NotificationItem inherits Rectangle {
     }
 
             private property <int> request: root.focus-request;
-            changed request => { if (root.focus-token == root.notice.item.token) { open-preview.take-focus(); } }
+            changed request => { root.apply-focus(); }
+            // A row mounted by the reveal is not placed yet at init; focusing then would
+            // reveal a stale position, so take focus on the first tick after placement.
+            Timer {
+                running: root.focus-pending && root.focus-token == root.notice.item.token;
+                interval: 0ms;
+                triggered => { root.apply-focus(); }
+            }
             height: notice-content.preferred-height + root.theme.shape.border-width;
             background: root.theme.surface-raised;
             notice-content := VerticalLayout {
@@ -898,6 +917,11 @@ export component KitNotificationCenter inherits Rectangle {
     in property <[NotificationRow]> rows;
     in property <int> focus-token: -1;
     in property <int> focus-request;
+    // Position of `focus-token` in `rows`, published with it by the host (for
+    // example from KeyedModel::index_of). A virtual list scrolls this row into
+    // view so it mounts and takes focus; -1 means the row is already mounted.
+    in property <int> focus-index: -1;
+    in property <string> unread-label: "Unread";
     in property <string> empty-label: "No notifications";
     in property <string> empty-description: "You are all caught up.";
     in property <string> open-label: "Open preview";
@@ -911,6 +935,23 @@ export component KitNotificationCenter inherits Rectangle {
     accessible-role: AccessibleRole.list;
     accessible-label: root.accessible-name;
     min-height: 100px;
+    private property <bool> focus-pending;
+    private property <int> reveal-serial;
+    private property <int> request: root.focus-request;
+    // Rows are uniform in a virtual list, so the index fixes the scroll offset.
+    function scroll-to-focus() {
+        if (root.rows.length > 32 && root.focus-index >= 0 && root.focus-index < root.rows.length) {
+            let row-height = virtual-list.content-height / root.rows.length;
+            let top = root.focus-index * row-height;
+            if (top + virtual-list.content-y < 0px) { virtual-list.content-y = -top; }
+            if (top + row-height + virtual-list.content-y > virtual-list.visible-height) { virtual-list.content-y = virtual-list.visible-height - top - row-height; }
+        }
+    }
+    changed request => {
+        root.focus-pending = root.focus-token >= 0;
+        root.scroll-to-focus();
+        root.reveal-serial += 1;
+    }
     // Measure a bounded inbox exactly. Unbounded message collections retain a
     // finite virtual viewport and never create every native action delegate.
     out property <length> content-height: root.rows.length <= 32 ? bounded-content.preferred-height : virtual-list.content-height;
@@ -931,7 +972,8 @@ export component KitNotificationCenter inherits Rectangle {
             x: 0px; y: 0px; width: parent.visible-width; height: self.preferred-height; alignment: start; spacing: 0px;
             for row in root.rows.length <= 32 ? root.rows : []: NotificationItem {
                 theme: root.theme; control-size: root.control-size; notice: row;
-                focus-token: root.focus-token; focus-request: root.focus-request;
+                focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
+                focus-taken => { root.focus-pending = false; }
                 open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }
@@ -946,7 +988,8 @@ export component KitNotificationCenter inherits Rectangle {
         vertical-scrollbar-policy: ScrollBarPolicy.always-on;
         for row in root.rows.length > 32 ? root.rows : []: NotificationItem {
             theme: root.theme; control-size: root.control-size; notice: row;
-                focus-token: root.focus-token; focus-request: root.focus-request;
+                focus-token: root.focus-token; focus-request: root.reveal-serial; focus-pending: root.focus-pending; unread-label: root.unread-label;
+                focus-taken => { root.focus-pending = false; }
                 open-label: root.open-label; mark-read-label: root.mark-read-label; read-label: root.read-label; dismiss-label: root.dismiss-label; disabled: root.disabled;
                 activate(token,generation) => { root.activate(token,generation); }
                 mark-read(token,generation) => { root.mark-read(token,generation); }

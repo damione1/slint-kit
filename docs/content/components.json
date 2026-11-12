@@ -4309,7 +4309,7 @@
     "fr": {
       "summary": "Liste de notifications avec aperçu, lecture et retrait par identité stable.",
       "usage": "Conservez cette collection dans l’état de l’application. `KeyedModel<K, R>` projette les clés stables typées dans un modèle virtualisable et vérifie jetons et générations. Utilisez `model()` pour les lignes et les setters explicites de `bind` lorsque la vue expose génération et index actif. Validez avec `accept` ou `remove_fenced` ; les callbacks de puces sans génération utilisent des identités de jeton jamais réutilisées. `activation` et `navigation` fournissent les adaptateurs partagés. Filtrage, chargement et commandes métier restent des décisions applicatives.",
-      "behavior": "Le retrait bloque les actions puis émet la demande après un fondu de 150 ms, supprimé en mouvement réduit ; changer d’identité annule le retrait en attente. Les grandes collections utilisent une liste virtualisée et `focus-token` avec `focus-request` permet de retrouver un aperçu.",
+      "behavior": "Le retrait bloque les actions puis émet la demande après un fondu de 150 ms, supprimé en mouvement réduit ; changer d’identité annule le retrait en attente. Les grandes collections utilisent une liste virtualisée. `focus-token` avec `focus-request` place le focus sur un aperçu ; si la ligne n’est pas montée, publiez aussi sa position dans `focus-index` (par exemple `KeyedModel::index_of`) pour que la liste la fasse défiler dans la vue d’abord. Les lignes non lues ajoutent `unread-label` à leur nom accessible.",
       "related": [
         "KitNotificationButton",
         "KitDrawer"
@@ -4320,6 +4320,14 @@
         "accessible-name": {
           "effect": "Nom accessible localisé de cette région de navigation, indépendant des libellés des lignes et actions.",
           "default": "KitStrings.notifications-label (Notifications)"
+        },
+        "focus-index": {
+          "effect": "Position de `focus-token` dans `rows`, publiée avec lui ; une liste virtualisée fait défiler cette ligne dans la vue pour la monter et lui donner le focus. -1 : ligne déjà montée.",
+          "default": "-1"
+        },
+        "unread-label": {
+          "effect": "Texte localisé ajouté au nom accessible d’une ligne non lue.",
+          "default": "Unread"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -4327,7 +4335,7 @@
     "en": {
       "summary": "Notification list with preview, read and removal actions by stable identity.",
       "usage": "Keep this collection in application state. `KeyedModel<K, R>` projects typed stable keys into a virtualizable model and owns token/generation checks. Use `model()` for rows and explicit `bind` setters where the view exposes generation and active-index ports. Validate payloads with `accept` or `remove_fenced`; token-only chip callbacks use non-reused token identities. `activation` and `navigation` provide shared adapters. Filtering, loading and business commands remain application decisions.",
-      "behavior": "Removal disables actions and emits the request after a 150 ms fade, omitted with reduced motion; changing identity cancels pending removal. Large collections use a virtualized list, and `focus-token` with `focus-request` can focus a preview.",
+      "behavior": "Removal disables actions and emits the request after a 150 ms fade, omitted with reduced motion; changing identity cancels pending removal. Large collections use a virtualized list. `focus-token` with `focus-request` focuses a preview; when the row is not mounted, also publish its position in `focus-index` (for example `KeyedModel::index_of`) so the list scrolls it into view first. Unread rows add `unread-label` to their accessible name.",
       "related": [
         "KitNotificationButton",
         "KitDrawer"
@@ -4338,6 +4346,14 @@
         "accessible-name": {
           "effect": "Localized accessible name of this navigation region; independent of row/action labels.",
           "default": "KitStrings.notifications-label (Notifications)"
+        },
+        "focus-index": {
+          "effect": "Position of `focus-token` in `rows`, published with it; a virtualized list scrolls this row into view so it mounts and takes focus. -1 means the row is already mounted.",
+          "default": "-1"
+        },
+        "unread-label": {
+          "effect": "Localized text appended to the accessible name of an unread row.",
+          "default": "Unread"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."

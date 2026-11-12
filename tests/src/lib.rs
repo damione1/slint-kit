@@ -21,6 +21,7 @@ mod journeys;
 mod keyboard_scope;
 mod localized_labels;
 mod multi_popup;
+mod notification_center;
 mod preview;
 mod scroll_keys;
 mod select_search;
