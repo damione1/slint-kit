@@ -8,6 +8,38 @@ permalink: "{{ 'guides/project-setup/' | localeUrl(locale) }}index.html"
 
 # Project setup
 
+## Create a project with one command
+
+The `slint-kit` CLI creates an independent Cargo project with matching kit dependencies, the public build helper, a themed window, one connected button and per-window `install`. The CLI is available from the `develop` source branch; no CLI package publication is assumed:
+
+```sh
+cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked
+slint-kit new my-app
+cd my-app
+cargo run
+```
+
+`slint-kit new` never overwrites an existing path, including an empty directory or symlink. Its parent directory must exist. A package name has at most 64 characters, starts with an ASCII letter and contains only ASCII letters, digits, `-` or `_`; Rust keywords, standard-library crate names and Windows device names are rejected. Use `slint-kit new "folder with spaces" --name my-app` to choose the directory separately from its portable Cargo name. The generator neither runs Cargo nor installs dependencies; the first `cargo run` resolves the matching registry dependencies and writes `Cargo.lock`. Commit that lockfile for reproducible application builds.
+
+The generated `src/main.rs` calls the small `src/lib.rs` factory/entry point; together they contain at most 15 Rust lines. The factory uses the kit's weak-window action adapter. Click **Run action** or focus it and press Space/Enter: Rust updates the visible status. Edit `ui/app.slint` for the layout and theme, and the Rust callback for application behavior. The generated sources use GPL-3.0-or-later; review the [license and adoption limits](/guides/why-slint-kit/) before distributing your application.
+
+### Include a browser preview
+
+```sh
+slint-kit new my-web-app --web
+cd my-web-app
+rustup target add wasm32-unknown-unknown
+cargo build --release --lib --target wasm32-unknown-unknown
+cargo install wasm-bindgen-cli --version '=0.2.129' --locked
+wasm-bindgen target/wasm32-unknown-unknown/release/my_web_app.wasm --target web --out-dir pkg
+python3 -m http.server 8090 --bind 127.0.0.1
+```
+
+Open `http://localhost:8090/`. This project keeps the desktop `cargo run` entry point, adds the WASM library/start function, `index.html` and the matching `wasm-bindgen` dependency, and uses Slint's FemtoVG renderer for desktop and browser. The desktop-only default uses Skia. Serve the generated JS/WASM over HTTP; opening the HTML as a local file is insufficient. Browser preview does not qualify native IME, mobile input or screen readers.
+
+The scaffolder and component downloads share their Cargo project shell and `build.rs` template. Downloads retain the component's own UI, typed callbacks, optional dependencies and lockfile. The manual setup below remains available for existing applications.
+
+
 Configure a Rust application once, then use each component through an `@kit` import, properties and typed callbacks. Component pages provide `ui/app.slint` and `src/main.rs`; their downloadable projects also include the manifest, build script and lockfile.
 
 The build helper uses Slint’s experimental module compilation to share the kit's Rust/Slint contracts. Keep runtime and build packages on the same release and follow the supported Slint patch range. See [build compatibility](https://docs.rs/crate/slint-kit-build/latest) and [adoption limits](/guides/why-slint-kit/).

@@ -27,6 +27,8 @@ The components can be used in desktop Rust applications (macOS, Windows, Linux) 
 
 ## Wire the consumer
 
+For a new application, the source CLI is installed with `cargo install --git https://github.com/damione1/slint-kit --branch develop slint-kit-cli --locked`. Run `slint-kit new my-app`, or add `--web` for desktop plus WASM preview; then run Cargo inside the new directory. Existing paths are never overwritten. `--name my-app` separates a portable Cargo name from a directory containing spaces or Unicode. The generated manifest/build helper share the component-download template; the Rust factory installs once and connects a weak-window action. See the bilingual project-setup guide for browser tooling and renderer differences. No CLI registry publication is assumed.
+
 Merge these registry dependencies into the application’s `Cargo.toml`:
 
 ```toml
