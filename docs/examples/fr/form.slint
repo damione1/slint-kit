@@ -26,7 +26,7 @@ export component Example inherits Window {
                 consent.state = CheckState.unchecked; consent.reset-validation();
             }
             name := KitTextField { theme: root.theme; label: "Nom"; required: true; required-message: "Ce champ est obligatoire."; }
-            email := KitEmailField { theme: root.theme; label: "Courriel"; required: true; required-message: "Ce champ est obligatoire."; }
+            email := KitEmailField { pattern: "[^@]+@[^@]+[.][^@]+"; pattern-message: "Utilisez un domaine avec un suffixe, par exemple acme.tld."; theme: root.theme; label: "Courriel"; required: true; required-message: "Ce champ est obligatoire."; }
             birth := KitDateField { theme: root.theme; label: "Date de naissance"; required: true; required-message: "Ce champ est obligatoire."; }
             consent := KitCheckbox { theme: root.theme; label: "Accepter les conditions"; required: true; required-message: "Ce champ est obligatoire."; }
             if consent.error-visible: KitFieldError { theme: root.theme; text: consent.validation-message; }
