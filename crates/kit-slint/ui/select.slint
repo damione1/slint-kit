@@ -11,7 +11,7 @@ import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
 import { ListView } from "scroll.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable } from "button.slint";
-import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe } from "theme.slint";
+import { KitTheme, KitThemes, ButtonIntent, ControlSize, ControlWidth, KitMetrics, KitThemeContext, TypographyRole, FieldRecipe, SurfaceRecipe, SurfaceLevel, OptionRecipe, IconRecipe, ChoiceDirection, ChoiceFlow } from "theme.slint";
 import { OptionRow, ChoiceRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailability, SelectionRetention } from "contracts.slint";
 
@@ -20,6 +20,10 @@ export { OptionRow, SelectState, NavigationStep, CloseReason, SelectionAvailabil
 export component KitSelectKeyboard inherits FocusScope {
     in property <SelectState> state: selection.state;
     in property <bool> dismiss-on-system-back: true;
+    in property <bool> dismiss-on-escape: true;
+    in property <ChoiceDirection> navigation-direction: ChoiceDirection.vertical;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <bool> typeahead-enabled: true;
     in property <bool> wrap: false;
     in property <int> page-rows: 0;
     in property <int> typeahead-timeout-ms: 700;
@@ -35,11 +39,20 @@ export component KitSelectKeyboard inherits FocusScope {
     focus-on-tab-navigation: false;
     changed state => { if (!root.state.open) { root.activation-held = false; } }
     changed enabled => { if (!root.enabled) { root.activation-held = false; } }
-    function is-typeahead-active() -> bool { return root.check-typeahead-active(); }
+    function is-typeahead-active() -> bool { return root.typeahead-enabled && root.check-typeahead-active(); }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
+        if (root.navigation-direction == ChoiceDirection.horizontal && (event.modifiers.control || event.modifiers.alt || event.modifiers.meta)) { return KitKeyResult.reject; }
         if (event.text == Key.DownArrow || event.text == Key.UpArrow) {
+            if (root.navigation-direction != ChoiceDirection.vertical) { return KitKeyResult.reject; }
             if (!root.state.open) { root.handle-open-requested(); }
             else { root.handle-navigate(event.text == Key.DownArrow ? NavigationStep.next : NavigationStep.previous); }
+            return KitKeyResult.accept;
+        }
+        if (event.text == Key.LeftArrow || event.text == Key.RightArrow) {
+            if (root.navigation-direction != ChoiceDirection.horizontal) { return KitKeyResult.reject; }
+            let forward = root.flow == ChoiceFlow.right-to-left ? event.text == Key.LeftArrow : event.text == Key.RightArrow;
+            if (!root.state.open) { root.handle-open-requested(); }
+            else { root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous); }
             return KitKeyResult.accept;
         }
         if (event.text == Key.Home || event.text == Key.End) {
@@ -48,16 +61,16 @@ export component KitSelectKeyboard inherits FocusScope {
             return KitKeyResult.accept;
         }
         if (!root.state.open) {
-            if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text > " " && event.text < "\u{f700}") {
+            if (root.typeahead-enabled && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text > " " && event.text < "\u{f700}") {
                 root.handle-open-requested();
                 root.handle-typeahead(event.text);
                 return KitKeyResult.accept;
             }
             return KitKeyResult.reject;
         }
-        if (event.text == Key.PageDown) { if (root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
-        if (event.text == Key.PageUp) { if (root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
-        if (event.text == Key.Escape) { root.handle-dismiss(CloseReason.escape); return KitKeyResult.accept; }
+        if (event.text == Key.PageDown) { if (root.navigation-direction != ChoiceDirection.vertical || root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-next); return KitKeyResult.accept; }
+        if (event.text == Key.PageUp) { if (root.navigation-direction != ChoiceDirection.vertical || root.page-rows <= 0) { return KitKeyResult.reject; } root.handle-navigate(NavigationStep.page-previous); return KitKeyResult.accept; }
+        if (event.text == Key.Escape && root.dismiss-on-escape) { root.handle-dismiss(CloseReason.escape); return KitKeyResult.accept; }
         if (event.text == Key.Back && root.dismiss-on-system-back) { root.handle-dismiss(CloseReason.system-back); return KitKeyResult.accept; }
         if (event.text == Key.Tab || event.text == Key.Backtab) {
             root.handle-dismiss(CloseReason.programmatic);
@@ -70,7 +83,7 @@ export component KitSelectKeyboard inherits FocusScope {
             }
             return KitKeyResult.accept;
         }
-        if (!event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
+        if (root.typeahead-enabled && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta && event.text != "" && event.text >= " " && event.text < "\u{f700}") {
             root.handle-typeahead(event.text); return KitKeyResult.accept;
         }
         return KitKeyResult.reject;

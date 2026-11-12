@@ -880,6 +880,7 @@ mod menu_active_focus;
 
 mod calendar_accessibility;
 mod composite_accessibility;
+mod tabs_panels;
 mod temporal_accepted;
 mod time_adjust;
 

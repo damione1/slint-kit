@@ -104,6 +104,7 @@ export const mockups = Object.freeze({
   menu: p => p.menu(69,23,182,1),
   'menu-bar': p => {p.rect(38,35,244,32,'paper');['File','Edit','View'].forEach((s,i)=>p.mark(73+i*67,51,s));p.menu(40,71,127,0);},
   tabs: p => {p.rect(40,27,240,115,'paper');['One','Two','Three'].forEach((s,i)=>p.mark(82+i*77,49,s,i===1?'accent':'ink'));p.line(124,65,69,'accent',3);p.line(59,92,166,'soft');p.line(59,115,115,'soft');},
+  'tab-panel': p => {p.mark(83,31,'Overview','accent');p.mark(206,31,'Settings');p.outline(40,53,240,91);p.line(57,75,142);p.field(57,91,206,'Panel content');},
   breadcrumbs: p => {['Home','Project','Page'].forEach((s,i)=>{p.mark(62+i*94,83,s,i===2?'accent':'ink');if(i<2)p.mark(110+i*94,83,'›','soft');});},
   pagination: p => {['‹','1','2','3','…','›'].forEach((s,i)=>{p.rect(39+i*42,65,34,36,i===2?'accent':'paper');p.mark(56+i*42,83,s,i===2?'paper':'ink');});},
   steps: p => {p.line(65,71,190,'soft',3);[65,160,255].forEach((x,i)=>{p.circle(x,73,15,i<2?'accent':'paper');p.mark(x,74,i===0?'✓':String(i+1),i<2?'paper':'ink');p.line(x-24,109,48,'soft');});},
