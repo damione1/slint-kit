@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemes, KitMetrics, ControlSize, KitTagInput, KitMultiSelect, ChipRow, OptionRow, SelectionRef, KitFileList, FileViewEntry, KitSteps, StepEntry, StepState, KitMenuBar, KitBreadcrumbs, KitButton } from "@kit";
+export component QaChipLayoutFixture inherits Window {
+    width: 560px; height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <[ChipRow]> chips;
+    in property <[OptionRow]> options;
+    in-out property <[SelectionRef]> selected;
+    in-out property <string> draft;
+    out property <length> inline-gap: KitMetrics.inline-gap(root.theme);
+    out property <length> label-gap: KitMetrics.label-gap(root.theme);
+    out property <length> tag-bottom: tags.y + tags.height;
+    out property <length> tag-count-top: tag-count.y;
+    out property <length> multi-bottom: multi.y + multi.height;
+    out property <length> multi-count-top: multi-count.y;
+    VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+        tags := KitTagInput { theme: root.theme; label: "Project tags"; chips: root.chips; text <=> root.draft; }
+        tag-count := Text { text: root.chips.length + " tags"; }
+        multi := KitMultiSelect { theme: root.theme; options: root.options; selected <=> root.selected; }
+        multi-count := Text { text: root.selected.length + " channels"; }
+    }
+}
+export component QaStaticLayoutFixture inherits Window {
+    width: 900px; height: 1500px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    out property <length> row-height: KitMetrics.row-height(root.theme, ControlSize.medium);
+    in property <[FileViewEntry]> files;
+    in property <[OptionRow]> options;
+    in property <[StepEntry]> steps;
+    VerticalLayout { padding: 24px; spacing: 24px; alignment: start;
+        KitFileList { theme: root.theme; entries: root.files; }
+        KitSteps { theme: root.theme; entries: root.steps; interactive: true; }
+        KitBreadcrumbs { theme: root.theme; options: root.options; }
+        KitMenuBar { theme: root.theme; options: root.options; }
+        KitButton { theme: root.theme; text: "Outside layout"; }
+    }
+}
+import { App as OptionDemo } from "../../docs/quickstart/option/ui/app.slint";
+import { App as KeyboardDemo } from "../../docs/quickstart/select-keyboard/ui/app.slint";
+import { App as SurfaceDemo } from "../../docs/quickstart/select-surface/ui/app.slint";
+import { App as TriggerDemo } from "../../docs/quickstart/select-trigger/ui/app.slint";
+import { App as DocumentDemo } from "../../docs/quickstart/virtual-text-view/ui/app.slint";
+import { TextLine } from "@kit";
+export component QaOptionDemo inherits OptionDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <[OptionRow]> test-options; options: root.test-options;
+}
+export component QaKeyboardDemo inherits KeyboardDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <[OptionRow]> test-options; options: root.test-options;
+}
+export component QaSurfaceDemo inherits SurfaceDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <[OptionRow]> test-options; options: root.test-options;
+}
+export component QaTriggerDemo inherits TriggerDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <[OptionRow]> test-options; options: root.test-options;
+}
+export component QaDocumentDemo inherits DocumentDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    in property <[TextLine]> test-lines; lines: root.test-lines;
+}

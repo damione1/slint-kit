@@ -55,15 +55,19 @@ export component KitFileList inherits Rectangle {
                     KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.article; ink: root.theme.accent; x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2; }
                 }
                 VerticalLayout {
+                    alignment: center;
                     spacing: root.theme.spacing.unit;
                     Text { text: entry.name; font-weight: root.theme.typography.weight-medium; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     if entry.detail != "": Text { text: entry.detail; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
-                FileRemoveButton {
-                    theme: root.theme; control-size:root.control-size; entry: entry;
-                    remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template;
-                    disabled: root.access != FieldAccess.editable || !entry.removable;
-                    remove-requested(token,generation) => { root.remove-requested(token,generation); }
+                VerticalLayout {
+                    alignment: center; horizontal-stretch: 0;
+                    FileRemoveButton {
+                        theme: root.theme; control-size:root.control-size; entry: entry;
+                        remove-label: root.remove-label; remove-accessible-template: root.remove-accessible-template;
+                        disabled: root.access != FieldAccess.editable || !entry.removable;
+                        remove-requested(token,generation) => { root.remove-requested(token,generation); }
+                    }
                 }
             }
         }
