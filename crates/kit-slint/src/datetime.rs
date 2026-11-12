@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-use crate::ui;
+use crate::{FieldSpec, ui};
 use kit_core::{
-    CivilDate, ClockFormat, DraftValue, Instant, LocalDateTime, LocalTime, ParseIssue,
-    TimePrecision, TimeZoneId, ZonedResolution,
+    CivilDate, ClockFormat, DraftValue, Instant, IsoWeek, LocalDateTime, LocalTime, ParseIssue,
+    TimePrecision, TimeZoneId, Year, YearMonth, ZonedResolution,
 };
 impl From<LocalTime> for ui::LocalTimeView {
     fn from(value: LocalTime) -> Self {
@@ -113,6 +113,21 @@ fn local(
         ))?,
     ))
 }
+fn projection(value: Result<Option<String>, ParseIssue>) -> ui::TemporalProjection {
+    match value {
+        Ok(value) => ui::TemporalProjection {
+            valid: true,
+            value: value.map_or_else(ui::FieldValue::default, |text| ui::FieldValue {
+                present: true,
+                text: text.into(),
+            }),
+        },
+        Err(_) => ui::TemporalProjection::default(),
+    }
+}
+fn unsigned(value: i32) -> Result<u32, ParseIssue> {
+    u32::try_from(value).map_err(|_| ParseIssue::InvalidDate)
+}
 pub(crate) fn install_time<W>(window: &W)
 where
     W: slint::ComponentHandle,
@@ -122,6 +137,68 @@ where
     if service.get_ready() {
         return;
     }
+    service.on_project_date(|value| {
+        projection(if value == ui::CivilDateView::default() {
+            Ok(None)
+        } else {
+            CivilDate::try_from(value).map(|date| Some(FieldSpec::date().format(&date)))
+        })
+    });
+    service.on_project_year(|year| {
+        projection(if year == 0 {
+            Ok(None)
+        } else {
+            Year::new(year).map(|year| Some(FieldSpec::year().format(&year)))
+        })
+    });
+    service.on_project_month(|year, month| {
+        projection(if year == 0 && month == 0 {
+            Ok(None)
+        } else {
+            unsigned(month)
+                .and_then(|month| YearMonth::new(year, month))
+                .map(|month| Some(FieldSpec::month().format(&month)))
+        })
+    });
+    service.on_project_week(|year, week| {
+        projection(if year == 0 && week == 0 {
+            Ok(None)
+        } else {
+            unsigned(week)
+                .and_then(|week| IsoWeek::new(year, week))
+                .map(|week| Some(FieldSpec::iso_week().format(&week)))
+        })
+    });
+    service.on_project_time(|value, precision, clock| {
+        projection(if !value.present {
+            Ok(None)
+        } else {
+            LocalTime::try_from(value.time).and_then(|time| {
+                if precision == ui::TimePrecision::Minute && time.second() != 0 {
+                    return Err(ParseIssue::InvalidTime);
+                }
+                Ok(Some(
+                    FieldSpec::time(precision.into(), clock.into()).format(&time),
+                ))
+            })
+        })
+    });
+    service.on_parse_time(|text, precision, clock| {
+        match LocalTime::parse_with_format(text.as_str(), precision.into(), clock.into()) {
+            DraftValue::Empty => ui::LocalTimeResult {
+                valid: true,
+                value: ui::LocalTimeValue::default(),
+            },
+            DraftValue::Parsed(time) => ui::LocalTimeResult {
+                valid: true,
+                value: ui::LocalTimeValue {
+                    present: true,
+                    time: time.into(),
+                },
+            },
+            DraftValue::Incomplete | DraftValue::Invalid(_) => ui::LocalTimeResult::default(),
+        }
+    });
     service.on_adjust(|text, precision, clock, segment, direction| {
         let Ok(time) = parsed(LocalTime::parse_with_format(
             text.as_str(),

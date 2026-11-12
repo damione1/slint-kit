@@ -10,13 +10,14 @@ import { FormConstraintState, KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
 import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
+import { TemporalField } from "temporal-field.slint";
 import { KitDateField, CivilDateView } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 
-import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
-export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, KitTimeService } from "datetime-service.slint";
+import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
+export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
 import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 
 component TimeSegmentControl inherits Rectangle {
@@ -38,12 +39,13 @@ component TimeSegmentControl inherits Rectangle {
 
 // The native editor owns caret/selection/IME. The host parses LocalTime and
 // applies the format and precision policy; editing never creates an instant.
-export component KitTimeField inherits KitTextField {
+export component KitTimeField inherits TemporalField {
     input-kind: HtmlInputKind.time;
     validation-twelve-hour: root.clock-format == ClockFormat.twelve-hour;
     step: root.precision == TimePrecision.second ? "1" : "60";
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <LocalTimeView> accepted-time;
+    in property <LocalTimeValue> accepted-time;
+    model: KitTimeService.project-time(root.accepted-time, root.precision, root.clock-format);
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss AM" : "hh:mm AM") : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
@@ -58,6 +60,23 @@ export component KitTimePicker inherits Rectangle {
     out property <string> accepted-text: editor.accepted-text;
     public function acknowledge(value: FieldValue) { editor.acknowledge(value); }
     callback committed(FieldCommit);
+    callback chosen(LocalTimeView);
+    callback cleared();
+    private property <LocalTimeValue> proposal-baseline;
+    private property <bool> time-ready: KitTimeService.ready;
+    init => { root.proposal-baseline = root.accepted-time; }
+    changed accepted-time => { root.proposal-baseline = root.accepted-time; }
+    changed time-ready => { root.proposal-baseline = root.accepted-time; }
+    function accept-time(commit: FieldCommit) {
+        let result = KitTimeService.parse-time(commit.value.text, root.precision, root.clock-format);
+        if (result.valid && result.value != root.proposal-baseline) {
+            root.proposal-baseline = result.value;
+            if (root.ownership == Ownership.local) { root.accepted-time = result.value; }
+            if (result.value.present) { root.chosen(result.value.time); }
+            else { root.cleared(); }
+        }
+        root.committed(commit);
+    }
     public function commit() { editor.commit(); }
     public function cancel-edit() { editor.cancel-edit(); }
     function adjust-time(segment: TimeSegment, direction: TimeAdjustment) {
@@ -87,12 +106,12 @@ export component KitTimePicker inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
-    in property <LocalTimeView> accepted-time;
+    in-out property <LocalTimeValue> accepted-time;
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
     in property <string> error;
-    in-out property <string> text;
+    in-out property <string> text <=> editor.text;
     callback edited(string);
     callback commit-requested(string);
     callback adjust(TimeSegment,TimeAdjustment);
@@ -102,11 +121,11 @@ export component KitTimePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         editor := KitTimeField {
-                ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
+                ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.accept-time(value); }
                 required: root.required; min: root.min; max: root.max; step: root.step;
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
- theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; text <=> root.text; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
+ theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
         TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
         TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
         if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
@@ -118,6 +137,57 @@ export component KitTimePicker inherits Rectangle {
 export component KitDateTimeField inherits Rectangle {
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    private property <LocalDateTimeView> proposal-baseline;
+    private property <LocalDateTimeDraft> initial-draft;
+    private property <LocalDateTimeView> observed-value;
+    private property <bool> model-initialized;
+    private property <bool> pending-model;
+    private property <bool> service-ready: KitTimeService.ready;
+    function model-draft() -> LocalDateTimeDraft {
+        return {date: KitTimeService.project-date(root.accepted-value.date).value.text,
+            time: KitTimeService.project-time({present: root.accepted-value.date.year != 0, time: root.accepted-value.time}, root.precision, root.clock-format).value.text};
+    }
+    function valid-model() -> bool {
+        return root.accepted-value == {} || (root.accepted-value.date.year != 0
+            && KitTimeService.project-date(root.accepted-value.date).valid
+            && KitTimeService.project-time({present: true, time: root.accepted-value.time}, root.precision, root.clock-format).valid);
+    }
+    function acknowledge-model() {
+        let draft = root.model-draft();
+        date.acknowledge({present: draft.date != "", text: draft.date});
+        time.acknowledge({present: draft.time != "", text: draft.time});
+        root.proposal-baseline = root.accepted-value;
+    }
+    function initialize-model() {
+        if (root.service-ready && !root.model-initialized) {
+            root.model-initialized = true;
+            root.observed-value = root.accepted-value;
+            if (root.valid-model()) {
+                root.initial-draft = root.model-draft();
+                root.acknowledge-model();
+            }
+        }
+    }
+    function sync-model() {
+        if (!root.service-ready || !root.valid-model()) { return; }
+        let draft = root.model-draft();
+        if (root.date-text != draft.date) { root.date-text = draft.date; }
+        if (root.time-text != draft.time) { root.time-text = draft.time; }
+        root.draft-dirty = false;
+    }
+    init => { root.initialize-model(); }
+    changed service-ready => { root.initialize-model(); }
+    changed accepted-value => {
+        if (!root.model-initialized) { root.initialize-model(); }
+        else if (root.service-ready && root.accepted-value != root.observed-value) {
+            root.observed-value = root.accepted-value;
+            if (root.valid-model()) {
+                root.acknowledge-model();
+                if (!root.control-focused) { root.sync-model(); }
+                else { root.pending-model = true; }
+            }
+        }
+    }
     private property <LocalDateTimeView> candidate;
     private property <LocalDateTimeDraft> current-draft: {date: root.date-text, time: root.time-text};
     // Native edits since the last acceptance; host text assignments are not typing.
@@ -133,7 +203,8 @@ export component KitDateTimeField inherits Rectangle {
         if (action == FieldAction.blur || action == FieldAction.edit ? !root.validity.valid : !root.report-validity()) { return; }
         if (root.date-text == "" && root.time-text == "") {
             root.draft-dirty = false;
-            if (root.accepted-value != {}) {
+            if (root.proposal-baseline != {}) {
+                root.proposal-baseline = {};
                 if (root.ownership == Ownership.local) { root.accepted-value = {}; }
                 root.cleared();
             }
@@ -143,7 +214,8 @@ export component KitDateTimeField inherits Rectangle {
         root.candidate = KitTimeService.parse-local(root.current-draft, root.precision, root.clock-format);
         if (root.candidate.date.year == 0) { return; }
         root.draft-dirty = false;
-        if (root.candidate != root.accepted-value) {
+        if (root.candidate != root.proposal-baseline) {
+            root.proposal-baseline = root.candidate;
             if (root.ownership == Ownership.local) { root.accepted-value = root.candidate; }
             root.chosen(root.candidate);
         }
@@ -192,8 +264,8 @@ export component KitDateTimeField inherits Rectangle {
     in property <string> time-label: root.label + " — time";
     in property <string> date-error;
     in property <string> time-error;
-    in-out property <string> date-text;
-    in-out property <string> time-text;
+    in-out property <string> date-text: root.initial-draft.date;
+    in-out property <string> time-text: root.initial-draft.time;
     callback edited(LocalDateTimeDraft);
     callback commit-requested(LocalDateTimeDraft);
     callback cancelled();
@@ -206,6 +278,10 @@ export component KitDateTimeField inherits Rectangle {
         if (!root.control-focused) {
             checks.note-blur();
             if (root.commit-policy == CommitPolicy.on-blur && root.draft-dirty) { root.accept-pair(FieldAction.blur); }
+            if (root.pending-model) {
+                root.pending-model = false;
+                if (root.ownership == Ownership.controlled || root.accepted-value == root.proposal-baseline) { root.sync-model(); }
+            }
         }
         root.focus-observed(root.control-focused);
     }
@@ -220,7 +296,7 @@ export component KitDateTimeField inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
         date := KitDateField {
-            theme: root.theme; control-size: root.control-size; access: root.access; accepted-date: root.accepted-value.date; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
+            theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
             edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
             commit-requested(text) => { root.commit(); }
             cancelled => { root.cancelled(); }
@@ -229,7 +305,7 @@ export component KitDateTimeField inherits Rectangle {
             spacing: root.show-clear ? KitMetrics.inline-gap(root.theme) : 0px;
             time := KitTimeField {
                 step: "any";
-                theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-value.time; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
+                theme: root.theme; control-size: root.control-size; access: root.access; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
                 edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: root.date-text, time: text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
                 commit-requested(text) => { root.commit(); }
                 cancelled => { root.cancelled(); }

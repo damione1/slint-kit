@@ -1,0 +1,69 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDateField, KitMonthField, KitYearField, KitIsoWeekField, KitTimeField, KitTimePicker, KitDateTimeField, KitTextField, CivilDateView, LocalTimeValue, LocalTimeView, LocalDateTimeView, KitTheme, KitThemes, Ownership, FieldCommit, FieldState } from "@kit";
+export component TemporalAcceptedFixture inherits Window {
+    width: 780px; height: 1500px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <Ownership> ownership: Ownership.local;
+    in-out property <CivilDateView> date-value: {year: 2026, month: 11, day: 11};
+    in-out property <int> month-year: 2026;
+    in-out property <int> month: 11;
+    in-out property <int> year: 2026;
+    in-out property <int> week-year: 2020;
+    in-out property <int> week: 53;
+    in-out property <LocalTimeValue> time-value: {present: true, time: {}};
+    in-out property <LocalTimeValue> picker-value <=> picker.accepted-time;
+    in-out property <LocalDateTimeView> pair-value <=> pair.accepted-value;
+    out property <string> date-text: date.text;
+    out property <string> month-text: month-field.text;
+    out property <string> year-text: year-field.text;
+    out property <string> week-text: week-field.text;
+    out property <string> time-text: time.text;
+    out property <string> picker-text: picker.text;
+    out property <string> pair-date: pair.date-text;
+    out property <string> pair-time: pair.time-text;
+    out property <FieldState> time-state: time.field-state;
+    out property <int> time-caret: time.cursor-position;
+    out property <int> time-anchor: time.selection-anchor;
+    in-out property <int> picker-choices;
+    in-out property <int> picker-clears;
+    in-out property <int> pair-choices;
+    in-out property <int> pair-clears;
+    callback time-commit(FieldCommit);
+    public function focus-time() { time.take-focus(); }
+    public function select-time() { time.select-all(); }
+    public function cancel-time() { time.cancel-edit(); }
+    public function undo-time() { time.undo(); }
+    public function explicit-time(text: string) { time.text = text; }
+    public function focus-picker() { picker.take-focus(); }
+    public function commit-picker() { picker.commit(); }
+    public function picker-draft(text: string) { picker.text = text; }
+    public function focus-pair() { pair.take-focus(); }
+    public function pair-draft(date: string, time: string) { pair.date-text = date; pair.time-text = time; }
+    public function commit-pair() { pair.commit(); }
+    public function focus-after() { after.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 12px; alignment: start;
+        date := KitDateField { theme: root.theme; label: "Typed date"; accepted-date: root.date-value; }
+        HorizontalLayout { spacing: 12px;
+            month-field := KitMonthField { theme: root.theme; label: "Typed month"; accepted-year: root.month-year; accepted-month: root.month; }
+            year-field := KitYearField { theme: root.theme; label: "Typed year"; accepted-year: root.year; }
+            week-field := KitIsoWeekField { theme: root.theme; label: "Typed ISO week"; accepted-week-year: root.week-year; accepted-week: root.week; }
+        }
+        time := KitTimeField { theme: root.theme; label: "Typed midnight"; accepted-time: root.time-value; ownership: root.ownership; committed(value) => { root.time-commit(value); } }
+        picker := KitTimePicker { theme: root.theme; label: "Typed picker"; ownership: root.ownership; accepted-time: {present: true, time: {hour: 9, minute: 30}}; chosen(value) => { root.picker-choices += 1; } cleared => { root.picker-clears += 1; } }
+        pair := KitDateTimeField { theme: root.theme; label: "Typed appointment"; ownership: root.ownership; accepted-value: {date: {year: 2026, month: 11, day: 11}, time: {hour: 12, minute: 15}}; chosen(value) => { root.pair-choices += 1; } cleared => { root.pair-clears += 1; } }
+        after := KitTextField { theme: root.theme; label: "After"; }
+    }
+}
+export component DynamicTimeFixture inherits Window {
+    width: 400px; height: 160px;
+    in property <bool> mounted;
+    out property <FieldState> state;
+    out property <string> current-text;
+    if root.mounted: KitTimeField {
+        accepted-time: {present: true, time: {}}; text: "";
+        private property <FieldState> snapshot: self.field-state;
+        changed snapshot => { root.state = self.snapshot; root.current-text = self.text; }
+    }
+}

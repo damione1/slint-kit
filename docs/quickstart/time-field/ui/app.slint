@@ -1,6 +1,7 @@
 import { KitTheme, KitThemeContext, KitFieldDescription, LayoutSpace } from "@kit";
 
 import { KitTimeField, KitStack, KitButton, FieldCommit } from "@kit";
+// install(&window) formats the typed value; no authored text mirrors the host model.
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     preferred-width: 520px; preferred-height: 320px;
@@ -10,7 +11,7 @@ export component App inherits Window {
     callback committed(FieldCommit);
     KitStack { inset: LayoutSpace.roomy;
         control := KitTimeField {
-            label: "Time"; text: "09:30"; required: true; spec-key: "value";
+            label: "Time"; accepted-time: {present: true, time: {hour: 9, minute: 30}}; required: true; spec-key: "value";
 
             committed(value) => { root.committed(value); }
         }

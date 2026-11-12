@@ -34,6 +34,28 @@ Les métadonnées accessibles des curseurs partagent le même domaine : `spec.mi
 
 La macro historique `bind_select!` reste disponible pour la migration et est dépréciée dans la documentation. Remplacez sa convention de callbacks de fenêtre par `Choices<K>`, le contrat `options`/`selected`/`chosen` du composant et l’installateur partagé. Les projections explicites `SelectBinding` restent disponibles pour les intégrations contrôlées personnalisées.
 
+## Valeurs hôtes temporelles typées
+
+Les entrées temporelles hôtes synchronisent la valeur acceptée de référence et l’affichage au repos après `slint_kit::install(&window)`, y compris pour les contrôles montés ensuite. Fournissez directement les valeurs typées ; aucun callback de recopie du texte n’est nécessaire. Les projets complets installés chargent [dates](/fr/components/date-field/), [heures](/fr/components/time-field/) et [paires date/heure](/fr/components/date-time-field/) depuis les propriétés typées, sans chaînes de brouillon explicites. Les extraits du catalogue gardent un texte statique explicitement signalé pour la prévisualisation Slint seule ; ce texte ne démontre pas la synchronisation des services.
+
+| Composant | Propriété hôte | Absence |
+| --- | --- | --- |
+| `KitDateField` | entrée `accepted-date: CivilDateView` | `{}` |
+| `KitMonthField` | entrées `accepted-year`, `accepted-month` | les deux à `0` |
+| `KitYearField` | entrée `accepted-year` | `0` |
+| `KitIsoWeekField` | entrées `accepted-week-year`, `accepted-week` | les deux à `0` |
+| `KitTimeField` | entrée `accepted-time: LocalTimeValue` | `{present: false}` ou `{}` |
+| `KitTimePicker` | entrée-sortie `accepted-time: LocalTimeValue` | `{present: false}` ou `{}` |
+| `KitDateTimeField` | entrée-sortie `accepted-value: LocalDateTimeView` | `{}` |
+
+`LocalTimeValue` contient `present: bool` et `time: LocalTimeView`. Minuit vaut `{present: true, time: {}}` ; un conteneur vide signifie absence. **Migration :** remplacez chaque `accepted-time: {hour: 9, minute: 30}` direct par `accepted-time: {present: true, time: {hour: 9, minute: 30}}`. Adaptez aussi les affectations hôtes et les liaisons bidirectionnelles, puis vérifiez `.present` avant de lire `.time`.
+
+Les propriétés d’entrée de DateField/MonthField/YearField/IsoWeekField/TimeField restent des instantanés hôtes. La propriété Local/Controlled gouverne leur `FieldState` partagé et `committed(FieldCommit)` ; l’acceptation locale n’écrit pas ces entrées. Acceptez le commit avec le `FieldSpec` Rust correspondant et conservez la valeur typée retournée. `acknowledge(FieldValue)` change uniquement la valeur acceptée de référence de l’éditeur ; cette fonction ne définit pas la propriété hôte typée et ne réécrit pas le brouillon actif.
+
+TimePicker émet aussi `chosen(LocalTimeView)` pour une heure présente acceptée et `cleared()` pour une absence facultative valide, en conservant `committed(FieldCommit)`. La propriété locale actualise son modèle en entrée-sortie. La propriété contrôlée propose sans le remplacer : acquittez avec le conteneur `accepted-time` complet. DateTime publie/propose de même un `LocalDateTimeView` entier par `chosen`, et l’absence par `cleared()` ; acquittez en affectant `accepted-value` entier. Date et heure doivent être valides ensemble, ou toutes deux vides pour l’absence facultative. Passer entre ses éditeurs n’accepte jamais une demi-paire, et Entrée puis perte de focus ne répète pas une proposition inchangée.
+
+Une affectation hôte valide ou un effacement actualise texte au repos et référence acceptée. Un brouillon initial explicite, même vide, est conservé. Pendant le focus natif, une mise à jour hôte acquitte la nouvelle référence en préservant brouillon, curseur, sélection et annulation ; perte de focus/annulation réconcilient selon la politique de propriété existante. N’imposez pas une réécriture hôte du texte pour forcer la synchronisation. Les dates, heures ou combinaisons année/mois/semaine typées invalides sont ignorées en conservant l’état précédent ; elles ne deviennent jamais une absence. Les paires mois/semaine partielles sont invalides, tandis que la paire historique de zéros signifie absence. Ces contrats ne qualifient ni IME natif, ni appareils, ni lecteurs d’écran.
+
 ## Unités de durée et règles monétaires
 
 `KitDurationField` édite une quantité décimale. Son suffixe est visuel : associez `text: "5"; suffix: "s";` à `FieldSpec::duration(DurationUnit::Seconds, rules)`. L’unité obligatoire vaut `Milliseconds`, `Seconds`, `Minutes` ou `Hours`. `DecimalRules` vérifie locale, précision, signe et bornes de la quantité saisie. Les propriétés `min`, `max` et `step` emploient cette même quantité visible et la syntaxe canonique des attributs ; elles ne représentent des millisecondes que si cette unité est choisie. Un texte horaire comme `01:30` n’est pas un format du codec de durée.

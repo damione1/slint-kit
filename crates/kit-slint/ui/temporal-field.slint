@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTextField } from "input.slint";
+import { FieldValue } from "field-service.slint";
+import { KitTimeService, TemporalProjection } from "datetime-service.slint";
+import { Ownership } from "shared-contracts.slint";
+
+// Shared projection into the existing native editor. This is internal: public
+// temporal fields supply a validated model, not a second editing engine.
+export component TemporalField inherits KitTextField {
+    in property <TemporalProjection> model;
+    private property <FieldValue> initial-value;
+    private property <TemporalProjection> observed-model;
+    private property <bool> initialized;
+    private property <bool> pending-model;
+    private property <bool> service-ready: KitTimeService.ready;
+    private property <bool> native-focused: root.has-focus;
+    text: root.initial-value.text;
+    function initialize-model() {
+        if (root.service-ready && !root.initialized) {
+            root.initialized = true;
+            root.observed-model = root.model;
+            if (root.model.valid) {
+                root.initial-value = root.model.value;
+                root.acknowledge(root.model.value);
+            }
+        }
+    }
+    init => { root.initialize-model(); }
+    changed service-ready => { root.initialize-model(); }
+    changed model => {
+        if (!root.initialized) { root.initialize-model(); }
+        else if (root.service-ready && root.model != root.observed-model) {
+            root.observed-model = root.model;
+            if (root.model.valid) {
+                root.acknowledge(root.model.value);
+                if (!root.has-focus) { root.text = root.model.value.text; }
+                else { root.pending-model = true; }
+            }
+        }
+    }
+    changed native-focused => {
+        if (!root.native-focused && root.pending-model && root.model.valid) {
+            root.pending-model = false;
+            // A newer local commit has already established its own baseline.
+            // Controlled proposals reconcile with the latest host snapshot.
+            if (root.ownership == Ownership.controlled || root.field-state.accepted == root.model.value) {
+                root.text = root.model.value.text;
+            }
+        }
+    }
+}

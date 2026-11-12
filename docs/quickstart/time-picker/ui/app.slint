@@ -2,6 +2,7 @@ import { KitStack, LayoutSpace } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
 import { KitTimePicker, FieldCommit } from "@kit";
+// install(&window) formats the typed value; no authored text mirrors the host model.
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     preferred-width: 520px; preferred-height: 400px;
@@ -10,6 +11,6 @@ export component App inherits Window {
     title: "Time picker";
     callback committed(FieldCommit);
     KitStack { inset: LayoutSpace.roomy;
-        KitTimePicker { label: "Appointment time"; text: "09:30"; required: true; committed(value) => { root.committed(value); } }
+        KitTimePicker { label: "Appointment time"; accepted-time: {present: true, time: {hour: 9, minute: 30}}; required: true; committed(value) => { root.committed(value); } }
     }
 }

@@ -571,7 +571,7 @@ export component FormGallery inherits VerticalLayout {
         SectionTitle { theme: root.theme; text: "Time picker"; }
         KitFieldDescription { font-size:KitMetrics.font-size(root.theme, TypographyRole.body); theme: root.theme; text: "Switch between 12-hour and 24-hour presentation."; }
         KitButton {control-size:root.control-size;theme:root.theme;text:FormExamples.time-format == ClockFormat.twenty-four-hour ? "Use 12-hour time" : "Use 24-hour time";activated=>{FormExamples.time-format-changed(FormExamples.time-format == ClockFormat.twenty-four-hour ? ClockFormat.twelve-hour : ClockFormat.twenty-four-hour);}}
-        KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:FormExamples.accepted-time;spec-key:FormExamples.time-format == ClockFormat.twelve-hour ? "schedule-time12" : "schedule-time24";committed(value)=>{FormExamples.date-commit(DateExample.time,value);}}
+        KitTimePicker {clock-format:FormExamples.time-format;control-size:root.control-size;theme:root.theme;label:"Start time";text <=> FormExamples.time-text;error:FormExamples.time-error;accepted-time:{present:true,time:FormExamples.accepted-time};spec-key:FormExamples.time-format == ClockFormat.twelve-hour ? "schedule-time12" : "schedule-time24";committed(value)=>{FormExamples.date-commit(DateExample.time,value);}}
     }
     if root.page == ShowcasePage.schedule: ExamplePanel { theme: root.theme;
         SectionTitle { theme: root.theme; text: "Local date & time"; }

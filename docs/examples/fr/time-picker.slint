@@ -3,7 +3,8 @@ import { LayoutSpace, KitMetrics, TypographyRole, KitStack } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
-import { KitTimePicker, FieldCommit } from "@kit";
+import { KitTimePicker, FieldCommit, LocalTimeView } from "@kit";
+// Les valeurs hôtes typées exigent install(&window) ; le texte correspondant conserve la prévisualisation statique.
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
     public function report-validation() -> bool { return field.report-validity(); }
@@ -17,8 +18,10 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Choisir une heure";
     callback committed(FieldCommit);
+    callback chosen(LocalTimeView);
+    callback cleared();
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        field := KitTimePicker { label: "Heure du rendez-vous"; text: "09:30"; required: true; committed(value) => { root.committed(value); } }
+        field := KitTimePicker { accepted-time: {present: true, time: {hour: 9, minute: 30}}; label: "Heure du rendez-vous"; text: "09:30"; required: true; chosen(value) => { root.chosen(value); } cleared => { root.cleared(); } committed(value) => { root.committed(value); } }
     }
 }

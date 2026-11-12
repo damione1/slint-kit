@@ -106,7 +106,7 @@ for name in ['KitCalendar','KitDateRangePicker']:
     attrs='summary: "October 17–21, 2026";' if name=='KitDateRangePicker' else ''
     add(name, name+' { theme: root.theme; title: "October 2026"; days: '+days+'; '+attrs+' choose(day) => { root.status = "Requested day " + day.day; } }', 620)
 add('KitDatePicker', 'KitDatePicker { theme: root.theme; label: "Event date"; text: "2026-10-17"; accepted-date: { year: 2026, month: 10, day: 17 }; title: "October 2026"; days: '+days+'; weekdays: ["M", "T", "W", "T", "F", "S", "S"]; }')
-add('KitTimePicker', 'KitTimePicker { theme: root.theme; label: "Start time"; text: "09:30"; accepted-time: { hour: 9, minute: 30, second: 0 }; }', 370)
+add('KitTimePicker', 'KitTimePicker { theme: root.theme; label: "Start time"; text: "09:30"; accepted-time: { present: true, time: { hour: 9, minute: 30, second: 0 } }; }', 370)
 add('KitDateTimeField', 'KitDateTimeField { theme: root.theme; label: "Meeting"; date-text: "2026-10-17"; time-text: "09:30"; }', 330)
 add('KitZonedDateTimeField', 'KitZonedDateTimeField { theme: root.theme; label: "Meeting"; date-text: "2026-10-17"; time-text: "09:30"; zone-text: "America/Toronto"; resolution: ZonedTimePresentation.unique; resolution-message: "UTC−04:00"; }', 390)
 file_entries='[{ token: 11, generation: 1, name: "project-brief.txt", detail: "Text document · 2.4 KB", removable: true }, { token: 23, generation: 1, name: "meeting-notes.md", detail: "Markdown · 1.2 KB", removable: true }]'
