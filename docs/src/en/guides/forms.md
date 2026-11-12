@@ -71,7 +71,7 @@ After the per-window `install`, `accepted-date`, year/month/week inputs, `accept
 
 `accepted-time` now uses `LocalTimeValue {present, time}`: `{}` is absence, while `{present: true, time: {}}` is midnight. TimeField keeps this property as host input; TimePicker makes it in-out and emits typed `chosen(LocalTimeView)` / `cleared()` as well as its existing `committed(FieldCommit)`. Local ownership updates the picker model; Controlled proposes and waits for a complete wrapper assignment. DateTime acknowledges a whole `LocalDateTimeView`, never half a pair. See [typed temporal host values](/guides/controllers/#typed-temporal-host-values) for the property table, Rust commit boundary and migration.
 
-### Time adjustments
+<h3 id="time-adjustments">Time adjustments</h3>
 
 `KitTimePicker` applies time constraints before editing or proposing an adjusted value. With `min: "09:00"; max: "17:00"; step: "900";`, a minute adjustment moves 09:30 to 09:45 and an hour adjustment moves it to 10:30. `step` is in seconds. A button advances `ceil(segment duration / representable step)` points of the exact admissible grid; off-grid drafts recover in the requested direction.
 

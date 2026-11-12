@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import MarkdownIt from 'markdown-it';
 import { scanComponents } from './inventory.mjs';
 import { localeUrl, siteOrigin } from './routes.mjs';
 import { scriptJson } from './metadata.mjs';
@@ -16,6 +17,8 @@ const errors = [];
 const check = (condition, message) => { if (!condition) errors.push(message); };
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const decode = text => text.replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&');
+const markdown = new MarkdownIt({ html: false, linkify: false });
+const renderedText = html => decode(html.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
 const capturesPath = path.join(docs, 'content/captures.json');
 const provenance = fs.existsSync(capturesPath) ? JSON.parse(fs.readFileSync(capturesPath, 'utf8')) : { components: {} };
 check(provenance.environment?.backend === 'winit' && provenance.environment?.renderer === 'skia', 'Capture manifest must identify its native backend and renderer');
@@ -145,7 +148,7 @@ for (const component of components) {
       const note = html.match(new RegExp(`<section class="property-note" id="property-${property.name}">([\\s\\S]*?)</section>`));
       check(note, `${name}/${locale}: missing property note for ${property.name}`);
       if (!note) continue;
-      check(decode(note[1].replace(/<[^>]+>/g, '')).includes(notes.effect.replace(/`([^`]*)`/g, '$1')), `${name}/${locale}: property note ${property.name} must show its effect`);
+      check(renderedText(note[1]).includes(renderedText(markdown.render(notes.effect))), `${name}/${locale}: property note ${property.name} must show its effect`);
       if (notes.example) check(code.includes(notes.example.trim()), `${name}/${locale}: property note ${property.name} must display its example`);
       check(html.includes(`href="#property-${property.name}"`), `${name}/${locale}: property table must link to ${property.name}`);
     }

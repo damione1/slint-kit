@@ -1,17 +1,59 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use std::{env, fs, path::PathBuf};
 
+#[derive(Clone, Copy)]
+enum SourceKind {
+    Starter,
+    English,
+    French,
+}
+
 fn main() {
     let docs = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     let directory = docs.join("quickstart");
     println!("cargo:rerun-if-changed={}", directory.display());
     let mut names = fs::read_dir(&directory)
         .expect("starter directory")
-        .filter_map(Result::ok)
+        .map(|entry| entry.expect("starter directory entry"))
         .filter(|entry| entry.path().join("src/main.rs").is_file())
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
         .collect::<Vec<_>>();
+    let catalogue = docs.join("examples");
+    println!("cargo:rerun-if-changed={}", catalogue.display());
+    let catalogue_names = fs::read_dir(&catalogue)
+        .expect("catalogue directory")
+        .map(|entry| entry.expect("catalogue directory entry"))
+        .filter(|entry| {
+            entry.path().is_file()
+                && entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "slint")
+        })
+        .map(|entry| {
+            entry
+                .path()
+                .file_stem()
+                .expect("catalogue file stem")
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        names.iter().all(|name| catalogue_names.contains(name)),
+        "every starter requires a catalogue fixture"
+    );
+    for name in &catalogue_names {
+        assert!(
+            catalogue.join("fr").join(format!("{name}.slint")).is_file(),
+            "French catalogue fixture missing: {name}"
+        );
+    }
+    let expected_routes = names.len() + 2 * catalogue_names.len();
+    names.extend(catalogue_names);
     names.sort();
+    names.dedup();
+    let mut route_count = 0;
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR"));
     let mut modules = String::new();
     let mut routes = String::from(
@@ -23,22 +65,31 @@ fn main() {
         assert!(name.chars().all(|c| c.is_ascii_lowercase() || c == '-'));
         let starter = directory.join(&name);
         let host = starter.join("src/main.rs");
-        println!("cargo:rerun-if-changed={}", host.display());
-        for kind in ["starter", "en", "fr"] {
+        if host.is_file() {
+            println!("cargo:rerun-if-changed={}", host.display());
+        }
+        for kind in [SourceKind::Starter, SourceKind::English, SourceKind::French] {
+            if matches!(kind, SourceKind::Starter) && !host.is_file() {
+                continue;
+            }
             let input = match kind {
-                "starter" => starter.join("ui/app.slint"),
-                "en" => docs.join("examples").join(format!("{name}.slint")),
-                "fr" => docs.join("examples/fr").join(format!("{name}.slint")),
-                _ => unreachable!(),
+                SourceKind::Starter => starter.join("ui/app.slint"),
+                SourceKind::English => docs.join("examples").join(format!("{name}.slint")),
+                SourceKind::French => docs.join("examples/fr").join(format!("{name}.slint")),
             };
             println!("cargo:rerun-if-changed={}", input.display());
             slint_kit_build::compile(&input)
                 .expect("compile public component with shared services");
-            let module = format!("{kind}_{}", name.replace('-', "_"));
+            let suffix = match kind {
+                SourceKind::Starter => "starter",
+                SourceKind::English => "en",
+                SourceKind::French => "fr",
+            };
+            let module = format!("{suffix}_{}", name.replace('-', "_"));
             fs::copy(out.join("kit-app.rs"), out.join(format!("{module}.rs")))
                 .expect("name compiled preview");
             let include = format!("include!(concat!(env!(\"OUT_DIR\"), \"/{module}.rs\"));");
-            let source = if kind == "starter" {
+            let source = if matches!(kind, SourceKind::Starter) {
                 let host = fs::read_to_string(&host)
                     .expect("starter Rust source")
                     .replace("slint::include_modules!();", &include)
@@ -70,14 +121,20 @@ fn main() {
                 "mod demo_{module} {{ include!(concat!(env!(\"OUT_DIR\"), \"/host_{module}.rs\")); }}\n"
             ));
             let selector = match kind {
-                "starter" => "crate::PreviewKind::Starter, _",
-                "en" => "crate::PreviewKind::Catalogue, crate::PreviewLocale::English",
-                "fr" => "crate::PreviewKind::Catalogue, crate::PreviewLocale::French",
-                _ => unreachable!(),
+                SourceKind::Starter => "crate::PreviewKind::Starter, _",
+                SourceKind::English => {
+                    "crate::PreviewKind::Catalogue, crate::PreviewLocale::English"
+                }
+                SourceKind::French => "crate::PreviewKind::Catalogue, crate::PreviewLocale::French",
             };
             routes.push_str(&format!("({selector}, \"{name}\") => demo_{module}::run(options).map_err(|error| wasm_bindgen::JsValue::from_str(&error.to_string()))?,\n"));
+            route_count += 1;
         }
     }
+    assert_eq!(
+        route_count, expected_routes,
+        "every starter and localized catalogue must have a route"
+    );
     routes.push_str(
         "_ => return Err(wasm_bindgen::JsValue::from_str(\"Unknown component\")), } Ok(()) }\n",
     );
