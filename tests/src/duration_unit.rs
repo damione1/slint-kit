@@ -302,7 +302,12 @@ fn native_seconds_commit_step_undo_and_controlled_acknowledgment_keep_the_unit()
     app.invoke_paste_amount();
     frame(&app);
     key(&app, Key::Escape);
+    assert_eq!(app.get_text(), "7", "the default Escape policy bubbles");
+    app.invoke_cancel_amount();
+    frame(&app);
     assert_eq!(app.get_text(), "5");
+    assert_eq!(app.get_state().accepted.text, "5");
+    assert_eq!(observed.borrow().len(), 2, "cancel does not commit");
     app.set_access(ui::FieldAccess::ReadOnly);
     key(&app, Key::UpArrow);
     assert_eq!(app.get_text(), "5");
