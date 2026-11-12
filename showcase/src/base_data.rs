@@ -91,7 +91,7 @@ fn stock_key() -> FieldSpecKey {
 }
 /// The cell codecs of the data page, installed with the window's catalogue.
 pub(crate) fn codecs() -> impl Iterator<Item = NamedFieldSpec> {
-    std::iter::once(FieldSpec::integer().named(stock_key()))
+    std::iter::once(FieldSpec::integer(slint_kit::NumberSyntax::en_ca(), None).named(stock_key()))
 }
 fn model<T: Clone + 'static>(data: Rc<VecModel<T>>) -> ModelRc<T> {
     ModelRc::from(data)
@@ -260,7 +260,7 @@ impl Catalogue {
                                 p.price
                                     .format(
                                         &currency,
-                                        slint_kit::NumberLocale::EnCa,
+                                        slint_kit::NumberSyntax::en_ca(),
                                         slint_kit::RoundingPolicy::Reject,
                                     )
                                     .expect("exact two decimals"),
@@ -415,7 +415,9 @@ pub fn install(window: &ui::Showcase) {
         }
         // The same codec that validated the draft in the editor guards the
         // Rust path; a negative or oversized count is rejected here.
-        let Ok(Some(stock)) = FieldSpec::integer().accept(commit) else {
+        let Ok(Some(stock)) =
+            FieldSpec::integer(slint_kit::NumberSyntax::en_ca(), None).accept(commit)
+        else {
             return;
         };
         let Ok(stock) = u32::try_from(stock) else {

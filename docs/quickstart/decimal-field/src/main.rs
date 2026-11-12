@@ -2,7 +2,7 @@
 use slint::ComponentHandle;
 use slint_kit::*;
 slint::include_modules!();
-fn rules() -> DecimalRules { DecimalRules { locale: NumberLocale::EnCa, scale: DecimalScale::new(2).unwrap(), sign: SignPolicy::NonNegative, bounds: None } }
+fn rules() -> DecimalRules { DecimalRules { syntax: NumberSyntax::en_ca(), scale: DecimalScale::new(2).unwrap(), sign: SignPolicy::NonNegative, bounds: None } }
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::install(&app);
