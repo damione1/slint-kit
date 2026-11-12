@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitNotificationCenter, NotificationRow, KitTheme, KitThemes } from "@kit";
+export component NotificationCenterFixture inherits Window {
+    width: 480px; height: 360px;
+    in property <[NotificationRow]> rows;
+    in property <int> focus-token: -1;
+    in property <int> focus-index: -1;
+    in property <int> focus-request;
+    in property <string> unread-label: "Unread";
+    callback activated(int, int);
+    center := KitNotificationCenter {
+        x: 0px; y: 0px; width: root.width; height: root.height;
+        theme: KitThemes.light;
+        rows: root.rows; focus-token: root.focus-token; focus-index: root.focus-index; focus-request: root.focus-request;
+        unread-label: root.unread-label;
+        activate(token, generation) => { root.activated(token, generation); }
+    }
+}
