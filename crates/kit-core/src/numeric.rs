@@ -636,6 +636,16 @@ pub enum DurationUnit {
     Minutes,
     Hours,
 }
+impl DurationUnit {
+    fn milliseconds(self) -> i64 {
+        match self {
+            Self::Milliseconds => 1,
+            Self::Seconds => 1_000,
+            Self::Minutes => 60_000,
+            Self::Hours => 3_600_000,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DurationValue {
     milliseconds: u64,
@@ -649,13 +659,7 @@ impl DurationValue {
     }
     pub fn from_quantity(value: DecimalValue, unit: DurationUnit) -> Result<Self, ParseIssue> {
         use rust_decimal::prelude::ToPrimitive;
-        let factor = match unit {
-            DurationUnit::Milliseconds => 1,
-            DurationUnit::Seconds => 1_000,
-            DurationUnit::Minutes => 60_000,
-            DurationUnit::Hours => 3_600_000,
-        };
-        let result = value.checked_mul(DecimalValue::from_integer(factor))?;
+        let result = value.checked_mul(DecimalValue::from_integer(unit.milliseconds()))?;
         if result.0.fract() != Decimal::ZERO {
             return Err(ParseIssue::ScaleExceeded);
         }
@@ -664,6 +668,12 @@ impl DurationValue {
             .to_u64()
             .map(Self::from_milliseconds)
             .ok_or(ParseIssue::Overflow)
+    }
+    /// Convert to the requested quantity exactly. Recurring decimal results,
+    /// such as one millisecond expressed in minutes, return ScaleExceeded.
+    pub fn quantity(self, unit: DurationUnit) -> Result<DecimalValue, ParseIssue> {
+        DecimalValue(Decimal::from(self.milliseconds))
+            .checked_div(DecimalValue::from_integer(unit.milliseconds()))
     }
 }
 /// A typed unit marker is useful when all values in a domain have one fixed unit.

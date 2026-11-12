@@ -39,7 +39,7 @@ Dans l’[application de tableau triable](/fr/guides/table-example/), sélection
 
 ### Formatage et rendu préservent les valeurs métier
 
-Le [champ monétaire](/fr/components/money-field/) relie l’édition à des valeurs `Money` exactes et à des règles de devise. Le [champ date, heure et fuseau](/fr/components/zoned-date-time-field/) refuse une heure locale inexistante et exige un choix explicite lorsqu’elle se produit deux fois. Ces règles sont implémentées en Rust et partagées avec l’interaction des composants. Flottants de rendu et libellés formatés restent des projections.
+Le [champ monétaire](/fr/components/money-field/) relie l’édition à des valeurs `Money` exactes selon la devise et les règles décimales fournies par l’application. Un symbole monétaire visuel seul n’impose aucune règle. Le [champ date, heure et fuseau](/fr/components/zoned-date-time-field/) refuse une heure locale inexistante et exige un choix explicite lorsqu’elle se produit deux fois. Ces règles sont implémentées en Rust et partagées avec l’interaction des composants. Flottants de rendu et libellés formatés restent des projections.
 
 ## Personnaliser la présentation et réutiliser les comportements
 

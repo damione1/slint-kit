@@ -34,6 +34,16 @@ Accessible slider metadata uses the same domain: `spec.minimum`, `maximum` and `
 
 The legacy `bind_select!` macro is retained for migration and deprecated in documentation. Replace its window callback convention with `Choices<K>`, the component’s `options`/`selected`/`chosen` contract and the shared installer. Explicit `SelectBinding` projections remain available for custom controlled integrations.
 
+## Duration units and money rules
+
+`KitDurationField` edits a decimal quantity. Its suffix is visual: pair `text: "5"; suffix: "s";` with `FieldSpec::duration(DurationUnit::Seconds, rules)`. The required unit is one of `Milliseconds`, `Seconds`, `Minutes` or `Hours`. `DecimalRules` checks the input quantity's locale, scale, sign and bounds. Widget `min`, `max` and `step` use that same visible quantity and canonical attribute syntax; they are not milliseconds unless the selected unit is milliseconds. Clock text such as `01:30` is not a duration codec format.
+
+The factory returns `DurationFieldSpec`, which reuses the shared field engine and keeps the parsed quantity for formatting accepted drafts. `accept(commit)` returns `Result<Option<DurationValue>, FieldSpecError<ParseIssue>>`; pass the returned value on. Register `named(key)` normally; `with_display` and `with_grouping` remain available. `DurationValue` stores nonnegative whole `u64` milliseconds: `5` seconds → `5000` ms, `5` minutes → `300000` ms, and `1.5` seconds → `1500` ms. With scale 3, `0.001` seconds → `1` ms. Sub-millisecond results and excessive input scale return `ScaleExceeded`; conversion overflow or negative converted values return `Overflow`, while `SignPolicy::NonNegative` rejects negatives before conversion.
+
+For loading and controlled acknowledgement, first handle `spec.format(&value) -> Result<String, ParseIssue>`. It uses `DurationValue::quantity(unit)` for exact inverse conversion and rejects quantities outside the configured scale or bounds. A recurring decimal such as `1` ms in minutes/hours returns `ScaleExceeded`; no rounding or floating-point conversion hides the loss. Handle the error before changing the UI value. Other `FieldSpec` formatters still return `String`.
+
+`KitMoneyField` is a decimal presentation alias. `FieldSpec::money(currency, rules)` attaches the supplied `CurrencyCode` and applies the supplied `DecimalRules`; it does not infer currency precision from `CurrencyMetadata`. The application chooses currency, permitted scale, sign, bounds and business rounding. The codec formats plain numeric drafts. For grouped display and symbols, call `Money::format(&metadata, locale, rounding)` and handle its `Result`: it checks matching currency and applies metadata scale with the explicit rounding policy. Prefix/suffix text enforces none of those rules.
+
 ## Stable choices
 
 ```rust

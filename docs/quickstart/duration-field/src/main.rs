@@ -6,8 +6,8 @@ fn rules() -> DecimalRules { DecimalRules { locale: NumberLocale::EnCa, scale: D
 fn main() -> Result<(), slint::PlatformError> {
     let app = App::new()?;
     slint_kit::install(&app);
-    let spec = FieldSpec::duration(rules());
+    let spec = FieldSpec::duration(DurationUnit::Seconds, rules());
     install_field_specs(&app, [spec.named(FieldSpecKey::new("value").unwrap())]).unwrap();
-    app.on_committed(move |commit| { if let Ok(Some(value)) = spec.accept(commit) { println!("Accepted: {}", spec.format(&value)); } });
+    app.on_committed(move |commit| { if let Ok(Some(value)) = spec.accept(commit) { match spec.format(&value) { Ok(text) => println!("Accepted: {text} s ({} ms)", value.milliseconds()), Err(issue) => eprintln!("Cannot format duration: {issue:?}"), } } });
     app.run()
 }

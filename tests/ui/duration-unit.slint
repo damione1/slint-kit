@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDurationField, KitTextField, KitTheme, KitThemes, FieldCommit, FieldState, FieldValue, FieldAccess, Ownership, NumberInputFormat } from "@kit";
+export component DurationUnitFixture inherits Window {
+    preferred-width: 560px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <NumberInputFormat> number-format: NumberInputFormat.canonical;
+    in property <Ownership> ownership: Ownership.local;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <string> text: "5";
+    in property <string> clipboard;
+    out property <FieldState> state: amount.field-state;
+    callback committed(FieldCommit);
+    public function focus-amount() { amount.take-focus(); }
+    public function select-amount() { amount.select-all(); }
+    public function paste-amount() { amount.paste(); }
+    public function seed-clipboard() { source.select-all(); source.copy-selection(); }
+    public function acknowledge(value: FieldValue) { amount.acknowledge(value); }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        amount := KitDurationField {
+            theme: root.theme; label: "Duration"; text <=> root.text;
+            number-format: root.number-format; ownership: root.ownership; access: root.access;
+            suffix: "s"; min: "0"; max: "10"; step: "0.5"; spec-key: "amount";
+            implicit-form-submit: false;
+            committed(value) => { root.committed(value); }
+        }
+        source := KitTextField { visible: false; text: root.clipboard; }
+    }
+}
