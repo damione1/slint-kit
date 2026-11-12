@@ -29,6 +29,7 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
     i_slint_backend_testing::init_no_event_loop();
     for (combobox, searchable) in [(false, false), (false, true), (true, false)] {
         let window = SelectGeometryFixture::new().unwrap();
+        slint_kit::install(&window);
         window.set_combobox(combobox);
         window.set_searchable(searchable);
         window.set_rows(rows(3));
@@ -51,7 +52,15 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
         };
         assert!(
             expected_three.contains(&height),
-            "three rows need a compact popup: {height}"
+            "three rows need a compact popup: {height}; combobox={combobox}, searchable={searchable}, window={:?}, trigger={:?}",
+            window
+                .window()
+                .size()
+                .to_logical(window.window().scale_factor()),
+            ElementQuery::from_root(&window)
+                .match_inherits(if combobox { "KitCombobox" } else { "KitSelect" })
+                .find_first()
+                .map(|element| (element.absolute_position(), element.size()))
         );
         window.set_rows(rows(1));
         let height = surface(&window).size().height;
@@ -78,6 +87,7 @@ fn short_select_popups_fit_their_rows_and_large_models_stay_bounded() {
 fn combobox_labels_use_the_full_left_aligned_text_column() {
     i_slint_backend_testing::init_no_event_loop();
     let window = SelectGeometryFixture::new().unwrap();
+    slint_kit::install(&window);
     window.set_combobox(true);
     window.set_selected_label("".into());
     window.set_rows(rows(3));
@@ -140,6 +150,7 @@ fn combobox_labels_use_the_full_left_aligned_text_column() {
 fn combobox_renders_descriptions_loading_with_results_custom_geometry_and_end_reached() {
     i_slint_backend_testing::init_no_event_loop();
     let window = SelectGeometryFixture::new().unwrap();
+    slint_kit::install(&window);
     window.set_combobox(true);
     window.set_popup_height(220.0);
     window.set_row_height(56.0);

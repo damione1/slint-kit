@@ -337,7 +337,26 @@ impl DecimalRules {
         }
     }
 }
+// Decimal and integer domains expand exponents only after structural normalization.
 fn canonicalize<T>(
+    text: &str,
+    locale: NumberLocale,
+    decimal: bool,
+    sign: SignPolicy,
+) -> Result<String, DraftValue<T>> {
+    let syntax = canonical_number_syntax(text, locale, decimal, sign)?;
+    if let Some((mantissa, exponent)) = syntax.split_once(['e', 'E']) {
+        let exponent = exponent
+            .parse::<i32>()
+            .map_err(|_| DraftValue::Invalid(ParseIssue::Overflow))?;
+        expand_exponent(mantissa, exponent).map_err(DraftValue::Invalid)
+    } else {
+        Ok(syntax)
+    }
+}
+// Shared syntax normalization preserves the exponent representation of native values.
+// It produces text, not a parsed domain value.
+pub(crate) fn canonical_number_syntax<T>(
     text: &str,
     locale: NumberLocale,
     decimal: bool,
@@ -348,7 +367,8 @@ fn canonicalize<T>(
         return Err(DraftValue::Empty);
     }
     if let Some((mantissa, exponent)) = text.split_once(['e', 'E']) {
-        let mantissa = canonicalize::<T>(mantissa, locale, true, sign)?;
+        let marker = if text.contains('e') { 'e' } else { 'E' };
+        let mantissa = canonical_number_syntax::<T>(mantissa, locale, true, sign)?;
         let digits = exponent.strip_prefix(['-', '+']).unwrap_or(exponent);
         if digits.is_empty() {
             return Err(DraftValue::Incomplete);
@@ -356,10 +376,7 @@ fn canonicalize<T>(
         if !digits.bytes().all(|c| c.is_ascii_digit()) {
             return Err(DraftValue::Invalid(ParseIssue::InvalidSyntax));
         }
-        let exponent = exponent
-            .parse::<i32>()
-            .map_err(|_| DraftValue::Invalid(ParseIssue::Overflow))?;
-        return expand_exponent(&mantissa, exponent).map_err(DraftValue::Invalid);
+        return Ok(format!("{mantissa}{marker}{exponent}"));
     }
     let negative = text.starts_with('-');
     if negative && sign == SignPolicy::NonNegative {

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Align complete numeric draft grouping/sign/whitespace grammar across HTML constraints, exact stepping and typed codecs for EnCa/EnUs and FrCa/FrFr. The native lexical filter is unchanged. Grouped input such as 1,234.50 now crosses the constraint/codec boundary; malformed grouping remains invalid. Numeric min/max/step/default-value attributes stay canonical and ungrouped. No new API or locale coverage; native editing/history and typed acceptance are preserved.
+- Aligne la grammaire complète de groupement/signes/espaces des brouillons numériques entre contraintes HTML, pas exacts et codecs typés pour EnCa/EnUs et FrCa/FrFr. Le filtre lexical natif ne change pas. Une valeur groupée telle que 1,234.50 franchit désormais la frontière contraintes/codec ; un groupement mal formé reste invalide. Les attributs numériques min/max/step/default-value demeurent canoniques et sans groupes. Aucune nouvelle API ni locale ; édition/historique natifs et acceptation typée préservés.
+
 - Bound Select, Combobox and MultiSelect popups to the installed window, choosing space above/below and shifting horizontally while retaining virtualized scrolling. Add read-only KitSelectSurface.chrome-height for measured insets/search chrome in custom sizing; option rows and separate Combobox status content are excluded. No new placement/width policy; the separate native-popup Qt typing limitation remains.
 - Borne les popups Select, Combobox et MultiSelect à la fenêtre installée, choisit la place au-dessus/en dessous et décale horizontalement en conservant le défilement virtualisé. Ajoute KitSelectSurface.chrome-height en lecture seule pour mesurer marges/recherche dans les compositions ; options et état Combobox séparé sont exclus. Aucun mode de placement/largeur ajouté ; la limite de frappe du popup natif Qt séparé demeure.
 
