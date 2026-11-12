@@ -133,6 +133,30 @@ fn all_seven_typed_inputs_install_update_and_clear_without_text_mirrors() {
 #[test]
 fn host_ack_preserves_focused_native_selection_draft_undo_and_cancel_baseline() {
     let app = fixture();
+    let typed = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+    let received = typed.clone();
+    app.on_time_commit(move |commit| {
+        let value = slint_kit::FieldSpec::time(
+            slint_kit::TimePrecision::Minute,
+            slint_kit::ClockFormat::TwentyFourHour,
+        )
+        .accept(commit)
+        .unwrap();
+        received.borrow_mut().push(value);
+    });
+    let native = crate::TemporalAcceptedNativeFixture::new().unwrap();
+    native.set_text("00:00".into());
+    native.show().unwrap();
+    frame(&native);
+    native.set_text("09:30".into());
+    frame(&native);
+    native.invoke_focus();
+    native.invoke_select_all();
+    key(&native, "09:31");
+    native.invoke_undo();
+    frame(&native);
+    let native_undo = native.get_text();
+    native.hide().unwrap();
     app.set_time_value(time(9, 30));
     frame(&app);
     app.invoke_focus_time();
@@ -149,12 +173,17 @@ fn host_ack_preserves_focused_native_selection_draft_undo_and_cancel_baseline() 
     assert_eq!(app.get_time_state().accepted.text, "11:45");
     app.invoke_undo_time();
     frame(&app);
-    assert_eq!(app.get_time_text(), "09:30");
+    assert_eq!(app.get_time_text(), native_undo);
     app.invoke_cancel_time();
     frame(&app);
     assert_eq!(app.get_time_text(), "11:45");
     app.invoke_select_time();
     key(&app, "12:00");
+    key(&app, Key::Return);
+    assert_eq!(
+        typed.borrow().last(),
+        Some(&Some(slint_kit::LocalTime::new(12, 0, 0).unwrap()))
+    );
     app.set_time_value(LocalTimeValue::default());
     frame(&app);
     assert_eq!(app.get_time_text(), "12:00");
@@ -162,6 +191,8 @@ fn host_ack_preserves_focused_native_selection_draft_undo_and_cancel_baseline() 
     app.invoke_cancel_time();
     frame(&app);
     assert_eq!(app.get_time_text(), "");
+    key(&app, Key::Return);
+    assert_eq!(typed.borrow().last(), Some(&None));
 }
 #[test]
 fn picker_local_and_controlled_typed_commit_clear_acknowledgment_deduplicate() {
@@ -178,6 +209,7 @@ fn picker_local_and_controlled_typed_commit_clear_acknowledgment_deduplicate() {
     frame(&app);
     assert_eq!(app.get_picker_value(), time(0, 0));
     assert_eq!(app.get_picker_choices(), 2);
+    assert_eq!(app.get_last_time(), time(10, 45).time);
     app.invoke_focus_after();
     frame(&app);
     assert_eq!(app.get_picker_choices(), 2);
@@ -208,6 +240,13 @@ fn datetime_initial_host_projection_is_atomic_and_controlled_proposals_do_not_re
     app.invoke_commit_pair();
     frame(&app);
     assert_eq!(app.get_pair_choices(), 1);
+    assert_eq!(
+        app.get_last_pair(),
+        LocalDateTimeView {
+            date: date(12),
+            time: time(0, 0).time
+        }
+    );
     assert_eq!(app.get_pair_value().date, date(11));
     app.invoke_commit_pair();
     frame(&app);

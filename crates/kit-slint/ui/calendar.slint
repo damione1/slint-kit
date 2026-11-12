@@ -241,15 +241,7 @@ export component KitDatePicker inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
     in-out property <CivilDateView> accepted-date;
-    function acknowledge-accepted-date() {
-        if (KitCalendarService.ready) { editor.acknowledge({present: root.accepted-date.year > 0, text: KitCalendarService.format-date(root.accepted-date)}); }
-    }
-    changed accepted-date => { root.acknowledge-accepted-date(); }
-    // Initialization may precede install(). Seed the native field's accepted
-    // baseline once parsing is ready, without replacing an explicit host draft.
-    private property <bool> calendar-ready: KitCalendarService.ready;
-    changed calendar-ready => { root.acknowledge-accepted-date(); }
-    init => { root.acknowledge-accepted-date(); }
+    // The shared native temporal field owns model projection and baseline seeding.
     in property <CivilDateView> today: KitCalendarService.today;
     private property <CalendarView> reference-view: {selected: root.accepted-date, today: root.today, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges};
     in-out property <CivilDateView> focused: KitCalendarService.ready ? KitCalendarService.initial-focus(root.reference-view) : root.accepted-date.year > 0 ? root.accepted-date : root.today.year > 0 ? root.today : {year: 2000, month: 1, day: 1};

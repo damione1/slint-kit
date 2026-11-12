@@ -11,12 +11,13 @@ export component TemporalField inherits KitTextField {
     private property <FieldValue> initial-value;
     private property <TemporalProjection> observed-model;
     private property <bool> initialized;
+    private property <bool> mounted;
     private property <bool> pending-model;
     private property <bool> service-ready: KitTimeService.ready;
     private property <bool> native-focused: root.has-focus;
     text: root.initial-value.text;
     function initialize-model() {
-        if (root.service-ready && !root.initialized) {
+        if (root.mounted && root.service-ready && !root.initialized) {
             root.initialized = true;
             root.observed-model = root.model;
             if (root.model.valid) {
@@ -25,7 +26,8 @@ export component TemporalField inherits KitTextField {
             }
         }
     }
-    init => { root.initialize-model(); }
+    init => { root.mounted = true; }
+    changed mounted => { root.initialize-model(); }
     changed service-ready => { root.initialize-model(); }
     changed model => {
         if (!root.initialized) { root.initialize-model(); }

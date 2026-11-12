@@ -25,6 +25,8 @@ export component TemporalAcceptedFixture inherits Window {
     out property <FieldState> time-state: time.field-state;
     out property <int> time-caret: time.cursor-position;
     out property <int> time-anchor: time.selection-anchor;
+    out property <LocalTimeView> last-time;
+    out property <LocalDateTimeView> last-pair;
     in-out property <int> picker-choices;
     in-out property <int> picker-clears;
     in-out property <int> pair-choices;
@@ -51,8 +53,8 @@ export component TemporalAcceptedFixture inherits Window {
             week-field := KitIsoWeekField { theme: root.theme; label: "Typed ISO week"; accepted-week-year: root.week-year; accepted-week: root.week; }
         }
         time := KitTimeField { theme: root.theme; label: "Typed midnight"; accepted-time: root.time-value; ownership: root.ownership; committed(value) => { root.time-commit(value); } }
-        picker := KitTimePicker { theme: root.theme; label: "Typed picker"; ownership: root.ownership; accepted-time: {present: true, time: {hour: 9, minute: 30}}; chosen(value) => { root.picker-choices += 1; } cleared => { root.picker-clears += 1; } }
-        pair := KitDateTimeField { theme: root.theme; label: "Typed appointment"; ownership: root.ownership; accepted-value: {date: {year: 2026, month: 11, day: 11}, time: {hour: 12, minute: 15}}; chosen(value) => { root.pair-choices += 1; } cleared => { root.pair-clears += 1; } }
+        picker := KitTimePicker { theme: root.theme; label: "Typed picker"; ownership: root.ownership; accepted-time: {present: true, time: {hour: 9, minute: 30}}; chosen(value) => { root.last-time = value; root.picker-choices += 1; } cleared => { root.picker-clears += 1; } }
+        pair := KitDateTimeField { theme: root.theme; label: "Typed appointment"; ownership: root.ownership; accepted-value: {date: {year: 2026, month: 11, day: 11}, time: {hour: 12, minute: 15}}; chosen(value) => { root.last-pair = value; root.pair-choices += 1; } cleared => { root.pair-clears += 1; } }
         after := KitTextField { theme: root.theme; label: "After"; }
     }
 }
@@ -66,4 +68,15 @@ export component DynamicTimeFixture inherits Window {
         private property <FieldState> snapshot: self.field-state;
         changed snapshot => { root.state = self.snapshot; root.current-text = self.text; }
     }
+}
+
+// The same native text assignments and editing sequence establish the backend
+// undo expectation independently from the kit's accepted-model projection.
+export component TemporalAcceptedNativeFixture inherits Window {
+    width: 400px; height: 100px;
+    in-out property <string> text <=> editor.text;
+    public function focus() { editor.focus(); }
+    public function select-all() { editor.select-all(); }
+    public function undo() { editor.undo(); }
+    editor := TextInput { single-line: true; }
 }

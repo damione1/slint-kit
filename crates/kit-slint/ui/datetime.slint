@@ -11,7 +11,7 @@ import { KitValidityState } from "validation.slint";
 import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { TemporalField } from "temporal-field.slint";
-import { KitDateField, CivilDateView } from "calendar.slint";
+import { CivilDateView } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 export { TimePrecision, ClockFormat } from "shared-contracts.slint";
@@ -63,11 +63,13 @@ export component KitTimePicker inherits Rectangle {
     callback chosen(LocalTimeView);
     callback cleared();
     private property <LocalTimeValue> proposal-baseline;
+    private property <LocalTimeValue> observed-time;
     private property <bool> time-ready: KitTimeService.ready;
-    init => { root.proposal-baseline = root.accepted-time; }
-    changed accepted-time => { root.proposal-baseline = root.accepted-time; }
+    init => { root.proposal-baseline = root.accepted-time; root.observed-time = root.accepted-time; }
+    changed accepted-time => { root.proposal-baseline = root.accepted-time; root.observed-time = root.accepted-time; }
     changed time-ready => { root.proposal-baseline = root.accepted-time; }
     function accept-time(commit: FieldCommit) {
+        if (root.accepted-time != root.observed-time) { root.observed-time = root.accepted-time; root.proposal-baseline = root.accepted-time; }
         let result = KitTimeService.parse-time(commit.value.text, root.precision, root.clock-format);
         if (result.valid && result.value != root.proposal-baseline) {
             root.proposal-baseline = {present: result.value.present, time: {hour: result.value.time.hour, minute: result.value.time.minute, second: result.value.time.second}};
@@ -141,6 +143,7 @@ export component KitDateTimeField inherits Rectangle {
     private property <LocalDateTimeDraft> initial-draft;
     private property <LocalDateTimeView> observed-value;
     private property <bool> model-initialized;
+    private property <bool> mounted;
     private property <bool> pending-model;
     private property <bool> service-ready: KitTimeService.ready;
     function model-draft() -> LocalDateTimeDraft {
@@ -159,7 +162,7 @@ export component KitDateTimeField inherits Rectangle {
         root.proposal-baseline = root.accepted-value;
     }
     function initialize-model() {
-        if (root.service-ready && !root.model-initialized) {
+        if (root.mounted && root.service-ready && !root.model-initialized) {
             root.model-initialized = true;
             root.observed-value = root.accepted-value;
             if (root.valid-model()) {
@@ -175,7 +178,8 @@ export component KitDateTimeField inherits Rectangle {
         if (root.time-text != draft.time) { root.time-text = draft.time; }
         root.draft-dirty = false;
     }
-    init => { root.initialize-model(); }
+    init => { root.mounted = true; }
+    changed mounted => { root.initialize-model(); }
     changed service-ready => { root.initialize-model(); }
     changed accepted-value => {
         if (!root.model-initialized) { root.initialize-model(); }
@@ -199,6 +203,12 @@ export component KitDateTimeField inherits Rectangle {
     // noted the touch and shows errors by its timing. An unchanged pair is not
     // chosen again.
     function accept-pair(action: FieldAction) {
+        // A public host setter and commit/clear may run in the same turn,
+        // before Slint dispatches the queued accepted-value change handler.
+        if (root.service-ready && root.accepted-value != root.observed-value && root.valid-model()) {
+            root.observed-value = root.accepted-value;
+            root.acknowledge-model();
+        }
         if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
         if (action == FieldAction.blur || action == FieldAction.edit ? !root.validity.valid : !root.report-validity()) { return; }
         if (root.date-text == "" && root.time-text == "") {
@@ -290,12 +300,15 @@ export component KitDateTimeField inherits Rectangle {
     // its undo entry; only two empty, valid drafts can accept absence.
     public function clear() {
         if (root.access != FieldAccess.editable || !KitTimeService.ready) { return; }
+        if (root.accepted-value != root.observed-value && root.valid-model()) { root.observed-value = root.accepted-value; root.acknowledge-model(); }
         date.clear(); time.clear();
     }
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
-        date := KitDateField {
+        date := KitTextField {
+            input-kind: HtmlInputKind.date;
+            validation: root.date-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
             edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
             commit-requested(text) => { root.commit(); }
@@ -303,9 +316,13 @@ export component KitDateTimeField inherits Rectangle {
         }
         HorizontalLayout {
             spacing: root.show-clear ? KitMetrics.inline-gap(root.theme) : 0px;
-            time := KitTimeField {
+            time := KitTextField {
+                input-kind: HtmlInputKind.time;
+                validation-twelve-hour: root.clock-format == ClockFormat.twelve-hour;
+                validation: root.time-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
+                placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss AM" : "hh:mm AM") : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
                 step: "any";
-                theme: root.theme; control-size: root.control-size; access: root.access; clock-format: root.clock-format; precision: root.precision; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
+                theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.time-text; label: root.time-label; error: root.time-error; description: root.time-description;
                 edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: root.date-text, time: text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
                 commit-requested(text) => { root.commit(); }
                 cancelled => { root.cancelled(); }
