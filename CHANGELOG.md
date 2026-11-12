@@ -4,6 +4,36 @@
 
 ## 0.8.0
 
+### Breaking changes — quick migration from 0.7.2
+
+- **Time and color values:** wrap `accepted-time` in `LocalTimeValue { present, time }`; replace `accepted-color` with `accepted-value: { present, color }`. Read payloads only when present; `ColorResult.value` uses the same color wrapper.
+- **Duration and numeric stepping:** use `FieldSpec::duration(unit, rules)` and handle its fallible `format`; update `step_number` to `NumberStep` → `NumberStepOutcome` and manual `step-number` callbacks to count → `NumberStepResult`.
+- **Forms:** wire submit `validation-requested` to return a verdict (or explicitly use `form-no-validate`). `report-validity()` no longer focuses: call `focus-if-invalid()` explicitly. Render MultiSelect/TagInput errors with `KitFieldError` and `error-visible`.
+- **Selection labels and defaults:** set `label` explicitly; use `selected-label`/`value-label` for values. Enable `searchable` explicitly on Select/MultiSelect; Surface now focuses search by default. OTP defaults to `cells`; calendar outside days default to `dim`, with Monday-first weekday models.
+- **Paging and bindings:** pass measured `page_rows` to `KeyedModel`/`SelectBinding` navigation (`Option<NonZeroUsize>` for `SelectBinding::navigate`); provide the window/page getter and legacy `select-page-rows`. Complete selection sessions need timeout and wrap fields.
+- **Manual service callbacks:** add time constraints to `KitTimeService.adjust`, `close_on_select` to selection activation, page rows/session to selection navigation/typeahead, `CalendarText` to calendar projection, message data to field/phone services, and the user-edit flag to `KitFieldService.reduce`.
+- **Keyboard and exhaustive matches:** return `KitKeyResult.accept`/`.reject` from public key hooks. Handle new `ButtonIntent`, `FieldDecoration::Cells`, `RemovalPolicy::Retain`, `SelectEvent::ActivateKeepingOpen`, `ModelError::IdentityExhausted` and table field variants.
+- **Tables:** update literals for `TableRow.content`, `TableColumn.{width,source,visibility}` and `TableCell.{access,spec}`; `CellContent::Field` adds optional constraints. Use the matching build helper to export `KitDataService`.
+- **Toasts:** consume `ToastChange.result` and `.closed` from core queue operations; `advance`/`clear` return closure records. Complete `ToastEntry` literals need `dismiss_label`.
+- **Other complete literals:** add file/directory request `title`/`directory`, host `save_files`, file `byte_length`, overlay `focus_scope`, calendar projection/configuration fields, and StepEntry/TimelineEntry metadata. Constructors/defaults preserve documented defaults where available.
+- **Custom themes and layouts:** update complete theme/geometry/icon/message/recipe literals (direction, geometry, status inks, avatar/color-wheel tokens, avatar glyph, mask message, button underline). `choice-box-size`/`width-limit` take `KitTheme`; move inherited ButtonGroup/Steps padding to their parent layout.
+
+### Ruptures — migration rapide depuis la 0.7.2
+
+- **Heures et couleurs :** encapsuler `accepted-time` dans `LocalTimeValue { present, time }` ; remplacer `accepted-color` par `accepted-value: { present, color }`. Lire la valeur seulement si présente ; `ColorResult.value` utilise le même conteneur couleur.
+- **Durées et pas numériques :** utiliser `FieldSpec::duration(unit, rules)` et traiter l’erreur de `format` ; adapter `step_number` à `NumberStep` → `NumberStepOutcome` et le callback manuel `step-number` à nombre de pas → `NumberStepResult`.
+- **Formulaires :** fournir le verdict de `validation-requested` à la soumission (ou `form-no-validate` explicite). `report-validity()` ne focalise plus : appeler `focus-if-invalid()`. Afficher les erreurs MultiSelect/TagInput avec `KitFieldError` et `error-visible`.
+- **Libellés et valeurs par défaut :** renseigner `label` ; utiliser `selected-label`/`value-label` pour les valeurs. Activer `searchable` sur Select/MultiSelect si nécessaire ; Surface focalise désormais la recherche. OTP utilise `cells`, le calendrier `dim` ; garder les jours de semaine lundi en premier.
+- **Pagination et bindings :** passer les `page_rows` mesurés à la navigation `KeyedModel`/`SelectBinding` (`Option<NonZeroUsize>` pour `SelectBinding::navigate`) ; fournir fenêtre/getter de page et `select-page-rows` historique. Compléter les sessions avec délai de recherche et wrap.
+- **Callbacks de service manuels :** ajouter contraintes à `KitTimeService.adjust`, `close_on_select` à l’activation, page/session à la navigation/recherche, `CalendarText` aux projections, messages aux services champ/téléphone et drapeau d’édition utilisateur à `KitFieldService.reduce`.
+- **Clavier et matches exhaustifs :** retourner `KitKeyResult.accept`/`.reject` dans les hooks publics. Traiter les nouvelles variantes `ButtonIntent`, `FieldDecoration::Cells`, `RemovalPolicy::Retain`, `SelectEvent::ActivateKeepingOpen`, `ModelError::IdentityExhausted` et cellules de champ.
+- **Tableaux :** compléter `TableRow.content`, `TableColumn.{width,source,visibility}`, `TableCell.{access,spec}` et les contraintes facultatives de `CellContent::Field`. Utiliser le build helper correspondant pour exporter `KitDataService`.
+- **Toasts :** consommer `ToastChange.result` et `.closed` ; `advance`/`clear` renvoient les fermetures. Ajouter `dismiss_label` aux littéraux `ToastEntry` complets.
+- **Autres littéraux complets :** ajouter `title`/`directory` aux requêtes de fichiers/dossiers, `save_files`, `byte_length`, `focus_scope`, champs de projection/configuration du calendrier et métadonnées StepEntry/TimelineEntry. Utiliser constructeurs/défauts lorsque disponibles.
+- **Thèmes et dispositions personnalisés :** compléter thèmes/géométrie/icônes/messages/recettes (direction, géométrie, encres de statut, jetons avatar/color-wheel, glyphe avatar, message de masque, soulignement). Passer `KitTheme` à `choice-box-size`/`width-limit` ; déplacer le padding hérité de ButtonGroup/Steps vers leur parent.
+
+### Detailed changes / Changements détaillés
+
 This release collects the component, form, accessibility and documentation changes since 0.7.2. Breaking API changes and remaining platform limitations are listed below.
 
 Cette version rassemble les changements de composants, formulaires, accessibilité et documentation depuis la 0.7.2. Les ruptures d’API et limites de plateforme restantes sont détaillées ci-dessous.
