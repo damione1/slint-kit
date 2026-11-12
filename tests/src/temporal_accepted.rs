@@ -150,10 +150,10 @@ fn host_ack_preserves_focused_native_selection_draft_undo_and_cancel_baseline() 
     frame(&native);
     native.set_text("09:30".into());
     frame(&native);
-    native.invoke_focus();
-    native.invoke_select_all();
+    native.invoke_focus_editor();
+    native.invoke_select_editor();
     key(&native, "09:31");
-    native.invoke_undo();
+    native.invoke_undo_editor();
     frame(&native);
     let native_undo = native.get_text();
     native.hide().unwrap();
