@@ -9,7 +9,7 @@ export component App inherits Window {
     title: "Email";
     callback committed(FieldCommit);
     KitStack { inset: LayoutSpace.roomy;
-        control := KitEmailField {
+        control := KitEmailField { pattern: "[^@]+@[^@]+[.][^@]+"; pattern-message: "Use an email domain with a suffix, such as acme.tld.";
             label: "Email"; text: "elliot@example.com"; required: true; spec-key: "value";
 
             committed(value) => { root.committed(value); }

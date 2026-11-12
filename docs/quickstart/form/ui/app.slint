@@ -69,7 +69,7 @@ export component App inherits Window {
                 error: root.name-error; validation: root.name-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(value) => { root.field-edited(RegistrationField.name); root.edited(); }
             }
-            email := KitEmailField {
+            email := KitEmailField { pattern: "[^@]+@[^@]+[.][^@]+"; pattern-message: "Use an email domain with a suffix, such as acme.tld.";
                 theme: root.theme; label: "Email"; required: true;
                 default-value: "hello@example.com"; text <=> root.email-text;
                 commit-policy: CommitPolicy.on-submit;

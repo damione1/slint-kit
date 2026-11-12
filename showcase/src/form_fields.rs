@@ -687,6 +687,15 @@ pub fn install(window: &Showcase) {
             ),
         ),
     };
+    text.email.set_html_constraints(slint_kit::HtmlConstraints {
+        kind: slint_kit::HtmlInputKind::Email,
+        required: true,
+        pattern: Some(
+            slint_kit::HtmlPattern::compile("[^@]+@[^@]+[.][^@]+")
+                .expect("static dotted-domain policy"),
+        ),
+        ..Default::default()
+    });
     let numbers = NumericFields {
         integer: field(
             window,

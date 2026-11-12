@@ -240,15 +240,27 @@ export component KitDateTimeField inherits Rectangle {
     in property <string> step: root.precision == TimePrecision.second ? "1" : "60";
     in property <string> default-value;
     in-out property <string> custom-validity;
-    out property <KitValidityState> validity: checks.validity;
+    out property <KitValidityState> validity: KitFormValidation.combine(checks.validity, KitFormValidation.combine(date.validity, time.validity));
     out property <bool> will-validate: checks.will-validate;
-    out property <string> validation-message: checks.validation-message;
+    out property <string> validation-message: !date.validity.valid ? date.validation-message : !time.validity.valid ? time.validation-message : checks.validation-message;
     callback invalid();
-    public function check-validity() -> bool { return checks.check-validity(); }
-    public function report-validity() -> bool { return checks.report-validity(); }
-    public function focus-if-invalid() -> bool { if (root.will-validate && !root.validity.valid) { root.take-focus(); return true; } return false; }
+    public function check-validity() -> bool { let a = date.check-validity(); let b = time.check-validity(); let c = checks.check-validity(); return a && b && c; }
+    public function report-validity() -> bool {
+        let date-valid = date.report-validity();
+        let time-valid = time.report-validity();
+        let pair-valid = checks.report-validity();
+        if (pair-valid && (!date-valid || !time-valid)) { root.invalid(); }
+        return date-valid && time-valid && pair-valid;
+    }
+    public function focus-if-invalid() -> bool {
+        if (!root.will-validate || root.validity.valid) { return false; }
+        if (!date.validity.valid || root.date-error != "") { date.take-focus(); }
+        else if (!time.validity.valid || root.time-error != "") { time.take-focus(); }
+        else { root.take-focus(); }
+        return true;
+    }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
-    public function reset-validation() { checks.reset-validation(); }
+    public function reset-validation() { date.reset-validation(); time.reset-validation(); checks.reset-validation(); }
     checks := FormConstraintState {
         kind: HtmlInputKind.date-time-local; access: root.access; required: root.required;
         min: root.min; max: root.max; step: root.step; default-value: root.default-value;
@@ -305,7 +317,7 @@ export component KitDateTimeField inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
         date := KitTextField {
-            input-kind: HtmlInputKind.date;
+            input-kind: HtmlInputKind.date; required: root.required || root.time-text != "";
             validation: root.date-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description;
             edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
@@ -315,7 +327,7 @@ export component KitDateTimeField inherits Rectangle {
         HorizontalLayout {
             spacing: root.show-clear ? KitMetrics.inline-gap(root.theme) : 0px;
             time := KitTextField {
-                input-kind: HtmlInputKind.time;
+                input-kind: HtmlInputKind.time; required: root.required || root.date-text != "";
                 validation-twelve-hour: root.clock-format == ClockFormat.twelve-hour;
                 validation: root.time-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss AM" : "hh:mm AM") : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
@@ -336,7 +348,7 @@ export component KitDateTimeField inherits Rectangle {
                 activated => { root.clear(); }
             }
         }
-        if checks.show-error && root.date-error == "" && root.time-error == "": KitFieldError { theme: root.theme; text: checks.validation-message; }
+        if checks.show-error && date.validity.valid && time.validity.valid && root.date-error == "" && root.time-error == "": KitFieldError { theme: root.theme; text: checks.validation-message; }
     }
 }
 

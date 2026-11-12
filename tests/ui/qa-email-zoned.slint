@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitEmailField, KitZonedDateTimeField, KitButton, KitStack, LayoutSpace, KitTheme, KitThemes, KitInputConstraints, KitValidityState, FieldCommit, FieldAccess } from "@kit";
+export component QaEmailZonedFixture inherits Window {
+    width: 720px; height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <string> email-pattern: "[^@]+@[^@]+[.][^@]+";
+    in-out property <string> email-text: "john@acme.tld";
+    out property <KitInputConstraints> email-constraints: email.constraints;
+    out property <KitValidityState> email-validity: email.validity;
+    callback email-committed(FieldCommit);
+    in-out property <string> date-text: "2026-11-02";
+    in-out property <string> time-text: "01:30";
+    in-out property <string> zone-text: "America/Toronto";
+    in property <string> group-error;
+    out property <KitValidityState> zoned-validity: zoned.validity;
+    out property <string> zoned-message: zoned.validation-message;
+    out property <int> chosen-count;
+    public function report-email() -> bool { return email.report-validity(); }
+    public function commit-email() { email.commit(); }
+    public function report-zoned() -> bool { return zoned.report-validity(); }
+    public function focus-zoned-error() -> bool { return zoned.focus-if-invalid(); }
+    public function reset-zoned() { zoned.reset-validation(); }
+    public function resolve() { zoned.resolve(); }
+    KitStack { theme: root.theme; inset: LayoutSpace.roomy;
+        email := KitEmailField {
+            theme: root.theme; access: root.access; label: "Email"; required: true;
+            text <=> root.email-text; pattern: root.email-pattern;
+            pattern-message: "Use an email domain with a suffix.";
+            committed(value) => { root.email-committed(value); }
+        }
+        zoned := KitZonedDateTimeField {
+            theme: root.theme; access: root.access; label: "Appointment"; required: true;
+            date-text <=> root.date-text; time-text <=> root.time-text; zone-text <=> root.zone-text;
+            custom-validity: root.group-error;
+            chosen(value) => { root.chosen-count += 1; }
+        }
+        KitButton { theme: root.theme; text: "Resolve time"; activated => { zoned.resolve(); } }
+    }
+}

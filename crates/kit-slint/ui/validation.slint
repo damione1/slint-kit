@@ -114,6 +114,7 @@ export component FormConstraintState inherits Rectangle {
     out property <string> validation-message: !root.will-validate || root.validity.valid ? ""
         : root.validity.custom-error ? root.custom-validity
         : !root.additional-validity.valid ? root.additional-message
+        : root.validity.bad-input ? root.bad-input-message
         : root.validity.value-missing ? root.required-message
         : root.validity.type-mismatch ? (root.kind == HtmlInputKind.email ? root.email-message : root.url-message)
         : root.validity.pattern-mismatch ? root.pattern-message

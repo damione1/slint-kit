@@ -576,6 +576,11 @@ fn localized_constraint(
     if validity.custom_error {
         return rules.custom_error.clone();
     }
+    // A nonempty native draft may sanitize to empty while remaining bad input.
+    // Describe its syntax error before the accompanying required flag.
+    if validity.bad_input {
+        return messages.bad_input_message.to_string();
+    }
     if validity.value_missing {
         return messages.required_message.to_string();
     }
@@ -898,5 +903,71 @@ mod phone_normalization_tests {
             assert!(field.commit(CommitTrigger::Submit).is_err());
             assert_eq!(field.accepted().unwrap().as_str(), "0698765432");
         }
+    }
+}
+
+#[cfg(test)]
+mod required_bad_input_message_tests {
+    #[test]
+    fn a_partial_required_date_reports_bad_input_while_a_blank_reports_missing() {
+        let rules = kit_core::HtmlConstraints {
+            kind: kit_core::HtmlInputKind::Date,
+            required: true,
+            ..Default::default()
+        };
+        let messages = crate::ui::KitFieldMessages {
+            bad_input_message: "Invalid date".into(),
+            required_message: "Date required".into(),
+            ..Default::default()
+        };
+        let partial = rules.validate("2026-11-", Default::default());
+        assert!(partial.bad_input && partial.value_missing);
+        assert_eq!(
+            super::localized_constraint(&messages, partial, &rules),
+            "Invalid date"
+        );
+        assert_eq!(
+            super::localized_constraint(&messages, rules.validate("", Default::default()), &rules),
+            "Date required"
+        );
+    }
+}
+
+#[cfg(test)]
+mod dotted_email_submission_tests {
+    #[test]
+    fn configured_pattern_blocks_direct_rust_submit_before_an_unrestricted_parser() {
+        use kit_core::{
+            AbsencePolicy, CommitPolicy, CommitTrigger, DraftValue, FieldFailure, HtmlConstraints,
+            HtmlInputKind, HtmlPattern, Ownership,
+        };
+        let field = crate::FieldBinding::<String, ()>::new(
+            Some("john@acme.tld".into()),
+            Ownership::Local,
+            CommitPolicy::OnBlur,
+            AbsencePolicy::Required,
+            |text| DraftValue::Parsed(text.to_owned()),
+            Clone::clone,
+            |_| String::new(),
+            |_| {},
+        );
+        field.set_html_constraints(HtmlConstraints {
+            kind: HtmlInputKind::Email,
+            required: true,
+            pattern: Some(HtmlPattern::compile("[^@]+@[^@]+[.][^@]+").unwrap()),
+            ..Default::default()
+        });
+        field.edited("john@acme").unwrap();
+        let validity = field.snapshot().html_validity.unwrap();
+        assert!(validity.pattern_mismatch);
+        assert!(!validity.type_mismatch);
+        assert_eq!(
+            field.commit(CommitTrigger::Submit),
+            Err(FieldFailure::ValidationFailed)
+        );
+        assert_eq!(field.accepted().as_deref(), Some("john@acme.tld"));
+        field.edited("john@sub.acme.tld").unwrap();
+        assert!(field.commit(CommitTrigger::Submit).is_ok());
+        assert_eq!(field.accepted().as_deref(), Some("john@sub.acme.tld"));
     }
 }
