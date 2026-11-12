@@ -259,6 +259,7 @@ export component KitTextField inherits KitField {
     in property <bool> show-validation-message: true;
     out property <bool> validation-visible: root.effective-validation == ValidationPresentation.invalid;
     in property <string> description;
+    in property <bool> show-description: true;
     in property <string> error;
     in property <string> placeholder;
     in property <FieldDecoration> decoration: FieldDecoration.boxed;
@@ -728,7 +729,7 @@ export component KitTextField inherits KitField {
     }
     if root.show-validation-message && root.effective-validation == ValidationPresentation.invalid && root.effective-error != "": KitFieldError { theme: root.theme; text: root.effective-error; }
     if root.busy || root.validation == ValidationPresentation.checking: KitFieldDescription { theme: root.theme; text: root.activity-label; accessible-role: AccessibleRole.text; accessible-live-region: polite; }
-    if root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
+    if root.show-description && root.description != "": KitFieldDescription { theme: root.theme; text: root.description; }
     if root.show-character-count: KitFieldDescription { theme: root.theme; text: root.character-count-text; color: root.character-count-warning ? root.theme.warning : root.theme.text-secondary; }
 }
 export component KitPasswordField inherits KitTextField { purpose: TextPurpose.password; }

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Simplify the ColorWheel starter with the shared weak-window action/event adapters; preserve its typed draft and Apply behavior.
+- Simplifie le projet de démarrage ColorWheel avec les adaptateurs partagés action/event à fenêtre faible ; conserve son brouillon typé et le bouton Appliquer.
+
+- Calendar accessible focus now delegates from its persistent list scope to the active day, with slot positions and read-only state. DatePicker exposes guarded accessible expansion and forwards its help to the native editor. Add `KitTextField.show-description` (default true) so composed controls can keep accessible help while rendering its visual row once. Native editing stays unchanged.
+- Le focus accessible du calendrier est désormais délégué depuis sa liste persistante au jour actif, avec indices de cases et état lecture seule. DatePicker expose une ouverture accessible protégée et transmet son aide à l’éditeur natif. Ajoute `KitTextField.show-description` (true par défaut) pour conserver l’aide accessible tout en affichant sa ligne une seule fois dans un champ composé. L’édition native est inchangée.
+
 ## 0.8.0
 
 ### Breaking changes — quick migration from 0.7.2
