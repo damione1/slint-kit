@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy } from "@kit";
+import { KitTheme, KitThemes, KitScrollBar, KitScrollArea, KitButton, ScrollBarRecipe, ScrollPanPolicy, ScrollAxes, ScrollEdge } from "@kit";
 
 import { ScrollFrame } from "@kit/scroll.slint";
 
@@ -94,5 +94,37 @@ export component PanPriorityFixture inherits Window {
                 moved => { if (self.pressed && root.adjusting) { root.draft = clamp(self.mouse-y / self.height,0,1); } }
             }
         }
+    }
+}
+
+export component ScrollKeysFixture inherits Window {
+    width: 300px; height: 200px;
+    in property <ScrollAxes> axes: ScrollAxes.vertical;
+    in property <bool> focusable: true;
+    out property <length> offset-x: area.content-x;
+    out property <length> offset-y: area.content-y;
+    out property <length> line-step: area.line-step;
+    out property <length> viewport-height: area.visible-height;
+    out property <length> viewport-width: area.visible-width;
+    out property <length> content-height: area.content-height;
+    out property <bool> at-start: area.at-start;
+    out property <bool> at-end: area.at-end;
+    out property <bool> scrollable: area.scrollable;
+    out property <bool> ring: area.keyboard-focus;
+    out property <bool> button-focused: first.has-focus;
+    in-out property <int> starts;
+    in-out property <int> ends;
+    in-out property <int> scrolls;
+    in-out property <int> activations;
+    public function to-end() { area.scroll-to-end(); }
+    public function to-start() { area.scroll-to-start(); }
+    public function resize-content(height: length) { tail.height = height; }
+    area := KitScrollArea {
+        x: 0px; y: 0px; width: 200px; height: 120px;
+        axes: root.axes; focusable: root.focusable; label: "Terms";
+        scrolled => { root.scrolls += 1; }
+        edge-reached(edge) => { if (edge == ScrollEdge.start) { root.starts += 1; } else { root.ends += 1; } }
+        first := KitButton { text: "First action"; activated => { root.activations += 1; } }
+        tail := Rectangle { width: 600px; height: 400px; }
     }
 }

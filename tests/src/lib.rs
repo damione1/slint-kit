@@ -22,6 +22,7 @@ mod keyboard_scope;
 mod localized_labels;
 mod multi_popup;
 mod preview;
+mod scroll_keys;
 mod select_search;
 mod selection_names;
 mod selection_search_session;
