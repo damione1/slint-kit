@@ -220,8 +220,15 @@ export component KitCalendar inherits Rectangle {
 export component KitDateField inherits TemporalField {
     input-kind: HtmlInputKind.date;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <CivilDateView> accepted-date;
+    in-out property <CivilDateView> accepted-date;
     model: KitTimeService.project-date(root.accepted-date);
+    typed-accepted(value) => {
+        if (!value.present) { root.accepted-date = {}; }
+        else if (KitCalendarService.ready) {
+            let date = KitCalendarService.parse-date(value.text);
+            if (date != {}) { root.accepted-date = date; }
+        }
+    }
     placeholder: "YYYY-MM-DD";
     description: "Civil date; no time zone";
 }
@@ -355,7 +362,7 @@ export component KitDatePicker inherits Rectangle {
                 error: root.error;
                 invalid => { root.invalid(); }
 
-                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; accepted-date: root.accepted-date;
+                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; accepted-date <=> root.accepted-date;
                 label: ""; description: root.description; show-description: false; placeholder: root.placeholder; accessible-name: root.label;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
@@ -495,23 +502,35 @@ export component KitDateRangePicker inherits Rectangle {
 export component KitMonthField inherits TemporalField {
     input-kind: HtmlInputKind.month;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <int> accepted-year;
-    in property <int> accepted-month;
+    in-out property <int> accepted-year;
+    in-out property <int> accepted-month;
     model: KitTimeService.project-month(root.accepted-year, root.accepted-month);
+    typed-accepted(value) => {
+        let parsed = KitTimeService.parse-month(value.text);
+        if (parsed.valid) { root.accepted-year = parsed.year; root.accepted-month = parsed.month; }
+    }
     placeholder: "YYYY-MM";
 }
 export component KitYearField inherits TemporalField {
     input-type: InputType.decimal; min: "1"; max: "9999"; step: "1";
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <int> accepted-year;
+    in-out property <int> accepted-year;
     model: KitTimeService.project-year(root.accepted-year);
+    typed-accepted(value) => {
+        let parsed = KitTimeService.parse-year(value.text);
+        if (parsed.valid) { root.accepted-year = parsed.year; }
+    }
     placeholder: "YYYY";
 }
 export component KitIsoWeekField inherits TemporalField {
     input-kind: HtmlInputKind.week;
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <int> accepted-week-year;
-    in property <int> accepted-week;
+    in-out property <int> accepted-week-year;
+    in-out property <int> accepted-week;
     model: KitTimeService.project-week(root.accepted-week-year, root.accepted-week);
+    typed-accepted(value) => {
+        let parsed = KitTimeService.parse-week(value.text);
+        if (parsed.valid) { root.accepted-week-year = parsed.year; root.accepted-week = parsed.week; }
+    }
     placeholder: "YYYY-Www";
 }

@@ -135,6 +135,10 @@ impl<T: 'static, E: 'static> FieldSpec<T, E> {
     pub fn format(&self, value: &T) -> String {
         (self.format)(value)
     }
+    /// Parse an already accepted canonical text, without field constraints.
+    pub(crate) fn parse_text(&self, text: &str) -> DraftValue<T> {
+        (self.parse)(text)
+    }
     /// Guard Rust submission paths with the same constraints as the component.
     /// The parsed domain value is returned directly to business code.
     pub fn accept(&self, commit: ui::FieldCommit) -> Result<Option<T>, FieldSpecError<E>> {

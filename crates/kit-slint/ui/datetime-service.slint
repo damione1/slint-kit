@@ -13,6 +13,10 @@ export struct LocalTimeView { hour: int, minute: int, second: int }
 export struct LocalTimeValue { present: bool, time: LocalTimeView }
 export struct TemporalProjection { valid: bool, value: FieldValue }
 export struct LocalTimeResult { valid: bool, value: LocalTimeValue }
+// Typed parse results of the simple temporal fields. Absence is valid and all zero.
+export struct YearResult { valid: bool, year: int }
+export struct YearMonthResult { valid: bool, year: int, month: int }
+export struct IsoWeekResult { valid: bool, year: int, week: int }
 export struct LocalDateTimeView { date: CivilDateView, time: LocalTimeView }
 export struct LocalDateTimeDraft { date: string, time: string }
 export struct ZonedDateTimeDraft { date: string, time: string, zone: string }
@@ -25,6 +29,9 @@ export global KitTimeService {
     pure callback project-month(int, int) -> TemporalProjection;
     pure callback project-week(int, int) -> TemporalProjection;
     pure callback project-time(LocalTimeValue, TimePrecision, ClockFormat) -> TemporalProjection;
+    pure callback parse-year(string) -> YearResult;
+    pure callback parse-month(string) -> YearMonthResult;
+    pure callback parse-week(string) -> IsoWeekResult;
     pure callback parse-time(string, TimePrecision, ClockFormat) -> LocalTimeResult;
     pure callback adjust(string, KitInputConstraints, TimePrecision, ClockFormat, TimeSegment, TimeAdjustment) -> string;
     pure callback parse-local(LocalDateTimeDraft, TimePrecision, ClockFormat) -> LocalDateTimeView;

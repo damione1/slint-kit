@@ -40,17 +40,17 @@ Les entrées temporelles hôtes synchronisent la valeur acceptée de référence
 
 | Composant | Propriété hôte | Absence |
 | --- | --- | --- |
-| `KitDateField` | entrée `accepted-date: CivilDateView` | `{}` |
-| `KitMonthField` | entrées `accepted-year`, `accepted-month` | les deux à `0` |
-| `KitYearField` | entrée `accepted-year` | `0` |
-| `KitIsoWeekField` | entrées `accepted-week-year`, `accepted-week` | les deux à `0` |
-| `KitTimeField` | entrée `accepted-time: LocalTimeValue` | `{present: false}` ou `{}` |
+| `KitDateField` | entrée-sortie `accepted-date: CivilDateView` | `{}` |
+| `KitMonthField` | entrée-sortie `accepted-year`, `accepted-month` | les deux à `0` |
+| `KitYearField` | entrée-sortie `accepted-year` | `0` |
+| `KitIsoWeekField` | entrée-sortie `accepted-week-year`, `accepted-week` | les deux à `0` |
+| `KitTimeField` | entrée-sortie `accepted-time: LocalTimeValue` | `{present: false}` ou `{}` |
 | `KitTimePicker` | entrée-sortie `accepted-time: LocalTimeValue` | `{present: false}` ou `{}` |
 | `KitDateTimeField` | entrée-sortie `accepted-value: LocalDateTimeView` | `{}` |
 
 `LocalTimeValue` contient `present: bool` et `time: LocalTimeView`. Minuit vaut `{present: true, time: {}}` ; un conteneur vide signifie absence. **Migration :** remplacez chaque `accepted-time: {hour: 9, minute: 30}` direct par `accepted-time: {present: true, time: {hour: 9, minute: 30}}`. Adaptez aussi les affectations hôtes et les liaisons bidirectionnelles, puis vérifiez `.present` avant de lire `.time`.
 
-Les propriétés d’entrée de DateField/MonthField/YearField/IsoWeekField/TimeField restent des instantanés hôtes. La propriété Local/Controlled gouverne leur `FieldState` partagé et `committed(FieldCommit)` ; l’acceptation locale n’écrit pas ces entrées. Acceptez le commit avec le `FieldSpec` Rust correspondant et conservez la valeur typée retournée. `acknowledge(FieldValue)` change uniquement la valeur acceptée de référence de l’éditeur ; cette fonction ne définit pas la propriété hôte typée et ne réécrit pas le brouillon actif.
+Les propriétés acceptées de DateField/MonthField/YearField/IsoWeekField/TimeField sont des valeurs typées en entrée-sortie, comme celles de DatePicker. En propriété Local, un commit accepté analyse le texte en Rust et réécrit la valeur typée (l’absence écrit la valeur absente : `{}` ou des zéros) : un hôte Slint pur peut lier avec `<=>` et lire la valeur sans analyser de chaînes. Une liaison à sens unique est remplacée par la première écriture locale ; utilisez `<=>` pour continuer à la partager. En Controlled, les propriétés ne sont pas écrites : acceptez le commit avec le `FieldSpec` Rust correspondant, conservez la valeur typée retournée et affectez la propriété pour acquitter. Un texte invalide ou incomplet n’atteint jamais un commit accepté ; la valeur typée garde donc son dernier état accepté. `acknowledge(FieldValue)` change uniquement la valeur acceptée de référence de l’éditeur ; cette fonction ne définit pas la propriété hôte typée et ne réécrit pas le brouillon actif.
 
 TimePicker émet aussi `chosen(LocalTimeView)` pour une heure présente acceptée et `cleared()` pour une absence facultative valide, en conservant `committed(FieldCommit)`. La propriété locale actualise son modèle en entrée-sortie. La propriété contrôlée propose sans le remplacer : acquittez avec le conteneur `accepted-time` complet. DateTime publie/propose de même un `LocalDateTimeView` entier par `chosen`, et l’absence par `cleared()` ; acquittez en affectant `accepted-value` entier. Date et heure doivent être valides ensemble, ou toutes deux vides pour l’absence facultative. Passer entre ses éditeurs n’accepte jamais une demi-paire, et Entrée puis perte de focus ne répète pas une proposition inchangée.
 

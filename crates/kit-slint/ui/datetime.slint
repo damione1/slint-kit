@@ -44,8 +44,12 @@ export component KitTimeField inherits TemporalField {
     validation-twelve-hour: root.clock-format == ClockFormat.twelve-hour;
     step: root.precision == TimePrecision.second ? "1" : "60";
     validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-    in property <LocalTimeValue> accepted-time;
+    in-out property <LocalTimeValue> accepted-time;
     model: KitTimeService.project-time(root.accepted-time, root.precision, root.clock-format);
+    typed-accepted(value) => {
+        let parsed = KitTimeService.parse-time(value.text, root.precision, root.clock-format);
+        if (parsed.valid) { root.accepted-time = parsed.value; }
+    }
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss AM" : "hh:mm AM") : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
@@ -127,7 +131,7 @@ export component KitTimePicker inherits Rectangle {
                 required: root.required; min: root.min; max: root.max; step: root.step;
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
- theme: root.theme; control-size: root.control-size; access: root.access; accepted-time: root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
+ theme: root.theme; control-size: root.control-size; access: root.access; accepted-time <=> root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
         TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
         TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
         if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
