@@ -5,7 +5,7 @@ import { KitTheme, KitThemeContext } from "@kit";
 
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { KitRating, KitStack, KitThemeContext, RatingView } from "@kit";
+import { KitFieldDescription, KitRating, KitStack, KitThemeContext, RatingView } from "@kit";
     // Persistent native scopes preserve keyboard ownership when option models change.
 export component Example inherits Window {
     default-font-family: InterFont.family;
@@ -14,8 +14,10 @@ export component Example inherits Window {
     changed theme => { KitThemeContext.current = root.theme; }
     title: "Rating"; preferred-width: 560px; preferred-height: 360px;
     background: KitThemeContext.current.canvas;
+    in-out property <RatingView> rating-value: {present: true, step: 4, scale: 5};
     callback feedback-changed(RatingView);
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        KitRating { label: "Your rating"; scale: 5; value: {present: true, step: 4, scale: 5}; chosen(value) => { root.feedback-changed(value); } } }
+        KitRating { label: "Your rating"; scale: 5; value <=> root.rating-value; chosen(value) => { root.feedback-changed(value); } }
+        KitFieldDescription { theme: root.theme; text: root.rating-value.present ? "Rating: " + root.rating-value.step + " / " + root.rating-value.scale : "Not rated"; } }
 }

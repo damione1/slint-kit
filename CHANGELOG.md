@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Preserve host-authored selected bindings in the shared controlled selection primitive: reconcile/navigation/activation no longer assign the host’s selected property. Rating selection now follows its accepted value after repeated pointer/keyboard changes and controlled acknowledgments.
+- Préserve les liaisons selected de l’hôte dans la primitive de sélection contrôlée : réconciliation, navigation et activation n’assignent plus cette propriété. La sélection du rating suit ainsi la valeur acceptée après clics, clavier et confirmations contrôlées.
+
+- Keep accepted rating and slider feedback visible in the public EN/FR demos. Bind the slider’s numeric caption and accessible value-label to its exact retained value. Remove the keypad starter’s unsolicited startup take-focus call while preserving native key traversal, input and focus indicators.
+- Rend visibles les valeurs acceptées du rating et du slider dans les démos EN/FR. Lie la légende numérique et value-label du slider à sa valeur exacte conservée. Retire le take-focus imposé à l’ouverture du projet keypad, en conservant parcours, saisie et indicateurs de focus natifs.
+
 - Configure public single-address email demos with an explicit dotted-domain pattern, enforced by the shared HTML engine and Rust submission guards. Preserve generic HTML compatibility and distinguish patternMismatch from typeMismatch; no DNS/delivery check.
 - Configure les démos publiques de courriel avec un motif explicite de domaine à suffixe, appliqué par le moteur HTML partagé et les gardes Rust. Conserve la compatibilité HTML générique et distingue patternMismatch de typeMismatch, sans vérification DNS/livraison.
 - DateTimeField now checks native part validity alongside pair constraints, requires a missing companion, presents each part’s error beside its editor and focuses the invalid part. Reserve the pair footer for whole-pair errors; ZonedDateTimeField no longer shows a contradictory required message beneath a populated time for an incomplete date. Reset part/pair validation together while preserving native editing. A nonempty malformed draft now reports badInput before its accompanying valueMissing flag.
