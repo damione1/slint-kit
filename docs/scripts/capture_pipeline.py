@@ -28,6 +28,12 @@ class ImageOrigin(StrEnum):
     DERIVED = 'derived'
 
 
+class CaptureOutcome(StrEnum):
+    NEW = 'new'              # no committed image existed
+    UPDATED = 'updated'      # decoded pixels differ: the new file replaces the old one
+    UNCHANGED = 'unchanged'  # identical RGBA pixels: the committed bytes are kept
+
+
 class PosterAction(StrEnum):
     CLICK = 'click'
     HOVER = 'hover'
@@ -75,16 +81,44 @@ def dimensions(path):
     return struct.unpack('>II', data[16:24])
 
 
+def same_pixels(first, second):
+    """True when two PNG byte strings decode to the same size and RGBA pixels."""
+    import io
+    from PIL import Image
+    with Image.open(io.BytesIO(first)) as one, Image.open(io.BytesIO(second)) as two:
+        one, two = one.convert('RGBA'), two.convert('RGBA')
+        return one.size == two.size and one.tobytes() == two.tobytes()
+
+
+def settle_image(path, committed):
+    """Keep the committed bytes of `path` when the file now on disk has identical pixels.
+
+    `committed` is the content of the file before the recapture (None if absent).
+    """
+    if committed is None:
+        return CaptureOutcome.NEW
+    current = Path(path).read_bytes()
+    if current == committed:
+        return CaptureOutcome.UNCHANGED
+    if same_pixels(current, committed):
+        write_changed(path, committed)
+        return CaptureOutcome.UNCHANGED
+    return CaptureOutcome.UPDATED
+
+
 def downscale(source, destination):
     from PIL import Image
+    import io
+    destination = Path(destination)
+    committed = destination.read_bytes() if destination.is_file() else None
     with Image.open(source) as image:
         if image.width % 2 or image.height % 2:
             raise ValueError('A ×2 capture must have even dimensions')
         image = image.convert('RGBA').resize((image.width // 2, image.height // 2), Image.Resampling.LANCZOS)
-        import io
         stream = io.BytesIO()
         image.save(stream, format='PNG', optimize=False, compress_level=9)
         write_changed(destination, stream.getvalue())
+    return settle_image(destination, committed)
 
 
 def expected_outputs(task):
@@ -396,20 +430,25 @@ def repair_derivative(task, record):
     return valid_record(task, record)
 
 
-def record_browser_capture(task, manifest):
+def record_browser_capture(task, manifest, committed=None):
+    """Record a finished browser capture; returns its typed outcome, or None if there is none.
+
+    `committed` maps an output path to its bytes before the recapture.
+    """
     environment_path = Path(str(task['outputs'][0]) + '.environment.json')
     if not environment_path.is_file():
-        return False
+        return None
     try:
         environment = json.loads(environment_path.read_text())
     except (OSError, ValueError):
         environment_path.unlink(missing_ok=True)
-        return False
+        return None
     if not isinstance(environment, dict):
         environment_path.unlink(missing_ok=True)
-        return False
+        return None
     if environment.get('sceneKey') != task['sceneKey'] or environment.get('key') != task['key']:
-        return False
+        return None
+    outcome = settle_image(task['outputs'][0], (committed or {}).get(task['outputs'][0]))
     downscale(*task['outputs'])
     outputs = {str(path.relative_to(ROOT)): output_record(path, index == 0) for index, path in enumerate(task['outputs'])}
     from PIL import __version__ as pillow_version
@@ -424,7 +463,7 @@ def record_browser_capture(task, manifest):
     store(task, record)
     write_json(MANIFEST, manifest)
     environment_path.unlink()
-    return True
+    return outcome
 
 
 def main():
@@ -443,12 +482,14 @@ def main():
             parser.error('Unknown component slug')
         work = [task for task in work if task['slug'] in args.slugs]
     manifest = read_manifest()
+    # Bytes of the images before any recapture: identical pixels must not rewrite them.
+    committed = {path: path.read_bytes() for task in work for path in task['outputs'] if path.is_file()}
     if args.action == 'update':
         migrate_catalogue(work, manifest)
         reuse_build_only_changes(work, manifest, inputs)
         for task in work:
             if not valid_record(task, manifest['entries'].get(task['id'])):
-                if record_browser_capture(task, manifest):
+                if record_browser_capture(task, manifest, committed) is not None:
                     continue
                 previous = manifest['entries'].get(task['id'])
                 if repair_derivative(task, previous):
@@ -480,8 +521,9 @@ def main():
         plan_path = DOCS / '.generated/browser-capture-plan.json'
         write_json(plan_path, browser_plan)
         process = subprocess.run(['node', str(DOCS / 'scripts/capture-browser.mjs'), str(plan_path)], cwd=ROOT)
-        for task in pending:
-            record_browser_capture(task, manifest)
+        outcomes = [record_browser_capture(task, manifest, committed) for task in pending]
+        print('Documentation captures: ' + ', '.join(f'{sum(o is kind for o in outcomes)} {kind.value}' for kind in CaptureOutcome),
+              flush=True)
         if process.returncode:
             raise SystemExit('Browser capture failed; completed scenes were saved and will be reused')
     # Imported proofs are also useful to a fresh CI checkout.

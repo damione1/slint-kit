@@ -127,7 +127,7 @@ version = "0.3.0"
             runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')), run_name='__main__')
         with zipfile.ZipFile(self.root / 'docs/.generated/starters/checkbox.zip') as archive:
             readme = archive.read('checkbox/README.md').decode()
-            self.assertIn('APIs are absent from the published 0.4.0 packages', readme)
+            self.assertIn('Development source example', readme)
             self.assertIn('Required source dependencies', readme)
             self.assertIn('obligatoires', readme)
             self.assertNotIn('use the matching registry release', readme)
@@ -202,6 +202,119 @@ version = "0.3.0"
         starter_sources.prepare('local')
         with self.assertRaisesRegex(ValueError, 'Unknown starter'):
             starter_sources.source_directory('../outside', 'local')
+
+    def load_checker(self):
+        return runpy.run_path(str(Path(starter_sources.__file__).with_name('check-starters.py')))
+
+    def test_starters_with_one_dependency_graph_form_one_group_and_one_workspace(self):
+        starter_sources.prepare('local')
+        groups = starter_sources.dependency_groups('local')
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(groups[0].packages, (('checkbox', 'slint-kit-checkbox-example'),
+                                              ('radio-group', 'slint-kit-radio-group-example')))
+        only = starter_sources.dependency_groups('local', ('radio-group',))
+        self.assertEqual(only[0].packages, (('radio-group', 'slint-kit-radio-group-example'),))
+        with self.assertRaisesRegex(ValueError, 'Unknown starter'):
+            starter_sources.dependency_groups('local', ('missing',))
+        consumers = starter_sources._prepared[starter_sources.BuildMode.LOCAL][0]
+        directory = starter_sources.group_workspace(starter_sources.BuildMode.LOCAL, groups[0], consumers)
+        self.assertEqual(directory.parent.parent, self.root / starter_sources.WORKSPACE_FOLDER)
+        root = tomllib.loads((directory / 'Cargo.toml').read_text())
+        self.assertEqual(root['workspace']['members'], ['checkbox', 'radio-group'])
+        self.assertEqual(set(root['patch']['crates-io']), set(starter_sources.KIT_PACKAGES))
+        for slug in ('checkbox', 'radio-group'):
+            member = tomllib.loads((directory / slug / 'Cargo.toml').read_text())
+            self.assertNotIn('workspace', member)
+            self.assertNotIn('patch', member)
+            self.assertNotIn('patch', tomllib.loads((consumers[slug] / 'Cargo.toml').read_text()))
+            self.assertIn('[workspace]', (consumers[slug] / 'Cargo.toml').read_text())
+            self.assertEqual((directory / slug / 'src/main.rs').read_text(), 'original')
+
+    def test_release_workspace_has_no_patch_and_drifting_external_packages_are_rejected(self):
+        consumers = starter_sources.prepare('release')
+        group = starter_sources.dependency_groups('release')[0]
+        mode = starter_sources.BuildMode.RELEASE
+        self.cargo.side_effect = lambda command, **kwargs: None  # the release lock already resolves
+        directory = starter_sources.group_workspace(mode, group, consumers)
+        self.assertNotIn('patch', tomllib.loads((directory / 'Cargo.toml').read_text()))
+        def drift(command, **kwargs):
+            lock = Path(command[-1]).with_name('Cargo.lock')
+            lock.write_text(lock.read_text().replace('version = "0.4.0"', 'version = "0.4.1"'))
+        self.cargo.side_effect = drift
+        with self.assertRaisesRegex(ValueError, 'drifted'):
+            starter_sources.group_workspace(mode, group, consumers)
+
+    def test_cargo_errors_are_attributed_to_the_failing_starter(self):
+        checker = self.load_checker()
+        starter_sources.prepare('local')
+        group = starter_sources.dependency_groups('local')[0]
+        directory = self.root / 'workspace'
+        def message(slug, level):
+            return json.dumps({'reason': 'compiler-message', 'manifest_path': str(directory / slug / 'Cargo.toml'),
+                               'message': {'level': level, 'message': 'boom', 'rendered': f'{level} in {slug}'}})
+        output = '\n'.join([message('checkbox', 'warning'), 'not json', message('radio-group', 'error'),
+                            json.dumps({'reason': 'build-finished', 'success': False})])
+        result = checker['attribute'](output, directory, group)
+        self.assertEqual(result.failed, ('radio-group',))
+        self.assertFalse(result.unattributed)
+        self.assertEqual(result.diagnostics, ('error in radio-group',))
+        clean = checker['attribute'](message('checkbox', 'warning'), directory, group)
+        self.assertTrue(clean.passed)
+        foreign = json.dumps({'reason': 'compiler-message', 'manifest_path': '/elsewhere/Cargo.toml',
+                              'message': {'level': 'error', 'message': 'dependency broke'}})
+        self.assertTrue(checker['attribute'](foreign, directory, group).unattributed)
+        silent = checker['attribute'](json.dumps({'reason': 'build-finished', 'success': False}), directory, group)
+        self.assertTrue(silent.unattributed)
+
+    def test_build_script_failures_are_attributed_through_stderr(self):
+        checker = self.load_checker()
+        starter_sources.prepare('local')
+        group = starter_sources.dependency_groups('local')[0]
+        directory = self.root / 'workspace'
+        failure = json.dumps({'reason': 'build-finished', 'success': False})
+        stderr = ('error: failed to run custom build command for `slint-kit-radio-group-example v0.1.0 '
+                  f'({directory}/radio-group)`\n')
+        result = checker['attribute'](failure, directory, group, stderr)
+        self.assertEqual(result.failed, ('radio-group',))
+        self.assertFalse(result.unattributed)
+        both = checker['attribute'](failure, directory, group, stderr + stderr.replace('radio-group', 'checkbox'))
+        self.assertEqual(both.failed, ('checkbox', 'radio-group'))
+        foreign = 'error: failed to run custom build command for `libfoo-sys v1.0.0 (/x)`\n'
+        self.assertTrue(checker['attribute'](failure, directory, group, foreign).unattributed)
+
+    def test_grouped_check_runs_one_cargo_check_for_the_group(self):
+        checker = self.load_checker()
+        consumers = starter_sources.prepare('local')
+        group = starter_sources.dependency_groups('local')[0]
+        mode = starter_sources.BuildMode.LOCAL
+        calls = []
+        def run(command, **kwargs):
+            if command[:2] == ['cargo', 'update']:
+                return self.resolve(command, **kwargs)
+            calls.append(command)
+            manifest = command[command.index('--manifest-path') + 1]
+            error = json.dumps({'reason': 'compiler-message', 'manifest_path': str(Path(manifest).with_name('checkbox') / 'Cargo.toml'),
+                                'message': {'level': 'error', 'message': 'boom'}})
+            return type('Done', (), {'returncode': 101, 'stdout': error + '\n', 'stderr': ''})()
+        metadata = json.dumps({'packages': [{'name': 'slint-kit', 'source': None}]})
+        run_globals = checker['check_group'].__globals__
+        with patch.dict(run_globals, {'subprocess': type('Sub', (), {'run': staticmethod(run), 'PIPE': -1,
+                                                                    'check_output': staticmethod(lambda *a, **k: metadata)})}):
+            result = checker['check_group'](mode, group, consumers, {})
+        self.assertEqual(len(calls), 1)
+        self.assertIn('--workspace', calls[0])
+        self.assertIn('--locked', calls[0])
+        self.assertIn('--keep-going', calls[0])
+        self.assertEqual(result.failed, ('checkbox',))
+
+    def test_grouped_check_rejects_a_registry_kit_package_in_local_mode(self):
+        checker = self.load_checker()
+        with self.assertRaisesRegex(ValueError, 'registry slint-kit'):
+            checker['verify_sources'](starter_sources.BuildMode.LOCAL,
+                                      {'packages': [{'name': 'slint-kit', 'source': 'registry+x'}]}, 'checkbox')
+        with self.assertRaisesRegex(ValueError, 'local slint-kit'):
+            checker['verify_sources'](starter_sources.BuildMode.RELEASE,
+                                      {'packages': [{'name': 'slint-kit', 'source': None}]}, 'checkbox')
 
 
 if __name__ == '__main__':

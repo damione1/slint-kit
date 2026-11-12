@@ -65,26 +65,83 @@ def source_hashes(files):
     return {str(path.relative_to(ROOT)): digest(path.read_bytes()) for path in sorted(set(files))}
 
 
+@dataclass(frozen=True)
+class RuntimeScope:
+    """Files that can change a preview pixel; the single declaration of the scene-key scope.
+
+    The browser preview host (docs/preview) depends on slint-kit with the
+    native-winit feature, which reaches kit-slint (adapter) and kit-core.
+    Excluded on purpose: kit-build (build helper; its output is covered by the
+    generated Slint identity of every scene), kit-native (re-exported native
+    file dialogs, never drawn by the preview host), xtask, tests, showcase,
+    docs/capture and every other application. The Slint library sources,
+    theme tokens and fonts live under kit-slint/ui and are hashed byte for byte.
+    """
+    rust_roots: tuple[str, ...]
+    rust_files: tuple[str, ...]
+    asset_roots: tuple[str, ...]
+    manifests: tuple[str, ...]
+    preview_manifest: str
+    preview_lock: str
+
+    def includes_rust(self, name: str) -> bool:
+        return (name.endswith('.rs') and 'target' not in Path(name).parts
+                and (name in self.rust_files or any(name.startswith(root + '/') for root in self.rust_roots)))
+
+    def includes_asset(self, name: str) -> bool:
+        return 'target' not in Path(name).parts and any(name.startswith(root + '/') for root in self.asset_roots)
+
+
+RUNTIME_SCOPE = RuntimeScope(
+    rust_roots=('crates/kit-core/src', 'crates/kit-slint/src', 'crates/kit/src', 'docs/preview/src'),
+    rust_files=('crates/kit-slint/build.rs', 'docs/preview/build.rs'),
+    asset_roots=('crates/kit-slint/ui',),
+    manifests=('crates/kit-core/Cargo.toml', 'crates/kit-slint/Cargo.toml', 'crates/kit/Cargo.toml'),
+    preview_manifest='docs/preview/Cargo.toml',
+    preview_lock='docs/preview/Cargo.lock')
+
+
+def external_packages(lock_text):
+    return [package for package in tomllib.loads(lock_text)['package'] if package.get('source')]
+
+
+def preview_manifest_identity(value):
+    # Release bumps rewrite the exact slint-kit pins; they are not rendering inputs.
+    value = json.loads(json.dumps(value))
+    value['package'].pop('version', None)
+    for section in ('dependencies', 'build-dependencies'):
+        for name, dependency in value.get(section, {}).items():
+            if name.startswith('slint-kit') and isinstance(dependency, dict):
+                dependency.pop('version', None)
+    return value
+
+
+def scoped_inputs(read, names, lock_text, preview_lock_text):
+    """Build the runtime identity from `read(name)` over the available relative `names`."""
+    available = set(names)
+    rust = {name: digest(read(name)) for name in sorted(available) if RUNTIME_SCOPE.includes_rust(name)}
+    assets = {name: digest(read(name)) for name in sorted(available) if RUNTIME_SCOPE.includes_asset(name)}
+    manifests = {name: tomllib.loads(read(name).decode()) for name in RUNTIME_SCOPE.manifests if name in available}
+    if RUNTIME_SCOPE.preview_manifest in available:
+        manifests[RUNTIME_SCOPE.preview_manifest] = preview_manifest_identity(
+            tomllib.loads(read(RUNTIME_SCOPE.preview_manifest).decode()))
+    return {'external': external_packages(lock_text), 'previewExternal': external_packages(preview_lock_text),
+            'rust': rust, 'assets': assets, 'manifests': manifests}
+
+
 def runtime_inputs():
     # Local package version bumps do not change their implementation. Registry
     # dependencies do: retain every external package's checksum and resolution.
-    lock = tomllib.loads((ROOT / 'Cargo.lock').read_text())
-    external = [package for package in lock['package'] if package.get('source')]
-    rust = sorted(path for path in (ROOT / 'crates').rglob('*.rs'))
-    manifests = {}
-    for path in sorted((ROOT / 'crates').rglob('Cargo.toml')):
-        value = tomllib.loads(path.read_text())
-        manifests[str(path.relative_to(ROOT))] = value
-    return {'external': external, 'rust': source_hashes(rust), 'manifests': manifests}
+    names = [str(path.relative_to(ROOT)) for folder in ('crates', 'docs/preview')
+             for path in (ROOT / folder).rglob('*') if path.is_file()]
+    return scoped_inputs(lambda name: (ROOT / name).read_bytes(), names,
+                         (ROOT / 'Cargo.lock').read_text(), (ROOT / RUNTIME_SCOPE.preview_lock).read_text())
 
 
 def archived_runtime_inputs(sources):
-    lock = tomllib.loads(sources['Cargo.lock'].decode())
-    return {'external': [package for package in lock['package'] if package.get('source')],
-            'rust': {name: digest(content) for name, content in sources.items()
-                     if name.startswith('crates/') and name.endswith('.rs')},
-            'manifests': {name: tomllib.loads(content.decode()) for name, content in sources.items()
-                          if name.startswith('crates/') and name.endswith('/Cargo.toml')}}
+    # Same scope as runtime_inputs, read from a source archive.
+    preview_lock = sources.get(RUNTIME_SCOPE.preview_lock, b'package = []\n').decode()
+    return scoped_inputs(lambda name: sources[name], sources, sources['Cargo.lock'].decode(), preview_lock)
 
 
 def without_crate_docs(source):

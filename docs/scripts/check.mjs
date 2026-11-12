@@ -21,7 +21,7 @@ const markdown = new MarkdownIt({ html: false, linkify: false });
 const renderedText = html => decode(html.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
 const capturesPath = path.join(docs, 'content/captures.json');
 const provenance = fs.existsSync(capturesPath) ? JSON.parse(fs.readFileSync(capturesPath, 'utf8')) : { components: {} };
-check(provenance.environment?.backend === 'winit' && provenance.environment?.renderer === 'skia', 'Capture manifest must identify its native backend and renderer');
+check(provenance.environment?.backend === 'browser' && provenance.environment?.renderer === 'femtovg' && provenance.environment?.method === 'chrome-headless-wasm', 'Capture manifest must identify the browser backend, femtovg renderer and chrome-headless-wasm method that render every scene');
 for (const arguments_ of [['scripts/sync-doc-versions.py','--check'], ['scripts/capture_pipeline.py','check'], ['scripts/build-web-previews.py','--check'], ['scripts/build-workspace-preview.py','--check']]) {
   const result = spawnSync('python3', arguments_, {cwd:docs,stdio:'inherit'});
   check(result.status === 0, `Individual documentation artifacts are stale: ${arguments_[0]}`);
@@ -120,7 +120,7 @@ for (const component of components) {
       const starter = path.join(docs, '.generated/consumers', slug);
       const capture = starterCaptures[slug];
       check(starters[slug].component === name, `${name}: starter must match its component`);
-      check(['winit','browser'].includes(capture.environment?.backend) && ['skia','femtovg'].includes(capture.environment?.renderer), `${name}: starter must identify its actual capture backend`);
+      check(capture.environment?.backend === 'browser' && capture.environment?.renderer === 'femtovg', `${name}: starter must identify its actual capture backend`);
       // Package locks and README changes do not invalidate a rendered scene.
       // The individual render key above covers UI, host and resolved runtime.
       check(sha(fs.readFileSync(path.join(docs, 'quickstart', slug, capture.image.file))) === capture.image.sha256, `${name}: starter screenshot differs from its capture proof`);

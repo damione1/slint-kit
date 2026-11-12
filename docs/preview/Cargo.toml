@@ -20,10 +20,13 @@ web-time = "=1.1.0"
 [build-dependencies]
 slint-kit-build = "=0.8.0"
 
+# Declared once. Compile time matters more than bundle size here: the preview
+# bundle is rebuilt on every release, so skip LTO, split codegen across many
+# units so rustc can use every core, and optimise for size cheaply ("s").
 [profile.release]
-opt-level = "z"
-lto = "thin"
-codegen-units = 16
+opt-level = "s"
+lto = "off"
+codegen-units = 256
 panic = "abort"
 strip = true
 
