@@ -26,14 +26,40 @@ component TimeSegmentControl inherits Rectangle {
     in property <FieldAccess> access: FieldAccess.editable;
     in property <TimeSegment> segment;
     in property <string> label;
+    // Current segment text, or "" while the draft is empty or incomplete.
+    in property <string> value-text;
+    in property <float> value-minimum;
+    in property <float> value-maximum;
+    in property <float> value-step: 1;
     callback adjust(TimeSegment,TimeAdjustment);
+    // Holding a button repeats its adjustment after a short delay, like a
+    // native spin button. The release that ends a repeat adds no extra step.
+    private property <bool> repeating;
+    private property <TimeAdjustment> held-direction: decrease.pressed ? TimeAdjustment.decrement : TimeAdjustment.increment;
     vertical-stretch: 0;
+    // One spin button per segment: assistive technology reads the segment
+    // value and range and can step it without finding the visual buttons.
+    accessible-role: spinbox;
+    accessible-label: root.label;
+    accessible-value: root.value-text;
+    accessible-value-minimum: root.value-minimum;
+    accessible-value-maximum: root.value-maximum;
+    accessible-value-step: root.value-step;
+    accessible-enabled: root.access != FieldAccess.disabled;
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-action-increment => { if (root.access == FieldAccess.editable) { root.adjust(root.segment,TimeAdjustment.increment); } }
+    accessible-action-decrement => { if (root.access == FieldAccess.editable) { root.adjust(root.segment,TimeAdjustment.decrement); } }
+    Timer {
+        interval: root.repeating ? 80ms : 400ms;
+        running: decrease.pressed || increase.pressed;
+        triggered => { root.repeating = true; root.adjust(root.segment, root.held-direction); }
+    }
     HorizontalLayout {
         spacing: root.theme.spacing.unit * 2;
         alignment: start;
         Text { min-width: 72px * root.theme.text-scale; horizontal-stretch: 0; text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; wrap: word-wrap; }
-        KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.minus; accessible-name: "Decrease " + root.label; disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
-        KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.plus; accessible-name: "Increase " + root.label; disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
+        decrease := KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.minus; accessible-name: "Decrease " + root.label; disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.decrement); } }
+        increase := KitIconButton { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.plus; accessible-name: "Increase " + root.label; disabled: root.access != FieldAccess.editable; focus-on-pointer: false; activation-started => { root.repeating = false; } activation-allowed => { return !root.repeating; } activated => { root.adjust(root.segment,TimeAdjustment.increment); } }
     }
 }
 
@@ -85,6 +111,17 @@ export component KitTimePicker inherits Rectangle {
     }
     public function commit() { editor.commit(); }
     public function cancel-edit() { editor.cancel-edit(); }
+    // The typed draft decides the spin button values; an empty or incomplete
+    // draft reports no value rather than a made-up one.
+    private property <LocalTimeValue> draft-time: KitTimeService.ready ? KitTimeService.parse-time(root.text, root.precision, root.clock-format).value : { present: false, time: { hour: 0, minute: 0, second: 0 } };
+    private property <bool> twelve-hour: root.clock-format == ClockFormat.twelve-hour;
+    private property <float> step-seconds: root.step.is-float() && root.step.to-float() >= 1 ? root.step.to-float() : 1;
+    function two-digits(value: int) -> string { return (value < 10 ? "0" : "") + value; }
+    function hour-text() -> string {
+        if (!root.draft-time.present) { return ""; }
+        let hour = root.draft-time.time.hour;
+        return root.twelve-hour ? root.two-digits(Math.mod(hour + 11, 12) + 1) : root.two-digits(hour);
+    }
     function adjust-time(segment: TimeSegment, direction: TimeAdjustment) {
         if (root.access != FieldAccess.editable) { return; }
         if (KitTimeService.ready) {
@@ -132,9 +169,9 @@ export component KitTimePicker inherits Rectangle {
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
  theme: root.theme; control-size: root.control-size; access: root.access; accepted-time <=> root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
-        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
-        if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.hour; label: "Hours"; value-text: root.hour-text(); value-minimum: root.twelve-hour ? 1 : 0; value-maximum: root.twelve-hour ? 12 : 23; value-step: root.step-seconds >= 3600 ? root.step-seconds / 3600 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.minute; label: "Minutes"; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.minute) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds >= 60 && root.step-seconds < 3600 ? root.step-seconds / 60 : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
+        if root.precision == TimePrecision.second: TimeSegmentControl { theme: root.theme; control-size: root.control-size; access: root.access; segment: TimeSegment.second; label: "Seconds"; value-text: root.draft-time.present ? root.two-digits(root.draft-time.time.second) : ""; value-minimum: 0; value-maximum: 59; value-step: root.step-seconds < 60 ? root.step-seconds : 1; adjust(segment,direction) => { root.adjust-time(segment,direction); } }
     }
 }
 

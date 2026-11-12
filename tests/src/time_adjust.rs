@@ -466,3 +466,117 @@ fn stepped_time_renders_in_both_themes_at_100_and_200_percent() {
         }
     }
 }
+fn segment(app: &TimeAdjustFixture, label: &str) -> ElementHandle {
+    ElementHandle::find_by_accessible_label(app, label)
+        .find(|element| {
+            element.accessible_role() == Some(i_slint_backend_testing::AccessibleRole::Spinbox)
+        })
+        .unwrap()
+}
+fn advance(app: &impl ComponentHandle, milliseconds: u64) {
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(milliseconds));
+    frame(app);
+}
+#[test]
+fn each_segment_is_a_spin_button_with_value_range_and_step_actions() {
+    init();
+    let app = app();
+    app.set_step("900".into());
+    frame(&app);
+    for label in ["Hours", "Minutes"] {
+        let spin = segment(&app, label);
+        assert_eq!(spin.accessible_value().as_deref(), Some(""));
+    }
+    assert!(
+        ElementHandle::find_by_accessible_label(&app, "Seconds")
+            .next()
+            .is_none()
+    );
+    app.set_value(value(14, 30, 0));
+    frame(&app);
+    let hours = segment(&app, "Hours");
+    let minutes = segment(&app, "Minutes");
+    assert_eq!(hours.accessible_value().as_deref(), Some("14"));
+    assert_eq!(hours.accessible_value_minimum(), Some(0.));
+    assert_eq!(hours.accessible_value_maximum(), Some(23.));
+    assert_eq!(hours.accessible_value_step(), Some(1.));
+    assert_eq!(minutes.accessible_value().as_deref(), Some("30"));
+    assert_eq!(minutes.accessible_value_maximum(), Some(59.));
+    assert_eq!(minutes.accessible_value_step(), Some(15.));
+    minutes.invoke_accessible_increment_action();
+    frame(&app);
+    assert_eq!(app.get_value(), value(14, 45, 0));
+    assert_eq!(minutes.accessible_value().as_deref(), Some("45"));
+    hours.invoke_accessible_decrement_action();
+    frame(&app);
+    assert_eq!(app.get_value(), value(13, 45, 0));
+    let app = self::app();
+    app.set_clock(ClockFormat::TwelveHour);
+    app.set_value(value(0, 5, 0));
+    frame(&app);
+    assert_eq!(app.get_text(), "12:05 AM");
+    let hours = segment(&app, "Hours");
+    let minutes = segment(&app, "Minutes");
+    assert_eq!(hours.accessible_value().as_deref(), Some("12"));
+    assert_eq!(hours.accessible_value_minimum(), Some(1.));
+    assert_eq!(hours.accessible_value_maximum(), Some(12.));
+    assert_eq!(minutes.accessible_value_step(), Some(1.));
+    app.set_access(FieldAccess::ReadOnly);
+    frame(&app);
+    minutes.invoke_accessible_increment_action();
+    frame(&app);
+    assert_eq!(app.get_value(), value(0, 5, 0));
+}
+#[test]
+fn holding_a_segment_button_repeats_after_a_delay_and_release_adds_no_step() {
+    init();
+    let app = app();
+    app.set_value(value(10, 0, 0));
+    frame(&app);
+    let increase = button(&app, "Increase Minutes");
+    let origin = increase.absolute_position();
+    let size = increase.size();
+    let position =
+        slint::LogicalPosition::new(origin.x + size.width / 2., origin.y + size.height / 2.);
+    app.window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    app.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    advance(&app, 300);
+    assert_eq!(app.get_value(), value(10, 0, 0));
+    advance(&app, 150);
+    assert_eq!(app.get_value(), value(10, 1, 0));
+    advance(&app, 80);
+    advance(&app, 80);
+    assert_eq!(app.get_value(), value(10, 3, 0));
+    app.window().dispatch_event(WindowEvent::PointerReleased {
+        position,
+        button: PointerEventButton::Left,
+    });
+    frame(&app);
+    assert_eq!(app.get_value(), value(10, 3, 0));
+    advance(&app, 1000);
+    assert_eq!(app.get_value(), value(10, 3, 0));
+    // A plain click after a hold still steps exactly once.
+    click(&app, "Increase Minutes");
+    assert_eq!(app.get_value(), value(10, 4, 0));
+    // Repeating stops at the bound instead of emitting invalid values.
+    app.set_max("10:05".into());
+    frame(&app);
+    app.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    for _ in 0..10 {
+        advance(&app, 400);
+    }
+    app.window().dispatch_event(WindowEvent::PointerReleased {
+        position,
+        button: PointerEventButton::Left,
+    });
+    frame(&app);
+    assert_eq!(app.get_value(), value(10, 5, 0));
+    assert!(app.get_validity().valid);
+}
