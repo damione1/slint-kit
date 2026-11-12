@@ -4,6 +4,10 @@
 
 ## 0.8.0
 
+This release collects the component, form, accessibility and documentation changes since 0.7.2. Breaking API changes and remaining platform limitations are listed below.
+
+Cette version rassemble les changements de composants, formulaires, accessibilité et documentation depuis la 0.7.2. Les ruptures d’API et limites de plateforme restantes sont détaillées ci-dessous.
+
 - Measure chip wrapping at the resolved control width, recovering intrinsic spacing after additions/removals and resizing without rebuilding native editors. Center single-line file names and composed option icons, keep trigger options in distinct rows, include horizontal scrollbar gutters in menu/breadcrumb height, and let the virtual text editing starter fill its decorated frame. Unavailable steps keep their quiet action transparent while preserving disabled choice-row fills elsewhere; disabled text and focus/input guards remain.
 - Mesure le retour des chips à la largeur résolue du contrôle et retrouve l’espacement intrinsèque après ajouts, retraits et redimensionnements sans reconstruire les éditeurs natifs. Centre les noms de fichiers sur une ligne et les icônes d’options composées, sépare les options du déclencheur en lignes distinctes, inclut les gouttières horizontales dans la hauteur des menus/fils d’Ariane et laisse la démo d’édition de texte remplir son cadre décoré. Les étapes indisponibles gardent une action discrète transparente tout en préservant les fonds des choix désactivés ailleurs ; texte désactivé et protections de focus/saisie sont conservés.
 
