@@ -15,6 +15,14 @@ export component TemporalField inherits KitTextField {
     private property <bool> service-ready: KitTimeService.ready;
     private property <bool> native-focused: root.has-focus;
     text: root.initial-value.text;
+    // Internal: fired when a local commit accepts a text the typed model does
+    // not project yet; each public field parses it into its typed properties.
+    callback typed-accepted(FieldValue);
+    changed accepted-text => {
+        if (root.initialized && root.ownership == Ownership.local && root.field-state.accepted != root.model.value) {
+            root.typed-accepted(root.field-state.accepted);
+        }
+    }
     function initialize-model() {
         if (root.service-ready && !root.initialized) {
             root.initialized = true;
