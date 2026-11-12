@@ -16,6 +16,7 @@ KIT_PACKAGES = {'slint-kit-core': 'crates/kit-core', 'slint-kit-slint': 'crates/
                 'slint-kit': 'crates/kit'}
 LOCK_PACKAGE = 'slint-kit-consumer-lock'
 _prepared = {}
+PROJECT_TEMPLATES = ROOT / 'crates/kit-cli/templates/project'
 
 
 def source_files(folder):
@@ -148,6 +149,48 @@ def prepared_lock(mode, source, seed, cargo_version):
     return lock.read_text()
 
 
+def template_literal(value):
+    """Render only the value types admitted in standalone Cargo dependencies."""
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, list):
+        return '[' + ', '.join(template_literal(item) for item in value) + ']'
+    if isinstance(value, dict):
+        if any(not re.fullmatch(r'[A-Za-z0-9_-]+', key) for key in value):
+            raise ValueError('Unsupported inline Cargo key')
+        return '{ ' + ', '.join(key + ' = ' + template_literal(item) for key, item in value.items()) + ' }'
+    raise ValueError(f'Unsupported Cargo dependency value: {type(value).__name__}')
+
+
+def project_manifest(manifest, version):
+    """Use the CLI project shell; keep each component's explicit dependencies."""
+    template = (PROJECT_TEMPLATES / 'Cargo.toml.in').read_text()
+    empty = template
+    for marker in ('__RUNTIME_DEPENDENCY__', '__SLINT_DEPENDENCY__', '__EXTRA_DEPENDENCIES__', '__LIBRARY_CONFIGURATION__'):
+        empty = empty.replace(marker, '')
+    defaults = tomllib.loads(empty)['package']
+    package = manifest['package']
+    if set(manifest) - {'package', 'dependencies', 'build-dependencies', 'workspace'}:
+        raise ValueError('Standalone starter has unsupported manifest tables')
+    if set(package) - set(defaults) or any(package.get(key, value) != value for key, value in defaults.items() if key != 'name'):
+        raise ValueError('Standalone starter package metadata differs from the shared project template')
+    if set(manifest['build-dependencies']) != {'slint-kit-build'}:
+        raise ValueError('Extend the shared template for additional build dependencies')
+    if manifest.get('workspace', {}):
+        raise ValueError('Standalone starter workspace must be empty')
+    dependencies = manifest['dependencies']
+    def dependency(name):
+        return name + ' = ' + template_literal(dependencies[name]) if name in dependencies else ''
+    return (template.replace('"__PACKAGE_NAME__"', template_literal(package['name']))
+            .replace('__RUNTIME_DEPENDENCY__', dependency('slint-kit'))
+            .replace('__SLINT_DEPENDENCY__', dependency('slint'))
+            .replace('__EXTRA_DEPENDENCIES__', '\n'.join(dependency(name) for name in dependencies if name not in {'slint-kit', 'slint'}))
+            .replace('__KIT_VERSION__', version)
+            .replace('__LIBRARY_CONFIGURATION__', ''))
+
+
 def prepare(mode=None):
     mode = build_mode(mode)
     version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
@@ -164,6 +207,7 @@ def prepare(mode=None):
         original = ROOT / 'docs/quickstart' / slug
         source = with_kit_version((original / 'Cargo.toml').read_text(), version)
         manifest = validate_manifest(source, version)
+        source = project_manifest(manifest, version)
         seed = (original / 'Cargo.lock').read_text()
         # Root package names differ; dependency graphs can share one resolution.
         normalized = rename_package(source, LOCK_PACKAGE)
@@ -180,7 +224,7 @@ def prepare(mode=None):
                 if asset.is_file() and str(asset.relative_to(target)) not in names:
                     asset.unlink()
         for name in names:
-            data = source.encode() if name == 'Cargo.toml' else lock.encode() if name == 'Cargo.lock' else (original / name).read_bytes()
+            data = source.encode() if name == 'Cargo.toml' else lock.encode() if name == 'Cargo.lock' else (PROJECT_TEMPLATES / 'build.rs').read_bytes() if name == 'build.rs' else (original / name).read_bytes()
             write_changed(destination / name, data)
             if native != destination:
                 write_changed(native / name, data + local_patches().encode() if name == 'Cargo.toml' else data)

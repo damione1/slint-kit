@@ -1,0 +1,12 @@
+use slint::ComponentHandle;
+slint::include_modules!();
+pub fn create() -> Result<App, slint::PlatformError> {
+    let app = App::new()?;
+    slint_kit::install(&app);
+    app.on_saved(slint_kit::action(&app, |app| app.set_status("Done".into())));
+    Ok(app)
+}
+__WEB_START_ATTRIBUTE__
+pub fn run() {
+    create().expect("window").run().expect("event loop");
+}
