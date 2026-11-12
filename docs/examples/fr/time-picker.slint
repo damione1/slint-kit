@@ -22,6 +22,6 @@ export component Example inherits Window {
     callback cleared();
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        field := KitTimePicker { accepted-time: {present: true, time: {hour: 9, minute: 30}}; label: "Heure du rendez-vous"; text: "09:30"; required: true; chosen(value) => { root.chosen(value); } cleared => { root.cleared(); } committed(value) => { root.committed(value); } }
+        field := KitTimePicker { accepted-time: {present: true, time: {hour: 9, minute: 30}}; label: "Heure du rendez-vous"; text: "09:30"; required: true; min: "09:00"; max: "17:00"; step: "900"; chosen(value) => { root.chosen(value); } cleared => { root.cleared(); } committed(value) => { root.committed(value); } }
     }
 }

@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTimePicker, KitTextField, KitTheme, KitThemes, Ownership, FieldAccess, TimePrecision, ClockFormat, LocalTimeValue, LocalTimeView, FieldCommit, KitValidityState, CommitPolicy } from "@kit";
+export component TimeAdjustFixture inherits Window {
+    width: 560px; height: 520px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <Ownership> ownership: Ownership.local;
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in property <TimePrecision> precision: TimePrecision.minute;
+    in property <ClockFormat> clock: ClockFormat.twenty-four-hour;
+    in property <string> step: root.precision == TimePrecision.second ? "1" : "60";
+    in property <string> min;
+    in property <string> max;
+    in property <bool> required;
+    in property <string> custom-validity;
+    in-out property <LocalTimeValue> value <=> picker.accepted-time;
+    in-out property <string> text <=> picker.text;
+    out property <KitValidityState> validity: picker.validity;
+    out property <LocalTimeView> proposed;
+    in-out property <int> choices;
+    in-out property <int> clears;
+    callback committed(FieldCommit);
+    public function focus-editor() { picker.take-focus(); }
+    public function focus-after() { after.take-focus(); }
+    public function cancel-editor() { picker.cancel-edit(); }
+    VerticalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        picker := KitTimePicker {
+            theme: root.theme; label: "Adjustable time";
+            ownership: root.ownership; access: root.access; commit-policy: root.commit-policy;
+            precision: root.precision; clock-format: root.clock;
+            min: root.min; max: root.max; step: root.step; required: root.required;
+            custom-validity: root.custom-validity;
+            chosen(value) => { root.proposed = value; root.choices += 1; }
+            cleared => { root.clears += 1; }
+            committed(value) => { root.committed(value); }
+        }
+        after := KitTextField { theme: root.theme; label: "After adjustment"; }
+    }
+}

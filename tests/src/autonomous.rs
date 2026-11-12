@@ -281,6 +281,13 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
     assert_eq!(
         service.invoke_adjust(
             "23:59".into(),
+            ui::KitInputConstraints {
+                kind: ui::HtmlInputKind::Time,
+                step: "60".into(),
+                min_length: -1,
+                max_length: -1,
+                ..Default::default()
+            },
             ui::TimePrecision::Minute,
             ui::ClockFormat::TwentyFourHour,
             ui::TimeSegment::Minute,

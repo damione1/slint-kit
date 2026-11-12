@@ -101,14 +101,19 @@ export component KitTextField inherits KitField {
     in property <bool> wheel-stepping;
     // Accessible range of a number field; other kinds project to no bounds.
     out property <NumberRangeView> number-range: KitFieldService.ready ? KitFieldService.number-range(checks.constraints) : { minimum: 0, maximum: 0, step: 0 };
+    // Explicit actions such as steppers use one native edit transaction. A
+    // composed IME draft stays owned by the platform until composition ends.
+    public function replace-draft(text: string) -> bool {
+        if (!KitFieldService.ready || root.access != FieldAccess.editable || editor.preedit-text != "") { return false; }
+        root.take-focus();
+        editor.select-all();
+        KitFieldService.edit-selection(text);
+        return true;
+    }
     function apply-step(result: NumberStepResult) -> bool {
         if (result.status == NumberStepStatus.unavailable) { return false; }
         if (result.status == NumberStepStatus.unchanged) { return true; }
-        if (result.status == NumberStepStatus.stepped && editor.preedit-text == "") {
-            root.take-focus();
-            editor.select-all();
-            KitFieldService.edit-selection(result.text);
-        }
+        if (result.status == NumberStepStatus.stepped) { root.replace-draft(result.text); }
         return true;
     }
     // Returns whether stepping applied to this field (even when clamped), so a

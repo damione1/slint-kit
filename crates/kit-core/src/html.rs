@@ -7,6 +7,7 @@ use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::Zero;
 use std::num::NonZeroU32;
+mod time_step;
 
 /// A bounded native edit and a safe UTF-8 caret offset after a rejected edit.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -340,18 +341,7 @@ impl HtmlConstraints {
                     result.range_underflow = min.as_ref().is_some_and(|m| number < *m);
                     result.range_overflow = max.as_ref().is_some_and(|m| number > *m);
                 }
-                if !self
-                    .step
-                    .as_deref()
-                    .is_some_and(|s| s.eq_ignore_ascii_case("any"))
-                {
-                    let step = self
-                        .step
-                        .as_deref()
-                        .and_then(html_number)
-                        .filter(|s| s > &BigRational::zero())
-                        .unwrap_or_else(|| BigRational::from_integer(default_step.into()))
-                        * BigRational::from_integer(factor.into());
+                if let Some(step) = numeric_step(self, default_step, factor) {
                     let base = min
                         .or_else(|| numeric_value(self.kind, &self.default_value))
                         .unwrap_or_else(|| {
@@ -446,6 +436,24 @@ pub fn html_numeric_insertion(text: &str) -> bool {
             || (text.chars().count() == 1
                 && (c.is_control() || ('\u{e000}'..='\u{f8ff}').contains(&c)))
     })
+}
+fn numeric_step(rules: &HtmlConstraints, default: i64, factor: i64) -> Option<BigRational> {
+    if rules
+        .step
+        .as_deref()
+        .is_some_and(|step| step.eq_ignore_ascii_case("any"))
+    {
+        return None;
+    }
+    Some(
+        rules
+            .step
+            .as_deref()
+            .and_then(html_number)
+            .filter(|step| step > &BigRational::zero())
+            .unwrap_or_else(|| BigRational::from_integer(default.into()))
+            * BigRational::from_integer(factor.into()),
+    )
 }
 fn numeric_policy(kind: HtmlInputKind) -> Option<(i64, i64)> {
     match kind {
@@ -1149,15 +1157,7 @@ impl HtmlConstraints {
     }
     /// The HTML step: the type default without `step`, none for `"any"`.
     fn number_step(&self) -> Option<BigRational> {
-        match self.step.as_deref() {
-            Some("any") => None,
-            Some(step) => Some(
-                html_number(step)
-                    .filter(|value| value > &BigRational::zero())
-                    .unwrap_or_else(|| BigRational::from_integer(1.into())),
-            ),
-            None => Some(BigRational::from_integer(1.into())),
-        }
+        numeric_step(self, 1, 1)
     }
     /// The step lattice of an editable number field; `None` when stepping
     /// does not apply (access, kind, `step="any"` or an inverted range).
