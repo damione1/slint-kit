@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add the source-installable `slint-kit-cli` command: `slint-kit new <directory> [--name <package>] [--web]`. Create a standalone themed application with a connected Rust action, matching dependencies, a shared project/build template, and an optional desktop/WASM entry point. Refuse existing paths and invalid portable package names. Component downloads reuse the project/build template; CI checks generated desktop and Web projects. No CLI crate publication is implied.
+- Ajoute la commande installable depuis les sources `slint-kit-cli` : `slint-kit new <dossier> [--name <paquet>] [--web]`. Crée une application thémée autonome avec action Rust connectée, dépendances correspondantes, modèle de projet/build partagé et option desktop/WASM. Refuse les chemins existants et les noms de paquet non portables. Les téléchargements réutilisent le modèle ; la CI vérifie les projets desktop et Web générés. Aucune publication du CLI n’est sous-entendue.
+
 - Simplify the ColorWheel starter with the shared weak-window action/event adapters; preserve its typed draft and Apply behavior.
 - Simplifie le projet de démarrage ColorWheel avec les adaptateurs partagés action/event à fenêtre faible ; conserve son brouillon typé et le bouton Appliquer.
 

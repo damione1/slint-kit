@@ -28,6 +28,8 @@ jobs:
           cache-workspace-crates: true
       - name: Check public build helper on Windows
         run: cargo check -p kit-tests --locked
+      - name: Test project creation on Windows
+        run: cargo test -p slint-kit-cli --locked
       - name: Test build helper path handling
         run: cargo test -p slint-kit-build --locked
   linux:
@@ -45,6 +47,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.99.1
         with:
           components: rustfmt, clippy
+          targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: slint-kit-linux
@@ -95,6 +98,10 @@ jobs:
           set -e
           kit_report_resources || true
           exit "$kit_check_status"
+      - name: Check generated desktop and Web projects
+        env:
+          SLINT_WEB_TARGET_DIR: ${{ github.workspace }}/target/scaffold-web
+        run: python3 docs/scripts/check-scaffolding.py --web
       - name: Check component starters against the local kit
         env:
           CARGO_TARGET_DIR: ${{ github.workspace }}/target

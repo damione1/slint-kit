@@ -85,6 +85,19 @@ version = "0.3.0"
         self.assertEqual((manifest['mode'], manifest['version']), ('local', '0.4.0'))
         self.assertEqual(manifest['slugs'], ['checkbox', 'radio-group'])
 
+    def test_shared_project_shell_preserves_native_features_and_additional_dependencies(self):
+        path = self.root / 'docs/quickstart/checkbox/Cargo.toml'
+        source = path.read_text().replace('slint-kit = "=0.4.0"', 'slint-kit = { version = "=0.4.0", features = ["native"] }\nweb-time = "=1.1.0"')
+        path.write_text(source)
+        consumers = starter_sources.prepare('local')
+        app = consumers['checkbox']
+        manifest = tomllib.loads((app / 'Cargo.toml').read_text())
+        self.assertEqual(manifest['dependencies']['slint-kit']['features'], ['native'])
+        self.assertEqual(manifest['dependencies']['web-time'], '=1.1.0')
+        self.assertEqual((app / 'build.rs').read_bytes(), (starter_sources.PROJECT_TEMPLATES / 'build.rs').read_bytes())
+        self.assertNotIn('__KIT_VERSION__', (app / 'Cargo.toml').read_text())
+        self.assertEqual(path.read_text(), source)
+
     def test_repeated_prepare_reuses_locks_and_does_not_rewrite_identical_files(self):
         consumers = starter_sources.prepare('local')
         before = (consumers['checkbox'] / 'Cargo.lock').stat().st_mtime_ns
@@ -127,7 +140,7 @@ version = "0.3.0"
             runpy.run_path(str(Path(starter_sources.__file__).with_name('pack-starters.py')), run_name='__main__')
         with zipfile.ZipFile(self.root / 'docs/.generated/starters/checkbox.zip') as archive:
             readme = archive.read('checkbox/README.md').decode()
-            self.assertIn('APIs are absent from the published 0.4.0 packages', readme)
+            self.assertIn('Development source example.', readme)
             self.assertIn('Required source dependencies', readme)
             self.assertIn('obligatoires', readme)
             self.assertNotIn('use the matching registry release', readme)

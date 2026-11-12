@@ -44,6 +44,7 @@ printf 'Cargo jobs: %s; target: %s\n' "$CARGO_BUILD_JOBS" "$CARGO_TARGET_DIR"
 case "$kit_workflow" in
   check)
     /usr/bin/time -v cargo run -p xtask --locked -- check
+    /usr/bin/time -v python3 docs/scripts/check-scaffolding.py
     ;;
   docs)
     python3 -B docs/scripts/sync-doc-versions.py --check
