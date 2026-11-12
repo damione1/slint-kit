@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitInputConstraints } from "validation.slint";
 import { FieldValue } from "field-service.slint";
 import { CivilDateView } from "calendar-service.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
@@ -25,7 +26,7 @@ export global KitTimeService {
     pure callback project-week(int, int) -> TemporalProjection;
     pure callback project-time(LocalTimeValue, TimePrecision, ClockFormat) -> TemporalProjection;
     pure callback parse-time(string, TimePrecision, ClockFormat) -> LocalTimeResult;
-    pure callback adjust(string, TimePrecision, ClockFormat, TimeSegment, TimeAdjustment) -> string;
+    pure callback adjust(string, KitInputConstraints, TimePrecision, ClockFormat, TimeSegment, TimeAdjustment) -> string;
     pure callback parse-local(LocalDateTimeDraft, TimePrecision, ClockFormat) -> LocalDateTimeView;
     pure callback resolve(ZonedDateTimeDraft, TimePrecision, ClockFormat) -> ZonedDateTimeResult;
 }

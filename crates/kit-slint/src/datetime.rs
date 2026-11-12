@@ -199,34 +199,33 @@ where
             DraftValue::Incomplete | DraftValue::Invalid(_) => ui::LocalTimeResult::default(),
         }
     });
-    service.on_adjust(|text, precision, clock, segment, direction| {
-        let Ok(time) = parsed(LocalTime::parse_with_format(
-            text.as_str(),
-            precision.into(),
-            clock.into(),
-        )) else {
-            return text;
-        };
+    service.on_adjust(|text, constraints, precision, clock, segment, direction| {
+        let current =
+            match LocalTime::parse_with_format(text.as_str(), precision.into(), clock.into()) {
+                DraftValue::Empty => None,
+                DraftValue::Parsed(time) => Some(time),
+                DraftValue::Incomplete | DraftValue::Invalid(_) => return text,
+            };
         let amount = match segment {
-            ui::TimeSegment::Hour => 3600,
+            ui::TimeSegment::Hour => 3_600,
             ui::TimeSegment::Minute => 60,
             ui::TimeSegment::Second => 1,
         };
-        let seconds = i64::from(time.hour()) * 3600
-            + i64::from(time.minute()) * 60
-            + i64::from(time.second());
-        let next = match direction {
-            ui::TimeAdjustment::Increment => seconds + amount,
-            ui::TimeAdjustment::Decrement => seconds - amount,
-        }
-        .rem_euclid(86400);
-        let next = LocalTime::new(
-            u32::try_from(next / 3600).expect("hour fits"),
-            u32::try_from(next % 3600 / 60).expect("minute fits"),
-            u32::try_from(next % 60).expect("second fits"),
-        )
-        .expect("wrapped local time");
-        next.format(precision.into(), clock.into()).into()
+        let direction = match direction {
+            ui::TimeAdjustment::Increment => kit_core::StepDirection::Increment,
+            ui::TimeAdjustment::Decrement => kit_core::StepDirection::Decrement,
+        };
+        let (rules, _) = crate::HtmlValidationEngine::default().constraints(&constraints);
+        rules
+            .step_time(
+                current,
+                direction,
+                std::num::NonZeroU32::new(amount).expect("positive segment"),
+                precision.into(),
+            )
+            .map_or(text, |time| {
+                time.format(precision.into(), clock.into()).into()
+            })
     });
     service.on_parse_local(|draft, precision, clock| {
         local(draft.date.as_str(), draft.time.as_str(), precision, clock)
