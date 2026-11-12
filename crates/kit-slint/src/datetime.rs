@@ -183,6 +183,43 @@ where
             })
         })
     });
+    service.on_parse_year(|text| match FieldSpec::year().parse_text(text.as_str()) {
+        DraftValue::Empty => ui::YearResult {
+            valid: true,
+            year: 0,
+        },
+        DraftValue::Parsed(year) => ui::YearResult {
+            valid: true,
+            year: year.get(),
+        },
+        DraftValue::Incomplete | DraftValue::Invalid(_) => ui::YearResult::default(),
+    });
+    service.on_parse_month(|text| match FieldSpec::month().parse_text(text.as_str()) {
+        DraftValue::Empty => ui::YearMonthResult {
+            valid: true,
+            ..Default::default()
+        },
+        DraftValue::Parsed(month) => ui::YearMonthResult {
+            valid: true,
+            year: month.year(),
+            month: i32::try_from(month.month()).unwrap_or_default(),
+        },
+        DraftValue::Incomplete | DraftValue::Invalid(_) => ui::YearMonthResult::default(),
+    });
+    service.on_parse_week(
+        |text| match FieldSpec::iso_week().parse_text(text.as_str()) {
+            DraftValue::Empty => ui::IsoWeekResult {
+                valid: true,
+                ..Default::default()
+            },
+            DraftValue::Parsed(week) => ui::IsoWeekResult {
+                valid: true,
+                year: week.year().get(),
+                week: i32::try_from(week.week()).unwrap_or_default(),
+            },
+            DraftValue::Incomplete | DraftValue::Invalid(_) => ui::IsoWeekResult::default(),
+        },
+    );
     service.on_parse_time(|text, precision, clock| {
         match LocalTime::parse_with_format(text.as_str(), precision.into(), clock.into()) {
             DraftValue::Empty => ui::LocalTimeResult {

@@ -43,16 +43,21 @@ export component TemporalAcceptedFixture inherits Window {
     public function focus-pair() { pair.take-focus(); }
     public function pair-draft(date: string, time: string) { pair.date-text = date; pair.time-text = time; }
     public function commit-pair() { pair.commit(); }
+    public function type-date(text: string) { date.text = text; date.commit(); }
+    public function type-month(text: string) { month-field.text = text; month-field.commit(); }
+    public function type-year(text: string) { year-field.text = text; year-field.commit(); }
+    public function type-week(text: string) { week-field.text = text; week-field.commit(); }
+    public function type-time(text: string) { time.text = text; time.commit(); }
     public function focus-after() { after.take-focus(); }
     VerticalLayout {
         padding: 16px; spacing: 12px; alignment: start;
-        date := KitDateField { theme: root.theme; label: "Typed date"; accepted-date: root.date-value; }
+        date := KitDateField { theme: root.theme; label: "Typed date"; accepted-date <=> root.date-value; }
         HorizontalLayout { spacing: 12px;
-            month-field := KitMonthField { theme: root.theme; label: "Typed month"; accepted-year: root.month-year; accepted-month: root.month; }
-            year-field := KitYearField { theme: root.theme; label: "Typed year"; accepted-year: root.year; }
-            week-field := KitIsoWeekField { theme: root.theme; label: "Typed ISO week"; accepted-week-year: root.week-year; accepted-week: root.week; }
+            month-field := KitMonthField { theme: root.theme; label: "Typed month"; accepted-year <=> root.month-year; accepted-month <=> root.month; }
+            year-field := KitYearField { theme: root.theme; label: "Typed year"; accepted-year <=> root.year; }
+            week-field := KitIsoWeekField { theme: root.theme; label: "Typed ISO week"; accepted-week-year <=> root.week-year; accepted-week <=> root.week; }
         }
-        time := KitTimeField { theme: root.theme; label: "Typed midnight"; accepted-time: root.time-value; ownership: root.ownership; committed(value) => { root.time-commit(value); } }
+        time := KitTimeField { theme: root.theme; label: "Typed midnight"; accepted-time <=> root.time-value; ownership: root.ownership; committed(value) => { root.time-commit(value); } }
         picker := KitTimePicker { theme: root.theme; label: "Typed picker"; ownership: root.ownership; accepted-time: {present: true, time: {hour: 9, minute: 30}}; chosen(value) => { root.last-time = value; root.picker-choices += 1; } cleared => { root.picker-clears += 1; } }
         pair := KitDateTimeField { theme: root.theme; label: "Typed appointment"; ownership: root.ownership; accepted-value: {date: {year: 2026, month: 11, day: 11}, time: {hour: 12, minute: 15}}; chosen(value) => { root.last-pair = value; root.pair-choices += 1; } cleared => { root.pair-clears += 1; } }
         after := KitTextField { theme: root.theme; label: "After"; }

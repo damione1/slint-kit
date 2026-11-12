@@ -40,17 +40,17 @@ Temporal host inputs synchronize the accepted baseline and idle display after `s
 
 | Component | Host property | Absence |
 | --- | --- | --- |
-| `KitDateField` | input `accepted-date: CivilDateView` | `{}` |
-| `KitMonthField` | inputs `accepted-year`, `accepted-month` | both `0` |
-| `KitYearField` | input `accepted-year` | `0` |
-| `KitIsoWeekField` | inputs `accepted-week-year`, `accepted-week` | both `0` |
-| `KitTimeField` | input `accepted-time: LocalTimeValue` | `{present: false}` or `{}` |
+| `KitDateField` | in-out `accepted-date: CivilDateView` | `{}` |
+| `KitMonthField` | in-out `accepted-year`, `accepted-month` | both `0` |
+| `KitYearField` | in-out `accepted-year` | `0` |
+| `KitIsoWeekField` | in-out `accepted-week-year`, `accepted-week` | both `0` |
+| `KitTimeField` | in-out `accepted-time: LocalTimeValue` | `{present: false}` or `{}` |
 | `KitTimePicker` | in-out `accepted-time: LocalTimeValue` | `{present: false}` or `{}` |
 | `KitDateTimeField` | in-out `accepted-value: LocalDateTimeView` | `{}` |
 
 `LocalTimeValue` contains `present: bool` and `time: LocalTimeView`. Midnight is `{present: true, time: {}}`; an empty wrapper means absence. **Migration:** replace every bare `accepted-time: {hour: 9, minute: 30}` with `accepted-time: {present: true, time: {hour: 9, minute: 30}}`. Wrap host assignments and two-way bindings too, and check `.present` before reading `.time`.
 
-The input properties on DateField/MonthField/YearField/IsoWeekField/TimeField remain host snapshots. Local/Controlled ownership governs their shared `FieldState` and `committed(FieldCommit)`; local acceptance does not write those input properties. Accept the commit with the matching Rust `FieldSpec` and keep the returned typed value. `acknowledge(FieldValue)` changes the native accepted baseline only; it does not set a typed host property or rewrite the active draft.
+The accepted properties on DateField/MonthField/YearField/IsoWeekField/TimeField are in-out typed values, like DatePicker's. Under Local ownership an accepted commit parses the text in Rust and writes the typed value back (absence writes the absent value: `{}` or zeros), so a pure-Slint host can bind with `<=>` and read the value without parsing strings. A one-way binding is replaced by the first local write; use `<=>` to keep sharing it. Under Controlled ownership the properties are not written: accept the commit with the matching Rust `FieldSpec`, keep the returned typed value and assign the property to acknowledge. Invalid or incomplete text never reaches an accepted commit, so the typed value keeps its last accepted state. `acknowledge(FieldValue)` changes the native accepted baseline only; it does not set a typed host property or rewrite the active draft.
 
 TimePicker additionally emits `chosen(LocalTimeView)` for an accepted present time and `cleared()` for valid optional absence, preserving `committed(FieldCommit)`. Local ownership updates its in-out model. Controlled ownership proposes without replacing it: acknowledge with the complete `accepted-time` wrapper. DateTime similarly publishes/proposes an entire `LocalDateTimeView` through `chosen`, and absence through `cleared()`; acknowledge by assigning the whole `accepted-value`. Both date and time must be valid together, or both empty for optional absence. Moving between its editors never accepts half a pair, and Enter followed by blur does not repeat an unchanged proposal.
 
