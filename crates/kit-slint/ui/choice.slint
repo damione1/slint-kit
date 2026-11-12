@@ -18,6 +18,7 @@ import { Tone } from "display.slint";
 import { KitStrings } from "strings.slint";
 import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability, SelectionRetention } from "contracts.slint";
 import { ListView } from "scroll.slint";
+import { KitWrap } from "layout.slint";
 
 import { CheckState, RangeThumb, Ownership } from "shared-contracts.slint";
 export { CheckState, RangeThumb } from "shared-contracts.slint";
@@ -831,6 +832,20 @@ export component KitChipButton inherits KitPressable {
     }
 }
 
+// Give wrapping chips an independently resolved width before measuring height.
+// The zero intrinsic width keeps the height-for-width dependency out of the
+// enclosing field's horizontal constraints; child instances remain retained.
+component ChipWrap inherits Rectangle {
+    in property <KitTheme> theme;
+    min-width: 0px; preferred-width: 0px; horizontal-stretch: 1; vertical-stretch: 0;
+    min-height: flow.preferred-height; preferred-height: flow.preferred-height;
+    flow := KitWrap {
+        theme: root.theme; width: root.width; height: self.preferred-height;
+        spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+        @children
+    }
+}
+
 export component KitMultiSelect inherits Rectangle {
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
@@ -892,9 +907,8 @@ export component KitMultiSelect inherits Rectangle {
     changed access => { selector.cancel-press(); if (root.access != FieldAccess.editable && root.state.open) { root.dismiss(CloseReason.programmatic); } }
     VerticalLayout {
         spacing: KitMetrics.label-gap(root.theme);
-        if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
-            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+        if root.access == FieldAccess.read-only && root.chips.length > 0: ChipWrap {
+            theme: root.theme;
             for chip in root.chips: KitTextField {
                 implicit-form-submit: false;
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
@@ -906,9 +920,8 @@ export component KitMultiSelect inherits Rectangle {
                 focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
             }
         }
-        if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
-            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+        if root.access != FieldAccess.read-only && root.chips.length > 0: ChipWrap {
+            theme: root.theme;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip;
                 private property <ChipRow> focus-identity: chip;
@@ -996,9 +1009,8 @@ export component KitTagInput inherits Rectangle {
     VerticalLayout {
         spacing: KitMetrics.label-gap(root.theme); alignment: start;
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; focus-requested => { editor.take-focus(); } }
-        if root.chips.length > 0: FlexboxLayout {
-            min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
-            flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
+        if root.chips.length > 0: ChipWrap {
+            theme: root.theme;
             for chip in root.chips: KitChip {
                 theme: root.theme; chip: chip;
                 private property <ChipRow> focus-identity: chip;

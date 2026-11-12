@@ -347,6 +347,9 @@ component StepItem inherits Rectangle {
         theme: root.theme; intent: ButtonIntent.quiet;
         visible: root.interactive; tab-stop: root.interactive;
         disabled: root.unavailable;
+        // A step's content already communicates disabled state. Keep the
+        // quiet row transparent while preserving its hover/press recipe.
+        background: self.disabled ? self.recipe.fill : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
         accessible-name: root.name; accessible-description: root.entry.description;
         accessible-item-index: root.ordinal; accessible-item-count: root.total;
         activation-started => { root.press-token = root.entry.token; root.press-generation = root.entry.generation; }

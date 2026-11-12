@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, SelectionRef, KitSelectTrigger, KitOption, KitSurface, KitIcon } from "@kit";
+import { ControlSize, KitTheme, KitThemeContext, KitMetrics, TypographyRole, OptionRow, SelectionRef, KitSelectTrigger, KitOption, KitSurface, KitIcon } from "@kit";
 import { InterFont } from "@kit/fonts/inter.slint";
 export component App inherits Window {
     in-out property <KitTheme> theme: KitThemeContext.current;
@@ -23,16 +23,20 @@ export component App inherits Window {
             Text { text: control.selected-label == "" ? "Choose destination" : control.selected-label; color: root.theme.text-primary; }
         }
         if control.state.open: KitSurface { theme: root.theme;
+            VerticalLayout {
                 for row in control.rows: KitOption {
                     theme: root.theme; option-data: row; height: 54px * root.theme.text-scale;
                     active: control.state.active.present && control.state.active.token == row.token;
                     selected: control.state.selected.present && control.state.selected.token == row.token;
                     activate(token, generation) => { control.choose-option(token, generation); }
                     HorizontalLayout { spacing: root.theme.spacing.unit * 3;
-                        KitIcon { theme: root.theme; glyph: root.theme.icons.article; ink: root.theme.accent; }
+                        Rectangle { width: KitMetrics.icon-size(root.theme, ControlSize.medium); horizontal-stretch: 0;
+                            KitIcon { theme: root.theme; glyph: root.theme.icons.article; ink: row.disabled ? root.theme.disabled-text : root.theme.accent; y: (parent.height - self.height) / 2; }
+                        }
                         Text { text: row.label; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; vertical-alignment: center; }
                     }
                 }
+            }
         }
         Text { text: "Selected: " + control.selected-label; color: root.theme.text-primary; }
     }

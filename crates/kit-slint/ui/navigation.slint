@@ -22,6 +22,9 @@ export struct NotificationRow { item: OptionRow, read: bool }
 // shares its option recipe: a tint for the active and selected rows and the
 // inset ring on the active one.
 export component KitNavigationAction inherits KitOption {
+    // Keep local text-size and padding in measurement alongside the full row.
+    min-height: max(KitMetrics.row-height(root.theme, root.control-size), root.recipe.height,
+        (root.text-size / root.theme.typography.size-control) * root.theme.typography.line-height-control + 2 * root.padding-block);
     in property <length> trailing-space;
     private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: list-item;
@@ -194,7 +197,8 @@ export component KitMenuBar inherits Rectangle {
     // sequence. ScrollFrame and its bars are roleless; RTL reverses this loop.
     accessible-delegate-focus: root.state.active-index >= 0 && root.state.active-index < root.rows.length
         ? (root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
-    min-height: KitMetrics.row-height(root.theme, root.control-size);
+    // The horizontal scrollbar keeps a stable gutter below the full row.
+    min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
     preferred-height: self.min-height;
     vertical-stretch: 0;
     forward-focus: keyboard;
@@ -663,7 +667,8 @@ export component KitBreadcrumbs inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
     callback activate(int, int);
-    min-height: KitMetrics.row-height(root.theme, root.control-size);
+    // The horizontal scrollbar keeps a stable gutter below the full row.
+    min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
     preferred-height: self.min-height;
     vertical-stretch: 0;
     accessible-role: navigation;

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Measure chip wrapping at the resolved control width, recovering intrinsic spacing after additions/removals and resizing without rebuilding native editors. Center single-line file names and composed option icons, keep trigger options in distinct rows, include horizontal scrollbar gutters in menu/breadcrumb height, and let the virtual text editing starter fill its decorated frame. Unavailable steps keep their quiet action transparent while preserving disabled choice-row fills elsewhere; disabled text and focus/input guards remain.
+- Mesure le retour des chips à la largeur résolue du contrôle et retrouve l’espacement intrinsèque après ajouts, retraits et redimensionnements sans reconstruire les éditeurs natifs. Centre les noms de fichiers sur une ligne et les icônes d’options composées, sépare les options du déclencheur en lignes distinctes, inclut les gouttières horizontales dans la hauteur des menus/fils d’Ariane et laisse la démo d’édition de texte remplir son cadre décoré. Les étapes indisponibles gardent une action discrète transparente tout en préservant les fonds des choix désactivés ailleurs ; texte désactivé et protections de focus/saisie sont conservés.
+
 - Preserve host-authored selected bindings in the shared controlled selection primitive: reconcile/navigation/activation no longer assign the host’s selected property. Rating selection now follows its accepted value after repeated pointer/keyboard changes and controlled acknowledgments.
 - Préserve les liaisons selected de l’hôte dans la primitive de sélection contrôlée : réconciliation, navigation et activation n’assignent plus cette propriété. La sélection du rating suit ainsi la valeur acceptée après clics, clavier et confirmations contrôlées.
 
