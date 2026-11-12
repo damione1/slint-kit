@@ -196,6 +196,14 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .find(|entry| entry.token == token && entry.row.enabled())
             .map(|entry| entry.key.clone())
     }
+    /// Current position of a record in the projected model, for components
+    /// that scroll a virtual list to a keyed row (`KitNotificationCenter.focus-index`).
+    /// Publish it with the row's token; the position is a projection, not identity.
+    pub fn index_of(&self, key: &K) -> Option<i32> {
+        let state = self.state.borrow();
+        let index = *state.indices.get(key)?;
+        Some(i32::try_from(index).expect("model index fits i32"))
+    }
     pub fn key(&self, token: i32) -> Option<K> {
         self.state
             .borrow()
