@@ -6,12 +6,12 @@ import json
 import zipfile
 import tomllib
 from doc_inputs import ROOT, DOCS, write_changed
-from starter_sources import source_files, prepare
+from starter_sources import source_files, prepare, build_mode, BuildMode
 
 def readme(slug, kit_version, rust_version, slint_version, development=False):
-    introduction = (f"Development source example. Its APIs are absent from the published {kit_version} packages. A matching Slint Kit source checkout is required; follow the dependency changes below before building."
+    introduction = ("Development source example. Use the matching Slint Kit checkout and the source dependencies below before building."
                     if development else f"This example targets Slint Kit **{kit_version}**. Run `cargo run --locked` in this folder to use the matching registry release.")
-    introduction_fr = (f"Exemple de sources de développement. Ses API sont absentes des paquets {kit_version} publiés. Un checkout Slint Kit correspondant est nécessaire ; modifiez les dépendances ci-dessous avant de compiler."
+    introduction_fr = ("Exemple de sources de développement. Utilisez le checkout Slint Kit correspondant et les dépendances sources ci-dessous avant de compiler."
                        if development else f"Cet exemple cible Slint Kit **{kit_version}**. Exécutez `cargo run --locked` dans ce dossier pour utiliser la version correspondante du registre.")
     heading = "Required source dependencies" if development else "Optional local source dependencies"
     source_note_fr = "Les dépendances sources ci-dessus sont obligatoires pour cet exemple de développement." if development else "Les dépendances sources ci-dessus sont une option pour le développement local."
@@ -57,7 +57,7 @@ def main():
         dependency = tomllib.loads(files['Cargo.toml'].decode())['dependencies']['slint-kit']
         kit_version = (dependency if isinstance(dependency, str) else dependency['version']).removeprefix('=')
         files['LICENSE'] = (ROOT / 'LICENSE').read_bytes()
-        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].lstrip('=~'), entries[slug].get('registryExample') is False)
+        files['README.md'] = readme(slug, kit_version, workspace['package']['rust-version'], workspace['dependencies']['slint']['version'].lstrip('=~'), build_mode() is BuildMode.LOCAL or entries[slug].get('registryExample') is False)
         stream = io.BytesIO()
         with zipfile.ZipFile(stream, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
             for name, content in sorted(files.items()):

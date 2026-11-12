@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitColorWheel, KitStack, KitButton, KitFieldDescription, KitTheme, KitThemeContext, SrgbColorView, LayoutSpace } from "@kit";
+export component App inherits Window {
+    preferred-width: 420px; preferred-height: 400px;
+    max-width: 100000px; max-height: 100000px;
+    in-out property <KitTheme> theme <=> KitThemeContext.current;
+    background: root.theme.canvas;
+    title: "Color wheel";
+    in property <SrgbColorView> draft-color;
+    in property <string> status;
+    callback color-chosen(SrgbColorView);
+    callback submit-color();
+    KitStack { inset: LayoutSpace.roomy;
+        KitColorWheel { theme: root.theme; label: "Accent color"; value: root.draft-color; chosen(value) => { root.color-chosen(value); } }
+        KitFieldDescription { theme: root.theme; text: root.status; }
+        KitButton { theme: root.theme; text: "Apply color"; activated => { root.submit-color(); } }
+    }
+}

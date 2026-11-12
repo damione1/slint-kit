@@ -60,7 +60,7 @@ Le réglage TimePicker suit les contraintes horaires partagées et l’intersect
 
 Le calcul pur `HtmlConstraints::step_time(current: Option<LocalTime>, direction: StepDirection, segment_seconds: NonZeroU32, precision: TimePrecision) -> Option<LocalTime>` reçoit une heure déjà analysée ; `current: None` demande le départ à vide et un résultat `None` signifie qu’aucun réglage n’est admissible. La durée de segment est un nombre non nul de secondes. Distinguez toujours un brouillon non vide invalide de `None`.
 
-## Unités de durée et règles monétaires
+<h2 id="unités-de-durée-et-règles-monétaires">Unités de durée et règles monétaires</h2>
 
 `KitDurationField` édite une quantité décimale. Son suffixe est visuel : associez `text: "5"; suffix: "s";` à `FieldSpec::duration(DurationUnit::Seconds, rules)`. L’unité obligatoire vaut `Milliseconds`, `Seconds`, `Minutes` ou `Hours`. `DecimalRules` vérifie locale, précision, signe et bornes de la quantité saisie. Les propriétés `min`, `max` et `step` emploient cette même quantité visible et la syntaxe canonique des attributs ; elles ne représentent des millisecondes que si cette unité est choisie. Un texte horaire comme `01:30` n’est pas un format du codec de durée.
 

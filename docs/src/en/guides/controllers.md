@@ -34,7 +34,7 @@ Accessible slider metadata uses the same domain: `spec.minimum`, `maximum` and `
 
 The legacy `bind_select!` macro is retained for migration and deprecated in documentation. Replace its window callback convention with `Choices<K>`, the component’s `options`/`selected`/`chosen` contract and the shared installer. Explicit `SelectBinding` projections remain available for custom controlled integrations.
 
-## Typed temporal host values
+<h2 id="typed-temporal-host-values">Typed temporal host values</h2>
 
 Temporal host inputs synchronize the accepted baseline and idle display after `slint_kit::install(&window)`, including controls mounted later. Supply typed values directly; no text-mirroring callback is needed. The complete installed starters load [dates](/components/date-field/), [times](/components/time-field/) and [date/time pairs](/components/date-time-field/) from typed properties without authored draft strings. Catalogue snippets keep explicitly labelled static text for pure-Slint previews; that preview text does not demonstrate service synchronization.
 
@@ -60,7 +60,7 @@ TimePicker adjustment follows the shared time constraints and the intersection o
 
 The pure core `HtmlConstraints::step_time(current: Option<LocalTime>, direction: StepDirection, segment_seconds: NonZeroU32, precision: TimePrecision) -> Option<LocalTime>` accepts an already parsed time; `current: None` requests the empty seed and a returned `None` means no admissible adjustment. Segment duration is a nonzero number of seconds. Keep a nonempty invalid draft distinct from `None`.
 
-## Duration units and money rules
+<h2 id="duration-units-and-money-rules">Duration units and money rules</h2>
 
 `KitDurationField` edits a decimal quantity. Its suffix is visual: pair `text: "5"; suffix: "s";` with `FieldSpec::duration(DurationUnit::Seconds, rules)`. The required unit is one of `Milliseconds`, `Seconds`, `Minutes` or `Hours`. `DecimalRules` checks the input quantity's locale, scale, sign and bounds. Widget `min`, `max` and `step` use that same visible quantity and canonical attribute syntax; they are not milliseconds unless the selected unit is milliseconds. Clock text such as `01:30` is not a duration codec format.
 
