@@ -37,8 +37,8 @@ component CalendarOption inherits KitPressable {
     @children
 }
 
-// One roving keyboard target announces the active civil date, while individual
-// cells remain accessible and pointer-activatable without adding 42 Tab stops.
+// One persistent keyboard scope delegates accessible focus to the materialized
+// active day, without adding a Tab stop for each calendar cell.
 export component KitCalendar inherits Rectangle {
     in property <Ownership> ownership: Ownership.local;
     // Interaction belongs to each calendar instance. Services only compute values.
@@ -151,6 +151,17 @@ export component KitCalendar inherits Rectangle {
             KitPressable { theme: root.theme; recipe: KitThemes.icon-button-recipe(root.theme,root.control-size); min-width: root.cell-height; preferred-width: root.cell-height; accessible-name: root.right-to-left ? root.previous-month-label : root.next-month-label; intent: ButtonIntent.quiet; disabled: root.access == FieldAccess.disabled || !(root.right-to-left ? root.previous-enabled : root.next-enabled); activated => { root.move(root.right-to-left ? CalendarNavigation.previous-month : CalendarNavigation.next-month); } HorizontalLayout { alignment: center; KitIcon { theme: root.theme; glyph: root.theme.icons.chevron-right; ink: root.theme.text-primary; } } }
         }
         keyboard := FocusScope {
+            accessible-role: list;
+            accessible-label: root.label;
+            accessible-description: root.navigation-help;
+            accessible-enabled: root.access != FieldAccess.disabled;
+            // Seven weekday headers precede the materialized cells in Slint's
+            // accessible-child sequence, including hidden adjacent-month slots.
+            // RTL changes geometry, not that sequence or the logical day index.
+            accessible-delegate-focus: root.active-index >= 0 && root.active-index < root.days.length
+                && root.days[root.active-index].year > 0
+                && (root.outside-days != CalendarOutsideDays.hide || !root.days[root.active-index].outside-month)
+                ? 7 + root.active-index : -1;
             min-height: root.cell-height * (1 + (root.week-rows == CalendarWeekRows.variable && root.days.length > 0 ? ceil(root.days.length / 7) : 6));
             enabled: root.access != FieldAccess.disabled;
             key-pressed(event) => {
@@ -189,6 +200,8 @@ export component KitCalendar inherits Rectangle {
                 disabled: !root.day-allowed(day) || root.access == FieldAccess.disabled; tab-stop: false;
                 accessible-role: list-item; accessible-name: day.accessible-label;
                 accessible-item-selectable: true; accessible-item-selected: day.selected;
+                accessible-item-index: index; accessible-item-count: root.days.length;
+                accessible-read-only: root.access == FieldAccess.read-only;
                 background: day.selected ? root.theme.accent : day.in-range ? root.theme.accent-subtle : self.hovered ? root.theme.hover : transparent;
                 border-width: day.today ? root.theme.shape.border-width : 0px;
                 border-color: root.theme.accent;
@@ -343,14 +356,17 @@ export component KitDatePicker inherits Rectangle {
                 invalid => { root.invalid(); }
 
                 theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; accepted-date: root.accepted-date;
-                label: ""; description: ""; placeholder: root.placeholder; accessible-name: root.label;
+                label: ""; description: root.description; show-description: false; placeholder: root.placeholder; accessible-name: root.label;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
                 committed(commit) => { root.accept-typed(commit); }
                 commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
             }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name; disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
+            KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name;
+                accessible-expandable: true; accessible-expanded: root.open;
+                accessible-action-expand => { if (root.access == FieldAccess.editable) { root.open = true; } }
+                disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
         }
         if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }

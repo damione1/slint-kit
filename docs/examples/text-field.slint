@@ -20,7 +20,10 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Text Field"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         // Right-click or Shift+F10 opens native editing commands.
-        field := KitTextField { flow: root.flow; clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; theme: root.theme; label: "Project name"; select-all-label: "Select all"; text: "Field notes"; committed(value) => { root.status = "Accepted: " + value.value.text; }
+        field := KitTextField {
+            description: "Use a clear project name.";
+            show-description: true;
+            flow: root.flow; clearable: true; key-pressed(event) => { return KitKeyResult.reject; } required: true; show-character-count: true; max-length: 60; theme: root.theme; label: "Project name"; select-all-label: "Select all"; text: "Field notes"; committed(value) => { root.status = "Accepted: " + value.value.text; }
             cleared => { root.status = "Cleared"; }
             KitInputGroupStart { theme: root.theme; layout-order: field.leading-adornment-order;
                 KitButton { theme: root.theme; control-size: ControlSize.compact; text: "@"; accessible-name: "Insert marker"; focus-on-pointer: false; disabled: field.access != FieldAccess.editable; activated => { field.insert-at-cursor("@"); } }
