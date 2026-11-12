@@ -70,9 +70,9 @@ export component KitTimePicker inherits Rectangle {
     function accept-time(commit: FieldCommit) {
         let result = KitTimeService.parse-time(commit.value.text, root.precision, root.clock-format);
         if (result.valid && result.value != root.proposal-baseline) {
-            root.proposal-baseline = result.value;
-            if (root.ownership == Ownership.local) { root.accepted-time = result.value; }
-            if (result.value.present) { root.chosen(result.value.time); }
+            root.proposal-baseline = {present: result.value.present, time: {hour: result.value.time.hour, minute: result.value.time.minute, second: result.value.time.second}};
+            if (root.ownership == Ownership.local) { root.accepted-time = root.proposal-baseline; }
+            if (root.proposal-baseline.present) { root.chosen(root.proposal-baseline.time); }
             else { root.cleared(); }
         }
         root.committed(commit);
