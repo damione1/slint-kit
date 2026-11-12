@@ -3,10 +3,11 @@ import { KitKeyResult } from "keyboard.slint";
 import { FocusOutline } from "focus.slint";
 import { KitSelection, KitSelectionService } from "selection-service.slint";
 import { Ownership } from "shared-contracts.slint";
-import { SelectionRef } from "contracts.slint";
+import { SelectionRef, SelectionAvailability } from "contracts.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollFrame } from "scroll.slint";
-import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow } from "theme.slint";
+import { KitStack, LayoutSpace } from "layout.slint";
+import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow, ChoiceDirection } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
@@ -177,13 +178,6 @@ export component KitMenuBar inherits Rectangle {
     }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.interactive) { return KitKeyResult.reject; }
-        if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            let forward = root.flow == ChoiceFlow.right-to-left
-                ? event.text == Key.LeftArrow
-                : event.text == Key.RightArrow;
-            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
-            return KitKeyResult.accept;
-        }
         return keyboard.handle-key(event);
     }
     accessible-role: navigation;
@@ -201,6 +195,8 @@ export component KitMenuBar inherits Rectangle {
     keyboard := KitSelectKeyboard {
         enabled: root.interactive;
         dismiss-on-system-back: false;
+        navigation-direction: ChoiceDirection.horizontal;
+        flow: root.flow;
         wrap: root.wrap;
         typeahead-timeout-ms: root.typeahead-timeout-ms;
         check-typeahead-active => { return selection.is-typeahead-active(); }
@@ -271,6 +267,7 @@ export component KitTabs inherits Rectangle {
     in property <string> accessible-name: "Tabs";
     in property <ChoiceFlow> flow: root.theme.direction;
     in property <TabActivation> activation: TabActivation.manual;
+    in property <bool> typeahead-enabled: false;
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
     callback navigate(NavigationStep);
@@ -285,13 +282,6 @@ export component KitTabs inherits Rectangle {
     }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.interactive) { return KitKeyResult.reject; }
-        if (event.text == Key.RightArrow || event.text == Key.LeftArrow) {
-            let forward = root.flow == ChoiceFlow.right-to-left
-                ? event.text == Key.LeftArrow
-                : event.text == Key.RightArrow;
-            root.handle-navigate(forward ? NavigationStep.next : NavigationStep.previous);
-            return KitKeyResult.accept;
-        }
         return keyboard.handle-key(event);
     }
     private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
@@ -311,9 +301,14 @@ export component KitTabs inherits Rectangle {
     keyboard := KitSelectKeyboard {
         enabled: root.interactive;
         dismiss-on-system-back: false;
+        dismiss-on-escape: false;
+        typeahead-enabled: root.typeahead-enabled;
+        navigation-direction: ChoiceDirection.horizontal;
+        flow: root.flow;
         wrap: root.wrap;
         typeahead-timeout-ms: root.typeahead-timeout-ms;
-        check-typeahead-active => { return selection.is-typeahead-active(); }
+        // Space always activates a tab, including after optional typeahead.
+        check-typeahead-active => { return false; }
         state: { open: true, active: root.state.active, active-index: root.state.active-index, selected: root.state.selected, selection-availability: root.state.selection-availability, generation: root.state.generation };
         focus-on-tab-navigation: true;
         key-pressed(event) => { return root.handle-key(event) == KitKeyResult.accept ? accept : reject; }
@@ -378,17 +373,60 @@ export component KitTabs inherits Rectangle {
     }
     function handle-navigate(step: NavigationStep) {
         selection.navigate(step);
-        if (root.activation == TabActivation.automatic && root.interactive && selection.state.active.present) {
-            selection.activate(selection.state.active.token, selection.state.generation);
-            root.activate(selection.state.active.token, selection.state.generation);
-        }
+        root.activate-on-navigation();
         root.navigate(step);
     }
     function handle-activate(token: int, generation: int) { selection.activate(token, generation); root.activate(token, generation); }
     function handle-dismiss(reason: CloseReason) { selection.dismiss(reason); root.dismiss(reason); }
-    function handle-typeahead(text: string) { selection.typeahead(text); root.typeahead(text); }
+    function activate-on-navigation() {
+        if (root.activation == TabActivation.automatic && root.interactive && selection.state.active.present) {
+            root.handle-activate(selection.state.active.token, selection.state.generation);
+        }
+    }
+    function handle-typeahead(text: string) { selection.typeahead(text); root.activate-on-navigation(); root.typeahead(text); }
 
     out property <string> selected-label: selection.selected-label;
+}
+
+// Keep native child editors mounted while collapsing the inactive panel's
+// layout contribution. The tab reference comes from the same Choices model as
+// the tab strip state; view positions never identify a panel.
+export component KitTabPanel inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <LayoutSpace> gap: LayoutSpace.regular;
+    in property <LayoutSpace> inset: LayoutSpace.none;
+    in property <SelectState> state;
+    in property <SelectionRef> tab;
+    in property <string> accessible-name;
+    in property <bool> tab-stop: false;
+    out property <bool> active: root.tab.present && root.tab.token >= 0 && root.state.generation > 0
+        && root.state.selection-availability == SelectionAvailability.available
+        && root.state.selected.present && root.state.selected.token == root.tab.token;
+    visible: root.active;
+    min-width: root.active ? content.min-width : 0px;
+    preferred-width: root.active ? content.preferred-width : 0px;
+    max-width: root.active ? content.max-width : 0px;
+    min-height: root.active ? content.min-height : 0px;
+    preferred-height: root.active ? content.preferred-height : 0px;
+    max-height: root.active ? content.max-height : 0px;
+    vertical-stretch: 0;
+    accessible-role: tab-panel;
+    accessible-label: root.accessible-name;
+    forward-focus: scope;
+    public function take-focus() { if (root.active) { scope.focus(); } }
+    scope := FocusScope {
+        enabled: root.active;
+        focus-on-tab-navigation: root.active && root.tab-stop;
+        content := KitStack {
+            theme: root.theme; gap: root.gap; inset: root.inset;
+            x: 0px; y: 0px; width: parent.width; height: parent.height;
+            @children
+        }
+    }
+    if root.active && scope.has-focus: FocusOutline {
+        ring: root.theme.focus;
+        radius: root.border-radius; host-width: root.width; host-height: root.height;
+    }
 }
 
 export component KitCollapse inherits VerticalLayout {

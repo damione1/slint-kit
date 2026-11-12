@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTabs, KitTabPanel, KitMenuBar, KitButton, KitTextField, KitStack, LayoutSpace, KitTheme, KitThemes, ChoiceFlow, TabActivation, OptionRow, SelectionRef, SelectState, Ownership } from "@kit";
+export component TabsPanelsFixture inherits Window {
+    width: 720px; height: 640px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    in property <[OptionRow]> options;
+    in property <SelectionRef> profile;
+    in property <SelectionRef> settings;
+    in-out property <SelectionRef> selected;
+    in property <Ownership> ownership: Ownership.local;
+    in property <TabActivation> activation: TabActivation.manual;
+    in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
+    in property <bool> typeahead-enabled;
+    in property <bool> static-panel-stop;
+    in property <bool> interactive: true;
+    in-out property <string> profile-text: "Profile original";
+    in-out property <string> settings-text: "Settings original";
+    out property <SelectState> tabs-state: tabs.state;
+    out property <SelectState> bar-state: bar.state;
+    out property <bool> profile-active: profile-panel.active;
+    out property <bool> settings-active: settings-panel.active;
+    out property <length> profile-height: profile-panel.height;
+    out property <length> settings-height: settings-panel.height;
+    out property <bool> profile-focused: profile-editor.has-focus;
+    out property <bool> settings-focused: settings-editor.has-focus;
+    out property <bool> after-focused: after.has-focus;
+    out property <bool> tabs-focused: tabs.has-focus;
+    out property <int> shortcuts;
+    out property <int> vertical-keys;
+    out property <int> escapes;
+    callback chosen(OptionRow);
+    public function focus-tabs() { tabs.take-focus(); }
+    public function focus-bar() { bar.take-focus(); }
+    public function focus-profile() { profile-editor.take-focus(); }
+    public function select-profile() { profile-editor.select-all(); }
+    public function undo-profile() { profile-editor.undo(); }
+    background: root.theme.canvas;
+    FocusScope {
+        focus-on-tab-navigation: false;
+        key-pressed(event) => {
+            if (event.modifiers.control && event.text == Key.RightArrow) { root.shortcuts += 1; return accept; }
+            if (event.text == "s") { root.shortcuts += 1; return accept; }
+            if (event.text == Key.UpArrow || event.text == Key.DownArrow || event.text == Key.PageUp || event.text == Key.PageDown) { root.vertical-keys += 1; return accept; }
+            if (event.text == Key.Escape) { root.escapes += 1; return accept; }
+            return reject;
+        }
+        VerticalLayout {
+            padding: 24px; spacing: 24px; alignment: start;
+            KitButton { theme: root.theme; text: "Before tabs"; }
+            tabs := KitTabs {
+                theme: root.theme; options: root.options; selected <=> root.selected;
+                activation: root.activation; ownership: root.ownership; flow: root.flow;
+                typeahead-enabled: root.typeahead-enabled; interactive: root.interactive;
+                chosen(row) => { root.chosen(row); }
+            }
+            KitStack { theme: root.theme; gap: LayoutSpace.none;
+                profile-panel := KitTabPanel {
+                    theme: root.theme; state: tabs.state; tab: root.profile;
+                    accessible-name: "Profile panel"; tab-stop: root.static-panel-stop;
+                    profile-editor := KitTextField { theme: root.theme; label: "Profile draft"; text <=> root.profile-text; }
+                }
+                settings-panel := KitTabPanel {
+                    theme: root.theme; state: tabs.state; tab: root.settings;
+                    accessible-name: "Settings panel";
+                    settings-editor := KitTextField { theme: root.theme; label: "Settings draft"; text <=> root.settings-text; }
+                }
+            }
+            after := KitButton { theme: root.theme; text: "After panels"; }
+            bar := KitMenuBar { theme: root.theme; options: root.options; selected: root.profile; flow: root.flow; }
+        }
+    }
+}
