@@ -1,7 +1,19 @@
-name: Publish crates and GitHub Release
+name: Release
+# A v* tag on main publishes the crates and then deploys the documentation site.
+# workflow_dispatch redeploys the site for an existing tag without publishing crates.
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag whose documentation is redeployed, such as v0.8.0'
+        type: string
+        required: true
+      source-ref:
+        description: 'Optional documentation revision whose library sources equal the tag (default: the tag)'
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -14,20 +26,24 @@ env:
   CARGO_INCREMENTAL: '0'
   CARGO_TERM_COLOR: always
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
+  CARGO_BUILD_JOBS: '2'
+  RELEASE_TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+  # Pinned in docs/scripts/build-web-previews.py (BINDGEN_VERSION).
+  WASM_BINDGEN_VERSION: '0.2.129'
 
 jobs:
-  publish:
+  publish-crates:
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 30
     permissions:
       contents: write
+      checks: read
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@1.99.1
-        with:
-          components: rustfmt, clippy
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -45,8 +61,10 @@ jobs:
         run: python3 -B -m unittest discover -s .github/scripts -p 'test_release.py'
       - name: Validate release tag and versions
         run: python3 .github/scripts/release.py validate
-      - name: Check workspace
-        run: cargo run -p xtask --locked -- check
+      - name: Require a green Check workflow on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/release.py require-check
       - name: Verify all five package archives
         run: >-
           cargo package --locked
@@ -59,3 +77,106 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/release.py publish
+
+  docs-bundle:
+    # Stable versions only: prerelease and build-metadata tags never replace the site.
+    if: ${{ !contains(github.event_name == 'push' && github.ref_name || inputs.tag, '-') && !contains(github.event_name == 'push' && github.ref_name || inputs.tag, '+') }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docs-bundle.yml
+    with:
+      ref: ${{ github.event_name == 'push' && github.sha || inputs.source-ref || format('refs/tags/{0}', inputs.tag) }}
+    secrets: inherit
+
+  docs-deploy:
+    needs: [publish-crates, docs-bundle]
+    # A tag run needs published crates; a manual redeploy skips the crate job.
+    if: ${{ !cancelled() && needs.docs-bundle.result == 'success' && (needs.publish-crates.result == 'success' || needs.publish-crates.result == 'skipped') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    concurrency:
+      group: slint-kit-production
+      cancel-in-progress: false
+    env:
+      DOCS_BUILD_MODE: release
+      DOCS_CACHE_BUCKET: ${{ vars.DOCS_CACHE_BUCKET }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'push' && github.sha || inputs.source-ref || format('refs/tags/{0}', inputs.tag) }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Record the release version and source revision
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Not a stable release tag: $RELEASE_TAG"; exit 1; }
+          echo "DOCS_RELEASE_VERSION=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
+          echo "DOCS_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@1.99.1
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            . -> target
+            docs/preview -> ../../target/doc-previews
+          cache-on-failure: true
+      - name: Install Linux development libraries
+        run: |
+          sudo timeout 600 apt-get update
+          sudo timeout 600 apt-get install -y --no-install-recommends \
+            libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libxkbcommon-x11-dev \
+            libfontconfig-dev libwayland-dev
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-binstall
+      - name: Install the matching wasm-bindgen CLI
+        run: |
+          cargo binstall --no-confirm --locked "wasm-bindgen-cli@${WASM_BINDGEN_VERSION}"
+          test "$(wasm-bindgen --version)" = "wasm-bindgen ${WASM_BINDGEN_VERSION}"
+      - run: npm ci --prefix docs
+      - name: Verify the published source and registry archives
+        run: python3 .github/scripts/docs_deploy.py verify-source --version "$DOCS_RELEASE_VERSION"
+      - name: Check committed captures without recapturing
+        # Captures are recorded from the local workspace sources; CI never runs Chrome.
+        env:
+          DOCS_BUILD_MODE: local
+        run: npm --prefix docs run capture:check
+      - name: Restore the compiled bundle from R2
+        id: pull
+        run: python3 docs/scripts/bundle_cache.py pull --key "${{ needs.docs-bundle.outputs.key }}"
+      - name: Require the restored bundle
+        if: steps.pull.outputs.outcome != 'hit'
+        run: |
+          echo "::error::Bundle ${{ needs.docs-bundle.outputs.key }} is missing from R2"
+          exit 1
+      - name: Build the bilingual documentation without compiling the bundle
+        # --package-only refuses any compiler run: the bundle must come from R2.
+        working-directory: docs
+        run: |
+          npm run build:inputs
+          python3 scripts/build-web-previews.py --package-only
+          python3 scripts/build-workspace-preview.py
+          npm run build:pages
+      - name: Stamp the verified release artifact
+        run: python3 .github/scripts/docs_deploy.py stamp --version "$DOCS_RELEASE_VERSION"
+      - name: Prevent an older publication
+        run: >-
+          python3 .github/scripts/docs_deploy.py guard
+          --version "$DOCS_RELEASE_VERSION" --source "$DOCS_SOURCE_SHA"
+      - name: Deploy to Cloudflare
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID is missing'; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN is missing'; exit 1; }
+          npx --yes wrangler@4.154.0 deploy --config docs/wrangler.toml --message "Slint Kit $DOCS_RELEASE_VERSION documentation $DOCS_SOURCE_SHA"

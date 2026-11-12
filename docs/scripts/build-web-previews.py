@@ -248,6 +248,7 @@ def build():
     parser.add_argument('slugs', nargs='*', help='Validate requested routes; the shared bundle always contains every component')
     parser.add_argument('--check', action='store_true')
     parser.add_argument('--package-only', action='store_true', help='Refuse any compiler invocation; require a verified compiled cache')
+    parser.add_argument('--print-key', action='store_true', help='Print the bundle cache key as the last output line and exit without building')
     args = parser.parse_args()
     from starter_sources import prepare
     prepare()
@@ -267,6 +268,9 @@ def build():
     output.mkdir(parents=True, exist_ok=True)
     manifest_path = output / 'manifest.json'
     key = bundle_key(inputs, rustc, version, environment)
+    if args.print_key:
+        print(key, flush=True)
+        return
     old = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     if args.check:
         if old.get('bundle', {}).get('key') != key or old.get('components') != slugs:

@@ -1,12 +1,15 @@
 name: Check
 on:
   push:
-    branches: [main]
+    branches: [develop, main]
   pull_request:
+    branches: [develop, main]
   workflow_dispatch:
 concurrency:
   group: check-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # main is never cancelled: a cancelled run on a merge commit would fail the
+  # release gate and discard its bundle job.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 permissions:
   contents: read
 env:
@@ -14,6 +17,14 @@ env:
   CARGO_TERM_COLOR: always
   CARGO_TARGET_DIR: ${{ github.workspace }}/target
 jobs:
+  docs-bundle:
+    # Compile the WASM preview bundle once per merged commit and keep it in R2, so
+    # that the release tag restores it instead of compiling it again.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/docs-bundle.yml
+    secrets: inherit
   windows:
     runs-on: windows-2025
     env:
@@ -61,6 +72,17 @@ jobs:
             libfontconfig-dev libwayland-dev
       - name: Check documentation dependency versions
         run: python3 -B docs/scripts/sync-doc-versions.py --check
+      - name: Check documentation lockfiles
+        # A stale slint-kit version in these locks fails every --locked docs build.
+        run: |
+          for manifest in docs/preview/Cargo.toml docs/workspace-preview/Cargo.toml; do
+            cargo metadata --manifest-path "$manifest" --locked --format-version 1 > /dev/null
+          done
+      - name: Check committed captures without recapturing
+        # Stale captures must fail Check on main, never the release tag.
+        env:
+          DOCS_BUILD_MODE: local
+        run: python3 docs/scripts/capture_pipeline.py check
       - name: Check the workspace and headless component suite
         run: |
           printf 'Available CPUs: '
@@ -104,4 +126,6 @@ jobs:
           python3 -B -m unittest discover -s docs/scripts -p 'test_complete_consumers.py'
           python3 docs/scripts/check-complete-consumers.py --mode local
       - name: Test release and documentation publication safeguards
-        run: python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+        run: |
+          python3 -B -m unittest discover -s .github/scripts -p 'test_*.py'
+          python3 -B -m unittest discover -s docs/scripts -p 'test_*.py'

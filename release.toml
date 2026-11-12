@@ -1,0 +1,41 @@
+# cargo-release configuration. Release flow:
+#   1. On develop: cargo release <level> --no-tag --execute
+#      Bumps workspace.package.version, the exact =X.Y.Z pins in Cargo.toml and
+#      Cargo.lock, propagates the version to the documentation manifests, and
+#      commits. It never publishes, tags or pushes.
+#   2. Open a pull request develop -> main and squash-merge it. CI checks the merge
+#      commit and stores its WASM bundle in R2.
+#   3. On main, once the Check workflow is green on that commit:
+#      cargo release tag --execute && git push origin vX.Y.Z
+#      The tag push publishes the crates and deploys the site.
+# The bump is committed before the squash, so the tagged commit is the exact commit
+# that Check validated and whose bundle was cached.
+#
+# Caveats:
+#   - Check on main is never cancelled by a later push. If its run on a commit
+#     still fails or is missing, re-run Check before tagging: the release gate
+#     refuses a tag without green linux and windows runs on that commit.
+#   - Tagging before the docs-bundle job of that Check run finishes makes the tag
+#     compile the same bundle in parallel. Both store the same key; this is harmless.
+
+# develop creates the version commit; main receives the tag.
+allow-branch = ["develop", "main"]
+
+# One version for the five published crates.
+shared-version = true
+consolidate-commits = true
+pre-release-commit-message = "Prepare version {{version}}"
+
+# CI publishes (release.yml); cargo-release never does, and never pushes.
+publish = false
+push = false
+
+tag = true
+tag-name = "v{{version}}"
+tag-message = "Slint Kit {{version}}"
+
+# Rewrites the exact slint-kit pins in docs/preview, docs/consumer, the dialog and
+# table consumers and every quickstart manifest, then refreshes the lock files of
+# the two documentation workspaces so that their --locked builds keep working.
+# The commands are idempotent.
+pre-release-hook = ["sh", "-c", "python3 \"$WORKSPACE_ROOT/docs/scripts/sync-doc-versions.py\" && cargo update --workspace --manifest-path \"$WORKSPACE_ROOT/docs/preview/Cargo.toml\" && cargo update --workspace --manifest-path \"$WORKSPACE_ROOT/docs/workspace-preview/Cargo.toml\""]

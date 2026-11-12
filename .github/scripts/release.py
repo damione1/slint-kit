@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Validate a tagged release and safely resume crates.io and GitHub publication."""
 import argparse
+from dataclasses import dataclass
+from enum import StrEnum
 import hashlib
 import io
 import json
@@ -12,6 +14,7 @@ import subprocess
 import tarfile
 import time
 import tomllib
+from typing import assert_never
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -26,6 +29,9 @@ PACKAGES = {
     'slint-kit': 'crates/kit',
 }
 SEMVER = r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?'
+# Jobs of .github/workflows/check.yml that must succeed on the tagged commit.
+# test_release.py verifies that the workflow still defines each of these names.
+REQUIRED_CHECKS = ('linux', 'windows')
 USER_AGENT = 'slint-kit-release/0.1 (https://github.com/damione1/slint-kit)'
 
 
@@ -164,6 +170,97 @@ def github_pages(resource):
         page += 1
 
 
+class RunStatus(StrEnum):
+    # Values of the GitHub check run `status` field.
+    QUEUED = 'queued'
+    IN_PROGRESS = 'in_progress'
+    COMPLETED = 'completed'
+    WAITING = 'waiting'
+    REQUESTED = 'requested'
+    PENDING = 'pending'
+
+
+class RunConclusion(StrEnum):
+    # Values of the GitHub check run `conclusion` field once a run completed.
+    ACTION_REQUIRED = 'action_required'
+    CANCELLED = 'cancelled'
+    FAILURE = 'failure'
+    NEUTRAL = 'neutral'
+    SKIPPED = 'skipped'
+    STALE = 'stale'
+    SUCCESS = 'success'
+    TIMED_OUT = 'timed_out'
+
+
+@dataclass(frozen=True)
+class CheckRun:
+    identifier: int
+    name: str
+    status: RunStatus
+    conclusion: RunConclusion | None
+
+    @classmethod
+    def parse(cls, entry):
+        # An unknown status or conclusion is a hard error: never read it as success.
+        conclusion = entry['conclusion']
+        return cls(identifier=entry['id'], name=entry['name'], status=RunStatus(entry['status']),
+                   conclusion=None if conclusion is None else RunConclusion(conclusion))
+
+
+def check_runs(sha):
+    runs = []
+    page = 1
+    while True:
+        response = github_api(f'commits/{sha}/check-runs?filter=latest&per_page=100&page={page}')
+        entries = response['check_runs']
+        runs.extend(CheckRun.parse(entry) for entry in entries)
+        if not entries or len(runs) >= response['total_count']:
+            return runs
+        page += 1
+
+
+class CompareStatus(StrEnum):
+    """Position of the compared head relative to the base, as GitHub reports it."""
+    AHEAD = 'ahead'
+    BEHIND = 'behind'
+    DIVERGED = 'diverged'
+    IDENTICAL = 'identical'
+
+
+def require_on_main(sha):
+    """Fail unless the commit is main itself or one of its ancestors."""
+    # compare/main...sha: "identical" or "behind" means sha is already part of main.
+    status = CompareStatus(github_api(f'compare/main...{sha}?per_page=1')['status'])
+    match status:
+        case CompareStatus.IDENTICAL | CompareStatus.BEHIND:
+            print(f'Commit {sha} is on main', flush=True)
+        case CompareStatus.AHEAD | CompareStatus.DIVERGED:
+            raise ValueError(f'Commit {sha} is not on main ({status.value}). Tag a commit that was merged into main.')
+        case _:
+            assert_never(status)
+
+
+def require_check_success(sha):
+    """Fail unless every required job of the Check workflow succeeded on this commit."""
+    latest = {}
+    for run in check_runs(sha):
+        if run.name in REQUIRED_CHECKS and (run.name not in latest or run.identifier > latest[run.name].identifier):
+            latest[run.name] = run
+    problems = []
+    for name in REQUIRED_CHECKS:
+        run = latest.get(name)
+        if run is None:
+            problems.append(f'{name}: no Check run found')
+        elif run.status is not RunStatus.COMPLETED:
+            problems.append(f'{name}: still {run.status.value}')
+        elif run.conclusion is not RunConclusion.SUCCESS:
+            problems.append(f'{name}: {run.conclusion.value if run.conclusion else "no conclusion"}')
+    if problems:
+        raise ValueError(f'The Check workflow has not succeeded on commit {sha} (' + '; '.join(problems)
+                         + '). Merge to main, wait for a green Check run on that commit, then tag it or re-run this workflow.')
+    print(f'Check workflow succeeded on {sha}: {", ".join(REQUIRED_CHECKS)}', flush=True)
+
+
 def stable_version(tag):
     """Stable SemVer precedence; build metadata never changes precedence."""
     match = re.fullmatch('v' + SEMVER, tag)
@@ -230,12 +327,15 @@ def publish(version, commit):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['validate', 'check', 'publish'])
+    parser.add_argument('command', choices=['validate', 'require-check', 'check', 'publish'])
     parser.add_argument('--tag', default=os.environ.get('GITHUB_REF_NAME', ''))
     args = parser.parse_args()
     try:
         version, commit = validate(args.tag)
-        if args.command == 'check':
+        if args.command == 'require-check':
+            require_on_main(commit)
+            require_check_success(commit)
+        elif args.command == 'check':
             check(version, commit)
         elif args.command == 'publish':
             publish(version, commit)
