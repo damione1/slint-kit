@@ -125,7 +125,9 @@ export component KitSelection inherits Rectangle {
     }
     function apply(session: SelectionSession) {
         root.session = session;
-        root.selected = session.state.selected;
+        // Controlled values belong to the host. Even assigning the same value
+        // would detach an authored binding, hiding later host acknowledgments.
+        if (root.ownership == Ownership.local) { root.selected = session.state.selected; }
         root.sync-retained-label();
     }
     public function open() {

@@ -1,14 +1,18 @@
-import { LayoutSpace } from "@kit";
-import { KitTheme, KitThemeContext } from "@kit";
-
 // SPDX-License-Identifier: GPL-3.0-or-later
-
-import { KitSlider, KitStack, KitThemeContext, SliderSpec } from "@kit";
+import { KitSlider, KitStack, KitFieldDescription, LayoutSpace, KitTheme, KitThemeContext } from "@kit";
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme <=> KitThemeContext.current;
     title: "KitSlider example"; preferred-width: 560px; preferred-height: 360px;
-    background: KitThemeContext.current.canvas;
+    background: root.theme.canvas;
+    in-out property <string> volume: "65";
     callback volume-changed(string);
-    KitStack { inset: LayoutSpace.roomy; KitSlider { label: "Volume"; value: "65"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
+    KitStack { theme: root.theme; inset: LayoutSpace.roomy;
+        KitSlider { theme: root.theme; label: "Volume"; value <=> root.volume;
+            value-label: root.volume + " percent";
+            spec: {minimum: "0", maximum: "100", step: "5"};
+            chosen(value) => { root.volume-changed(value); }
+        }
+        KitFieldDescription { theme: root.theme; text: "Value: " + root.volume; }
+    }
 }

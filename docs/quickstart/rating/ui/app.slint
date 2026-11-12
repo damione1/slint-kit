@@ -1,14 +1,16 @@
-import { LayoutSpace } from "@kit";
-import { KitTheme, KitThemeContext } from "@kit";
-
 // SPDX-License-Identifier: GPL-3.0-or-later
-
-import { KitRating, KitStack, KitThemeContext, RatingView } from "@kit";
+import { KitRating, KitStack, KitFieldDescription, LayoutSpace, KitTheme, KitThemeContext, RatingView } from "@kit";
 export component App inherits Window {
     max-width: 100000px; max-height: 100000px;
     in-out property <KitTheme> theme <=> KitThemeContext.current;
     title: "KitRating example"; preferred-width: 560px; preferred-height: 360px;
-    background: KitThemeContext.current.canvas;
+    background: root.theme.canvas;
+    in-out property <RatingView> rating-value: {present: false, step: 0, scale: 5};
     callback feedback-changed(RatingView);
-    KitStack { inset: LayoutSpace.roomy; KitRating { label: "Your rating"; scale: 5; chosen(value) => { root.feedback-changed(value); } } }
+    KitStack { theme: root.theme; inset: LayoutSpace.roomy;
+        KitRating { theme: root.theme; label: "Your rating"; scale: 5; value <=> root.rating-value;
+            chosen(value) => { root.feedback-changed(value); }
+        }
+        KitFieldDescription { theme: root.theme; text: root.rating-value.present ? "Rating: " + root.rating-value.step + " / " + root.rating-value.scale : "Not rated"; }
+    }
 }

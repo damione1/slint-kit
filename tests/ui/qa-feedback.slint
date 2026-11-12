@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRating, RatingView, Ownership, ChoiceRow, FieldAccess, KitSelectionService, KitStack, KitButton, KitTheme, KitThemes, LayoutSpace } from "@kit";
+export component QaRatingFixture inherits Window {
+    width: 720px; height: 360px;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <KitTheme> dark-theme: KitThemes.dark;
+    background: root.theme.canvas;
+    in property <Ownership> ownership: Ownership.local;
+    in property <int> scale: 5;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <RatingView> rating-value;
+    out property <int> generation: rating.generation;
+    out property <[ChoiceRow]> scores: rating.scores;
+    out property <bool> service-ready: KitSelectionService.ready;
+    out property <int> activations;
+    out property <int> proposals;
+    out property <RatingView> last-proposal;
+    KitStack { theme: root.theme; inset: LayoutSpace.roomy;
+        rating := KitRating {
+            theme: root.theme; label: "Your rating"; ownership: root.ownership; access: root.access;
+            scale: root.scale; value <=> root.rating-value;
+            choose(token, generation) => { root.activations += 1; }
+            chosen(value) => { root.proposals += 1; root.last-proposal = value; }
+        }
+        KitButton { theme: root.theme; text: "Outside"; }
+    }
+}
+import { App as SliderDemo } from "../../docs/quickstart/slider/ui/app.slint";
+import { App as RatingDemo } from "../../docs/quickstart/rating/ui/app.slint";
+import { App as KeypadDemo } from "../../docs/quickstart/keypad/ui/app.slint";
+export component QaSliderDemo inherits SliderDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    out property <string> test-volume: root.volume;
+}
+export component QaRatingDemo inherits RatingDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    out property <RatingView> test-value: root.rating-value;
+}
+export component QaKeypadDemo inherits KeypadDemo {
+    in-out property <KitTheme> test-theme <=> root.theme;
+    code-length: 4;
+    callback test-digit(int);
+    digit(value) => { root.test-digit(value); }
+}
