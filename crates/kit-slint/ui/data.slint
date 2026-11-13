@@ -600,6 +600,20 @@ export component KitDataTable inherits Rectangle {
     callback edit-ended(int,int,int,TableEditOutcome,string);
     callback validate-edit(int,int,int,FieldCommit) -> string;
     validate-edit(row, column, generation, commit) => { return ""; }
+    // Reports the displayed text of the active cell as copied: row token,
+    // column token, generation and the text now on the clipboard. Control or
+    // Meta with C calls it too; a row or header cursor copies nothing.
+    callback cell-copied(int, int, int, string);
+    public function copy-active-cell() {
+        if (root.cursor-region != TableCursorRegion.body || !root.has-active-cell()) { return; }
+        let row-token = root.rows[root.active-index].token;
+        let column-token = root.display-columns[root.active-column].token;
+        let generation = root.generation;
+        clipboard-source.text = root.active-cell-value();
+        clipboard-source.select-all();
+        clipboard-source.copy();
+        root.cell-copied(row-token, column-token, generation, root.active-cell-value());
+    }
     public function take-focus() {if(root.interactive){keys.focus();}}
     public function edit-active() { if (!root.edit-open && KitFieldService.ready && KitDataService.ready && root.active-cell-editable()) { root.begin-edit(); } }
     public function commit-edit() { if (root.edit-open) { root.edit-commit-request += 1; } }
@@ -931,6 +945,17 @@ export component KitDataTable inherits Rectangle {
                 return KitKeyResult.accept;
             }
             if (event.modifiers.alt && root.cursor-region == TableCursorRegion.header && (event.text == Key.LeftArrow || event.text == Key.RightArrow)) { root.resize-active-column(event.text == Key.LeftArrow ? -root.handle-recipe.step : root.handle-recipe.step); return KitKeyResult.accept; }
+            // With a cell cursor (or on a header cell), Home and End walk the
+            // cells of the active row; Control or Meta with Home and End keep
+            // the row edges. A row cursor leaves both to the row navigation.
+            if (!event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt && !event.modifiers.shift && (event.text == Key.Home || event.text == Key.End) && root.display-columns.length > 0 && (root.cursor-region == TableCursorRegion.header || root.has-active-cell())) {
+                root.active-column = event.text == Key.Home ? 0 : root.display-columns.length - 1;
+                return KitKeyResult.accept;
+            }
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "c" || event.text == "C") && root.cursor-region == TableCursorRegion.body && root.has-active-cell()) {
+                root.copy-active-cell();
+                return KitKeyResult.accept;
+            }
             return KitKeyResult.reject;
         }
         edit-requested => { if (root.cursor-region == TableCursorRegion.body) { root.edit-active(); } }
@@ -943,6 +968,7 @@ export component KitDataTable inherits Rectangle {
         activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
         confirm => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.confirm-active(); } }
     }
+    clipboard-source := TextInput { visible: false; width: 0px; height: 0px; }
     list := ListView {
         theme: root.theme;
         y:root.row-height; height:max(0px,root.height - root.row-height);

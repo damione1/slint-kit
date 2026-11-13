@@ -110,6 +110,8 @@ export component BaseDataFixture inherits Window {
     callback reorder-requested(int, int);
     callback cell-committed(CellCommit);
     callback table-edit-started(int, int, int);
+    callback table-cell-copied(int, int, int, string);
+    public function copy-table-cell() { table.copy-active-cell(); }
     callback table-edit-ended(int, int, int, TableEditOutcome, string);
     callback validate-table-edit(int, int, int, FieldCommit) -> string;
     validate-table-edit(row, column, generation, commit) => { return ""; }
@@ -145,6 +147,7 @@ export component BaseDataFixture inherits Window {
             reorder-requested(source, target) => { root.reorder-requested(source, target); }
             edit-blur-policy: root.table-edit-blur-policy; unchanged-edit-policy: root.table-unchanged-edit-policy;
             edit-started(row,column,generation) => {root.table-edit-started(row,column,generation);}
+            cell-copied(row,column,generation,text) => {root.table-cell-copied(row,column,generation,text);}
             edit-ended(row,column,generation,outcome,message) => {root.table-edit-ended(row,column,generation,outcome,message);}
             validate-edit(row,column,generation,commit) => { return root.validate-table-edit(row,column,generation,commit); }
             cell-committed(proposal) => { root.cell-committed(proposal); }
