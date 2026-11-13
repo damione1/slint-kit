@@ -195,6 +195,8 @@ Localize file/step defaults once through the window’s `KitStrings`. Per-instan
 
 Native facade bindings pass the Slint window parent to file/directory dialogs. Show the window first. Direct kit-native callers can pass a `DialogParent` raw-window-handle provider to `pick_files_with_parent` / `pick_directory_with_parent`; providers are not retained by the returned future. Parent/modal behavior needs target backend qualification.
 
+Display-only cells: `CellContent::tone_text`, `CellContent::icon(glyph, text, tone)` (empty `text` means decorative) and `CellContent::progress(ProgressFraction, text, tone)`; `ProgressFraction::try_from(f32)` accepts 0 to 1 only. Toggle, action and link cells and select/number/date editors do not exist yet.
+
 For intrinsic cell constraints use `CellContent::constrained_field` and shared `KitInputConstraints` (absent min/max lengths are -1). Number kind enables native filtering. `validate-edit(row, column, generation, commit) -> string` is the synchronous host verdict before a cell closes: return a localized rejection to retain the draft. Enter, Tab and `commit-edit()` retry the unchanged draft against a fresh verdict. Still fence and accept the commit in Rust.
 
 `KitFileDropZone` is a browse action as well as a native drop target. Connect `browse-requested` to the same `FilePickerBinding` browse handler; an unavailable drag/drop capability does not disable browsing. `description`, `leading-icon` and `@children` compose its content; interactive children keep their own actions.
