@@ -5,7 +5,7 @@ use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
     DateDisplayPattern, DateNames, DatePattern, DateRange, DateRangeController, DateRangeRules,
     DraftValue, EarlierEndPolicy, Instant, NumericBounds, ParseIssue, RangeRejection,
-    RangeSelection, TimeZoneId, WeekStart,
+    RangeSelection, TimeZoneId, WeekStart, YearMonth,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -536,6 +536,21 @@ where
             direction.into(),
         )
         .map_or(view.focused, |state| state.focused.into())
+    });
+    // Month and year pickers jump to any month; the day clamps to that month and
+    // the result clamps into the bounds, so an unreachable month comes back
+    // as a different month and the caller can disable it.
+    service.on_show_month(|view, year, month| {
+        let target = u32::try_from(month)
+            .map_err(|_| ParseIssue::InvalidDate)
+            .and_then(|month| YearMonth::new(year, month));
+        match (parse(&view), target) {
+            (Ok(mut calendar), Ok(target)) => {
+                calendar.show_month(target);
+                calendar.focused().into()
+            }
+            (Err(_), _) | (_, Err(_)) => view.focused,
+        }
     });
     service.on_allowed(|view, date| {
         let Ok(calendar) = parse(&view) else {
