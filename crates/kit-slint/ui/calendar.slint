@@ -9,6 +9,7 @@ import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { TemporalField } from "temporal-field.slint";
 import { KitTimeService } from "datetime-service.slint";
+import { KitFieldService } from "field-service.slint";
 import { KitStrings } from "strings.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitStrings } from "strings.slint";
@@ -18,8 +19,8 @@ import { KitKeyResult } from "keyboard.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
 
-import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService } from "calendar-service.slint";
-export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService } from "calendar-service.slint";
+import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
+export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
 import { WeekStart, Ownership, CommitPolicy, EarlierEndPolicy } from "shared-contracts.slint";
 import { FieldCommit } from "field-service.slint";
 import { DateRangePhase, DateRangeDraft, DateRangeRejection } from "calendar-service.slint";
@@ -398,6 +399,12 @@ export component KitDateField inherits TemporalField {
     }
     placeholder: "YYYY-MM-DD";
     description: KitStrings.date-description;
+    // Display-at-rest format. Editing, constraints and the accepted value stay
+    // ISO; an empty pattern (or an invalid one) keeps the ISO text.
+    in property <DateDisplay> display-format;
+    display-text: !KitFieldService.ready || root.accepted-text != root.text ? root.text
+        : root.display-format.pattern != "" && KitCalendarService.ready ? KitCalendarService.display-date(root.text, root.display-format)
+        : KitFieldService.display(root.spec-key, root.text);
     // Alt+ArrowDown and F4 ask the host to open its calendar, as on the web.
     callback open-requested();
     private property <CivilDateView> draft-date: KitCalendarService.ready ? KitCalendarService.parse-date(root.text) : {};
@@ -437,6 +444,10 @@ export component KitDateField inherits TemporalField {
 // TextInput stays mounted when the calendar opens. Host parsing, bounds and
 // selection apply atomically; opening an overlay never rewrites the draft.
 export component KitDatePicker inherits Rectangle {
+    in property <string> spec-key;
+    // strftime-style pattern for the resting text, for example "%d/%m/%Y".
+    // Empty keeps ISO. Editing and the accepted value remain ISO.
+    in property <string> display-pattern;
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
     in property <bool> required;
@@ -582,6 +593,8 @@ export component KitDatePicker inherits Rectangle {
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
             editor := KitDateField {
+                spec-key: root.spec-key;
+                display-format: { pattern: root.display-pattern, months: root.month-names, short-months: root.month-short-names, weekdays: root.weekday-names, short-weekdays: root.weekday-short-names };
                 show-validation-message: false;
                 clearable: root.clearable; clear-label: root.clear-label;
                 required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value;

@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDateField, KitDatePicker, KitTheme, KitThemes } from "@kit";
+export component DateDisplayFixture inherits Window {
+    width: 640px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> pattern;
+    out property <string> shown: field.display-text;
+    out property <string> edited: field.text;
+    public function focus-field() { field.take-focus(); }
+    public function blur-field() { picker.take-focus(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        field := KitDateField {
+            theme: root.theme; label: "Date";
+            accepted-date: { year: 2026, month: 10, day: 16 };
+            display-format: {
+                pattern: root.pattern,
+                months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                short-months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+                weekdays: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+                short-weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+            };
+        }
+        picker := KitDatePicker {
+            theme: root.theme; label: "Picker"; spec-key: "";
+            display-pattern: "%d/%m/%Y";
+            accepted-date: { year: 2026, month: 10, day: 16 };
+        }
+    }
+}

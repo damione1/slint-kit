@@ -829,6 +829,7 @@ mod variants;
 #[cfg(test)]
 mod base_feedback;
 
+mod date_display;
 mod datetime_localization;
 mod datetime_strings;
 mod duration_unit;
