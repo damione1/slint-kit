@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitThemeContext, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption, IconGlyph } from "@kit";
+import { KitTheme, KitThemes, KitThemeContext, ThemeMode, KitMetrics, KitLayoutMetrics, LayoutSpace, ControlSize, TypographyRole, ButtonIntent, ButtonRecipe, FieldRecipe, SurfaceRecipe, SurfaceLevel, ChoiceRecipe, OptionRecipe, IconRecipe, AlertRecipe, AlertSeverity, ScrollBarRecipe, KitTabs, SelectState, FieldAccess, ValidationPresentation, KitButton, KitFieldSeparator, KitInputGroup, KitSlider, KitSelect, KitDialogPanel, KitMenu, KitOption, IconGlyph } from "@kit";
 import { ElevationLevel, KitShadow } from "@kit/theme.slint";
 import { LucideIcons } from "@kit/icons/lucide/all.slint";
 export { KitThemeContext } from "@kit";
@@ -42,6 +42,10 @@ export component ThemeTokenFixture inherits Window {
     public pure function alert(theme: KitTheme, severity: AlertSeverity) -> AlertRecipe { return KitThemes.alert-recipe(theme, severity); }
     public pure function scroll-bar(theme: KitTheme) -> ScrollBarRecipe { return KitThemes.scroll-bar-recipe(theme); }
     public pure function elevation-shadow(theme: KitTheme, level: ElevationLevel) -> KitShadow { return KitThemes.elevation-shadow(theme, level); }
+    // ColorScheme has no Rust type: the scheme is built here from two flags.
+    pure function scheme(system-dark: bool, system-unknown: bool) -> ColorScheme { return system-unknown ? ColorScheme.unknown : system-dark ? ColorScheme.dark : ColorScheme.light; }
+    public pure function resolve-theme(mode: ThemeMode, system-dark: bool, system-unknown: bool) -> KitTheme { return KitThemes.resolve(mode, scheme(system-dark, system-unknown)); }
+    public pure function mode-is-dark(mode: ThemeMode, system-dark: bool, system-unknown: bool) -> bool { return KitThemes.is-dark(mode, scheme(system-dark, system-unknown)); }
     public function focus-button() { focus-button.take-focus(); }
     public function focus-slider() { slider.take-focus(); }
     public function focus-menu() { menu.take-focus(); }
