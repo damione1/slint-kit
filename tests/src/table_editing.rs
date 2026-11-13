@@ -11,7 +11,7 @@ use slint::platform::Key;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use slint_kit::{
     CellCodec, CellContent, DraftValue, FieldAccess, FieldSpec, FieldSpecKey, KeyedModel,
-    TextValue, table_cells,
+    NumberSyntax, TextValue, table_cells,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -76,7 +76,7 @@ fn record(token: i32, title: &str, quantity: i64, owner: &str, access: FieldAcce
             CellContent::text(title),
             CellContent::typed_field(
                 quantity_key(),
-                &FieldSpec::integer(),
+                &FieldSpec::integer(NumberSyntax::en_ca(), None),
                 Some(&quantity),
                 access,
             ),
@@ -110,7 +110,7 @@ fn editing(rows: Vec<TableRow>) -> Editing {
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -318,7 +318,10 @@ fn enter_commits_once_with_the_armed_identity_and_the_codec_accepts_it() {
     let (row, column, generation, commit) = &recorded[0];
     assert_eq!((*row, *column, *generation), (2, QUANTITY, 1));
     assert_eq!(commit.value.text, "7");
-    assert_eq!(FieldSpec::integer().accept(commit.clone()), Ok(Some(7)));
+    assert_eq!(
+        FieldSpec::integer(NumberSyntax::en_ca(), None).accept(commit.clone()),
+        Ok(Some(7))
+    );
     drop(recorded);
     assert!(table_has_focus(&window));
 }
@@ -640,7 +643,7 @@ fn field_cells_project_once_and_format_their_typed_value() {
     assert_eq!(plain.access, ui::FieldAccess::ReadOnly);
     let typed = TableCell::from(CellContent::typed_field(
         quantity_key(),
-        &FieldSpec::integer(),
+        &FieldSpec::integer(NumberSyntax::en_ca(), None),
         Some(&1_234),
         FieldAccess::Editable,
     ));
@@ -652,7 +655,7 @@ fn field_cells_project_once_and_format_their_typed_value() {
     assert_eq!(typed.access, ui::FieldAccess::Editable);
     let absent = TableCell::from(CellContent::typed_field(
         quantity_key(),
-        &FieldSpec::integer(),
+        &FieldSpec::integer(NumberSyntax::en_ca(), None),
         None,
         FieldAccess::Disabled,
     ));
@@ -1148,7 +1151,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1218,7 +1221,7 @@ fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_gho
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1612,7 +1615,7 @@ fn session_bounds_follow_native_geometry_and_viewport_exit_reports_one_closed_ou
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1794,7 +1797,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )
@@ -1875,7 +1878,7 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
     slint_kit::install_field_specs(
         &window,
         [
-            FieldSpec::integer().named(quantity_key()),
+            FieldSpec::integer(NumberSyntax::en_ca(), None).named(quantity_key()),
             owner_spec().named(owner_key()),
         ],
     )

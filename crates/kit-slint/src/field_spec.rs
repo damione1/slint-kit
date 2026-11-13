@@ -20,10 +20,10 @@ fn codec_input(rules: &HtmlConstraints, text: &str) -> String {
         rules.sanitize(text)
     }
 }
-fn decimal_draft(value: DecimalValue, locale: NumberLocale) -> String {
+fn decimal_draft(value: DecimalValue, syntax: NumberSyntax) -> String {
     value
         .to_string()
-        .replace('.', &locale.decimal_separator().to_string())
+        .replace('.', &syntax.decimal_separator().to_string())
 }
 
 /// Slint has no sum types: the outcome splits into its status and the text
@@ -231,9 +231,10 @@ impl FieldSpec<WebUrl> {
     }
 }
 impl FieldSpec<i64> {
-    pub fn integer() -> Self {
+    /// Grouped input follows `syntax`; the drafted text is ungrouped.
+    pub fn integer(syntax: NumberSyntax, bounds: Option<NumericBounds<i64>>) -> Self {
         Self::codec(
-            |text| parse_integer(text, NumberLocale::EnCa, None),
+            move |text| parse_integer(text, syntax, bounds),
             ToString::to_string,
         )
     }
@@ -242,7 +243,7 @@ impl FieldSpec<DecimalValue> {
     pub fn decimal(rules: DecimalRules) -> Self {
         Self::codec(
             move |text| rules.parse(text),
-            move |value| decimal_draft(*value, rules.locale),
+            move |value| decimal_draft(*value, rules.syntax),
         )
     }
 }
@@ -257,7 +258,7 @@ impl FieldSpec<Money> {
                     })
                 })
             },
-            move |value| decimal_draft(value.amount, rules.locale),
+            move |value| decimal_draft(value.amount, rules.syntax),
         )
     }
 }
@@ -265,7 +266,7 @@ impl FieldSpec<Percent> {
     pub fn percent(rules: DecimalRules) -> Self {
         Self::codec(
             move |text| map_draft(rules.parse(text), |amount| Ok(Percent(amount))),
-            move |value| decimal_draft(value.0, rules.locale),
+            move |value| decimal_draft(value.0, rules.syntax),
         )
     }
 }
@@ -280,7 +281,7 @@ impl<U: Clone + 'static> FieldSpec<Quantity<U>> {
                     })
                 })
             },
-            move |value| decimal_draft(value.value, rules.locale),
+            move |value| decimal_draft(value.value, rules.syntax),
         )
     }
 }
@@ -301,7 +302,7 @@ impl FieldSpec<Year> {
     pub fn year() -> Self {
         Self::codec(
             |text| {
-                map_draft(parse_integer(text, NumberLocale::EnCa, None), |year| {
+                map_draft(parse_integer(text, NumberSyntax::en_ca(), None), |year| {
                     Year::new(i32::try_from(year).map_err(|_| ParseIssue::InvalidDate)?)
                 })
             },
@@ -339,7 +340,7 @@ impl FieldSpec<DurationValue> {
                             .map(|duration| DurationDraft { duration, quantity })
                     })
                 },
-                move |value| decimal_draft(value.quantity, rules.locale),
+                move |value| decimal_draft(value.quantity, rules.syntax),
             ),
         }
     }
@@ -371,7 +372,7 @@ impl DurationFieldSpec {
             .rules
             .bounds
             .map_or(Ok(quantity), |bounds| bounds.validate(quantity))?;
-        Ok(decimal_draft(quantity, self.rules.locale))
+        Ok(decimal_draft(quantity, self.rules.syntax))
     }
     pub fn accept(
         &self,

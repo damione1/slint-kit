@@ -1,5 +1,5 @@
 //! Exact decimal editing, with locale-specific syntax and explicit rounding.
-use crate::{DraftValue, ParseIssue, StepDirection};
+use crate::{DraftValue, NumberInputFormat, ParseIssue, StepDirection};
 use rust_decimal::{Decimal, RoundingStrategy};
 use std::{fmt, marker::PhantomData, str::FromStr};
 
@@ -247,31 +247,195 @@ pub enum RoundingPolicy {
     Floor,
     Ceiling,
 }
+/// Digit group sizes for the integer part. A closed set the code decides.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NumberLocale {
-    FrCa,
-    FrFr,
-    EnCa,
-    EnUs,
+pub enum GroupSizes {
+    /// 1,234,567: every group has three digits.
+    Thousands,
+    /// 12,34,567: the last group has three digits, the others two.
+    Indian,
 }
-impl NumberLocale {
+impl GroupSizes {
+    fn secondary(self) -> usize {
+        match self {
+            Self::Thousands => 3,
+            Self::Indian => 2,
+        }
+    }
+}
+/// Where the currency symbol sits relative to the amount.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SymbolPlacement {
+    /// `$1,234.50`, `-$1.00`.
+    Prefix,
+    /// `R$ 1.234,50` with a no-break space.
+    PrefixSpaced,
+    /// `1 234,50 $` with a no-break space.
+    Suffix,
+}
+/// Grouping of the integer part: what is written, and what is also accepted.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Grouping {
+    separator: char,
+    alternate: Option<char>,
+    whitespace_equivalent: bool,
+    sizes: GroupSizes,
+}
+impl Grouping {
+    /// `separator` is written by the formatter. Any other accepted character
+    /// is declared explicitly; there is no implicit fallback.
+    pub fn new(separator: char, sizes: GroupSizes) -> Self {
+        Self {
+            separator,
+            alternate: None,
+            whitespace_equivalent: false,
+            sizes,
+        }
+    }
+    /// Also accept one more character, for example ASCII `'` for `\u{2019}`.
+    pub fn accepting(self, alternate: char) -> Self {
+        Self {
+            alternate: Some(alternate),
+            ..self
+        }
+    }
+    /// Also accept space, no-break space and narrow no-break space.
+    pub fn accepting_whitespace(self) -> Self {
+        Self {
+            whitespace_equivalent: true,
+            ..self
+        }
+    }
+    pub fn separator(self) -> char {
+        self.separator
+    }
+    pub fn sizes(self) -> GroupSizes {
+        self.sizes
+    }
+    fn accepts(self, c: char) -> bool {
+        c == self.separator
+            || self.alternate == Some(c)
+            || (self.whitespace_equivalent && matches!(c, ' ' | '\u{a0}' | '\u{202f}'))
+    }
+}
+/// The number grammar of a writing convention: one value shared by the
+/// parser, the formatter and `Money::format`. The set of conventions is open,
+/// so this is a value type with constructors, not an enum.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NumberSyntax {
+    decimal: char,
+    grouping: Option<Grouping>,
+    symbol: SymbolPlacement,
+}
+impl NumberSyntax {
+    /// Fails with `InvalidSyntax` if a separator is a digit, a sign, an
+    /// exponent marker or whitespace, or if decimal and grouping collide.
+    pub fn new(
+        decimal: char,
+        grouping: Option<Grouping>,
+        symbol: SymbolPlacement,
+    ) -> Result<Self, ParseIssue> {
+        let reserved = |c: char| c.is_alphanumeric() || c.is_whitespace() || matches!(c, '+' | '-');
+        let separators_valid = !reserved(decimal)
+            && grouping.is_none_or(|grouping| {
+                !reserved(grouping.separator)
+                    && grouping.alternate.is_none_or(|c| !reserved(c))
+                    && !grouping.accepts(decimal)
+            });
+        if separators_valid {
+            Ok(Self {
+                decimal,
+                grouping,
+                symbol,
+            })
+        } else {
+            Err(ParseIssue::InvalidSyntax)
+        }
+    }
+    fn known(decimal: char, grouping: Grouping, symbol: SymbolPlacement) -> Self {
+        Self {
+            decimal,
+            grouping: Some(grouping),
+            symbol,
+        }
+    }
+    /// 1 234,50 (no-break space), `1 234,50 $`.
+    pub fn fr_ca() -> Self {
+        Self::known(
+            ',',
+            Grouping::new('\u{a0}', GroupSizes::Thousands).accepting_whitespace(),
+            SymbolPlacement::Suffix,
+        )
+    }
+    /// 1 234,50 (narrow no-break space), `1 234,50 €`.
+    pub fn fr_fr() -> Self {
+        Self::known(
+            ',',
+            Grouping::new('\u{202f}', GroupSizes::Thousands).accepting_whitespace(),
+            SymbolPlacement::Suffix,
+        )
+    }
+    /// 1,234.50, `$1,234.50`.
+    pub fn en_ca() -> Self {
+        Self::known(
+            '.',
+            Grouping::new(',', GroupSizes::Thousands),
+            SymbolPlacement::Prefix,
+        )
+    }
+    /// 1,234.50, `$1,234.50`.
+    pub fn en_us() -> Self {
+        Self::en_ca()
+    }
+    /// 12,34,567.50, `\u{20b9}12,34,567.50`.
+    pub fn en_in() -> Self {
+        Self::known(
+            '.',
+            Grouping::new(',', GroupSizes::Indian),
+            SymbolPlacement::Prefix,
+        )
+    }
+    /// 1.234,50, `1.234,50 €`.
+    pub fn de_de() -> Self {
+        Self::known(
+            ',',
+            Grouping::new('.', GroupSizes::Thousands),
+            SymbolPlacement::Suffix,
+        )
+    }
+    /// 1\u{2019}234.50, `CHF 1\u{2019}234.50`; ASCII `'` is also accepted.
+    pub fn de_ch() -> Self {
+        Self::known(
+            '.',
+            Grouping::new('\u{2019}', GroupSizes::Thousands).accepting('\''),
+            SymbolPlacement::PrefixSpaced,
+        )
+    }
+    /// 1.234,50, `R$ 1.234,50`.
+    pub fn pt_br() -> Self {
+        Self::known(
+            ',',
+            Grouping::new('.', GroupSizes::Thousands),
+            SymbolPlacement::PrefixSpaced,
+        )
+    }
     pub fn decimal_separator(self) -> char {
-        match self {
-            Self::FrCa | Self::FrFr => ',',
-            Self::EnCa | Self::EnUs => '.',
-        }
+        self.decimal
     }
-    pub fn grouping_separator(self) -> char {
-        match self {
-            Self::FrCa => '\u{a0}',
-            Self::FrFr => '\u{202f}',
-            Self::EnCa | Self::EnUs => ',',
-        }
+    pub fn grouping(self) -> Option<Grouping> {
+        self.grouping
     }
-    fn is_group(self, c: char) -> bool {
+    pub fn symbol_placement(self) -> SymbolPlacement {
+        self.symbol
+    }
+}
+impl NumberInputFormat {
+    /// The grammar the HTML number engine applies to a draft in this format.
+    /// The control's format and the typed codec share this one definition.
+    pub fn syntax(self) -> NumberSyntax {
         match self {
-            Self::FrCa | Self::FrFr => matches!(c, ' ' | '\u{a0}' | '\u{202f}'),
-            Self::EnCa | Self::EnUs => c == ',',
+            Self::Canonical => NumberSyntax::en_ca(),
+            Self::DecimalComma => NumberSyntax::fr_ca(),
         }
     }
 }
@@ -311,14 +475,14 @@ impl<T: Ord + Copy> NumericBounds<T> {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DecimalRules {
-    pub locale: NumberLocale,
+    pub syntax: NumberSyntax,
     pub scale: DecimalScale,
     pub sign: SignPolicy,
     pub bounds: Option<NumericBounds<DecimalValue>>,
 }
 impl DecimalRules {
     pub fn parse(self, text: &str) -> DraftValue<DecimalValue> {
-        let canonical = match canonicalize(text, self.locale, true, self.sign) {
+        let canonical = match canonicalize(text, self.syntax, true, self.sign) {
             Ok(value) => value,
             Err(value) => return value,
         };
@@ -340,25 +504,25 @@ impl DecimalRules {
 // Decimal and integer domains expand exponents only after structural normalization.
 fn canonicalize<T>(
     text: &str,
-    locale: NumberLocale,
+    syntax: NumberSyntax,
     decimal: bool,
     sign: SignPolicy,
 ) -> Result<String, DraftValue<T>> {
-    let syntax = canonical_number_syntax(text, locale, decimal, sign)?;
-    if let Some((mantissa, exponent)) = syntax.split_once(['e', 'E']) {
+    let normalized = canonical_number_syntax(text, syntax, decimal, sign)?;
+    if let Some((mantissa, exponent)) = normalized.split_once(['e', 'E']) {
         let exponent = exponent
             .parse::<i32>()
             .map_err(|_| DraftValue::Invalid(ParseIssue::Overflow))?;
         expand_exponent(mantissa, exponent).map_err(DraftValue::Invalid)
     } else {
-        Ok(syntax)
+        Ok(normalized)
     }
 }
 // Shared syntax normalization preserves the exponent representation of native values.
 // It produces text, not a parsed domain value.
 pub(crate) fn canonical_number_syntax<T>(
     text: &str,
-    locale: NumberLocale,
+    syntax: NumberSyntax,
     decimal: bool,
     sign: SignPolicy,
 ) -> Result<String, DraftValue<T>> {
@@ -368,7 +532,7 @@ pub(crate) fn canonical_number_syntax<T>(
     }
     if let Some((mantissa, exponent)) = text.split_once(['e', 'E']) {
         let marker = if text.contains('e') { 'e' } else { 'E' };
-        let mantissa = canonical_number_syntax::<T>(mantissa, locale, true, sign)?;
+        let mantissa = canonical_number_syntax::<T>(mantissa, syntax, true, sign)?;
         let digits = exponent.strip_prefix(['-', '+']).unwrap_or(exponent);
         if digits.is_empty() {
             return Err(DraftValue::Incomplete);
@@ -386,7 +550,7 @@ pub(crate) fn canonical_number_syntax<T>(
     if unsigned.is_empty() {
         return Err(DraftValue::Incomplete);
     }
-    let mut parts = unsigned.split(locale.decimal_separator());
+    let mut parts = unsigned.split(syntax.decimal_separator());
     let integer = parts.next().unwrap_or_default();
     let fraction = parts.next();
     if parts.next().is_some() || (!decimal && fraction.is_some()) {
@@ -397,13 +561,23 @@ pub(crate) fn canonical_number_syntax<T>(
     {
         return Err(DraftValue::Invalid(ParseIssue::InvalidSyntax));
     }
-    let groups: Vec<&str> = integer.split(|c| locale.is_group(c)).collect();
-    if groups.len() > 1
-        && (groups[0].is_empty()
-            || groups[0].len() > 3
-            || groups.iter().skip(1).any(|group| group.len() != 3))
+    let groups: Vec<&str> = match syntax.grouping() {
+        Some(grouping) => integer.split(|c| grouping.accepts(c)).collect(),
+        None => vec![integer],
+    };
+    if let Some(grouping) = syntax.grouping()
+        && groups.len() > 1
     {
-        return Err(DraftValue::Invalid(ParseIssue::InvalidGrouping));
+        let secondary = grouping.sizes().secondary();
+        let (first, rest) = (groups[0], &groups[1..]);
+        let (middle, last) = rest.split_at(rest.len() - 1);
+        if first.is_empty()
+            || first.len() > secondary
+            || last[0].len() != 3
+            || middle.iter().any(|group| group.len() != secondary)
+        {
+            return Err(DraftValue::Invalid(ParseIssue::InvalidGrouping));
+        }
     }
     if groups
         .iter()
@@ -459,10 +633,10 @@ fn expand_exponent(mantissa: &str, exponent: i32) -> Result<String, ParseIssue> 
 }
 pub fn parse_integer(
     text: &str,
-    locale: NumberLocale,
+    syntax: NumberSyntax,
     bounds: Option<NumericBounds<i64>>,
 ) -> DraftValue<i64> {
-    let canonical = match canonicalize(text, locale, true, SignPolicy::Signed) {
+    let canonical = match canonicalize(text, syntax, true, SignPolicy::Signed) {
         Ok(value) => value,
         Err(value) => return value,
     };
@@ -481,7 +655,7 @@ pub fn parse_integer(
 }
 pub fn format_decimal(
     value: DecimalValue,
-    locale: NumberLocale,
+    syntax: NumberSyntax,
     scale: DecimalScale,
     rounding: RoundingPolicy,
 ) -> Result<String, ParseIssue> {
@@ -497,13 +671,20 @@ pub fn format_decimal(
         formatted.push('-');
     }
     for (index, c) in digits.chars().enumerate() {
-        if index > 0 && (digits.len() - index).is_multiple_of(3) {
-            formatted.push(locale.grouping_separator());
+        if let Some(grouping) = syntax.grouping() {
+            let remaining = digits.len() - index;
+            let boundary = match grouping.sizes() {
+                GroupSizes::Thousands => remaining.is_multiple_of(3),
+                GroupSizes::Indian => remaining >= 3 && (remaining - 3).is_multiple_of(2),
+            };
+            if index > 0 && boundary {
+                formatted.push(grouping.separator());
+            }
         }
         formatted.push(c);
     }
     if let Some(fraction) = fraction {
-        formatted.push(locale.decimal_separator());
+        formatted.push(syntax.decimal_separator());
         formatted.push_str(fraction);
     }
     Ok(formatted)
@@ -594,25 +775,23 @@ impl Money {
     pub fn format(
         &self,
         metadata: &CurrencyMetadata,
-        locale: NumberLocale,
+        syntax: NumberSyntax,
         rounding: RoundingPolicy,
     ) -> Result<String, ParseIssue> {
         if self.currency != metadata.code {
             return Err(ParseIssue::InvalidCurrency);
         }
-        let amount = format_decimal(self.amount, locale, metadata.scale, rounding)?;
-        match locale {
-            NumberLocale::FrCa | NumberLocale::FrFr => {
-                Ok(format!("{amount}\u{a0}{}", metadata.symbol))
-            }
-            NumberLocale::EnCa | NumberLocale::EnUs => {
-                Ok(if let Some(unsigned) = amount.strip_prefix('-') {
-                    format!("-{}{unsigned}", metadata.symbol)
-                } else {
-                    format!("{}{amount}", metadata.symbol)
-                })
-            }
-        }
+        let amount = format_decimal(self.amount, syntax, metadata.scale, rounding)?;
+        let symbol = &metadata.symbol;
+        let (sign, unsigned) = match amount.strip_prefix('-') {
+            Some(unsigned) => ("-", unsigned),
+            None => ("", amount.as_str()),
+        };
+        Ok(match syntax.symbol_placement() {
+            SymbolPlacement::Suffix => format!("{amount}\u{a0}{symbol}"),
+            SymbolPlacement::Prefix => format!("{sign}{symbol}{unsigned}"),
+            SymbolPlacement::PrefixSpaced => format!("{sign}{symbol}\u{a0}{unsigned}"),
+        })
     }
     pub fn checked_add(&self, other: &Self) -> Result<Self, ParseIssue> {
         if self.currency != other.currency {
@@ -699,9 +878,9 @@ mod tests {
     fn d(value: &str) -> DecimalValue {
         value.parse().unwrap()
     }
-    fn rules(locale: NumberLocale) -> DecimalRules {
+    fn rules(syntax: NumberSyntax) -> DecimalRules {
         DecimalRules {
-            locale,
+            syntax,
             scale: DecimalScale::new(2).unwrap(),
             sign: SignPolicy::Signed,
             bounds: None,
@@ -711,10 +890,10 @@ mod tests {
     fn exact_and_locale_round_trip() {
         assert_eq!(d("0.10").checked_add(d("0.20")).unwrap(), d("0.30"));
         for locale in [
-            NumberLocale::FrCa,
-            NumberLocale::FrFr,
-            NumberLocale::EnCa,
-            NumberLocale::EnUs,
+            NumberSyntax::fr_ca(),
+            NumberSyntax::fr_fr(),
+            NumberSyntax::en_ca(),
+            NumberSyntax::en_us(),
         ] {
             let text = format_decimal(
                 d("1234.50"),
@@ -729,21 +908,24 @@ mod tests {
     #[test]
     fn incomplete_invalid_and_overflow() {
         assert_eq!(
-            rules(NumberLocale::FrCa).parse("1,"),
+            rules(NumberSyntax::fr_ca()).parse("1,"),
             DraftValue::Incomplete
         );
-        assert_eq!(rules(NumberLocale::FrCa).parse("-"), DraftValue::Incomplete);
-        assert_eq!(rules(NumberLocale::FrCa).parse(""), DraftValue::Empty);
         assert_eq!(
-            rules(NumberLocale::EnCa).parse("1,23.40"),
+            rules(NumberSyntax::fr_ca()).parse("-"),
+            DraftValue::Incomplete
+        );
+        assert_eq!(rules(NumberSyntax::fr_ca()).parse(""), DraftValue::Empty);
+        assert_eq!(
+            rules(NumberSyntax::en_ca()).parse("1,23.40"),
             DraftValue::Invalid(ParseIssue::InvalidGrouping)
         );
         assert_eq!(
-            parse_integer("9223372036854775808", NumberLocale::EnUs, None),
+            parse_integer("9223372036854775808", NumberSyntax::en_us(), None),
             DraftValue::Invalid(ParseIssue::Overflow)
         );
         assert_eq!(
-            rules(NumberLocale::FrFr).parse("1\u{202f}234,50"),
+            rules(NumberSyntax::fr_fr()).parse("1\u{202f}234,50"),
             DraftValue::Parsed(d("1234.5"))
         );
         assert_eq!(
@@ -786,7 +968,7 @@ mod tests {
             negative
                 .format(
                     &CurrencyMetadata::cad(),
-                    NumberLocale::EnCa,
+                    NumberSyntax::en_ca(),
                     RoundingPolicy::Reject
                 )
                 .unwrap(),
@@ -812,7 +994,7 @@ mod tests {
             money
                 .format(
                     &CurrencyMetadata::cad(),
-                    NumberLocale::FrCa,
+                    NumberSyntax::fr_ca(),
                     RoundingPolicy::Reject
                 )
                 .unwrap(),
@@ -830,7 +1012,7 @@ mod tests {
             };
             assert!(
                 amount
-                    .format(&metadata, NumberLocale::EnUs, RoundingPolicy::Reject)
+                    .format(&metadata, NumberSyntax::en_us(), RoundingPolicy::Reject)
                     .is_ok()
             );
         }
@@ -843,27 +1025,27 @@ mod html_numeric_drafts {
     #[test]
     fn scientific_and_integral_decimal_drafts_keep_exact_domain_values() {
         assert_eq!(
-            parse_integer("1e2", NumberLocale::EnCa, None),
+            parse_integer("1e2", NumberSyntax::en_ca(), None),
             DraftValue::Parsed(100)
         );
         assert_eq!(
-            parse_integer("12.0", NumberLocale::EnCa, None),
+            parse_integer("12.0", NumberSyntax::en_ca(), None),
             DraftValue::Parsed(12)
         );
         assert_eq!(
-            parse_integer("1,5e2", NumberLocale::FrCa, None),
+            parse_integer("1,5e2", NumberSyntax::fr_ca(), None),
             DraftValue::Parsed(150)
         );
         assert_eq!(
-            parse_integer("1e", NumberLocale::EnCa, None),
+            parse_integer("1e", NumberSyntax::en_ca(), None),
             DraftValue::Incomplete
         );
         assert_eq!(
-            parse_integer("1e-1", NumberLocale::EnCa, None),
+            parse_integer("1e-1", NumberSyntax::en_ca(), None),
             DraftValue::Invalid(ParseIssue::InvalidSyntax)
         );
         let rules = DecimalRules {
-            locale: NumberLocale::EnCa,
+            syntax: NumberSyntax::en_ca(),
             scale: DecimalScale::new(2).unwrap(),
             sign: SignPolicy::Signed,
             bounds: None,

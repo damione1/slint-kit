@@ -7,7 +7,7 @@ use slint::{
 };
 use slint_kit::{
     DecimalRules, DecimalScale, DecimalValue, DurationUnit, DurationValue, FieldSpec, FieldSpecKey,
-    NumberLocale, NumericBounds, ParseIssue, SignPolicy, ui,
+    NumberSyntax, NumericBounds, ParseIssue, SignPolicy, ui,
 };
 use std::{
     cell::{OnceCell, RefCell},
@@ -17,15 +17,15 @@ thread_local! { static BACKEND: OnceCell<()> = const { OnceCell::new() }; }
 fn decimal(text: &str) -> DecimalValue {
     text.parse().unwrap()
 }
-fn rules(locale: NumberLocale, scale: u32) -> DecimalRules {
+fn rules(locale: NumberSyntax, scale: u32) -> DecimalRules {
     DecimalRules {
-        locale,
+        syntax: locale,
         scale: DecimalScale::new(scale).unwrap(),
         sign: SignPolicy::NonNegative,
         bounds: None,
     }
 }
-fn commit(text: &str, locale: NumberLocale) -> ui::FieldCommit {
+fn commit(text: &str, locale: NumberSyntax) -> ui::FieldCommit {
     ui::FieldCommit {
         value: ui::FieldValue {
             present: !text.is_empty(),
@@ -33,9 +33,10 @@ fn commit(text: &str, locale: NumberLocale) -> ui::FieldCommit {
         },
         constraints: ui::KitInputConstraints {
             kind: ui::HtmlInputKind::Number,
-            number_format: match locale {
-                NumberLocale::EnCa | NumberLocale::EnUs => ui::NumberInputFormat::Canonical,
-                NumberLocale::FrCa | NumberLocale::FrFr => ui::NumberInputFormat::DecimalComma,
+            number_format: if locale.decimal_separator() == '.' {
+                ui::NumberInputFormat::Canonical
+            } else {
+                ui::NumberInputFormat::DecimalComma
             },
             step: "any".into(),
             min_length: -1,
@@ -48,10 +49,10 @@ fn commit(text: &str, locale: NumberLocale) -> ui::FieldCommit {
 #[test]
 fn explicit_units_round_trip_exact_quantities_through_the_public_codec() {
     for locale in [
-        NumberLocale::EnCa,
-        NumberLocale::EnUs,
-        NumberLocale::FrCa,
-        NumberLocale::FrFr,
+        NumberSyntax::en_ca(),
+        NumberSyntax::en_us(),
+        NumberSyntax::fr_ca(),
+        NumberSyntax::fr_fr(),
     ] {
         for (unit, milliseconds) in [
             (DurationUnit::Milliseconds, 5),
@@ -71,16 +72,18 @@ fn explicit_units_round_trip_exact_quantities_through_the_public_codec() {
             let (plain, grouped) = match unit {
                 DurationUnit::Milliseconds => (
                     "1234",
-                    match locale {
-                        NumberLocale::EnCa | NumberLocale::EnUs => "+1,234",
-                        NumberLocale::FrCa | NumberLocale::FrFr => "+1\u{202f}234",
+                    if locale.decimal_separator() == '.' {
+                        "+1,234"
+                    } else {
+                        "+1\u{202f}234"
                     },
                 ),
                 DurationUnit::Seconds | DurationUnit::Minutes | DurationUnit::Hours => (
                     "1234.5",
-                    match locale {
-                        NumberLocale::EnCa | NumberLocale::EnUs => "+1,234.5",
-                        NumberLocale::FrCa | NumberLocale::FrFr => "+1\u{202f}234,5",
+                    if locale.decimal_separator() == '.' {
+                        "+1,234.5"
+                    } else {
+                        "+1\u{202f}234,5"
                     },
                 ),
             };
@@ -93,9 +96,10 @@ fn explicit_units_round_trip_exact_quantities_through_the_public_codec() {
             );
         }
         let spec = FieldSpec::duration(DurationUnit::Seconds, rules(locale, 3));
-        let fraction = match locale {
-            NumberLocale::EnCa | NumberLocale::EnUs => "1.5",
-            NumberLocale::FrCa | NumberLocale::FrFr => "1,5",
+        let fraction = if locale.decimal_separator() == '.' {
+            "1.5"
+        } else {
+            "1,5"
         };
         assert_eq!(
             spec.accept(commit(fraction, locale))
@@ -104,9 +108,10 @@ fn explicit_units_round_trip_exact_quantities_through_the_public_codec() {
                 .milliseconds(),
             1500
         );
-        let tiny = match locale {
-            NumberLocale::EnCa | NumberLocale::EnUs => "0.001",
-            NumberLocale::FrCa | NumberLocale::FrFr => "0,001",
+        let tiny = if locale.decimal_separator() == '.' {
+            "0.001"
+        } else {
+            "0,001"
         };
         assert_eq!(
             spec.accept(commit(tiny, locale))
@@ -120,7 +125,7 @@ fn explicit_units_round_trip_exact_quantities_through_the_public_codec() {
 }
 #[test]
 fn duration_representability_scale_bounds_and_overflow_are_explicit() {
-    let locale = NumberLocale::EnCa;
+    let locale = NumberSyntax::en_ca();
     let seconds = FieldSpec::duration(DurationUnit::Seconds, rules(locale, 4));
     for text in [
         "0.0001",
@@ -219,7 +224,7 @@ fn fixture() -> DurationUnitFixture {
     slint_kit::install_field_specs(
         &app,
         [
-            FieldSpec::duration(DurationUnit::Seconds, rules(NumberLocale::EnCa, 3))
+            FieldSpec::duration(DurationUnit::Seconds, rules(NumberSyntax::en_ca(), 3))
                 .named(FieldSpecKey::new("amount").unwrap()),
         ],
     )
@@ -246,7 +251,7 @@ fn native_seconds_commit_step_undo_and_controlled_acknowledgment_keep_the_unit()
     frame(&app);
     let observed = Rc::new(RefCell::new(Vec::new()));
     let values = observed.clone();
-    let spec = FieldSpec::duration(DurationUnit::Seconds, rules(NumberLocale::EnCa, 3));
+    let spec = FieldSpec::duration(DurationUnit::Seconds, rules(NumberSyntax::en_ca(), 3));
     app.on_committed(move |commit| {
         values
             .borrow_mut()
