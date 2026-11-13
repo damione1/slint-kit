@@ -685,6 +685,12 @@ export component KitCarousel inherits Rectangle {
     in property <string> previous-label: "Previous slide";
     in property <string> next-label: "Next slide";
     in property <string> empty-label: "No slides";
+    // Draws one dot per slide under the controls; the active slide's dot is filled.
+    // The dots are a visual cue only: assistive technology reads the position text.
+    in property <bool> show-indicators: false;
+    // Zero-based active slide, or -1 when there is none. Content placed in the carousel
+    // reads it to show one view per slide, for example `if carousel.current-index == 0: ...`.
+    out property <int> current-index: root.display-index >= 0 && root.display-index < root.rows.length ? root.display-index : -1;
     in property <string> position-label: KitStrings.carousel-position-template
         .replace-all("{current}", "" + (root.rows.length == 0 ? 0 : root.display-index + 1))
         .replace-all("{total}", "" + root.rows.length);
@@ -763,7 +769,7 @@ export component KitCarousel inherits Rectangle {
                     }
                     activated => { root.handle-navigate(NavigationStep.previous); }
                 }
-                Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+                Text { text: root.position-label; accessible-live-region: polite; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
                 KitButton {
                     theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.next-label;
                     disabled: !root.interactive || root.rows.length == 0 || (!root.wrap && root.display-index >= root.rows.length - 1);
@@ -772,6 +778,14 @@ export component KitCarousel inherits Rectangle {
                         return KitKeyResult.reject;
                     }
                     activated => { root.handle-navigate(NavigationStep.next); }
+                }
+            }
+            if root.show-indicators && root.rows.length > 0: HorizontalLayout {
+                alignment: center; spacing: root.theme.spacing.unit * 2;
+                for slide[slide-index] in root.rows: Rectangle {
+                    width: root.theme.spacing.unit * 2; height: root.theme.spacing.unit * 2;
+                    border-radius: self.width / 2;
+                    background: slide-index == root.current-index ? root.theme.accent : root.theme.border-strong;
                 }
             }
         }
@@ -808,7 +822,24 @@ export component KitBreadcrumbs inherits Rectangle {
     in property <string> accessible-name: KitStrings.breadcrumbs-label;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> rows: selection.rows;
+    // Longest trail shown before the middle collapses into an ellipsis button; the first
+    // crumb and the last `max-items - 1` crumbs stay visible. Zero shows every crumb;
+    // values below 2 behave as 2.
+    in property <int> max-items: 0;
+    // True once the ellipsis button was pressed and the whole trail is shown. Bind or set
+    // it to restore the collapsed trail.
+    in-out property <bool> expanded: false;
+    // Glyph drawn between two crumbs.
+    in property <IconGlyph> separator-glyph: root.theme.icons.chevron-right;
+    // Accessible name of the ellipsis button that reveals the collapsed crumbs.
+    in property <string> ellipsis-label: "Show hidden items";
+    // Accessible description of the last crumb, which is the current location.
+    in property <string> current-label: "Current page";
     callback activate(int, int);
+    private property <int> limit: max(2, root.max-items);
+    private property <bool> collapsed: root.max-items > 0 && !root.expanded && root.rows.length > root.limit;
+    // First crumb after the collapsed run; the ellipsis stands just before it.
+    private property <int> tail-start: root.rows.length - (root.limit - 1);
     min-height: KitMetrics.row-height(root.theme, root.control-size);
     preferred-height: self.min-height;
     vertical-stretch: 0;
@@ -824,22 +855,39 @@ export component KitBreadcrumbs inherits Rectangle {
             spacing: root.theme.spacing.unit; alignment: start;
             for row[index] in root.rows: HorizontalLayout {
                 spacing: root.theme.spacing.unit;
-                if index > 0: Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                    KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.theme.icons.chevron-right; ink: root.theme.text-secondary; }
+                if root.collapsed && index == root.tail-start: HorizontalLayout {
+                    spacing: root.theme.spacing.unit;
+                    Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
+                        KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.separator-glyph; ink: root.theme.text-secondary; }
+                    }
+                    KitButton {
+                        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                        text: "…"; accessible-name: root.ellipsis-label;
+                        intent: ButtonIntent.quiet;
+                        disabled: !root.interactive;
+                        activated => { root.expanded = true; }
+                    }
                 }
-                if index < root.rows.length - 1: KitNavigationAction {
-                    theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
-                    option-data: row;
-                    disabled: !root.interactive || row.disabled;
-                    control-width: ControlWidth.intrinsic;
-                    tab-stop: true;
-                    accessible-role: button;
-                    activate(token, generation) => { root.handle-activate(token, generation); }
-                }
-                if index == root.rows.length - 1: Text {
-                    text: row.label; color: root.theme.text-primary;
-                    font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-                    vertical-alignment: center; overflow: elide;
+                if !root.collapsed || index == 0 || index >= root.tail-start: HorizontalLayout {
+                    spacing: root.theme.spacing.unit;
+                    if index > 0: Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
+                        KitIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; glyph: root.separator-glyph; ink: root.theme.text-secondary; }
+                    }
+                    if index < root.rows.length - 1: KitNavigationAction {
+                        theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                        option-data: row;
+                        disabled: !root.interactive || row.disabled;
+                        control-width: ControlWidth.intrinsic;
+                        tab-stop: true;
+                        accessible-role: button;
+                        activate(token, generation) => { root.handle-activate(token, generation); }
+                    }
+                    if index == root.rows.length - 1: Text {
+                        text: row.label; color: root.theme.text-primary;
+                        accessible-description: root.current-label;
+                        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                        vertical-alignment: center; overflow: elide;
+                    }
                 }
             }
         }
