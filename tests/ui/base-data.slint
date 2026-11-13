@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit } from "@kit";
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit } from "@kit";
 export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -92,7 +92,7 @@ export component BaseDataFixture inherits Window {
     callback resize-requested(int, length);
     callback autosize-requested(int);
     callback reorder-requested(int, int);
-    callback cell-committed(int, int, int, FieldCommit);
+    callback cell-committed(CellCommit);
     callback table-edit-started(int, int, int);
     callback table-edit-ended(int, int, int, TableEditOutcome, string);
     callback validate-table-edit(int, int, int, FieldCommit) -> string;
@@ -128,7 +128,7 @@ export component BaseDataFixture inherits Window {
             edit-started(row,column,generation) => {root.table-edit-started(row,column,generation);}
             edit-ended(row,column,generation,outcome,message) => {root.table-edit-ended(row,column,generation,outcome,message);}
             validate-edit(row,column,generation,commit) => { return root.validate-table-edit(row,column,generation,commit); }
-            cell-committed(row, column, generation, commit) => { root.cell-committed(row, column, generation, commit); }
+            cell-committed(proposal) => { root.cell-committed(proposal); }
         }
         content := KitContentList {
             near-end-rows: root.near-end-rows; near-end => { root.near-end(DataFixtureCollection.content); }

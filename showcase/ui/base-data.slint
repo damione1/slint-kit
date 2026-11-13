@@ -6,6 +6,7 @@ import { KitButton } from "@kit/button.slint";
 import { KitCard, KitCardHeader, KitCardBody } from "@kit/display.slint";
 import { NavigationStep } from "@kit/contracts.slint";
 import { FieldCommit } from "@kit/field-service.slint";
+import { CellCommit } from "@kit/data.slint";
 import { KitDataTable, KitContentList, KitVirtualTextView, TableColumn, TableRow, ContentItem, TextLine, TextViewAccess } from "@kit/data.slint";
 export enum ArticlePreviewState { closed, open }
 export struct ArticlePreview { token: int, title: string, metadata: string, body: string, thumbnail: image }
@@ -17,7 +18,7 @@ export global DataExamples {
     in-out property <int> table-active:-1;
     in-out property <string> query;
     in-out property <string> table-status;
-    callback query-edited(string);callback sort(int);callback table-select(int,int);callback table-resize(int,length);callback table-cell-committed(int,int,int,FieldCommit);
+    callback query-edited(string);callback sort(int);callback table-select(int,int);callback table-resize(int,length);callback table-cell-committed(CellCommit);
     callback navigate(DataCollection,NavigationStep,int);
     in-out property <[ContentItem]> articles;
     in-out property <int> article-active:-1;
@@ -46,7 +47,7 @@ export component DataGallery inherits VerticalLayout {
         PreviewAnchor { height: 0px; target: PreviewTarget.table; }
         KitCardHeader {theme:root.theme;title:"Data table";description:"Search and sort ten thousand records. Selection stays with the record when its position changes.";}
         KitSearchField {theme:root.theme;control-size:root.control-size;label:"Find a product";placeholder:"Search title or category";text<=>DataExamples.query;edited(query)=>{DataExamples.query-edited(query);}}
-        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step,self.page-rows);}sort-requested(column)=>{DataExamples.sort(column);}resize-requested(column,width)=>{DataExamples.table-resize(column,width);}cell-committed(row,column,generation,commit)=>{DataExamples.table-cell-committed(row,column,generation,commit);}}
+        KitDataTable {theme:root.theme;control-size:root.control-size;columns:DataExamples.columns;rows:DataExamples.table-rows;generation:DataExamples.table-generation;active-index:DataExamples.table-active;preferred-height:360px;activate(token,generation)=>{DataExamples.table-select(token,generation);}navigate(step)=>{DataExamples.navigate(DataCollection.table,step,self.page-rows);}sort-requested(column)=>{DataExamples.sort(column);}resize-requested(column,width)=>{DataExamples.table-resize(column,width);}cell-committed(proposal)=>{DataExamples.table-cell-committed(proposal);}}
         Text {text:DataExamples.table-status;color:root.theme.text-secondary;font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;accessible-live-region:polite;}
     }
     KitCard {theme:root.theme;
