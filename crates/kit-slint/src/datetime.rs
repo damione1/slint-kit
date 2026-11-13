@@ -3,7 +3,7 @@
 use crate::{FieldSpec, ui};
 use kit_core::{
     CivilDate, ClockFormat, DraftValue, Instant, IsoWeek, LocalDateTime, LocalTime, ParseIssue,
-    TimePrecision, TimeZoneId, Year, YearMonth, ZonedResolution,
+    TimePrecision, TimeZoneId, UtcOffset, Year, YearMonth, ZonedResolution,
 };
 impl From<LocalTime> for ui::LocalTimeView {
     fn from(value: LocalTime) -> Self {
@@ -44,6 +44,12 @@ pub struct ResolvedDateTime {
     pub local: LocalDateTime,
     pub zone: TimeZoneId,
     pub instant: Instant,
+}
+impl ResolvedDateTime {
+    /// Offset from UTC that applies to the accepted occurrence.
+    pub fn utc_offset(self) -> UtcOffset {
+        self.zone.offset_at(self.instant)
+    }
 }
 impl TryFrom<ui::ZonedDateTimeCommit> for ResolvedDateTime {
     type Error = ParseIssue;
@@ -285,14 +291,23 @@ where
         let Ok(local) = local(draft.date.as_str(), draft.time.as_str(), precision, clock) else {
             return ui::ZonedDateTimeResult::default();
         };
-        let state = match zone.resolve(local) {
-            ZonedResolution::Unique(_) => ui::ZonedTimePresentation::Unique,
-            ZonedResolution::Ambiguous { .. } => ui::ZonedTimePresentation::Ambiguous,
-            ZonedResolution::Nonexistent => ui::ZonedTimePresentation::Nonexistent,
+        let (state, utc_offset_seconds, later_utc_offset_seconds) = match zone.resolve(local) {
+            ZonedResolution::Unique(instant) => {
+                let offset = zone.offset_at(instant).seconds();
+                (ui::ZonedTimePresentation::Unique, offset, offset)
+            }
+            ZonedResolution::Ambiguous { earlier, later } => (
+                ui::ZonedTimePresentation::Ambiguous,
+                zone.offset_at(earlier).seconds(),
+                zone.offset_at(later).seconds(),
+            ),
+            ZonedResolution::Nonexistent => (ui::ZonedTimePresentation::Nonexistent, 0, 0),
         };
         ui::ZonedDateTimeResult {
             state,
             local: local.into(),
+            utc_offset_seconds,
+            later_utc_offset_seconds,
         }
     });
     service.set_ready(true);

@@ -251,10 +251,13 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
         ui::ClockFormat::TwentyFourHour,
     );
     assert_eq!(resolution.state, ui::ZonedTimePresentation::Ambiguous);
+    assert_eq!(resolution.utc_offset_seconds, -4 * 3600);
+    assert_eq!(resolution.later_utc_offset_seconds, -5 * 3600);
     let commit = ui::ZonedDateTimeCommit {
         local: resolution.local.clone(),
         zone: draft.zone.clone(),
         acceptance: ui::ZonedAcceptance::Unique,
+        utc_offset_seconds: 0,
     };
     assert!(slint_kit::ResolvedDateTime::try_from(commit.clone()).is_err());
     let earlier = slint_kit::ResolvedDateTime::try_from(ui::ZonedDateTimeCommit {
@@ -268,6 +271,8 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
     })
     .unwrap();
     assert_ne!(earlier.instant, later.instant);
+    assert_eq!(earlier.utc_offset().seconds(), -4 * 3600);
+    assert_eq!(later.utc_offset().seconds(), -5 * 3600);
     let gap = service.invoke_resolve(
         ui::ZonedDateTimeDraft {
             date: "2026-03-08".into(),
@@ -278,6 +283,7 @@ fn temporal_services_validate_dst_occurrences_and_range_interiors() {
         ui::ClockFormat::TwentyFourHour,
     );
     assert_eq!(gap.state, ui::ZonedTimePresentation::Nonexistent);
+    assert_eq!(gap.utc_offset_seconds, 0);
     assert_eq!(
         service.invoke_adjust(
             "23:59".into(),
