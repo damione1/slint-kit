@@ -14,6 +14,7 @@ import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitStrings } from "strings.slint";
 import { KitIcon, KitGlyphs } from "icons.slint";
 import { FieldAccess } from "contracts.slint";
+import { KitKeyResult } from "keyboard.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
 
@@ -122,6 +123,8 @@ export component KitCalendar inherits Rectangle {
     in property <string> unavailable-label: "Unavailable";
     in property <string> navigation-help: "Arrow keys move by day or week. Home and End move within the week. Page Up and Page Down change month; hold Shift to change year.";
     in property <bool> request-focus;
+    // A calendar embedded in a dialog leaves Escape to the dialog when false.
+    in property <bool> escape-cancels: true;
     callback navigate(CalendarNavigation);
     callback choose(CalendarDay);
     callback cancelled();
@@ -165,7 +168,7 @@ export component KitCalendar inherits Rectangle {
             min-height: root.cell-height * (1 + (root.week-rows == CalendarWeekRows.variable && root.days.length > 0 ? ceil(root.days.length / 7) : 6));
             enabled: root.access != FieldAccess.disabled;
             key-pressed(event) => {
-                if (event.text == Key.Escape) { root.cancelled(); return accept; }
+                if (event.text == Key.Escape) { if (!root.escape-cancels) { return reject; } root.cancelled(); return accept; }
                 if (root.access == FieldAccess.disabled) { return reject; }
                 if (event.text == Key.LeftArrow) { root.move(root.right-to-left ? CalendarNavigation.next-day : CalendarNavigation.previous-day); return accept; }
                 if (event.text == Key.RightArrow) { root.move(root.right-to-left ? CalendarNavigation.previous-day : CalendarNavigation.next-day); return accept; }
@@ -231,6 +234,40 @@ export component KitDateField inherits TemporalField {
     }
     placeholder: "YYYY-MM-DD";
     description: "Civil date; no time zone";
+    // Alt+ArrowDown and F4 ask the host to open its calendar, as on the web.
+    callback open-requested();
+    private property <CivilDateView> draft-date: KitCalendarService.ready ? KitCalendarService.parse-date(root.text) : {};
+    private property <CalendarView> step-view: {selected: root.draft-date, focused: root.draft-date, today: KitCalendarService.today, min: root.min, max: root.max, unavailable-weekdays: [], unavailable-ranges: []};
+    private property <CalendarView> empty-view: {today: KitCalendarService.today, min: root.min, max: root.max, unavailable-weekdays: [], unavailable-ranges: []};
+    // ArrowUp/ArrowDown step the draft by a day and PageUp/PageDown by a month
+    // (Shift: year). An empty draft starts at the nearest allowed day to today;
+    // a draft that is not a date stays with the native editor. A step clamped
+    // at a bound edits nothing but is still consumed.
+    function step-date(direction: CalendarNavigation) -> KitKeyResult {
+        if (!KitCalendarService.ready || root.access != FieldAccess.editable) { return KitKeyResult.reject; }
+        if (root.text == "") {
+            root.replace-draft(KitCalendarService.format-date(KitCalendarService.initial-focus(root.empty-view)));
+            return KitKeyResult.accept;
+        }
+        if (root.draft-date.year <= 0) { return KitKeyResult.reject; }
+        let next = KitCalendarService.format-date(KitCalendarService.navigate(root.step-view, direction));
+        if (next != "" && next != root.text) { root.replace-draft(next); }
+        return KitKeyResult.accept;
+    }
+    key-pressed(event) => {
+        if (event.modifiers.control || event.modifiers.meta) { return KitKeyResult.reject; }
+        if (event.text == Key.F4 || (event.text == Key.DownArrow && event.modifiers.alt)) {
+            if (root.access != FieldAccess.editable) { return KitKeyResult.reject; }
+            root.open-requested();
+            return KitKeyResult.accept;
+        }
+        if (event.modifiers.alt) { return KitKeyResult.reject; }
+        if (event.text == Key.UpArrow && !event.modifiers.shift) { return root.step-date(CalendarNavigation.next-day); }
+        if (event.text == Key.DownArrow && !event.modifiers.shift) { return root.step-date(CalendarNavigation.previous-day); }
+        if (event.text == Key.PageUp) { return root.step-date(event.modifiers.shift ? CalendarNavigation.next-year : CalendarNavigation.next-month); }
+        if (event.text == Key.PageDown) { return root.step-date(event.modifiers.shift ? CalendarNavigation.previous-year : CalendarNavigation.previous-month); }
+        return KitKeyResult.reject;
+    }
 }
 
 // TextInput stays mounted when the calendar opens. Host parsing, bounds and
@@ -344,7 +381,21 @@ export component KitDatePicker inherits Rectangle {
     public function clear() { editor.clear(); }
     public function commit() { editor.commit(); }
     vertical-stretch: 0;
-    changed open => { if (root.open) { popup.show(); root.opened(); } else { popup.close(); editor.take-focus(); } }
+    // Focus returns to whichever control opened the popup.
+    private property <bool> opened-from-trigger;
+    // The calendar always opens on the accepted date (else today), never on
+    // the month last browsed or left by a previous host value.
+    changed open => {
+        if (root.open) {
+            root.focused = KitCalendarService.ready ? KitCalendarService.initial-focus(root.reference-view) : root.accepted-date.year > 0 ? root.accepted-date : root.today.year > 0 ? root.today : {year: 2000, month: 1, day: 1};
+            popup.show();
+            root.opened();
+        } else {
+            popup.close();
+            if (root.opened-from-trigger) { trigger.take-focus(); } else { editor.take-focus(); }
+            root.opened-from-trigger = false;
+        }
+    }
     private property <bool> presented: popup.is-open;
     private property <SurfaceRecipe> popup-surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     private property <length> popup-inset: root.theme.spacing.unit * 3;
@@ -369,11 +420,12 @@ export component KitDatePicker inherits Rectangle {
                 committed(commit) => { root.accept-typed(commit); }
                 commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
+                open-requested => { if (!root.open) { root.opened-from-trigger = false; root.open = true; } }
             }
-            KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name;
+            trigger := KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name;
                 accessible-expandable: true; accessible-expanded: root.open;
-                accessible-action-expand => { if (root.access == FieldAccess.editable) { root.open = true; } }
-                disabled: root.access != FieldAccess.editable; activated => { root.open = !root.open; } }
+                accessible-action-expand => { if (root.access == FieldAccess.editable) { if (!root.open) { root.opened-from-trigger = true; } root.open = true; } }
+                disabled: root.access != FieldAccess.editable; activated => { if (!root.open) { root.opened-from-trigger = true; } root.open = !root.open; } }
         }
         if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }

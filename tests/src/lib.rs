@@ -882,6 +882,7 @@ mod menu_active_focus;
 
 mod calendar_accessibility;
 mod composite_accessibility;
+mod date_popup_keyboard;
 mod tabs_panels;
 mod temporal_accepted;
 mod time_adjust;

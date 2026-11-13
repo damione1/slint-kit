@@ -13,6 +13,7 @@ import { KitTextField } from "input.slint";
 import { TemporalField } from "temporal-field.slint";
 import { CivilDateView } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
+import { KitKeyResult } from "keyboard.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 
@@ -80,6 +81,25 @@ export component KitTimeField inherits TemporalField {
     in property <TimePrecision> precision: TimePrecision.minute;
     placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss AM" : "hh:mm AM") : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
     description: root.clock-format == ClockFormat.twenty-four-hour ? "24-hour local time" : "12-hour local time, including AM or PM";
+    // ArrowUp/ArrowDown step the finest displayed unit (minutes, or seconds
+    // with second precision) and PageUp/PageDown step hours, within the
+    // field's min, max and step. A draft that is not a time stays with the
+    // native editor.
+    function step-time(segment: TimeSegment, direction: TimeAdjustment) -> KitKeyResult {
+        if (!KitTimeService.ready || root.access != FieldAccess.editable) { return KitKeyResult.reject; }
+        let next = KitTimeService.adjust(root.text, root.constraints, root.precision, root.clock-format, segment, direction);
+        if (next == root.text) { return KitKeyResult.reject; }
+        root.replace-draft(next);
+        return KitKeyResult.accept;
+    }
+    key-pressed(event) => {
+        if (event.modifiers.control || event.modifiers.meta || event.modifiers.alt || event.modifiers.shift) { return KitKeyResult.reject; }
+        if (event.text == Key.UpArrow) { return root.step-time(root.precision == TimePrecision.second ? TimeSegment.second : TimeSegment.minute, TimeAdjustment.increment); }
+        if (event.text == Key.DownArrow) { return root.step-time(root.precision == TimePrecision.second ? TimeSegment.second : TimeSegment.minute, TimeAdjustment.decrement); }
+        if (event.text == Key.PageUp) { return root.step-time(TimeSegment.hour, TimeAdjustment.increment); }
+        if (event.text == Key.PageDown) { return root.step-time(TimeSegment.hour, TimeAdjustment.decrement); }
+        return KitKeyResult.reject;
+    }
 }
 
 export component KitTimePicker inherits Rectangle {
