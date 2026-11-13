@@ -520,6 +520,15 @@ where
             .find(|row| row.token == token)
             .unwrap_or_default()
     });
+    service.on_option_item(|items, token| {
+        tracked(&items)
+            .into_iter()
+            .find(|item| item.token == token)
+            .unwrap_or_else(|| ui::OptionItem {
+                token,
+                ..Default::default()
+            })
+    });
     service.on_generation(|model| {
         let rows = tracked(&model);
         if options(&rows).is_none() {

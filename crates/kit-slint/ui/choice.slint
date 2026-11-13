@@ -12,12 +12,12 @@ import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
-import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "select.slint";
+import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption, KitOptionBody } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
 import { KitSpinner } from "feedback.slint";
 import { Tone } from "display.slint";
 import { KitStrings } from "strings.slint";
-import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, SelectionAvailability, SelectionRetention } from "contracts.slint";
+import { FieldAccess, NavigationStep, CloseReason, SelectState, OptionRow, OptionItem, OptionItemKind, SelectionAvailability, SelectionRetention } from "contracts.slint";
 import { ListView } from "scroll.slint";
 
 import { CheckState, RangeThumb, Ownership } from "shared-contracts.slint";
@@ -1082,6 +1082,12 @@ export component KitCombobox inherits Rectangle {
     in property <string> clear-label: KitStrings.clear-search-label;
     in property <bool> allow-custom-value: false;
     in property <bool> clearable: false;
+    // Presentation of rows (icon, trailing text, group headings, separators),
+    // looked up by option token. A token without an entry is a plain option.
+    in property <[OptionItem]> items;
+    pure function item-for(token: int) -> OptionItem {
+        return KitSelectionService.ready ? KitSelectionService.option-item(root.items, token) : { token: token, kind: OptionItemKind.option };
+    }
     in property <int> min-query-length: 0;
     in property <duration> query-debounce: 0ms;
     in property <length> popup-height: 6 * root.row-height + 2 * KitMetrics.popover-inset(root.theme);
@@ -1427,25 +1433,15 @@ export component KitCombobox inherits Rectangle {
                     theme: root.theme;
                     for row[index] in root.rows: KitOption { modal-layer: root.modal-layer;
                         theme: root.theme; option-data: row; height: root.row-height;
+                        private property <OptionItem> entry: root.item-for(row.token);
+                        disabled: row.disabled || self.entry.kind != OptionItemKind.option;
+                        accessible-description: KitStrings.join-description(row.description, self.entry.trailing-text);
                         accessible-item-index: index; accessible-item-count: root.rows.length;
                         focus-on-pointer: false;
                         active: root.state.active.present && row.token == root.state.active.token;
                         selected: root.state.selected.present && row.token == root.state.selected.token;
                         activate(token,generation) => { if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
-                        HorizontalLayout {
-                            spacing: KitMetrics.inline-gap(root.theme);
-                            VerticalLayout {
-                                horizontal-stretch: 1;
-                                alignment: center;
-                                spacing: root.theme.spacing.unit * 0.5;
-                                Text { text: row.label; horizontal-alignment: left; color: row.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; overflow: elide; }
-                                if row.description != "": Text { text: row.description; horizontal-alignment: left; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; overflow: elide; }
-                            }
-                            // The selected identity, independent of the active row.
-                            Rectangle { width: root.icon.size; horizontal-stretch: 0;
-                                if root.state.selected.present && root.state.selected.token == row.token: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.theme.accent; y: (parent.height - self.height) / 2; }
-                            }
-                        }
+                        KitOptionBody { theme: root.theme; control-size: root.control-size; data: row; presentation: root.item-for(row.token); checked: root.state.selected.present && root.state.selected.token == row.token; }
                     }
                 }
             }

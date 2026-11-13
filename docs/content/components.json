@@ -1870,6 +1870,11 @@
           "effect": "Texte du popup lorsqu’aucune option ne correspond et que `search-state` n’est ni loading ni failed.",
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)",
           "example": "KitCombobox {\n    empty-label: \"Aucun client\";\n}"
+        },
+        "items": {
+          "effect": "Présentation des lignes, retrouvée par `token` d’option : chaque `OptionItem` a un `kind` (`OptionItemKind.option`, `group` ou `separator`), une `leading-icon: IconGlyph` dessinée avant le libellé et un `trailing-text` dessiné en fin de ligne (et ajouté à la description accessible). L’identité, le libellé, la description et l’activation restent dans l’`OptionRow`. Les lignes `group` dessinent leur libellé comme un titre discret et les lignes `separator` dessinent un filet ; les deux ignorent le pointeur, et le modèle doit les marquer `disabled` pour que la navigation clavier et la recherche à la frappe les sautent. Un jeton sans entrée est une option simple : la liste ne contient que les lignes décorées. La recherche filtre les lignes de groupe et de séparateur comme les autres.",
+          "default": "`[]` (chaque ligne est une option simple).",
+          "example": "KitCombobox {\n    options: [{ token: 1, generation: 1, label: \"Fruits\", disabled: true }, { token: 2, generation: 1, label: \"Citron\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
         }
       },
       "callbacks": {
@@ -2018,6 +2023,11 @@
           "effect": "Text of the popup when no option matches and `search-state` is neither loading nor failed.",
           "default": "`KitStrings.no-matching-options-label` (`No matching options`)",
           "example": "KitCombobox {\n    empty-label: \"Aucun client\";\n}"
+        },
+        "items": {
+          "effect": "Presentation of the rows, looked up by option `token`: each `OptionItem` has a `kind` (`OptionItemKind.option`, `group` or `separator`), a `leading-icon: IconGlyph` drawn before the label and `trailing-text` drawn at the end of the row (and added to the accessible description). Identity, label, description and activation stay in the `OptionRow`. `group` rows draw their label as a quiet heading and `separator` rows draw a rule; both ignore the pointer, and the model must mark them `disabled` so keyboard navigation and typeahead skip them. A token with no entry is a plain option, so the list only needs the decorated rows. Searching filters the group and separator rows like any other row.",
+          "default": "`[]` (every row is a plain option).",
+          "example": "KitCombobox {\n    options: [{ token: 1, generation: 1, label: \"Fruit\", disabled: true }, { token: 2, generation: 1, label: \"Lemon\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
         }
       },
       "callbacks": {
@@ -7098,11 +7108,26 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitSelect {\n    modal-layer: 1;\n}"
+        },
+        "items": {
+          "effect": "Présentation des lignes, retrouvée par `token` d’option : chaque `OptionItem` a un `kind` (`OptionItemKind.option`, `group` ou `separator`), une `leading-icon: IconGlyph` dessinée avant le libellé et un `trailing-text` dessiné en fin de ligne (et ajouté à la description accessible). L’identité, le libellé, la description et l’activation restent dans l’`OptionRow`. Les lignes `group` dessinent leur libellé comme un titre discret et les lignes `separator` dessinent un filet ; les deux ignorent le pointeur, et le modèle doit les marquer `disabled` pour que la navigation clavier et la recherche à la frappe les sautent. Un jeton sans entrée est une option simple : la liste ne contient que les lignes décorées. La recherche filtre les lignes de groupe et de séparateur comme les autres.",
+          "default": "`[]` (chaque ligne est une option simple).",
+          "example": "KitSelect {\n    options: [{ token: 1, generation: 1, label: \"Fruits\", disabled: true }, { token: 2, generation: 1, label: \"Citron\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
+        },
+        "clearable": {
+          "effect": "Affiche en fin de déclencheur un bouton qui vide la sélection, tant que `access` vaut `editable` et qu’une option est choisie. Avec `ownership: Ownership.local`, le kit efface `selected` ; avec `controlled`, seul `cleared` est émis et l’hôte efface la sélection. Le bouton est un arrêt de focus distinct après le déclencheur, nommé par `clear-label`.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    options: root.countries;\n    clearable: true;\n    cleared => { root.country-cleared(); }\n}"
+        },
+        "clear-label": {
+          "effect": "Nom accessible du bouton d’effacement.",
+          "default": "`KitStrings.clear-selection-label`."
         }
       },
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
-        "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection."
+        "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection.",
+        "cleared": "Émis après un appui sur le bouton d’effacement. Le kit a déjà effacé `selected` quand `ownership` vaut `local`."
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
@@ -7242,11 +7267,26 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitSelect {\n    modal-layer: 1;\n}"
+        },
+        "items": {
+          "effect": "Presentation of the rows, looked up by option `token`: each `OptionItem` has a `kind` (`OptionItemKind.option`, `group` or `separator`), a `leading-icon: IconGlyph` drawn before the label and `trailing-text` drawn at the end of the row (and added to the accessible description). Identity, label, description and activation stay in the `OptionRow`. `group` rows draw their label as a quiet heading and `separator` rows draw a rule; both ignore the pointer, and the model must mark them `disabled` so keyboard navigation and typeahead skip them. A token with no entry is a plain option, so the list only needs the decorated rows. Searching filters the group and separator rows like any other row.",
+          "default": "`[]` (every row is a plain option).",
+          "example": "KitSelect {\n    options: [{ token: 1, generation: 1, label: \"Fruit\", disabled: true }, { token: 2, generation: 1, label: \"Lemon\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
+        },
+        "clearable": {
+          "effect": "Shows a button at the end of the trigger that empties the selection, while `access` is `editable` and an option is selected. With `ownership: Ownership.local` the kit clears `selected`; with `controlled` only `cleared` is emitted and the host clears the selection. The button is a separate focus stop after the trigger, named by `clear-label`.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    options: root.countries;\n    clearable: true;\n    cleared => { root.country-cleared(); }\n}"
+        },
+        "clear-label": {
+          "effect": "Accessible name of the clear button.",
+          "default": "`KitStrings.clear-selection-label`."
         }
       },
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
-        "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection."
+        "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection.",
+        "cleared": "Emitted after the clear button is pressed. The kit has already cleared `selected` when `ownership` is `local`."
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
