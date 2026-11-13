@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitAlert, KitToast, KitToastHost, ToastEntry, KitBreadcrumbs, KitPagination, KitNotificationCenter, KitCarousel, KitTheme, KitThemes, OptionRow, SelectState, Ownership } from "@kit";
+import { KitCheckbox, KitSwitch, KitTagInput, KitRating, KitRangeSlider, KitSelect, KitMultiSelect, KitChip, ChipRow, CheckState, FieldAccess, KitAlert, KitToast, KitToastHost, ToastEntry, KitBreadcrumbs, KitPagination, KitNotificationCenter, KitCarousel, KitTheme, KitThemes, OptionRow, SelectState, Ownership } from "@kit";
 export component LocalizedNavigationFixture inherits Window {
     preferred-width: 1120px; preferred-height: 600px;
     in-out property <KitTheme> theme: KitThemes.light;
@@ -73,5 +73,20 @@ export component LocalizedFeedbackFixture inherits Window {
             theme: root.theme;
             empty-label: "Aucune notification"; empty-description: "Vous avez tout consulté.";
         }
+    }
+}
+
+export component LocalizedChoiceFixture inherits Window {
+    preferred-width: 640px; preferred-height: 640px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[ChipRow]> chips;
+    VerticalLayout {
+        alignment: start; padding: 16px; spacing: 12px;
+        KitCheckbox { theme: root.theme; label: "Accord"; state: CheckState.mixed; }
+        KitSwitch { theme: root.theme; label: "Veille"; access: FieldAccess.read-only; }
+        KitTagInput { theme: root.theme; label: "Etiquettes"; chips: root.chips; }
+        KitRating { theme: root.theme; label: "Note"; }
+        KitRangeSlider { theme: root.theme; label: "Prix"; value: {lower: "2", upper: "8"}; spec: {minimum: "0", maximum: "10", step: "1"}; }
     }
 }
