@@ -1,8 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // View projection. Core adapters validate every token and generation.
 import { SelectionAvailability } from "shared-contracts.slint";
+import { IconGlyph } from "icons/glyph.slint";
 export { NavigationStep, CloseReason, SelectionAvailability, SelectionRetention, FieldAccess, CommitPolicy, ValidationPresentation, TextPurpose, SecretVisibility, StepDirection, NumberStepStatus } from "shared-contracts.slint";
 export struct OptionRow { token: int, generation: int, label: string, description: string, disabled: bool }
+// What an option row is. Group and separator rows are decoration: they take no
+// pointer, focus or activation, and the model must mark them `disabled` so the
+// shared navigation skips them.
+export enum OptionItemKind { option, group, separator }
+// The presentation of the option with the same `token`. Identity, label and
+// activation stay in the `OptionRow`; a token without an entry is a plain option.
+export struct OptionItem { token: int, kind: OptionItemKind, leading-icon: IconGlyph, trailing-text: string }
 export struct SelectionRef { present: bool, token: int }
 export struct SelectState { selection-availability: SelectionAvailability, selected: SelectionRef, active: SelectionRef, open: bool, active-index: int, generation: int }
 export struct FocusSlot { generation: int, eligible: bool }

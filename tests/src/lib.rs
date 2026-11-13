@@ -27,6 +27,7 @@ mod localized_labels;
 mod modal_context;
 mod multi_popup;
 mod notification_center;
+mod option_items;
 mod popover;
 mod preview;
 mod scroll_keys;
