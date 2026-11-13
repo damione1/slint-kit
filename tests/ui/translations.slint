@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitStrings } from "@kit";
+
+export global FixtureTranslations {
+    public function apply() {
+        KitStrings.dismiss-label-template = @tr("Dismiss {{title}}");
+        KitStrings.pagination-position-template = @tr("pagination" => "{{current}} / {{total}}");
+    }
+}
+
+export component TranslationsFixture inherits Window {
+    in property <int> count;
+    out property <string> dismiss: KitStrings.dismiss-label-template;
+    out property <string> pagination: KitStrings.pagination-position-template;
+    out property <string> carousel: KitStrings.carousel-position-template;
+    out property <string> summary: @tr("{n} item" | "{n} items" % root.count);
+    public function translate() { FixtureTranslations.apply(); }
+}
