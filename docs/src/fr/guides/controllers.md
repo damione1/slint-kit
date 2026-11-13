@@ -126,6 +126,42 @@ Pour `KitVirtualTextView`, `active-index` est uniquement une coordonnée visuell
 
 Pour les codecs numériques, associez number-format à DecimalRules.syntax : canonical avec NumberSyntax::en_ca()/en_us(), decimal-comma avec fr_ca()/fr_fr(). La grammaire partagée admet groupement strict, signes et espaces périphériques avant les vérifications exactes d’échelle/signe/bornes ; min/max/step/default-value restent des attributs canoniques. FieldSpec::accept retourne le T analysé : transmettez-le au métier sans analyser de nouveau son texte. Le formatage du brouillon simple reste distinct de l’affichage groupé format_decimal ; with_display règle la présentation au repos. FieldSpec::integer(syntax, bounds) prend la syntaxe et les bornes ; NumberSyntax est un type ouvert (de_de, de_ch, pt_br, en_in ou NumberSyntax::new). Le contrôle natif number-format ne connaît que canonical et decimal-comma : pour une autre syntaxe, utilisez un contrôle texte avec le codec typé.
 
+## État global avec Store
+
+Rust n’atteint une fenêtre Slint que par son composant racine et ses `global`. Appuyez-vous dessus : un `global` Slint est un store. Le global déclare les propriétés que lisent tous les composants ; un `Store<T>` côté Rust détient la valeur typée et la projette dans le global.
+
+```slint
+export global Session {
+    in-out property <string> user;
+    in-out property <int> unread;
+}
+```
+
+```rust
+#[derive(Clone)]
+struct SessionState { user: String, unread: i32 }
+
+let store = Store::new(SessionState { user: "Ada".into(), unread: 0 });
+let weak = app.as_weak();
+let _projection = store.observe(move |state| {
+    if let Some(app) = weak.upgrade() {
+        let session = app.global::<Session>();
+        session.set_user(state.user.as_str().into());
+        session.set_unread(state.unread);
+    }
+});
+store.update(|state| state.unread += 1);
+```
+
+Tout composant qui lit `Session.unread` affiche la nouvelle valeur, quel que soit l’écran. En termes React, le `global` est le contexte consommé par les composants et le `Store<T>` est l’état du reducer qui l’alimente. Gardez `_projection` en vie aussi longtemps que la fenêtre : détruire la `Subscription` arrête la projection.
+
+- `get`, `with`, `set` et `update` lisent et écrivent sur le fil de l’interface. Les observateurs s’exécutent après chaque changement avec un instantané. Si un observateur modifie le store, le changement est appliqué aussitôt et les observateurs s’exécutent de nouveau avec la dernière valeur : aucun ne reste périmé.
+- `subscribe` ne signale que les changements ; `observe` appelle aussi l’observateur avec la valeur courante.
+- `store.remote()` renvoie un `StoreRemote<T>`, qui est `Send`. Appelez `update` ou `set` depuis un fil ou une tâche asynchrone : le changement est mis en file avec `slint::invoke_from_event_loop` et appliqué sur le fil de l’interface. L’appel renvoie `StoreError` si aucune boucle d’événements ne tourne, et un changement destiné à un store détruit est ignoré.
+- L’état métier appartient à votre application. Le store porte la projection dont les vues ont besoin, pas la source de vérité.
+- Utilisez un store par domaine (session, réglages, panier) plutôt qu’un store pour toute l’application : un composant ne dépend alors que du global qu’il lit.
+- Les globals existent une fois par fenêtre. Pour synchroniser plusieurs fenêtres, observez le même store une fois par fenêtre ; chaque projection écrit dans le global de sa fenêtre.
+
 ## Effets hôtes et notifications
 
 Localisez une fois par fenêtre les noms d’action et de région avec `KitStrings.dismiss-label-template` (défaut `Dismiss {title}`, à traduire par exemple en `Fermer {title}`), `breadcrumbs-label`, `pagination-label` et `notifications-label`, ou surchargez `dismiss-label` / `accessible-name` par composant. `ToastEntry.dismiss-label` transmet un nom complet par entrée via `KitToastHost` ; vide, il utilise le modèle global, et `KitToast.dismiss-label` permet une surcharge. Les littéraux Rust `ToastEntry` complets exigent désormais `dismiss_label: Default::default()` (ou un nom localisé) ; ceux terminés par `..Default::default()` restent compatibles.
