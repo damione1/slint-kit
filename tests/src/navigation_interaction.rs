@@ -2,9 +2,9 @@
 //! Window tests for pagination, breadcrumbs, menu bar keys, collapse, drawer
 //! focus and the toast binding lifecycle behind a real toast host.
 use crate::{
-    BreadcrumbsFixture, CloseReason, CollapseKeysFixture, DialogState, DrawerFocusFixture,
-    MenuBarKeysFixture, NavigationStep, Ownership, PaginationDisplay, PaginationFixture,
-    SelectState, ToastHostFixture,
+    BreadcrumbsFixture, CarouselSlidesFixture, CloseReason, CollapseKeysFixture, DialogState,
+    DrawerFocusFixture, MenuBarKeysFixture, NavigationStep, Ownership, PaginationDisplay,
+    PaginationFixture, SelectState, ToastHostFixture,
 };
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -275,6 +275,97 @@ fn breadcrumbs_activate_ancestors_only_and_never_the_current_page() {
     slint::platform::update_timers_and_animations();
     assert!(pressables("Library").is_empty());
     assert_eq!(pressables("Home").len(), 1);
+}
+
+fn crumb_labels(window: &BreadcrumbsFixture) -> Vec<String> {
+    let mut found: Vec<(f32, String)> = ElementQuery::from_root(window)
+        .match_inherits("KitPressable")
+        .find_all()
+        .into_iter()
+        .filter_map(|e| Some((e.absolute_position().x, e.accessible_label()?.to_string())))
+        .collect();
+    found.sort_by(|a, b| a.0.total_cmp(&b.0));
+    found.into_iter().map(|(_, label)| label).collect()
+}
+
+#[test]
+fn breadcrumbs_collapse_the_middle_until_the_ellipsis_is_pressed() {
+    init();
+    let window = BreadcrumbsFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_rows(ModelRc::new(VecModel::from(vec![
+        row(1, "Home", false),
+        row(2, "Library", false),
+        row(3, "Archive", false),
+        row(4, "Reports", false),
+        row(5, "Current", false),
+    ])));
+    window.show().unwrap();
+    assert_eq!(
+        crumb_labels(&window),
+        ["Home", "Library", "Archive", "Reports"],
+        "without max-items every ancestor is shown"
+    );
+    window.set_max_items(3);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(
+        crumb_labels(&window),
+        ["Home", "Show hidden items", "Reports"],
+        "the first crumb and the last two stay; the current page is text"
+    );
+    let calls = Rc::new(RefCell::new(Vec::new()));
+    let sink = calls.clone();
+    window.on_activated(move |token, generation| sink.borrow_mut().push((token, generation)));
+    click(&one(&window, "Reports"));
+    assert_eq!(
+        *calls.borrow(),
+        [(4, 1)],
+        "visible ancestors still activate"
+    );
+    click(&one(&window, "Show hidden items"));
+    slint::platform::update_timers_and_animations();
+    assert!(window.get_expanded());
+    assert_eq!(
+        crumb_labels(&window),
+        ["Home", "Library", "Archive", "Reports"]
+    );
+    assert_eq!(calls.borrow().len(), 1, "the ellipsis is not a navigation");
+    // A trail that already fits never shows an ellipsis.
+    window.set_expanded(false);
+    window.set_max_items(5);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(crumb_labels(&window).len(), 4);
+}
+
+#[test]
+fn carousel_publishes_the_active_slide_for_per_slide_content() {
+    init();
+    let window = CarouselSlidesFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_options(ModelRc::new(VecModel::from(vec![
+        row(1, "One", false),
+        row(2, "Two", false),
+    ])));
+    window.set_indicators(true);
+    window.show().unwrap();
+    slint::platform::update_timers_and_animations();
+    let visible = |label: &str| {
+        let label = label.to_owned();
+        !ElementQuery::from_root(&window)
+            .match_predicate(move |e| e.accessible_label().as_deref() == Some(label.as_str()))
+            .find_all()
+            .is_empty()
+    };
+    let first = window.get_current_index();
+    assert!(first == 0 || first == -1, "unexpected start {first}");
+    click(&one(&window, "Next slide"));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_current_index(), 1);
+    assert!(visible("Second view") && !visible("First view"));
+    click(&one(&window, "Next slide"));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(window.get_current_index(), 0, "wraps to the first slide");
+    assert!(visible("First view") && !visible("Second view"));
 }
 
 fn menu_bar(active: usize) -> MenuBarKeysFixture {

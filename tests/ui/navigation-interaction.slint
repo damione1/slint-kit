@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+import { KitCarousel, KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
 
 export component PaginationFixture inherits Window {
     width: 800px; height: 120px;
@@ -27,10 +27,29 @@ export component PaginationFixture inherits Window {
 export component BreadcrumbsFixture inherits Window {
     width: 400px; height: 120px;
     in property <[OptionRow]> rows;
+    in property <int> max-items;
+    in-out property <bool> expanded;
     callback activated(int, int);
     VerticalLayout {
         alignment: start;
-        KitBreadcrumbs { rows: root.rows; activate(token, generation) => { root.activated(token, generation); } }
+        KitBreadcrumbs { rows: root.rows; max-items: root.max-items; expanded <=> root.expanded; activate(token, generation) => { root.activated(token, generation); } }
+    }
+}
+
+export component CarouselSlidesFixture inherits Window {
+    width: 400px; height: 400px;
+    in property <[OptionRow]> options;
+    in property <bool> indicators;
+    out property <int> current-index: carousel.current-index;
+    callback navigated(NavigationStep);
+    VerticalLayout {
+        alignment: start;
+        carousel := KitCarousel {
+            options: root.options; show-indicators: root.indicators;
+            navigate(step) => { root.navigated(step); }
+            if carousel.current-index == 0: Text { text: "First view"; accessible-role: text; accessible-label: "First view"; }
+            if carousel.current-index == 1: Text { text: "Second view"; accessible-role: text; accessible-label: "Second view"; }
+        }
     }
 }
 

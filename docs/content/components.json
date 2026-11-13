@@ -267,7 +267,7 @@
     "fr": {
       "summary": "Fil d’Ariane reliant les niveaux parents à la position courante.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Le dernier élément décrit la position courante ; les éléments précédents activables émettent les choix de navigation typés. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust).",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Le dernier élément décrit la position courante ; les éléments précédents activables émettent les choix de navigation typés. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Quand `max-items` est défini et que le fil est plus long, le milieu se replie en un bouton de points de suspension qui révèle tous les éléments ; le dernier élément porte `current-label` comme description accessible.",
       "label": "Fil d’Ariane",
       "seoTitle": "Fil d’Ariane pour Slint",
       "related": [
@@ -283,6 +283,28 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitBreadcrumbs {\n    modal-layer: 1;\n}"
+        },
+        "max-items": {
+          "effect": "Longueur maximale du fil affichée avant que le milieu se replie en un bouton de points de suspension. Le premier élément et les `max-items - 1` derniers restent visibles ; les éléments masqués apparaissent à l’appui sur le bouton.",
+          "default": "`0` (tous les éléments sont affichés).",
+          "constraints": "Une valeur inférieure à 2 se comporte comme 2. Un fil qui ne dépasse pas la limite ne se replie jamais.",
+          "example": "KitBreadcrumbs {\n    max-items: 4;\n}"
+        },
+        "expanded": {
+          "effect": "Vrai dès que le bouton de points de suspension a été pressé et que tout le fil est affiché. Mettez-le à faux pour replier de nouveau le fil.",
+          "default": "`false`."
+        },
+        "separator-glyph": {
+          "effect": "Icône dessinée entre deux éléments.",
+          "default": "`theme.icons.chevron-right`."
+        },
+        "ellipsis-label": {
+          "effect": "Nom accessible du bouton de points de suspension qui révèle les éléments repliés.",
+          "default": "Show hidden items"
+        },
+        "current-label": {
+          "effect": "Description accessible du dernier élément, qui désigne l’emplacement courant.",
+          "default": "Current page"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -290,7 +312,7 @@
     "en": {
       "summary": "Breadcrumb trail linking parent levels to the current location.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. The final crumb describes the current location; preceding enabled crumbs emit typed navigation choices. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services).",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. The final crumb describes the current location; preceding enabled crumbs emit typed navigation choices. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). When `max-items` is set and the trail is longer, the middle collapses into an ellipsis button that reveals every crumb; the last crumb carries `current-label` as its accessible description.",
       "label": "Breadcrumbs",
       "seoTitle": "Breadcrumbs for Slint",
       "related": [
@@ -306,6 +328,28 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitBreadcrumbs {\n    modal-layer: 1;\n}"
+        },
+        "max-items": {
+          "effect": "Longest trail shown before the middle collapses into an ellipsis button. The first crumb and the last `max-items - 1` crumbs stay visible; the hidden crumbs appear when the button is pressed.",
+          "default": "`0` (every crumb is shown).",
+          "constraints": "Values below 2 behave as 2. A trail with no more crumbs than the limit never collapses.",
+          "example": "KitBreadcrumbs {\n    max-items: 4;\n}"
+        },
+        "expanded": {
+          "effect": "True once the ellipsis button was pressed and the whole trail is shown. Set it to false to collapse the trail again.",
+          "default": "`false`."
+        },
+        "separator-glyph": {
+          "effect": "Icon drawn between two crumbs.",
+          "default": "`theme.icons.chevron-right`."
+        },
+        "ellipsis-label": {
+          "effect": "Accessible name of the ellipsis button that reveals the collapsed crumbs.",
+          "default": "Show hidden items"
+        },
+        "current-label": {
+          "effect": "Accessible description of the last crumb, which names the current location.",
+          "default": "Current page"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
@@ -911,7 +955,7 @@
     "fr": {
       "summary": "Carrousel manuel présentant l’élément actif et ses actions.",
       "usage": "Fournissez `options` avec `Choices<K>::model()`, liez éventuellement `selected`, puis traitez `chosen(OptionRow)`. Appelez `slint_kit::install` une fois par fenêtre ; `Choices::accept` valide le callback et retourne sa clé métier. Chaque instance possède son ouverture, son focus, sa navigation et sa sélection.",
-      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. Gauche/Droite (inversées en `ChoiceFlow.right-to-left`, hérité de `theme.direction`) et Début/Fin déplacent la diapositive active ; `wrap` (`true` par défaut) contrôle le bouclage aux bornes. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Précédent et Suivant changent la diapositive active ; seule l’action optionnelle accepte sa clé. Illustration et texte restent des contenus de l’application. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Sans Rust, le carrousel affiche la première diapositive source ; une diapositive active exacte nécessite une projection explicite. Les flèches/Début/Fin naviguent depuis la cible de focus du carrousel et ses actions intégrées, sans consommer les touches rejetées par les éditeurs ou contrôles natifs dans @children. Le conteneur focalisé affiche le contour partagé de focus intérieur ; l’activation d’une diapositive appartient à son bouton dédié.",
+      "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. Gauche/Droite (inversées en `ChoiceFlow.right-to-left`, hérité de `theme.direction`) et Début/Fin déplacent la diapositive active ; `wrap` (`true` par défaut) contrôle le bouclage aux bornes. `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Précédent et Suivant changent la diapositive active ; seule l’action optionnelle accepte sa clé. Illustration et texte restent des contenus de l’application. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Sans Rust, le carrousel affiche la première diapositive source ; une diapositive active exacte nécessite une projection explicite. Les flèches/Début/Fin naviguent depuis la cible de focus du carrousel et ses actions intégrées, sans consommer les touches rejetées par les éditeurs ou contrôles natifs dans @children. Le conteneur focalisé affiche le contour partagé de focus intérieur ; l’activation d’une diapositive appartient à son bouton dédié. Le contenu de `@children` est commun à toutes les diapositives ; lisez `current-index` pour afficher une vue différente par diapositive. Les transitions de diapositive et les indicateurs cliquables ne sont pas fournis.",
       "label": "Carrousel",
       "seoTitle": "Carrousel pour Slint",
       "related": [
@@ -927,6 +971,15 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitCarousel {\n    modal-layer: 1;\n}"
+        },
+        "show-indicators": {
+          "effect": "Dessine un point par diapositive sous les commandes ; le point de la diapositive active est plein. Les points sont un simple repère visuel : les technologies d’assistance lisent le texte de position, région vivante polie annoncée à chaque changement de diapositive.",
+          "default": "`false`."
+        },
+        "current-index": {
+          "effect": "Indice en lecture seule, à partir de zéro, de la diapositive active, ou -1 s’il n’y en a pas. Le contenu placé dans le carrousel le lit pour afficher une vue par diapositive.",
+          "default": "`-1` tant qu’aucune diapositive n’est active.",
+          "example": "carousel := KitCarousel {\n    options: root.slides;\n    if carousel.current-index == 0: Image { source: @image-url(\"first.png\"); }\n    if carousel.current-index == 1: Image { source: @image-url(\"second.png\"); }\n}"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -934,7 +987,7 @@
     "en": {
       "summary": "Manual carousel presenting the active item and its actions.",
       "usage": "Pass `options` from `Choices<K>::model()`, optionally bind `selected`, and handle `chosen(OptionRow)`. Call `slint_kit::install` once per window; `Choices::accept` validates the callback and returns its domain key. Opening, focus, navigation and selection belong to each instance.",
-      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. Left/Right (mirrored in `ChoiceFlow.right-to-left`, inherited from `theme.direction`) and Home/End move the active slide; `wrap` (`true` by default) controls wrap-around at bounds. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Previous and Next move the active slide; only the optional action accepts its key. Slide illustration and text remain application content. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Without Rust, the carousel displays the first source slide; an exact active slide needs an explicit projection. Arrow/Home/End navigation handles the carousel’s own focus target and built-in actions; it never consumes rejected keys from native editors or controls in @children. The focused container shows the shared inset focus outline; slide activation belongs to its dedicated action button.",
+      "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. Left/Right (mirrored in `ChoiceFlow.right-to-left`, inherited from `theme.direction`) and Home/End move the active slide; `wrap` (`true` by default) controls wrap-around at bounds. `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Previous and Next move the active slide; only the optional action accepts its key. Slide illustration and text remain application content. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Without Rust, the carousel displays the first source slide; an exact active slide needs an explicit projection. Arrow/Home/End navigation handles the carousel’s own focus target and built-in actions; it never consumes rejected keys from native editors or controls in @children. The focused container shows the shared inset focus outline; slide activation belongs to its dedicated action button. Slide content in `@children` is shared by every slide; read `current-index` to show a different view per slide. Slide transitions and clickable indicators are not provided.",
       "label": "Carousel",
       "seoTitle": "Carousel for Slint",
       "related": [
@@ -950,6 +1003,15 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitCarousel {\n    modal-layer: 1;\n}"
+        },
+        "show-indicators": {
+          "effect": "Draws one dot per slide under the controls; the dot of the active slide is filled. The dots are a visual cue only: assistive technology reads the position text, which is a polite live region announced on every slide change.",
+          "default": "`false`."
+        },
+        "current-index": {
+          "effect": "Read-only zero-based index of the active slide, or -1 when there is none. Content placed in the carousel reads it to show one view per slide.",
+          "default": "`-1` until a slide is active.",
+          "example": "carousel := KitCarousel {\n    options: root.slides;\n    if carousel.current-index == 0: Image { source: @image-url(\"first.png\"); }\n    if carousel.current-index == 1: Image { source: @image-url(\"second.png\"); }\n}"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
