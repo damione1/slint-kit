@@ -1,0 +1,30 @@
+import { InterFont } from "@kit/fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitPopover, KitTheme, KitThemes } from "@kit";
+
+export component Example inherits Window {
+    default-font-family: InterFont.family;
+    title: "Exemple KitPopover";
+    preferred-width: 480px;
+    preferred-height: 320px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <string> status: "Aucune action";
+    VerticalLayout {
+        padding: 24px;
+        spacing: 12px;
+        alignment: start;
+        KitPopover {
+            theme: root.theme;
+            text: "Détails du projet";
+            popup-width: 280px * root.theme.text-scale;
+            opened => { root.status = "Détails ouverts"; }
+            dismissed(reason) => { root.status = "Détails fermés"; }
+            Text { text: "Notes de terrain"; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; max-height: self.preferred-height; }
+            Text { text: "Mis à jour ce matin"; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; vertical-stretch: 0; max-height: self.preferred-height; }
+        }
+        Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; }
+    }
+}
