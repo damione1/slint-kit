@@ -20,8 +20,10 @@ export struct IsoWeekResult { valid: bool, year: int, week: int }
 export struct LocalDateTimeView { date: CivilDateView, time: LocalTimeView }
 export struct LocalDateTimeDraft { date: string, time: string }
 export struct ZonedDateTimeDraft { date: string, time: string, zone: string }
-export struct ZonedDateTimeResult { state: ZonedTimePresentation, local: LocalDateTimeView }
-export struct ZonedDateTimeCommit { local: LocalDateTimeView, zone: string, acceptance: ZonedAcceptance }
+// Offsets are seconds east of UTC. `utc-offset-seconds` is the unique (or earlier) occurrence,
+// `later-utc-offset-seconds` the later one of an overlap; both are 0 unless the state is unique or ambiguous.
+export struct ZonedDateTimeResult { state: ZonedTimePresentation, local: LocalDateTimeView, utc-offset-seconds: int, later-utc-offset-seconds: int }
+export struct ZonedDateTimeCommit { local: LocalDateTimeView, zone: string, acceptance: ZonedAcceptance, utc-offset-seconds: int }
 export global KitTimeService {
     in-out property <bool> ready;
     pure callback project-date(CivilDateView) -> TemporalProjection;

@@ -488,13 +488,13 @@ export component KitZonedDateTimeField inherits Rectangle {
         root.resolved-draft = root.current;
         root.result = KitTimeService.resolve(root.current, root.precision, root.clock-format);
         root.resolve-requested(root.current);
-        if (root.result.state == ZonedTimePresentation.unique) { root.chosen({local: root.result.local, zone: root.zone-text, acceptance: ZonedAcceptance.unique}); }
+        if (root.result.state == ZonedTimePresentation.unique) { root.chosen({local: root.result.local, zone: root.zone-text, acceptance: ZonedAcceptance.unique, utc-offset-seconds: root.result.utc-offset-seconds}); }
     }
     function accept-occurrence(choice: AmbiguousTimeChoice) {
         if (root.access != FieldAccess.editable || root.pressed-draft != root.current || root.resolution != ZonedTimePresentation.ambiguous || root.selected-occurrence != ZonedOccurrenceSelection.unselected) { return; }
         root.selected-occurrence = choice == AmbiguousTimeChoice.earlier ? ZonedOccurrenceSelection.earlier : ZonedOccurrenceSelection.later;
         if (root.resolved-draft == root.current && root.result.state == ZonedTimePresentation.ambiguous) {
-            root.chosen({local: root.result.local, zone: root.zone-text, acceptance: choice == AmbiguousTimeChoice.earlier ? ZonedAcceptance.earlier : ZonedAcceptance.later});
+            root.chosen({local: root.result.local, zone: root.zone-text, acceptance: choice == AmbiguousTimeChoice.earlier ? ZonedAcceptance.earlier : ZonedAcceptance.later, utc-offset-seconds: choice == AmbiguousTimeChoice.earlier ? root.result.utc-offset-seconds : root.result.later-utc-offset-seconds});
         }
         root.ambiguity-chosen(choice);
     }
