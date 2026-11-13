@@ -1564,7 +1564,7 @@ export component KitSlider inherits Rectangle {
     accessible-value-minimum: root.accessible-domain.minimum;
     accessible-value-maximum: root.accessible-domain.maximum;
     accessible-value-step: root.accessible-domain.step;
-    accessible-enabled: !root.disabled && root.accessible-domain.valid;
+    accessible-enabled: !root.disabled && root.accessible-domain.valid && !KitModalContext.inert(root.modal-layer);
     accessible-read-only: root.access == FieldAccess.read-only;
     accessible-action-set-value(value) => { root.handle-accessible-value(value); }
     accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(NavigationStep.next); } }
@@ -1640,14 +1640,14 @@ export component KitSlider inherits Rectangle {
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     keyboard := SliderKeyboard { modal-layer: root.modal-layer;
-        enabled: !root.disabled;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
         access: root.access; gesture-active: root.gesture-active;
         navigate(step) => { root.handle-navigate(step); }
         committed => { root.handle-commit(); }
         cancelled => { root.gesture-active = false; root.handle-cancel(); }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) { keyboard.focus(); root.gesture-active = true; root.snapshot = root.value; root.gesture-started(); root.update-position(); }
             if (event.kind == PointerEventKind.up && event.button == PointerEventButton.left && root.gesture-active) { root.gesture-active = false; root.handle-commit(); }
@@ -1744,7 +1744,7 @@ export component KitRangeSlider inherits Rectangle {
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
     private property <RangeAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.range-accessibility(root.value, root.spec) : {lower: {valid: false}, upper: {valid: false}};
     lower := SliderKeyboard { modal-layer: root.modal-layer;
-        enabled: !root.disabled;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — lower";
         accessible-value: root.accessible-domain.lower.value;
@@ -1752,7 +1752,7 @@ export component KitRangeSlider inherits Rectangle {
         accessible-value-minimum: root.accessible-domain.lower.minimum;
         accessible-value-maximum: root.accessible-domain.lower.maximum;
         accessible-value-step: root.accessible-domain.lower.step;
-        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.lower.valid;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.lower.valid && !KitModalContext.inert(root.modal-layer);
         accessible-read-only: root.access == FieldAccess.read-only;
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.lower, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.lower,NavigationStep.next); } }
@@ -1763,7 +1763,7 @@ export component KitRangeSlider inherits Rectangle {
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
     }
     upper := SliderKeyboard { modal-layer: root.modal-layer;
-        enabled: !root.disabled;
+        enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — upper";
         accessible-value: root.accessible-domain.upper.value;
@@ -1771,7 +1771,7 @@ export component KitRangeSlider inherits Rectangle {
         accessible-value-minimum: root.accessible-domain.upper.minimum;
         accessible-value-maximum: root.accessible-domain.upper.maximum;
         accessible-value-step: root.accessible-domain.upper.step;
-        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.upper.valid;
+        accessible-enabled: root.access != FieldAccess.disabled && root.accessible-domain.upper.valid && !KitModalContext.inert(root.modal-layer);
         accessible-read-only: root.access == FieldAccess.read-only;
         accessible-action-set-value(value) => { root.handle-accessible-value(RangeThumb.upper, value); }
         accessible-action-increment => { if (root.access == FieldAccess.editable) { root.handle-navigate(RangeThumb.upper,NavigationStep.next); } }
@@ -1788,7 +1788,7 @@ export component KitRangeSlider inherits Rectangle {
         if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     pointer := TouchArea {
-        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid);
+        enabled: root.access == FieldAccess.editable && (!root.service-ready || root.spec-valid) && !KitModalContext.inert(root.modal-layer);
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 let position = clamp((self.mouse-x - root.edge) / max(1px,root.width - 2 * root.edge),0,1);

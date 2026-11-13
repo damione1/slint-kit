@@ -11,6 +11,7 @@ use std::{cell::Cell, rc::Rc};
 fn fixture() -> ModalContextFixture {
     i_slint_backend_testing::init_no_event_loop();
     let window = ModalContextFixture::new().unwrap();
+    slint_kit::install(&window);
     window.show().unwrap();
     slint::platform::update_timers_and_animations();
     window
@@ -66,6 +67,9 @@ fn open_modal_makes_window_controls_inert_and_keeps_its_own_active() {
         "Background field",
         "Background check",
         "Background select",
+        "Background slider",
+        "Background range — lower",
+        "Background range — upper",
     ] {
         assert!(!enabled(&window, label), "{label} must be inert");
     }
@@ -83,6 +87,9 @@ fn open_modal_makes_window_controls_inert_and_keeps_its_own_active() {
         "Background field",
         "Background check",
         "Background select",
+        "Background slider",
+        "Background range — lower",
+        "Background range — upper",
     ] {
         assert!(enabled(&window, label), "{label} must recover");
     }
