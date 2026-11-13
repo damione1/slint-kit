@@ -52,6 +52,11 @@ export component KitPressable inherits Rectangle {
     // pointer to them; keyboard activation and focus are unaffected.
     in property <bool> pointer-enabled: true;
     in property <bool> focus-on-pointer: true;
+    // Holding the pointer repeats `activated`: first after the theme's
+    // `motion.repeat-delay`, then every `motion.repeat-interval`. A press that
+    // repeated activates nothing more on release, and the repeat stops when the
+    // press ends or the control is disabled. Off for ordinary buttons.
+    in property <bool> repeat-on-hold;
     // A composite that keeps keyboard focus itself sets this on its active
     // row; the row then paints `focus-ring` as if it held focus.
     in property <bool> focus-indicated;
@@ -72,6 +77,10 @@ export component KitPressable inherits Rectangle {
     private property <bool> space-held;
     private property <bool> enter-held;
     private property <bool> pointer-armed;
+    private property <bool> repeat-held: root.repeat-on-hold && root.pointer-armed && touch.pressed && touch.has-hover && !root.disabled && !root.busy;
+    private property <bool> repeat-started;
+    private property <bool> repeated;
+    changed repeat-held => { if (!root.repeat-held) { root.repeat-started = false; } }
     private property <bool> keyboard-focus;
     private property <bool> focused;
     public function cancel-press() {
@@ -206,6 +215,7 @@ export component KitPressable inherits Rectangle {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
                 root.activation-started();
                 root.pointer-armed = true;
+                root.repeated = false;
                 if (root.focus-on-pointer) { keys.focus(); }
                 root.keyboard-focus = false;
             }
@@ -213,7 +223,30 @@ export component KitPressable inherits Rectangle {
         }
         double-clicked => { if (!root.disabled && !root.busy) { root.double-activated(); } }
         clicked => {
-            if (root.pointer-armed) { root.pointer-armed = false; root.activate-once(); }
+            if (root.pointer-armed) {
+                root.pointer-armed = false;
+                if (!root.repeated) { root.activate-once(); }
+                root.repeated = false;
+            }
+        }
+    }
+    // Two timers, because a running Timer keeps its period: the delay timer
+    // hands over to the interval timer after its first trigger.
+    Timer {
+        running: root.repeat-held && !root.repeat-started;
+        interval: root.theme.motion.repeat-delay;
+        triggered => {
+            root.repeat-started = true;
+            root.repeated = true;
+            root.activate-once();
+        }
+    }
+    Timer {
+        running: root.repeat-held && root.repeat-started;
+        interval: root.theme.motion.repeat-interval;
+        triggered => {
+            root.repeated = true;
+            root.activate-once();
         }
     }
     // Not a control, tab stop or pointer target. It preserves ancestor key

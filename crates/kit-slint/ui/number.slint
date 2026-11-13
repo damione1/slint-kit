@@ -119,9 +119,14 @@ export component KitNumberStepper inherits KitField {
             min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
             preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;
-            disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement);
+            // Spin buttons are pointer targets: keyboard users step with the
+            // arrow, page and Home/End keys of the editor, so they add no tab
+            // stops. A step hands focus to the editor, so a press must not
+            // focus the button first or that handover would cancel its repeat.
+            tab-stop: false; focus-on-pointer: false; repeat-on-hold: true;
+            disabled: root.access != FieldAccess.editable || (direction == StepDirection.increment ? !root.can-increment : !root.can-decrement) || !editor.can-step(direction);
             accessible-name: direction == StepDirection.increment ? root.increment-label : root.decrement-label;
-            activated => { editor.step-number(direction); root.step-requested(direction); }
+            activated => { if (editor.step-number(direction)) { root.step-requested(direction); } }
             Rectangle {
                 KitIcon {
                 theme: root.theme; control-size: root.control-size;
