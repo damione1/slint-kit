@@ -484,14 +484,14 @@ fn field_submission_rejects_an_absent_projection_with_hidden_text() {
 #[test]
 fn localized_field_codecs_keep_decimal_comma_and_twelve_hour_grammar_through_commit_and_cancel() {
     use slint_kit::{
-        ClockFormat, DecimalRules, DecimalScale, DecimalValue, LocalTime, NumberLocale, SignPolicy,
+        ClockFormat, DecimalRules, DecimalScale, DecimalValue, LocalTime, NumberSyntax, SignPolicy,
         TimePrecision,
     };
     i_slint_backend_testing::init_no_event_loop();
     let window = crate::LocalizedFieldFixture::new().unwrap();
     slint_kit::install(&window);
     let decimal = FieldSpec::decimal(DecimalRules {
-        locale: NumberLocale::FrCa,
+        syntax: NumberSyntax::fr_ca(),
         scale: DecimalScale::new(2).unwrap(),
         sign: SignPolicy::Signed,
         bounds: None,

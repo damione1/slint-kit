@@ -8,7 +8,7 @@ use slint::{
 };
 use slint_kit::{
     AlphaPolicy, DirectoryHandle, DirectoryRequest, DraftValue, FileHandle, FileLocation,
-    FileRequest, HostCapability, HostError, HostRequestController, HostRequestTicket, NumberLocale,
+    FileRequest, HostCapability, HostError, HostRequestController, HostRequestTicket, NumberSyntax,
     NumericBounds, SelectionOutcome, SrgbColor, parse_integer,
 };
 use std::{cell::RefCell, path::Path, rc::Rc};
@@ -338,7 +338,7 @@ impl ColorEditor {
         *self.drafts.channel_mut(channel) = text.clone();
         match parse_integer(
             &text,
-            NumberLocale::EnUs,
+            NumberSyntax::en_us(),
             Some(NumericBounds::new(0, 255).expect("byte bounds")),
         ) {
             DraftValue::Parsed(value) => {

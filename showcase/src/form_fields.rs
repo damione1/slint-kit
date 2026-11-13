@@ -9,7 +9,7 @@ use slint_kit::{
     AbsencePolicy, CommitPolicy, CommitTrigger, CurrencyMetadata, DecimalRules, DecimalScale,
     DecimalValue, DraftValue, DurationUnit, DurationValue, FieldAccess, FieldBinding, FieldError,
     FieldFailure, FieldIntent, FieldProjection, FormCoordinator, FormIntent, GraphemeLimit,
-    MaskPattern, MaskedValue, Money, NumberLocale, NumericBounds, OtpAlphabet, OtpLength, OtpValue,
+    MaskPattern, MaskedValue, Money, NumberSyntax, NumericBounds, OtpAlphabet, OtpLength, OtpValue,
     Ownership, ParseIssue, Percent, Quantity, RoundingPolicy, SignPolicy, StepDirection,
     ValidationPresentation, format_decimal, grapheme_count, parse_integer,
 };
@@ -156,7 +156,7 @@ struct NumericFields {
     quantity: FieldBinding<Quantity<DistanceUnit>, FormIssue>,
     duration: FieldBinding<DurationValue, FormIssue>,
     stepper: FieldBinding<i64, FormIssue>,
-    locale: Cell<NumberLocale>,
+    locale: Cell<NumberSyntax>,
 }
 impl NumericFields {
     fn get(&self, field: NumericExample) -> &dyn FieldCommands {
@@ -177,7 +177,7 @@ impl NumericFields {
         self.duration.reset(Some(saved.duration));
         self.stepper.reset(Some(saved.seats));
     }
-    fn change_locale(&self, locale: NumberLocale) {
+    fn change_locale(&self, locale: NumberSyntax) {
         self.locale.set(locale);
         self.integer.reconfigure(
             move |s| parse_integer(s, locale, Some(people_bounds())),
@@ -232,12 +232,12 @@ fn view_access(access: ui::FieldAccess) -> FieldAccess {
 fn view_validation(value: ValidationPresentation) -> ui::ValidationPresentation {
     value.into()
 }
-fn locale(value: LocaleExample) -> NumberLocale {
+fn locale(value: LocaleExample) -> NumberSyntax {
     match value {
-        LocaleExample::FrenchCanada => NumberLocale::FrCa,
-        LocaleExample::FrenchFrance => NumberLocale::FrFr,
-        LocaleExample::EnglishCanada => NumberLocale::EnCa,
-        LocaleExample::EnglishUs => NumberLocale::EnUs,
+        LocaleExample::FrenchCanada => NumberSyntax::fr_ca(),
+        LocaleExample::FrenchFrance => NumberSyntax::fr_fr(),
+        LocaleExample::EnglishCanada => NumberSyntax::en_ca(),
+        LocaleExample::EnglishUs => NumberSyntax::en_us(),
     }
 }
 fn publisher(window: &Showcase, field: FieldView) -> impl Fn(FieldProjection) + 'static {
@@ -472,13 +472,13 @@ fn scale(value: u32) -> DecimalScale {
     DecimalScale::new(value).expect("sample scale is at most four")
 }
 fn decimal_rules(
-    locale: NumberLocale,
+    syntax: NumberSyntax,
     precision: u32,
     sign: SignPolicy,
     bounds: Option<NumericBounds<DecimalValue>>,
 ) -> DecimalRules {
     DecimalRules {
-        locale,
+        syntax,
         scale: scale(precision),
         sign,
         bounds,
@@ -494,14 +494,14 @@ fn bounded_decimal(maximum: i64) -> NumericBounds<DecimalValue> {
     NumericBounds::new(DecimalValue::ZERO, DecimalValue::from_integer(maximum))
         .expect("ordered positive bounds")
 }
-fn decimal_text(value: DecimalValue, locale: NumberLocale, precision: u32) -> String {
+fn decimal_text(value: DecimalValue, locale: NumberSyntax, precision: u32) -> String {
     format_decimal(value, locale, scale(precision), RoundingPolicy::Reject)
         .expect("validated samples respect their rendering precision")
 }
-fn integer_text(value: i64, locale: NumberLocale) -> String {
+fn integer_text(value: i64, locale: NumberSyntax) -> String {
     decimal_text(DecimalValue::from_integer(value), locale, 0)
 }
-fn parse_money(text: &str, locale: NumberLocale) -> DraftValue<Money> {
+fn parse_money(text: &str, locale: NumberSyntax) -> DraftValue<Money> {
     map_draft(
         decimal_rules(
             locale,
@@ -518,7 +518,7 @@ fn parse_money(text: &str, locale: NumberLocale) -> DraftValue<Money> {
         },
     )
 }
-fn parse_percent(text: &str, locale: NumberLocale) -> DraftValue<Percent> {
+fn parse_percent(text: &str, locale: NumberSyntax) -> DraftValue<Percent> {
     map_draft(
         decimal_rules(
             locale,
@@ -530,7 +530,7 @@ fn parse_percent(text: &str, locale: NumberLocale) -> DraftValue<Percent> {
         |value| Ok(Percent(value)),
     )
 }
-fn parse_quantity(text: &str, locale: NumberLocale) -> DraftValue<Quantity<DistanceUnit>> {
+fn parse_quantity(text: &str, locale: NumberSyntax) -> DraftValue<Quantity<DistanceUnit>> {
     map_draft(
         decimal_rules(
             locale,
@@ -547,7 +547,7 @@ fn parse_quantity(text: &str, locale: NumberLocale) -> DraftValue<Quantity<Dista
         },
     )
 }
-fn parse_duration(text: &str, locale: NumberLocale) -> DraftValue<DurationValue> {
+fn parse_duration(text: &str, locale: NumberSyntax) -> DraftValue<DurationValue> {
     map_draft(
         decimal_rules(
             locale,
@@ -559,7 +559,7 @@ fn parse_duration(text: &str, locale: NumberLocale) -> DraftValue<DurationValue>
         |value| DurationValue::from_quantity(value, DurationUnit::Minutes),
     )
 }
-fn duration_text(value: DurationValue, locale: NumberLocale) -> String {
+fn duration_text(value: DurationValue, locale: NumberSyntax) -> String {
     let milliseconds =
         i64::try_from(value.milliseconds()).expect("example durations are bounded to one day");
     let minutes = DecimalValue::from_integer(milliseconds)
@@ -601,7 +601,7 @@ fn initial_billing() -> BillingPayload {
 pub fn install(window: &Showcase) {
     let profile = initial_profile();
     let billing = initial_billing();
-    let initial_locale = NumberLocale::FrCa;
+    let initial_locale = NumberSyntax::fr_ca();
     let text = TextFields {
         name: field(
             window,

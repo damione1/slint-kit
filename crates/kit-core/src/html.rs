@@ -417,12 +417,13 @@ fn canonical_clock_draft(draft: &str) -> Option<String> {
     None
 }
 fn canonical_number_draft(draft: &str, format: NumberInputFormat) -> Option<String> {
-    let locale = match format {
-        NumberInputFormat::Canonical => crate::NumberLocale::EnCa,
-        NumberInputFormat::DecimalComma => crate::NumberLocale::FrCa,
-    };
-    crate::numeric::canonical_number_syntax::<()>(draft, locale, true, crate::SignPolicy::Signed)
-        .ok()
+    crate::numeric::canonical_number_syntax::<()>(
+        draft,
+        format.syntax(),
+        true,
+        crate::SignPolicy::Signed,
+    )
+    .ok()
 }
 /// Filter insertions without owning native selection, caret, composition or undo.
 /// Incomplete exponent/sign drafts remain editable and validate as badInput.
