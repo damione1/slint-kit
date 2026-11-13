@@ -590,6 +590,7 @@ where
             selected: selected.clone(),
             accepted: false,
             added: false,
+            limit_reached: false,
         };
         let rows = tracked(&rows);
         let Some(options) = options(&rows) else {
@@ -609,6 +610,12 @@ where
         let Some(selected_keys) = selected_keys else {
             return reject();
         };
+        // A token whose option was replaced is no longer a selection: it must
+        // neither count against the limit nor survive a new transition.
+        let selected_keys: Vec<_> = selected_keys
+            .into_iter()
+            .filter(|key| rows.iter().any(|row| row.token == key.0))
+            .collect();
         let limit = if limit == 0 {
             None
         } else {
@@ -619,8 +626,17 @@ where
         else {
             return reject();
         };
-        let Ok(intent) = controller.toggle(&ChoiceToken(token)) else {
-            return reject();
+        let intent = match controller.toggle(&ChoiceToken(token)) {
+            Ok(intent) => intent,
+            Err(kit_core::ChoiceFailure::LimitReached) => {
+                return ui::MultipleTransition {
+                    limit_reached: true,
+                    ..reject()
+                };
+            }
+            Err(kit_core::ChoiceFailure::Missing | kit_core::ChoiceFailure::Disabled) => {
+                return reject();
+            }
         };
         let added = match intent {
             kit_core::MultiSelectionIntent::Add(_) => true,
@@ -637,6 +653,7 @@ where
             )),
             accepted: true,
             added,
+            limit_reached: false,
         }
     });
     service.on_rating_options(|steps| {

@@ -15,6 +15,11 @@ export component MultiPopupFixture inherits Window {
     out property <[OptionRow]> rows: multi.rows;
     out property <[ChoiceRow]> choice-rows: multi.choice-rows;
     out property <bool> focused: multi.has-focus;
+    out property <bool> is-open: multi.is-open;
+    out property <bool> at-limit: multi.at-limit;
+    callback limit-reached(OptionRow);
+    public function open-multi() { multi.open(); }
+    public function close-multi() { multi.close(); }
     callback selection-changed(OptionRow, bool);
     callback query-edited(string);
     public function focus-multi() { multi.take-focus(); }
@@ -26,6 +31,7 @@ export component MultiPopupFixture inherits Window {
             ownership: root.ownership; access: root.access;
             close-on-select: root.close-on-select; selection-limit: root.limit;
             selection-changed(row, added) => { root.selection-changed(row, added); }
+            limit-reached(row) => { root.limit-reached(row); }
             query-edited(query) => { root.query-edited(query); }
         }
         outside := KitTextField { theme: root.theme; label: "Outside editor"; }
