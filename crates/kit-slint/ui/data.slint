@@ -3,7 +3,7 @@ import { KitKeyResult } from "keyboard.slint";
 import { ListView } from "scroll.slint";
 import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
-import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon, IconGlyph, IconPurpose } from "icons.slint";
 import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
@@ -60,14 +60,16 @@ export global KitDataService {
 // components experimental. The Rust `CellContent` enum is the sum type;
 // `TableCell` is its flat projection, written once by `From`, so only the
 // fields of `kind` are meaningful: `text` for every kind (it is also the
-// accessible label of a badge or check mark), `tone` for a badge, `check`
-// for a check mark, `access` and `spec` for a field. A `field` is a text
+// accessible label of a badge, check mark, icon or progress bar), `tone` for
+// a badge, an icon, a progress bar and the ink of a text cell (`neutral` is
+// the default text ink), `check` for a check mark, `glyph` for an icon,
+// `fraction` (0 to 1) for a progress bar, `access` and `spec` for a field. A `field` is a text
 // value the user may edit in place: `text` is its accepted value in the
 // canonical draft form of its codec, `spec` the key of the installed
 // `FieldSpec` that parses, validates and displays it ("" for plain text)
 // and `access` whether Enter opens the editor.
-export enum TableCellKind { text, badge, check, field }
-export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
+export enum TableCellKind { text, badge, check, field, icon, progress }
+export struct TableCell { kind: TableCellKind, text: string, tone: Tone, check: CheckState, glyph: IconGlyph, fraction: float, access: FieldAccess, spec: string, constrained: bool, constraints: KitInputConstraints }
 // Where the cell cursor moves inside the active row.
 export enum ColumnStep { previous, next }
 // A row is either plain strings (`cells`) or typed cells (`content`), one
@@ -313,11 +315,18 @@ component TableCellView inherits Rectangle {
     pure function text-alignment() -> TextHorizontalAlignment {
         return root.alignment == DataAlignment.trailing ? TextHorizontalAlignment.right : root.alignment == DataAlignment.center ? TextHorizontalAlignment.center : TextHorizontalAlignment.left;
     }
+    // The ink a tone paints; `neutral` is the ordinary text ink.
+    pure function tone-ink(tone: Tone) -> color {
+        return tone == Tone.neutral ? root.theme.text-primary : tone == Tone.accent ? root.theme.accent : tone == Tone.success ? root.theme.success : tone == Tone.warning ? root.theme.warning : tone == Tone.danger ? root.theme.danger : root.theme.information;
+    }
+    // Disabled and selected rows keep one readable ink; a tone is data and
+    // only colours a row at rest.
+    private property <color> cell-ink: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.tone-ink(root.cell.tone);
     clip: true;
     if root.cell.kind == TableCellKind.text: Text {
         x: root.inset; width: max(0px, parent.width - 2 * root.inset);
         text: root.cell.text;
-        color: root.row-disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
+        color: root.cell-ink;
         font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
         overflow: elide; vertical-alignment: center;
         horizontal-alignment: root.text-alignment();
@@ -417,6 +426,31 @@ component TableCellView inherits Rectangle {
         state: root.cell.check;
         access: root.row-disabled ? FieldAccess.disabled : FieldAccess.read-only;
         accessible-role: text; accessible-label: root.cell.text;
+    }
+    // An icon is informative when the host gave it words, decorative when
+    // `text` is empty.
+    if root.cell.kind == TableCellKind.icon: KitIcon {
+        theme: root.theme; control-size: root.control-size;
+        glyph: root.cell.glyph;
+        purpose: root.cell.text == "" ? IconPurpose.decorative : IconPurpose.informative;
+        label: root.cell.text;
+        ink: root.cell-ink;
+        x: root.aligned-x(self.width); y: (parent.height - self.height) / 2;
+    }
+    if root.cell.kind == TableCellKind.progress: Rectangle {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+        height: root.theme.spacing.unit * 2; y: (parent.height - self.height) / 2;
+        border-radius: min(root.theme.shape.radius-pill, self.height / 2);
+        background: root.theme.border-subtle;
+        accessible-role: progress-indicator; accessible-label: root.cell.text;
+        accessible-value: Math.round(min(1, max(0, root.cell.fraction)) * 100);
+        accessible-value-minimum: 0; accessible-value-maximum: 100;
+        Rectangle {
+            x: 0px; y: 0px; height: parent.height;
+            width: parent.width * min(1, max(0, root.cell.fraction));
+            border-radius: parent.border-radius;
+            background: root.row-disabled ? root.theme.disabled-text : root.cell.tone == Tone.neutral ? root.theme.accent : root.tone-ink(root.cell.tone);
+        }
     }
 }
 

@@ -35,6 +35,7 @@ mod selection_service;
 mod slider_recovery;
 mod table_cells;
 mod table_editing;
+mod table_rich_cells;
 mod window_callback;
 mod wrapped_field;
 
