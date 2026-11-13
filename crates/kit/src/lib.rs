@@ -52,6 +52,9 @@
 //! - `KeyedModel<K, Row>`: models with stable-key sorting and active-row editing.
 //! - `Store<T>`: a typed value shared by Rust and the windows that observe it,
 //!   projected into a Slint `global`, with a `Send` handle for other threads.
+//! - `spawn` and `Latest`: run a future on the event loop and apply its result
+//!   with the window already upgraded, dropping stale responses; `Loading<T, E>`
+//!   reports progress. No asynchronous runtime is imposed.
 //!
 //! Enable the `native` feature for asynchronous file and directory dialogs, or
 //! `native-winit` for the winit file-drop bridge. File and directory dialogs

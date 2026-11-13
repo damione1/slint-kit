@@ -162,6 +162,37 @@ Tout composant qui lit `Session.unread` affiche la nouvelle valeur, quel que soi
 - Utilisez un store par domaine (session, réglages, panier) plutôt qu’un store pour toute l’application : un composant ne dépend alors que du global qu’il lit.
 - Les globals existent une fois par fenêtre. Pour synchroniser plusieurs fenêtres, observez le même store une fois par fenêtre ; chaque projection écrit dans le global de sa fenêtre.
 
+## Appels asynchrones
+
+Slint ne modifie une fenêtre que depuis sa boucle d’événements : un résultat qui arrive plus tard a donc besoin de la fenêtre. `spawn` et `Latest` cachent cette étape : la fermeture reçoit la fenêtre, déjà récupérée, et le code de l’application ne contient ni `as_weak` ni `upgrade`.
+
+```rust
+#[derive(Clone)]
+struct Users { rows: Vec<String> }
+
+let latest = Latest::new();
+let store = Store::new(Loading::<Users, String>::Loading);
+
+app.on_reload({
+    let app = app.as_weak();
+    let latest = latest.clone();
+    let store = store.clone();
+    move || {
+        let app = app.upgrade().unwrap();
+        latest
+            .load(&app, fetch_users(), move |_, state| store.set(state))
+            .unwrap();
+    }
+});
+```
+
+- `spawn(&app, future, |app, result| ...)` exécute le futur sur la boucle d’événements et applique le résultat avec la fenêtre. Si la fenêtre a été détruite, le résultat est abandonné. Chaque appel livre son propre résultat.
+- `Latest` protège contre les réponses périmées. Chaque `spawn` ou `load` périme les requêtes précédentes : l’ancien futur est abandonné à son prochain réveil et son résultat n’est jamais appliqué, même s’il arrive après le plus récent. Créez un `Latest` par source de requêtes (un champ de recherche, une liste rechargée). Les clones partagent la protection ; `cancel()` abandonne la requête en cours.
+- `Latest::load(&app, future, |app, state| ...)` prend un futur qui renvoie un `Result` et signale un `Loading<T, E>` : `Loading::Loading` aussitôt, puis `Loading::Ready(valeur)` ou `Loading::Failed(erreur)`. `Loading` offre `is_loading`, `ready` et `failed`. Projetez-le dans les propriétés d’un composant, ou dans un `Store` comme ci-dessus, pour afficher un indicateur, la liste ou un message d’erreur.
+- `Fence` et `FenceTicket` (dans `kit-core`) sont la garde de génération derrière `Latest`, pour le code qui gère ses propres tâches : `begin()` renvoie un ticket et périme les précédents, et `is_current(ticket)` indique si une réponse peut encore être appliquée.
+- Le kit n’impose aucun runtime asynchrone. Le futur est interrogé par la boucle d’événements de Slint via `slint::spawn_local` ; il n’a pas besoin d’être `Send`. Un futur qui exige le réacteur d’un runtime (sockets ou minuteries tokio, par exemple) doit l’apporter : enveloppez-le avec `async_compat::Compat`, ou attendez le `JoinHandle` d’une tâche que votre propre runtime exécute. Un futur qui n’utilise que des wakers simples, comme des canaux, n’a besoin de rien de plus.
+- Appelez `spawn` et `load` depuis le fil de l’interface, par exemple dans un callback. Ils renvoient `SpawnError` si aucune boucle d’événements ne tourne. Pour publier un résultat depuis un autre fil, utilisez `Store::remote()`.
+
 ## Effets hôtes et notifications
 
 Localisez une fois par fenêtre les noms d’action et de région avec `KitStrings.dismiss-label-template` (défaut `Dismiss {title}`, à traduire par exemple en `Fermer {title}`), `breadcrumbs-label`, `pagination-label` et `notifications-label`, ou surchargez `dismiss-label` / `accessible-name` par composant. `ToastEntry.dismiss-label` transmet un nom complet par entrée via `KitToastHost` ; vide, il utilise le modèle global, et `KitToast.dismiss-label` permet une surcharge. Les littéraux Rust `ToastEntry` complets exigent désormais `dismiss_label: Default::default()` (ou un nom localisé) ; ceux terminés par `..Default::default()` restent compatibles.

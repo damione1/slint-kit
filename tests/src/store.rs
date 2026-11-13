@@ -104,9 +104,8 @@ fn a_change_made_by_an_observer_leaves_every_observer_on_the_latest_value() {
     assert_eq!(seen.borrow().last(), Some(&10));
 }
 
-#[test]
-fn another_thread_updates_the_store_through_the_event_loop_and_dropped_stores_are_skipped() {
-    i_slint_backend_testing::init_integration_test_with_system_time();
+pub(crate) fn another_thread_updates_the_store_through_the_event_loop_and_dropped_stores_are_skipped()
+ {
     let window = StoreFixture::new().unwrap();
     let store = Store::new(counter());
     let weak = window.as_weak();

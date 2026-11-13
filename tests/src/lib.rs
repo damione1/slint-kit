@@ -867,9 +867,11 @@ mod otp_field;
 mod qa_polish;
 
 mod autonomous;
+mod event_loop;
 mod form_binding;
 mod keyed_model;
 mod store;
+mod task;
 mod text_field_behavior;
 
 mod direct_validation;

@@ -93,6 +93,11 @@ mod store;
 pub use store::*;
 
 #[cfg(feature = "adapter")]
+mod task;
+#[cfg(feature = "adapter")]
+pub use task::*;
+
+#[cfg(feature = "adapter")]
 mod keyed_model;
 #[cfg(feature = "adapter")]
 pub use keyed_model::*;

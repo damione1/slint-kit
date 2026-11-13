@@ -11,6 +11,7 @@
 
 mod choices;
 mod color;
+mod fence;
 mod field;
 mod file;
 mod focus;
@@ -28,6 +29,7 @@ mod text_filter;
 
 pub use choices::*;
 pub use color::*;
+pub use fence::*;
 pub use field::*;
 pub use file::*;
 pub use focus::*;
