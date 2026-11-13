@@ -29,6 +29,11 @@ export struct CalendarText {
     date-pattern: string, title-pattern: string,
     today: string, range-start: string, range-end: string, in-range: string,
 }
+// Display-at-rest format for a date text; an empty pattern keeps the ISO text.
+export struct DateDisplay {
+    pattern: string,
+    months: [string], short-months: [string], weekdays: [string], short-weekdays: [string],
+}
 export global KitCalendarService {
     in-out property <bool> ready;
     in-out property <CivilDateView> today;
@@ -38,6 +43,7 @@ export global KitCalendarService {
     pure callback range-valid(CalendarView, DateRangeView, string, string) -> bool;
     pure callback parse-date(string) -> CivilDateView;
     pure callback format-date(CivilDateView) -> string;
+    pure callback display-date(string, DateDisplay) -> string;
     pure callback project(CalendarView, CalendarText) -> CalendarProjection;
     pure callback navigate(CalendarView, CalendarNavigation) -> CivilDateView;
     pure callback show-month(CalendarView, int, int) -> CivilDateView;
