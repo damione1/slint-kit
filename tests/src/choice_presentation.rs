@@ -879,10 +879,7 @@ fn selected_segment_focus_readonly_choices_and_custom_disabled_slider_paint_rend
             );
             let switch = element(&window, "Power");
             switch.invoke_accessible_default_action();
-            assert_eq!(
-                switch.accessible_description().as_deref(),
-                Some("Read only")
-            );
+            assert_eq!(switch.accessible_read_only(), Some(true));
             let track = switch
                 .query_descendants()
                 .match_type_name("Rectangle")

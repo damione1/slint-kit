@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-use crate::{LocalizedFeedbackFixture, LocalizedNavigationFixture, OptionRow};
+use crate::{
+    ChipRow, LocalizedChoiceFixture, LocalizedFeedbackFixture, LocalizedNavigationFixture,
+    OptionRow,
+};
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::{
     ComponentHandle, Model, ModelRc, VecModel,
@@ -311,4 +314,63 @@ fn localized_labels_and_long_position_formats_render_intrinsically_in_both_theme
             capture(&feedback, &format!("feedback-{mode}-{scale}"));
         }
     }
+}
+
+#[test]
+fn choice_strings_follow_the_window_defaults_and_stay_overridable_per_component() {
+    backend();
+    let app = LocalizedChoiceFixture::new().unwrap();
+    slint_kit::install(&app);
+    app.set_chips(ModelRc::new(VecModel::from(vec![ChipRow {
+        token: 5,
+        label: "Alpha".into(),
+        removable: true,
+    }])));
+    app.show().unwrap();
+    settle(&app);
+    let description = |name: &str| component(&app, name).accessible_description();
+    assert_eq!(
+        description("KitCheckbox").as_deref(),
+        Some("Partially selected")
+    );
+    assert_eq!(
+        component(&app, "KitSwitch").accessible_read_only(),
+        Some(true)
+    );
+    assert_eq!(
+        component(&app, "KitSwitch")
+            .accessible_description()
+            .as_deref(),
+        Some("")
+    );
+    named(&app, "Remove Alpha");
+    named(&app, "Clear rating");
+    named(&app, "Prix — lower");
+    named(&app, "Prix — upper");
+    let strings = app.global::<KitStrings>();
+    strings.set_checkbox_mixed_label("Partiellement sélectionné".into());
+    strings.set_chip_remove_template("Retirer {label}".into());
+    strings.set_rating_clear_label("Effacer la note".into());
+    strings.set_range_lower_thumb_template("{label} — minimum".into());
+    strings.set_range_upper_thumb_template("{label} — maximum".into());
+    strings.set_tag_input_placeholder("Saisir une étiquette, puis Entrée".into());
+    settle(&app);
+    assert_eq!(
+        description("KitCheckbox").as_deref(),
+        Some("Partiellement sélectionné")
+    );
+    named(&app, "Retirer Alpha");
+    named(&app, "Effacer la note");
+    named(&app, "Prix — minimum");
+    named(&app, "Prix — maximum");
+    let placeholder = ElementQuery::from_root(&app)
+        .match_predicate(|item| {
+            item.accessible_placeholder_text().as_deref()
+                == Some("Saisir une étiquette, puis Entrée")
+        })
+        .find_first();
+    assert!(
+        placeholder.is_some(),
+        "the tag placeholder follows the window default"
+    );
 }
