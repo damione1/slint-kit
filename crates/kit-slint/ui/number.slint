@@ -97,6 +97,7 @@ export component KitNumberStepper inherits KitField {
     HorizontalLayout {
         spacing: KitMetrics.inline-gap(root.theme);
         editor := KitDecimalField {
+            modal-layer: root.modal-layer;
             ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.committed(value); }
             show-validation-message: false; error: root.error;
             required: root.required; min: root.min; max: root.max; step: root.step;
@@ -115,7 +116,7 @@ export component KitNumberStepper inherits KitField {
             focus-observed(value) => { root.focus-observed(value); }
         }
         for direction in [StepDirection.decrement, StepDirection.increment]: step := KitPressable {
-            theme: root.theme; intent: ButtonIntent.secondary; control-size: root.control-size;
+            theme: root.theme; modal-layer: root.modal-layer; intent: ButtonIntent.secondary; control-size: root.control-size;
             min-height: Math.max(KitMetrics.control-height(root.theme, root.control-size), self.recipe.height, self.text-size * 1.4 + 2 * self.padding-block);
             preferred-width: KitMetrics.control-height(root.theme, root.control-size);
             min-width: self.preferred-width;

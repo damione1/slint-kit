@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitButton, KitTextField, KitCheckbox, KitSelect, KitDialogSurface, KitDialogPanel, KitModalContext, DialogState } from "@kit";
+
+export component ModalContextFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <DialogState> lower;
+    in property <DialogState> upper;
+    out property <bool> modal-open: KitModalContext.open;
+    out property <int> modal-layer: KitModalContext.layer;
+    callback background-activated();
+    callback lower-activated();
+    callback upper-activated();
+    VerticalLayout {
+        KitButton { text: "Background"; accessible-name: "Background action"; activated => { root.background-activated(); } }
+        KitTextField { accessible-name: "Background field"; }
+        KitCheckbox { accessible-name: "Background check"; }
+        KitSelect { label: "Background select"; }
+    }
+    KitDialogSurface {
+        state: root.lower;
+        modal-layer: 1;
+        KitDialogPanel {
+            width: 200px; height: 100px;
+            KitButton { text: "Lower"; accessible-name: "Lower action"; modal-layer: 1; activated => { root.lower-activated(); } }
+        }
+    }
+    KitDialogSurface {
+        state: root.upper;
+        modal-layer: 2;
+        KitDialogPanel {
+            width: 200px; height: 100px;
+            KitButton { text: "Upper"; accessible-name: "Upper action"; modal-layer: 2; activated => { root.upper-activated(); } }
+        }
+    }
+}

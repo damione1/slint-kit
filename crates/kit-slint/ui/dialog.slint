@@ -2,6 +2,7 @@
 import { KitTheme, KitThemes, KitThemeContext, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { DialogState, CloseReason } from "contracts.slint";
 import { ElevatedSurface } from "elevation.slint";
+import { KitModalContext } from "modal.slint";
 export { DialogState, CloseReason } from "contracts.slint";
 export enum DialogTabPolicy { host, native }
 
@@ -14,6 +15,11 @@ export component KitDialogSurface inherits Rectangle {
     // Native traversal follows the actual mounted controls. Its window host
     // must make background controls ineligible while this modal is open.
     in property <DialogTabPolicy> tab-policy: DialogTabPolicy.host;
+    // A positive layer makes every kit control that does not declare the same
+    // `modal-layer` inert while this modal is open and topmost, so the background
+    // needs no focus token. Give nested modals distinct layers. 0 leaves the
+    // background to the host.
+    in property <int> modal-layer: 0;
     callback dismiss(CloseReason);
     callback focus-next(bool);
     // Fallback keyboard scope when a modal contains no eligible control.
@@ -25,7 +31,18 @@ export component KitDialogSurface inherits Rectangle {
     // there so keys stay in the modal. It cannot steal a host focus request,
     // because nothing is eligible to receive one while busy.
     private property <bool> sealed: root.state.open && root.state.topmost && root.state.busy;
-    init => { if (root.sealed) { keys.focus(); } }
+    private property <bool> publishes: root.modal-layer > 0 && root.state.open && root.state.topmost;
+    init => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+        if (root.sealed) { keys.focus(); }
+    }
+    changed publishes => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+        else { KitModalContext.leave(root.modal-layer); }
+    }
+    changed modal-layer => {
+        if (root.publishes) { KitModalContext.enter(root.modal-layer); }
+    }
     changed sealed => { if (root.sealed) { keys.focus(); } }
     visible: root.state.open;
     background: root.theme.scrim;
