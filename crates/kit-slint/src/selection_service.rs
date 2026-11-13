@@ -35,6 +35,7 @@ impl From<ui::CloseReason> for DismissReason {
             ui::CloseReason::OutsidePress => Self::OutsidePress,
             ui::CloseReason::SystemBack => Self::SystemBack,
             ui::CloseReason::TriggerToggle => Self::TriggerToggle,
+            ui::CloseReason::CloseButton => Self::CloseButton,
             ui::CloseReason::Programmatic => Self::Programmatic,
             ui::CloseReason::HostClosed => Self::HostClosed,
         }

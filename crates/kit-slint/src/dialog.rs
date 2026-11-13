@@ -376,7 +376,8 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
                 DismissReason::Escape
                 | DismissReason::OutsidePress
                 | DismissReason::SystemBack
-                | DismissReason::TriggerToggle => {
+                | DismissReason::TriggerToggle
+                | DismissReason::CloseButton => {
                     if s.overlays.topmost().is_none_or(|top| top.id != id) {
                         return None;
                     }

@@ -24,7 +24,9 @@ impl Default for OverlayPolicy {
 impl OverlayPolicy {
     pub fn allows(self, reason: DismissReason, busy: bool) -> bool {
         match reason {
-            DismissReason::Programmatic | DismissReason::HostClosed => true,
+            DismissReason::Programmatic
+            | DismissReason::HostClosed
+            | DismissReason::CloseButton => true,
             DismissReason::Escape => self.escape && !(busy && self.block_while_busy),
             DismissReason::OutsidePress => self.outside_press && !(busy && self.block_while_busy),
             DismissReason::SystemBack => self.system_back && !(busy && self.block_while_busy),

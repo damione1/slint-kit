@@ -1035,11 +1035,20 @@ export component KitNotificationCenter inherits Rectangle {
 
 // OverlayStack and the focus registry remain the authority for modal ownership.
 // Render last; host connects dismiss, focus-next and restore-focus callbacks.
+export enum DrawerSide { start, end, top, bottom }
 export component KitDrawer inherits KitDialogSurface {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
     in property <string> close-label: "Close panel";
+    // Edge the panel attaches to. `start` and `end` follow the theme direction,
+    // so `end` is the right edge in left-to-right and the left edge in right-to-left.
+    in property <DrawerSide> side: DrawerSide.end;
+    // Panel extent across `start` and `end`; ignored for `top` and `bottom`.
     in property <length> panel-width: 380px;
+    // Panel extent for `top` and `bottom`; ignored for `start` and `end`.
+    in property <length> panel-height: 320px;
+    private property <bool> horizontal-edge: root.side == DrawerSide.top || root.side == DrawerSide.bottom;
+    private property <bool> at-right: (root.side == DrawerSide.end) != (root.theme.direction == ChoiceFlow.right-to-left);
     callback restore-focus();
     callback close-focus-observed(bool);
     public function take-focus() { close-button.take-focus(); }
@@ -1052,9 +1061,10 @@ export component KitDrawer inherits KitDialogSurface {
     KitDialogPanel {
         theme: root.theme;
         accessible-name: root.title;
-        x: root.width - self.width; y: 0px;
-        width: min(root.width, max(0px, root.panel-width));
-        height: root.height;
+        x: root.horizontal-edge || !root.at-right ? 0px : root.width - self.width;
+        y: root.side == DrawerSide.bottom ? root.height - self.height : 0px;
+        width: root.horizontal-edge ? root.width : min(root.width, max(0px, root.panel-width));
+        height: root.horizontal-edge ? min(root.height, max(0px, root.panel-height)) : root.height;
         border-radius: 0px;
         VerticalLayout {
             padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 4;
@@ -1068,7 +1078,7 @@ export component KitDrawer inherits KitDialogSurface {
                     modal-layer: root.modal-layer;
                     disabled: root.state.busy || !root.state.topmost;
                     focus-observed(focused) => { root.close-focus-observed(focused); }
-                    activated => { root.dismiss(CloseReason.programmatic); }
+                    activated => { root.dismiss(CloseReason.close-button); }
                 }
             }
             @children
