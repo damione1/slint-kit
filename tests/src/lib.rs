@@ -885,6 +885,7 @@ mod toast_lifecycle;
 mod toast_timer;
 
 mod slider_accessibility;
+mod slider_flow;
 
 mod choice_validity;
 

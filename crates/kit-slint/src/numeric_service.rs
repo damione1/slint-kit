@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 use crate::ui;
 use kit_core::{DecimalSlider, DecimalValue, OrderedRange, ParseIssue};
+use std::num::NonZeroU32;
 impl TryFrom<ui::DecimalRangeView> for OrderedRange<DecimalValue> {
     type Error = ParseIssue;
     fn try_from(value: ui::DecimalRangeView) -> Result<Self, Self::Error> {
@@ -9,11 +10,32 @@ impl TryFrom<ui::DecimalRangeView> for OrderedRange<DecimalValue> {
     }
 }
 fn spec(value: ui::SliderSpec) -> Result<DecimalSlider, ParseIssue> {
-    DecimalSlider::new(
+    let slider = DecimalSlider::new(
         value.minimum.parse()?,
         value.maximum.parse()?,
         value.step.parse()?,
-    )
+    )?;
+    // Zero keeps the kit default of ten steps per page.
+    let slider = match u32::try_from(value.page_steps).map_err(|_| ParseIssue::InvalidRange)? {
+        0 => slider,
+        count => slider.with_page_steps(NonZeroU32::new(count).ok_or(ParseIssue::InvalidRange)?),
+    };
+    slider
+        .with_distance_steps(u32::try_from(value.min_steps).map_err(|_| ParseIssue::InvalidRange)?)
+}
+/// The lower and upper values after one thumb moves to `next`. The moving thumb
+/// stops at the other thumb, plus the minimum distance between them.
+fn fence(
+    thumb: ui::RangeThumb,
+    next: DecimalValue,
+    range: OrderedRange<DecimalValue>,
+    rules: DecimalSlider,
+) -> Result<(DecimalValue, DecimalValue), ParseIssue> {
+    let gap = rules.distance()?;
+    Ok(match thumb {
+        ui::RangeThumb::Lower => (next.min(range.end().checked_sub(gap)?), range.end()),
+        ui::RangeThumb::Upper => (range.start(), next.max(range.start().checked_add(gap)?)),
+    })
 }
 fn accessible_value(
     value: DecimalValue,
@@ -46,6 +68,9 @@ fn range_values(
     let rules = spec(rules)?;
     rules.validate(range.start())?;
     rules.validate(range.end())?;
+    if range.end().checked_sub(range.start())? < rules.distance()? {
+        return Err(ParseIssue::InvalidRange);
+    }
     Ok((range, rules))
 }
 fn normalize_range(
@@ -59,7 +84,19 @@ fn normalize_range(
             rules.at_value(value)
         }
     };
-    OrderedRange::new(admitted(range.start())?, admitted(range.end())?)
+    let (start, end) = (admitted(range.start())?, admitted(range.end())?);
+    let gap = rules.distance()?;
+    if end.checked_sub(start)? >= gap {
+        return OrderedRange::new(start, end);
+    }
+    // The thumbs sit closer than the minimum distance. Push the upper thumb
+    // away, or pull the lower thumb back when the upper one is at the maximum.
+    let pushed = start.checked_add(gap)?;
+    if pushed <= rules.maximum() {
+        OrderedRange::new(start, pushed)
+    } else {
+        OrderedRange::new(rules.maximum().checked_sub(gap)?, rules.maximum())
+    }
 }
 #[cfg(debug_assertions)]
 fn install_spec_diagnostics(service: &ui::KitFieldService<'_>) {
@@ -85,8 +122,18 @@ fn range_accessibility(
 ) -> Result<ui::RangeAccessibleValue, ParseIssue> {
     let (range, rules) = range_values(current, rules)?;
     Ok(ui::RangeAccessibleValue {
-        lower: accessible_value(range.start(), rules.minimum(), range.end(), rules.step())?,
-        upper: accessible_value(range.end(), range.start(), rules.maximum(), rules.step())?,
+        lower: accessible_value(
+            range.start(),
+            rules.minimum(),
+            range.end().checked_sub(rules.distance()?)?,
+            rules.step(),
+        )?,
+        upper: accessible_value(
+            range.end(),
+            range.start().checked_add(rules.distance()?)?,
+            rules.maximum(),
+            rules.step(),
+        )?,
     })
 }
 fn slider_set_value(
@@ -115,10 +162,7 @@ fn range_set_value(
 ) -> Result<ui::RangeSetValueResult, ParseIssue> {
     let (range, rules) = range_values(current, rules)?;
     let next = rules.at_value(proposed.parse()?)?;
-    let (lower, upper) = match thumb {
-        ui::RangeThumb::Lower => (next.min(range.end()), range.end()),
-        ui::RangeThumb::Upper => (range.start(), next.max(range.start())),
-    };
+    let (lower, upper) = fence(thumb, next, range, rules)?;
     Ok(ui::RangeSetValueResult {
         status: if lower == range.start() && upper == range.end() {
             ui::NumberStepStatus::Unchanged
@@ -156,15 +200,14 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
             .and_then(|rules| rules.validate(value.parse()?))
             .is_ok()
     });
-    service.on_range_valid(|value, rules| {
-        let valid = || -> Result<(), ParseIssue> {
-            let rules = spec(rules)?;
-            let range = OrderedRange::<DecimalValue>::try_from(value)?;
-            rules.validate(range.start())?;
-            rules.validate(range.end())?;
-            Ok(())
-        };
-        valid().is_ok()
+    service.on_range_valid(|value, rules| range_values(value, rules).is_ok());
+    service.on_range_gap_position(|rules| {
+        spec(rules)
+            .and_then(|rules| {
+                let span = rules.maximum().checked_sub(rules.minimum())?;
+                rules.position(rules.minimum().checked_add(rules.distance()?.min(span))?)
+            })
+            .unwrap_or(0.0)
     });
     service.on_slider_position(|value, rules| {
         spec(rules)
@@ -189,10 +232,7 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
             let rules = spec(rules)?;
             let range = normalize_range(range, rules)?;
             let next = rules.at_position(position)?;
-            let (lower, upper) = match thumb {
-                ui::RangeThumb::Lower => (next.min(range.end()), range.end()),
-                ui::RangeThumb::Upper => (range.start(), next.max(range.start())),
-            };
+            let (lower, upper) = fence(thumb, next, range, rules)?;
             Ok(ui::DecimalRangeView {
                 lower: lower.to_string().into(),
                 upper: upper.to_string().into(),
@@ -206,16 +246,11 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
             let rules = spec(rules)?;
             let raw = range;
             let range = normalize_range(raw, rules)?;
-            let (lower, upper) = match thumb {
-                ui::RangeThumb::Lower => (
-                    rules.navigate(raw.start(), step.into())?.min(range.end()),
-                    range.end(),
-                ),
-                ui::RangeThumb::Upper => (
-                    range.start(),
-                    rules.navigate(raw.end(), step.into())?.max(range.start()),
-                ),
+            let moved = match thumb {
+                ui::RangeThumb::Lower => raw.start(),
+                ui::RangeThumb::Upper => raw.end(),
             };
+            let (lower, upper) = fence(thumb, rules.navigate(moved, step.into())?, range, rules)?;
             Ok(ui::DecimalRangeView {
                 lower: lower.to_string().into(),
                 upper: upper.to_string().into(),
@@ -266,6 +301,14 @@ mod tests {
             minimum: "-10".into(),
             maximum: "50".into(),
             step: "2".into(),
+            page_steps: 0,
+            min_steps: 0,
+        }
+    }
+    fn spaced() -> ui::SliderSpec {
+        ui::SliderSpec {
+            min_steps: 3,
+            ..rules()
         }
     }
     fn current() -> ui::DecimalRangeView {
@@ -339,5 +382,61 @@ mod tests {
         let unchanged =
             range_set_value(current(), ui::RangeThumb::Lower, "10.1".into(), rules()).unwrap();
         assert_eq!(unchanged.status, ui::NumberStepStatus::Unchanged);
+    }
+    #[test]
+    fn minimum_distance_fences_the_moving_thumb_and_the_accessible_bounds() {
+        let lower =
+            range_set_value(current(), ui::RangeThumb::Lower, "99".into(), spaced()).unwrap();
+        assert_eq!(
+            lower.value,
+            range_view("24".parse().unwrap(), "30".parse().unwrap())
+        );
+        let upper =
+            range_set_value(current(), ui::RangeThumb::Upper, "-99".into(), spaced()).unwrap();
+        assert_eq!(
+            upper.value,
+            range_view("10".parse().unwrap(), "16".parse().unwrap())
+        );
+        let profile = range_accessibility(current(), spaced()).unwrap();
+        assert_eq!(profile.lower.maximum, 24.);
+        assert_eq!(profile.upper.minimum, 16.);
+        let closer = range_view("10".parse().unwrap(), "14".parse().unwrap());
+        assert!(range_values(closer, spaced()).is_err());
+    }
+    #[test]
+    fn minimum_distance_repairs_a_close_pair_on_the_pointer_path() {
+        let close = range_view("10".parse().unwrap(), "12".parse().unwrap());
+        let (range, rules) = (
+            OrderedRange::<DecimalValue>::try_from(close).unwrap(),
+            spec(spaced()).unwrap(),
+        );
+        let fixed = normalize_range(range, rules).unwrap();
+        assert_eq!(fixed.end().to_string(), "16");
+        let edge = range_view("48".parse().unwrap(), "50".parse().unwrap());
+        let edge = OrderedRange::<DecimalValue>::try_from(edge).unwrap();
+        let fixed = normalize_range(edge, rules).unwrap();
+        assert_eq!(
+            (fixed.start().to_string(), fixed.end().to_string()),
+            ("44".to_string(), "50".to_string())
+        );
+    }
+    #[test]
+    fn page_steps_and_distance_reject_negative_or_oversized_values() {
+        let negative = ui::SliderSpec {
+            page_steps: -1,
+            ..rules()
+        };
+        assert!(spec(negative).is_err());
+        let wide = ui::SliderSpec {
+            min_steps: 31,
+            ..rules()
+        };
+        assert!(spec(wide).is_err());
+        let paged = ui::SliderSpec {
+            page_steps: 5,
+            ..rules()
+        };
+        assert_eq!(spec(paged).unwrap().page_steps().get(), 5);
+        assert_eq!(spec(rules()).unwrap().page_steps().get(), 10);
     }
 }

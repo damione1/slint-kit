@@ -15,7 +15,10 @@ export struct FieldState {
     error: string, committed: bool, value: FieldValue,
 }
 export struct FieldCommit { value: FieldValue, constraints: KitInputConstraints, spec: string }
-export struct SliderSpec { minimum: string, maximum: string, step: string }
+// `page-steps` is how many steps Page Up and Page Down move; zero keeps the
+// default of ten. `min-steps` is the least number of steps between the two
+// thumbs of a range slider; a plain slider ignores it.
+export struct SliderSpec { minimum: string, maximum: string, step: string, page-steps: int, min-steps: int }
 export struct DecimalRangeView { lower: string, upper: string }
 export enum ColorChannel { red, green, blue, alpha }
 export struct SrgbColorView { red: int, green: int, blue: int, alpha: int }
@@ -57,6 +60,8 @@ export global KitFieldService {
     callback slider-invalid-spec(SliderSpec);
     pure callback range-valid(DecimalRangeView, SliderSpec) -> bool;
     pure callback slider-position(string, SliderSpec) -> float;
+    // The minimum distance between range thumbs as a fraction of the travel.
+    pure callback range-gap-position(SliderSpec) -> float;
     pure callback slider-pointer(string, float, SliderSpec) -> string;
     pure callback slider-navigate(string, NavigationStep, SliderSpec) -> string;
     pure callback range-pointer(DecimalRangeView, RangeThumb, float, SliderSpec) -> DecimalRangeView;
