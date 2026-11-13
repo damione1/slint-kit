@@ -24,6 +24,7 @@ export struct NotificationRow { item: OptionRow, read: bool }
 // inset ring on the active one.
 export component KitNavigationAction inherits KitOption {
     in property <length> trailing-space;
+    in property <TextHorizontalAlignment> label-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
     private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: list-item;
     min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.padding-inline);
@@ -32,7 +33,7 @@ export component KitNavigationAction inherits KitOption {
         x: 0px; y: 0px;
         width: max(0px,root.width - 2 * root.padding-inline - root.trailing-space);
         height: max(0px,root.height - 2 * root.padding-block);
-        horizontal-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
+        horizontal-alignment: root.label-alignment;
         text: root.option-data.label;
         color: root.disabled ? root.label-recipe.disabled-foreground : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
@@ -267,6 +268,9 @@ export component KitTabs inherits Rectangle {
     in property <string> accessible-name: "Tabs";
     in property <ChoiceFlow> flow: root.theme.direction;
     in property <TabActivation> activation: TabActivation.manual;
+    // intrinsic sizes each tab to its label and scrolls on overflow; fill gives
+    // every tab an equal share of the strip and elides labels that do not fit.
+    in property <ControlWidth> tab-width: ControlWidth.intrinsic;
     in property <bool> typeahead-enabled: false;
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
@@ -325,7 +329,8 @@ export component KitTabs inherits Rectangle {
                 width: viewport.content-width;
                 height: viewport.visible-height;
                 spacing: root.theme.spacing.unit;
-                alignment: root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
+                alignment: root.tab-width == ControlWidth.fill ? LayoutAlignment.stretch
+                    : root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: tab-action := KitNavigationAction {
                     private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size;
@@ -334,7 +339,8 @@ export component KitTabs inherits Rectangle {
                     accessible-item-count: root.rows.length;
                     disabled: !root.interactive || self.entry.disabled;
                     accessible-role: tab;
-                    control-width: ControlWidth.intrinsic;
+                    control-width: root.tab-width;
+                    label-alignment: TextHorizontalAlignment.center;
                     active: root.state.active.present && root.state.active.token == self.entry.token;
                     selected: root.state.selected.present && root.state.selected.token == self.entry.token;
                     focus-indicated: root.interactive && self.active && (keyboard.has-focus || self.has-focus);
