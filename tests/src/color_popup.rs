@@ -292,3 +292,50 @@ fn scrolled_keyboard_cancel_and_apply_preserve_controlled_absence_until_host_ack
     settle(&app);
     assert!(app.get_value().present);
 }
+fn red_slider(app: &ColorPopupFixture) -> ElementHandle {
+    ElementQuery::from_root(app)
+        .match_inherits("KitSlider")
+        .match_predicate(|e| e.accessible_label().as_deref() == Some("Red draft"))
+        .find_first()
+        .unwrap()
+}
+#[test]
+fn draft_events_report_every_edit_and_a_cancel_only_after_one() {
+    let app = fixture();
+    app.show().unwrap();
+    settle(&app);
+    // Opening and closing without an edit emits nothing.
+    app.invoke_open_picker();
+    settle(&app);
+    assert_eq!(app.get_drafts(), 0);
+    key(&app, Key::Escape);
+    assert_eq!((app.get_drafts(), app.get_draft_cancels()), (0, 0));
+    // An edit emits the draft, never a proposal; Escape then asks to restore.
+    app.invoke_open_picker();
+    settle(&app);
+    click(&app, &red_slider(&app));
+    assert_eq!(app.get_drafts(), 1);
+    assert_ne!(app.get_draft().red, 12);
+    assert_eq!(
+        (
+            app.get_draft().green,
+            app.get_draft().blue,
+            app.get_draft().alpha
+        ),
+        (34, 56, 78)
+    );
+    assert_eq!(app.get_proposals(), 0);
+    key(&app, Key::Escape);
+    assert!(!app.get_open());
+    assert_eq!(app.get_draft_cancels(), 1);
+    assert_eq!(app.get_value().color.red, 12);
+    // Apply accepts the draft and does not report a cancel.
+    app.invoke_open_picker();
+    settle(&app);
+    click(&app, &red_slider(&app));
+    assert_eq!(app.get_drafts(), 2);
+    click(&app, &button(&app, "Apply color"));
+    assert_eq!(app.get_proposals(), 1);
+    assert_eq!(app.get_draft_cancels(), 1);
+    assert_eq!(app.get_value().color, app.get_draft());
+}
