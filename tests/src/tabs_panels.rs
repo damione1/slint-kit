@@ -9,7 +9,7 @@ use slint::{
 };
 use slint_kit::{
     Choices, SelectOption,
-    ui::{ChoiceFlow, Ownership, TabActivation},
+    ui::{ChoiceFlow, ControlWidth, Ownership, TabActivation},
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -354,4 +354,33 @@ fn an_opted_in_panel_scope_precedes_its_native_children() {
     }
     key(app, Key::Tab);
     assert!(app.get_profile_focused());
+}
+
+#[test]
+fn fill_width_gives_every_tab_an_equal_share_of_the_strip() {
+    let harness = fixture();
+    let app = &harness.app;
+    let widths = |app: &TabsPanelsFixture| -> Vec<f32> {
+        ElementQuery::from_root(app)
+            .match_accessible_role(AccessibleRole::Tab)
+            .find_all()
+            .iter()
+            .map(|tab| tab.size().width)
+            .collect()
+    };
+    let intrinsic = widths(app);
+    assert_eq!(intrinsic.len(), 3);
+    assert!(intrinsic.iter().sum::<f32>() < app.get_tabs_width() * 0.6);
+    app.set_tab_width(ControlWidth::Fill);
+    settle(app);
+    let filled = widths(app);
+    assert_eq!(filled.len(), 3);
+    for width in &filled {
+        assert!((width - filled[0]).abs() < 1.0, "unequal tabs: {filled:?}");
+    }
+    let total: f32 = filled.iter().sum();
+    assert!(
+        total > app.get_tabs_width() * 0.9,
+        "tabs do not fill the strip: {filled:?}"
+    );
 }
