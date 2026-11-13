@@ -360,8 +360,72 @@ fn drawer_moves_focus_to_close_on_open_and_asks_the_host_to_restore_it() {
     click(&one(&window, "Close panel"));
     assert_eq!(
         reasons.borrow().last().copied(),
-        Some(CloseReason::Programmatic)
+        Some(CloseReason::CloseButton),
+        "the close button is distinguishable from a host-requested close"
     );
+}
+
+#[test]
+fn drawer_attaches_to_the_requested_edge_and_mirrors_with_the_theme_direction() {
+    use crate::{ChoiceFlow, DrawerSide};
+    let window = drawer(state(true, false));
+    let panel = || {
+        let panel = ElementQuery::from_root(&window)
+            .match_inherits("KitDialogPanel")
+            .find_first()
+            .expect("drawer panel");
+        (panel.absolute_position(), panel.size())
+    };
+    // (side, direction, x, y, width, height) in a 600x400 window.
+    let cases = [
+        (
+            DrawerSide::End,
+            ChoiceFlow::LeftToRight,
+            300.,
+            0.,
+            300.,
+            400.,
+        ),
+        (DrawerSide::End, ChoiceFlow::RightToLeft, 0., 0., 300., 400.),
+        (
+            DrawerSide::Start,
+            ChoiceFlow::LeftToRight,
+            0.,
+            0.,
+            300.,
+            400.,
+        ),
+        (
+            DrawerSide::Start,
+            ChoiceFlow::RightToLeft,
+            300.,
+            0.,
+            300.,
+            400.,
+        ),
+        (DrawerSide::Top, ChoiceFlow::LeftToRight, 0., 0., 600., 150.),
+        (
+            DrawerSide::Bottom,
+            ChoiceFlow::RightToLeft,
+            0.,
+            250.,
+            600.,
+            150.,
+        ),
+    ];
+    for (side, direction, x, y, width, height) in cases {
+        let mut theme = window.get_theme();
+        theme.direction = direction;
+        window.set_theme(theme);
+        window.set_side(side);
+        slint::platform::update_timers_and_animations();
+        let (position, size) = panel();
+        assert_eq!(
+            (position.x, position.y, size.width, size.height),
+            (x, y, width, height),
+            "{side:?} in {direction:?}"
+        );
+    }
 }
 
 #[test]

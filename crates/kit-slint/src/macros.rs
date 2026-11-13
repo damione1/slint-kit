@@ -88,6 +88,7 @@ macro_rules! bind_select {
                 View::OutsidePress => $crate::__core::DismissReason::OutsidePress,
                 View::SystemBack => $crate::__core::DismissReason::SystemBack,
                 View::TriggerToggle => $crate::__core::DismissReason::TriggerToggle,
+                View::CloseButton => $crate::__core::DismissReason::CloseButton,
                 View::Programmatic => $crate::__core::DismissReason::Programmatic,
                 View::HostClosed => $crate::__core::DismissReason::HostClosed,
             };
