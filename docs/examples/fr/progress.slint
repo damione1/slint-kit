@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitProgress, KitTheme, KitThemes } from "@kit";
+import { KitProgress, ProgressMode, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitProgress — exemple";
     preferred-width: 420px;
-    preferred-height: 180px;
+    preferred-height: 240px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -16,7 +16,8 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Progression"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        KitProgress { theme: root.theme; label: "Téléversement des documents · 65 %"; value: 0.65; }
+        KitProgress { theme: root.theme; label: "Téléversement des documents"; value-text: "65 %"; value: 0.65; }
+        KitProgress { theme: root.theme; label: "En attente du serveur"; mode: ProgressMode.indeterminate; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

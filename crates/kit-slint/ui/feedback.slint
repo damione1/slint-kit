@@ -23,11 +23,31 @@ export enum ToastInteraction { pointer, focus }
 export enum TooltipPlacement { auto, below, above, left, right }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool, dismiss-label: string }
 
+// Presentation-only: how a progress indicator reports its state. An
+// indeterminate indicator has no value; it animates until the work ends.
+export enum ProgressMode { determinate, indeterminate }
+// The color a progress indicator fills with. `accent` is the theme's brand ink.
+export enum ProgressIntent { accent, success, warning, error }
+
+// Internal: the ink of a progress indicator for its intent.
+export global KitProgressInks {
+    public pure function ink(theme: KitTheme, intent: ProgressIntent) -> color {
+        return intent == ProgressIntent.success ? theme.success
+            : intent == ProgressIntent.warning ? theme.warning
+            : intent == ProgressIntent.error ? theme.danger
+            : theme.accent;
+    }
+}
+
+// Copy, then an optional row of actions: place `KitButton`s (or links) as children
+// and they sit under the message, aligned to the copy.
 export component KitAlert inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <AlertSeverity> severity: AlertSeverity.information;
     in property <string> title;
     in property <string> message;
+    // Replaces the mark of the severity; the recipe still tints it.
+    in property <IconGlyph> glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
     in property <bool> dismissible;
     in property <string> dismiss-label: KitStrings.dismiss-label-template.replace-all("{title}", root.title);
     callback dismissed();
@@ -45,20 +65,32 @@ export component KitAlert inherits Rectangle {
     background: root.recipe.fill;
     border-width: root.recipe.border-width; border-color: root.recipe.border;
     border-radius: root.corner-radius; vertical-stretch: 0;
-    accessible-role: groupbox; accessible-label: root.title; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
+    accessible-role: groupbox; accessible-label: root.title != "" ? root.title : root.message; accessible-live-region: root.severity == AlertSeverity.error ? assertive : polite;
     icon := KitIcon {
         theme: root.theme;
         x: root.inset; y: root.inset;
-        glyph: root.severity == AlertSeverity.success ? root.theme.icons.check : root.severity == AlertSeverity.warning || root.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
+        glyph: root.glyph;
         ink: root.recipe.mark;
     }
     copy := VerticalLayout {
         x: icon.x + icon.width + root.gap; y: root.inset;
         width: max(0px, root.width - self.x - root.inset - root.trailing-space);
         height: self.preferred-height;
-        spacing: root.theme.spacing.unit; alignment: start;
-        Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        spacing: 0px; alignment: start;
+        VerticalLayout {
+            spacing: root.theme.spacing.unit; alignment: start;
+            if root.title != "": Text { width: parent.width; height: self.preferred-height; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
+            if root.message != "": Text { width: parent.width; height: self.preferred-height; text: root.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
+        }
+        // Zero tall without children, so an alert without actions keeps its measured height.
+        Rectangle {
+            height: actions.preferred-height > 0px ? actions.preferred-height + root.theme.spacing.unit * 2 : 0px;
+            actions := HorizontalLayout {
+                y: root.theme.spacing.unit * 2; width: parent.width; height: self.preferred-height;
+                spacing: root.theme.spacing.unit * 2; alignment: start;
+                @children
+            }
+        }
     }
     dismiss := KitIconButton {
         width: self.preferred-width; height: self.preferred-height;
@@ -70,55 +102,90 @@ export component KitAlert inherits Rectangle {
     }
 }
 
+// Eight dots on a ring. The mark is square: `control-size` picks it from the icon
+// scale (one and a half icons), `ink` replaces the accent so it can sit on a
+// filled control with the right contrast.
 export component KitSpinner inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> label: "Loading";
     in property <bool> running: true;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <color> ink: root.theme.accent;
     private property <int> phase;
-    preferred-width: 24px; preferred-height: 24px; min-width: 16px; min-height: 16px;
+    private property <length> mark: KitMetrics.icon-size(root.theme, root.control-size) * 1.5;
+    private property <length> dot: root.mark / 6;
+    preferred-width: root.mark; preferred-height: root.mark; min-width: self.preferred-width * 2 / 3; min-height: self.preferred-height * 2 / 3;
     max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: AccessibleRole.text; accessible-label: root.label;
-    for index in 8: Rectangle { width: 4px; height: 4px; border-radius: self.width / 2;
-        x: (root.width - self.width) / 2 + (root.width / 2 - 3px) * Math.cos(index * 45deg);
-        y: (root.height - self.height) / 2 + (root.height / 2 - 3px) * Math.sin(index * 45deg);
-        background: root.theme.accent; opacity: root.theme.reduced-motion || !root.running ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase,8) / 7;
+    for index in 8: Rectangle { width: root.dot; height: root.dot; border-radius: self.width / 2;
+        x: (root.width - self.width) / 2 + (root.width / 2 - root.dot * 0.75) * Math.cos(index * 45deg);
+        y: (root.height - self.height) / 2 + (root.height / 2 - root.dot * 0.75) * Math.sin(index * 45deg);
+        background: root.ink; opacity: root.theme.reduced-motion || !root.running ? 1 : 0.2 + 0.8 * Math.mod(index + 8 - root.phase,8) / 7;
     }
     Timer { interval: 100ms; running: root.running && !root.theme.reduced-motion; triggered => { root.phase = Math.mod(root.phase + 1,8); } }
 }
 
+// A bar for a known fraction, or, in `indeterminate` mode, a segment that runs
+// along the track (still at the start under reduced motion). `value-text` is
+// the visible reading beside the label; assistive technology gets the number.
 export component KitProgress inherits VerticalLayout {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
+    in property <string> value-text;
+    in property <ProgressMode> mode: ProgressMode.determinate;
+    in property <ProgressIntent> intent: ProgressIntent.accent;
     out property <float> bounded-value: min(1,max(0,root.value));
+    private property <float> segment: 0.4;
     spacing: root.theme.spacing.unit * 2; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100);
+    accessible-value: root.mode == ProgressMode.indeterminate ? "" : Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
-    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle;
-        Rectangle { x: 0px; y: 0px; height: parent.height; width: parent.width * root.bounded-value; border-radius: parent.border-radius; background: root.theme.accent; animate width { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; } }
+    if root.label != "" || root.value-text != "": HorizontalLayout {
+        spacing: root.theme.spacing.unit * 2;
+        if root.label != "": Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; horizontal-stretch: 1; }
+        if root.label == "": Rectangle { horizontal-stretch: 1; }
+        if root.value-text != "": Text { text: root.value-text; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-stretch: 0; accessible-role: none; }
+    }
+    Rectangle { height: root.theme.spacing.unit * 2; border-radius: min(root.theme.shape.radius-pill, self.height / 2); background: root.theme.border-subtle; clip: true;
+        Rectangle {
+            y: 0px; height: parent.height; border-radius: parent.border-radius; background: KitProgressInks.ink(root.theme, root.intent);
+            width: root.mode == ProgressMode.indeterminate ? parent.width * root.segment : parent.width * root.bounded-value;
+            x: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? -self.width + (parent.width + self.width) * Math.mod(animation-tick() / 1.6s, 1) : 0px;
+            animate width { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
+        }
     }
 }
+// A ring for a known fraction, or, in `indeterminate` mode, a quarter arc that
+// turns. `diameter` sizes it, `thickness` its stroke, and the centre shows the
+// percentage unless `show-value` is off or `value-text` replaces it.
 export component KitRadialProgress inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <float> value;
     in property <string> label;
+    in property <string> value-text;
+    in property <bool> show-value: true;
+    in property <ProgressMode> mode: ProgressMode.determinate;
+    in property <ProgressIntent> intent: ProgressIntent.accent;
+    in property <length> diameter: max(88px, 64px * root.theme.text-scale);
+    in property <length> thickness: root.theme.spacing.unit * 1.5;
     out property <float> bounded-value: min(1,max(0,root.value));
-    preferred-width: max(88px, 64px * root.theme.text-scale); preferred-height: self.preferred-width;
+    preferred-width: root.diameter; preferred-height: self.preferred-width;
     min-width: self.preferred-width; min-height: self.preferred-height; max-width: self.preferred-width; max-height: self.preferred-height;
     horizontal-stretch: 0; vertical-stretch: 0;
     accessible-role: progress-indicator; accessible-label: root.label;
-    accessible-value: Math.round(root.bounded-value * 100);
+    accessible-value: root.mode == ProgressMode.indeterminate ? "" : Math.round(root.bounded-value * 100);
     accessible-value-minimum: 0; accessible-value-maximum: 100;
-    private property <float> visual-value: root.bounded-value;
+    private property <float> visual-value: root.mode == ProgressMode.indeterminate ? 0.25 : root.bounded-value;
+    // Where the arc starts, measured from twelve o'clock.
+    private property <angle> start: root.mode == ProgressMode.indeterminate && !root.theme.reduced-motion ? 360deg * Math.mod(animation-tick() / 1.2s, 1) : 0deg;
     animate visual-value { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.slow; }
     Path {
         width: root.width; height: root.height;
         viewbox-width: 100; viewbox-height: 100;
         fill: transparent; stroke: root.theme.border-subtle;
-        stroke-width: root.theme.spacing.unit * 1.5;
+        stroke-width: root.thickness;
         MoveTo { x: 50; y: 6; }
         ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 94; }
         ArcTo { radius-x: 44; radius-y: 44; sweep: true; x: 50; y: 6; }
@@ -126,17 +193,18 @@ export component KitRadialProgress inherits Rectangle {
     if root.visual-value > 0: Path {
         width: root.width; height: root.height;
         viewbox-width: 100; viewbox-height: 100;
-        fill: transparent; stroke: root.theme.accent;
-        stroke-width: root.theme.spacing.unit * 1.5; stroke-line-cap: round;
-        MoveTo { x: 50; y: 6; }
+        fill: transparent; stroke: KitProgressInks.ink(root.theme, root.intent);
+        stroke-width: root.thickness; stroke-line-cap: round;
+        MoveTo { x: 50 + 44 * Math.cos(root.start - 90deg); y: 50 + 44 * Math.sin(root.start - 90deg); }
         ArcTo {
             radius-x: 44; radius-y: 44; sweep: true;
             large-arc: root.visual-value > 0.5;
-            x: 50 + 44 * Math.cos(min(0.99999,root.visual-value) * 360deg - 90deg);
-            y: 50 + 44 * Math.sin(min(0.99999,root.visual-value) * 360deg - 90deg);
+            x: 50 + 44 * Math.cos(root.start + min(0.99999,root.visual-value) * 360deg - 90deg);
+            y: 50 + 44 * Math.sin(root.start + min(0.99999,root.visual-value) * 360deg - 90deg);
         }
     }
-    Text { text: Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    if root.show-value && root.mode == ProgressMode.determinate: Text { text: root.value-text != "" ? root.value-text : Math.round(root.bounded-value * 100) + "%"; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
+    if root.show-value && root.mode == ProgressMode.indeterminate && root.value-text != "": Text { text: root.value-text; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.body); font-weight: root.theme.typography.weight-semibold; horizontal-alignment: center; vertical-alignment: center; }
 }
 
 // One projection per component Window, with monotonic owners so a stale blur

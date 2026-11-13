@@ -1,13 +1,13 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { AlertSeverity, KitAlert, KitTheme, KitThemes } from "@kit";
+import { AlertSeverity, KitAlert, KitButton, ButtonIntent, KitTheme, KitThemes } from "@kit";
 
 export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitAlert — exemple";
     preferred-width: 480px;
-    preferred-height: 220px;
+    preferred-height: 300px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
@@ -17,6 +17,7 @@ export component Example inherits Window {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Alerte"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         KitAlert { theme: root.theme; severity: AlertSeverity.success; title: "Modifications enregistrées"; message: "Votre équipe peut maintenant consulter le projet mis à jour."; dismissible: true; dismiss-label: "Fermer Modifications enregistrées"; dismissed => { root.status = "Fermeture demandée"; } }
+        KitAlert { theme: root.theme; severity: AlertSeverity.error; title: "Échec du téléversement"; message: "La connexion a été perdue avant la fin du fichier."; KitButton { theme: root.theme; text: "Réessayer"; activated => { root.status = "Nouvelle tentative demandée"; } } KitButton { theme: root.theme; text: "Détails"; intent: ButtonIntent.quiet; activated => { root.status = "Détails demandés"; } } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }
