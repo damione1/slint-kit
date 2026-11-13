@@ -262,6 +262,30 @@ impl FieldSpec<Money> {
         )
     }
 }
+impl FieldSpec<Money> {
+    /// Money whose scale comes from the currency: input beyond the currency's
+    /// minor units is rejected with `ScaleExceeded`. The at-rest display adds
+    /// the symbol and the digit grouping of `syntax`; the native draft stays a
+    /// plain decimal. A stored value finer than the scale shows as its draft.
+    pub fn money_in(
+        metadata: CurrencyMetadata,
+        syntax: NumberSyntax,
+        sign: SignPolicy,
+        bounds: Option<NumericBounds<DecimalValue>>,
+    ) -> Self {
+        let rules = DecimalRules {
+            syntax,
+            scale: metadata.scale,
+            sign,
+            bounds,
+        };
+        Self::money(metadata.code.clone(), rules).with_display(move |value| {
+            value
+                .format(&metadata, syntax, RoundingPolicy::Reject)
+                .unwrap_or_else(|_| decimal_draft(value.amount, syntax))
+        })
+    }
+}
 impl FieldSpec<Percent> {
     pub fn percent(rules: DecimalRules) -> Self {
         Self::codec(

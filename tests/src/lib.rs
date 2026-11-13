@@ -834,6 +834,7 @@ mod date_display;
 mod datetime_localization;
 mod datetime_strings;
 mod duration_unit;
+mod money_currency;
 mod number_stepping;
 mod numeric_input;
 mod numeric_locale;
