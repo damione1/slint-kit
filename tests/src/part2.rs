@@ -335,6 +335,7 @@ fn calendar_days() -> Vec<CalendarDay> {
             in_range: false,
             today: false,
             outside_month: false,
+            ..Default::default()
         })
         .collect()
 }

@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { CalendarNavigation, EarlierEndPolicy, WeekStart } from "shared-contracts.slint";
 export struct CivilDateView { year: int, month: int, day: int }
+// A small, closed set of day markers drawn under the day number.
+export enum CalendarMarker { none, dot, bar }
+// Host-supplied decoration of one date: a marker, an optional secondary caption
+// shown in the cell (a price, a count) and a description read by assistive technology.
+export struct CalendarDayMark {
+    date: CivilDateView, marker: CalendarMarker, caption: string, description: string,
+}
 export struct CalendarDay {
     year: int, month: int, day: int, label: string, accessible-label: string,
     enabled: bool, selected: bool, in-range: bool, today: bool, outside-month: bool,
+    marker: CalendarMarker, caption: string,
 }
 export struct DateRangeView { start: CivilDateView, end: CivilDateView }
 export enum DateRangePhase { choosing-start, choosing-end, complete }
@@ -17,6 +25,7 @@ export struct CalendarView {
     selected: CivilDateView, focused: CivilDateView, today: CivilDateView,
     min: string, max: string, week-start: WeekStart,
     unavailable-weekdays: [WeekStart], unavailable-ranges: [DateRangeView],
+    marks: [CalendarDayMark],
 }
 export enum CalendarConfigurationState { unchecked, valid, invalid }
 export struct CalendarProjection {

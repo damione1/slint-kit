@@ -213,6 +213,8 @@ pub fn calendar_projection(
                     in_range: false,
                     today: today == Some(cell.date),
                     outside_month: !cell.in_displayed_month,
+                    marker: ui::CalendarMarker::None,
+                    caption: slint::SharedString::default(),
                 }
             })
         })
@@ -380,6 +382,13 @@ fn localized_projection(
                                 append(&labels.in_range);
                             }
                         }
+                    }
+                    if let Some(mark) = view.marks.iter().find(|mark| {
+                        CivilDate::try_from(mark.date.clone()).is_ok_and(|marked| marked == date)
+                    }) {
+                        day.marker = mark.marker;
+                        day.caption = mark.caption.clone();
+                        append(&mark.description);
                     }
                     day.accessible_label = label.into();
                 }

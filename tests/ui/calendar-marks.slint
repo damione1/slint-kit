@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitButton, KitTheme, KitThemes, CalendarDay, CalendarDayMark, CalendarMarker, CivilDateView } from "@kit";
+export component CalendarMarksFixture inherits Window {
+    width: 600px; height: 600px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <[CalendarDayMark]> marks;
+    in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 1};
+    out property <[CalendarDay]> calendar-days: calendar.days;
+    callback footer-clicked();
+    calendar := KitCalendar {
+        theme: root.theme; label: "Calendar"; today: {year: 2026, month: 10, day: 2};
+        day-marks: root.marks; focused <=> root.focused;
+        KitButton { theme: root.theme; text: "Today"; activated => { root.footer-clicked(); } }
+    }
+}

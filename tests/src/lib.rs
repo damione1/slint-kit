@@ -7,6 +7,7 @@ mod ui {
 pub use ui::*;
 mod accessible_expansion;
 mod avatar_group;
+mod calendar_marks;
 mod calendar_outside;
 mod calendar_period;
 mod code_feedback;
