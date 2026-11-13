@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit, RowGesture } from "@kit";
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, ContentThumbnail, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit, RowGesture } from "@kit";
 export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -22,6 +22,11 @@ export component BaseDataFixture inherits Window {
     in property <DataSurface> table-surface: DataSurface.framed;
     in property <bool> table-striped: true;
     in property <DataState> content-state: DataState.ready;
+    in property <bool> content-interactive: true;
+    in property <ControlSize> content-control-size: ControlSize.medium;
+    in property <ContentThumbnail> content-thumbnail: ContentThumbnail.image;
+    in property <int> content-excerpt-lines: 2;
+    in property <ScrollBarPolicy> content-scrollbar-policy: ScrollBarPolicy.always-on;
     in property <DataEmptyContent> content-empty-content: DataEmptyContent.label;
     callback table-retry();
     callback content-retry();
@@ -95,6 +100,7 @@ export component BaseDataFixture inherits Window {
     callback content-activated(int,int);
     callback table-gesture(int,int,RowGesture);
     callback content-gesture(int,int,RowGesture);
+    callback content-link(int,int);
     callback line-selected(int,int);
     callback line-committed(int,int,string);
     callback line-copied(int,int);
@@ -150,6 +156,9 @@ export component BaseDataFixture inherits Window {
             label: "Articles fixture";
             empty-label: root.content-empty-label;
             state: root.content-state; empty-content: root.content-empty-content;
+            interactive: root.content-interactive; control-size: root.content-control-size; thumbnail: root.content-thumbnail;
+            excerpt-lines: root.content-excerpt-lines; vertical-scrollbar-policy: root.content-scrollbar-policy;
+            link-activated(token,generation) => { root.content-link(token,generation); }
             retry-requested => { root.content-retry(); }
             navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
             activate(token,generation) => { root.content-activated(token,generation); }
