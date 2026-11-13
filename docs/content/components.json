@@ -6223,8 +6223,8 @@
   },
   "KitPagination": {
     "fr": {
-      "summary": "Commandes précédente et suivante pour une collection paginée.",
-      "usage": "`page-index` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `page-changed` uniquement pour les effets métier. Projetez `page-index` à partir de zéro et `page-count` depuis un contrôleur validé. Traitez `navigate(NavigationStep.previous)` et `.next` pour charger ou afficher la page.",
+      "summary": "Commandes précédente et suivante, avec pages numérotées en option, pour une collection paginée.",
+      "usage": "`page-index` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `page-changed` uniquement pour les effets métier. Projetez `page-index` à partir de zéro et `page-count` depuis un contrôleur validé. Traitez `navigate(NavigationStep.previous)` et `.next` pour charger ou afficher la page. Définissez `display: PaginationDisplay.numbered` pour afficher des boutons de page ; chacun demande sa page par `page-changed`. Ajoutez `show-first-last` pour Première et Dernière, et réglez `boundary-count` et `sibling-count`.",
       "behavior": "Le compteur visible commence à un et affiche `0 / 0` pour une collection vide. Les boutons sont bloqués aux limites ; la vue ne charge pas elle-même les données distantes. Passez `interactive: false` lorsqu’une surface modale couvre le contrôle. Ses propres actions refusent le pointeur, le clavier et l’activation accessible et ne prennent pas le focus ; les lignes et le contenu sélectionné restent montés. Les enfants personnalisés restent sous la responsabilité de l’hôte.",
       "label": "Pagination",
       "seoTitle": "Pagination pour Slint",
@@ -6245,13 +6245,46 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitPagination {\n    modal-layer: 1;\n}"
+        },
+        "display": {
+          "effect": "Présentation de la pagination : `position` garde Précédent, le texte de position et Suivant ; `numbered` ajoute des boutons de page entre Précédent et le texte de position.",
+          "default": "`PaginationDisplay.position`",
+          "constraints": "Pages numérotées : `boundary-count` et `sibling-count` choisissent les pages visibles ; les autres se replient en points de suspension. La rangée garde une largeur constante quand la page courante change.",
+          "example": "KitPagination {\n    display: PaginationDisplay.numbered;\n    page-count: 20;\n}"
+        },
+        "boundary-count": {
+          "effect": "Affichage numéroté : pages conservées à chaque extrémité de la liste.",
+          "default": "`1`",
+          "constraints": "Une valeur négative compte pour 0."
+        },
+        "sibling-count": {
+          "effect": "Affichage numéroté : pages conservées de chaque côté de la page courante.",
+          "default": "`1`",
+          "constraints": "Une valeur négative compte pour 0."
+        },
+        "show-first-last": {
+          "effect": "Affichage numéroté : ajoute les boutons Première et Dernière qui sautent à la première et à la dernière page et signalent `NavigationStep.first` et `.last`.",
+          "default": "`false`"
+        },
+        "first-label": {
+          "effect": "Texte visible et accessible du bouton Première.",
+          "default": "`First`"
+        },
+        "last-label": {
+          "effect": "Texte visible et accessible du bouton Dernière.",
+          "default": "`Last`"
+        },
+        "page-label-template": {
+          "effect": "Nom accessible d’un bouton de page numéroté ; `{page}` est remplacé par la page à partir de 1.",
+          "default": "`Page {page}`",
+          "constraints": "Formaté par l’hôte comme `position-label` ; ce n’est pas un analyseur de langue."
         }
       },
-      "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
+      "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil. En affichage numéroté, le bouton de la page courante est exposé comme coché, chaque bouton de page est nommé par `page-label-template`, et le texte de position est une région vivante polie qui annonce les changements de page. Le choix de la taille de page, le total, la saisie directe d’une page, le mode compact et la navigation aux flèches ne sont pas fournis ; composez-les avec d’autres composants du kit."
     },
     "en": {
-      "summary": "Previous and next controls for a paged collection.",
-      "usage": "`page-index` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `page-changed` only for business effects. Project zero-based `page-index` and `page-count` from a validated controller. Handle `navigate(NavigationStep.previous)` and `.next` to load or display a page.",
+      "summary": "Previous and next controls, with optional numbered pages, for a paged collection.",
+      "usage": "`page-index` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `page-changed` only for business effects. Project zero-based `page-index` and `page-count` from a validated controller. Handle `navigate(NavigationStep.previous)` and `.next` to load or display a page. Set `display: PaginationDisplay.numbered` to show page buttons; each one requests its page through `page-changed`. Add `show-first-last` for First and Last, and tune `boundary-count` and `sibling-count`.",
       "behavior": "The visible counter starts at one and shows `0 / 0` for an empty collection. Buttons disable at the limits; the view does not fetch remote data itself. Set `interactive: false` while a modal covers the control. Its own actions reject pointer, keyboard and accessibility activation and cannot take focus; rows and selected content stay mounted. Custom children remain the host’s responsibility.",
       "label": "Pagination",
       "seoTitle": "Pagination for Slint",
@@ -6272,9 +6305,42 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitPagination {\n    modal-layer: 1;\n}"
+        },
+        "display": {
+          "effect": "Pagination presentation: `position` keeps Previous, the position text and Next; `numbered` adds page buttons between Previous and the position text.",
+          "default": "`PaginationDisplay.position`",
+          "constraints": "Numbered pages: `boundary-count` and `sibling-count` choose which pages stay visible; the rest collapse into an ellipsis. The row keeps a constant width as the current page moves.",
+          "example": "KitPagination {\n    display: PaginationDisplay.numbered;\n    page-count: 20;\n}"
+        },
+        "boundary-count": {
+          "effect": "Numbered display: pages kept at each end of the list.",
+          "default": "`1`",
+          "constraints": "Negative values count as 0."
+        },
+        "sibling-count": {
+          "effect": "Numbered display: pages kept on each side of the current page.",
+          "default": "`1`",
+          "constraints": "Negative values count as 0."
+        },
+        "show-first-last": {
+          "effect": "Numbered display: adds First and Last buttons that jump to the first and last page and report `NavigationStep.first` and `.last`.",
+          "default": "`false`"
+        },
+        "first-label": {
+          "effect": "Visible and accessible text of the First button.",
+          "default": "`First`"
+        },
+        "last-label": {
+          "effect": "Visible and accessible text of the Last button.",
+          "default": "`Last`"
+        },
+        "page-label-template": {
+          "effect": "Accessible name of a numbered page button; `{page}` is replaced by the one-based page.",
+          "default": "`Page {page}`",
+          "constraints": "Host-formatted like `position-label`; it is not a locale parser."
         }
       },
-      "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
+      "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific. In numbered display the current page button is exposed as checked, each page button is named from `page-label-template`, and the position text is a polite live region that announces page changes. Page-size choice, total count, jump-to-page, compact mode and arrow-key navigation are not provided; compose them from other kit components."
     }
   },
   "KitPasswordField": {
