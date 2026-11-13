@@ -93,6 +93,11 @@ mod store;
 pub use store::*;
 
 #[cfg(feature = "adapter")]
+mod router;
+#[cfg(feature = "adapter")]
+pub use router::*;
+
+#[cfg(feature = "adapter")]
 mod task;
 #[cfg(feature = "adapter")]
 pub use task::*;

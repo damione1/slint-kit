@@ -162,6 +162,47 @@ Tout composant qui lit `Session.unread` affiche la nouvelle valeur, quel que soi
 - Utilisez un store par domaine (session, réglages, panier) plutôt qu’un store pour toute l’application : un composant ne dépend alors que du global qu’il lit.
 - Les globals existent une fois par fenêtre. Pour synchroniser plusieurs fenêtres, observez le même store une fois par fenêtre ; chaque projection écrit dans le global de sa fenêtre.
 
+## Navigation entre écrans avec Router
+
+Déclarez les écrans comme un seul type de route. Une énumération simple les nomme ; une énumération dont les variantes portent des données transporte les paramètres avec l’écran. Rust détient la pile. Slint affiche seulement l’écran courant.
+
+```rust
+#[derive(Clone)]
+enum AppRoute { List, Detail { id: u32 }, Edit { id: u32 } }
+
+let router = Router::new(AppRoute::List);
+let weak = app.as_weak();
+let _projection = router.observe(move |navigation| {
+    if let Some(app) = weak.upgrade() {
+        app.set_change(navigation.change().into());
+        app.set_route(match navigation.route() {
+            AppRoute::List => Screen::List,
+            AppRoute::Detail { .. } => Screen::Detail,
+            AppRoute::Edit { .. } => Screen::Edit,
+        });
+        app.set_can_go_back(navigation.can_go_back());
+    }
+});
+router.push(AppRoute::Detail { id: 7 });
+router.pop();
+```
+
+```slint
+KitRouter {
+    can-go-back: root.can-go-back;
+    back => { root.back(); }
+    KitScreen { active: root.route == Screen.list; change: root.change; /* liste */ }
+    KitScreen { active: root.route == Screen.detail; change: root.change; /* détail */ }
+}
+```
+
+- `push`, `pop` et `replace` modifient la pile. `pop` à la racine ne fait rien et renvoie `false`. `replace` remplace la route courante et garde l’historique.
+- Le `match` qui convertit la route en énumération Slint n’a pas de branche générique. Une nouvelle route ne compile pas tant que ce `match` ne la traite pas.
+- `on_navigated(|route, change| ...)` signale chaque navigation. `observe` signale aussi la route courante, ce qui permet de projeter la fenêtre.
+- `KitRouter` transforme Échap et la touche retour du système en `back()` tant qu’un écran se trouve derrière l’écran courant. Appelez `router.pop()` depuis ce rappel. À la racine, et tant qu’une couche modale est ouverte, la touche est laissée de côté.
+- Chaque `KitScreen` bouge avec les jetons de mouvement du thème : un push entre par le bord de fin, un pop par le bord de début, un replace s’estompe. Le mouvement réduit supprime le déplacement. Un écran masqué ne reçoit ni pointeur, ni focus, ni accessibilité.
+- Les liens profonds et l’historique du navigateur ne font pas partie du routeur.
+
 ## Appels asynchrones
 
 Slint ne modifie une fenêtre que depuis sa boucle d’événements : un résultat qui arrive plus tard a donc besoin de la fenêtre. `spawn` et `Latest` cachent cette étape : la fermeture reçoit la fenêtre, déjà récupérée, et le code de l’application ne contient ni `as_weak` ni `upgrade`.

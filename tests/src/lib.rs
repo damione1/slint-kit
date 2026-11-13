@@ -870,6 +870,7 @@ mod autonomous;
 mod event_loop;
 mod form_binding;
 mod keyed_model;
+mod router;
 mod store;
 mod task;
 mod text_field_behavior;

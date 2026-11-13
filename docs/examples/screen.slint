@@ -1,0 +1,45 @@
+import { InterFont } from "@kit/fonts/inter.slint";
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRouter, KitScreen, KitButton, KitCard, RouteChange, KitTheme, KitThemes } from "@kit";
+// In an application, Rust owns the stack with `Router<R>` and projects `route`, `change` and `can-go-back`.
+export component Example inherits Window {
+    in-out property <string> status;
+    default-font-family: InterFont.family;
+    title: "KitScreen example";
+    preferred-width: 520px;
+    preferred-height: 310px;
+    max-width: 100000px;
+    max-height: 100000px;
+    background: root.theme.canvas;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in-out property <int> route: 0;
+    in-out property <RouteChange> change: RouteChange.replace;
+    out property <bool> can-go-back: root.route > 0;
+
+    KitRouter {
+        can-go-back: root.can-go-back;
+        back => { root.change = RouteChange.pop; root.route -= 1; }
+        KitScreen {
+            theme: root.theme; active: root.route == 0; change: root.change;
+            VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+                Text { text: "Projects"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+                KitButton { theme: root.theme; text: "Open Atlas"; activated => { root.change = RouteChange.push; root.route = 1; } }
+            }
+        }
+        KitScreen {
+            theme: root.theme; active: root.route == 1; change: root.change;
+            VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+                Text { text: "Atlas"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+                Text { text: "Press Escape or Back to return to the list."; color: root.theme.text-secondary; wrap: word-wrap; }
+                KitButton { theme: root.theme; text: "Edit"; activated => { root.change = RouteChange.push; root.route = 2; } }
+            }
+        }
+        KitScreen {
+            theme: root.theme; active: root.route == 2; change: root.change;
+            VerticalLayout { padding: 24px; spacing: 16px; alignment: start;
+                Text { text: "Edit Atlas"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
+                KitButton { theme: root.theme; text: "Back"; activated => { root.change = RouteChange.pop; root.route = 1; } }
+            }
+        }
+    }
+}
