@@ -110,3 +110,5 @@ For runtime inspection, keep `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` with the 
 ## Runtime inspection metadata
 
 The build helper follows Slint’s default debug metadata policy. For runtime element inspection with the testing backend or MCP, set `SLINT_EMIT_DEBUG_INFO=1` before building, or pass `slint_kit_build::config().with_debug_info(true)` to `compile_with_config`. Ordinary release builds do not force element names and source locations into the generated application.
+
+For the editing loop, preview options and measured build times, see the [development loop guide](../development-loop/).

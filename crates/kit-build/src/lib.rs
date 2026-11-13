@@ -64,10 +64,25 @@ pub fn compile_with_config(
         std::env::var_os("OUT_DIR").ok_or(slint_build::CompileError::NotRunViaCargo)?,
     );
     let wrapper = output.join("kit-app.slint");
-    std::fs::write(&wrapper, format!(
-        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }}\n"
-    )).map_err(slint_build::CompileError::SaveError)?;
+    write_if_changed(&wrapper, &wrapper_source(&source))
+        .map_err(slint_build::CompileError::SaveError)?;
     slint_build::compile_with_config(wrapper, configuration)
+}
+
+fn wrapper_source(source: &str) -> String {
+    format!(
+        "export * from {source};\nimport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }} from \"@kit\";\nexport {{ KitFormValidation, KitCalendarService, KitFieldService, KitSelectionService, KitTimeService, KitDataService, KitThemes, KitThemeContext }}\n"
+    )
+}
+
+// Slint registers the wrapper as a build-script input. Rewriting identical
+// bytes gives it a newer timestamp than the script run, so Cargo would
+// recompile the application crate on every build.
+fn write_if_changed(path: &Path, contents: &str) -> std::io::Result<()> {
+    if std::fs::read_to_string(path).is_ok_and(|existing| existing == contents) {
+        return Ok(());
+    }
+    std::fs::write(path, contents)
 }
 
 // Slint import strings are literal paths, not Rust strings: Debug escaping
@@ -256,5 +271,28 @@ mod tests {
             slint_build::compile_with_output_path(&input, directory.join("app.rs"), config);
         std::fs::remove_dir_all(directory).unwrap();
         result.expect("kit and application aliases compile together");
+    }
+
+    #[test]
+    fn unchanged_wrapper_keeps_its_modification_time() {
+        let directory =
+            std::env::temp_dir().join(format!("kit-wrapper-stamp-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let wrapper = directory.join("kit-app.slint");
+        let contents = wrapper_source("\"ui/app.slint\"");
+        write_if_changed(&wrapper, &contents).unwrap();
+        let first = std::fs::metadata(&wrapper).unwrap().modified().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        write_if_changed(&wrapper, &contents).unwrap();
+        assert_eq!(
+            std::fs::metadata(&wrapper).unwrap().modified().unwrap(),
+            first
+        );
+        write_if_changed(&wrapper, "export * from \"other.slint\";\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&wrapper).unwrap(),
+            "export * from \"other.slint\";\n"
+        );
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }
