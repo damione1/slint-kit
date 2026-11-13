@@ -918,3 +918,5 @@ mod qa_feedback;
 
 #[cfg(test)]
 mod qa_layout;
+
+mod translations;
