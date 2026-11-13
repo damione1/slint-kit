@@ -869,6 +869,7 @@ mod qa_polish;
 mod autonomous;
 mod form_binding;
 mod keyed_model;
+mod store;
 mod text_field_behavior;
 
 mod direct_validation;

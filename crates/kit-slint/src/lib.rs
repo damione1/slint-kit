@@ -88,6 +88,11 @@ mod datetime;
 pub use datetime::*;
 
 #[cfg(feature = "adapter")]
+mod store;
+#[cfg(feature = "adapter")]
+pub use store::*;
+
+#[cfg(feature = "adapter")]
 mod keyed_model;
 #[cfg(feature = "adapter")]
 pub use keyed_model::*;
