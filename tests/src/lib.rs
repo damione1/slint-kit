@@ -843,6 +843,7 @@ mod select_geometry;
 mod html_validation;
 
 mod phone;
+mod picker_field_contract;
 
 mod product_style;
 

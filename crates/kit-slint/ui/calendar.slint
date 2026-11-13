@@ -3,7 +3,7 @@ import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ChoiceFlow } from "theme.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
-import { KitFormValidation } from "validation.slint";
+import { KitFormValidation, ValidationTiming } from "validation.slint";
 import { KitValidityState } from "validation.slint";
 import { HtmlInputKind } from "validation.slint";
 import { KitTextField } from "input.slint";
@@ -14,6 +14,7 @@ import { KitStrings } from "strings.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitStrings } from "strings.slint";
 import { KitIcon, KitGlyphs } from "icons.slint";
+import { LucideIcons } from "icons/lucide/all.slint";
 import { FieldAccess } from "contracts.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
@@ -22,7 +23,7 @@ export { CalendarNavigation } from "shared-contracts.slint";
 import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
 export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
 import { WeekStart, Ownership, CommitPolicy, EarlierEndPolicy } from "shared-contracts.slint";
-import { FieldCommit } from "field-service.slint";
+import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 import { DateRangePhase, DateRangeDraft, DateRangeRejection } from "calendar-service.slint";
 export { DateRangePhase, DateRangeRejection } from "calendar-service.slint";
 
@@ -443,6 +444,10 @@ export component KitDateField inherits TemporalField {
 
 // TextInput stays mounted when the calendar opens. Host parsing, bounds and
 // selection apply atomically; opening an overlay never rewrites the draft.
+// How the picker offers its calendar: a labelled text button, a compact icon
+// button, or no button (F4, Alt+ArrowDown and `open` still open it).
+export enum DatePickerTrigger { text-button, icon-button, none }
+
 export component KitDatePicker inherits Rectangle {
     in property <string> spec-key;
     // strftime-style pattern for the resting text, for example "%d/%m/%Y".
@@ -450,6 +455,17 @@ export component KitDatePicker inherits Rectangle {
     in property <string> display-pattern;
     in property <Ownership> ownership: Ownership.local;
     in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
+    in property <DatePickerTrigger> trigger-style: DatePickerTrigger.text-button;
+    out property <FieldState> field-state: editor.field-state;
+    out property <string> accepted-text: editor.accepted-text;
+    out property <bool> has-focus: editor.has-focus;
+    callback committed(FieldCommit);
+    callback focus-observed(bool);
+    public function acknowledge(value: FieldValue) { editor.acknowledge(value); }
+    public function cancel-edit() { editor.cancel-edit(); }
+    public function reset-field() { editor.reset-field(); }
+    public function select-all() { editor.select-all(); }
     in property <bool> required;
     in property <bool> clearable;
     in property <string> clear-label: KitStrings.clear-label;
@@ -591,7 +607,7 @@ export component KitDatePicker inherits Rectangle {
         spacing: root.theme.spacing.unit;
         if root.label != "": KitFieldLabel { theme: root.theme; text: root.label; access: root.access; focus-requested => { editor.take-focus(); } }
         HorizontalLayout {
-            spacing: root.theme.spacing.unit * 2;
+            spacing: root.trigger-style == DatePickerTrigger.none ? 0px : root.theme.spacing.unit * 2;
             editor := KitDateField {
                 spec-key: root.spec-key;
                 display-format: { pattern: root.display-pattern, months: root.month-names, short-months: root.month-short-names, weekdays: root.weekday-names, short-weekdays: root.weekday-short-names };
@@ -603,19 +619,34 @@ export component KitDatePicker inherits Rectangle {
                 error: root.error;
                 invalid => { root.invalid(); }
 
-                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; accepted-date <=> root.accepted-date;
+                theme: root.theme; control-size: root.control-size; access: root.access; ownership: root.ownership; commit-policy: root.commit-policy; validation-timing: root.validation-timing; accepted-date <=> root.accepted-date;
                 label: ""; description: root.description; show-description: false; placeholder: root.placeholder; accessible-name: root.label;
                 validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 edited(text) => { root.edited(text); }
-                committed(commit) => { root.accept-typed(commit); }
+                committed(commit) => { root.accept-typed(commit); root.committed(commit); }
+                focus-observed(focused) => { root.focus-observed(focused); }
                 commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
                 open-requested => { if (!root.open) { root.opened-from-trigger = false; root.open = true; } }
             }
-            trigger := KitButton { theme: root.theme; control-size: root.control-size; text: root.calendar-button-label; accessible-name: root.calendar-accessible-name;
+            // One trigger element serves every style so focus can return to it;
+            // the icon style drops the label and padding, and `none` collapses it.
+            trigger := KitButton { theme: root.theme; control-size: root.control-size;
+                text: root.trigger-style == DatePickerTrigger.text-button ? root.calendar-button-label : "";
+                accessible-name: root.calendar-accessible-name;
+                padding-inline: root.trigger-style == DatePickerTrigger.text-button ? self.recipe.padding-inline : 0px;
+                visible: root.trigger-style != DatePickerTrigger.none;
+                max-width: root.trigger-style == DatePickerTrigger.none ? 0px : 100000px;
+                tab-stop: root.trigger-style != DatePickerTrigger.none;
                 accessible-expandable: true; accessible-expanded: root.open;
                 accessible-action-expand => { if (root.access == FieldAccess.editable) { if (!root.open) { root.opened-from-trigger = true; } root.open = true; } }
-                disabled: root.access != FieldAccess.editable; activated => { if (!root.open) { root.opened-from-trigger = true; } root.open = !root.open; } }
+                disabled: root.access != FieldAccess.editable || root.trigger-style == DatePickerTrigger.none; activated => { if (!root.open) { root.opened-from-trigger = true; } root.open = !root.open; }
+                if root.trigger-style == DatePickerTrigger.icon-button: KitIcon {
+                    theme: root.theme; control-size: root.control-size; glyph: LucideIcons.calendar();
+                    x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                    ink: trigger.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground;
+                }
+            }
         }
         if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }

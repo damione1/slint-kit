@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDatePicker, DatePickerTrigger, KitTimePicker, KitDateTimeField, KitZonedDateTimeField, KitTextField, CivilDateView, LocalTimeValue, LocalDateTimeView, FieldCommit, FieldState, CommitPolicy, ValidationTiming } from "@kit";
+// The composite pickers forward the KitTextField field contract; this
+// fixture drives each forwarded member through the public surface.
+export component PickerFieldContractFixture inherits Window {
+    width: 720px; height: 1200px;
+    in property <DatePickerTrigger> trigger-style: DatePickerTrigger.text-button;
+    in property <ValidationTiming> timing: ValidationTiming.on-blur;
+    out property <CivilDateView> picked: date.accepted-date;
+    out property <string> date-accepted-text: date.accepted-text;
+    out property <FieldState> date-state: date.field-state;
+    out property <bool> date-focused: date.has-focus;
+    in-out property <string> date-text <=> date.text;
+    in-out property <int> date-focus-events;
+    in-out property <int> date-commit-count;
+    out property <LocalTimeValue> time-value: time.accepted-time;
+    out property <bool> time-focused: time.has-focus;
+    in-out property <string> time-text <=> time.text;
+    in-out property <int> time-focus-events;
+    out property <LocalDateTimeView> local-value: local.accepted-value;
+    in-out property <string> local-date <=> local.date-text;
+    in-out property <string> local-time <=> local.time-text;
+    in-out property <string> zoned-date <=> zoned.date-text;
+    in-out property <string> zoned-time <=> zoned.time-text;
+    in-out property <string> zoned-zone <=> zoned.zone-text;
+    public function focus-date() { date.take-focus(); }
+    public function focus-time() { time.take-focus(); }
+    public function reset-date() { date.reset-field(); }
+    public function cancel-date() { date.cancel-edit(); }
+    public function commit-date() { date.commit(); }
+    public function select-date() { date.select-all(); }
+    public function reset-time() { time.reset-field(); }
+    public function reset-local() { local.reset-field(); }
+    public function reset-zoned() { zoned.reset-field(); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        date := KitDatePicker { label: "Date"; trigger-style: root.trigger-style; validation-timing: root.timing; default-value: "2026-01-02"; accepted-date: {year: 2026, month: 10, day: 19};
+            focus-observed(focused) => { root.date-focus-events += 1; }
+            committed(commit) => { root.date-commit-count += 1; } }
+        time := KitTimePicker { label: "Time"; default-value: "08:15"; validation-timing: root.timing; accepted-time: {present: true, time: {hour: 9, minute: 30, second: 0}};
+            focus-observed(focused) => { root.time-focus-events += 1; } }
+        local := KitDateTimeField { label: "Local"; default-value: "2026-03-04T05:06"; validation-timing: root.timing; date-text: "2026-10-17"; time-text: "09:30"; }
+        zoned := KitZonedDateTimeField { label: "Zoned"; validation-timing: root.timing; date-text: "2026-11-02"; time-text: "10:30"; zone-text: "America/Toronto"; }
+        next := KitTextField { label: "Next"; }
+    }
+}
