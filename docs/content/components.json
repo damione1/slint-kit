@@ -4459,7 +4459,7 @@
     "fr": {
       "summary": "Saisie décimale avec demandes d’incrémentation et de décrémentation.",
       "usage": "Définissez `min`, `max`, `step`, `text` et éventuellement `spec-key` avec des décimaux exacts. Le kit applique les pas numériques HTML et émet `committed(FieldCommit)`. Enregistrez un `FieldSpec` puis utilisez `spec.accept` pour obtenir un nombre typé. L’ancien `step-requested` est un callback d’observation ; n’appliquez pas un second pas dans l’hôte.",
-      "behavior": "Le service du kit applique chaque pas au décimal exact. La saisie texte utilise le même parseur et la même validation que les autres champs numériques. Les boutons réécrivent le brouillon et valident aussitôt. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus. Les brouillons numériques partagent une grammaire de valeur complète entre contraintes, pas et codec typé : canonical utilise le point décimal et des groupes facultatifs séparés par virgule (NumberSyntax::en_ca()/en_us(), ex. 1,234.50) ; decimal-comma utilise la virgule décimale et des groupes facultatifs séparés par espace, espace insécable ou insécable fine (NumberSyntax::fr_ca()/fr_fr(), ex. 1 234,50). Après le premier, chaque groupe compte exactement trois chiffres. Les signes ASCII initiaux +/− et les espaces périphériques sont admis. Le filtre lexical laisse les brouillons incomplets ou mal formés modifiables ; un groupement invalide ne peut être accepté. Les attributs numériques min/max/step/default-value restent canoniques avec point décimal et sans groupes. L’analyse ne réécrit ni texte natif, ni sélection, ni historique. Associez number-format à la locale du codec typé ; formatage du brouillon simple et affichage groupé facultatif restent distincts.",
+      "behavior": "Le service du kit applique chaque pas au décimal exact. La saisie texte utilise le même parseur et la même validation que les autres champs numériques. Un pas par bouton suit le même chemin d’édition natif que le clavier (`edited`, `value-edited`, suivi de modification et annulation s’appliquent) puis valide aussitôt. Chaque bouton se désactive quand son pas ne changerait rien : à `min` ou `max`, avec `step: \"any\"`, ou si le champ est en lecture seule ou désactivé ; un veto de l’hôte par `can-increment`/`can-decrement` s’y ajoute. Maintenir un bouton répète le pas après `motion.repeat-delay` du thème, puis toutes les `motion.repeat-interval`, et s’arrête à la borne ; un appui répété n’ajoute aucun pas au relâchement. Les boutons sont des cibles de pointeur et n’ajoutent aucun arrêt de tabulation : au clavier, utilisez les touches de l’éditeur. `step-requested` ne se déclenche que pour un pas qui a changé la valeur. Clavier : Haut/Bas déplacent d’un pas, PageUp/PageDown de `page-steps` pas, Début/Fin sautent à `min`/`max` lorsqu’ils sont définis ; `step: \"any\"`, la lecture seule et l’état désactivé ne font rien, et un pas bloqué n’émet aucune modification. Les pas utilisent l’arithmétique décimale exacte et le chemin d’édition natif (`edited`, `value-edited`, annulation, `commit-policy`). `wheel-stepping` ajoute la molette lorsque le champ a le focus. Les brouillons numériques partagent une grammaire de valeur complète entre contraintes, pas et codec typé : canonical utilise le point décimal et des groupes facultatifs séparés par virgule (NumberSyntax::en_ca()/en_us(), ex. 1,234.50) ; decimal-comma utilise la virgule décimale et des groupes facultatifs séparés par espace, espace insécable ou insécable fine (NumberSyntax::fr_ca()/fr_fr(), ex. 1 234,50). Après le premier, chaque groupe compte exactement trois chiffres. Les signes ASCII initiaux +/− et les espaces périphériques sont admis. Le filtre lexical laisse les brouillons incomplets ou mal formés modifiables ; un groupement invalide ne peut être accepté. Les attributs numériques min/max/step/default-value restent canoniques avec point décimal et sans groupes. L’analyse ne réécrit ni texte natif, ni sélection, ni historique. Associez number-format à la locale du codec typé ; formatage du brouillon simple et affichage groupé facultatif restent distincts.",
       "related": [
         "KitIntegerField",
         "KitDecimalField",
@@ -4470,7 +4470,7 @@
       "seoTitle": "Compteur numérique pour Slint",
       "properties": {
         "text": {
-          "effect": "Le brouillon natif du champ décimal interne, lié dans les deux sens. Les boutons de pas le réécrivent par `step-number` et valident aussitôt le résultat ; la frappe suit les mêmes règles que `KitDecimalField`.",
+          "effect": "Le brouillon natif du champ décimal interne, lié dans les deux sens. Les boutons de pas le réécrivent par le chemin d’édition natif et valident aussitôt le résultat ; la frappe suit les mêmes règles que `KitDecimalField`.",
           "default": "`\"\"`.",
           "example": "KitNumberStepper {\n    label: \"Invités\";\n    text: \"2\";\n    min: \"1\";\n    max: \"8\";\n}"
         },
@@ -4490,9 +4490,9 @@
           "example": "KitNumberStepper {\n    label: \"Opacité\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
         },
         "can-increment": {
-          "effect": "Si le bouton d’incrément est actif ; passez-le à faux à un plafond métier. La frappe et `step-number` ne sont pas concernés.",
+          "effect": "Si le bouton d’incrément est actif ; passez-le à faux à un plafond métier. Il s’ajoute au contrôle de borne intégré : le bouton est déjà désactivé à `max`. La frappe et le pas au clavier ne sont pas concernés.",
           "default": "`true`.",
-          "states": "Les deux boutons sont désactivés lorsque `access` n’est pas `editable`.",
+          "states": "Les deux boutons sont désactivés lorsque `access` n’est pas `editable`, et chacun l’est quand son pas ne changerait rien (une borne, `step: \"any\"`).",
           "example": "in property <int> stock;\nKitNumberStepper {\n    label: \"Quantité\";\n    can-increment: root.stock > 0;\n}"
         },
         "can-decrement": {
@@ -4535,7 +4535,7 @@
     "en": {
       "summary": "Decimal input with increment and decrement requests.",
       "usage": "Set exact `min`, `max`, `step`, `text` and optionally `spec-key`. The kit applies HTML numeric stepping internally and emits `committed(FieldCommit)`. Register a `FieldSpec` to receive a typed number with `spec.accept`. Legacy `step-requested` is an observation callback; do not step a second time in the host.",
-      "behavior": "The kit service applies each step to the exact decimal. Text edits use the same parser and validation path as other numeric fields. The buttons rewrite the draft and commit at once. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused. Native numeric drafts use one complete-value grammar across constraints, stepping and the typed codec: canonical uses a decimal point and optional comma-separated groups (NumberSyntax::en_ca()/en_us(), e.g. 1,234.50); decimal-comma uses a decimal comma and optional space, NBSP or narrow NBSP groups (NumberSyntax::fr_ca()/fr_fr(), e.g. 1 234,50). Groups after the first contain exactly three digits. Leading ASCII +/- signs and surrounding whitespace are accepted. The lexical input filter still allows incomplete or malformed drafts for editing; invalid grouping cannot commit. Numeric min/max/step/default-value attributes remain canonical dot-decimal text without grouping. Parsing does not rewrite native text, selection or undo. Match the declared number-format to the typed codec’s locale; plain editable formatting and optional grouped display formatting are separate.",
+      "behavior": "The kit service applies each step to the exact decimal. Text edits use the same parser and validation path as other numeric fields. A button step goes through the same native edit path as the keyboard (`edited`, `value-edited`, dirty tracking and undo apply) and then commits at once. Each button disables itself when its step would change nothing: at `min` or `max`, for `step: \"any\"`, or when the field is read-only or disabled; a host veto through `can-increment`/`can-decrement` adds to that. Holding a button repeats the step after the theme's `motion.repeat-delay`, then every `motion.repeat-interval`, and stops at the bound; a repeated press adds no step on release. The buttons are pointer targets and add no tab stops: keyboard users step with the editor's keys. `step-requested` fires only for a step that changed the value. Keyboard: Up/Down step once, PageUp/PageDown step `page-steps` times, Home/End jump to `min`/`max` when set; `step: \"any\"`, read-only and disabled fields do not step, and a clamped step emits no edit. Steps use exact decimal arithmetic and the native edit path (`edited`, `value-edited`, undo, `commit-policy`). `wheel-stepping` adds wheel stepping while focused. Native numeric drafts use one complete-value grammar across constraints, stepping and the typed codec: canonical uses a decimal point and optional comma-separated groups (NumberSyntax::en_ca()/en_us(), e.g. 1,234.50); decimal-comma uses a decimal comma and optional space, NBSP or narrow NBSP groups (NumberSyntax::fr_ca()/fr_fr(), e.g. 1 234,50). Groups after the first contain exactly three digits. Leading ASCII +/- signs and surrounding whitespace are accepted. The lexical input filter still allows incomplete or malformed drafts for editing; invalid grouping cannot commit. Numeric min/max/step/default-value attributes remain canonical dot-decimal text without grouping. Parsing does not rewrite native text, selection or undo. Match the declared number-format to the typed codec’s locale; plain editable formatting and optional grouped display formatting are separate.",
       "related": [
         "KitIntegerField",
         "KitDecimalField",
@@ -4546,7 +4546,7 @@
       "seoTitle": "Number Stepper for Slint",
       "properties": {
         "text": {
-          "effect": "The native draft of the inner decimal field, two-way. The step buttons rewrite it through `step-number` and commit the result at once; typing follows the same rules as `KitDecimalField`.",
+          "effect": "The native draft of the inner decimal field, two-way. The step buttons rewrite it through the native edit path and commit the result at once; typing follows the same rules as `KitDecimalField`.",
           "default": "`\"\"`.",
           "example": "KitNumberStepper {\n    label: \"Guests\";\n    text: \"2\";\n    min: \"1\";\n    max: \"8\";\n}"
         },
@@ -4566,9 +4566,9 @@
           "example": "KitNumberStepper {\n    label: \"Opacity\";\n    step: \"0.1\";\n    min: \"0\";\n    max: \"1\";\n}"
         },
         "can-increment": {
-          "effect": "Whether the increment button is enabled; set it false at a business ceiling. Typing and `step-number` are unaffected.",
+          "effect": "Whether the increment button is enabled; set it false at a business ceiling. It adds to the built-in bound check: the button is already disabled at `max`. Typing and keyboard stepping are unaffected.",
           "default": "`true`.",
-          "states": "Both buttons are disabled when `access` is not `editable`.",
+          "states": "Both buttons are disabled when `access` is not `editable`, and each is disabled when its step would change nothing (a bound, `step: \"any\"`).",
           "example": "in property <int> stock;\nKitNumberStepper {\n    label: \"Quantity\";\n    can-increment: root.stock > 0;\n}"
         },
         "can-decrement": {
@@ -4821,6 +4821,11 @@
         "form-submit-on-return": {
           "effect": "Fait participer Entrée sans modificateur à l’envoi du KitForm englobant au lieu d’activer cet élément. Hors formulaire, l’activation ordinaire reste disponible. Espace conserve son action. Ce hook de composition vaut false par défaut ; les cases et interrupteurs l’activent.",
           "default": "`false`."
+        },
+        "repeat-on-hold": {
+          "effect": "Répète `activated` tant que le pointeur reste enfoncé : d’abord après `motion.repeat-delay` du thème, puis toutes les `motion.repeat-interval`. Un appui qui a répété n’active plus rien au relâchement ; la répétition s’arrête à la fin de l’appui ou quand le contrôle devient désactivé ou occupé. L’activation au clavier ne se répète pas.",
+          "default": "`false`.",
+          "example": "KitPressable {\n    repeat-on-hold: true;\n}"
         }
       },
       "callbacks": {
@@ -4846,6 +4851,11 @@
         "form-submit-on-return": {
           "effect": "Let unmodified Return participate in an enclosing KitForm submission instead of activating this pressable. Outside a form, ordinary activation remains. Space keeps its normal action. This composition hook defaults to false; checkbox and switch compositions opt in.",
           "default": "`false`."
+        },
+        "repeat-on-hold": {
+          "effect": "Repeat `activated` while the pointer stays pressed: first after the theme's `motion.repeat-delay`, then every `motion.repeat-interval`. A press that repeated activates nothing more on release; the repeat stops when the press ends or the control becomes disabled or busy. Keyboard activation does not repeat.",
+          "default": "`false`.",
+          "example": "KitPressable {\n    repeat-on-hold: true;\n}"
         }
       },
       "callbacks": {
