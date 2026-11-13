@@ -88,3 +88,25 @@ export component DialogBackdropFixture inherits Window {
         KitDialogPanel { x:180px; y:80px; width:360px; height:300px; }
     }
 }
+
+// Text-only modal with one action: a busy state disables every control.
+export component DialogFallbackFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <bool> opened: true;
+    in property <bool> busy: false;
+    out property <bool> button-focused: action.has-focus;
+    callback dismissed(CloseReason);
+    public function focus-action() { action.take-focus(); }
+    KitDialogSurface {
+        width: root.width; height: root.height;
+        state: {open:root.opened,topmost:true,busy:root.busy};
+        dismiss(reason) => { root.dismissed(reason); }
+        KitDialogPanel {
+            x:40px;y:40px;width:300px;height:200px;
+            VerticalLayout {
+                Text { text: "Read only message"; }
+                action := KitButton { text:"Action"; disabled:root.busy; }
+            }
+        }
+    }
+}

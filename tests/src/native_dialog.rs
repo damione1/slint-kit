@@ -167,3 +167,52 @@ fn backdrop_pointer_dismissal_respects_panel_and_modal_policies() {
         "closed dialogs release background input"
     );
 }
+
+fn dialog_key(window: &DialogFallbackFixture, key: Key) {
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+    window
+        .window()
+        .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+}
+
+type CloseLog = Rc<std::cell::RefCell<Vec<CloseReason>>>;
+
+fn fallback_fixture(busy: bool) -> (DialogFallbackFixture, CloseLog) {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = DialogFallbackFixture::new().unwrap();
+    window.set_busy(busy);
+    let seen: CloseLog = Rc::new(std::cell::RefCell::new(Vec::new()));
+    let sink = seen.clone();
+    window.on_dismissed(move |reason| sink.borrow_mut().push(reason));
+    window.show().unwrap();
+    (window, seen)
+}
+
+#[test]
+fn modal_opened_busy_keeps_keys_in_scope_and_closes_once_idle() {
+    let (window, seen) = fallback_fixture(true);
+    dialog_key(&window, Key::Escape);
+    assert!(seen.borrow().is_empty(), "busy blocks dismissal");
+    window.set_busy(false);
+    dialog_key(&window, Key::Escape);
+    dialog_key(&window, Key::Back);
+    assert_eq!(
+        *seen.borrow(),
+        [CloseReason::Escape, CloseReason::SystemBack]
+    );
+}
+
+#[test]
+fn control_disabled_by_busy_hands_focus_to_the_modal_scope() {
+    let (window, seen) = fallback_fixture(false);
+    window.invoke_focus_action();
+    assert!(window.get_button_focused());
+    window.set_busy(true);
+    dialog_key(&window, Key::Escape);
+    assert!(seen.borrow().is_empty(), "busy blocks dismissal");
+    window.set_busy(false);
+    dialog_key(&window, Key::Escape);
+    assert_eq!(*seen.borrow(), [CloseReason::Escape]);
+}

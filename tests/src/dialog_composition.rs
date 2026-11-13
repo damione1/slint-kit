@@ -161,8 +161,8 @@ fn busy_layer_consumes_escape_back_and_backdrop_until_the_host_completes() {
     assert!(window.get_confirm().busy);
     assert_eq!(
         harness.focused(),
-        Some(CONFIRM),
-        "the busy action keeps focus inside the layer"
+        None,
+        "no control is eligible while busy: the layer's own scope holds focus"
     );
     assert!(harness.press(Key::Escape), "Escape is consumed");
     assert!(harness.press(Key::Back), "system Back is consumed");
