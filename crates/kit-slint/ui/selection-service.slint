@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { OptionRow, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
+import { OptionRow, OptionItem, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
 import { Ownership } from "shared-contracts.slint";
 import { ExpansionMode, DisclosureRow, ChipRow } from "contracts.slint";
 
@@ -46,6 +46,7 @@ export global KitSelectionService {
     pure callback disclose([OptionRow], [SelectionRef], int, int, int, bool, ExpansionMode) -> [SelectionRef];
     pure callback label([OptionRow], SelectionRef) -> string;
     pure callback source([OptionRow], int) -> OptionRow;
+    pure callback option-item([OptionItem], int) -> OptionItem;
     pure callback generation([OptionRow]) -> int;
     pure callback next-generation(int) -> int;
     callback timestamp() -> int;

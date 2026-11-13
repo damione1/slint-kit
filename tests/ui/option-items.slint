@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSelect, KitCombobox, KitThemes, OptionRow, OptionItem, SelectionRef, SelectState, FieldAccess } from "@kit";
+
+export component OptionItemsFixture inherits Window {
+    width: 520px; height: 520px;
+    background: KitThemes.light.canvas;
+    in property <[OptionRow]> options;
+    in property <[OptionItem]> items;
+    in property <bool> clearable;
+    in property <FieldAccess> access: FieldAccess.editable;
+    in-out property <SelectionRef> selected <=> select.selected;
+    out property <SelectState> state: select.state;
+    callback cleared();
+    callback chosen(OptionRow);
+    public function focus-control() { select.take-focus(); }
+    select := KitSelect {
+        x: 24px; y: 24px; width: 300px; height: self.preferred-height;
+        theme: KitThemes.light; label: "Fruit";
+        options: root.options; items: root.items; clearable: root.clearable; access: root.access;
+        chosen(row) => { root.chosen(row); }
+        cleared => { root.cleared(); }
+    }
+}
+
+export component OptionItemsComboboxFixture inherits Window {
+    width: 520px; height: 520px;
+    background: KitThemes.light.canvas;
+    in property <[OptionRow]> options;
+    in property <[OptionItem]> items;
+    in-out property <SelectionRef> selected <=> combo.selected;
+    out property <SelectState> state: combo.state;
+    public function focus-control() { combo.take-focus(); }
+    combo := KitCombobox {
+        x: 24px; y: 24px; width: 300px; height: self.preferred-height;
+        theme: KitThemes.light; label: "Fruit";
+        options: root.options; items: root.items;
+    }
+}
