@@ -12,6 +12,7 @@ export component TextEditMenu inherits Rectangle {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <[OptionRow]> options;
     in property <bool> opened;
+    in property <int> modal-layer;
     callback chosen(OptionRow);
     callback dismiss(CloseReason);
     callback tab-navigation(bool) -> KitKeyResult;
@@ -42,7 +43,7 @@ export component TextEditMenu inherits Rectangle {
             theme: root.theme;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
             for row in selection.rows: entry := KitOption {
-                theme: root.theme; control-size: root.control-size;
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                 focus-on-pointer: false;
                 option-data: row;
                 selected: false; accessible-item-selectable: false;

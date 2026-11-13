@@ -328,6 +328,11 @@
           "effect": "Dimensionne les recettes des actions ; les enfants choisissent leur taille.",
           "default": "ControlSize.medium",
           "example": "KitButtonGroup { control-size: ControlSize.large; }"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitButtonGroup {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -394,6 +399,11 @@
           "effect": "Scales model action recipes; custom children select their own size.",
           "default": "ControlSize.medium",
           "example": "KitButtonGroup { control-size: ControlSize.large; }"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitButtonGroup {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -1384,6 +1394,11 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitCombobox {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -1522,6 +1537,11 @@
         },
         "error-visible": {
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitCombobox {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -2940,8 +2960,8 @@
   "KitDialogSurface": {
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
-      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez le focus du contrôle réel à observe_focus. DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés. Tant que la couche est ouverte, au sommet et occupée, la surface prend elle-même le focus de sa portée pour garder les touches à l’intérieur ; pour un corps textuel au repos, appelez take-scope-focus() à l’ouverture.",
-      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas automatiquement l’arrière-plan. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez le focus du contrôle réel à observe_focus. DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés. Tant que la couche est ouverte, au sommet et occupée, la surface prend elle-même le focus de sa portée pour garder les touches à l’intérieur ; pour un corps textuel au repos, appelez take-scope-focus() à l’ouverture. Réglez `modal-layer` sur un nombre positif pour rendre inertes, sans jeton de focus, les contrôles Kit hors de cette couche ; donnez aux contrôles de la modale le même nombre. Les contrôles personnalisés, calendriers, sélecteurs de date, d’heure, de couleur et de fichier, onglets, menus, accordéons, carrousels et tableaux de données ne le lisent pas encore et restent à la charge de l’hôte.",
+      "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas l’arrière-plan à elle seule ; réglez `modal-layer` pour rendre les contrôles Kit inertes. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -2951,12 +2971,19 @@
       "seoTitle": "Surface modale pour Slint",
       "functions": {
         "take-scope-focus": "Donne le focus à la portée clavier de la couche ouverte au sommet, quand aucun contrôle enfant n’est éligible. Le host garde Tab à l’intérieur ; Échap suit la politique d’occupation/fermeture."
+      },
+      "properties": {
+        "modal-layer": {
+          "effect": "Fait publier à cette surface sa couche dans le `KitModalContext` de la fenêtre tant qu’elle est ouverte et au sommet. Tout contrôle Kit dont le `modal-layer` diffère devient inerte : l’arrière-plan n’a donc pas besoin de jeton de focus. Les contrôles de cette surface doivent déclarer le même `modal-layer`. Utilisez des nombres positifs distincts pour des modales imbriquées. `0` laisse l’arrière-plan à l’hôte.",
+          "default": "`0` (l’hôte gère l’arrière-plan).",
+          "example": "KitDialogSurface {\n    modal-layer: 1;\n}"
+        }
       }
     },
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
-      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward actual control focus through observe_focus. DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled. While the layer is open, topmost and busy, the surface takes its own scope focus so keys stay inside; for an idle text-only body call take-scope-focus() on open.",
-      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not automatically disable the background. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward actual control focus through observe_focus. DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled. While the layer is open, topmost and busy, the surface takes its own scope focus so keys stay inside; for an idle text-only body call take-scope-focus() on open. Set `modal-layer` to a positive number to make kit controls outside this layer inert without focus tokens; give controls inside the modal the same number. Custom controls, calendars, date, time, color and file pickers, tabs, menus, accordions, carousels and data tables do not read it yet and stay the host's responsibility.",
+      "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not by itself disable the background; set `modal-layer` to make kit controls inert. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
         "KitDialogPanel",
         "KitFocusTarget",
@@ -2966,6 +2993,13 @@
       "seoTitle": "Dialog Surface for Slint",
       "functions": {
         "take-scope-focus": "Focuses the topmost open layer keyboard scope when no child control is eligible. Host Tab handling keeps focus inside; Escape follows busy/dismiss policy."
+      },
+      "properties": {
+        "modal-layer": {
+          "effect": "Makes this surface publish its layer in the window-level `KitModalContext` while it is open and topmost. Every kit control whose own `modal-layer` differs becomes inert, so background controls need no focus token. Controls inside this surface must declare the same `modal-layer`. Use distinct positive numbers for nested modals. `0` leaves the background to the host.",
+          "default": "`0` (the host manages the background).",
+          "example": "KitDialogSurface {\n    modal-layer: 1;\n}"
+        }
       }
     }
   },
@@ -3035,7 +3069,14 @@
         "KitFocusTarget"
       ],
       "label": "Panneau latéral",
-      "seoTitle": "Panneau latéral pour Slint"
+      "seoTitle": "Panneau latéral pour Slint",
+      "properties": {
+        "modal-layer": {
+          "effect": "Fait publier à cette surface sa couche dans le `KitModalContext` de la fenêtre tant qu’elle est ouverte et au sommet. Tout contrôle Kit dont le `modal-layer` diffère devient inerte : l’arrière-plan n’a donc pas besoin de jeton de focus. Les contrôles de cette surface doivent déclarer le même `modal-layer`. Utilisez des nombres positifs distincts pour des modales imbriquées. `0` laisse l’arrière-plan à l’hôte.",
+          "default": "`0` (l’hôte gère l’arrière-plan).",
+          "example": "KitDrawer {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Side modal panel bounded by its host window’s width.",
@@ -3046,7 +3087,14 @@
         "KitFocusTarget"
       ],
       "label": "Drawer",
-      "seoTitle": "Drawer for Slint"
+      "seoTitle": "Drawer for Slint",
+      "properties": {
+        "modal-layer": {
+          "effect": "Makes this surface publish its layer in the window-level `KitModalContext` while it is open and topmost. Every kit control whose own `modal-layer` differs becomes inert, so background controls need no focus token. Controls inside this surface must declare the same `modal-layer`. Use distinct positive numbers for nested modals. `0` leaves the background to the host.",
+          "default": "`0` (the host manages the background).",
+          "example": "KitDrawer {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitDurationField": {
@@ -3134,7 +3182,14 @@
         "KitFieldError"
       ],
       "label": "Champ composé",
-      "seoTitle": "Champ composé pour Slint"
+      "seoTitle": "Champ composé pour Slint",
+      "properties": {
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitField {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Basic column that groups a label, editor and supporting messages.",
@@ -3146,7 +3201,14 @@
         "KitFieldError"
       ],
       "label": "Field",
-      "seoTitle": "Field for Slint"
+      "seoTitle": "Field for Slint",
+      "properties": {
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitField {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitFieldDescription": {
@@ -3551,6 +3613,11 @@
           "effect": "Inverse la disposition avertissement/titre de l’en-tête ; les erreurs verticales et leurs identités FocusRequest gardent l’ordre du modèle.",
           "default": "`theme.direction`.",
           "example": "flow: ChoiceFlow.right-to-left;"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitFormErrorSummary {\n    modal-layer: 1;\n}"
         }
       }
     },
@@ -3569,6 +3636,11 @@
           "effect": "Mirrors the heading warning/title arrangement; vertical errors and FocusRequest identities retain model order.",
           "default": "`theme.direction`.",
           "example": "flow: ChoiceFlow.right-to-left;"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitFormErrorSummary {\n    modal-layer: 1;\n}"
         }
       }
     }
@@ -4235,6 +4307,11 @@
         "empty-label": {
           "effect": "Texte localisé de l’état vide quand le filtre ne donne aucune option, transmis à la surface.",
           "default": "No matching options"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -4341,6 +4418,11 @@
         "empty-label": {
           "effect": "Localized empty-state text when the filtered option set has no results, passed through to the surface.",
           "default": "No matching options"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -4524,6 +4606,11 @@
           "effect": "Choisit la grammaire du brouillon, pas la langue des libellés ni des attributs de contrainte. canonical : point décimal/groupes virgule ; decimal-comma : virgule décimale/groupes espace. Autres locales et groupement indien ne sont pas pris en charge.",
           "default": "NumberInputFormat.canonical",
           "constraints": "Associez DecimalRules.syntax au codec typé. FieldSpec::integer(syntax, bounds) prend la syntaxe et les bornes entières."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitNumberStepper {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -4600,6 +4687,11 @@
           "effect": "Selects the numeric draft grammar, not the language of labels or constraint attributes. canonical: dot decimal/comma groups; decimal-comma: comma decimal/space groups. Other locales and Indian grouping are not supported.",
           "default": "NumberInputFormat.canonical",
           "constraints": "Use matching DecimalRules.syntax for the typed codec. FieldSpec::integer(syntax, bounds) takes the syntax and the integer bounds."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitNumberStepper {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -4826,6 +4918,11 @@
           "effect": "Répète `activated` tant que le pointeur reste enfoncé : d’abord après `motion.repeat-delay` du thème, puis toutes les `motion.repeat-interval`. Un appui qui a répété n’active plus rien au relâchement ; la répétition s’arrête à la fin de l’appui ou quand le contrôle devient désactivé ou occupé. L’activation au clavier ne se répète pas.",
           "default": "`false`.",
           "example": "KitPressable {\n    repeat-on-hold: true;\n}"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitPressable {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -4856,6 +4953,11 @@
           "effect": "Repeat `activated` while the pointer stays pressed: first after the theme's `motion.repeat-delay`, then every `motion.repeat-interval`. A press that repeated activates nothing more on release; the repeat stops when the press ends or the control becomes disabled or busy. Keyboard activation does not repeat.",
           "default": "`false`.",
           "example": "KitPressable {\n    repeat-on-hold: true;\n}"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitPressable {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5005,6 +5107,11 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitRadioGroup {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -5066,6 +5173,11 @@
         },
         "error-visible": {
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitRadioGroup {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -5112,6 +5224,11 @@
           "effect": "Lecture seule : vrai uniquement avec le service installé, une spécification valide et deux extrémités analysables, ordonnées, dans les bornes et sur minimum + n*step. Cet indicateur décrit toute la plage.",
           "default": "false",
           "constraints": "Charger une valeur ou remplacer spec ne corrige pas la valeur de l’hôte. Les valeurs mal formées et les plages inversées restent invalides ; une interaction admissible répare les nombres hors grille ou hors bornes."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitRangeSlider {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5157,6 +5274,11 @@
           "effect": "Read-only: true only with an installed service, a valid specification and two parseable, ordered endpoints within bounds and on minimum + n*step. This flag describes the whole range.",
           "default": "false",
           "constraints": "Loading a value or replacing spec does not sanitize the host value. Malformed values and reversed ranges remain invalid; admissible interaction repairs numeric off-grid/out-of-range values."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitRangeSlider {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5177,7 +5299,14 @@
       "related": [
         "KitSegmentedControl"
       ],
-      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Les notes héritent de la délégation à portée persistante et des positions logiques du contrôle segmenté non virtualisé. Effacer la note reste une action distincte. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Les notes héritent de la délégation à portée persistante et des positions logiques du contrôle segmenté non virtualisé. Effacer la note reste une action distincte. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitRating {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Score selection with an explicit clear action.",
@@ -5188,7 +5317,14 @@
       "related": [
         "KitSegmentedControl"
       ],
-      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Scores inherit the nonvirtualized segmented control’s persistent-scope delegation and logical positions. Clear rating remains a separate action. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Scores inherit the nonvirtualized segmented control’s persistent-scope delegation and logical positions. Clear rating remains a separate action. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitRating {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitResetButton": {
@@ -5331,6 +5467,11 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitSegmentedControl {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -5382,6 +5523,11 @@
         },
         "error-visible": {
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitSegmentedControl {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -5519,6 +5665,11 @@
         "empty-label": {
           "effect": "Texte localisé de l’état vide quand le filtre ne donne aucune option, transmis à la surface.",
           "default": "No matching options"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitSelect {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5658,6 +5809,11 @@
         "empty-label": {
           "effect": "Localized empty-state text when the filtered option set has no results, passed through to the surface.",
           "default": "No matching options"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitSelect {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5937,6 +6093,11 @@
           "effect": "Lecture seule : vrai uniquement avec le service installé, une spécification valide et une valeur analysable, dans les bornes et sur minimum + n*step.",
           "default": "false",
           "constraints": "Charger une valeur ou remplacer spec ne corrige pas la valeur de l’hôte. Les valeurs mal formées restent invalides ; une interaction admissible répare les nombres hors grille ou hors bornes."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitSlider {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -5981,6 +6142,11 @@
           "effect": "Read-only: true only with an installed service, a valid specification and a parseable value within bounds and on minimum + n*step.",
           "default": "false",
           "constraints": "Loading a value or replacing spec does not sanitize the host value. Malformed values remain invalid; admissible interaction repairs numeric off-grid/out-of-range values."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitSlider {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -6324,6 +6490,11 @@
         },
         "has-focus": {
           "effect": "Focus du groupe en lecture seule : éditeur/déclencheur natif, puces et popup associé."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitTagInput {\n    modal-layer: 1;\n}"
         }
       }
     },
@@ -6351,6 +6522,11 @@
         },
         "has-focus": {
           "effect": "Read-only group focus across the native editor/trigger, chips and owned popup."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitTagInput {\n    modal-layer: 1;\n}"
         }
       }
     }
@@ -6760,6 +6936,11 @@
           "effect": "show-description:false masque seulement la ligne visible ; description reste associée à l’éditeur natif. Un champ composé peut ainsi afficher son aide une seule fois à l’extérieur de l’éditeur.",
           "default": "true",
           "example": "KitTextField { description: \"ISO date\"; show-description: false; }"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitTextField {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -7106,6 +7287,11 @@
           "effect": "show-description:false hides only the visual helper; description still reaches the native editor. This lets a composed field render its help once outside the editor.",
           "default": "true",
           "example": "KitTextField { description: \"ISO date\"; show-description: false; }"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitTextField {\n    modal-layer: 1;\n}"
         }
       },
       "callbacks": {
@@ -7421,6 +7607,11 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitToggleGroup {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {
@@ -7466,6 +7657,11 @@
         },
         "error-visible": {
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitToggleGroup {\n    modal-layer: 1;\n}"
         }
       },
       "functions": {

@@ -8,6 +8,7 @@ import { FormConstraintState, KitFormValidation, KitValidityState, HtmlInputKind
 import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, KitMetrics, ButtonIntent, ControlSize, ControlWidth, KitThemeContext, ChoiceRecipe, IconRecipe, OptionRecipe, TypographyRole, ChoiceFlow, ChoiceDirection } from "theme.slint";
 import { KitButton, KitPressable } from "button.slint";
+import { KitModalContext } from "modal.slint";
 import { FocusOutline } from "focus.slint";
 import { KitFieldLabel } from "field.slint";
 import { KitTextField, TextEscapeBehavior } from "input.slint";
@@ -249,6 +250,7 @@ export component KitSwitch inherits KitPressable {
 // the translator is reused by radio, segmented, toggle and rating surfaces.
 enum ChoiceKeyPolicy { axis, radio, grid }
 component ChoiceKeyboard inherits FocusScope {
+    in property <int> modal-layer;
     min-width: 0px; preferred-width: 0px; max-width: 100000px; horizontal-stretch: 1;
     in property <ChoiceDirection> direction: ChoiceDirection.horizontal;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
@@ -265,7 +267,7 @@ component ChoiceKeyboard inherits FocusScope {
         else if (reason == FocusReason.pointer-click) { root.keyboard-focus = false; }
     }
     changed access => { root.held = false; }
-    enabled: root.access != FieldAccess.disabled;
+    enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     key-pressed(event) => {
         root.keyboard-focus = true;
         if (root.access != FieldAccess.disabled && event.text == Key.Return && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation)) {
@@ -289,6 +291,7 @@ component ChoiceKeyboard inherits FocusScope {
 }
 
 export component KitRadioGroup inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -344,7 +347,7 @@ export component KitRadioGroup inherits Rectangle {
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     vertical-stretch: 0;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         policy: ChoiceKeyPolicy.radio;
         navigate(step) => { root.handle-navigate(step); }
@@ -355,7 +358,7 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: 0px;
-        for index in root.render-count: option := ChoiceOption {
+        for index in root.render-count: option := ChoiceOption { modal-layer: root.modal-layer;
             private property <ChoiceRow> display-choice: root.render-row(index);
             accessible-item-index: index; accessible-item-count: root.render-count;
             option-data: option.display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
@@ -378,7 +381,7 @@ export component KitRadioGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: 0px;
-        for index in root.render-count: flow-option := ChoiceOption {
+        for index in root.render-count: flow-option := ChoiceOption { modal-layer: root.modal-layer;
             in property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
             accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
             option-data: display-choice; generation: root.generation; access: root.access; content-reserve: root.choice.box-size + root.choice.label-gap;
@@ -457,6 +460,7 @@ component SegmentedOption inherits ChoiceOption {
 }
 
 export component KitSegmentedControl inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -520,7 +524,7 @@ export component KitSegmentedControl inherits Rectangle {
     vertical-stretch: 0;
     accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
     forward-focus: keyboard;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         policy: root.direction == ChoiceDirection.horizontal && root.render-count > root.column-count ? ChoiceKeyPolicy.grid : ChoiceKeyPolicy.axis;
         navigate(step) => { root.handle-navigate(step); }
@@ -531,7 +535,7 @@ export component KitSegmentedControl inherits Rectangle {
             spacing: root.choice.group-padding;
             for row-index in ceil(root.render-count / root.column-count): HorizontalLayout {
                 spacing: root.choice.group-padding;
-                for column in root.column-count: option := SegmentedOption {
+                for column in root.column-count: option := SegmentedOption { modal-layer: root.modal-layer;
                     private property <int> row-start: row-index * root.column-count;
                     private property <int> source-index: self.row-start + (root.flow == ChoiceFlow.right-to-left && root.direction == ChoiceDirection.horizontal ? root.column-count - 1 - column : column);
                     visible: self.source-index < root.render-count;
@@ -578,6 +582,7 @@ export component KitSegmentedControl inherits Rectangle {
 
 // Multiple selection has a distinct API; it never changes RadioGroup's value type.
 export component KitToggleGroup inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -632,7 +637,7 @@ export component KitToggleGroup inherits Rectangle {
     public function take-focus() { keyboard.focus(); }
     accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
-    keyboard := ChoiceKeyboard {
+    keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
         navigate(step) => { selection.navigate(step); root.navigate(step); }
         activate => { if (KitFormValidation.ready && KitFormValidation.choice-enabled(root.rows, root.active-token)) { root.toggle-option(root.active-token, root.generation); } }
@@ -640,7 +645,7 @@ export component KitToggleGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.horizontal;
             spacing: root.choice.group-gap;
-            for index in root.render-count: option := ChoiceOption {
+            for index in root.render-count: option := ChoiceOption { modal-layer: root.modal-layer;
                 private property <ChoiceRow> display-choice: root.render-row(root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index);
                 accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.render-count - 1 - index : index; accessible-item-count: root.render-count;
                 option-data: option.display-choice; generation: root.generation; access: root.access;
@@ -664,7 +669,7 @@ export component KitToggleGroup inherits Rectangle {
             width: root.width; height: self.preferred-height;
             visible: root.direction == ChoiceDirection.vertical;
             spacing: root.choice.group-gap;
-            for index in root.render-count: v-option := ChoiceOption {
+            for index in root.render-count: v-option := ChoiceOption { modal-layer: root.modal-layer;
                 private property <ChoiceRow> display-choice: root.render-row(index);
                 accessible-item-index: index; accessible-item-count: root.render-count;
                 option-data: v-option.display-choice; generation: root.generation; access: root.access;
@@ -831,6 +836,7 @@ export component KitChipButton inherits KitPressable {
 }
 
 export component KitMultiSelect inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -894,7 +900,7 @@ export component KitMultiSelect inherits Rectangle {
         if root.access == FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
-            for chip in root.chips: KitTextField {
+            for chip in root.chips: KitTextField { modal-layer: root.modal-layer;
                 implicit-form-submit: false;
                 theme: root.theme; control-size: root.control-size; access: FieldAccess.read-only;
                 preferred-width: 220px * root.theme.text-scale; max-width: 220px * root.theme.text-scale;
@@ -908,7 +914,7 @@ export component KitMultiSelect inherits Rectangle {
         if root.access != FieldAccess.read-only && root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
-            for chip in root.chips: KitChip {
+            for chip in root.chips: KitChip { modal-layer: root.modal-layer;
                 theme: root.theme; chip: chip;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
@@ -955,6 +961,7 @@ export component KitMultiSelect inherits Rectangle {
 }
 
 export component KitTagInput inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -998,7 +1005,7 @@ export component KitTagInput inherits Rectangle {
         if root.chips.length > 0: FlexboxLayout {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
-            for chip in root.chips: KitChip {
+            for chip in root.chips: KitChip { modal-layer: root.modal-layer;
                 theme: root.theme; chip: chip;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
@@ -1007,7 +1014,7 @@ export component KitTagInput inherits Rectangle {
                 remove-requested(token) => { if (root.access == FieldAccess.editable) { editor.take-focus(); checks.note-edit(); root.remove-requested(token); } }
             }
         }
-        editor := KitTextField {
+        editor := KitTextField { modal-layer: root.modal-layer;
             implicit-form-submit: false;
             theme: root.theme; control-size: root.control-size; access: root.access; accessible-name: root.label;
             show-validation-message: false;
@@ -1024,6 +1031,7 @@ export component KitTagInput inherits Rectangle {
 // The inline native editor owns the combobox field while the popup presents
 // the option list and status. Query draft and accepted selection stay separate.
 export component KitCombobox inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -1268,7 +1276,7 @@ export component KitCombobox inherits Rectangle {
     }
     private property <bool> presented: popup.is-open;
     changed presented => { if (!root.presented) { root.popup-focused = false; if (root.state.open) { root.handle-dismiss(CloseReason.host-closed); } } }
-    editor := KitTextField {
+    editor := KitTextField { modal-layer: root.modal-layer;
         implicit-form-submit: false;
         width: root.width;
         theme: root.theme;
@@ -1303,7 +1311,7 @@ export component KitCombobox inherits Rectangle {
             if (root.query-debounce > 0ms) { root.query-edited(""); }
             root.cleared();
         }
-        trigger := KitSelectTrigger {
+        trigger := KitSelectTrigger { modal-layer: root.modal-layer;
             layout-order: editor.trailing-adornment-order;
             cross-axis-self-alignment: center;
             theme: root.theme;
@@ -1404,7 +1412,7 @@ export component KitCombobox inherits Rectangle {
                     vertical-stretch: 1;
                     horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                     theme: root.theme;
-                    for row[index] in root.rows: KitOption {
+                    for row[index] in root.rows: KitOption { modal-layer: root.modal-layer;
                         theme: root.theme; option-data: row; height: root.row-height;
                         accessible-item-index: index; accessible-item-count: root.rows.length;
                         focus-on-pointer: false;
@@ -1479,12 +1487,13 @@ export component KitCombobox inherits Rectangle {
 // Numeric positions are renderer projections only. The Rust bounded-value
 // controller owns canonical values, steps and commits, including decimal domains.
 component SliderKeyboard inherits FocusScope {
+    in property <int> modal-layer;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> gesture-active;
     callback navigate(NavigationStep);
     callback committed();
     callback cancelled();
-    enabled: root.access != FieldAccess.disabled;
+    enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
     key-pressed(event) => {
         if (root.access != FieldAccess.editable) { return reject; }
         if (event.text == Key.Escape && root.gesture-active) { root.cancelled(); return accept; }
@@ -1502,6 +1511,7 @@ component SliderKeyboard inherits FocusScope {
 // control as its track, the value as a fill and a bar as its handle.
 export enum SliderPresentation { line, filled }
 export component KitSlider inherits Rectangle {
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     // Sizes the thumb with the checkbox and radio boxes of the same size.
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1629,7 +1639,7 @@ export component KitSlider inherits Rectangle {
         background: root.handle-brush;
         if !root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
-    keyboard := SliderKeyboard {
+    keyboard := SliderKeyboard { modal-layer: root.modal-layer;
         enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         navigate(step) => { root.handle-navigate(step); }
@@ -1697,6 +1707,7 @@ export component KitSlider inherits Rectangle {
 }
 
 export component KitRangeSlider inherits Rectangle {
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -1732,7 +1743,7 @@ export component KitRangeSlider inherits Rectangle {
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
     private property <RangeAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.range-accessibility(root.value, root.spec) : {lower: {valid: false}, upper: {valid: false}};
-    lower := SliderKeyboard {
+    lower := SliderKeyboard { modal-layer: root.modal-layer;
         enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — lower";
@@ -1751,7 +1762,7 @@ export component KitRangeSlider inherits Rectangle {
         committed => { root.handle-commit(RangeThumb.lower); }
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.lower); }
     }
-    upper := SliderKeyboard {
+    upper := SliderKeyboard { modal-layer: root.modal-layer;
         enabled: !root.disabled;
         access: root.access; gesture-active: root.gesture-active;
         accessible-role: slider; accessible-label: root.label + " — upper";
@@ -1851,6 +1862,7 @@ export component KitRangeSlider inherits Rectangle {
 }
 
 export component KitRating inherits Rectangle {
+    in property <int> modal-layer;
     min-width: 0px; preferred-width: 280px; max-width: 100000px; horizontal-stretch: 1;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
@@ -1876,7 +1888,7 @@ export component KitRating inherits Rectangle {
             preferred-height: preview.preferred-height;
             preview := HorizontalLayout {
                 padding: parent.recipe.group-padding; spacing: parent.recipe.group-padding;
-                for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption {
+                for index in (root.scale > 0 && root.scale <= 65535 ? root.scale : 0): SegmentedOption { modal-layer: root.modal-layer;
                     theme: root.theme; control-size: root.control-size; access: root.access;
                     accessible-item-index: index; accessible-item-count: root.scale;
                     option-data: {token: index + 1, label: "\{index + 1}", selected: root.value.present && root.value.step == index + 1};
@@ -1884,7 +1896,7 @@ export component KitRating inherits Rectangle {
                 }
             }
         }
-        KitButton { theme: root.theme; control-size: root.control-size; text: "Clear rating"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
+        KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: "Clear rating"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
     }
     in property <int> scale: 5;
     in property <Ownership> ownership: Ownership.local;
