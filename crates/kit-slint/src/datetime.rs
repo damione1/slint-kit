@@ -268,6 +268,13 @@ where
         local(draft.date.as_str(), draft.time.as_str(), precision, clock)
             .map_or_else(|_| ui::LocalDateTimeView::default(), Into::into)
     });
+    service.on_split_local_text(|text| {
+        let (date, time) = text.split_once('T').unwrap_or((text.as_str(), ""));
+        ui::LocalDateTimeDraft {
+            date: date.into(),
+            time: time.into(),
+        }
+    });
     service.on_resolve(|draft, precision, clock| {
         let Ok(zone) = TimeZoneId::new(draft.zone.as_str()) else {
             return ui::ZonedDateTimeResult {
