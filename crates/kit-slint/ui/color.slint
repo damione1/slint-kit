@@ -97,6 +97,11 @@ export component KitColorField inherits Rectangle {
     callback commit-requested(string);
     callback cancelled();
     callback color-requested(SrgbColorView);
+    // Live popup draft: fired on every edit of the not yet applied color, so a host can
+    // preview it. Opening the popup fires nothing.
+    callback draft-changed(SrgbColorView);
+    // The popup closed without Apply after at least one draft-changed: restore the preview.
+    callback draft-cancelled();
     // Service installation can populate the text binding after TextField.init.
     // Seed its accepted baseline too, without replacing an authored native draft.
     private property <bool> service-ready: KitFieldService.ready;
@@ -115,19 +120,29 @@ export component KitColorField inherits Rectangle {
     }
     out property <bool> picker-open: popup.is-open && root.access == FieldAccess.editable;
     private property <SrgbColorView> draft;
+    private property <bool> previewing;
+    function edit-draft(value: SrgbColorView) {
+        root.draft = value;
+        root.previewing = true;
+        root.draft-changed(value);
+    }
     private property <SurfaceRecipe> popup-surface: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
     private property <ColorPopupRecipe> popup-recipe: KitThemes.color-popup-recipe(root.theme);
     private property <length> popup-inset: root.popup-recipe.inset;
     private property <PopupViewport> popup-viewport;
     public function open-picker() {
         if (root.access == FieldAccess.editable) {
+            root.previewing = false;
             root.draft = root.accepted-value.present ? root.accepted-value.color : {red: 0, green: 0, blue: 0, alpha: 255};
             if (root.alpha-mode == ColorAlphaMode.opaque) { root.draft.alpha = 255; }
             root.popup-viewport = KitFieldService.popup-viewport();
             popup.show();
         }
     }
-    public function cancel-picker() { popup.close(); swatch-button.take-focus(); }
+    public function cancel-picker() {
+        if (root.previewing) { root.previewing = false; root.draft-cancelled(); }
+        popup.close(); swatch-button.take-focus();
+    }
     changed access => { if (root.access != FieldAccess.editable && root.picker-open) { root.cancel-picker(); } }
     changed picker-open => { if (!root.picker-open) { popup.close(); swatch-button.take-focus(); } }
     public function take-focus() { editor.take-focus(); }
@@ -228,18 +243,18 @@ export component KitColorField inherits Rectangle {
                             border-color: self.chosen ? root.theme.accent : root.theme.border-strong;
                             key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; }
                             accessible-name: root.palette-labels.length > index && root.palette-labels[index] != "" ? root.palette-labels[index] : root.choice-template.replace-all("{red}", "" + choice.red).replace-all("{green}", "" + choice.green).replace-all("{blue}", "" + choice.blue);
-                            activated => { root.draft = {red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}; }
+                            activated => { root.edit-draft({red:choice.red,green:choice.green,blue:choice.blue,alpha:root.draft.alpha}); }
                             Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: max(0px,parent.border-radius - root.theme.spacing.unit); }
                         }
                     }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.red-label; draft-template: root.draft-template; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.red = value; } }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.green-label; draft-template: root.draft-template; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.green = value; } }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.blue-label; draft-template: root.draft-template; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.blue = value; } }
-                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.alpha-label; draft-template: root.draft-template; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.draft.alpha = value; } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.red-label; draft-template: root.draft-template; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: value, green: root.draft.green, blue: root.draft.blue, alpha: root.draft.alpha}); } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.green-label; draft-template: root.draft-template; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: value, blue: root.draft.blue, alpha: root.draft.alpha}); } }
+                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.blue-label; draft-template: root.draft-template; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: value, alpha: root.draft.alpha}); } }
+                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.alpha-label; draft-template: root.draft-template; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: root.draft.blue, alpha: value}); } }
                     FlexboxLayout {
                         alignment: end; spacing: root.theme.spacing.unit * 2; flex-wrap: wrap;
                         cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } theme: root.theme; control-size: root.control-size; text: root.cancel-label; activated => { root.cancel-picker(); } }
-                        KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } intent: ButtonIntent.primary; activated => { if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
+                        KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } intent: ButtonIntent.primary; activated => { root.previewing = false; if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
                     }
                     }
                 }
@@ -381,6 +396,8 @@ export component KitColorPicker inherits Rectangle {
     callback hex-edited(string);
     callback hex-commit-requested(string);
     callback color-requested(SrgbColorView);
+    callback draft-changed(SrgbColorView);
+    callback draft-cancelled();
     callback channel-edited(ColorChannel,string);
     callback channel-commit-requested(ColorChannel,string);
     callback channel-position-requested(ColorChannel,float);
@@ -395,7 +412,7 @@ export component KitColorPicker inherits Rectangle {
             required: root.required; required-message: root.required-message; pattern-message: root.pattern-message; placeholder: root.placeholder; description: root.description; palette: root.palette; palette-labels: root.palette-labels; red-label: root.red-label; green-label: root.green-label; blue-label: root.blue-label; alpha-label: root.alpha-label; cancel-label: root.cancel-label; apply-label: root.apply-label; open-template: root.open-template; title-template: root.title-template; draft-template: root.draft-template; preview-label: root.preview-label; choice-template: root.choice-template; clearable: root.clearable; clear-label: root.clear-label; empty-label: root.empty-label;
             custom-validity <=> root.custom-validity; invalid => { root.invalid(); }
             chosen(value) => { root.publish-value({present: true, color: value}); }
-            cleared => { root.publish-value({}); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-value: root.accepted-value; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }
+            cleared => { root.publish-value({}); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-value: root.accepted-value; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } draft-changed(color) => { root.draft-changed(color); } draft-cancelled => { root.draft-cancelled(); } }
         ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: root.red-label; placeholder: root.channel-placeholder; error: root.red-error; text <=> root.red-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.red : ""; slider-value: root.editable-color.red; position: root.editable-color.red / 255;
             edited(channel,text) => { root.channel-edited(channel,text); }
             value-committed(channel,text) => { root.change-channel(channel,text); }

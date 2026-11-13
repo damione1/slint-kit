@@ -90,6 +90,9 @@ export component ColorPopupFixture inherits Window {
     in-out property <ColorValue> value <=> field.accepted-value;
     in-out property <int> proposals;
     out property <SrgbColorView> proposal;
+    in-out property <int> drafts;
+    out property <SrgbColorView> draft;
+    in-out property <int> draft-cancels;
     out property <bool> open: field.picker-open;
     background: root.theme.canvas;
     public function open-picker() { field.open-picker(); }
@@ -102,6 +105,8 @@ export component ColorPopupFixture inherits Window {
         required: false; ownership: root.ownership;
         accepted-value: {present: true, color: {red: 12, green: 34, blue: 56, alpha: 78}};
         chosen(value) => { root.proposals += 1; root.proposal = value; }
+        draft-changed(value) => { root.drafts += 1; root.draft = value; }
+        draft-cancelled => { root.draft-cancels += 1; }
     }
 }
 
