@@ -9,7 +9,14 @@
       ],
       "label": "Accordéon",
       "seoTitle": "Accordéon pour Slint",
-      "accessibility": "Les boutons de divulgation déclarent `accessible-expandable` et publient `accessible-expanded`. L’action Développer, sans argument, demande uniquement l’ouverture ; la répéter sur une section ouverte ne fait rien. L’activation ordinaire conserve la bascule. Les boutons désactivés refusent l’action. La propriété locale applique le changement ; le mode contrôlé émet `expansion-requested` et attend l’acquittement de l’hôte. Le réducteur partagé conserve l’identité stable des sections et la politique d’expansion unique ou multiple. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Les boutons de divulgation déclarent `accessible-expandable` et publient `accessible-expanded`. L’action Développer, sans argument, demande uniquement l’ouverture ; la répéter sur une section ouverte ne fait rien. L’activation ordinaire conserve la bascule. Les boutons désactivés refusent l’action. La propriété locale applique le changement ; le mode contrôlé émet `expansion-requested` et attend l’acquittement de l’hôte. Le réducteur partagé conserve l’identité stable des sections et la politique d’expansion unique ou multiple. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran.",
+      "properties": {
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitAccordion {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Set of disclosure sections driven by stable identities.",
@@ -20,7 +27,14 @@
       ],
       "label": "Accordion",
       "seoTitle": "Accordion for Slint",
-      "accessibility": "Disclosure buttons declare `accessible-expandable` and publish `accessible-expanded`. The argument-free Expand action requests expansion only; repeating it on an expanded section is a no-op. Ordinary activation still toggles. Disabled buttons reject the action. Local ownership applies the change; controlled ownership emits `expansion-requested` and waits for the host acknowledgment. The shared disclosure reducer preserves stable section identity and the single/multiple expansion policy. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "Disclosure buttons declare `accessible-expandable` and publish `accessible-expanded`. The argument-free Expand action requests expansion only; repeating it on an expanded section is a no-op. Ordinary activation still toggles. Disabled buttons reject the action. Local ownership applies the change; controlled ownership emits `expansion-requested` and waits for the host acknowledgment. The shared disclosure reducer preserves stable section identity and the single/multiple expansion policy. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader.",
+      "properties": {
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitAccordion {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitAlert": {
@@ -206,6 +220,11 @@
         "accessible-name": {
           "effect": "Nom accessible localisé de cette région de navigation, indépendant des libellés des lignes et actions.",
           "default": "KitStrings.breadcrumbs-label (Breadcrumbs)"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitBreadcrumbs {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -224,6 +243,11 @@
         "accessible-name": {
           "effect": "Localized accessible name of this navigation region; independent of row/action labels.",
           "default": "KitStrings.breadcrumbs-label (Breadcrumbs)"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitBreadcrumbs {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
@@ -778,6 +802,11 @@
           "effect": "Texte de position complet formaté par l’hôte. Le défaut remplace {current} et {total} dans le modèle global, sans détection de langue.",
           "default": "KitStrings.carousel-position-template ({current} / {total})",
           "constraints": "Position à partir de 1, bornée comme auparavant ; une collection vide donne 0 / 0. Liez une surcharge à l’état courant pour suivre la navigation."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitCarousel {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -796,6 +825,11 @@
           "effect": "Complete host-formatted position text. Its default replaces {current} and {total} in the global template; it is not a locale parser.",
           "default": "KitStrings.carousel-position-template ({current} / {total})",
           "constraints": "Current is one-based and bounded as before; an empty collection is 0 / 0. Keep an override bound to current state so it follows navigation."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitCarousel {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
@@ -1051,7 +1085,14 @@
       ],
       "label": "Section repliable",
       "seoTitle": "Section repliable pour Slint",
-      "accessibility": "Les boutons de divulgation déclarent `accessible-expandable` et publient `accessible-expanded`. L’action Développer, sans argument, demande uniquement l’ouverture ; la répéter sur une section ouverte ne fait rien. L’activation ordinaire conserve la bascule. Les boutons désactivés refusent l’action. La propriété locale applique le changement ; le mode contrôlé émet `expansion-requested` et attend l’acquittement de l’hôte. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran."
+      "accessibility": "Les boutons de divulgation déclarent `accessible-expandable` et publient `accessible-expanded`. L’action Développer, sans argument, demande uniquement l’ouverture ; la répéter sur une section ouverte ne fait rien. L’activation ordinaire conserve la bascule. Les boutons désactivés refusent l’action. La propriété locale applique le changement ; le mode contrôlé émet `expansion-requested` et attend l’acquittement de l’hôte. Slint 1.18.1 transmet ces propriétés/actions à AccessKit, mais le pont macOS épinglé (accesskit_macos 0.26.3) n’exporte ni l’état développé ni l’action Développer vers l’accessibilité macOS. Cela ne qualifie pas un lecteur d’écran.",
+      "properties": {
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitCollapse {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Disclosure block for arbitrary content retained in the visual tree.",
@@ -1062,7 +1103,14 @@
       ],
       "label": "Collapse",
       "seoTitle": "Collapse for Slint",
-      "accessibility": "Disclosure buttons declare `accessible-expandable` and publish `accessible-expanded`. The argument-free Expand action requests expansion only; repeating it on an expanded section is a no-op. Ordinary activation still toggles. Disabled buttons reject the action. Local ownership applies the change; controlled ownership emits `expansion-requested` and waits for the host acknowledgment. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader."
+      "accessibility": "Disclosure buttons declare `accessible-expandable` and publish `accessible-expanded`. The argument-free Expand action requests expansion only; repeating it on an expanded section is a no-op. Ordinary activation still toggles. Disabled buttons reject the action. Local ownership applies the change; controlled ownership emits `expansion-requested` and waits for the host acknowledgment. Slint 1.18.1 forwards these properties/actions to AccessKit, but the pinned macOS bridge (accesskit_macos 0.26.3) does not export expanded state or the Expand action to macOS accessibility. This does not qualify a screen reader.",
+      "properties": {
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitCollapse {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitColorField": {
@@ -2960,7 +3008,7 @@
   "KitDialogSurface": {
     "fr": {
       "summary": "Hôte modal qui gère le voile, les demandes de fermeture et le parcours du focus.",
-      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez `focus-observed` à observe_focus(token, generation, focused). DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés. Tant que la couche est ouverte, au sommet et occupée, la surface prend elle-même le focus de sa portée pour garder les touches à l’intérieur ; pour un corps textuel au repos, appelez take-scope-focus() à l’ouverture. Réglez `modal-layer` sur un nombre positif pour rendre inertes, sans jeton de focus, les contrôles Kit hors de cette couche ; donnez aux contrôles de la modale le même nombre. Les contrôles personnalisés, calendriers, sélecteurs de date, d’heure, de couleur et de fichier, onglets, menus, accordéons, carrousels et tableaux de données ne le lisent pas encore et restent à la charge de l’hôte.",
+      "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez `focus-observed` à observe_focus(token, generation, focused). DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés. Tant que la couche est ouverte, au sommet et occupée, la surface prend elle-même le focus de sa portée pour garder les touches à l’intérieur ; pour un corps textuel au repos, appelez take-scope-focus() à l’ouverture. Réglez `modal-layer` sur un nombre positif pour rendre inertes, sans jeton de focus, les contrôles Kit hors de cette couche ; donnez aux contrôles de la modale le même nombre. Les contrôles personnalisés, calendriers, sélecteurs de date, d’heure, de couleur et de fichier, tableaux de données et zones défilantes ne le lisent pas encore et restent à la charge de l’hôte. Les onglets, menus, barres de menus, accordéons, carrousels, fils d’Ariane et la pagination le lisent.",
       "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas l’arrière-plan à elle seule ; réglez `modal-layer` pour rendre les contrôles Kit inertes. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
         "KitDialogPanel",
@@ -2982,7 +3030,7 @@
     },
     "en": {
       "summary": "Modal host managing the scrim, close requests and focus traversal.",
-      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward `focus-observed` to observe_focus(token, generation, focused). DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled. While the layer is open, topmost and busy, the surface takes its own scope focus so keys stay inside; for an idle text-only body call take-scope-focus() on open. Set `modal-layer` to a positive number to make kit controls outside this layer inert without focus tokens; give controls inside the modal the same number. Custom controls, calendars, date, time, color and file pickers, tabs, menus, accordions, carousels and data tables do not read it yet and stay the host's responsibility.",
+      "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward `focus-observed` to observe_focus(token, generation, focused). DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled. While the layer is open, topmost and busy, the surface takes its own scope focus so keys stay inside; for an idle text-only body call take-scope-focus() on open. Set `modal-layer` to a positive number to make kit controls outside this layer inert without focus tokens; give controls inside the modal the same number. Custom controls, calendars, date, time, color and file pickers, data tables and scroll areas do not read it yet and stay the host's responsibility. Tabs, menus, menu bars, accordions, carousels, breadcrumbs and pagination read it.",
       "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not by itself disable the background; set `modal-layer` to make kit controls inert. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
         "KitDialogPanel",
@@ -4069,7 +4117,14 @@
       "label": "Menu",
       "seoTitle": "Menu pour Slint",
       "callbacks": {},
-      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le menu virtualisé conserve sa portée clavier native persistante après fermeture et remplacement du modèle. Slint 1.18.1 n’expose ni ordinal public des enfants matérialisés ni hook de focus sûr avant destruction. Le focus AT de l’option active reste non pris en charge ici ; un indice de modèle ne doit pas servir de accessible-delegate-focus. Les rôles sont list/list-item, le SDK ne proposant pas menu/menu-item. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
+      "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le menu virtualisé conserve sa portée clavier native persistante après fermeture et remplacement du modèle. Slint 1.18.1 n’expose ni ordinal public des enfants matérialisés ni hook de focus sûr avant destruction. Le focus AT de l’option active reste non pris en charge ici ; un indice de modèle ne doit pas servir de accessible-delegate-focus. Les rôles sont list/list-item, le SDK ne proposant pas menu/menu-item. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitMenu {\n    modal-layer: 1;\n}"
+        }
+      }
     },
     "en": {
       "summary": "Vertical menu with virtualized options and controlled navigation.",
@@ -4082,7 +4137,14 @@
       "label": "Menu",
       "seoTitle": "Menu for Slint",
       "callbacks": {},
-      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The virtualized menu retains its persistent native keyboard scope across dismissal and model replacement. Slint 1.18.1 exposes neither a public materialized-child ordinal nor a safe before-destroy focus hook. Active-option AT focus remains unsupported here; a model index must not be used as accessible-delegate-focus. Roles are list/list-item, because this SDK has no menu/menu-item roles. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
+      "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The virtualized menu retains its persistent native keyboard scope across dismissal and model replacement. Slint 1.18.1 exposes neither a public materialized-child ordinal nor a safe before-destroy focus hook. Active-option AT focus remains unsupported here; a model index must not be used as accessible-delegate-focus. Roles are list/list-item, because this SDK has no menu/menu-item roles. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitMenu {\n    modal-layer: 1;\n}"
+        }
+      }
     }
   },
   "KitMenuBar": {
@@ -4102,6 +4164,11 @@
         "has-focus": {
           "effect": "Vrai lorsque la portée clavier native persistante du composite possède le focus. Le focus de ligne au pointeur reste distinct jusqu’au retour dans cette portée après activation.",
           "example": "out property <bool> keyboard-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitMenuBar {\n    modal-layer: 1;\n}"
         }
       }
     },
@@ -4121,6 +4188,11 @@
         "has-focus": {
           "effect": "True while the persistent native composite keyboard scope owns focus. Pointer-down row focus is separate until activation returns to that scope.",
           "example": "out property <bool> keyboard-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitMenuBar {\n    modal-layer: 1;\n}"
         }
       }
     }
@@ -4802,6 +4874,11 @@
           "effect": "Texte de position complet formaté par l’hôte. Le défaut remplace {current} et {total} dans le modèle global, sans détection de langue.",
           "default": "KitStrings.pagination-position-template ({current} / {total})",
           "constraints": "Position à partir de 1, bornée comme auparavant ; une collection vide donne 0 / 0. Liez une surcharge à l’état courant pour suivre la navigation."
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitPagination {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
@@ -4824,6 +4901,11 @@
           "effect": "Complete host-formatted position text. Its default replaces {current} and {total} in the global template; it is not a locale parser.",
           "default": "KitStrings.pagination-position-template ({current} / {total})",
           "constraints": "Current is one-based and bounded as before; an empty collection is 0 / 0. Keep an override bound to current state so it follows navigation."
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitPagination {\n    modal-layer: 1;\n}"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
@@ -6432,6 +6514,11 @@
           "default": "ControlWidth.intrinsic",
           "effect": "`ControlWidth.intrinsic` dimensionne chaque onglet selon son libellé et fait défiler la bande en cas de débordement. `ControlWidth.fill` donne à chaque onglet une part égale de la largeur de la bande ; les libellés trop longs sont tronqués et la bande ne défile plus.",
           "example": "KitTabs { tab-width: ControlWidth.fill; options: root.options; }"
+        },
+        "modal-layer": {
+          "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (la fenêtre).",
+          "example": "KitTabs {\n    modal-layer: 1;\n}"
         }
       }
     },
@@ -6461,6 +6548,11 @@
           "default": "ControlWidth.intrinsic",
           "effect": "`ControlWidth.intrinsic` sizes each tab to its label and scrolls the strip on overflow. `ControlWidth.fill` gives every tab an equal share of the strip width; labels that do not fit are elided and the strip no longer scrolls.",
           "example": "KitTabs { tab-width: ControlWidth.fill; options: root.options; }"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitTabs {\n    modal-layer: 1;\n}"
         }
       }
     }

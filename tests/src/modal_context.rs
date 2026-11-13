@@ -140,3 +140,41 @@ fn tab_never_reaches_an_inert_background_control() {
     }
     assert_eq!(background.get(), 0);
 }
+
+#[test]
+fn navigation_composites_become_inert_behind_a_modal_and_recover() {
+    let window = fixture();
+    let labels = [
+        "Tab A",
+        "Tab B",
+        "Menu A",
+        "Menu B",
+        "Bar A",
+        "Bar B",
+        "Section A",
+        "Section B",
+        "Background collapse",
+        "Slide back",
+        "Slide forward",
+        "Crumb A",
+        "Page back",
+        "Page forward",
+    ];
+    for label in labels {
+        assert!(enabled(&window, label), "{label} must start enabled");
+    }
+    window.set_lower(state(true, true));
+    slint::platform::update_timers_and_animations();
+    for label in labels {
+        assert!(!enabled(&window, label), "{label} must be inert");
+    }
+    assert!(
+        enabled(&window, "LowerTab A"),
+        "a tab in the modal stays active"
+    );
+    window.set_lower(state(false, false));
+    slint::platform::update_timers_and_animations();
+    for label in labels {
+        assert!(enabled(&window, label), "{label} must recover");
+    }
+}
