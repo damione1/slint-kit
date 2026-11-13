@@ -27,7 +27,7 @@ export component Example inherits Window {
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
         // Une nouvelle couleur acceptée actualise le texte sans focus ; le brouillon actif garde curseur et historique.
-        control := KitColorField { label: "Couleur d’accent"; accepted-value <=> root.accent-value; required: false; clearable: false; clear-label: "Effacer la couleur"; empty-label: "Aucune couleur"; chosen(value) => { root.accent-changed(value); } cleared => { root.accent-cleared(); } }
+        control := KitColorField { label: "Couleur d’accent"; accepted-value <=> root.accent-value; required: false; clearable: false; clear-label: "Effacer la couleur"; empty-label: "Aucune couleur"; red-label: "Rouge"; green-label: "Vert"; blue-label: "Bleu"; alpha-label: "Opacité"; cancel-label: "Annuler"; apply-label: "Appliquer la couleur"; open-template: "Ouvrir le sélecteur de couleur pour {label}"; draft-template: "{label} (brouillon)"; preview-label: "Aperçu du brouillon"; choice-template: "Choisir RVB {red}, {green}, {blue}"; description: "Hexadécimal sRGB"; pattern-message: "Utilisez #RRGGBB."; chosen(value) => { root.accent-changed(value); } cleared => { root.accent-cleared(); } }
         // Les éditions natives valides se valident aussi au blur ; ce bouton demande une validation immédiate.
         KitButton { text: "Appliquer la couleur"; activated => { control.commit(); } } }
 }
