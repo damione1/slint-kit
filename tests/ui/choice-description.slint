@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCheckbox, KitSwitch, KitTheme, KitThemes, CheckState, ChoiceLabelPosition } from "@kit";
+
+// A checkbox and a switch with helper text, the label on either side.
+export component ChoiceDescriptionFixture inherits Window {
+    width: 400px; height: 300px;
+    background: root.theme.canvas;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> description: "Receive a summary every Monday.";
+    in property <ChoiceLabelPosition> position: ChoiceLabelPosition.end;
+    out property <length> plain-height: plain.preferred-height;
+    out property <length> check-height: check.min-height;
+    out property <length> switch-height: toggle.min-height;
+    out property <length> check-x: check.absolute-position.x;
+    out property <length> toggle-x: toggle.absolute-position.x;
+    out property <length> toggle-width: toggle.width;
+    VerticalLayout {
+        padding: 20px; spacing: 12px; alignment: start;
+        plain := KitCheckbox { theme: root.theme; label: "Weekly digest"; }
+        check := KitCheckbox { theme: root.theme; label: "Weekly digest"; description: root.description; label-position: root.position; state: CheckState.mixed; }
+        toggle := KitSwitch { theme: root.theme; label: "Notifications"; description: root.description; label-position: root.position; }
+    }
+}
