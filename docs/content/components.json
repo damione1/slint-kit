@@ -40,8 +40,8 @@
   "KitAlert": {
     "fr": {
       "summary": "Message contextualisé de résultat, d’information ou d’erreur.",
-      "usage": "Définissez `severity: AlertSeverity.information`, `.success`, `.warning` ou `.error`, avec un titre explicite. Activez `dismissible` et traitez `dismissed` pour retirer le message dans l’état propriétaire.",
-      "behavior": "Le composant ne se ferme pas lui-même. Le rôle accessible utilise une annonce polie, ou assertive pour une erreur, selon la prise en charge réelle du backend.",
+      "usage": "Définissez `severity: AlertSeverity.information`, `.success`, `.warning` ou `.error`, avec un titre explicite. Activez `dismissible` et traitez `dismissed` pour retirer le message dans l’état propriétaire. Placez des `KitButton` en enfants pour des actions sous le message (par exemple Réessayer ou Détails) ; passez `glyph` pour remplacer la marque de sévérité.",
+      "behavior": "Le composant ne se ferme pas lui-même. Le rôle accessible utilise une annonce polie, ou assertive pour une erreur, selon la prise en charge réelle du backend. Un `title` vide ne dessine pas de titre et le message nomme l’alerte. Les enfants gardent leur focus et leurs rappels, et une alerte sans enfant garde sa hauteur mesurée.",
       "related": [
         "KitToast",
         "KitFieldError"
@@ -52,14 +52,18 @@
         "dismiss-label": {
           "effect": "Nom accessible localisé complet de l’action de fermeture ; surcharge par alerte.",
           "default": "KitStrings.dismiss-label-template ({title} = title)"
+        },
+        "glyph": {
+          "effect": "Icône dessinée dans la marque de l’alerte ; la recette de sévérité la teinte toujours.",
+          "default": "icône du thème pour la sévérité"
         }
       },
       "accessibility": "Localisez le nom accessible de l’action ou de la région avec les propriétés documentées ou les défauts KitStrings de la fenêtre. Cela nomme les contrôles existants sans modifier actions, focus ni identité stable ; la qualification d’un lecteur d’écran reste propre au backend et à l’appareil."
     },
     "en": {
       "summary": "Contextual message for a result, information or error.",
-      "usage": "Set `severity: AlertSeverity.information`, `.success`, `.warning` or `.error`, with an explicit heading. Enable `dismissible` and handle `dismissed` to remove the message in owning state.",
-      "behavior": "The component does not close itself. Its accessibility role requests a polite announcement, or assertive for errors, subject to actual backend support.",
+      "usage": "Set `severity: AlertSeverity.information`, `.success`, `.warning` or `.error`, with an explicit heading. Enable `dismissible` and handle `dismissed` to remove the message in owning state. Place `KitButton`s as children for actions under the message (for example Retry or Details); pass `glyph` to replace the severity mark.",
+      "behavior": "The component does not close itself. Its accessibility role requests a polite announcement, or assertive for errors, subject to actual backend support. An empty `title` draws no heading and the message names the alert. Children keep their own focus and callbacks, and an alert without children keeps its measured height.",
       "related": [
         "KitToast",
         "KitFieldError"
@@ -70,6 +74,10 @@
         "dismiss-label": {
           "effect": "Complete localized accessible name of the dismiss action; override per alert.",
           "default": "KitStrings.dismiss-label-template ({title} = title)"
+        },
+        "glyph": {
+          "effect": "Icon drawn in the alert mark; the severity recipe still tints it.",
+          "default": "theme icon for the severity"
         }
       },
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
@@ -5956,25 +5964,53 @@
   "KitProgress": {
     "fr": {
       "summary": "Barre de progression déterminée exprimée par une fraction.",
-      "usage": "Projetez l’avancement dans `value` entre 0 et 1 et fournissez un `label` contextualisé. Conservez les compteurs exacts et le calcul de la fraction dans le contrôleur.",
-      "behavior": "`bounded-value` borne le rendu à l’intervalle et le pourcentage accessible est arrondi. Le composant n’anime pas une progression fictive et ne gère pas la tâche. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible. La valeur accessible est un nombre arrondi de 0 à 100 (par exemple `65`), avec minimum numérique 0 et maximum 100 ; le pourcentage visible peut inclure `%`. La restitution par un lecteur d’écran natif exige une qualification propre à la plateforme.",
+      "usage": "Projetez l’avancement dans `value` entre 0 et 1 et fournissez un `label` contextualisé. Conservez les compteurs exacts et le calcul de la fraction dans le contrôleur. Définissez `mode: ProgressMode.indeterminate` quand la durée est inconnue, `intent: ProgressIntent.success`, `.warning` ou `.error` pour changer le remplissage, et `value-text` pour une lecture visible.",
+      "behavior": "`bounded-value` borne le rendu à l’intervalle et le pourcentage accessible est arrondi. Le composant n’anime pas une progression fictive et ne gère pas la tâche. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible. La valeur accessible est un nombre arrondi de 0 à 100 (par exemple `65`), avec minimum numérique 0 et maximum 100 ; le pourcentage visible peut inclure `%`. La restitution par un lecteur d’écran natif exige une qualification propre à la plateforme. En mode indéterminé, la valeur accessible est vide (aucun nombre n’est inventé) et l’animation s’arrête avec `reduced-motion`, en laissant un segment fixe au début.",
       "related": [
         "KitRadialProgress",
         "KitSpinner"
       ],
       "label": "Barre de progression",
-      "seoTitle": "Barre de progression pour Slint"
+      "seoTitle": "Barre de progression pour Slint",
+      "properties": {
+        "mode": {
+          "effect": "determinate affiche `value` ; indeterminate s’anime sans valeur.",
+          "default": "ProgressMode.determinate"
+        },
+        "intent": {
+          "effect": "Couleur du remplissage : encre accent, success, warning ou error du thème.",
+          "default": "ProgressIntent.accent"
+        },
+        "value-text": {
+          "effect": "Lecture visible. Les technologies d’assistance reçoivent toujours la valeur numérique.",
+          "default": "vide"
+        }
+      }
     },
     "en": {
       "summary": "Determinate progress bar expressed as a fraction.",
-      "usage": "Project progress through `value` from 0 to 1 and supply a contextual `label`. Keep exact counters and fraction calculation in the controller.",
-      "behavior": "`bounded-value` clamps rendering to the interval and the accessible percentage is rounded. The component neither animates invented progress nor manages the task. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools. The accessible value is a plain rounded number from 0 to 100 (for example, `65`), with numeric minimum 0 and maximum 100; the visible percentage may include `%`. Native screen-reader output requires separate platform qualification.",
+      "usage": "Project progress through `value` from 0 to 1 and supply a contextual `label`. Keep exact counters and fraction calculation in the controller. Set `mode: ProgressMode.indeterminate` when the duration is unknown, `intent: ProgressIntent.success`, `.warning` or `.error` to change the fill, and `value-text` for a visible reading.",
+      "behavior": "`bounded-value` clamps rendering to the interval and the accessible percentage is rounded. The component neither animates invented progress nor manages the task. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools. The accessible value is a plain rounded number from 0 to 100 (for example, `65`), with numeric minimum 0 and maximum 100; the visible percentage may include `%`. Native screen-reader output requires separate platform qualification. In indeterminate mode the accessible value is empty (no number is invented) and the animation stops with `reduced-motion`, leaving a static segment at the start.",
       "related": [
         "KitRadialProgress",
         "KitSpinner"
       ],
       "label": "Progress",
-      "seoTitle": "Progress for Slint"
+      "seoTitle": "Progress for Slint",
+      "properties": {
+        "mode": {
+          "effect": "determinate shows `value`; indeterminate animates without a value.",
+          "default": "ProgressMode.determinate"
+        },
+        "intent": {
+          "effect": "Fill color: accent, success, warning or error theme ink.",
+          "default": "ProgressIntent.accent"
+        },
+        "value-text": {
+          "effect": "Visible reading. Assistive technology still receives the numeric value.",
+          "default": "empty"
+        }
+      }
     }
   },
   "KitQuantityField": {
@@ -6020,25 +6056,77 @@
   "KitRadialProgress": {
     "fr": {
       "summary": "Indicateur circulaire de progression avec pourcentage central.",
-      "usage": "Fournissez `value` entre 0 et 1 et un `label` décrivant la tâche suivie. Utilisez-le lorsque la présentation circulaire convient mieux qu’une barre.",
-      "behavior": "Comme `KitProgress`, il expose `bounded-value` et un rôle de progression de 0 à 100. Le pourcentage affiché est une projection arrondie de l’état fourni. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible. La valeur accessible est un nombre arrondi de 0 à 100 (par exemple `65`), avec minimum numérique 0 et maximum 100 ; le pourcentage visible peut inclure `%`. La restitution par un lecteur d’écran natif exige une qualification propre à la plateforme.",
+      "usage": "Fournissez `value` entre 0 et 1 et un `label` décrivant la tâche suivie. Utilisez-le lorsque la présentation circulaire convient mieux qu’une barre. Définissez `mode: ProgressMode.indeterminate` quand la durée est inconnue, `intent: ProgressIntent.success`, `.warning` ou `.error` pour changer le remplissage, et `value-text` pour une lecture visible. `diameter` règle la taille de l’anneau, `thickness` son trait, et `show-value: false` masque le texte central.",
+      "behavior": "Comme `KitProgress`, il expose `bounded-value` et un rôle de progression de 0 à 100. Le pourcentage affiché est une projection arrondie de l’état fourni. La démo commence partiellement remplie. Avancez manuellement ou choisissez Animate/Pause ; le mouvement s’arrête avec `reduced-motion`, tout en gardant la progression numérique accessible. La valeur accessible est un nombre arrondi de 0 à 100 (par exemple `65`), avec minimum numérique 0 et maximum 100 ; le pourcentage visible peut inclure `%`. La restitution par un lecteur d’écran natif exige une qualification propre à la plateforme. En mode indéterminé, la valeur accessible est vide (aucun nombre n’est inventé) et l’animation s’arrête avec `reduced-motion`, en laissant un segment fixe au début.",
       "label": "Progression circulaire",
       "seoTitle": "Progression circulaire pour Slint",
       "related": [
         "KitProgress",
         "KitSpinner"
-      ]
+      ],
+      "properties": {
+        "mode": {
+          "effect": "determinate affiche `value` ; indeterminate s’anime sans valeur.",
+          "default": "ProgressMode.determinate"
+        },
+        "intent": {
+          "effect": "Couleur du remplissage : encre accent, success, warning ou error du thème.",
+          "default": "ProgressIntent.accent"
+        },
+        "value-text": {
+          "effect": "Lecture visible. Les technologies d’assistance reçoivent toujours la valeur numérique.",
+          "default": "vide"
+        },
+        "diameter": {
+          "effect": "Taille extérieure de l’anneau.",
+          "default": "max(88px, 64px × échelle du texte)"
+        },
+        "thickness": {
+          "effect": "Épaisseur du trait de la piste et de l’arc.",
+          "default": "1,5 unité d’espacement"
+        },
+        "show-value": {
+          "effect": "Dessine le texte central ; `value-text` remplace le pourcentage.",
+          "default": "true"
+        }
+      }
     },
     "en": {
       "summary": "Circular progress indicator with a central percentage.",
-      "usage": "Supply `value` from 0 to 1 and a `label` describing the tracked task. Use it when a circular presentation suits the layout better than a bar.",
-      "behavior": "Like `KitProgress`, it exposes `bounded-value` and a progress role from 0 to 100. The displayed percentage is a rounded projection of supplied state. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools. The accessible value is a plain rounded number from 0 to 100 (for example, `65`), with numeric minimum 0 and maximum 100; the visible percentage may include `%`. Native screen-reader output requires separate platform qualification.",
+      "usage": "Supply `value` from 0 to 1 and a `label` describing the tracked task. Use it when a circular presentation suits the layout better than a bar. Set `mode: ProgressMode.indeterminate` when the duration is unknown, `intent: ProgressIntent.success`, `.warning` or `.error` to change the fill, and `value-text` for a visible reading. `diameter` sizes the ring, `thickness` its stroke, and `show-value: false` hides the centre text.",
+      "behavior": "Like `KitProgress`, it exposes `bounded-value` and a progress role from 0 to 100. The displayed percentage is a rounded projection of supplied state. The demo starts partially filled. Advance manually or choose Animate/Pause; motion stops for `reduced-motion`, while numeric progress remains available to accessibility tools. The accessible value is a plain rounded number from 0 to 100 (for example, `65`), with numeric minimum 0 and maximum 100; the visible percentage may include `%`. Native screen-reader output requires separate platform qualification. In indeterminate mode the accessible value is empty (no number is invented) and the animation stops with `reduced-motion`, leaving a static segment at the start.",
       "label": "Radial Progress",
       "seoTitle": "Radial Progress for Slint",
       "related": [
         "KitProgress",
         "KitSpinner"
-      ]
+      ],
+      "properties": {
+        "mode": {
+          "effect": "determinate shows `value`; indeterminate animates without a value.",
+          "default": "ProgressMode.determinate"
+        },
+        "intent": {
+          "effect": "Fill color: accent, success, warning or error theme ink.",
+          "default": "ProgressIntent.accent"
+        },
+        "value-text": {
+          "effect": "Visible reading. Assistive technology still receives the numeric value.",
+          "default": "empty"
+        },
+        "diameter": {
+          "effect": "Outer size of the ring.",
+          "default": "max(88px, 64px × text scale)"
+        },
+        "thickness": {
+          "effect": "Stroke width of the track and the arc.",
+          "default": "1.5 spacing units"
+        },
+        "show-value": {
+          "effect": "Draws the centre text; `value-text` replaces the percentage.",
+          "default": "true"
+        }
+      }
     }
   },
   "KitRadioGroup": {
@@ -7202,25 +7290,45 @@
   "KitSpinner": {
     "fr": {
       "summary": "Indicateur d’activité indéterminée avec libellé accessible.",
-      "usage": "Utilisez-le lorsqu’une opération est en cours sans fraction connue et fournissez un `label` décrivant cette opération. Pilotez `running` depuis l’activité réelle.",
+      "usage": "Utilisez-le lorsqu’une opération est en cours sans fraction connue et fournissez un `label` décrivant cette opération. Pilotez `running` depuis l’activité réelle. `control-size` choisit la taille de la marque (une icône et demie) ; `ink` remplace l’accent pour poser l’indicateur sur un bouton principal avec le bon contraste.",
       "behavior": "Les points tournent par variation d’opacité et deviennent statiques en mouvement réduit ou à l’arrêt. Utilisez `KitProgress` lorsqu’une progression mesurable est disponible.",
       "related": [
         "KitProgress",
         "KitSkeleton"
       ],
       "label": "Indicateur de chargement",
-      "seoTitle": "Indicateur de chargement pour Slint"
+      "seoTitle": "Indicateur de chargement pour Slint",
+      "properties": {
+        "control-size": {
+          "effect": "Taille de la marque depuis l’échelle d’icônes : 21 px compact, 24 px medium, 30 px comfortable à l’échelle de texte 1.",
+          "default": "ControlSize.medium"
+        },
+        "ink": {
+          "effect": "Couleur des points.",
+          "default": "accent du thème"
+        }
+      }
     },
     "en": {
       "summary": "Indeterminate activity indicator with an accessible label.",
-      "usage": "Use it while an operation runs without a known fraction and supply a `label` describing that operation. Drive `running` from actual activity.",
+      "usage": "Use it while an operation runs without a known fraction and supply a `label` describing that operation. Drive `running` from actual activity. `control-size` picks the mark size (one and a half icons); `ink` replaces the accent so the spinner can sit on a primary button with the right contrast.",
       "behavior": "Dots rotate through opacity changes and become static with reduced motion or when stopped. Use `KitProgress` when measurable progress is available.",
       "related": [
         "KitProgress",
         "KitSkeleton"
       ],
       "label": "Spinner",
-      "seoTitle": "Spinner for Slint"
+      "seoTitle": "Spinner for Slint",
+      "properties": {
+        "control-size": {
+          "effect": "Mark size from the icon scale: 21px compact, 24px medium, 30px comfortable at text scale 1.",
+          "default": "ControlSize.medium"
+        },
+        "ink": {
+          "effect": "Dot color.",
+          "default": "theme accent"
+        }
+      }
     }
   },
   "KitStack": {

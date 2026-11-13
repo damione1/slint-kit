@@ -984,3 +984,121 @@ fn a_pressable_exposes_the_tooltip_text_as_its_accessible_description() {
         Some("Delete the project")
     );
 }
+
+fn options_fixture() -> FeedbackOptionsFixture {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = FeedbackOptionsFixture::new().unwrap();
+    window.show().unwrap();
+    window
+}
+
+#[test]
+fn indeterminate_progress_reports_no_value_and_runs_a_segment_along_the_track() {
+    let window = options_fixture();
+    let progress = ElementQuery::from_root(&window)
+        .match_inherits("KitProgress")
+        .find_first()
+        .unwrap();
+    assert!(
+        progress
+            .accessible_value()
+            .is_none_or(|value| value.parse::<f64>().is_err())
+    );
+    let rectangles = progress
+        .query_descendants()
+        .match_type_name("Rectangle")
+        .find_all();
+    let (track, fill) = (&rectangles[0], &rectangles[1]);
+    settle(1);
+    assert!((fill.size().width - track.size().width * 0.4).abs() <= 1.);
+    let before = fill.absolute_position().x;
+    settle(300);
+    assert!((fill.absolute_position().x - before).abs() > 1.);
+    // Reduced motion parks the segment at the track origin.
+    let mut theme = window.get_theme();
+    theme.reduced_motion = true;
+    window.set_theme(theme);
+    settle(1);
+    assert!((fill.absolute_position().x - track.absolute_position().x).abs() <= 1.);
+    // The visible reading sits beside the label.
+    element(&window, "Syncing");
+    window.set_mode(ProgressMode::Determinate);
+    settle(1);
+    assert_eq!(
+        ElementQuery::from_root(&window)
+            .match_inherits("KitProgress")
+            .find_first()
+            .unwrap()
+            .accessible_value()
+            .as_deref(),
+        Some("50")
+    );
+}
+
+#[test]
+fn radial_progress_follows_its_diameter_and_spinner_follows_its_control_size() {
+    let window = options_fixture();
+    let radial = ElementQuery::from_root(&window)
+        .match_inherits("KitRadialProgress")
+        .find_first()
+        .unwrap();
+    assert_eq!(radial.size().width, 120.);
+    assert_eq!(radial.size().height, 120.);
+    let spinner = || {
+        ElementQuery::from_root(&window)
+            .match_inherits("KitSpinner")
+            .find_first()
+            .unwrap()
+    };
+    let mut sizes = Vec::new();
+    for size in [
+        ControlSize::Compact,
+        ControlSize::Medium,
+        ControlSize::Comfortable,
+    ] {
+        window.set_spinner_size(size);
+        settle(1);
+        sizes.push(spinner().size().width);
+    }
+    assert_eq!(sizes[1], 24.);
+    assert!(sizes[0] < sizes[1] && sizes[1] < sizes[2]);
+}
+
+#[test]
+fn an_alert_places_its_actions_under_the_copy_and_grows_only_when_it_has_any() {
+    let window = options_fixture();
+    settle(1);
+    assert!(window.get_actions_alert_height() > window.get_plain_alert_height());
+    let retried = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&retried);
+    window.on_retry(move || observed.set(observed.get() + 1));
+    let retry = element(&window, "Retry");
+    let alert = ElementQuery::from_root(&window)
+        .match_inherits("KitAlert")
+        .find_all()
+        .pop()
+        .unwrap();
+    let (alert_position, alert_size) = (alert.absolute_position(), alert.size());
+    in_bounds_of(&retry, alert_position, alert_size);
+    assert!(retry.absolute_position().y > alert_position.y + alert_size.height / 2.);
+    retry.mock_single_click(PointerEventButton::Left);
+    settle(1);
+    assert_eq!(retried.get(), 1);
+    element(&window, "Details");
+}
+
+#[test]
+fn an_alert_without_a_title_draws_only_its_message_and_labels_itself_with_it() {
+    let window = options_fixture();
+    window.set_alert_title("".into());
+    settle(1);
+    assert!(window.get_plain_alert_height() > 0.);
+    element(&window, "The server did not answer.");
+}
+
+fn in_bounds_of(element: &ElementHandle, origin: LogicalPosition, size: slint::LogicalSize) {
+    let (position, extent) = (element.absolute_position(), element.size());
+    assert!(position.x >= origin.x - 1. && position.y >= origin.y - 1.);
+    assert!(position.x + extent.width <= origin.x + size.width + 1.);
+    assert!(position.y + extent.height <= origin.y + size.height + 1.);
+}
