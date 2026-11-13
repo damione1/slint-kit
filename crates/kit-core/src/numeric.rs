@@ -750,7 +750,62 @@ pub struct CurrencyMetadata {
     pub symbol: String,
     pub scale: DecimalScale,
 }
+/// ISO 4217 minor-unit scale and a customary symbol for common currencies.
+/// The scale is the standard's; a symbol is a display choice and may differ
+/// per locale, so build a `CurrencyMetadata` by hand when it must.
+const ISO_CURRENCIES: &[(&str, &str, u32)] = &[
+    ("AUD", "$", 2),
+    ("BHD", "BD", 3),
+    ("BRL", "R$", 2),
+    ("CAD", "$", 2),
+    ("CHF", "CHF", 2),
+    ("CLF", "UF", 4),
+    ("CLP", "$", 0),
+    ("CNY", "¥", 2),
+    ("CZK", "Kč", 2),
+    ("DKK", "kr", 2),
+    ("EUR", "€", 2),
+    ("GBP", "£", 2),
+    ("HKD", "$", 2),
+    ("INR", "₹", 2),
+    ("ISK", "kr", 0),
+    ("JOD", "JD", 3),
+    ("JPY", "¥", 0),
+    ("KRW", "₩", 0),
+    ("KWD", "KD", 3),
+    ("MXN", "$", 2),
+    ("NOK", "kr", 2),
+    ("NZD", "$", 2),
+    ("OMR", "OMR", 3),
+    ("PLN", "zł", 2),
+    ("SEK", "kr", 2),
+    ("SGD", "$", 2),
+    ("TND", "DT", 3),
+    ("USD", "$", 2),
+    ("VND", "₫", 0),
+    ("ZAR", "R", 2),
+];
 impl CurrencyMetadata {
+    /// Metadata for any currency, including one outside the built-in table.
+    pub fn new(code: CurrencyCode, symbol: impl Into<String>, scale: DecimalScale) -> Self {
+        Self {
+            code,
+            symbol: symbol.into(),
+            scale,
+        }
+    }
+    /// The ISO 4217 scale and customary symbol of a common currency, or `None`
+    /// when the table does not list the code; callers then use [`Self::new`].
+    pub fn iso(code: &CurrencyCode) -> Option<Self> {
+        ISO_CURRENCIES
+            .iter()
+            .find(|(iso, _, _)| *iso == code.as_str())
+            .map(|&(_, symbol, scale)| Self {
+                code: code.clone(),
+                symbol: symbol.into(),
+                scale: DecimalScale(scale),
+            })
+    }
     pub fn cad() -> Self {
         Self {
             code: CurrencyCode("CAD".into()),
