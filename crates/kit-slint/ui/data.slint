@@ -11,9 +11,19 @@ import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
 import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
+import { KitSpinner } from "feedback.slint";
 import { CheckMark } from "choice.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
 export enum DataAlignment { leading, center, trailing }
+// What a data collection has to say when it shows no rows: the rows are `ready`
+// (an empty model then reads as empty), still `loading`, or `failed` to load.
+export enum DataState { ready, loading, failed }
+// What fills a ready, empty collection: the `empty-label` text or the
+// application's own children.
+export enum DataEmptyContent { label, custom }
+// Whether the table paints its own framed surface or sits flush in a host that
+// already provides one, such as a card.
+export enum DataSurface { framed, flush }
 export enum TextViewAccess { read-only, edit-line }
 export enum TableHeaderFocus { individual, roving }
 enum TableCursorRegion { body, header }
@@ -454,6 +464,35 @@ component TableCellView inherits Rectangle {
     }
 }
 
+// The centered message of a data collection without rows. `ready` shows the
+// empty label or the application's children, `loading` a spinner and `failed`
+// the error with a retry action. Rows, when present, are never covered.
+component DataStatePanel inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <DataState> state;
+    in property <bool> rowless;
+    in property <DataEmptyContent> empty-content;
+    in property <string> empty-label;
+    in property <string> loading-label;
+    in property <string> error-label;
+    in property <string> retry-label;
+    callback retry-requested();
+    if root.rowless && root.state == DataState.loading: VerticalLayout {
+        alignment: center; spacing: root.theme.spacing.unit * 2;
+        KitSpinner { theme: root.theme; label: root.loading-label; horizontal-stretch: 0; }
+        Text {text: root.loading-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center;}
+    }
+    if root.rowless && root.state == DataState.failed: VerticalLayout {
+        alignment: center; spacing: root.theme.spacing.unit * 2;
+        Text {text: root.error-label; color: root.theme.danger; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; wrap: word-wrap; accessible-role: AccessibleRole.text;}
+        if root.retry-label != "": HorizontalLayout { alignment: center; KitButton { theme: root.theme; text: root.retry-label; activated => { root.retry-requested(); } } }
+    }
+    if root.rowless && root.state == DataState.ready && root.empty-content == DataEmptyContent.label: Text {text: root.empty-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); horizontal-alignment: center; vertical-alignment: center;}
+    // Slint cannot place `@children` inside a conditional element, so the
+    // custom content is always built and hidden when it does not apply.
+    Rectangle { visible: root.rowless && root.state == DataState.ready && root.empty-content == DataEmptyContent.custom; @children }
+}
+
 export component KitDataTable inherits Rectangle {
     in property <bool> interactive: true;
     in property <TableHeaderFocus> header-focus: TableHeaderFocus.individual;
@@ -493,6 +532,20 @@ export component KitDataTable inherits Rectangle {
     in property <int> active-index: -1;
     in property <string> label: "Data table";
     in property <string> empty-label: "No matching records";
+    // `loading` and `failed` replace the empty message while `rows` is empty;
+    // rows already present stay visible and the state is still announced.
+    in property <DataState> state: DataState.ready;
+    in property <string> loading-label: "Loading";
+    in property <string> error-label: "The data could not be loaded";
+    // An empty `retry-label` hides the retry action of the `failed` state.
+    in property <string> retry-label: "Retry";
+    callback retry-requested();
+    // `custom` shows the table's children instead of `empty-label` when
+    // `state` is ready and `rows` is empty.
+    in property <DataEmptyContent> empty-content: DataEmptyContent.label;
+    in property <DataSurface> surface-style: DataSurface.framed;
+    // Alternate row fills; off, every row uses the surface fill.
+    in property <bool> striped: true;
     // Accessible words the application localizes. The kit joins them to the
     // column label with ", " and never builds a sentence from them.
     in property <string> sort-ascending-label: "ascending";
@@ -745,8 +798,12 @@ export component KitDataTable inherits Rectangle {
     }
     min-width: 0px; preferred-width: 700px;
     min-height: 160px; preferred-height: 320px;
-    background: root.surface.fill; border-width: root.surface.border-width; border-color: root.surface.border; border-radius: root.surface.radius;
-    drop-shadow-offset-y: root.surface.shadow.offset-y; drop-shadow-blur: root.surface.shadow.blur; drop-shadow-color: root.surface.shadow.color;
+    background: root.surface-style == DataSurface.framed ? root.surface.fill : transparent;
+    border-width: root.surface-style == DataSurface.framed ? root.surface.border-width : 0px;
+    border-color: root.surface.border; border-radius: root.surface-style == DataSurface.framed ? root.surface.radius : 0px;
+    drop-shadow-offset-y: root.surface-style == DataSurface.framed ? root.surface.shadow.offset-y : 0px;
+    drop-shadow-blur: root.surface-style == DataSurface.framed ? root.surface.shadow.blur : 0px;
+    drop-shadow-color: root.surface-style == DataSurface.framed ? root.surface.shadow.color : transparent;
     // Slint 1.18.1 has no row, cell or column-header roles, and delegated
     // accessible focus addresses mounted descendants, which virtualized rows
     // do not number stably. Like KitCalendar, the composite keeps focus on its
@@ -757,7 +814,7 @@ export component KitDataTable inherits Rectangle {
     accessible-label: root.label + (root.cursor-region == TableCursorRegion.header && root.has-active-column() ? ": " + root.header-label + ", " + root.header-name(root.display-columns[root.active-column]) : (root.has-active-row ? ": " + root.row-name(root.rows[root.active-index]) : "") + (root.has-active-cell() ? ", " + root.display-columns[root.active-column].label : ""));
     accessible-action-default => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.edit-active(); } }
     accessible-value: root.active-cell-value();
-    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : "";
+    accessible-description: root.edit-error != "" ? root.edit-error : root.cursor-region == TableCursorRegion.body && root.has-active-cell() ? (root.active-cell-editable() ? root.editable-label : root.read-only-label) : root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     // Keep the scrollbar corner in the header canvas on either side.
     Rectangle { width: root.width; height: root.row-height; background: root.theme.canvas; }
     header := Rectangle {
@@ -890,7 +947,7 @@ export component KitDataTable inherits Rectangle {
             intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;
             accessible-name:root.row-name(row);
             accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
-            background:row.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
+            background:row.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : root.striped && Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
             // The row ring shows while the cursor is the whole row; a cell
             // ring takes over once Left/Right chose a column. A row with an
             // open editor hands the pointer to it: caret and selection stay
@@ -995,7 +1052,13 @@ export component KitDataTable inherits Rectangle {
             }
         }
     }
-    if root.rows.length == 0: Text {y:root.row-height;text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    DataStatePanel {
+        y: root.row-height; height: max(0px, root.height - root.row-height);
+        theme: root.theme; state: root.state; rowless: root.rows.length == 0; empty-content: root.empty-content;
+        empty-label: root.empty-label; loading-label: root.loading-label; error-label: root.error-label; retry-label: root.retry-label;
+        retry-requested => { root.retry-requested(); }
+        @children
+    }
     if keys.has-focus && root.cursor-region == TableCursorRegion.body && (root.active-index < 0 || root.active-index >= root.rows.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
@@ -1009,6 +1072,14 @@ export component KitContentList inherits Rectangle {
     in property <int> active-index:-1;
     in property <string> label:"Articles";
     in property <string> empty-label:"No articles found";
+    // As on KitDataTable: `loading` and `failed` replace the empty message
+    // while `items` is empty, and `custom` shows the list's children instead.
+    in property <DataState> state: DataState.ready;
+    in property <string> loading-label: "Loading";
+    in property <string> error-label: "The articles could not be loaded";
+    in property <string> retry-label: "Retry";
+    callback retry-requested();
+    in property <DataEmptyContent> empty-content: DataEmptyContent.label;
     // Row intent without a gesture; hosts that need several selected rows or
     // a separate open action handle `gesture` instead, not both.
     callback activate(int,int);
@@ -1042,7 +1113,7 @@ export component KitContentList inherits Rectangle {
         }
     }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
-    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
+    accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
     keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}}
     list := ListView {
@@ -1077,7 +1148,13 @@ export component KitContentList inherits Rectangle {
             }
         }
     }
-    if root.items.length==0: Text {text:root.empty-label;color:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);horizontal-alignment:center;vertical-alignment:center;}
+    DataStatePanel {
+        height: root.height;
+        theme: root.theme; state: root.state; rowless: root.items.length == 0; empty-content: root.empty-content;
+        empty-label: root.empty-label; loading-label: root.loading-label; error-label: root.error-label; retry-label: root.retry-label;
+        retry-requested => { root.retry-requested(); }
+        @children
+    }
     if keys.has-focus && (root.active-index < 0 || root.active-index >= root.items.length || (root.active-index + 1) * root.row-height + list.content-y <= 0px || root.active-index * root.row-height + list.content-y >= list.visible-height): FocusOutline {
         ring: KitThemes.inset-focus(root.theme); radius: root.theme.shape.radius-container; host-width: root.width; host-height: root.height;
     }
