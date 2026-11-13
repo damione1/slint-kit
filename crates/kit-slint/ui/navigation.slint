@@ -860,6 +860,10 @@ export component KitBreadcrumbs inherits Rectangle {
     out property <string> selected-label: selection.selected-label;
 }
 
+// How KitPagination presents its pages: previous/next with the position text,
+// or numbered page buttons with boundary and sibling pages and ellipses.
+export enum PaginationDisplay { position, numbered }
+
 // Integers are a projection boundary; a Rust pagination controller validates
 // the page index/count. This view never mutates a remote collection itself.
 export component KitPagination inherits HorizontalLayout {
@@ -887,15 +891,70 @@ export component KitPagination inherits HorizontalLayout {
         .replace-all("{total}", "" + max(0, root.page-count));
     in property <string> previous-label: "Previous";
     in property <string> next-label: "Next";
+    in property <string> first-label: "First";
+    in property <string> last-label: "Last";
+    // Accessible name of a numbered page button; `{page}` is replaced by the one-based page.
+    in property <string> page-label-template: "Page {page}";
+    // `position` keeps Previous, the position text and Next. `numbered` adds page buttons.
+    in property <PaginationDisplay> display: PaginationDisplay.position;
+    // Numbered display: pages kept at each end and on each side of the current page.
+    in property <int> boundary-count: 1;
+    in property <int> sibling-count: 1;
+    // Numbered display: adds buttons that jump to the first and the last page.
+    in property <bool> show-first-last;
     callback navigate(NavigationStep);
+
+    private property <int> boundaries: max(0, root.boundary-count);
+    private property <int> siblings: max(0, root.sibling-count);
+    // One-based current page, bounded; 0 for an empty collection.
+    private property <int> current: root.page-count <= 0 ? 0 : min(max(0, root.page-index), root.page-count - 1) + 1;
+    // Fixed slot count: the row keeps its width while the current page moves.
+    private property <int> slot-count: min(max(0, root.page-count), 2 * root.boundaries + 2 * root.siblings + 3);
+    private property <bool> collapsed: root.page-count > root.slot-count;
+    // First page of the sibling window, clamped between the two boundary blocks.
+    private property <int> window-start: min(max(root.current - root.siblings, root.boundaries + 2), root.page-count - root.boundaries - 2 * root.siblings - 1);
+    private property <int> window-end: root.window-start + 2 * root.siblings;
+    // The page shown in a slot: a positive one-based page, or 0 for an ellipsis.
+    function slot-page(slot: int) -> int {
+        if (!root.collapsed) { return slot + 1; }
+        if (slot < root.boundaries) { return slot + 1; }
+        if (slot >= root.slot-count - root.boundaries) { return root.page-count - (root.slot-count - 1 - slot); }
+        if (slot == root.boundaries) { return root.window-start > root.boundaries + 2 ? 0 : root.window-start - 1; }
+        if (slot == root.slot-count - root.boundaries - 1) { return root.window-end < root.page-count - root.boundaries - 1 ? 0 : root.window-end + 1; }
+        return root.window-start + (slot - root.boundaries - 1);
+    }
     spacing: root.theme.spacing.unit * 2;
     alignment: start;
     vertical-stretch: 0;
     accessible-role: navigation;
     accessible-label: root.accessible-name;
+    if root.display == PaginationDisplay.numbered && root.show-first-last: KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.first-label; disabled: !root.interactive || root.current <= 1; activated => { root.change-page(0); root.navigate(NavigationStep.first); } }
     KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.previous-label; disabled: !root.interactive || root.page-index <= 0 || root.page-count <= 0; activated => { root.change-page(root.page-index - 1); root.navigate(NavigationStep.previous); } }
-    Text { text: root.position-label; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
+    if root.display == PaginationDisplay.numbered: HorizontalLayout {
+        spacing: root.theme.spacing.unit;
+        horizontal-stretch: 0;
+        for slot in root.slot-count: HorizontalLayout {
+            property <int> page: root.slot-page(slot);
+            if self.page > 0: KitButton {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                text: "" + parent.page;
+                accessible-name: root.page-label-template.replace-all("{page}", "" + parent.page);
+                accessible-checkable: true;
+                accessible-checked: parent.page == root.current;
+                intent: parent.page == root.current ? ButtonIntent.primary : ButtonIntent.secondary;
+                disabled: !root.interactive;
+                activated => { root.change-page(parent.page - 1); }
+            }
+            if self.page == 0: Text {
+                text: "…"; accessible-role: none;
+                color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+                vertical-alignment: center; horizontal-alignment: center;
+            }
+        }
+    }
+    Text { text: root.position-label; accessible-live-region: polite; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); vertical-alignment: center; }
     KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.next-label; disabled: !root.interactive || root.page-count <= 0 || root.page-index >= root.page-count - 1; activated => { root.change-page(root.page-index + 1); root.navigate(NavigationStep.next); } }
+    if root.display == PaginationDisplay.numbered && root.show-first-last: KitButton { theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer; text: root.last-label; disabled: !root.interactive || root.current == 0 || root.current >= root.page-count; activated => { root.change-page(root.page-count - 1); root.navigate(NavigationStep.last); } }
 }
 
 export component KitNotificationButton inherits KitPressable {

@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPagination, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+import { KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
 
 export component PaginationFixture inherits Window {
-    width: 400px; height: 120px;
+    width: 800px; height: 120px;
     in-out property <int> page-index;
     in property <int> page-count;
     in property <Ownership> ownership: Ownership.local;
+    in property <PaginationDisplay> display: PaginationDisplay.position;
+    in property <int> boundary-count: 1;
+    in property <int> sibling-count: 1;
+    in property <bool> show-first-last;
     callback page-changed(int);
     callback navigated(NavigationStep);
     VerticalLayout {
         alignment: start;
         KitPagination {
             page-index <=> root.page-index; page-count: root.page-count; ownership: root.ownership;
-            previous-label: "Previous page"; next-label: "Next page";
+            previous-label: "Previous page"; next-label: "Next page"; first-label: "First page"; last-label: "Last page";
+            display: root.display; boundary-count: root.boundary-count; sibling-count: root.sibling-count; show-first-last: root.show-first-last;
             page-changed(page) => { root.page-changed(page); }
             navigate(step) => { root.navigated(step); }
         }
