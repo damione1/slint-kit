@@ -2597,6 +2597,16 @@
         "end-near": {
           "effect": "Indique en lecture seule que la plage visible est à near-end-rows de la fin du modèle ; faux pour un modèle vide.",
           "example": "visible: table.end-near;"
+        },
+        "theme": {
+          "effect": "Le `KitTheme` dont le tableau tire couleurs, bordures, recettes de lignes, typographie et anneau de focus. Il suit le thème de la fenêtre par défaut.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` tant que la fenêtre n’en définit pas un autre).",
+          "example": "KitDataTable {\n    theme: KitThemes.dark;\n}"
+        },
+        "control-size": {
+          "effect": "Hauteur de ligne, remplissage des cellules et taille de police selon les métriques de densité du thème. Un tableau compact affiche davantage de lignes ; la hauteur des lignes croît toujours avec `text-scale`.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitDataTable {\n    control-size: ControlSize.compact;\n}"
         }
       },
       "callbacks": {
@@ -2830,6 +2840,16 @@
         "end-near": {
           "effect": "Read-only indication that the visible range is within near-end-rows of the model end; false for an empty model.",
           "example": "visible: table.end-near;"
+        },
+        "theme": {
+          "effect": "The `KitTheme` the table reads its colors, borders, row recipes, typography and focus ring from. It follows the window theme by default.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` until the window sets another).",
+          "example": "KitDataTable {\n    theme: KitThemes.dark;\n}"
+        },
+        "control-size": {
+          "effect": "Row height, cell padding and font size from the theme density metrics. A compact table fits more rows; row heights still grow with `text-scale`.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitDataTable {\n    control-size: ControlSize.compact;\n}"
         }
       },
       "callbacks": {
@@ -7230,6 +7250,54 @@
         "is-open": {
           "effect": "`bool` en lecture seule : l’état d’ouverture du contrôleur, vrai tant que la liste est présentée, quelle que soit la propriété. Servez-vous-en pour restyler un libellé ou afficher un raccourci.",
           "default": "`false`."
+        },
+        "required-message": {
+          "effect": "Message de `validity.value-missing` lorsque `required` est vrai et que rien n’est sélectionné. Il devient `validation-message`.",
+          "default": "`\"Please make a selection.\"`",
+          "example": "KitSelect {\n    required: true;\n    required-message: \"Choisissez un pays.\";\n}"
+        },
+        "custom-validity": {
+          "effect": "Un message qui rend le contrôle invalide jusqu’à son effacement, comme `setCustomValidity`. `set-custom-validity(message)` l’écrit. Une sélection qui n’est plus dans `options` le définit aussi, avec `unavailable-label`.",
+          "default": "`\"\"` : aucune erreur personnalisée.",
+          "example": "KitSelect {\n    custom-validity: root.region-closed ? \"Cette région est fermée.\" : \"\";\n}"
+        },
+        "validity": {
+          "effect": "Indicateurs de validité de style HTML de la sélection : `value-missing` quand `required` n’a pas de sélection et `custom-error` quand `custom-validity` est défini, avec `valid`. Calculés par le moteur partagé.",
+          "states": "Non évalués tant que `will-validate` est faux (lecture seule ou désactivé).",
+          "example": "region := KitSelect { required: true; options: root.regions; }\nText { text: region.validity.value-missing ? \"Obligatoire\" : \"\"; }"
+        },
+        "will-validate": {
+          "effect": "Lecture seule : indique si les contraintes s’appliquent maintenant. Faux quand le contrôle est désactivé ou en lecture seule, vrai sinon."
+        },
+        "validation-message": {
+          "effect": "Le message de la première contrainte en échec, personnalisée d’abord puis `required` ; `\"\"` tant que valide ou non validé. Affichez-le dans un `KitFieldError` de l’hôte lorsque `error-visible` est vrai.",
+          "example": "region := KitSelect { required: true; options: root.regions; }\nText { text: region.validation-message; }"
+        },
+        "theme": {
+          "effect": "Le `KitTheme` dont le contrôle tire couleurs, rayon, espacements, typographie et anneau de focus, y compris pour la fenêtre déroulante. Il suit le thème de la fenêtre par défaut.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` tant que la fenêtre n’en définit pas un autre).",
+          "example": "KitSelect {\n    theme: KitThemes.dark;\n}"
+        },
+        "control-size": {
+          "effect": "Hauteur, remplissage et taille de police du déclencheur et des lignes d’options, selon les métriques de densité du thème ; commun à tous les contrôles du kit pour que champs et boutons d’une même ligne restent alignés.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitSelect {\n    control-size: ControlSize.compact;\n}"
+        },
+        "wrap": {
+          "effect": "Indique si la navigation aux flèches continue au-delà des extrémités : avec `true`, Bas sur la dernière option passe à la première et Haut sur la première passe à la dernière ; avec `false` elle s’arrête aux extrémités.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    wrap: true;\n}"
+        },
+        "typeahead-timeout-ms": {
+          "effect": "Durée, en millisecondes, pendant laquelle les caractères saisis construisent un même préfixe pour sauter à l’option correspondante. Après une pause plus longue, le caractère suivant commence un nouveau préfixe. Zéro utilise la valeur par défaut.",
+          "default": "`700`.",
+          "example": "KitSelect {\n    typeahead-timeout-ms: 1000;\n}"
+        },
+        "page-rows": {
+          "effect": "Lecture seule : nombre de lignes d’options qui tiennent dans la fenêtre déroulante ouverte, mesuré depuis sa zone visible. PageHaut et PageBas déplacent l’option active de ce nombre de lignes ; il vaut 0 tant que la fenêtre est fermée, et ces touches ne font alors rien."
+        },
+        "has-focus": {
+          "effect": "Lecture seule : vrai tant que le déclencheur ou la fenêtre déroulante ouverte (y compris son champ de recherche) possède le focus. Quitter le contrôle fermé compte comme une perte de focus pour `validation-timing`."
         }
       },
       "callbacks": {
@@ -7405,6 +7473,54 @@
         "is-open": {
           "effect": "Read-only `bool`: the controller's open state, true while the list is presented, whatever the ownership. Use it to restyle a label or switch a shortcut hint.",
           "default": "`false`."
+        },
+        "required-message": {
+          "effect": "Message of `validity.value-missing` when `required` is true and nothing is selected. It becomes `validation-message`.",
+          "default": "`\"Please make a selection.\"`",
+          "example": "KitSelect {\n    required: true;\n    required-message: \"Choose a country.\";\n}"
+        },
+        "custom-validity": {
+          "effect": "A message that makes the control invalid until it is cleared, like `setCustomValidity`. `set-custom-validity(message)` writes it. A selection that is no longer in `options` also sets it, to `unavailable-label`.",
+          "default": "`\"\"`: no custom error.",
+          "example": "KitSelect {\n    custom-validity: root.region-closed ? \"This region is closed.\" : \"\";\n}"
+        },
+        "validity": {
+          "effect": "HTML-style validity flags of the selection: `value-missing` when `required` has no selection and `custom-error` when `custom-validity` is set, plus `valid`. Computed by the shared engine.",
+          "states": "Not evaluated while `will-validate` is false (read-only or disabled).",
+          "example": "region := KitSelect { required: true; options: root.regions; }\nText { text: region.validity.value-missing ? \"Required\" : \"\"; }"
+        },
+        "will-validate": {
+          "effect": "Read-only: whether constraints apply now. It is false while the control is disabled or read-only and true otherwise."
+        },
+        "validation-message": {
+          "effect": "The message of the first failing constraint, custom first then required; `\"\"` while valid or not validated. Show it in a host `KitFieldError` when `error-visible` is true.",
+          "example": "region := KitSelect { required: true; options: root.regions; }\nText { text: region.validation-message; }"
+        },
+        "theme": {
+          "effect": "The `KitTheme` the control reads its colors, radius, spacing, typography and focus ring from, including the popup. It follows the window theme by default.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` until the window sets another).",
+          "example": "KitSelect {\n    theme: KitThemes.dark;\n}"
+        },
+        "control-size": {
+          "effect": "Height, padding and font size of the trigger and the option rows, from the theme density metrics; shared by every control of the kit so a row of fields and buttons stays aligned.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitSelect {\n    control-size: ControlSize.compact;\n}"
+        },
+        "wrap": {
+          "effect": "Whether arrow-key navigation continues past the ends of the option list: with `true`, Down on the last option moves to the first and Up on the first moves to the last; with `false` it stops at the ends.",
+          "default": "`false`.",
+          "example": "KitSelect {\n    wrap: true;\n}"
+        },
+        "typeahead-timeout-ms": {
+          "effect": "How long, in milliseconds, typed characters keep building one prefix for jumping to a matching option. After a pause longer than this the next character starts a new prefix. Zero uses the default.",
+          "default": "`700`.",
+          "example": "KitSelect {\n    typeahead-timeout-ms: 1000;\n}"
+        },
+        "page-rows": {
+          "effect": "Read-only: how many option rows fit in the open popup, measured from its viewport. PageUp and PageDown move the active option by this many rows; it is 0 while the popup is closed, and then the keys do nothing."
+        },
+        "has-focus": {
+          "effect": "Read-only: true while the trigger or the open popup (including its search field) has focus. Leaving the control while it is closed counts as a blur for `validation-timing`."
         }
       },
       "callbacks": {
@@ -8615,6 +8731,301 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitTextField {\n    modal-layer: 1;\n}"
+        },
+        "theme": {
+          "effect": "Le `KitTheme` dont le champ tire couleurs, rayon, espacements, typographie et anneau de focus. Tous les contrôles du kit suivent le thème de la fenêtre par défaut ; liez cette propriété pour donner un autre thème à un seul champ.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` tant que la fenêtre n’en définit pas un autre).",
+          "example": "KitTextField {\n    label: \"Nom\";\n    theme: KitThemes.dark;\n}"
+        },
+        "input-kind": {
+          "effect": "Le type d’entrée HTML selon lequel le moteur de contraintes partagé valide : `email` et `url` vérifient la syntaxe, `number` la plage et le pas, `telephone` la structure. Dérivé de `purpose`, `input-type` et `multiline` : les champs intégrés le définissent pour vous ; ne le remplacez que pour une enveloppe personnalisée.",
+          "default": "Dérivé : `HtmlInputKind.text-area` en multiligne, `number` pour `InputType.decimal`, sinon le type correspondant à `purpose`, sinon `text`."
+        },
+        "number-range": {
+          "effect": "`minimum`, `maximum` et `step` en lecture seule d’un champ numérique, analysés une fois depuis `min`, `max` et `step` et exposés aux technologies d’assistance comme plage accessible. Les autres types d’entrée n’annoncent aucune borne (tout à zéro)."
+        },
+        "number-format": {
+          "effect": "Comment un champ numérique lit et écrit le séparateur décimal : `canonical` n’accepte que `.`, `decimal-comma` accepte la virgule, comme en français. Cela change l’analyse et la validation du texte saisi, pas la valeur acceptée, qui reste canonique.",
+          "default": "`NumberInputFormat.canonical`.",
+          "example": "KitDecimalField {\n    label: \"Poids\";\n    number-format: NumberInputFormat.decimal-comma;\n}"
+        },
+        "validation-text": {
+          "effect": "Le texte contre lequel les contraintes sont vérifiées. Il suit `text` ; une enveloppe personnalisée le lie à une forme normalisée du brouillon (le champ téléphone retire les séparateurs) afin que le brouillon natif reste intact pendant que la validation voit la valeur propre.",
+          "default": "`text`."
+        },
+        "display-text": {
+          "effect": "Le texte affiché tant que le champ n’a pas le focus et qu’un codec met en forme la valeur acceptée (par exemple un montant avec sa devise). Le brouillon de `text` reste inchangé et revient dès que l’éditeur prend le focus.",
+          "default": "La projection du codec enregistré sous `spec-key` une fois le brouillon accepté ; sinon `text`."
+        },
+        "intrinsic-error": {
+          "effect": "Message qu’une enveloppe personnalisée ou un codec définit lorsque le texte saisi ne se lit pas comme son type (les champs téléphone, date et nombre l’utilisent). Tant qu’il n’est pas vide, la valeur est invalide et `validation-message` l’affiche, avec une priorité inférieure à `custom-validity`.",
+          "default": "`\"\"` : aucune erreur intrinsèque."
+        },
+        "show-required-indicator": {
+          "effect": "Indique si le libellé affiche le marqueur d’obligation lorsque `required` est vrai. Passez-le à false quand tous les champs du formulaire sont obligatoires et que le marqueur n’ajoute que du bruit ; `required` valide toujours et atteint toujours la description accessible.",
+          "default": "`true`.",
+          "example": "KitTextField {\n    label: \"Courriel\";\n    required: true;\n    show-required-indicator: false;\n}"
+        },
+        "required-label": {
+          "effect": "Texte du marqueur d’obligation à côté du libellé et dans la description accessible. Localisez-le une fois avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.required-label`.",
+          "example": "KitTextField {\n    label: \"Courriel\";\n    required: true;\n    required-label: \"(obligatoire)\";\n}"
+        },
+        "multiple": {
+          "effect": "Pour `KitEmailField`, accepte une liste d’adresses séparées par des virgules et vérifie chacune, comme l’attribut HTML `multiple`. Les autres types d’entrée l’ignorent.",
+          "default": "`false` : une seule adresse.",
+          "example": "KitEmailField {\n    label: \"Destinataires\";\n    multiple: true;\n}"
+        },
+        "pattern-enabled": {
+          "effect": "Indique si `pattern` participe à la validation. Il suit `pattern` : un motif non vide est vérifié, un motif vide ne l’est pas ; liez-le à false pour garder le motif déclaré mais suspendu.",
+          "default": "`pattern != \"\"`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    pattern: \"[0-9]{6}\";\n    pattern-enabled: root.strict-mode;\n}"
+        },
+        "required-message": {
+          "effect": "Message de `validity.value-missing` lorsque un champ `required` est vide. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.required-message`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    required-message: \"Saisissez votre nom.\";\n    required: true;\n}"
+        },
+        "email-message": {
+          "effect": "Message de `validity.type-mismatch` lorsque le texte n’est pas une adresse courriel valide. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.email-message`.",
+          "example": "KitTextField {\n    label: \"Courriel\";\n    email-message: \"Utilisez nom@exemple.com.\";\n    purpose: TextPurpose.email;\n}"
+        },
+        "url-message": {
+          "effect": "Message de `validity.type-mismatch` lorsque le texte n’est pas une URL absolue valide. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.url-message`.",
+          "example": "KitTextField {\n    label: \"Site web\";\n    url-message: \"Commencez par https://.\";\n    purpose: TextPurpose.url;\n}"
+        },
+        "pattern-message": {
+          "effect": "Message de `validity.pattern-mismatch` lorsque le texte ne correspond pas à `pattern`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.pattern-message`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    pattern-message: \"Six chiffres.\";\n    pattern: \"[0-9]{6}\";\n}"
+        },
+        "too-short-message": {
+          "effect": "Message de `validity.too-short` lorsque le texte édité est plus court que `min-length`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.too-short-template` où `{count}` est remplacé par `min-length`.",
+          "example": "KitTextField {\n    label: \"Mot de passe\";\n    too-short-message: \"Utilisez au moins 12 caractères.\";\n    min-length: 12;\n}"
+        },
+        "too-long-message": {
+          "effect": "Message de `validity.too-long` lorsque le texte dépasse `max-length` sous `TextLengthPolicy.validate`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.too-long-template` où `{count}` est remplacé par `max-length`.",
+          "example": "KitTextField {\n    label: \"Résumé\";\n    too-long-message: \"Gardez moins de 280.\";\n    max-length: 280;\n}"
+        },
+        "underflow-message": {
+          "effect": "Message de `validity.range-underflow` lorsque un nombre est inférieur à `min`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.underflow-template` où `{value}` est remplacé par `min`.",
+          "example": "KitTextField {\n    label: \"Quantité\";\n    underflow-message: \"Au moins 1.\";\n    min: \"1\";\n}"
+        },
+        "overflow-message": {
+          "effect": "Message de `validity.range-overflow` lorsque un nombre dépasse `max`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.overflow-template` où `{value}` est remplacé par `max`.",
+          "example": "KitTextField {\n    label: \"Quantité\";\n    overflow-message: \"Au plus 99.\";\n    max: \"99\";\n}"
+        },
+        "step-message": {
+          "effect": "Message de `validity.step-mismatch` lorsque un nombre n’est pas un multiple de `step` à partir de `min`. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.step-message`.",
+          "example": "KitTextField {\n    label: \"Montant\";\n    step-message: \"Utilisez des pas de 0,05.\";\n    step: \"0.05\";\n}"
+        },
+        "bad-input-message": {
+          "effect": "Message de `validity.bad-input` lorsque le texte ne se lit pas comme le type du champ, par exemple des lettres dans un champ numérique. Il devient `validation-message` s’il s’agit de la première contrainte en échec. Définissez-le sur un champ, ou localisez la valeur par défaut de la fenêtre avec `KitStrings`.",
+          "default": "`KitStrings.bad-input-message`.",
+          "example": "KitTextField {\n    label: \"Montant\";\n    bad-input-message: \"Saisissez un nombre.\";\n    input-type: InputType.decimal;\n}"
+        },
+        "will-validate": {
+          "effect": "Lecture seule : indique si les contraintes s’appliquent maintenant. Faux quand le champ est désactivé ou en lecture seule, comme un contrôle HTML exclu de la validation, vrai sinon. `validity` et `report-validity()` le consultent."
+        },
+        "validation-ready": {
+          "effect": "Lecture seule : indique si le moteur de contraintes partagé est installé pour la fenêtre. Il devient vrai après `slint_kit::install(&app)` ; avant cela, `validity` ne signale aucun échec au lieu de deviner."
+        },
+        "pattern-error": {
+          "effect": "Lecture seule : l’erreur de compilation de `pattern` lorsque l’expression est invalide, `\"\"` quand elle compile ou est vide. Un motif invalide est une erreur de développement signalée ici plutôt que de rejeter toutes les valeurs."
+        },
+        "value": {
+          "effect": "Lecture seule : la valeur sémantique après normalisation du brouillon par le moteur partagé, par exemple sans séparateurs pour un numéro de téléphone. Préférez `committed(FieldCommit)` pour la valeur acceptée ; `value` suit chaque frappe comme `edited`."
+        },
+        "dirty": {
+          "effect": "Lecture seule : vrai dès que l’utilisateur a modifié le texte, comme l’indicateur « dirty » HTML. Les changements programmatiques ne le définissent pas ; `reset-validation()` et `reset-field()` l’effacent. Le moment de validation `on-input` et les contraintes de longueur le lisent."
+        },
+        "touched": {
+          "effect": "Lecture seule : vrai dès que le champ a reçu puis perdu le focus. `validation-timing: ValidationTiming.on-blur` n’affiche les erreurs de contrainte qu’ensuite ; `reset-validation()` l’efface."
+        },
+        "secret-visibility": {
+          "effect": "Indique si un champ mot de passe montre son texte. `hidden` le masque ; `revealed` l’affiche. Le bouton d’affichage l’inverse et `secret-visibility-changed` signale le changement ; liez-le dans les deux sens pour synchroniser plusieurs champs. Les autres usages l’ignorent.",
+          "default": "`SecretVisibility.hidden`.",
+          "example": "KitPasswordField {\n    label: \"Mot de passe\";\n    secret-visibility: SecretVisibility.revealed;\n}"
+        },
+        "accessible-name": {
+          "effect": "Nom annoncé pour l’éditeur par les technologies d’assistance. Il suit `label` ; définissez-le quand le champ n’a pas de libellé visible, comme une recherche dans une barre d’outils.",
+          "default": "`label`.",
+          "example": "KitSearchField {\n    accessible-name: \"Rechercher des commandes\";\n}"
+        },
+        "input-method-hints": {
+          "effect": "Demandes de capitalisation, de correction automatique et d’autocomplétion transmises au clavier de la plateforme ou à l’IME, dans les limites de ce que Slint expose. Les usages intégrés choisissent déjà des valeurs adaptées ; définissez-les pour un texte comme un nom d’utilisateur où la correction est indésirable.",
+          "default": "Texte simple : majuscule en début de phrase avec correction et autocomplétion ; tout autre usage : aucune.",
+          "example": "KitTextField {\n    label: \"Nom d’utilisateur\";\n    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };\n}"
+        },
+        "validation-visible": {
+          "effect": "Lecture seule : indique si le champ se présente comme invalide, à cause d’une contrainte en échec, d’un `validation: ValidationPresentation.invalid` manuel ou d’une erreur de codec. Utilisez-le pour styler le contenu voisin ; il diffère de `validity`, qui ignore le moment de validation."
+        },
+        "underline-segments": {
+          "effect": "Nombre de cellules dessinées pour `decoration: FieldDecoration.underlined` ou `cells` ; une seule trace une ligne unique. `KitOtpField` le fixe à son nombre de cases. Une valeur inférieure à un compte pour un.",
+          "default": "`1`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.cells;\n    underline-segments: 6;\n}"
+        },
+        "text-font-family": {
+          "effect": "Famille de police de l’éditeur, du texte mis en forme et du texte indicatif. Les champs à cellules utilisent la famille à chasse fixe pour que chaque caractère ait la même largeur.",
+          "default": "`theme.typography.family`.",
+          "example": "KitTextField {\n    label: \"Jeton\";\n    text-font-family: root.theme.typography.family-monospace;\n}"
+        },
+        "text-inset": {
+          "effect": "Décalage horizontal du texte depuis le bord de départ de l’éditeur, utilisé pour centrer un caractère dans une cellule. Il déplace avec le texte le curseur, la sélection et le menu contextuel.",
+          "default": "`0px`."
+        },
+        "text-cell-width": {
+          "effect": "Lecture seule : la largeur du glyphe zéro dans la police et la taille réelles de l’éditeur. Les dispositions à cellules la soustraient de la largeur de cellule pour centrer chaque caractère sans approximer les métriques natives."
+        },
+        "text-letter-spacing": {
+          "effect": "Espace ajouté après chaque caractère. Les dispositions à cellules l’utilisent pour répartir les caractères sur leurs cellules ; laissez-le à zéro pour un texte ordinaire.",
+          "default": "`0px`."
+        },
+        "leading-icon": {
+          "effect": "Glyphe du thème dessiné avant le texte, du côté du début de lecture. Un champ de recherche affiche l’icône de recherche par défaut ; un glyphe vide ne dessine rien. Les icônes sont décoratives : gardez le sens dans `label` ou `accessible-name`.",
+          "default": "L’icône de recherche pour `TextPurpose.search` ; sinon aucune icône.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    leading-icon: root.theme.icons.search;\n}"
+        },
+        "trailing-icon": {
+          "effect": "Glyphe du thème dessiné après le texte, du côté de la fin de lecture. Il est décoratif ; les actions interactives comme effacer et afficher sont des boutons distincts.",
+          "default": "Aucune icône.",
+          "example": "KitTextField {\n    label: \"Courriel\";\n    trailing-icon: root.theme.icons.search;\n}"
+        },
+        "corner-radius": {
+          "effect": "Rayon des coins de la surface du champ. Il vaut par défaut celui de la recette du contrôle, donc suit le thème et `control-size` ; ne le remplacez que pour s’accorder à une composition voisine.",
+          "default": "Le rayon de la recette pour `control-size`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    corner-radius: 0px;\n}"
+        },
+        "padding-inline": {
+          "effect": "Espace entre le bord du champ et son contenu sur l’axe en ligne. Il vaut par défaut celui de la recette du contrôle, donc suit `control-size` et `text-scale`.",
+          "default": "Le remplissage de la recette pour `control-size`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    padding-inline: 16px;\n}"
+        },
+        "padding-block": {
+          "effect": "Espace entre le bord du champ et son contenu sur l’axe de bloc. Il vaut par défaut celui de la recette du contrôle ; la hauteur croît toujours avec `text-scale`.",
+          "default": "Le remplissage de la recette pour `control-size`.",
+          "example": "KitTextArea {\n    label: \"Notes\";\n    padding-block: 12px;\n}"
+        },
+        "text-size": {
+          "effect": "Taille de police du texte de l’éditeur. Elle vaut par défaut celle de la recette du contrôle, qui multiplie déjà par le `text-scale` du thème ; une valeur explicite remplace cette mise à l’échelle.",
+          "default": "La taille de police de la recette pour `control-size`.",
+          "example": "KitTextField {\n    label: \"Titre\";\n    text-size: 20px;\n}"
+        },
+        "show-character-count": {
+          "effect": "Affiche une ligne de compteur sous l’éditeur et l’ajoute à la description accessible. Après `slint_kit::install`, il compte des groupes de graphèmes Unicode ; la limite de `max-length` reste mesurée en unités de code UTF-16.",
+          "default": "`false`.",
+          "example": "KitTextArea {\n    label: \"Résumé\";\n    max-length: 280;\n    show-character-count: true;\n}"
+        },
+        "character-count": {
+          "effect": "Le nombre affiché par le compteur. Il compte les groupes de graphèmes de `text` ; ne le liez que pour compter autrement, par exemple des mots.",
+          "default": "Nombre de graphèmes de `text`, 0 tant que `slint_kit::install` n’a pas été appelé."
+        },
+        "character-count-format": {
+          "effect": "Forme du texte du compteur : `count` affiche le nombre et l’unité (`12 caractères`), `of-max` affiche `utilisé / max`, `remaining` affiche ce qui reste. Sans `max-length` positif ou nul, `of-max` et `remaining` reviennent à `count`.",
+          "default": "`CharacterCountFormat.count`.",
+          "example": "KitTextArea {\n    label: \"Résumé\";\n    max-length: 280;\n    show-character-count: true;\n    character-count-format: CharacterCountFormat.remaining;\n}"
+        },
+        "character-count-warning-threshold": {
+          "effect": "Nombre de caractères avant `max-length` à partir duquel le compteur passe à l’état d’avertissement. Zéro n’avertit qu’à la limite ; une valeur négative compte pour zéro. Cela ne bloque pas la saisie.",
+          "default": "`0`.",
+          "example": "KitTextArea {\n    label: \"Résumé\";\n    max-length: 280;\n    show-character-count: true;\n    character-count-warning-threshold: 20;\n}"
+        },
+        "character-count-warning": {
+          "effect": "Lecture seule : vrai lorsque la longueur utilisée (unités de code UTF-16) est à moins de `character-count-warning-threshold` de `max-length` ou au-delà, et faux sans `max-length` positif ou nul. Liez-y le style de l’hôte."
+        },
+        "character-count-text": {
+          "effect": "La chaîne du compteur telle qu’affichée et annoncée. Elle est composée depuis `character-count-format` et les modèles localisés ; ne la liez que pour remplacer tout le texte.",
+          "default": "Composée depuis `character-count-format`, `character-count` et `max-length`."
+        },
+        "reveal-label": {
+          "effect": "Nom accessible et infobulle du bouton qui affiche le mot de passe. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.reveal-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    reveal-label: \"Afficher le mot de passe\";\n}"
+        },
+        "hide-label": {
+          "effect": "Nom accessible et infobulle du bouton qui masque de nouveau le mot de passe. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.hide-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    hide-label: \"Masquer le mot de passe\";\n}"
+        },
+        "clear-label": {
+          "effect": "Nom accessible du bouton d’effacement, affiché lorsque `clearable` est vrai. Les champs de recherche ont leur propre libellé par défaut. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.clear-label`, ou `KitStrings.clear-search-label` pour `TextPurpose.search`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    clear-label: \"Effacer le nom\";\n}"
+        },
+        "character-count-label": {
+          "effect": "Mot d’unité du format de compteur `count`, avec la forme singulière pour exactement un caractère. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.character-singular` ou `KitStrings.character-plural`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    character-count-label: \"lettres\";\n}"
+        },
+        "checking-label": {
+          "effect": "Texte annoncé tant que `validation` vaut `ValidationPresentation.checking`, par exemple pendant une vérification d’unicité côté serveur. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.checking-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    checking-label: \"Vérification de la disponibilité\";\n}"
+        },
+        "undo-label": {
+          "effect": "Texte de l’entrée Annuler du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.undo-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    undo-label: \"Annuler la saisie\";\n}"
+        },
+        "redo-label": {
+          "effect": "Texte de l’entrée Rétablir du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.redo-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    redo-label: \"Rétablir la saisie\";\n}"
+        },
+        "cut-label": {
+          "effect": "Texte de l’entrée Couper du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.cut-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    cut-label: \"Couper la sélection\";\n}"
+        },
+        "copy-label": {
+          "effect": "Texte de l’entrée Copier du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.copy-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    copy-label: \"Copier la sélection\";\n}"
+        },
+        "paste-label": {
+          "effect": "Texte de l’entrée Coller du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.paste-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    paste-label: \"Coller le texte\";\n}"
+        },
+        "select-all-label": {
+          "effect": "Texte de l’entrée Tout sélectionner du menu contextuel. Localisez-le une fois pour la fenêtre avec `KitStrings`, ou définissez-le sur un seul champ.",
+          "default": "`KitStrings.select-all-label`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    select-all-label: \"Tout sélectionner\";\n}"
+        },
+        "has-focus": {
+          "effect": "Lecture seule : vrai tant que l’éditeur natif ou son menu contextuel possède le focus. L’ouverture du menu contextuel le maintient vrai, sans scintillement du style. Les autres boutons du champ sont des cibles de focus distinctes."
+        },
+        "escape-behavior": {
+          "effect": "Ce que fait Échap dans l’éditeur : `bubble` laisse le parent décider (un dialogue se ferme), `cancel` restaure le texte accepté via `cancel-edit()` et émet `cancelled`, `clear` vide un champ modifiable non vide. Les champs en lecture seule et désactivés ne modifient jamais.",
+          "default": "`TextEscapeBehavior.clear` pour `TextPurpose.search` ; sinon `bubble`.",
+          "example": "KitTextField {\n    label: \"Nom\";\n    escape-behavior: TextEscapeBehavior.cancel;\n}"
+        },
+        "submit-on-modified-enter": {
+          "effect": "Pour un éditeur multiligne, fait valider et soumettre avec Ctrl+Entrée ou Cmd+Entrée alors que Entrée seule continue d’insérer un retour à la ligne. Émet `commit-requested`. Les champs sur une ligne valident toujours avec Entrée : sans effet pour eux.",
+          "default": "`false`.",
+          "example": "KitTextArea {\n    label: \"Commentaire\";\n    submit-on-modified-enter: true;\n    commit-requested(text) => { root.post(text); }\n}"
+        },
+        "cursor-position": {
+          "effect": "Lecture seule : le curseur sous forme de décalage en octets UTF-8 dans `text`. Transmettez-le, et non un index de caractère, à `set-selection(anchor, cursor)` ; il est égal à `selection-anchor` quand rien n’est sélectionné."
+        },
+        "selection-anchor": {
+          "effect": "Lecture seule : l’extrémité fixe de la sélection sous forme de décalage en octets UTF-8 dans `text`. La plage sélectionnée se trouve entre `selection-anchor` et `cursor-position`, le plus petit d’abord."
+        },
+        "context-menu": {
+          "effect": "Indique si un clic droit ou la touche de menu contextuel ouvre le menu d’édition standard (annuler, rétablir, couper, copier, coller, tout sélectionner). `disabled` le retire. Les entrées respectent `access`, et un mot de passe masqué ne propose jamais copier ni couper.",
+          "default": "`TextContextMenu.standard`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    context-menu: TextContextMenu.disabled;\n}"
+        },
+        "validation-twelve-hour": {
+          "effect": "Pour les enveloppes personnalisées basées sur l’heure, fait lire et valider les heures par le moteur au format 12 heures avec marqueur AM/PM au lieu de 24 heures. Les champs texte ne l’utilisent pas eux-mêmes.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -8966,6 +9377,301 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitTextField {\n    modal-layer: 1;\n}"
+        },
+        "theme": {
+          "effect": "The `KitTheme` the field reads its colors, radius, spacing, typography and focus ring from. Every kit control follows the window theme by default; bind this property to give one field another theme.",
+          "default": "`KitThemeContext.current` (`KitThemes.light` until the window sets another).",
+          "example": "KitTextField {\n    label: \"Name\";\n    theme: KitThemes.dark;\n}"
+        },
+        "input-kind": {
+          "effect": "The HTML input type the shared constraint engine validates against: `email` and `url` check the syntax, `number` the range and step, `telephone` the structure. Derived from `purpose`, `input-type` and `multiline`, so the built-in fields set it for you; override it only for a custom skin.",
+          "default": "Derived: `HtmlInputKind.text-area` when multiline, `number` for `InputType.decimal`, otherwise the kind that matches `purpose`, else `text`."
+        },
+        "number-range": {
+          "effect": "Read-only `minimum`, `maximum` and `step` of a number field, parsed once from `min`, `max` and `step` and exposed to assistive technology as the accessible range. Other input kinds report no bounds (all zero)."
+        },
+        "number-format": {
+          "effect": "How a number field reads and writes the decimal separator: `canonical` accepts `.` only, `decimal-comma` accepts a comma as in French. It changes parsing and validation of the typed text, not the accepted value, which stays canonical.",
+          "default": "`NumberInputFormat.canonical`.",
+          "example": "KitDecimalField {\n    label: \"Poids\";\n    number-format: NumberInputFormat.decimal-comma;\n}"
+        },
+        "validation-text": {
+          "effect": "The text the constraints are checked against. It follows `text`; a custom skin binds it to a normalized form of the draft (the telephone field strips separators) so the native draft stays untouched while validation sees the clean value.",
+          "default": "`text`."
+        },
+        "display-text": {
+          "effect": "The text painted while the field has no focus and a codec formats the accepted value (for example a money amount with its currency). The draft in `text` is unchanged and returns as soon as the editor takes focus.",
+          "default": "The codec projection registered under `spec-key` once the draft is accepted; otherwise `text`."
+        },
+        "intrinsic-error": {
+          "effect": "A message a custom skin or codec wrapper sets when the typed text cannot be read as its type (the telephone, date and number fields use it). While nonempty the value is invalid and `validation-message` shows it, below `custom-validity` in priority.",
+          "default": "`\"\"`: no intrinsic error."
+        },
+        "show-required-indicator": {
+          "effect": "Whether the label shows the required marker when `required` is true. Set it to false when every field of the form is required and the marker only adds noise; `required` still validates and still reaches the accessible description.",
+          "default": "`true`.",
+          "example": "KitTextField {\n    label: \"Email\";\n    required: true;\n    show-required-indicator: false;\n}"
+        },
+        "required-label": {
+          "effect": "Text of the required marker next to the label and in the accessible description. Localise it once with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.required-label`.",
+          "example": "KitTextField {\n    label: \"Email\";\n    required: true;\n    required-label: \"(required)\";\n}"
+        },
+        "multiple": {
+          "effect": "For `KitEmailField`, accepts a comma-separated list of addresses and checks each one, like the HTML `multiple` attribute. Other input kinds ignore it.",
+          "default": "`false`: a single address.",
+          "example": "KitEmailField {\n    label: \"Recipients\";\n    multiple: true;\n}"
+        },
+        "pattern-enabled": {
+          "effect": "Whether `pattern` takes part in validation. It follows `pattern`, so a nonempty pattern is checked and an empty one is not; bind it to false to keep the pattern declared but suspended.",
+          "default": "`pattern != \"\"`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    pattern: \"[0-9]{6}\";\n    pattern-enabled: root.strict-mode;\n}"
+        },
+        "required-message": {
+          "effect": "Message of `validity.value-missing` when a `required` field is empty. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.required-message`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    required-message: \"Enter your name.\";\n    required: true;\n}"
+        },
+        "email-message": {
+          "effect": "Message of `validity.type-mismatch` when the text is not a valid email address. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.email-message`.",
+          "example": "KitTextField {\n    label: \"Email\";\n    email-message: \"Use name@example.com.\";\n    purpose: TextPurpose.email;\n}"
+        },
+        "url-message": {
+          "effect": "Message of `validity.type-mismatch` when the text is not a valid absolute URL. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.url-message`.",
+          "example": "KitTextField {\n    label: \"Website\";\n    url-message: \"Start with https://.\";\n    purpose: TextPurpose.url;\n}"
+        },
+        "pattern-message": {
+          "effect": "Message of `validity.pattern-mismatch` when the text does not match `pattern`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.pattern-message`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    pattern-message: \"Six digits.\";\n    pattern: \"[0-9]{6}\";\n}"
+        },
+        "too-short-message": {
+          "effect": "Message of `validity.too-short` when the edited text is shorter than `min-length`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.too-short-template` with `{count}` replaced by `min-length`.",
+          "example": "KitTextField {\n    label: \"Password\";\n    too-short-message: \"Use at least 12 characters.\";\n    min-length: 12;\n}"
+        },
+        "too-long-message": {
+          "effect": "Message of `validity.too-long` when the text is longer than `max-length` under `TextLengthPolicy.validate`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.too-long-template` with `{count}` replaced by `max-length`.",
+          "example": "KitTextField {\n    label: \"Summary\";\n    too-long-message: \"Keep it under 280.\";\n    max-length: 280;\n}"
+        },
+        "underflow-message": {
+          "effect": "Message of `validity.range-underflow` when a number is below `min`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.underflow-template` with `{value}` replaced by `min`.",
+          "example": "KitTextField {\n    label: \"Quantity\";\n    underflow-message: \"At least 1.\";\n    min: \"1\";\n}"
+        },
+        "overflow-message": {
+          "effect": "Message of `validity.range-overflow` when a number is above `max`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.overflow-template` with `{value}` replaced by `max`.",
+          "example": "KitTextField {\n    label: \"Quantity\";\n    overflow-message: \"At most 99.\";\n    max: \"99\";\n}"
+        },
+        "step-message": {
+          "effect": "Message of `validity.step-mismatch` when a number is not a multiple of `step` from `min`. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.step-message`.",
+          "example": "KitTextField {\n    label: \"Amount\";\n    step-message: \"Use steps of 0.05.\";\n    step: \"0.05\";\n}"
+        },
+        "bad-input-message": {
+          "effect": "Message of `validity.bad-input` when the text cannot be read as the field type, for example letters in a number field. It becomes `validation-message` if it is the first failing constraint. Set it on one field, or localise the default for the window with `KitStrings`.",
+          "default": "`KitStrings.bad-input-message`.",
+          "example": "KitTextField {\n    label: \"Amount\";\n    bad-input-message: \"Enter a number.\";\n    input-type: InputType.decimal;\n}"
+        },
+        "will-validate": {
+          "effect": "Read-only: whether constraints apply now. It is false while the field is disabled or read-only, like an HTML control that is barred from constraint validation, and true otherwise. `validity` and `report-validity()` check it."
+        },
+        "validation-ready": {
+          "effect": "Read-only: whether the shared constraint engine is installed for the window. It becomes true after `slint_kit::install(&app)`; before that, `validity` reports no failure rather than guessing."
+        },
+        "pattern-error": {
+          "effect": "Read-only: the compile error of `pattern` when the expression is invalid, `\"\"` when it compiles or is empty. An invalid pattern is a developer mistake and is reported here instead of rejecting every value."
+        },
+        "value": {
+          "effect": "Read-only: the semantic value after the shared engine normalizes the draft, for example without separators for a telephone number. Prefer `committed(FieldCommit)` for the accepted value; `value` follows each keystroke like `edited`."
+        },
+        "dirty": {
+          "effect": "Read-only: true once the user has edited the text, like the HTML dirty value flag. Programmatic changes do not set it; `reset-validation()` and `reset-field()` clear it. `on-input` validation timing and the length constraints read it."
+        },
+        "touched": {
+          "effect": "Read-only: true once the field has been focused and left. `validation-timing: ValidationTiming.on-blur` shows constraint errors only after it; `reset-validation()` clears it."
+        },
+        "secret-visibility": {
+          "effect": "Whether a password field shows its text. `hidden` masks it; `revealed` shows it. The reveal button toggles it and `secret-visibility-changed` reports the change; bind it two-way to keep several fields in step. Other purposes ignore it.",
+          "default": "`SecretVisibility.hidden`.",
+          "example": "KitPasswordField {\n    label: \"Password\";\n    secret-visibility: SecretVisibility.revealed;\n}"
+        },
+        "accessible-name": {
+          "effect": "Name announced for the editor by assistive technology. It follows `label`; set it when the field has no visible label, such as a search box in a toolbar.",
+          "default": "`label`.",
+          "example": "KitSearchField {\n    accessible-name: \"Search orders\";\n}"
+        },
+        "input-method-hints": {
+          "effect": "Capitalization, autocorrect and autocomplete requests sent to the platform keyboard or IME, within what Slint exposes. Built-in purposes already choose sensible values; set it for text such as a username where autocorrect is unwanted.",
+          "default": "Plain text: sentence capitalization with autocorrect and autocomplete; every other purpose: none.",
+          "example": "KitTextField {\n    label: \"Username\";\n    input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false };\n}"
+        },
+        "validation-visible": {
+          "effect": "Read-only: whether the field presents itself as invalid, from a failing constraint, a manual `validation: ValidationPresentation.invalid` or a codec error. Use it to style surrounding content; it differs from `validity`, which ignores timing."
+        },
+        "underline-segments": {
+          "effect": "Number of cells drawn for `decoration: FieldDecoration.underlined` or `cells`; one draws a single line. `KitOtpField` sets it to its slot count. A value below one counts as one.",
+          "default": "`1`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    decoration: FieldDecoration.cells;\n    underline-segments: 6;\n}"
+        },
+        "text-font-family": {
+          "effect": "Font family of the editor, the formatted text and the placeholder. Cell-based fields set the monospace family so each character has the same width.",
+          "default": "`theme.typography.family`.",
+          "example": "KitTextField {\n    label: \"Token\";\n    text-font-family: root.theme.typography.family-monospace;\n}"
+        },
+        "text-inset": {
+          "effect": "Horizontal offset of the text from the start edge of the editor, used to center a character in a cell. It shifts the caret, selection and context menu with the text.",
+          "default": "`0px`."
+        },
+        "text-cell-width": {
+          "effect": "Read-only: the width of the zero glyph in the actual editor font and size. Cell layouts divide it into the cell width so each character sits at the center of its cell without approximating native metrics."
+        },
+        "text-letter-spacing": {
+          "effect": "Extra space added after each character. Cell layouts use it to spread characters across their cells; leave it at zero for ordinary text.",
+          "default": "`0px`."
+        },
+        "leading-icon": {
+          "effect": "Theme glyph drawn before the text, on the reading-start side. A search field shows the search icon by default; an empty glyph draws nothing. Icons are decorative, so keep the meaning in `label` or `accessible-name`.",
+          "default": "The search icon for `TextPurpose.search`; otherwise no icon.",
+          "example": "KitTextField {\n    label: \"Name\";\n    leading-icon: root.theme.icons.search;\n}"
+        },
+        "trailing-icon": {
+          "effect": "Theme glyph drawn after the text, on the reading-end side. It is decorative; interactive actions such as clear and reveal are separate buttons.",
+          "default": "No icon.",
+          "example": "KitTextField {\n    label: \"Email\";\n    trailing-icon: root.theme.icons.search;\n}"
+        },
+        "corner-radius": {
+          "effect": "Corner radius of the field surface. It defaults to the radius of the control recipe, so it follows the theme and `control-size`; override it only to match a surrounding composition.",
+          "default": "The recipe radius for `control-size`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    corner-radius: 0px;\n}"
+        },
+        "padding-inline": {
+          "effect": "Space between the field edge and its content on the inline axis. It defaults to the control recipe, so it scales with `control-size` and `text-scale`.",
+          "default": "The recipe padding for `control-size`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    padding-inline: 16px;\n}"
+        },
+        "padding-block": {
+          "effect": "Space between the field edge and its content on the block axis. It defaults to the control recipe; the height still grows with `text-scale`.",
+          "default": "The recipe padding for `control-size`.",
+          "example": "KitTextArea {\n    label: \"Notes\";\n    padding-block: 12px;\n}"
+        },
+        "text-size": {
+          "effect": "Font size of the editor text. It defaults to the control recipe, which already multiplies by the theme `text-scale`; an explicit value replaces that scaling.",
+          "default": "The recipe font size for `control-size`.",
+          "example": "KitTextField {\n    label: \"Title\";\n    text-size: 20px;\n}"
+        },
+        "show-character-count": {
+          "effect": "Shows a counter row under the editor and adds it to the accessible description. After `slint_kit::install` it counts Unicode grapheme clusters; the limit of `max-length` is still measured in UTF-16 code units.",
+          "default": "`false`.",
+          "example": "KitTextArea {\n    label: \"Summary\";\n    max-length: 280;\n    show-character-count: true;\n}"
+        },
+        "character-count": {
+          "effect": "The number shown by the counter. It counts the grapheme clusters of `text`; bind it only to count another way, such as words.",
+          "default": "Grapheme count of `text`, 0 until `slint_kit::install` has run."
+        },
+        "character-count-format": {
+          "effect": "Shape of the counter text: `count` shows the number and the unit (`12 characters`), `of-max` shows `used / max`, `remaining` shows what is left. Without a nonnegative `max-length`, `of-max` and `remaining` fall back to `count`.",
+          "default": "`CharacterCountFormat.count`.",
+          "example": "KitTextArea {\n    label: \"Summary\";\n    max-length: 280;\n    show-character-count: true;\n    character-count-format: CharacterCountFormat.remaining;\n}"
+        },
+        "character-count-warning-threshold": {
+          "effect": "How many characters before `max-length` the counter enters its warning state. Zero warns only at the limit; a negative value counts as zero. It does not block input.",
+          "default": "`0`.",
+          "example": "KitTextArea {\n    label: \"Summary\";\n    max-length: 280;\n    show-character-count: true;\n    character-count-warning-threshold: 20;\n}"
+        },
+        "character-count-warning": {
+          "effect": "Read-only: true when the used length (UTF-16 code units) is within `character-count-warning-threshold` of `max-length` or beyond it, and false without a nonnegative `max-length`. Bind host styling to it."
+        },
+        "character-count-text": {
+          "effect": "The counter string as displayed and announced. It is composed from `character-count-format` and the localised templates; bind it only to replace the whole text.",
+          "default": "Composed from `character-count-format`, `character-count` and `max-length`."
+        },
+        "reveal-label": {
+          "effect": "Accessible name and tooltip text of the button that reveals the password. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.reveal-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    reveal-label: \"Show password\";\n}"
+        },
+        "hide-label": {
+          "effect": "Accessible name and tooltip text of the button that hides the password again. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.hide-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    hide-label: \"Hide password\";\n}"
+        },
+        "clear-label": {
+          "effect": "Accessible name of the clear button, shown when `clearable` is true. Search fields use their own default wording. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.clear-label`, or `KitStrings.clear-search-label` for `TextPurpose.search`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    clear-label: \"Clear name\";\n}"
+        },
+        "character-count-label": {
+          "effect": "Unit word of the `count` counter format, with the singular form for exactly one character. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.character-singular` or `KitStrings.character-plural`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    character-count-label: \"letters\";\n}"
+        },
+        "checking-label": {
+          "effect": "Text announced while `validation` is `ValidationPresentation.checking`, for example during a server uniqueness check. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.checking-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    checking-label: \"Checking availability\";\n}"
+        },
+        "undo-label": {
+          "effect": "Text of the Undo item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.undo-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    undo-label: \"Undo typing\";\n}"
+        },
+        "redo-label": {
+          "effect": "Text of the Redo item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.redo-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    redo-label: \"Redo typing\";\n}"
+        },
+        "cut-label": {
+          "effect": "Text of the Cut item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.cut-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    cut-label: \"Cut selection\";\n}"
+        },
+        "copy-label": {
+          "effect": "Text of the Copy item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.copy-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    copy-label: \"Copy selection\";\n}"
+        },
+        "paste-label": {
+          "effect": "Text of the Paste item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.paste-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    paste-label: \"Paste text\";\n}"
+        },
+        "select-all-label": {
+          "effect": "Text of the Select all item of the context menu. Localise it once for the window with `KitStrings`, or set it on one field.",
+          "default": "`KitStrings.select-all-label`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    select-all-label: \"Select everything\";\n}"
+        },
+        "has-focus": {
+          "effect": "Read-only: true while the native editor or its owned context menu has focus. Opening the context menu keeps it true, so styling does not flicker. Other buttons of the field are separate focus targets."
+        },
+        "escape-behavior": {
+          "effect": "What Escape does inside the editor: `bubble` leaves it to the parent (a dialog closes), `cancel` restores the accepted text through `cancel-edit()` and emits `cancelled`, `clear` empties a nonempty editable field. Read-only and disabled fields never edit.",
+          "default": "`TextEscapeBehavior.clear` for `TextPurpose.search`; otherwise `bubble`.",
+          "example": "KitTextField {\n    label: \"Name\";\n    escape-behavior: TextEscapeBehavior.cancel;\n}"
+        },
+        "submit-on-modified-enter": {
+          "effect": "For a multiline editor, makes Ctrl+Enter or Cmd+Enter validate and commit while plain Enter keeps inserting a newline. It emits `commit-requested`. Single-line fields always commit on Enter, so this has no effect on them.",
+          "default": "`false`.",
+          "example": "KitTextArea {\n    label: \"Comment\";\n    submit-on-modified-enter: true;\n    commit-requested(text) => { root.post(text); }\n}"
+        },
+        "cursor-position": {
+          "effect": "Read-only: the caret as a UTF-8 byte offset into `text`. Pass it, not a character index, to `set-selection(anchor, cursor)`; it equals `selection-anchor` when nothing is selected."
+        },
+        "selection-anchor": {
+          "effect": "Read-only: the fixed end of the selection as a UTF-8 byte offset into `text`. The selected range lies between `selection-anchor` and `cursor-position`, whichever is smaller first."
+        },
+        "context-menu": {
+          "effect": "Whether a right-click or the context-menu key opens the standard editing menu (undo, redo, cut, copy, paste, select all). `disabled` removes it. Items honor `access`, and a hidden password never offers copy or cut.",
+          "default": "`TextContextMenu.standard`.",
+          "example": "KitTextField {\n    label: \"Code\";\n    context-menu: TextContextMenu.disabled;\n}"
+        },
+        "validation-twelve-hour": {
+          "effect": "For time-based custom skins, makes the engine read and validate times in 12-hour form with an AM/PM marker instead of 24-hour. The text fields themselves do not use it.",
+          "default": "`false`."
         }
       },
       "callbacks": {
