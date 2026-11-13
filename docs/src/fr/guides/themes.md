@@ -176,6 +176,90 @@ Les fichiers Lucide sont générés à partir d’une version recopiée dans le 
 
 `LayoutSpace` fournit les valeurs partagées de marges internes et d’espacement, notamment pour `KitCard` et `KitHero`. Utilisez [KitStack](/fr/components/stack/), [KitInline](/fr/components/inline/) et les autres conteneurs lorsque leur contrat d’espacement convient à l’application.
 
+## Thème à l’exécution
+
+Laissez l’utilisateur choisir l’apparence claire, sombre ou celle du système, et modifiez les jetons du thème pendant l’exécution de l’application. Le choix est l’énumération `ThemeMode` (`light`, `dark`, `system`), jamais une chaîne. `KitThemes.resolve(mode, system)` renvoie `KitThemes.light` ou `KitThemes.dark` ; `KitThemes.is-dark(mode, system)` répond à la même question sous forme de `bool`. `system` est le `ColorScheme` que le système d’exploitation signale. Il choisit le thème sombre seulement s’il vaut `ColorScheme.dark` : une plateforme qui signale `ColorScheme.unknown` affiche le thème clair.
+
+Lisez le schéma du système dans `Palette.color-scheme` (`std-widgets.slint`). Lisez-le une seule fois, avant que la fenêtre y écrive : une écriture dans `Palette.color-scheme` remplace la valeur du système. Conservez la valeur dans votre propre propriété.
+
+```slint
+import { Palette } from "std-widgets.slint";
+import { KitThemes, KitThemeContext, ThemeMode, KitButton } from "@kit";
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    in-out property <ThemeMode> mode: ThemeMode.system;
+    private property <ColorScheme> os-scheme;
+    private property <bool> dark: KitThemes.is-dark(root.mode, root.os-scheme);
+    init => {
+        root.os-scheme = Palette.color-scheme;
+        KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme);
+    }
+    changed mode => { KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme); }
+    background: KitThemeContext.current.canvas;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        KitButton {
+            text: root.dark ? "Sombre" : "Clair";
+            activated => { root.mode = root.mode == ThemeMode.light ? ThemeMode.dark : root.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light; }
+        }
+    }
+}
+```
+
+Si la fenêtre pilote aussi des contrôles std-widgets, affectez `Palette.color-scheme` à partir de `dark` après avoir mémorisé la valeur du système, comme le fait la vitrine. Le bouton de thème de la vitrine alterne clair, sombre et système ; essayez-le en natif (`cargo run -p kit-showcase`) et dans l’aperçu navigateur.
+
+**Remplacer des jetons à l’exécution.** Un thème est une simple valeur. Copiez un thème fourni, changez les jetons voulus et affectez le résultat à `KitThemeContext.current` (ou à la propriété `theme` d’un sous-arbre). Une couleur d’accent de marque change `accent`, ses tons de survol et d’appui, et la couleur de l’anneau de focus. Appliquez de nouveau le remplacement à chaque changement de mode, car `resolve` renvoie le thème fourni sans lui.
+
+```rust
+use slint_kit::ui::{KitThemeContext, KitThemes, ThemeMode};
+
+fn apply_theme(app: &App, mode: ThemeMode, system_dark: bool) {
+    let shipped = app.global::<KitThemes>();
+    let dark = match mode {
+        ThemeMode::Light => false,
+        ThemeMode::Dark => true,
+        ThemeMode::System => system_dark,
+    };
+    let mut theme = if dark {
+        shipped.get_dark()
+    } else {
+        shipped.get_light()
+    };
+    let brand = slint::Color::from_rgb_u8(0x0d, 0x94, 0x88);
+    theme.accent = brand;
+    theme.accent_hover = brand.darker(0.12);
+    theme.accent_pressed = brand.darker(0.24);
+    theme.focus.color = brand;
+    KitThemeContext::get(app).set_current(theme);
+}
+```
+
+**Conserver le choix côté hôte.** Le kit ne stocke rien. Convertissez l’énumération en nom stable avec un `match` explicite qui liste chaque variante, et lisez le texte stocké une seule fois, au démarrage de l’application.
+
+```rust
+fn mode_name(mode: ThemeMode) -> &'static str {
+    match mode {
+        ThemeMode::Light => "light",
+        ThemeMode::Dark => "dark",
+        ThemeMode::System => "system",
+    }
+}
+
+fn parse_mode(name: &str) -> Option<ThemeMode> {
+    match name {
+        "light" => Some(ThemeMode::Light),
+        "dark" => Some(ThemeMode::Dark),
+        "system" => Some(ThemeMode::System),
+        _ => None,
+    }
+}
+```
+
+Utilisez `ThemeMode::System` quand rien n’est stocké ou que `parse_mode` renvoie `None`. Dans ce flux, le kit n’observe pas le système après le démarrage : un changement en direct de l’apparence du système n’atteint l’application que si son backend Slint le signale par `Palette.color-scheme`, et seulement tant que l’application n’a pas écrit cette propriété.
+
 ## Agrandissement du texte et mouvement
 
 Pour un texte à 200 %, copiez un thème et réglez `text-scale` sur `2`. Pour réduire le mouvement, réglez `reduced-motion` sur `true`. Ce sont des choix du thème applicatif ; l’hôte doit les relier aux préférences réelles du système si nécessaire. Laissez grandir le texte et les contrôles plutôt que de les couper dans un contenu de hauteur fixe.

@@ -176,6 +176,90 @@ The Lucide files are generated from a vendored release and never edited by hand.
 
 `LayoutSpace` provides shared inset and gap values. `KitCard` and `KitHero` accept these values. Prefer [KitStack](/components/stack/), [KitInline](/components/inline/) and the other layout wrappers when their shared spacing contract suits the application.
 
+## Runtime theming
+
+Let the user choose light, dark or the system appearance, and change theme tokens while the application runs. The choice is the `ThemeMode` enum (`light`, `dark`, `system`), never a string. `KitThemes.resolve(mode, system)` returns `KitThemes.light` or `KitThemes.dark`; `KitThemes.is-dark(mode, system)` answers the same question as a `bool`. `system` is the `ColorScheme` that the operating system reports. It selects the dark theme only when it is `ColorScheme.dark`: a platform that reports `ColorScheme.unknown` shows the light theme.
+
+Read the system scheme from `Palette.color-scheme` (`std-widgets.slint`). Read it once, before the window writes to it: a write to `Palette.color-scheme` replaces the system value. Keep the value in your own property.
+
+```slint
+import { Palette } from "std-widgets.slint";
+import { KitThemes, KitThemeContext, ThemeMode, KitButton } from "@kit";
+
+export component Example inherits Window {
+    preferred-width: 420px;
+    preferred-height: 180px;
+    in-out property <ThemeMode> mode: ThemeMode.system;
+    private property <ColorScheme> os-scheme;
+    private property <bool> dark: KitThemes.is-dark(root.mode, root.os-scheme);
+    init => {
+        root.os-scheme = Palette.color-scheme;
+        KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme);
+    }
+    changed mode => { KitThemeContext.current = KitThemes.resolve(root.mode, root.os-scheme); }
+    background: KitThemeContext.current.canvas;
+    VerticalLayout {
+        padding: 24px;
+        alignment: start;
+        KitButton {
+            text: root.dark ? "Dark" : "Light";
+            activated => { root.mode = root.mode == ThemeMode.light ? ThemeMode.dark : root.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light; }
+        }
+    }
+}
+```
+
+If the window also drives std-widgets controls, assign `Palette.color-scheme` from `dark` after you have stored the system value, as the showcase does. The showcase theme button cycles light, dark and system, and can be tried natively (`cargo run -p kit-showcase`) and in the browser preview.
+
+**Override tokens at runtime.** A theme is a plain value. Copy a shipped theme, change the tokens you need and assign the result to `KitThemeContext.current` (or to the `theme` property of a subtree). A brand accent changes `accent`, its hover and pressed tones, and the focus ring color. Apply the override again whenever the mode changes, because `resolve` returns the shipped theme without it.
+
+```rust
+use slint_kit::ui::{KitThemeContext, KitThemes, ThemeMode};
+
+fn apply_theme(app: &App, mode: ThemeMode, system_dark: bool) {
+    let shipped = app.global::<KitThemes>();
+    let dark = match mode {
+        ThemeMode::Light => false,
+        ThemeMode::Dark => true,
+        ThemeMode::System => system_dark,
+    };
+    let mut theme = if dark {
+        shipped.get_dark()
+    } else {
+        shipped.get_light()
+    };
+    let brand = slint::Color::from_rgb_u8(0x0d, 0x94, 0x88);
+    theme.accent = brand;
+    theme.accent_hover = brand.darker(0.12);
+    theme.accent_pressed = brand.darker(0.24);
+    theme.focus.color = brand;
+    KitThemeContext::get(app).set_current(theme);
+}
+```
+
+**Persist the choice in the host.** The kit stores nothing. Convert the enum to a stable name with an explicit `match` that lists every variant, and parse the stored text once, when the application starts.
+
+```rust
+fn mode_name(mode: ThemeMode) -> &'static str {
+    match mode {
+        ThemeMode::Light => "light",
+        ThemeMode::Dark => "dark",
+        ThemeMode::System => "system",
+    }
+}
+
+fn parse_mode(name: &str) -> Option<ThemeMode> {
+    match name {
+        "light" => Some(ThemeMode::Light),
+        "dark" => Some(ThemeMode::Dark),
+        "system" => Some(ThemeMode::System),
+        _ => None,
+    }
+}
+```
+
+Fall back to `ThemeMode::System` when nothing is stored or `parse_mode` returns `None`. The kit does not observe the operating system after startup in this flow: a live change of the system appearance reaches an application only when its Slint backend reports it through `Palette.color-scheme`, and only while the application has not written that property.
+
 ## Text scaling and motion
 
 For 200% text, copy a theme value and set its `text-scale` to `2`. For reduced motion set `reduced-motion` to `true`. These are application theme choices; a host must connect the actual operating-system preferences when needed. Let text and control heights grow instead of clipping them inside fixed-height content.

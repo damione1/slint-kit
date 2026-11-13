@@ -144,6 +144,11 @@ explicitly to a component. Application-supplied children do not inherit a
 container's theme automatically: bind their `theme` to the container's theme.
 See the themes guide for local radius, padding, typography and elevation.
 
+Switch appearance at runtime with the `ThemeMode` enum (`light`, `dark`,
+`system`): `KitThemes.resolve(mode, system-scheme)` returns the shipped theme.
+The themes guide explains the system scheme, runtime token overrides and
+persisting the choice.
+
 ## Icons
 
 `KitIcon` and `KitIconButton` paint an `IconGlyph`: one of the kit's own
