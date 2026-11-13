@@ -41,7 +41,7 @@ component RegisteredButton inherits KitFocusTarget {
         theme: root.theme; text: root.text; intent: root.intent; control-size: root.control-size;
         busy: root.busy; disabled: !root.eligible;
         activated => { root.activated(); }
-        focus-observed(focused) => { root.focus-observed(root.token, focused); }
+        focus-observed(focused) => { root.observe-focus(focused); }
     }
 }
 
@@ -329,7 +329,7 @@ export component Showcase inherits Window {
                     Text { text: root.row-count + " people · Reorder, remove and reset this dataset."; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
                 }
                 ExampleSection { theme: root.theme; title: "Dialog"; preview-target: PreviewTarget.dialog; description: "KitDialogSurface · @kit/dialog.slint · Create a demo project with validation and a nested select.";
-                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open dialog"; intent: ButtonIntent.primary; token: 1; generation: root.focus-generations[1]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-skin = ShowcaseSkin.mineral; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; accessible-live-region: polite; }
                 }
                 ExampleSection { theme: root.theme; title: "Customize the same component"; description: "KitPressable · KitSelectTrigger · Compose a recipe and content around the same public behavior. Both selects share one selection.";
@@ -366,7 +366,7 @@ export component Showcase inherits Window {
                                 }
                             }
 
-                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
+                    RegisteredButton { eligible: !root.modal-open; theme: root.theme; control-size: root.density; text: "Open custom dialog"; intent: ButtonIntent.secondary; token: 2; generation: root.focus-generations[2]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-skin = ShowcaseSkin.expressive; root.dialog-open(); } }
                     Text { text: root.status; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
                     KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.text-sample == TextSample.standard ? "Standard text" : root.text-sample == TextSample.long-french ? "French text" : "RTL text"; activated => { root.text-sample = root.text-sample == TextSample.standard ? TextSample.long-french : root.text-sample == TextSample.long-french ? TextSample.right-to-left : TextSample.standard; } }
                     KitTooltip {
@@ -444,7 +444,6 @@ export component Showcase inherits Window {
                             token: 11; generation: root.focus-generations[11]; request: root.focus-request;
                             eligible: !root.dialog-state.busy;
                             focus-requested => { input.focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             height: max(48px, input.preferred-height + 20px);
                             Rectangle {
                                 background: root.theme.canvas;
@@ -469,7 +468,6 @@ export component Showcase inherits Window {
                             eligible: !root.dialog-state.busy;
                             height: max(48px,nested-trigger.preferred-height);
                             focus-requested => { nested-trigger.take-focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             nested-trigger := KitSelectTrigger {
                                 page-rows: root.select-page-rows;
                                 theme: root.theme; control-size: root.density; state: root.select-state;
@@ -492,7 +490,7 @@ export component Showcase inherits Window {
                             theme: root.theme; text: root.note-visible ? "Remove optional note" : "Add an optional note"; intent: ButtonIntent.quiet;
                             eligible: !root.dialog-state.busy;
                             token: 15; generation: root.focus-generations[15]; request: root.focus-request;
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
+                            focus-observed(token, generation, focused) => { root.focus-changed(token, focused); }
                             activated => { root.dialog-toggle-note(); }
                         }
                         if root.note-visible: KitFocusTarget {
@@ -500,7 +498,6 @@ export component Showcase inherits Window {
                             eligible: !root.dialog-state.busy;
                             height: max(48px,note.preferred-height + 20px);
                             focus-requested => { note.focus(); }
-                            focus-observed(token, focused) => { root.focus-changed(token, focused); }
                             Rectangle { background: root.theme.canvas; border-radius: 8px; border-width: 1px; border-color: note.has-focus ? root.theme.focus.color : root.theme.border-subtle; }
                             note := TextInput { x: 12px; y: 10px; width: parent.width - 24px; height: parent.height - 20px; text <=> root.project-note; color: root.theme.text-primary; font-size:14px * root.theme.text-scale; single-line: true; accessible-label: "Optional project note"; changed has-focus => { root.focus-changed(16, self.has-focus); } }
                         }
@@ -521,9 +518,9 @@ export component Showcase inherits Window {
                         if root.dialog-skin == ShowcaseSkin.expressive: Text { text: "Custom dialog presentation"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
                         FlexboxLayout {
                             spacing: 12px; alignment: start;
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Cancel"; intent: ButtonIntent.secondary; eligible: !root.dialog-state.busy; token: 13; generation: root.focus-generations[13]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-dismiss(CloseReason.programmatic); } }
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: root.dialog-state.busy ? "Creating…" : "Create project"; busy: root.dialog-state.busy; eligible: !root.dialog-state.busy; token: 14; generation: root.focus-generations[14]; request: root.focus-request; focus-observed(token,focused) => { root.focus-changed(token,focused); } activated => { root.dialog-submit(root.project-name); } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Cancel"; intent: ButtonIntent.secondary; eligible: !root.dialog-state.busy; token: 13; generation: root.focus-generations[13]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-dismiss(CloseReason.programmatic); } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: root.dialog-state.busy ? "Creating…" : "Create project"; busy: root.dialog-state.busy; eligible: !root.dialog-state.busy; token: 14; generation: root.focus-generations[14]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-submit(root.project-name); } }
                         }
                     }
                 }

@@ -112,7 +112,7 @@ pub fn create_app_with_host(
     });
     app.on_focus_changed({
         let host = host.clone();
-        move |token, focused| host.observe_focus(token, focused)
+        move |token, generation, focused| host.observe_focus(token, generation, focused)
     });
     app.on_confirm_requested({
         let (weak, host) = (app.as_weak(), host.clone());
