@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, TooltipPlacement, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth, TooltipRecipe, KitIconButton, KitTimeline, TimelineEntry, KitDivider } from "@kit";
+import { KitTheme, KitThemes, KitButton, KitTooltip, KitTooltipLayer, TooltipPlacement, KitToast, KitToastHost, ToastEntry, ToastInteraction, KitAlert, AlertSeverity, KitProgress, KitRadialProgress, KitSpinner, KitSkeleton, KitContainer, KitScrollArea, KitCard, KitCardHeader, KitCardBody, KitWrap, KitTextField, ContentWidth, TooltipRecipe, KitIconButton, KitTimeline, TimelineEntry, KitDivider, ProgressMode, ProgressIntent, ControlSize, ButtonIntent } from "@kit";
 
 export component BaseFeedbackFixture inherits Window {
     width: 640px; height: 480px;
@@ -184,5 +184,28 @@ export component BaseDisplayQualityFixture inherits Window {
         KitTimeline { theme: root.theme; entries: root.entries; }
         KitDivider { theme: root.theme; label: "Activity"; }
         KitSkeleton { theme: root.theme; running: root.running; }
+    }
+}
+
+// Options of the progress family and the alert action slot.
+export component FeedbackOptionsFixture inherits Window {
+    width: 640px; height: 640px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <ProgressMode> mode: ProgressMode.indeterminate;
+    in property <ControlSize> spinner-size: ControlSize.medium;
+    in property <string> alert-title: "Connection lost";
+    out property <length> plain-alert-height: plain-alert.height;
+    out property <length> actions-alert-height: actions-alert.height;
+    callback retry();
+    callback details();
+    VerticalLayout { padding: 20px; spacing: 16px; alignment: start;
+        KitProgress { theme: root.theme; mode: root.mode; intent: ProgressIntent.success; label: "Syncing"; value-text: "Working"; value: 0.5; }
+        KitRadialProgress { theme: root.theme; mode: root.mode; label: "Sync ring"; diameter: 120px; thickness: 6px; show-value: false; value: 0.5; }
+        KitSpinner { theme: root.theme; control-size: root.spinner-size; label: "Sizing"; ink: root.theme.on-accent; }
+        plain-alert := KitAlert { theme: root.theme; title: root.alert-title; message: "The server did not answer."; severity: AlertSeverity.error; }
+        actions-alert := KitAlert { theme: root.theme; title: root.alert-title; message: "The server did not answer."; severity: AlertSeverity.error; glyph: root.theme.icons.bell;
+            KitButton { theme: root.theme; text: "Retry"; activated => { root.retry(); } }
+            KitButton { theme: root.theme; text: "Details"; intent: ButtonIntent.quiet; activated => { root.details(); } }
+        }
     }
 }
