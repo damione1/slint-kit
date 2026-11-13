@@ -123,7 +123,48 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
     removal_policy: RemovalPolicy,
     event: SelectEvent<K>,
 ) -> Result<SelectTransition<K>, ModelError> {
-    let mut controller = SelectController::try_new(options, None, ownership)?;
+    let options = ValidatedOptions::new(options)?;
+    Ok(reduce_validated_selection(options, session, ownership, removal_policy, event).0)
+}
+
+/// An option list whose keys are known to be unique. Parse once, then reuse it
+/// across events: `reduce_validated_selection` hands it back after each event.
+#[derive(Clone, Debug)]
+pub struct ValidatedOptions<K>(Vec<SelectOption<K>>);
+
+impl<K: Eq + Hash> ValidatedOptions<K> {
+    /// Rejects duplicate keys.
+    pub fn new(options: Vec<SelectOption<K>>) -> Result<Self, ModelError> {
+        Self::check(&options)?;
+        Ok(Self(options))
+    }
+
+    fn check(options: &[SelectOption<K>]) -> Result<(), ModelError> {
+        let mut keys = HashSet::with_capacity(options.len());
+        if options.iter().any(|row| !keys.insert(&row.key)) {
+            return Err(ModelError::DuplicateKey);
+        }
+        Ok(())
+    }
+}
+
+impl<K> ValidatedOptions<K> {
+    pub fn as_slice(&self) -> &[SelectOption<K>] {
+        &self.0
+    }
+}
+
+/// Same as `reduce_selection_with_policy` for options that were already
+/// validated: it skips the duplicate check and returns the options so the
+/// caller can keep them for the next event.
+pub fn reduce_validated_selection<K: Clone + Eq + Hash>(
+    options: ValidatedOptions<K>,
+    session: SelectSession<K>,
+    ownership: Ownership,
+    removal_policy: RemovalPolicy,
+    event: SelectEvent<K>,
+) -> (SelectTransition<K>, ValidatedOptions<K>) {
+    let mut controller = SelectController::from_validated(options.0, ownership);
     controller.removal_policy = match &event {
         SelectEvent::Reconcile => match (ownership, removal_policy) {
             (Ownership::Local | Ownership::Controlled, RemovalPolicy::Retain) => {
@@ -206,16 +247,19 @@ pub fn reduce_selection_with_policy<K: Clone + Eq + Hash>(
             None
         }
     };
-    Ok(SelectTransition {
-        session: SelectSession {
-            selection: controller.state,
-            typeahead: controller.typeahead,
-            last_typeahead_ms: controller.last_typeahead_ms,
-            typeahead_timeout_ms: controller.typeahead_timeout_ms,
-            wrap: controller.wrap,
+    (
+        SelectTransition {
+            session: SelectSession {
+                selection: controller.state,
+                typeahead: controller.typeahead,
+                last_typeahead_ms: controller.last_typeahead_ms,
+                typeahead_timeout_ms: controller.typeahead_timeout_ms,
+                wrap: controller.wrap,
+            },
+            intent,
         },
-        intent,
-    })
+        ValidatedOptions(controller.options),
+    )
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -288,10 +332,17 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
         ownership: Ownership,
     ) -> Result<Self, ModelError> {
         Self::validate(&options)?;
-        let mut result = Self {
+        let mut result = Self::from_validated(options, ownership);
+        result.state.selected = selected;
+        result.reconcile_selection();
+        Ok(result)
+    }
+
+    fn from_validated(options: Vec<SelectOption<K>>, ownership: Ownership) -> Self {
+        Self {
             options,
             state: SelectState {
-                selected,
+                selected: None,
                 active: None,
                 open: false,
             },
@@ -303,17 +354,11 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             last_typeahead_ms: None,
             typeahead_timeout_ms: 700,
             wrap: false,
-        };
-        result.reconcile_selection();
-        Ok(result)
+        }
     }
 
     fn validate(options: &[SelectOption<K>]) -> Result<(), ModelError> {
-        let mut keys = HashSet::with_capacity(options.len());
-        if options.iter().any(|row| !keys.insert(&row.key)) {
-            return Err(ModelError::DuplicateKey);
-        }
-        Ok(())
+        ValidatedOptions::check(options)
     }
 
     pub fn state(&self) -> &SelectState<K> {

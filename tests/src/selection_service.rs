@@ -949,3 +949,45 @@ fn select_and_combobox_open_and_close_from_the_host_and_report_the_state() {
     window.invoke_open_combo();
     assert!(!window.get_popup_is_open() && !window.get_combo_is_open());
 }
+
+fn row(token: i32, label: &str) -> slint_kit::ui::OptionRow {
+    slint_kit::ui::OptionRow {
+        token,
+        generation: 1,
+        label: label.into(),
+        ..Default::default()
+    }
+}
+
+#[test]
+fn in_place_row_edits_are_seen_by_the_next_key_press_despite_the_cached_projection() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = SelectionServiceFixture::new().unwrap();
+    slint_kit::install(&window);
+    let rows = Rc::new(slint::VecModel::from(vec![
+        row(0, "Alpha"),
+        row(1, "Beta"),
+        row(2, "Gamma"),
+        row(3, "Delta"),
+    ]));
+    window.set_options(slint::ModelRc::from(rows.clone()));
+    window.show().unwrap();
+    window.invoke_focus_first();
+    key(&window, Key::DownArrow);
+    let active = |window: &SelectionServiceFixture| window.get_first_state().active.token;
+    assert_eq!(active(&window), 1);
+    // The next row becomes disabled after the model was already projected.
+    let mut gamma = rows.row_data(2).unwrap();
+    gamma.disabled = true;
+    rows.set_row_data(2, gamma);
+    key(&window, Key::DownArrow);
+    assert_eq!(active(&window), 3, "navigation reads the edited row");
+    // A row appended later is reachable.
+    rows.push(row(4, "Epsilon"));
+    key(&window, Key::DownArrow);
+    assert_eq!(active(&window), 4);
+    // A removed row is no longer reachable: the first row wraps back to the end.
+    rows.remove(4);
+    key(&window, Key::UpArrow);
+    assert_eq!(active(&window), 3, "the list now ends at the previous row");
+}
