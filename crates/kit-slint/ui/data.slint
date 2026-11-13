@@ -24,6 +24,10 @@ export enum DataEmptyContent { label, custom }
 // Whether the table paints its own framed surface or sits flush in a host that
 // already provides one, such as a card.
 export enum DataSurface { framed, flush }
+// What the leading cell of a content list row shows: the item's `thumbnail`
+// (the article glyph stands in for an item without an image), the article
+// glyph for every row, or no leading cell.
+export enum ContentThumbnail { image, icon, none }
 export enum TextViewAccess { read-only, edit-line }
 // The typeface of document lines: the theme text face, or its monospace face for logs and source.
 export enum TextViewFont { proportional, monospace }
@@ -1082,6 +1086,17 @@ export component KitContentList inherits Rectangle {
     in property <string> retry-label: "Retry";
     callback retry-requested();
     in property <DataEmptyContent> empty-content: DataEmptyContent.label;
+    // Row density, which also scales the thumbnail.
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ContentThumbnail> thumbnail: ContentThumbnail.image;
+    // Lines of excerpt shown before it is elided; below one, one is used.
+    in property <int> excerpt-lines: 2;
+    // Off, the rows, the link and the key scope are inert, so a host can
+    // block the list behind a dialog without covering it.
+    in property <bool> interactive: true;
+    in property <ScrollBarPolicy> vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+    // The row's own link label was pressed; the row itself is not activated.
+    callback link-activated(int,int);
     // Row intent without a gesture; hosts that need several selected rows or
     // a separate open action handle `gesture` instead, not both.
     callback activate(int,int);
@@ -1090,7 +1105,7 @@ export component KitContentList inherits Rectangle {
     // double-click are `open`.
     callback gesture(int,int,RowGesture);
     callback navigate(NavigationStep);
-    public function take-focus(){keys.focus();}
+    public function take-focus(){if(root.interactive){keys.focus();}}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.items.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.row-height), 0, root.items.length - 1);
     out property <int> visible-row-count: root.items.length == 0 || list.visible-height <= 0px ? 0 : max(0, min(root.items.length, ceil((list.visible-height - list.content-y) / root.row-height)) - root.first-visible-index);
@@ -1106,7 +1121,14 @@ export component KitContentList inherits Rectangle {
     out property <int> page-rows: max(1, floor(list.visible-height / root.row-height));
     out property <length> scroll-y:list.content-y;
     out property <length> scroll-x:list.content-x;
-    private property <length> row-height:max(132px,116px * root.theme.text-scale);
+    private property <length> thumbnail-size: root.control-size == ControlSize.compact ? 48px : root.control-size == ControlSize.comfortable ? 96px : 72px;
+    private property <length> excerpt-line-height: root.theme.typography.line-height-control * root.theme.text-scale;
+    private property <int> shown-excerpt-lines: max(1, root.excerpt-lines);
+    private property <length> base-row-height: root.control-size == ControlSize.compact ? max(96px, 84px * root.theme.text-scale) : root.control-size == ControlSize.comfortable ? max(168px, 148px * root.theme.text-scale) : max(132px, 116px * root.theme.text-scale);
+    private property <length> row-height: root.base-row-height + (root.shown-excerpt-lines - 2) * root.excerpt-line-height;
+    pure function item-name(item: ContentItem) -> string {
+        return item.title != "" && item.metadata != "" ? item.title + ", " + item.metadata : item.title != "" ? item.title : item.metadata;
+    }
     changed active-index => { root.reveal-active(); }
     public function reveal-active() {
         if (root.active-index >= 0 && root.active-index < root.items.length) {
@@ -1117,35 +1139,53 @@ export component KitContentList inherits Rectangle {
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}}
+    keys := DataKeyboard {disabled:!root.interactive;navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}}
     list := ListView {
         theme: root.theme;
-        vertical-scrollbar-policy: ScrollBarPolicy.always-on;
+        vertical-scrollbar-policy: root.vertical-scrollbar-policy;
         horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
         y: 0px;
         content-width:self.visible-width;
-        for item[index] in root.items: DataAction {
+        // The row and its link are siblings: a pressable paints its children
+        // under its own pointer area, so a link inside the row could not be hit.
+        for item[index] in root.items: Rectangle {
             width:list.visible-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
-            theme:root.theme;token:item.token;generation:root.generation;disabled:item.disabled;intent:ButtonIntent.quiet;
-            accessible-name:item.title + ", " + item.metadata;accessible-role:AccessibleRole.list-item;
-            accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
-            focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
-            background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
-            focus-requested => {keys.focus();}
-            requested(token,generation)=>{keys.focus();root.activate(token,generation);root.gesture(token,generation,self.armed-gesture);}
-            double-activated => { if (!item.disabled) { root.gesture(item.token, root.generation, RowGesture.open); } }
-            HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
-                Rectangle {width:72px; horizontal-stretch:0;
-                    Rectangle {y:(parent.height - self.height) / 2;width:72px;height:72px;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
-                    if item.thumbnail.width > 0 && item.thumbnail.height > 0: Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
-                    if item.thumbnail.width <= 0 || item.thumbnail.height <= 0: KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:24px;height:24px;glyph:root.theme.icons.article;ink:root.theme.accent;}
+            row := DataAction {
+                width:parent.width;height:parent.height;
+                theme:root.theme;token:item.token;generation:root.generation;disabled:!root.interactive || item.disabled;intent:ButtonIntent.quiet;
+                accessible-name:root.item-name(item);description:item.excerpt;accessible-role:AccessibleRole.list-item;
+                accessible-item-index:index;accessible-item-count:root.items.length;accessible-item-selectable:true;accessible-item-selected:item.selected;
+                focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
+                background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
+                focus-requested => {keys.focus();}
+                requested(token,generation)=>{keys.focus();root.activate(token,generation);root.gesture(token,generation,self.armed-gesture);}
+                double-activated => { if (!item.disabled) { root.gesture(item.token, root.generation, RowGesture.open); } }
+            }
+            HorizontalLayout {
+                x:row.padding-inline;y:row.padding-block;width:max(0px,parent.width - 2 * row.padding-inline);height:max(0px,parent.height - 2 * row.padding-block);
+                spacing:root.theme.spacing.unit * 4; alignment: start;
+                if root.thumbnail != ContentThumbnail.none: Rectangle {width:root.thumbnail-size; horizontal-stretch:0;
+                    Rectangle {y:(parent.height - self.height) / 2;width:root.thumbnail-size;height:root.thumbnail-size;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;
+                    if root.thumbnail == ContentThumbnail.image && item.thumbnail.width > 0 && item.thumbnail.height > 0: Image {width:parent.width;height:parent.height;source:item.thumbnail;image-fit:cover;}
+                    if root.thumbnail == ContentThumbnail.icon || item.thumbnail.width <= 0 || item.thumbnail.height <= 0: KitIcon {theme: root.theme; x:(parent.width - self.width) / 2;y:(parent.height - self.height) / 2;width:root.thumbnail-size / 3;height:root.thumbnail-size / 3;glyph:root.theme.icons.article;ink:root.theme.accent;}
                 }
                 }
                 VerticalLayout {spacing:root.theme.spacing.unit;alignment:center;
                     Text {text:item.title;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.body);font-weight:root.theme.typography.weight-semibold;overflow:elide;}
-                    Text {text:item.excerpt;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:2 * root.theme.typography.line-height-control * root.theme.text-scale;overflow:elide;}
+                    Text {text:item.excerpt;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);wrap:word-wrap;max-height:root.shown-excerpt-lines * root.excerpt-line-height;overflow:elide;}
                     Text {text:item.metadata;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
-                    Text {text:item.link-label;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                    if item.link-label != "": Rectangle {
+                        horizontal-stretch:0;vertical-stretch:0;height:link-text.preferred-height;max-width:link-text.preferred-width;
+                        link-text := Text {width:parent.width;text:item.link-label;color:item.disabled ? root.theme.disabled-text : item.selected ? root.theme.on-selection : root.theme.accent;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);overflow:elide;}
+                        DataAction {
+                            theme:root.theme;token:item.token;generation:root.generation;disabled:!root.interactive || item.disabled;intent:ButtonIntent.quiet;
+                            width:parent.width;height:parent.height;padding-inline:0px;padding-block:0px;
+                            accessible-name:item.link-label;accessible-role:AccessibleRole.button;
+                            background:transparent;
+                            focus-requested => {keys.focus();}
+                            requested(token,generation)=>{root.link-activated(token,generation);}
+                        }
+                    }
                 }
             }
         }
