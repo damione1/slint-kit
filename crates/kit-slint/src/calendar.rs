@@ -251,6 +251,31 @@ fn with_week_rows(
         }
     }
 }
+/// Format an accepted ISO date for display at rest. Any text that is not a
+/// complete ISO date, or any invalid pattern or name set, yields `None` so the
+/// caller keeps the ISO text.
+fn display_date(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    fn names<const N: usize>(model: &ModelRc<slint::SharedString>) -> Option<[String; N]> {
+        model
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<Vec<_>>()
+            .try_into()
+            .ok()
+    }
+    let DraftValue::Parsed(date) = CivilDate::parse_iso(text) else {
+        return None;
+    };
+    let pattern = DateDisplayPattern::new(display.pattern.as_str()).ok()?;
+    let names = DateNames::new(
+        names(&display.months)?,
+        names(&display.short_months)?,
+        names(&display.weekdays)?,
+        names(&display.short_weekdays)?,
+    )
+    .ok()?;
+    Some(pattern.format_with_names(date, &names))
+}
 struct CalendarLabels {
     names: DateNames,
     date: DatePattern,
@@ -522,6 +547,9 @@ where
             |_| slint::SharedString::default(),
             |date| date.iso_string().into(),
         )
+    });
+    service.on_display_date(|text, display| {
+        display_date(text.as_str(), &display).map_or(text, slint::SharedString::from)
     });
     service
         .on_project(|view, text| localized_projection(view, text, RangeSelection::ChoosingStart));
