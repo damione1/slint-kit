@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitRangeSlider, KitTheme, KitThemes, ChoiceFlow, ChoiceDirection, DecimalRangeView } from "@kit";
+export component SliderFlowFixture inherits Window {
+    width: 400px; height: 520px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <string> ltr-value <=> ltr.value;
+    in-out property <string> rtl-value <=> rtl.value;
+    in-out property <string> paged-value <=> paged.value;
+    in-out property <DecimalRangeView> spaced-value <=> spaced.value;
+    in-out property <DecimalRangeView> mirrored-value <=> mirrored.value;
+    in-out property <DecimalRangeView> vertical-value <=> upright.value;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 20px; spacing: 20px; alignment: start;
+        ltr := KitSlider { theme: root.theme; label: "Left to right"; value: "50"; flow: ChoiceFlow.left-to-right; }
+        rtl := KitSlider { theme: root.theme; label: "Right to left"; value: "50"; flow: ChoiceFlow.right-to-left; }
+        paged := KitSlider { theme: root.theme; label: "Paged"; value: "50"; spec: {minimum: "0", maximum: "100", step: "1", page-steps: 25}; }
+        spaced := KitRangeSlider { theme: root.theme; label: "Spaced"; value: {lower: "20", upper: "80"}; spec: {minimum: "0", maximum: "100", step: "1", min-steps: 10}; }
+        mirrored := KitRangeSlider { theme: root.theme; label: "Mirrored"; value: {lower: "20", upper: "80"}; flow: ChoiceFlow.right-to-left; }
+        HorizontalLayout { height: 140px; upright := KitRangeSlider { theme: root.theme; label: "Vertical"; value: {lower: "20", upper: "80"}; direction: ChoiceDirection.vertical; } }
+    }
+}

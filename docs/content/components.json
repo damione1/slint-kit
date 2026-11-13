@@ -5855,7 +5855,7 @@
     "fr": {
       "summary": "Curseur à deux poignées pour une sélection de plage locale ou contrôlée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + 10 et Page précédente plafond(position en pas) - 10, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix par défaut, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + page-steps et Page précédente plafond(position en pas) - page-steps, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial. Avec `flow: ChoiceFlow.right-to-left`, Gauche augmente la valeur d’un contrôle horizontal ; un contrôle vertical ignore flow.",
       "label": "Curseur de plage",
       "seoTitle": "Curseur de plage pour Slint",
       "related": [
@@ -5864,7 +5864,7 @@
       "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
       "properties": {
         "spec": {
-          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine.",
+          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine. `page-steps` fixe le nombre de pas de Page précédente/suivante (0 garde dix par défaut). `min-steps` fixe le nombre minimal de pas entre les deux poignées d’un curseur de plage (0 autorise la coïncidence) ; un curseur simple l’ignore. Un nombre négatif, ou une distance plus large que l’étendue, rend la spec invalide.",
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
@@ -5893,6 +5893,28 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitRangeSlider {\n    modal-layer: 1;\n}"
+        },
+        "flow": {
+          "effect": "Sens horizontal. `ChoiceFlow.right-to-left` place le minimum au bord droit, remplit depuis la droite, et fait de Gauche l’augmentation et de Droite la diminution ; Haut, Bas, Début, Fin et les touches de page gardent leur sens. Un contrôle vertical l’ignore.",
+          "example": "flow: ChoiceFlow.right-to-left;",
+          "default": "Suit la direction du thème."
+        },
+        "direction": {
+          "effect": "`ChoiceDirection.vertical` place le minimum en bas ; Haut augmente et Bas diminue la poignée focalisée.",
+          "example": "direction: ChoiceDirection.vertical;",
+          "default": "`ChoiceDirection.horizontal`."
+        },
+        "track-brush": {
+          "effect": "Peinture de la piste complète derrière le remplissage de plage.",
+          "example": "track-brush: @linear-gradient(90deg, red, blue);"
+        },
+        "fill-brush": {
+          "effect": "Peinture de l’étendue entre les deux poignées. Un remplissage transparent garde visible une piste en dégradé injectée.",
+          "example": "fill-brush: transparent;"
+        },
+        "handle-brush": {
+          "effect": "Peinture des deux poignées.",
+          "example": "handle-brush: #ffffff;"
         }
       },
       "callbacks": {
@@ -5905,7 +5927,7 @@
     "en": {
       "summary": "Two-thumb slider with local or controlled range selection.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + 10 and Page Previous uses ceil(step position) - 10, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten by default, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + page-steps and Page Previous uses ceil(step position) - page-steps, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot. With `flow: ChoiceFlow.right-to-left`, Left raises the value in a horizontal control; a vertical control ignores flow.",
       "label": "Range Slider",
       "seoTitle": "Range Slider for Slint",
       "related": [
@@ -5914,7 +5936,7 @@
       "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
       "properties": {
         "spec": {
-          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain.",
+          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain. `page-steps` sets how many steps Page Up and Page Down move (0 keeps the default of ten). `min-steps` sets the least number of steps between the two thumbs of a range slider (0 lets them coincide); a plain slider ignores it. A negative count, or a distance wider than the span, makes the spec invalid.",
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
@@ -5943,6 +5965,28 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitRangeSlider {\n    modal-layer: 1;\n}"
+        },
+        "flow": {
+          "effect": "Horizontal flow. `ChoiceFlow.right-to-left` draws the minimum at the right edge, fills from the right, and makes Left raise the value and Right lower it; Up, Down, Home, End and the page keys keep their meaning. A vertical control ignores it.",
+          "example": "flow: ChoiceFlow.right-to-left;",
+          "default": "Follows the theme direction."
+        },
+        "direction": {
+          "effect": "`ChoiceDirection.vertical` puts the minimum at the bottom; Up raises and Down lowers the focused thumb.",
+          "example": "direction: ChoiceDirection.vertical;",
+          "default": "`ChoiceDirection.horizontal`."
+        },
+        "track-brush": {
+          "effect": "Paint of the full track behind the range fill.",
+          "example": "track-brush: @linear-gradient(90deg, red, blue);"
+        },
+        "fill-brush": {
+          "effect": "Paint of the span between the two thumbs. Use a transparent fill to keep an injected gradient track visible.",
+          "example": "fill-brush: transparent;"
+        },
+        "handle-brush": {
+          "effect": "Paint of both thumbs.",
+          "example": "handle-brush: #ffffff;"
         }
       },
       "callbacks": {
@@ -6725,7 +6769,7 @@
     "fr": {
       "summary": "Curseur continu projetant une valeur métier sur une position normalisée.",
       "usage": "Définissez `spec: SliderSpec` avec les chaînes décimales exactes `minimum`, `maximum` et `step`. `KitSlider.value` est une chaîne décimale ; `KitRangeSlider.value` est `DecimalRangeView { lower, upper }`. Chaque instance possède ses valeurs et l’instantané du geste. Traitez `chosen` pour l’acceptation métier puis convertissez en `DecimalValue` ou `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` émet des propositions. Les positions normalisées explicites restent disponibles pour les projections spécialisées.",
-      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + 10 et Page précédente plafond(position en pas) - 10, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial.",
+      "behavior": "La grille décimale partagée arrondit le pointeur au pas exact. Les flèches avancent d’un pas, Page précédente/suivante de dix par défaut, Début/Fin jusqu’aux bornes disponibles. Les poignées d’intervalle ne se croisent pas. Lorsqu’elles coïncident, un appui sous leur valeur choisit la poignée basse et un appui au-dessus la haute ; à la valeur commune, la haute est choisie, sauf au maximum où la basse est choisie. Échap annule uniquement le geste de pointeur actif. Sinon, il conserve la valeur courante et remonte au parent, y compris après une modification au clavier ou une valeur publiée par l’hôte. Lecture seule et désactivation refusent l’édition. Le flottant est uniquement une projection graphique, jamais le décimal accepté. Charger une valeur ou changer spec ne normalise jamais la valeur stockée. Une valeur analysable hors grille se dessine à son ratio borné, sans arrondi au pas. Suivant/Précédent atteint le pas adjacent dans le sens demandé ; Page suivante utilise plancher(position en pas) + page-steps et Page précédente plafond(position en pas) - page-steps, puis applique les bornes admissibles. La navigation clavier depuis un nombre hors bornes retrouve une borne admissible. Valeurs mal formées et plages inversées sont refusées. Une modification de plage répare les deux extrémités ordonnées avant de borner la poignée active ; annuler un geste de pointeur actif restaure son instantané initial. Avec `flow: ChoiceFlow.right-to-left`, Gauche augmente la valeur d’un contrôle horizontal ; un contrôle vertical ignore flow.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -6735,7 +6779,7 @@
       "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
       "properties": {
         "spec": {
-          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine.",
+          "effect": "Minimum, maximum et pas positif décimaux exacts utilisés par pointeur, clavier et réglage accessible ; les bornes et le pas accessibles projettent ce même domaine. `page-steps` fixe le nombre de pas de Page précédente/suivante (0 garde dix par défaut). `min-steps` fixe le nombre minimal de pas entre les deux poignées d’un curseur de plage (0 autorise la coïncidence) ; un curseur simple l’ignore. Un nombre négatif, ou une distance plus large que l’étendue, rend la spec invalide.",
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
@@ -6762,6 +6806,11 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitSlider {\n    modal-layer: 1;\n}"
+        },
+        "flow": {
+          "effect": "Sens horizontal. `ChoiceFlow.right-to-left` place le minimum au bord droit, remplit depuis la droite, et fait de Gauche l’augmentation et de Droite la diminution ; Haut, Bas, Début, Fin et les touches de page gardent leur sens. Un contrôle vertical l’ignore.",
+          "example": "flow: ChoiceFlow.right-to-left;",
+          "default": "Suit la direction du thème."
         }
       },
       "callbacks": {
@@ -6774,7 +6823,7 @@
     "en": {
       "summary": "Continuous slider projecting a domain value onto a normalized position.",
       "usage": "Set `spec: SliderSpec` with exact decimal strings `minimum`, `maximum` and `step`. `KitSlider.value` is a decimal string; `KitRangeSlider.value` is `DecimalRangeView { lower, upper }`. Each instance owns its values and gesture snapshot. Handle `chosen` for business acceptance and convert to `DecimalValue` or `OrderedRange<DecimalValue>`. `ownership: Ownership.controlled` emits proposals. Explicit normalized positions remain available for specialized renderer projections.",
-      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + 10 and Page Previous uses ceil(step position) - 10, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot.",
+      "behavior": "The shared decimal lattice rounds pointer positions to an exact step. Arrows move one step, Page Up/Down ten by default, Home/End to the available bounds. Range thumbs cannot cross. When they coincide, a press below their value selects lower and a press above selects upper; a press at the shared value selects upper, except at the maximum where it selects lower. Escape cancels only the active pointer gesture. Otherwise it preserves the current value and bubbles to the parent, including after keyboard edits or a host-published value. Read-only and disabled reject edits. Floating point is only a renderer projection; it is never the accepted decimal. Loading a value or changing spec never normalizes the stored value. A parseable off-grid value renders at its bounded ratio without snapping. Next/Previous move to the adjacent lattice value in the requested direction; Page Next uses floor(step position) + page-steps and Page Previous uses ceil(step position) - page-steps, then clamps to admissible bounds. Keyboard navigation from an out-of-range number recovers to an admissible bound. Malformed values and reversed ranges are rejected. A range edit repairs both ordered endpoints before applying the active-thumb constraint; cancelling an active pointer gesture restores its original snapshot. With `flow: ChoiceFlow.right-to-left`, Left raises the value in a horizontal control; a vertical control ignores flow.",
       "related": [
         "KitRangeSlider",
         "KitNumberStepper"
@@ -6784,7 +6833,7 @@
       "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
       "properties": {
         "spec": {
-          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain.",
+          "effect": "Exact decimal minimum, maximum and positive step used by pointer, keyboard and accessible set-value; the accessible bounds/step are projections of this same domain. `page-steps` sets how many steps Page Up and Page Down move (0 keeps the default of ten). `min-steps` sets the least number of steps between the two thumbs of a range slider (0 lets them coincide); a plain slider ignores it. A negative count, or a distance wider than the span, makes the spec invalid.",
           "example": "spec: {minimum: \"-10\", maximum: \"50\", step: \"2\"};"
         },
         "value": {
@@ -6811,6 +6860,11 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitSlider {\n    modal-layer: 1;\n}"
+        },
+        "flow": {
+          "effect": "Horizontal flow. `ChoiceFlow.right-to-left` draws the minimum at the right edge, fills from the right, and makes Left raise the value and Right lower it; Up, Down, Home, End and the page keys keep their meaning. A vertical control ignores it.",
+          "example": "flow: ChoiceFlow.right-to-left;",
+          "default": "Follows the theme direction."
         }
       },
       "callbacks": {
