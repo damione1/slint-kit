@@ -72,6 +72,10 @@ export component KitPressable inherits Rectangle {
     out property <bool> has-focus: root.focused;
     out property <bool> focus-visible: root.focused && root.keyboard-focus;
     out property <length> pointer-x: touch.mouse-x;
+    // The modifier keys held when the pointer press that armed the current
+    // or last activation began. Keyboard and assistive activations reset it
+    // to none, so `activated` can always read it.
+    out property <KeyboardModifiers> pointer-modifiers;
     callback double-activated();
     callback activated();
     // Composition hook runs before the public activation notification.
@@ -136,7 +140,7 @@ export component KitPressable inherits Rectangle {
     accessible-enabled: !root.blocked && !root.busy;
     accessible-description: root.busy ? root.busy-label : root.description;
     accessible-action-default => {
-        if (!root.blocked && !root.busy) { root.activation-started(); root.activate-once(); }
+        if (!root.blocked && !root.busy) { root.pointer-modifiers = { control: false, alt: false, shift: false, meta: false }; root.activation-started(); root.activate-once(); }
     }
     forward-focus: keys;
     // The recipe's elevation, painted by a child that repeats the host's own
@@ -197,11 +201,11 @@ export component KitPressable inherits Rectangle {
                 return accept;
             }
             if (event.text == Key.Space) {
-                if (!root.space-held) { root.activation-started(); root.space-held = true; }
+                if (!root.space-held) { root.pointer-modifiers = { control: false, alt: false, shift: false, meta: false }; root.activation-started(); root.space-held = true; }
                 return accept;
             }
             if (root.activate-on-return && event.text == Key.Return) {
-                if (!root.enter-held) { root.activation-started(); root.enter-held = true; root.activate-once(); }
+                if (!root.enter-held) { root.pointer-modifiers = { control: false, alt: false, shift: false, meta: false }; root.activation-started(); root.enter-held = true; root.activate-once(); }
                 return accept;
             }
             return reject;
@@ -220,6 +224,7 @@ export component KitPressable inherits Rectangle {
         mouse-cursor: pointer;
         pointer-event(event) => {
             if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                root.pointer-modifiers = event.modifiers;
                 root.activation-started();
                 root.pointer-armed = true;
                 root.repeated = false;

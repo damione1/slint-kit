@@ -100,6 +100,7 @@ contract_enums! {
         Next => "next", Previous => "previous", First => "first", Last => "last",
         PageNext => "page-next", PagePrevious => "page-previous",
     }
+    RowGesture => "RowGesture" { Select => "select", Toggle => "toggle", Extend => "extend", Open => "open" }
     SelectionAvailability => "SelectionAvailability" {
         Absent => "absent", Available => "available", Unavailable => "unavailable",
     }
@@ -108,4 +109,12 @@ contract_enums! {
         Escape => "escape", OutsidePress => "outside-press", SystemBack => "system-back",
         TriggerToggle => "trigger-toggle", Programmatic => "programmatic", HostClosed => "host-closed",
     }
+}
+
+/// How many rows a collection view keeps selected. The host owns it; the
+/// view only reports typed gestures.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SelectionMode {
+    Single,
+    Multiple,
 }
