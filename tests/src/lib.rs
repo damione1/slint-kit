@@ -824,6 +824,7 @@ mod icons;
 mod menu_focus;
 mod native_dialog;
 mod navigation_interaction;
+mod row_gestures;
 mod theme_tokens;
 mod variants;
 

@@ -8,7 +8,7 @@ import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
-import { CheckState, TextPurpose, HtmlInputKind, Ownership } from "shared-contracts.slint";
+import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
 import { CheckMark } from "choice.slint";
@@ -122,7 +122,14 @@ component DataAction inherits KitPressable {
     callback focus-requested();
     private property <int> armed-token;
     private property <int> armed-generation;
-    activation-started => {root.armed-token = root.token;root.armed-generation = root.generation;root.focus-requested();}
+    // The gesture of the armed activation: a held Control or Meta key
+    // toggles, a held Shift extends, anything else selects.
+    out property <RowGesture> armed-gesture: RowGesture.select;
+    activation-started => {
+        root.armed-token = root.token;root.armed-generation = root.generation;
+        root.armed-gesture = root.pointer-modifiers.control || root.pointer-modifiers.meta ? RowGesture.toggle : root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.select;
+        root.focus-requested();
+    }
     changed token => {root.cancel-press();}
     changed generation => {root.cancel-press();}
     activated => {root.requested(root.armed-token,root.armed-generation);}
@@ -471,7 +478,15 @@ export component KitDataTable inherits Rectangle {
     in-out property <int> active-column: -1;
     callback cursor-requested(int, int);
     callback key-event(KeyEvent) -> KitKeyResult;
+    // Row intent without a gesture: it fires for every pointer click, Space and
+    // Enter, whatever the modifiers. Hosts that need more than one selected
+    // row or a separate open action handle `gesture` instead, not both.
     callback activate(int,int);
+    // The typed row gesture: `(row-token, generation, gesture)`. A click is
+    // `select`, `toggle` with Control or Meta held and `extend` with Shift
+    // held; Space is `toggle`; Enter and a double-click on a row without an
+    // editable cell are `open`.
+    callback gesture(int,int,RowGesture);
     callback navigate(NavigationStep);
     callback sort-requested(int);
     // A clamped width the user asked for, by column token. The table paints
@@ -620,7 +635,10 @@ export component KitDataTable inherits Rectangle {
     }
     function confirm-active() {
         if (root.active-cell-editable()) { root.edit-active(); }
-        else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token, root.generation); }
+        else if (root.has-active-row && !root.rows[root.active-index].disabled) {
+            root.activate(root.rows[root.active-index].token, root.generation);
+            root.gesture(root.rows[root.active-index].token, root.generation, RowGesture.open);
+        }
     }
     function step-column(step: ColumnStep) {
         if (root.cursor-region == TableCursorRegion.body && !root.has-active-row) { return; }
@@ -825,7 +843,7 @@ export component KitDataTable inherits Rectangle {
             else if (root.cursor-region == TableCursorRegion.body) { root.navigate(step); }
         }
         navigate-column(step) => {root.step-column(step);}
-        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); } }
+        activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
         confirm => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.confirm-active(); } }
     }
     list := ListView {
@@ -847,8 +865,8 @@ export component KitDataTable inherits Rectangle {
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             focus-requested => {keys.focus();}
-            double-activated => { root.edit-active(); }
-            requested(token,generation) => {keys.focus();root.activate(token,generation);}
+            double-activated => { if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
+            requested(token,generation) => {keys.focus();root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture);}
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
             // typed `content` when it has any, otherwise its plain `cells`
@@ -957,7 +975,14 @@ export component KitContentList inherits Rectangle {
     in property <int> active-index:-1;
     in property <string> label:"Articles";
     in property <string> empty-label:"No articles found";
-    callback activate(int,int);callback navigate(NavigationStep);
+    // Row intent without a gesture; hosts that need several selected rows or
+    // a separate open action handle `gesture` instead, not both.
+    callback activate(int,int);
+    // The typed row gesture, as on KitDataTable: a click is `select`,
+    // `toggle` or `extend` by modifier; Space is `toggle`; Enter and a
+    // double-click are `open`.
+    callback gesture(int,int,RowGesture);
+    callback navigate(NavigationStep);
     public function take-focus(){keys.focus();}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.items.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.row-height), 0, root.items.length - 1);
@@ -984,8 +1009,8 @@ export component KitContentList inherits Rectangle {
     }
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
-    function activate-active() {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);}}
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active();}confirm=>{root.activate-active();}}
+    function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
+    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}}
     list := ListView {
         theme: root.theme;
         vertical-scrollbar-policy: ScrollBarPolicy.always-on;
@@ -1000,7 +1025,8 @@ export component KitContentList inherits Rectangle {
             focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
             background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
             focus-requested => {keys.focus();}
-            requested(token,generation)=>{keys.focus();root.activate(token,generation);}
+            requested(token,generation)=>{keys.focus();root.activate(token,generation);root.gesture(token,generation,self.armed-gesture);}
+            double-activated => { if (!item.disabled) { root.gesture(item.token, root.generation, RowGesture.open); } }
             HorizontalLayout {spacing:root.theme.spacing.unit * 4; alignment: start;
                 Rectangle {width:72px; horizontal-stretch:0;
                     Rectangle {y:(parent.height - self.height) / 2;width:72px;height:72px;clip:true;border-radius:root.theme.shape.radius-container;background:root.theme.accent-subtle;

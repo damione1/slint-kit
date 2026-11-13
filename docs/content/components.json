@@ -2011,6 +2011,8 @@
         }
       },
       "callbacks": {
+        "activate": "Intention de ligne : `(token, generation)`, émise pour chaque clic, Espace et Entrée. Traitez `activate` ou `gesture`, jamais les deux.",
+        "gesture": "Geste de ligne typé : `(token, generation, RowGesture)`. Un clic vaut `select`, `toggle` avec Contrôle ou Méta, `extend` avec Maj ; Espace vaut `toggle` ; Entrée ou un double-clic vaut `open`. `KeyedModel::gestures(mode, handler)` applique la sélection selon `SelectionMode`.",
         "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte."
       },
       "functions": {
@@ -2087,6 +2089,8 @@
         }
       },
       "callbacks": {
+        "activate": "Row intent: `(token, generation)`, fired for every click, Space and Enter. Handle `activate` or `gesture`, never both.",
+        "gesture": "Typed row gesture: `(token, generation, RowGesture)`. A click is `select`, `toggle` with Control or Meta held and `extend` with Shift held; Space is `toggle`; Enter or a double-click is `open`. `KeyedModel::gestures(mode, handler)` applies the selection under `SelectionMode`.",
         "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host."
       },
       "functions": {
@@ -2266,6 +2270,7 @@
       },
       "callbacks": {
         "activate": "Intention de ligne : `(row-token, generation)`. Validez l’identité avant de sélectionner ou ouvrir un enregistrement métier.",
+        "gesture": "Geste de ligne typé : `(row-token, generation, RowGesture)`. Un clic vaut `select`, `toggle` avec Contrôle ou Méta, `extend` avec Maj ; Espace vaut `toggle` ; Entrée, ou un double-clic sur une ligne sans cellule modifiable, vaut `open`. `activate` reste émis pour chaque activation : traitez l’un ou l’autre, jamais les deux. Avec `KeyedModel::gestures(mode, handler)`, la sélection suit `SelectionMode`.",
         "navigate": "Demande de navigation entre lignes. Utilisez la taille de page courante avec le modèle par clé.",
         "sort-requested": "Jeton stable de la colonne à trier ; l’hôte applique son comparateur métier.",
         "resize-requested": "`(column-token, width)` : largeur demandée bornée en pixels logiques ; actualisez la politique de colonne.",
@@ -2460,6 +2465,7 @@
       },
       "callbacks": {
         "activate": "Row intent: `(row-token, generation)`. Fence the identity before selecting or opening a domain record.",
+        "gesture": "Typed row gesture: `(row-token, generation, RowGesture)`. A click is `select`, `toggle` with Control or Meta held and `extend` with Shift held; Space is `toggle`; Enter, or a double-click on a row without an editable cell, is `open`. `activate` still fires for every activation: handle one of the two, never both. With `KeyedModel::gestures(mode, handler)` the selection follows `SelectionMode`.",
         "navigate": "Roving row navigation request. Use the current view page size with the keyed model for page keys.",
         "sort-requested": "The stable column token to sort; the host applies its domain comparator.",
         "resize-requested": "`(column-token, width)`: a clamped requested width in logical pixels; update the column width policy.",
