@@ -20,8 +20,8 @@ import { KitKeyResult } from "keyboard.slint";
 import { CalendarNavigation } from "shared-contracts.slint";
 export { CalendarNavigation } from "shared-contracts.slint";
 
-import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
-export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay } from "calendar-service.slint";
+import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay, CalendarDayMark, CalendarMarker } from "calendar-service.slint";
+export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService, DateDisplay, CalendarDayMark, CalendarMarker } from "calendar-service.slint";
 import { WeekStart, Ownership, CommitPolicy, EarlierEndPolicy } from "shared-contracts.slint";
 import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 import { DateRangePhase, DateRangeDraft, DateRangeRejection } from "calendar-service.slint";
@@ -75,6 +75,8 @@ export component KitCalendar inherits Rectangle {
         : root.week-start == WeekStart.saturday ? 5 : 6;
     in property <[WeekStart]> unavailable-weekdays;
     in property <[DateRangeView]> unavailable-ranges;
+    // Per-date decorations: marker, secondary caption and accessible description.
+    in property <[CalendarDayMark]> day-marks;
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     in property <[string]> month-short-names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     in property <[string]> weekday-short-names: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -92,7 +94,7 @@ export component KitCalendar inherits Rectangle {
         today: root.today-label, range-start: root.range-start-label,
         range-end: root.range-end-label, in-range: root.in-range-label,
     };
-    private property <CalendarView> view: {week-rows: root.week-rows, selected: root.selected, focused: root.focused, today: root.today, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
+    private property <CalendarView> view: {week-rows: root.week-rows, selected: root.selected, focused: root.focused, today: root.today, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges, marks: root.day-marks };
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.calendar-text) : {active-index: -1};
     out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
     in property <string> configuration-message: KitStrings.calendar-configuration-error;
@@ -358,7 +360,13 @@ export component KitCalendar inherits Rectangle {
                 focus-indicated: keyboard.has-focus && root.active-index == index;
                 focus-ring: KitThemes.inset-focus(root.theme);
                 choose(chosen) => { keyboard.focus(); if (root.access == FieldAccess.editable) { root.accept-day(chosen); } }
-                Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: day.selected || day.today ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : day.outside-month && root.outside-days == CalendarOutsideDays.dim ? root.theme.text-secondary : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
+                VerticalLayout {
+                    alignment: center; spacing: 0px;
+                    Text { text: day.label; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: day.selected || day.today ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular; color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : day.outside-month && root.outside-days == CalendarOutsideDays.dim ? root.theme.text-secondary : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
+                    if day.caption != "": Text { text: day.caption; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); color: !root.day-allowed(day) ? root.theme.disabled-text : day.selected ? root.theme.on-accent : root.theme.text-secondary; horizontal-alignment: center; overflow: elide; }
+                    if day.marker == CalendarMarker.dot: HorizontalLayout { alignment: center; Rectangle { width: root.theme.spacing.unit; height: root.theme.spacing.unit; border-radius: root.theme.spacing.unit / 2; background: day.selected ? root.theme.on-accent : root.theme.accent; } }
+                    if day.marker == CalendarMarker.bar: HorizontalLayout { alignment: center; Rectangle { width: root.theme.spacing.unit * 3.5; height: root.theme.spacing.unit * 0.75; border-radius: root.theme.spacing.unit * 0.375; background: day.selected ? root.theme.on-accent : root.theme.accent; } }
+                }
             }
             for index in root.view-mode == CalendarViewMode.days ? 0 : 12: CalendarPeriodOption {
                 value: index;
@@ -380,6 +388,8 @@ export component KitCalendar inherits Rectangle {
                 Text { text: root.period-label(index); font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.period-selected(index) || root.period-today(index) ? root.theme.typography.weight-semibold : root.theme.typography.weight-regular; color: !root.period-enabled(index) ? root.theme.disabled-text : root.period-selected(index) ? root.theme.on-accent : root.theme.text-primary; horizontal-alignment: center; vertical-alignment: center; }
             }
         }
+        // Footer actions (Today, Clear, presets) supplied by the host.
+        @children
         if root.configuration-state == CalendarConfigurationState.invalid: KitFieldError {
             theme: root.theme; text: root.configuration-message;
         }
