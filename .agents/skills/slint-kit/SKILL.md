@@ -242,6 +242,8 @@ For optional `KitDatePicker` / `KitDateTimeField` values, keep a Rust `Option<Ci
 
 Changing calendar constraints does not erase your accepted value: an invalid old selection is omitted from the allowed grid selection until replaced. Invalid old range drafts recover at the next valid start; Apply still validates the replacement. Keep configuration valid and validate accepted values before submission.
 
+KitDateRangePicker: an end chosen before the start restarts the range (`earlier-end: EarlierEndPolicy.restart`, or `.swap`, `.reject`). A refused choice keeps the draft and sets `rejection: DateRangeRejection` with per-reason messages (`unavailable-date-message`, `end-before-start-message`, `blocked-interior-message`, `too-short-message`, `too-long-message`; `invalid-configuration` uses `configuration-message`). Read the pending selection from `draft` / `draft-changed(DateRangeDraft)` instead of replicating the reducer. `DateRangeController::choose` and `reduce` return `RangeRejection`; `DateRangeRules::check` names the broken rule. The old `rejected-message` property is removed.
+
 CalendarConfigurationState reports unchecked/valid/invalid civil-date configuration. Invalid bounds/dates/availability keep a disabled reference grid and a localizable configuration-message instead of an empty panel; KitStrings.calendar-configuration-error sets the window default. Repairing rules restores interaction. Complete CalendarProjection literals include configuration_state; range-length rules remain separately validated.
 
 Calendar weekdays models are always Monday-first (seven localized names); week-start rotates the shared header and grid together. Date/range pickers use the same convention. Do not pre-rotate the names model.
