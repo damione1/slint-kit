@@ -52,6 +52,11 @@ test('the reference explains the central field, selection and table properties a
   for (const name of ['columns', 'rows', 'generation', 'active-index', 'active-column', 'edit-error']) {
     assert.ok(byName.get('KitDataTable').documentedProperties.some(property => property.name === name), `KitDataTable documents ${name}`);
   }
+  // The three central components leave no declared or inherited property unexplained.
+  for (const name of ['KitTextField', 'KitSelect', 'KitDataTable']) {
+    const undocumented = byName.get(name).effectiveProperties.filter(property => !property.documentation).map(property => property.name);
+    assert.deepEqual(undocumented, [], `${name} explains every property`);
+  }
   const email = byName.get('KitEmailField').documentedProperties.find(property => property.name === 'purpose');
   assert.equal(email.owner, 'KitTextField');
   assert.equal(email.documentation.documentedOn, 'KitTextField');
