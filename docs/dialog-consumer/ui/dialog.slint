@@ -26,7 +26,7 @@ component FocusButton inherits KitFocusTarget {
     button := KitButton {
         theme: root.theme; text: root.text; intent: root.intent; busy: root.busy; busy-label: root.text; disabled: !root.eligible;
         activated => { root.activated(); }
-        focus-observed(focused) => { root.focus-observed(root.token, focused); }
+        focus-observed(focused) => { root.observe-focus(focused); }
     }
 }
 
@@ -52,7 +52,7 @@ export component DialogApp inherits Window {
     callback dismiss(DialogLayer, CloseReason);
     callback confirm-requested();
     callback focus-next(bool);
-    callback focus-changed(int, bool);
+    callback focus-changed(int, int, bool);
     public function focus-layer(layer: DialogLayer) {
         if (layer == DialogLayer.archive) { archive-surface.take-scope-focus(); }
         else { confirm-surface.take-scope-focus(); }
@@ -66,8 +66,8 @@ export component DialogApp inherits Window {
         Text { text: root.french ? "Deux contrôles ouvrent le même dialogue. Fermez-le avec Échap, Retour système, le voile ou un bouton : le focus revient au contrôle qui l’a ouvert." : "Two controls open the same dialog. Close it with Escape, system Back, the backdrop or a button: focus returns to the control that opened it."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
         KitWrap {
             theme: root.theme; spacing: root.theme.spacing.unit * 3; alignment: start;
-            FocusButton { theme: root.theme; token: 1; slot: root.slots[1]; request: root.focus-request; intent: ButtonIntent.primary; text: root.french ? "Archiver depuis la barre d’outils" : "Archive from the toolbar"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
-            FocusButton { theme: root.theme; token: 2; slot: root.slots[2]; request: root.focus-request; text: root.french ? "Archiver depuis la fiche du projet" : "Archive from the project card"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+            FocusButton { theme: root.theme; token: 1; slot: root.slots[1]; request: root.focus-request; intent: ButtonIntent.primary; text: root.french ? "Archiver depuis la barre d’outils" : "Archive from the toolbar"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
+            FocusButton { theme: root.theme; token: 2; slot: root.slots[2]; request: root.focus-request; text: root.french ? "Archiver depuis la fiche du projet" : "Archive from the project card"; activated => { root.open-requested(DialogLayer.archive, self.token); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
         }
         Text { text: root.status; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
     }
@@ -90,18 +90,18 @@ export component DialogApp inherits Window {
                     theme: root.theme;
                     Text { text: root.french ? "Le projet quitte la liste active. Vous pourrez le restaurer depuis les archives." : "The project leaves the active list. You can restore it from the archive later."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; }
                     // A native editor is a focus target too: the request reaches the field through take-focus().
-                    KitFocusTarget {
+                    name-target := KitFocusTarget {
                         token: 3; generation: root.slots[3].generation; eligible: root.slots[3].eligible; request: root.focus-request;
                         min-height: name.min-height; preferred-height: name.preferred-height; vertical-stretch: 0;
                         focus-requested => { name.take-focus(); }
-                        focus-observed(token, focused) => { root.focus-changed(token, focused); }
-                        name := KitTextField { theme: root.theme; label: root.french ? "Nom du projet" : "Project name"; text <=> root.project-name; access: root.slots[3].eligible ? FieldAccess.editable : FieldAccess.disabled; focus-observed(focused) => { root.focus-changed(3, focused); } }
+                        focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); }
+                        name := KitTextField { theme: root.theme; label: root.french ? "Nom du projet" : "Project name"; text <=> root.project-name; access: root.slots[3].eligible ? FieldAccess.editable : FieldAccess.disabled; focus-observed(focused) => { name-target.observe-focus(focused); } }
                     }
                 }
                 KitDialogFooter {
                     theme: root.theme;
-                    FocusButton { theme: root.theme; token: 4; slot: root.slots[4]; request: root.focus-request; text: root.french ? "Annuler" : "Cancel"; activated => { root.dismiss(DialogLayer.archive, CloseReason.programmatic); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
-                    FocusButton { theme: root.theme; token: 5; slot: root.slots[5]; request: root.focus-request; intent: ButtonIntent.destructive; text: root.french ? "Archiver…" : "Archive…"; activated => { root.open-requested(DialogLayer.confirm, self.token); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                    FocusButton { theme: root.theme; token: 4; slot: root.slots[4]; request: root.focus-request; text: root.french ? "Annuler" : "Cancel"; activated => { root.dismiss(DialogLayer.archive, CloseReason.programmatic); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
+                    FocusButton { theme: root.theme; token: 5; slot: root.slots[5]; request: root.focus-request; intent: ButtonIntent.destructive; text: root.french ? "Archiver…" : "Archive…"; activated => { root.open-requested(DialogLayer.confirm, self.token); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
                 }
             }
         }
@@ -120,8 +120,8 @@ export component DialogApp inherits Window {
                 KitDialogBody { theme: root.theme; Text { text: root.french ? "L’archivage prend un instant. Pendant ce temps, ce dialogue ne peut pas être fermé." : "Archiving takes a moment. The dialog cannot be dismissed until it completes."; color: root.theme.text-secondary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } }
                 KitDialogFooter {
                     theme: root.theme;
-                    FocusButton { theme: root.theme; token: 6; slot: root.slots[6]; request: root.focus-request; text: root.french ? "Conserver le projet" : "Keep project"; activated => { root.dismiss(DialogLayer.confirm, CloseReason.programmatic); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
-                    FocusButton { theme: root.theme; token: 7; slot: root.slots[7]; request: root.focus-request; intent: ButtonIntent.primary; busy: root.confirm.busy; text: root.confirm.busy ? (root.french ? "Archivage…" : "Archiving…") : (root.french ? "Archiver maintenant" : "Archive now"); activated => { root.confirm-requested(); } focus-observed(token, focused) => { root.focus-changed(token, focused); } }
+                    FocusButton { theme: root.theme; token: 6; slot: root.slots[6]; request: root.focus-request; text: root.french ? "Conserver le projet" : "Keep project"; activated => { root.dismiss(DialogLayer.confirm, CloseReason.programmatic); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
+                    FocusButton { theme: root.theme; token: 7; slot: root.slots[7]; request: root.focus-request; intent: ButtonIntent.primary; busy: root.confirm.busy; text: root.confirm.busy ? (root.french ? "Archivage…" : "Archiving…") : (root.french ? "Archiver maintenant" : "Archive now"); activated => { root.confirm-requested(); } focus-observed(token, generation, focused) => { root.focus-changed(token, generation, focused); } }
                 }
             }
         }
