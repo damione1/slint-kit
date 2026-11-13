@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Breaking:** `KitDataTable.cell-committed` now takes one `CellCommit { row, column, generation, commit }` instead of `(int, int, int, FieldCommit)`, so the row token, column token and generation cannot be swapped. Migrate Slint handlers to `cell-committed(proposal) => { ... proposal.row ... }` and Rust handlers to `|proposal| ...`; `KeyedModel::cell_commits` now returns a handler taking a `CellCommit`. Document `CellContent` and `table_cells` as the supported way to build typed rows.
+- **Rupture :** `KitDataTable.cell-committed` prend désormais une seule `CellCommit { row, column, generation, commit }` au lieu de `(int, int, int, FieldCommit)`, si bien que le jeton de ligne, le jeton de colonne et la génération ne peuvent plus être permutés. Migrez les handlers Slint vers `cell-committed(proposal) => { ... proposal.row ... }` et les handlers Rust vers `|proposal| ...` ; `KeyedModel::cell_commits` renvoie désormais un handler qui prend une `CellCommit`. `CellContent` et `table_cells` sont documentés comme la voie prise en charge pour construire des lignes typées.
+
 - Align the platform qualification table with CI (the full check now runs headlessly on Linux; macOS rows are recorded past runs) and add manual IME composition and screen reader qualification procedures with a result record to the Getting started guide. No target gained a native, IME or screen reader qualification.
 - Aligne le tableau de qualification des plateformes sur la CI (la vérification complète tourne désormais sans fenêtre sur Linux ; les lignes macOS sont des exécutions passées) et ajoute au guide de démarrage des procédures manuelles de qualification de la composition IME et des lecteurs d’écran, avec un compte rendu. Aucune cible n’a gagné de qualification native, IME ou lecteur d’écran.
 

@@ -132,7 +132,13 @@ fn editing(rows: Vec<TableRow>) -> Editing {
     });
     let commits: Commits = Rc::default();
     let recorded = commits.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         recorded
             .borrow_mut()
             .push((row, column, generation, commit));
@@ -495,12 +501,22 @@ fn keyed_model_cell_commits_reject_a_stale_generation_and_name_the_key() {
     };
     let stale = model.generation();
     model.sort_by(|left, right| right.0.cmp(&left.0));
-    handler(token, QUANTITY, stale, commit.clone());
+    handler(CellCommit {
+        row: token,
+        column: QUANTITY,
+        generation: stale,
+        commit: commit.clone(),
+    });
     assert!(
         received.borrow().is_empty(),
         "a commit armed before the sort is rejected"
     );
-    handler(token, QUANTITY, model.generation(), commit);
+    handler(CellCommit {
+        row: token,
+        column: QUANTITY,
+        generation: model.generation(),
+        commit,
+    });
     assert_eq!(
         &*received.borrow(),
         &[(RecordId(9), QUANTITY, "7".to_string())],
@@ -745,7 +761,7 @@ fn plain_text_editor_rendering_keeps_native_editing_in_light_dark_and_large_text
     window.show().unwrap();
     let committed = Rc::new(RefCell::new(Vec::new()));
     let recorded = committed.clone();
-    window.on_cell_committed(move |_, _, _, commit| recorded.borrow_mut().push(commit));
+    window.on_cell_committed(move |proposal| recorded.borrow_mut().push(proposal.commit));
     for (name, theme) in [
         ("light", window.get_theme()),
         ("dark", window.get_dark_theme()),
@@ -1260,7 +1276,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
     window.show().unwrap();
     let commits = Rc::new(RefCell::new(0));
     let observed = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| *observed.borrow_mut() += 1);
+    window.on_cell_committed(move |_| *observed.borrow_mut() += 1);
     for (name, theme) in [
         ("light", window.get_theme()),
         ("dark", window.get_dark_theme()),
@@ -1343,7 +1359,7 @@ fn scrolling_or_shrinking_an_edited_row_outside_the_viewport_cancels_without_gho
     window.window().take_snapshot().unwrap();
     let commits = Rc::new(std::cell::Cell::new(0));
     let observed = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| observed.set(observed.get() + 1));
+    window.on_cell_committed(move |_| observed.set(observed.get() + 1));
     let navigated = Rc::new(std::cell::Cell::new(0));
     let observed = navigated.clone();
     window.on_navigate(move |collection, step| {
@@ -1739,7 +1755,7 @@ fn session_bounds_follow_native_geometry_and_viewport_exit_reports_one_closed_ou
     let observed = observe_sessions(&window);
     let commits = Rc::new(std::cell::Cell::new(0));
     let counted = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| counted.set(counted.get() + 1));
+    window.on_cell_committed(move |_| counted.set(counted.get() + 1));
     let wheel = |delta| {
         let view = table(&window);
         window
@@ -1922,7 +1938,7 @@ fn programmatic_viewport_commands_end_an_invalid_keep_open_session_once() {
     let observed = observe_sessions(&window);
     let commits = Rc::new(std::cell::Cell::new(0));
     let count = commits.clone();
-    window.on_cell_committed(move |_, _, _, _| count.set(count.get() + 1));
+    window.on_cell_committed(move |_| count.set(count.get() + 1));
     window.invoke_focus_table();
     open(&window, 1);
     text(&window, "x");
@@ -2000,7 +2016,13 @@ fn enter_after_a_real_wheel_scroll_reveals_the_active_row_before_mounting_and_fo
     window.show().unwrap();
     let accepted: Commits = Rc::new(RefCell::new(Vec::new()));
     let observed = accepted.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         observed
             .borrow_mut()
             .push((row, column, generation, commit))
@@ -2228,7 +2250,13 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
     window.show().unwrap();
     let commits: Commits = Rc::default();
     let recorded = commits.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         recorded
             .borrow_mut()
             .push((row, column, generation, commit))
@@ -2674,7 +2702,13 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
         .expect("native body viewport");
     let committed: Commits = Rc::default();
     let observed = committed.clone();
-    window.on_cell_committed(move |row, column, generation, commit| {
+    window.on_cell_committed(move |proposal| {
+        let CellCommit {
+            row,
+            column,
+            generation,
+            commit,
+        } = proposal;
         observed
             .borrow_mut()
             .push((row, column, generation, commit));

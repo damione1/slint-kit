@@ -1822,7 +1822,7 @@
           "example": "KitDataTable {\n    columns: [\n        { token: 1, label: \"Nom\", sortable: true, sort: DataSortDirection.ascending },\n        { token: 2, label: \"Budget\", alignment: DataAlignment.trailing, width: { sizing: ColumnSizing.fixed, basis: 120px } },\n    ];\n    rows: root.lignes;\n}"
         },
         "rows": {
-          "effect": "Les lignes visibles dans l’ordre d’affichage, issues de `KeyedModel::model()` : `token`, `cells` (chaînes) ou `content` (`TableCell` typées), `selected` et `disabled`. La vue de liste les virtualise : seules les lignes du viewport sont instanciées.",
+          "effect": "Les lignes visibles dans l’ordre d’affichage, issues de `KeyedModel::model()` : `token`, `cells` (chaînes) ou `content` (`TableCell` typées), `selected` et `disabled`. En Rust, construisez les cellules typées avec `CellContent` et `table_cells` ; un littéral `TableCell` écrit en Slint ou une ligne portant à la fois `cells` et `content` est une échappatoire (`content` l’emporte) qui contourne le contrat typé. La vue de liste les virtualise : seules les lignes du viewport sont instanciées.",
           "default": "Vide : `empty-label` s’affiche sous l’en-tête.",
           "constraints": "Une cellule par colonne dans l’ordre des colonnes ; lorsqu’une ligne porte à la fois `cells` et `content`, `content` est peint. Une ligne désactivée ne peut être ni activée ni éditée ; une ligne sélectionnée prend le remplissage de sélection.",
           "example": "KitDataTable {\n    columns: root.colonnes;\n    rows: [\n        { token: 10, cells: [\"Atlas\", \"42 000\"], selected: true },\n        { token: 11, cells: [\"Borealis\", \"17 500\"], disabled: true },\n    ];\n}"
@@ -1972,7 +1972,7 @@
         "sort-requested": "Jeton stable de la colonne à trier ; l’hôte applique son comparateur métier.",
         "resize-requested": "`(column-token, width)` : largeur demandée bornée en pixels logiques ; actualisez la politique de colonne.",
         "autosize-requested": "Jeton stable de la colonne dont la séparation a reçu un double-clic. Un double-clic immobile émet une seule demande d’ajustement automatique sans redimensionnement, tri ni activation de ligne. Mesurez le contenu métier puis actualisez sa largeur ; un tableau désactivé n’émet rien.",
-        "cell-committed": "`(row-token, column-token, generation, commit)` dans cet ordre. Vérifiez ligne et génération puis acceptez le FieldCommit avec son codec avant application. Sortir entièrement la ligne éditée du viewport annule le brouillon sans émettre de confirmation.",
+        "cell-committed": "Reçoit une `CellCommit` aux champs nommés `row`, `column`, `generation` et `commit`, de sorte que les trois entiers ne peuvent plus être permutés. Vérifiez `row` et `generation` puis acceptez le `FieldCommit` avec son codec avant application. Sortir entièrement la ligne éditée du viewport annule le brouillon sans émettre de confirmation.",
         "key-event": "Appelé avant les touches intégrées ; retournez accept pour un raccourci traité par l’hôte, sinon reject. Retournez KitKeyResult.accept ou KitKeyResult.reject.",
         "validate-edit": "`(row-token, column-token, generation, FieldCommit) -> string`. Après validation intrinsèque, retournez un message vide pour accepter ou un rejet métier localisé pour conserver l’éditeur et le brouillon. Le callback de confirmation ne suit qu’un verdict accepté.",
         "edit-started": "`(row-token, column-token, generation)` une fois à l’armement de la session, avant le layout de l’éditeur natif. Attendez `edit-bounds.valid` pour sa géométrie mesurée.",
@@ -2016,7 +2016,7 @@
           "example": "KitDataTable {\n    columns: [\n        { token: 1, label: \"Name\", sortable: true, sort: DataSortDirection.ascending },\n        { token: 2, label: \"Budget\", alignment: DataAlignment.trailing, width: { sizing: ColumnSizing.fixed, basis: 120px } },\n    ];\n    rows: root.rows;\n}"
         },
         "rows": {
-          "effect": "The visible rows in display order, from `KeyedModel::model()`: `token`, `cells` (strings) or `content` (typed `TableCell`s), `selected` and `disabled`. The list view virtualizes them, so only viewport rows are instantiated.",
+          "effect": "The visible rows in display order, from `KeyedModel::model()`: `token`, `cells` (strings) or `content` (typed `TableCell`s), `selected` and `disabled`. In Rust build typed cells with `CellContent` and `table_cells`; a Slint-written `TableCell` literal or a row carrying both `cells` and `content` is an escape hatch (`content` wins) that skips the typed contract. The list view virtualizes them, so only viewport rows are instantiated.",
           "default": "Empty: `empty-label` is shown under the header.",
           "constraints": "One cell per column in column order; when a row carries both `cells` and `content`, `content` is painted. A disabled row cannot be activated or edited; a selected row takes the selection fill.",
           "example": "KitDataTable {\n    columns: root.columns;\n    rows: [\n        { token: 10, cells: [\"Atlas\", \"42 000\"], selected: true },\n        { token: 11, cells: [\"Borealis\", \"17 500\"], disabled: true },\n    ];\n}"
@@ -2166,7 +2166,7 @@
         "sort-requested": "The stable column token to sort; the host applies its domain comparator.",
         "resize-requested": "`(column-token, width)`: a clamped requested width in logical pixels; update the column width policy.",
         "autosize-requested": "The stable column token whose divider was double-clicked. A stationary double click emits one autosize request and no resize, sort or row activation. Measure domain content and update its width; a disabled table emits nothing.",
-        "cell-committed": "`(row-token, column-token, generation, commit)` in that order. Fence the row and generation, then accept the FieldCommit with its codec before applying it. Scrolling the edited row entirely out of the viewport cancels the draft and emits no commit.",
+        "cell-committed": "Receives a `CellCommit` with the named fields `row`, `column`, `generation` and `commit`, so the three integers cannot be swapped. Fence `row` and `generation`, then accept the `FieldCommit` with its codec before applying it. Scrolling the edited row entirely out of the viewport cancels the draft and emits no commit.",
         "key-event": "Runs before built-in table keys; return accept when the host handles a shortcut, otherwise reject. Return KitKeyResult.accept or KitKeyResult.reject.",
         "validate-edit": "`(row-token, column-token, generation, FieldCommit) -> string`. After intrinsic validation, return an empty message to accept, or a localized domain rejection to keep the editor and draft open. The accepted callback runs only after this verdict.",
         "edit-started": "`(row-token, column-token, generation)` once when the session is armed, before the native editor is laid out. Read `edit-bounds.valid` to wait for measured geometry.",

@@ -74,6 +74,10 @@ export enum ColumnStep { previous, next }
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
 // cell's text in either form.
+// The accepted proposal of one edited cell, with named fields so the row
+// token, the column token and the projection generation cannot be swapped.
+// `commit` is run through the column's `FieldSpec::accept` by the host.
+export struct CellCommit { row: int, column: int, generation: int, commit: FieldCommit }
 export struct TableRow { token: int, cells: [string], content: [TableCell], selected: bool, disabled: bool }
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
@@ -481,7 +485,7 @@ export component KitDataTable inherits Rectangle {
     // armed when editing began, then the field commit to run through the
     // column's `FieldSpec::accept`. The host fences it with the generation
     // and republishes the row; the table paints nothing from it.
-    callback cell-committed(int,int,int,FieldCommit);
+    callback cell-committed(CellCommit);
     in property <TableEditBlurPolicy> edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
     in property <TableUnchangedEditPolicy> unchanged-edit-policy: TableUnchangedEditPolicy.report;
     callback edit-started(int,int,int);
@@ -915,7 +919,7 @@ export component KitDataTable inherits Rectangle {
                                         root.end-edit(focused && root.edit-focused, unchanged ? TableEditOutcome.unchanged : TableEditOutcome.committed);
                                         // An end observer may open another editor, but must not
                                         // retarget the original proposal to a different data source.
-                                        if (report && root.commit-address-current(identity, row-position)) { root.cell-committed(row-token, column-token, generation, commit); }
+                                        if (report && root.commit-address-current(identity, row-position)) { root.cell-committed({ row: row-token, column: column-token, generation: generation, commit: commit }); }
                                     } else { root.edit-error = rejection; }
                                 }
                             }

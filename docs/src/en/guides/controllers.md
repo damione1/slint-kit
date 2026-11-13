@@ -151,7 +151,7 @@ For a custom runtime, consume every core closure record. `ToastQueue::push` now 
 
 `KeyedModel::sorting_by` turns a domain-key comparator into an alternating sortable-header handler. Sorting preserves selection and active identity and advances the generation, so a pointer gesture started before the reorder cannot target the new projection. The [sortable table application](/guides/table-example/) wires `bind`, `navigation()`, `activation` and `sorting_by` to a `KitDataTable` in one short file.
 
-`KeyedModel::cell_commits(handler)` is the `KitDataTable.cell-committed` handler for in-place cell edits: it admits a commit only under the current generation and for an enabled row, then passes the row key, the column token and the `FieldCommit`, which the application runs through that column's `FieldSpec::accept` before republishing the row.
+`KeyedModel::cell_commits(handler)` is the `KitDataTable.cell-committed` handler for in-place cell edits: it admits a commit only under the current generation and for an enabled row, then passes the row key, the column token and the `FieldCommit` (it receives the `CellCommit` payload of `cell-committed`, whose fields are named `row`, `column`, `generation` and `commit`), which the application runs through that column's `FieldSpec::accept` before republishing the row.
 
 Use `Choices::selections(&keys)` for initial multiple selections; missing or repeated keys reject the complete projection. `KeyedModel::bind_active` publishes the active row through a weak window to an editor. Use `update_active` to reject commits for a line that is no longer active.
 

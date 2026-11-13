@@ -342,11 +342,11 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     pub fn cell_commits(
         &self,
         handler: impl Fn(K, i32, ui::FieldCommit) + 'static,
-    ) -> impl Fn(i32, i32, i32, ui::FieldCommit) + 'static {
+    ) -> impl Fn(ui::CellCommit) + 'static {
         let model = self.clone();
-        move |token, column, generation, commit| {
-            if let Some(key) = model.accept(token, generation) {
-                handler(key, column, commit);
+        move |proposal| {
+            if let Some(key) = model.accept(proposal.row, proposal.generation) {
+                handler(key, proposal.column, proposal.commit);
             }
         }
     }

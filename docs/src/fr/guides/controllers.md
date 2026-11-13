@@ -151,7 +151,7 @@ Pour un runtime personnalisé, traitez chaque fermeture du cœur. `ToastQueue::p
 
 `KeyedModel::sorting_by` transforme un comparateur de clés métier en handler de tri alterné. Le tri conserve sélection et identité active et avance la génération : un geste commencé avant le réordonnancement ne peut pas cibler la nouvelle projection. L’[application de tableau triable](/fr/guides/table-example/) raccorde `bind`, `navigation()`, `activation` et `sorting_by` à un `KitDataTable` dans un seul fichier court.
 
-`KeyedModel::cell_commits(handler)` est le handler de `KitDataTable.cell-committed` pour l’édition de cellule sur place : il n’admet un commit que sous la génération courante et pour une ligne active, puis transmet la clé de ligne, le jeton de colonne et le `FieldCommit`, que l’application passe dans le `FieldSpec::accept` de la colonne avant de republier la ligne.
+`KeyedModel::cell_commits(handler)` est le handler de `KitDataTable.cell-committed` pour l’édition de cellule sur place : il n’admet un commit que sous la génération courante et pour une ligne active, puis transmet la clé de ligne, le jeton de colonne et le `FieldCommit` (il reçoit la charge `CellCommit` de `cell-committed`, dont les champs se nomment `row`, `column`, `generation` et `commit`), que l’application passe dans le `FieldSpec::accept` de la colonne avant de republier la ligne.
 
 `Choices::selections(&keys)` prépare une sélection multiple initiale ; une clé absente ou répétée refuse toute la projection. `KeyedModel::bind_active` publie la ligne active vers un éditeur au moyen d’une fenêtre faible. `update_active` refuse une confirmation pour une ligne qui n’est plus active.
 
