@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitTabs, KitTabPanel, KitMenuBar, KitButton, KitTextField, KitStack, LayoutSpace, KitTheme, KitThemes, ChoiceFlow, TabActivation, OptionRow, SelectionRef, SelectState, Ownership } from "@kit";
+import { KitTabs, KitTabPanel, KitMenuBar, KitButton, ControlWidth, KitTextField, KitStack, LayoutSpace, KitTheme, KitThemes, ChoiceFlow, TabActivation, OptionRow, SelectionRef, SelectState, Ownership } from "@kit";
 export component TabsPanelsFixture inherits Window {
     width: 720px; height: 640px;
     in property <KitTheme> theme: KitThemes.light;
@@ -12,6 +12,7 @@ export component TabsPanelsFixture inherits Window {
     in property <TabActivation> activation: TabActivation.manual;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <bool> typeahead-enabled;
+    in property <ControlWidth> tab-width: ControlWidth.intrinsic;
     in property <bool> static-panel-stop;
     in property <bool> interactive: true;
     in-out property <string> profile-text: "Profile original";
@@ -26,6 +27,7 @@ export component TabsPanelsFixture inherits Window {
     out property <bool> settings-focused: settings-editor.has-focus;
     out property <bool> after-focused: after.has-focus;
     out property <bool> tabs-focused: tabs.has-focus;
+    out property <length> tabs-width: tabs.width;
     out property <int> shortcuts;
     out property <int> vertical-keys;
     out property <int> escapes;
@@ -51,7 +53,7 @@ export component TabsPanelsFixture inherits Window {
             tabs := KitTabs {
                 theme: root.theme; options: root.options; selected <=> root.selected;
                 activation: root.activation; ownership: root.ownership; flow: root.flow;
-                typeahead-enabled: root.typeahead-enabled; interactive: root.interactive;
+                typeahead-enabled: root.typeahead-enabled; interactive: root.interactive; tab-width: root.tab-width;
                 chosen(row) => { root.chosen(row); }
             }
             KitStack { theme: root.theme; gap: LayoutSpace.none;
