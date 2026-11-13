@@ -11,6 +11,14 @@ export component KeypadFixture inherits Window {
     out property <KitTheme> dark: KitThemes.dark;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <bool> can-confirm;
+    in property <bool> digits-enabled: true;
+    in property <bool> can-delete: true;
+    in property <bool> show-confirm: true;
+    in property <string> extra-label;
+    in property <bool> extra-enabled: true;
+    in property <bool> handle-escape;
+    callback extra-pressed();
+    callback cancelled();
     in property <length> available-width: 480px;
     callback activation-started();
     in property <ControlSize> control-size: ControlSize.comfortable;
@@ -34,6 +42,10 @@ export component KeypadFixture inherits Window {
         x: 20px; y: 80px; width: min(root.available-width, self.preferred-width); height: self.preferred-height;
         theme: root.theme; control-size: root.control-size; access: root.access;
         label: "Access code"; confirm-label: "Unlock"; can-confirm: root.can-confirm;
+        digits-enabled: root.digits-enabled; can-delete: root.can-delete; show-confirm: root.show-confirm;
+        extra-label: root.extra-label; extra-enabled: root.extra-enabled; handle-escape: root.handle-escape;
+        extra => { root.extra-pressed(); }
+        cancel => { root.cancelled(); }
         activation-started => { root.activation-started(); }
         digit(value) => { root.digit-entered(value); }
         delete-requested => { root.deleted(); }
