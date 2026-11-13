@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+export global CounterState {
+    in-out property <int> count;
+    in-out property <string> label;
+}
+
+component CounterView {
+    out property <int> count: CounterState.count;
+    out property <string> label: CounterState.label;
+}
+
+export component StoreFixture inherits Window {
+    out property <int> first-count: first.count;
+    out property <int> second-count: second.count;
+    out property <string> first-label: first.label;
+    first := CounterView {}
+    second := CounterView {}
+}

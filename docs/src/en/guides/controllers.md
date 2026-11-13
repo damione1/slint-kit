@@ -126,6 +126,42 @@ For `KitVirtualTextView`, `active-index` is a visual coordinate only. Native lin
 
 For numeric codecs, pair the control’s number-format with DecimalRules.syntax: canonical with NumberSyntax::en_ca()/en_us(), decimal-comma with fr_ca()/fr_fr(). The shared grammar admits strict grouping, signs and outer whitespace before exact scale/sign/bounds checks; min/max/step/default-value remain canonical attributes. FieldSpec::accept returns the parsed T: pass it to business code instead of parsing its text again. Plain draft formatting is separate from format_decimal grouped display; with_display can configure at-rest presentation. FieldSpec::integer(syntax, bounds) takes the syntax and the bounds; NumberSyntax is an open type (de_de, de_ch, pt_br, en_in or NumberSyntax::new). The native number-format control knows only canonical and decimal-comma: for another syntax, use a text control with the typed codec.
 
+## Global state with Store
+
+Rust reaches a Slint window only through its root component and its `global`s. Use that: one Slint `global` is one store. The global declares the properties every component reads; a `Store<T>` in Rust owns the typed value and projects it into the global.
+
+```slint
+export global Session {
+    in-out property <string> user;
+    in-out property <int> unread;
+}
+```
+
+```rust
+#[derive(Clone)]
+struct SessionState { user: String, unread: i32 }
+
+let store = Store::new(SessionState { user: "Ada".into(), unread: 0 });
+let weak = app.as_weak();
+let _projection = store.observe(move |state| {
+    if let Some(app) = weak.upgrade() {
+        let session = app.global::<Session>();
+        session.set_user(state.user.as_str().into());
+        session.set_unread(state.unread);
+    }
+});
+store.update(|state| state.unread += 1);
+```
+
+Any component that reads `Session.unread` shows the new value, whichever screen it is on. In React terms, the `global` is the context consumed by components and the `Store<T>` is the reducer state that feeds it. Keep the `_projection` alive as long as the window; dropping the `Subscription` stops the projection.
+
+- `get`, `with`, `set` and `update` read and write on the UI thread. Observers run after each change with a snapshot. An observer that changes the store sees the change applied at once, and observers run again with the latest value, so none stays stale.
+- `subscribe` reports changes only; `observe` also calls the observer with the current value.
+- `store.remote()` returns a `StoreRemote<T>` that is `Send`. Call `update` or `set` from a thread or an asynchronous task: the change is queued with `slint::invoke_from_event_loop` and applied on the UI thread. It returns `StoreError` when no event loop runs, and a change for a dropped store is discarded.
+- Business state belongs to your application. The store holds the projection the views need, not the source of truth.
+- Use one store per domain (session, settings, cart) rather than one store for the whole application: a component then depends only on the global it reads.
+- Globals exist once per window. To keep several windows in step, observe the same store once per window; each projection writes into that window's global.
+
 ## Host effects and notifications
 
 Localize built-in action and region names once per window through `KitStrings.dismiss-label-template` (`Dismiss {title}`), `breadcrumbs-label`, `pagination-label` and `notifications-label`, or override each component’s `dismiss-label` / `accessible-name`. `ToastEntry.dismiss-label` carries a complete per-entry name through `KitToastHost`; empty uses the global template, and `KitToast.dismiss-label` can override it. Complete Rust `ToastEntry` literals now need `dismiss_label: Default::default()` (or a localized name); literals ending with `..Default::default()` remain compatible.
