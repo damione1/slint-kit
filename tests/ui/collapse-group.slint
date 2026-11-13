@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCollapse, KitButton, KitTheme, KitThemes, Ownership } from "@kit";
+
+export component CollapseGroupFixture inherits Window {
+    title: "Collapse group witness";
+    width: 480px; height: 480px;
+    in-out property <KitTheme> theme: KitThemes.light;
+    in property <Ownership> ownership: Ownership.local;
+    in property <bool> collapsible: true;
+    in-out property <int> open: 0;
+    in-out property <int> requests;
+    in-out property <int> presses;
+    out property <bool> first-open: first.open;
+    out property <bool> second-open: second.open;
+    out property <bool> alone-open: alone.open;
+    background: root.theme.canvas;
+    VerticalLayout {
+        padding: 16px; spacing: 8px; alignment: start;
+        first := KitCollapse {
+            theme: root.theme; title: "First section"; value: 0; group-value <=> root.open;
+            collapsible: root.collapsible; ownership: root.ownership;
+            expansion-requested(next) => { root.requests += 1; }
+            KitButton { text: "Inside first"; activated => { root.presses += 1; } }
+        }
+        second := KitCollapse {
+            theme: root.theme; title: "Second section"; value: 1; group-value <=> root.open;
+            collapsible: root.collapsible; ownership: root.ownership;
+            expansion-requested(next) => { root.requests += 1; }
+            KitButton { text: "Inside second"; activated => { root.presses += 1; } }
+        }
+        alone := KitCollapse {
+            theme: root.theme; title: "Standalone section";
+            Text { text: "Standalone body"; }
+        }
+    }
+}

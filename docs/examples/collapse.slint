@@ -7,16 +7,20 @@ export component Example inherits Window {
     default-font-family: InterFont.family;
     title: "KitCollapse example";
     preferred-width: 480px;
-    preferred-height: 250px;
+    preferred-height: 340px;
     max-width: 100000px;
     max-height: 100000px;
     background: root.theme.canvas;
     in-out property <KitTheme> theme: KitThemes.light;
     in-out property <string> status;
+    // Sections that share `group-value` open one at a time.
+    in-out property <int> open: 0;
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Collapse"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
         KitCollapse { theme: root.theme; title: "What happens after I publish?"; expanded: true; Text { text: "Your team receives a notification and can review the latest version."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } }
+        KitCollapse { theme: root.theme; title: "Delivery"; value: 0; group-value <=> root.open; Text { text: "Orders ship within two days."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } }
+        KitCollapse { theme: root.theme; title: "Billing"; value: 1; group-value <=> root.open; Text { text: "Invoices are sent on the first of the month."; color: root.theme.text-primary; font-size: 14px * root.theme.text-scale; wrap: word-wrap; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

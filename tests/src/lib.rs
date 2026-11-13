@@ -11,6 +11,7 @@ mod calendar_marks;
 mod calendar_outside;
 mod calendar_period;
 mod code_feedback;
+mod collapse_group;
 mod column_widths;
 mod dialog_composition;
 mod direction;
