@@ -142,16 +142,19 @@ fn pointer_recovery_escape_access_and_bad_specs_preserve_admission() {
             minimum: "0".into(),
             maximum: "100".into(),
             step: "0".into(),
+            ..Default::default()
         },
         SliderSpec {
             minimum: "100".into(),
             maximum: "0".into(),
             step: "5".into(),
+            ..Default::default()
         },
         SliderSpec {
             minimum: "bad".into(),
             maximum: "100".into(),
             step: "5".into(),
+            ..Default::default()
         },
     ] {
         window.set_spec(spec);
@@ -170,6 +173,7 @@ fn pointer_recovery_escape_access_and_bad_specs_preserve_admission() {
         minimum: "0".into(),
         maximum: "100".into(),
         step: "5".into(),
+        ..Default::default()
     });
     window.set_scalar("bad".into());
     window.set_range(range("80", "20"));
@@ -218,6 +222,7 @@ fn loaded_recovered_and_invalid_slider_states_render_in_both_themes() {
                 minimum: "0".into(),
                 maximum: "100".into(),
                 step: "0".into(),
+                ..Default::default()
             });
             crate::choice_presentation::save_capture(
                 &frame(),

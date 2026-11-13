@@ -1,7 +1,7 @@
 //! Exact decimal editing, with locale-specific syntax and explicit rounding.
 use crate::{DraftValue, NumberInputFormat, ParseIssue, StepDirection};
 use rust_decimal::{Decimal, RoundingStrategy};
-use std::{fmt, marker::PhantomData, str::FromStr};
+use std::{fmt, marker::PhantomData, num::NonZeroU32, str::FromStr};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DecimalValue(Decimal);
@@ -1076,7 +1076,11 @@ pub struct DecimalSlider {
     minimum: DecimalValue,
     maximum: DecimalValue,
     step: DecimalValue,
+    page_steps: NonZeroU32,
+    distance_steps: u32,
 }
+/// How many lattice steps Page Up and Page Down move when a host sets none.
+const DEFAULT_PAGE_STEPS: NonZeroU32 = NonZeroU32::new(10).unwrap();
 impl DecimalSlider {
     pub fn new(
         minimum: DecimalValue,
@@ -1095,7 +1099,32 @@ impl DecimalSlider {
             minimum,
             maximum,
             step,
+            page_steps: DEFAULT_PAGE_STEPS,
+            distance_steps: 0,
         })
+    }
+    /// Sets how many lattice steps Page Up and Page Down move.
+    pub fn with_page_steps(self, page_steps: NonZeroU32) -> Self {
+        Self { page_steps, ..self }
+    }
+    /// Sets the minimum distance, in lattice steps, between the two thumbs of a
+    /// range. The distance must fit in the span of the slider.
+    pub fn with_distance_steps(self, distance_steps: u32) -> Result<Self, ParseIssue> {
+        let slider = Self {
+            distance_steps,
+            ..self
+        };
+        if slider.distance()? > self.maximum.checked_sub(self.minimum)? {
+            return Err(ParseIssue::InvalidRange);
+        }
+        Ok(slider)
+    }
+    pub fn page_steps(self) -> NonZeroU32 {
+        self.page_steps
+    }
+    /// The smallest allowed gap between the lower and the upper thumb.
+    pub fn distance(self) -> Result<DecimalValue, ParseIssue> {
+        DecimalValue(Decimal::from(self.distance_steps)).checked_mul(self.step)
     }
     pub fn minimum(self) -> DecimalValue {
         self.minimum
@@ -1172,13 +1201,14 @@ impl DecimalSlider {
         value: DecimalValue,
         direction: crate::NavigationStep,
     ) -> Result<DecimalValue, ParseIssue> {
+        let page = i32::try_from(self.page_steps.get()).unwrap_or(i32::MAX);
         let amount: i32 = match direction {
             crate::NavigationStep::First => return Ok(self.minimum),
             crate::NavigationStep::Last => return self.at_position(1.0),
             crate::NavigationStep::Next => 1,
             crate::NavigationStep::Previous => -1,
-            crate::NavigationStep::PageNext => 10,
-            crate::NavigationStep::PagePrevious => -10,
+            crate::NavigationStep::PageNext => page,
+            crate::NavigationStep::PagePrevious => -page,
         };
         if value < self.minimum {
             return Ok(self.minimum);
@@ -1296,6 +1326,41 @@ mod slider_tests {
     }
 
     use super::*;
+    #[test]
+    fn page_steps_default_to_ten_and_follow_the_configured_count() {
+        let base = DecimalSlider::new(
+            "0".parse().unwrap(),
+            "100".parse().unwrap(),
+            "1".parse().unwrap(),
+        )
+        .unwrap();
+        let from = |slider: DecimalSlider, step| {
+            slider
+                .navigate("50".parse().unwrap(), step)
+                .unwrap()
+                .to_string()
+        };
+        assert_eq!(base.page_steps().get(), 10);
+        assert_eq!(from(base, crate::NavigationStep::PageNext), "60");
+        let wide = base.with_page_steps(NonZeroU32::new(25).unwrap());
+        assert_eq!(from(wide, crate::NavigationStep::PageNext), "75");
+        assert_eq!(from(wide, crate::NavigationStep::PagePrevious), "25");
+        assert_eq!(from(wide, crate::NavigationStep::Next), "51");
+    }
+    #[test]
+    fn distance_steps_scale_by_the_step_and_must_fit_the_span() {
+        let base = DecimalSlider::new(
+            "0".parse().unwrap(),
+            "1".parse().unwrap(),
+            "0.25".parse().unwrap(),
+        )
+        .unwrap();
+        assert_eq!(base.distance().unwrap(), "0".parse().unwrap());
+        let spaced = base.with_distance_steps(2).unwrap();
+        assert_eq!(spaced.distance().unwrap(), "0.5".parse().unwrap());
+        assert!(base.with_distance_steps(4).is_ok());
+        assert!(base.with_distance_steps(5).is_err());
+    }
     #[test]
     fn domain_requests_clamp_and_round_on_the_pointer_lattice() {
         let slider = DecimalSlider::new(
