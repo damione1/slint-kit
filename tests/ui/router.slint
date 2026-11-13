@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitRouter, KitScreen, KitButton, KitModalContext, RouteChange, KitTheme, KitThemes } from "@kit";
+
+export enum Screen { list, detail, edit }
+
+export component RouterFixture inherits Window {
+    width: 400px;
+    height: 300px;
+    in property <Screen> route: Screen.list;
+    in property <RouteChange> change: RouteChange.replace;
+    in property <bool> can-go-back;
+    in property <int> router-layer;
+    in property <KitTheme> theme: KitThemes.light;
+    out property <bool> list-visible: list.visible;
+    out property <bool> detail-visible: detail.visible;
+    out property <bool> edit-visible: edit.visible;
+    out property <length> detail-x: detail.x;
+    out property <length> list-x: list.x;
+    out property <float> detail-opacity: detail.opacity;
+    callback back();
+    callback opened-detail();
+    public function open-modal-layer() { KitModalContext.enter(1); }
+    KitRouter {
+        can-go-back: root.can-go-back;
+        modal-layer: root.router-layer;
+        back => { root.back(); }
+        list := KitScreen {
+            theme: root.theme; active: root.route == Screen.list; change: root.change;
+            KitButton { text: "Open"; accessible-name: "Open detail"; activated => { root.opened-detail(); } }
+        }
+        detail := KitScreen {
+            theme: root.theme; active: root.route == Screen.detail; change: root.change;
+            KitButton { text: "Edit"; accessible-name: "Edit item"; }
+        }
+        edit := KitScreen {
+            theme: root.theme; active: root.route == Screen.edit; change: root.change;
+            KitButton { text: "Save"; accessible-name: "Save item"; }
+        }
+    }
+}

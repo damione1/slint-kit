@@ -1,0 +1,60 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTheme, KitThemeContext, ChoiceFlow } from "theme.slint";
+import { KitModalContext } from "modal.slint";
+import { RouteChange } from "shared-contracts.slint";
+export { RouteChange } from "shared-contracts.slint";
+
+// One screen of a router. The screen shows while `active` and moves with the
+// theme motion tokens: a push slides it in from the trailing edge, a pop from
+// the leading edge, a replace fades it. The edge follows `theme.direction`.
+// An inactive screen is hidden once its exit finishes, so it takes no pointer,
+// focus or accessibility; until then it ignores the pointer.
+export component KitScreen inherits Rectangle {
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <bool> active;
+    // The last navigation, read by the screen that enters and the one that leaves.
+    in property <RouteChange> change: RouteChange.replace;
+    private property <float> progress: root.active ? 1 : 0;
+    private property <length> travel: root.theme.spacing.unit * 6
+        * (root.change == RouteChange.push ? 1 : root.change == RouteChange.pop ? -1 : 0)
+        * (root.theme.direction == ChoiceFlow.right-to-left ? -1 : 1);
+    animate progress { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-out; }
+    changed active => { if (root.active) { scope.focus(); } }
+    // Move focus into the screen, as navigation does when the screen appears.
+    public function take-focus() { if (root.active) { scope.focus(); } }
+    visible: root.progress > 0;
+    opacity: root.progress;
+    x: (root.active ? 1 : -1) * (1 - root.progress) * root.travel;
+    scope := FocusScope {
+        width: parent.width; height: parent.height;
+        enabled: root.active;
+        @children
+    }
+    if !root.active: TouchArea { width: parent.width; height: parent.height; }
+}
+
+// Hosts the screens of an app. Declare one `KitScreen` per route and bind
+// each `active` to the route Rust projects from its `Router`; the router
+// turns Escape and the system back key into `back()` while a screen is behind
+// the current one. Overlays that handle the key themselves are not affected.
+export component KitRouter inherits Rectangle {
+    // Whether a screen is behind the current one; bind it to `can-go-back`.
+    in property <bool> can-go-back;
+    // The modal layer this router belongs to; 0 is the window.
+    in property <int> modal-layer;
+    private property <bool> live: !KitModalContext.inert(root.modal-layer);
+    callback back();
+    public function take-focus() { scope.focus(); }
+    clip: true;
+    scope := FocusScope {
+        width: parent.width; height: parent.height;
+        key-pressed(event) => {
+            if (root.live && root.can-go-back && (event.text == Key.Escape || event.text == Key.Back)) {
+                root.back();
+                return accept;
+            }
+            return reject;
+        }
+        @children
+    }
+}

@@ -162,6 +162,47 @@ Any component that reads `Session.unread` shows the new value, whichever screen 
 - Use one store per domain (session, settings, cart) rather than one store for the whole application: a component then depends only on the global it reads.
 - Globals exist once per window. To keep several windows in step, observe the same store once per window; each projection writes into that window's global.
 
+## Screen navigation with Router
+
+Declare the screens as one route type. A plain enum names them; an enum whose variants carry data carries the route parameters with the screen. Rust owns the stack. Slint only shows the screen that is current.
+
+```rust
+#[derive(Clone)]
+enum AppRoute { List, Detail { id: u32 }, Edit { id: u32 } }
+
+let router = Router::new(AppRoute::List);
+let weak = app.as_weak();
+let _projection = router.observe(move |navigation| {
+    if let Some(app) = weak.upgrade() {
+        app.set_change(navigation.change().into());
+        app.set_route(match navigation.route() {
+            AppRoute::List => Screen::List,
+            AppRoute::Detail { .. } => Screen::Detail,
+            AppRoute::Edit { .. } => Screen::Edit,
+        });
+        app.set_can_go_back(navigation.can_go_back());
+    }
+});
+router.push(AppRoute::Detail { id: 7 });
+router.pop();
+```
+
+```slint
+KitRouter {
+    can-go-back: root.can-go-back;
+    back => { root.back(); }
+    KitScreen { active: root.route == Screen.list; change: root.change; /* list */ }
+    KitScreen { active: root.route == Screen.detail; change: root.change; /* detail */ }
+}
+```
+
+- `push`, `pop` and `replace` change the stack. `pop` at the root does nothing and returns `false`. `replace` swaps the current route and keeps the history.
+- The `match` that converts the route to the Slint enum has no wildcard arm. A new route does not compile until that match handles it.
+- `on_navigated(|route, change| ...)` reports each navigation. `observe` also reports the current route, which is how the window is projected.
+- `KitRouter` turns Escape and the system back key into `back()` while a screen is behind the current one. Call `router.pop()` from that callback. At the root, and while a modal layer is open, the key is left alone.
+- Each `KitScreen` moves with the theme motion tokens: a push slides in from the trailing edge, a pop from the leading edge, a replace fades. Reduced motion removes the movement. A hidden screen takes no pointer, focus or accessibility.
+- Deep links and a browser history are not part of the router.
+
 ## Async calls
 
 Slint changes a window only from its event loop, so a result that arrives later needs the window again. `spawn` and `Latest` hide that step: the closure receives the window, already upgraded, and application code holds no `as_weak` and no `upgrade`.
