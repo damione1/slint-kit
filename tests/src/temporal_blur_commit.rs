@@ -201,5 +201,6 @@ fn the_zoned_group_resolves_when_focus_leaves_its_last_editor() {
     assert_eq!(accepted[0].local.date.day, 3);
     assert_eq!(accepted[0].local.date.month, 11);
     assert_eq!(accepted[0].zone, "America/Toronto");
+    assert_eq!(accepted[0].utc_offset_seconds, -5 * 3600);
     assert!(slint_kit::ResolvedDateTime::try_from(accepted[0].clone()).is_ok());
 }

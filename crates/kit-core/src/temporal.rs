@@ -94,6 +94,10 @@ impl CivilDate {
     fn weekday_index(self) -> u32 {
         self.0.weekday().num_days_from_monday()
     }
+    /// Day of the week; `WeekStart` is the shared seven-day set.
+    pub fn weekday(self) -> WeekStart {
+        WeekStart::from(self.0.weekday())
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct YearMonth {
@@ -355,6 +359,19 @@ impl TimeZoneId {
     pub fn name(self) -> &'static str {
         self.0.name()
     }
+    /// Every IANA zone name the kit can resolve, in catalogue order.
+    pub fn all() -> impl ExactSizeIterator<Item = Self> + Clone {
+        chrono_tz::TZ_VARIANTS.iter().copied().map(Self)
+    }
+    /// Offset from UTC in force in this zone at the instant. Never fails: every instant has one.
+    pub fn offset_at(self, instant: Instant) -> UtcOffset {
+        UtcOffset(
+            self.0
+                .offset_from_utc_datetime(&instant.0.naive_utc())
+                .fix()
+                .local_minus_utc(),
+        )
+    }
     /// Project an explicit instant into this zone, validating the supported civil years.
     pub fn local_at(self, instant: Instant) -> Result<LocalDateTime, ParseIssue> {
         let offset = self
@@ -385,6 +402,14 @@ impl TimeZoneId {
         }
     }
 }
+/// Signed offset from UTC, in seconds east of Greenwich.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UtcOffset(i32);
+impl UtcOffset {
+    pub fn seconds(self) -> i32 {
+        self.0
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(DateTime<Utc>);
 impl Instant {
@@ -403,6 +428,19 @@ pub enum ZonedResolution {
     Unique(Instant),
     Ambiguous { earlier: Instant, later: Instant },
     Nonexistent,
+}
+impl From<Weekday> for WeekStart {
+    fn from(value: Weekday) -> Self {
+        match value {
+            Weekday::Mon => Self::Monday,
+            Weekday::Tue => Self::Tuesday,
+            Weekday::Wed => Self::Wednesday,
+            Weekday::Thu => Self::Thursday,
+            Weekday::Fri => Self::Friday,
+            Weekday::Sat => Self::Saturday,
+            Weekday::Sun => Self::Sunday,
+        }
+    }
 }
 impl WeekStart {
     fn index(self) -> u32 {
@@ -1099,6 +1137,43 @@ mod calendar_clock_tests {
                 .unwrap()
                 .local_at(last)
                 .is_err()
+        );
+    }
+}
+
+#[cfg(test)]
+mod zone_catalogue_tests {
+    use super::*;
+    #[test]
+    fn catalogue_round_trips_names_and_reports_offsets_per_instant() {
+        let all: Vec<_> = TimeZoneId::all().collect();
+        assert!(all.len() > 400);
+        assert!(
+            all.iter()
+                .all(|zone| TimeZoneId::new(zone.name()) == Ok(*zone))
+        );
+        let toronto = TimeZoneId::new("America/Toronto").unwrap();
+        assert!(all.contains(&toronto));
+        let winter = Instant::from_unix_seconds(1_704_067_200).unwrap();
+        let summer = Instant::from_unix_seconds(1_719_792_000).unwrap();
+        assert_eq!(toronto.offset_at(winter).seconds(), -5 * 3600);
+        assert_eq!(toronto.offset_at(summer).seconds(), -4 * 3600);
+        let kolkata = TimeZoneId::new("Asia/Kolkata").unwrap();
+        assert_eq!(kolkata.offset_at(winter).seconds(), 19_800);
+    }
+    #[test]
+    fn weekday_names_the_day_of_the_week() {
+        assert_eq!(
+            CivilDate::new(2026, 11, 13).unwrap().weekday(),
+            WeekStart::Friday
+        );
+        assert_eq!(
+            CivilDate::new(2024, 2, 29).unwrap().weekday(),
+            WeekStart::Thursday
+        );
+        assert_eq!(
+            CivilDate::new(2026, 11, 15).unwrap().weekday(),
+            WeekStart::Sunday
         );
     }
 }
