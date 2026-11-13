@@ -305,3 +305,63 @@ fn markers_follow_stable_tokens_after_source_reorder_and_true_closing_policy_res
     selected.sort();
     assert_eq!(selected, [11, 22]);
 }
+
+#[test]
+fn host_opens_and_closes_the_list_and_reads_the_open_state() {
+    let app = fixture();
+    app.show().unwrap();
+    assert!(!app.get_is_open());
+    app.invoke_open_multi();
+    settle(&app);
+    assert!(app.get_is_open() && app.get_state().open);
+    app.invoke_close_multi();
+    settle(&app);
+    assert!(!app.get_is_open() && !app.get_state().open);
+    app.set_access(FieldAccess::ReadOnly);
+    app.invoke_open_multi();
+    settle(&app);
+    assert!(!app.get_is_open(), "a read-only control never opens");
+}
+
+#[test]
+fn rejected_additions_report_the_limit_and_stale_tokens_do_not_count_against_it() {
+    let app = fixture();
+    app.set_limit(1);
+    let reached = Rc::new(RefCell::new(Vec::new()));
+    let recorded = reached.clone();
+    app.on_limit_reached(move |row| recorded.borrow_mut().push(row.token));
+    app.show().unwrap();
+    open(&app);
+    assert!(!app.get_at_limit());
+    option(&app, "Amber").mock_single_click(PointerEventButton::Left);
+    settle(&app);
+    assert!(app.get_at_limit());
+    assert!(reached.borrow().is_empty());
+    option(&app, "Apricot").mock_single_click(PointerEventButton::Left);
+    settle(&app);
+    assert_eq!(reached.borrow().as_slice(), [22]);
+    assert_eq!(app.get_selected().row_count(), 1);
+    // Removing is never limited; a disabled row is not a limit rejection.
+    option(&app, "Blocked").invoke_accessible_default_action();
+    settle(&app);
+    assert_eq!(reached.borrow().as_slice(), [22]);
+    // The option holding token 11 is replaced: the stale token frees the slot.
+    app.set_options(ModelRc::new(VecModel::from(vec![OptionRow {
+        token: 22,
+        generation: 2,
+        label: "Apricot".into(),
+        ..Default::default()
+    }])));
+    settle(&app);
+    assert!(!app.get_at_limit());
+    option(&app, "Apricot").mock_single_click(PointerEventButton::Left);
+    settle(&app);
+    assert_eq!(reached.borrow().as_slice(), [22]);
+    assert_eq!(
+        app.get_selected()
+            .iter()
+            .map(|r| r.token)
+            .collect::<Vec<_>>(),
+        [22]
+    );
+}

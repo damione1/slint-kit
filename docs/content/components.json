@@ -1905,6 +1905,10 @@
           "effect": "Présentation des lignes, retrouvée par `token` d’option : chaque `OptionItem` a un `kind` (`OptionItemKind.option`, `group` ou `separator`), une `leading-icon: IconGlyph` dessinée avant le libellé et un `trailing-text` dessiné en fin de ligne (et ajouté à la description accessible). L’identité, le libellé, la description et l’activation restent dans l’`OptionRow`. Les lignes `group` dessinent leur libellé comme un titre discret et les lignes `separator` dessinent un filet ; les deux ignorent le pointeur, et le modèle doit les marquer `disabled` pour que la navigation clavier et la recherche à la frappe les sautent. Un jeton sans entrée est une option simple : la liste ne contient que les lignes décorées. La recherche filtre les lignes de groupe et de séparateur comme les autres.",
           "default": "`[]` (chaque ligne est une option simple).",
           "example": "KitCombobox {\n    options: [{ token: 1, generation: 1, label: \"Fruits\", disabled: true }, { token: 2, generation: 1, label: \"Citron\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
+        },
+        "is-open": {
+          "effect": "`bool` en lecture seule : l’état d’ouverture du contrôleur, vrai tant que la liste est présentée, quelle que soit la propriété. Servez-vous-en pour restyler un libellé ou afficher un raccourci.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -1917,7 +1921,9 @@
       "functions": {
         "clear": "Délègue la suppression du texte modifiable non vide à l’éditeur natif, en conservant annulation et protection de composition ; cleared() suit une suppression terminée et la recherche vide est émise une fois. La propriété locale efface selected immédiatement ; l’hôte contrôlé acquitte via selected. Une action vide ou refusée n’émet pas cleared(). Un popup déjà ouvert reste ouvert.",
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Le focus natif reste dans le TextInput éditable, préservant sélection, curseur, annulation et routage IME. Les options du popup exposent leurs positions, mais Slint 1.18.1 n’a pas de relation publique active-descendant/controls par identifiant entre l’éditeur feuille et les options sœurs ou de popup. Déplacer le focus natif vers une option casserait l’édition et n’est pas utilisé. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique."
     },
@@ -2068,6 +2074,10 @@
           "effect": "Presentation of the rows, looked up by option `token`: each `OptionItem` has a `kind` (`OptionItemKind.option`, `group` or `separator`), a `leading-icon: IconGlyph` drawn before the label and `trailing-text` drawn at the end of the row (and added to the accessible description). Identity, label, description and activation stay in the `OptionRow`. `group` rows draw their label as a quiet heading and `separator` rows draw a rule; both ignore the pointer, and the model must mark them `disabled` so keyboard navigation and typeahead skip them. A token with no entry is a plain option, so the list only needs the decorated rows. Searching filters the group and separator rows like any other row.",
           "default": "`[]` (every row is a plain option).",
           "example": "KitCombobox {\n    options: [{ token: 1, generation: 1, label: \"Fruit\", disabled: true }, { token: 2, generation: 1, label: \"Lemon\" }];\n    items: [{ token: 1, kind: OptionItemKind.group }, { token: 2, trailing-text: \"Ctrl+L\" }];\n}"
+        },
+        "is-open": {
+          "effect": "Read-only `bool`: the controller's open state, true while the list is presented, whatever the ownership. Use it to restyle a label or switch a shortcut hint.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -2080,7 +2090,9 @@
       "functions": {
         "clear": "Delegate nonempty editable text deletion to the native editor, preserving undo and its composition guard; cleared() follows a completed deletion and the empty query is published once. Local ownership clears selected immediately; controlled owners acknowledge through selected. Empty or refused native actions do not emit cleared(). An already-open suggestion popup remains open.",
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Native focus remains in the editable TextInput, preserving selection, caret, undo and IME routing. Popup options expose positions, but Slint 1.18.1 has no public active-descendant/controls identifier relation from the editor leaf to sibling or popup options. Moving native focus to an option would break editing and is not used. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME."
     }
@@ -5536,16 +5548,27 @@
           "effect": "Largeur demandée du popup. Le popup ne dépasse jamais la largeur de la fenêtre moins ses marges et se décale pour rester dans la fenêtre.",
           "default": "`max(width, KitMetrics.select-popup-min-width(theme))` : la largeur du déclencheur, au moins 60 unités d’espacement du thème.",
           "example": "KitMultiSelect {\n    options: root.pays;\n    popup-width: 360px;\n}"
+        },
+        "is-open": {
+          "effect": "`bool` en lecture seule : l’état d’ouverture du contrôleur, vrai tant que la liste est présentée, quelle que soit la propriété. Servez-vous-en pour restyler un libellé ou afficher un raccourci.",
+          "default": "`false`."
+        },
+        "at-limit": {
+          "effect": "`bool` en lecture seule : vrai lorsque `selection-limit` est défini et que le nombre d’options choisies atteint la limite. Servez-vous-en pour indiquer qu’aucune option ne peut plus être ajoutée.",
+          "default": "`false`."
         }
       },
       "callbacks": {
         "tab-navigation": " Retournez KitKeyResult.accept ou KitKeyResult.reject.",
         "query-edited": "Signale les recherches saisies et l’effacement d’une recherche de session non vide par `\"\"`. Utilisez la valeur vide pour annuler une recherche distante ou restaurer sa page non filtrée. Un callback qui rouvre une session ou fournit une autre recherche conserve ce nouvel état ; nettoyer l’ancienne session n’efface pas sa sélection.",
-        "selection-changed": "Proposition de bascule admise (OptionRow, added). La propriété locale l’applique ; la propriété contrôlée attend l’acquittement par selected. Tant que le popup reste ouvert, le callback conserve la recherche."
+        "selection-changed": "Proposition de bascule admise (OptionRow, added). La propriété locale l’applique ; la propriété contrôlée attend l’acquittement par selected. Tant que le popup reste ouvert, le callback conserve la recherche.",
+        "limit-reached": "Émis avec l’option refusée lorsqu’un ajout est rejeté parce que `selection-limit` options sont déjà choisies. Les retraits, les options désactivées et les gestes périmés ne l’émettent pas."
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. Son sélecteur hérite du popup nommé et des positions logiques de KitSelect, ainsi que des limites SDK du focus d’option active virtualisée. Le focus des chips et la valeur libellés/nombre sélectionnés restent indépendants. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique. Les options visibles sélectionnées affichent la coche et exposent accessible-item-selected, y compris après sélection initiale, filtrage et réordonnancement. Cette projection suit les jetons stables et la sélection acquittée ; ces métadonnées ne qualifient pas un lecteur d’écran natif."
     },
@@ -5667,16 +5690,27 @@
           "effect": "Requested popup width. The popup never exceeds the window width minus its margins, and shifts to stay inside the window.",
           "default": "`max(width, KitMetrics.select-popup-min-width(theme))`: the trigger width, at least 60 theme spacing units.",
           "example": "KitMultiSelect {\n    options: root.countries;\n    popup-width: 360px;\n}"
+        },
+        "is-open": {
+          "effect": "Read-only `bool`: the controller's open state, true while the list is presented, whatever the ownership. Use it to restyle a label or switch a shortcut hint.",
+          "default": "`false`."
+        },
+        "at-limit": {
+          "effect": "Read-only `bool`: true while `selection-limit` is set and as many options are chosen as the limit allows. Use it to show that no further option can be added.",
+          "default": "`false`."
         }
       },
       "callbacks": {
         "tab-navigation": " Return KitKeyResult.accept or KitKeyResult.reject.",
         "query-edited": "Reports user search edits and a nonempty session query being cleared with `\"\"`. Use the empty value to cancel a remote search or restore its unfiltered page. A callback that reopens a session or supplies another query keeps that new search; resetting the old session does not clear its selection.",
-        "selection-changed": "An admitted membership proposal (OptionRow, added). Local ownership applies it; controlled ownership requires acknowledgement through selected. While the popup stays open, this callback sees the retained query."
+        "selection-changed": "An admitted membership proposal (OptionRow, added). Local ownership applies it; controlled ownership requires acknowledgement through selected. While the popup stays open, this callback sees the retained query.",
+        "limit-reached": "Emitted with the refused option when an addition is rejected because `selection-limit` options are already chosen. Removals, disabled options and stale gestures do not emit it."
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. Its selector inherits the named popup and logical option positions of KitSelect, together with the SDK limits for virtualized active-option focus. Chip focus and the selected label/count value remain independent. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME. Visible selected options show a check glyph and expose accessible-item-selected, including preselected membership after filtering/reordering. The marker projection follows stable tokens and acknowledged selection; this metadata is not native screen-reader qualification."
     }
@@ -7192,6 +7226,10 @@
         "clear-label": {
           "effect": "Nom accessible du bouton d’effacement.",
           "default": "`KitStrings.clear-selection-label`."
+        },
+        "is-open": {
+          "effect": "`bool` en lecture seule : l’état d’ouverture du contrôleur, vrai tant que la liste est présentée, quelle que soit la propriété. Servez-vous-en pour restyler un libellé ou afficher un raccourci.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -7201,7 +7239,9 @@
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "open": "Ouvre la liste depuis le code, pour un raccourci ou un appui sur un libellé. Sans effet si le contrôle est en lecture seule ou désactivé. Le callback `open-requested()` ne signale que les gestes de l’utilisateur et n’est pas émis par cet appel.",
+        "close": "Ferme la liste depuis le code. `dismiss(CloseReason.programmatic)` suit et le focus revient au déclencheur."
       },
       "accessibility": "Les options exposent leur indice logique à partir de zéro et le nombre total ; actif et sélectionné restent distincts. La surface nommée du popup et ses options virtualisées exposent la sémantique de liste et les positions. L’édition native de recherche conserve son focus. Le SDK n’offre pas de relation publique sûre entre cet éditeur ou la portée clavier virtualisée et l’option active ; le focus AT de l’option active reste non qualifié. Les projections et contrôles clavier headless ne qualifient ni VoiceOver, ni NVDA, ni un IME physique. Les options visibles sélectionnées affichent la coche et exposent accessible-item-selected, y compris après sélection initiale, filtrage et réordonnancement. Cette projection suit les jetons stables et la sélection acquittée ; ces métadonnées ne qualifient pas un lecteur d’écran natif."
     },
@@ -7361,6 +7401,10 @@
         "clear-label": {
           "effect": "Accessible name of the clear button.",
           "default": "`KitStrings.clear-selection-label`."
+        },
+        "is-open": {
+          "effect": "Read-only `bool`: the controller's open state, true while the list is presented, whatever the ownership. Use it to restyle a label or switch a shortcut hint.",
+          "default": "`false`."
         }
       },
       "callbacks": {
@@ -7370,7 +7414,9 @@
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "open": "Open the list from code, for a shortcut or a label press. It does nothing while the control is read-only or disabled. The `open-requested()` callback reports user gestures only and does not fire for this call.",
+        "close": "Close the list from code. `dismiss(CloseReason.programmatic)` follows and focus returns to the trigger."
       },
       "accessibility": "Options expose their zero-based logical item index and total count; active and selected remain separate. The named popup surface and virtualized options expose list semantics and positions. Native search editing retains its own focus. The SDK has no safe public relation from that editor or the virtualized keyboard scope to the active option; active-option AT focus remains unqualified. Headless projection and keyboard checks do not qualify VoiceOver, NVDA or physical IME. Visible selected options show a check glyph and expose accessible-item-selected, including preselected membership after filtering/reordering. The marker projection follows stable tokens and acknowledged selection; this metadata is not native screen-reader qualification."
     }
