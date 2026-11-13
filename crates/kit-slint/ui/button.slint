@@ -40,6 +40,8 @@ export component KitPressable inherits Rectangle {
     in property <length> text-size: root.recipe.font-size;
     in property <int> text-weight: root.recipe.font-weight;
     in property <string> accessible-name;
+    // Supplementary help read after the name, e.g. the text of a wrapping KitTooltip.
+    in property <string> description;
     in property <bool> disabled;
     in property <bool> busy;
     in property <string> busy-label: KitStrings.busy-label;
@@ -116,7 +118,7 @@ export component KitPressable inherits Rectangle {
     accessible-role: button;
     accessible-label: root.accessible-name;
     accessible-enabled: !root.disabled && !root.busy;
-    accessible-description: root.busy ? root.busy-label : "";
+    accessible-description: root.busy ? root.busy-label : root.description;
     accessible-action-default => {
         if (!root.disabled && !root.busy) { root.activation-started(); root.activate-once(); }
     }
