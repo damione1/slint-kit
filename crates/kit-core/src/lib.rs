@@ -22,6 +22,7 @@ mod notification;
 mod numeric;
 mod overlay;
 mod phone;
+mod router;
 mod select;
 mod temporal;
 mod text;
@@ -40,6 +41,7 @@ pub use notification::*;
 pub use numeric::*;
 pub use overlay::*;
 pub use phone::*;
+pub use router::*;
 pub use select::*;
 pub use temporal::*;
 pub use text::*;
@@ -107,6 +109,9 @@ contract_enums! {
         Absent => "absent", Available => "available", Unavailable => "unavailable",
     }
     SelectionRetention => "SelectionRetention" { BoundToOptions => "bound-to-options", Retain => "retain" }
+    // What a navigation did to the route stack; screens move forward on a
+    // push, backward on a pop and fade in place on a replace.
+    RouteChange => "RouteChange" { Push => "push", Pop => "pop", Replace => "replace" }
     DismissReason => "CloseReason" {
         Escape => "escape", OutsidePress => "outside-press", SystemBack => "system-back",
         TriggerToggle => "trigger-toggle", CloseButton => "close-button", Programmatic => "programmatic", HostClosed => "host-closed",
