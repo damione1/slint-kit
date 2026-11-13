@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTimePicker, KitDatePicker, KitDateTimeField, KitTheme, KitThemes, ClockFormat, TimePrecision } from "@kit";
+export component DateTimeStringsFixture inherits Window {
+    width: 640px; height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <bool> localized;
+    public function check-time() -> bool { return time.report-validity(); }
+    public function check-date() -> bool { return date.report-validity(); }
+    public function check-pair() -> bool { return pair.report-validity(); }
+    out property <string> time-message: time.validation-message;
+    out property <string> date-message: date.validation-message;
+    out property <string> pair-message: pair.validation-message;
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        time := KitTimePicker {
+            theme: root.theme; label: "Heure"; precision: TimePrecision.second; required: true;
+            hours-label: root.localized ? "Heures" : "Hours";
+            minutes-label: root.localized ? "Minutes" : "Minutes";
+            seconds-label: root.localized ? "Secondes" : "Seconds";
+            increase-template: root.localized ? "Augmenter : {label}" : "Increase {label}";
+            decrease-template: root.localized ? "Diminuer : {label}" : "Decrease {label}";
+            required-message: root.localized ? "Saisissez une heure." : "Please fill out this field.";
+            placeholder: root.localized ? "hh:mm:ss" : "HH:mm:ss";
+            description: root.localized ? "Heure locale sur 24 heures" : "24-hour local time";
+        }
+        date := KitDatePicker {
+            theme: root.theme; label: "Date"; required: true; min: "2026-01-01";
+            underflow-message: root.localized ? "Choisissez une date après le 1er janvier 2026." : "The minimum value is 2026-01-01.";
+            required-message: root.localized ? "Saisissez une date." : "Please fill out this field.";
+            unavailable-label: root.localized ? "Indisponible" : "Unavailable";
+            navigation-help: root.localized ? "Aide de navigation" : "Navigation help";
+        }
+        pair := KitDateTimeField {
+            theme: root.theme; label: "Rendez-vous"; required: true; clock-format: ClockFormat.twelve-hour;
+            required-message: root.localized ? "Renseignez la date et l'heure." : "Please fill out this field.";
+            time-placeholder: root.localized ? "hh:mm" : "hh:mm AM";
+        }
+    }
+}

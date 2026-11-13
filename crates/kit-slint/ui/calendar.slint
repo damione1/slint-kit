@@ -142,8 +142,8 @@ export component KitCalendar inherits Rectangle {
     in property <string> view-switch-label: "Choose month and year";
     in property <bool> previous-enabled: root.projection.previous-enabled;
     in property <bool> next-enabled: root.projection.next-enabled;
-    in property <string> unavailable-label: "Unavailable";
-    in property <string> navigation-help: "Arrow keys move by day or week. Home and End move within the week. Page Up and Page Down change month; hold Shift to change year.";
+    in property <string> unavailable-label: KitStrings.calendar-unavailable-label;
+    in property <string> navigation-help: KitStrings.calendar-navigation-help;
     in property <bool> request-focus;
     // A calendar embedded in a dialog leaves Escape to the dialog when false.
     in property <bool> escape-cancels: true;
@@ -397,7 +397,7 @@ export component KitDateField inherits TemporalField {
         }
     }
     placeholder: "YYYY-MM-DD";
-    description: "Civil date; no time zone";
+    description: KitStrings.date-description;
     // Alt+ArrowDown and F4 ask the host to open its calendar, as on the web.
     callback open-requested();
     private property <CivilDateView> draft-date: KitCalendarService.ready ? KitCalendarService.parse-date(root.text) : {};
@@ -446,6 +446,11 @@ export component KitDatePicker inherits Rectangle {
     in property <string> max;
     in property <string> step;
     in property <string> default-value;
+    in property <string> required-message: KitStrings.required-message;
+    in property <string> underflow-message: KitStrings.underflow-template.replace-all("{value}", root.min);
+    in property <string> overflow-message: KitStrings.overflow-template.replace-all("{value}", root.max);
+    in property <string> step-message: KitStrings.step-message;
+    in property <string> bad-input-message: KitStrings.bad-input-message;
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: editor.validity;
     out property <bool> will-validate: editor.will-validate;
@@ -524,7 +529,7 @@ export component KitDatePicker inherits Rectangle {
     in property <string> title: root.projection.title;
     in property <string> label;
     in property <string> placeholder: "YYYY-MM-DD";
-    in property <string> description: "Civil date; no time zone";
+    in property <string> description: KitStrings.date-description;
     in property <string> calendar-button-label: "Calendar";
     in property <string> calendar-accessible-name: "Open calendar for " + root.label;
     in property <string> previous-month-label: "Previous month";
@@ -534,6 +539,8 @@ export component KitDatePicker inherits Rectangle {
     in property <string> previous-years-label: "Previous years";
     in property <string> next-years-label: "Next years";
     in property <string> view-switch-label: "Choose month and year";
+    in property <string> unavailable-label: KitStrings.calendar-unavailable-label;
+    in property <string> navigation-help: KitStrings.calendar-navigation-help;
     in property <bool> previous-enabled: root.projection.previous-enabled;
     in property <bool> next-enabled: root.projection.next-enabled;
     in property <string> error;
@@ -579,6 +586,7 @@ export component KitDatePicker inherits Rectangle {
                 clearable: root.clearable; clear-label: root.clear-label;
                 required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value;
                 custom-validity <=> root.custom-validity;
+                required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message;
                 error: root.error;
                 invalid => { root.invalid(); }
 
@@ -606,7 +614,7 @@ export component KitDatePicker inherits Rectangle {
         close-policy: close-on-click-outside;
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
-            calendar := KitCalendar { week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
+            calendar := KitCalendar { unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 chosen(date) => { root.accept-date(date); }
                 choose(day) => { root.choose(day); root.open = false; }
@@ -708,6 +716,8 @@ export component KitDateRangePicker inherits Rectangle {
     in property <string> previous-years-label: "Previous years";
     in property <string> next-years-label: "Next years";
     in property <string> view-switch-label: "Choose month and year";
+    in property <string> unavailable-label: KitStrings.calendar-unavailable-label;
+    in property <string> navigation-help: KitStrings.calendar-navigation-help;
     in property <bool> previous-enabled: root.projection.previous-enabled;
     in property <bool> next-enabled: root.projection.next-enabled;
     in property <string> choose-start-label: "Choose the start date";
@@ -724,7 +734,7 @@ export component KitDateRangePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? root.choose-start-label : root.phase == DateRangePhase.choosing-end ? root.choose-end-label : root.ready-label) : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; accessible-live-region: polite; }
-        calendar := KitCalendar { week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
+        calendar := KitCalendar { unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
