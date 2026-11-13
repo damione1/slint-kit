@@ -1,0 +1,42 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitPopover, KitDropdownMenu, KitButton, OptionRow, CloseReason } from "@kit";
+
+export component PopoverFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <bool> disabled;
+    out property <bool> open: popover.open;
+    out property <bool> trigger-focused: popover.has-focus;
+    in-out property <bool> inside-focused;
+    callback opened();
+    callback dismissed(CloseReason);
+    public function show() { popover.show(); }
+    public function dismiss() { popover.dismiss(CloseReason.programmatic); }
+    VerticalLayout {
+        padding: 24px; spacing: 16px; alignment: start;
+        outside := KitButton { text: "Outside action"; }
+        popover := KitPopover {
+            text: "Details"; disabled: root.disabled;
+            opened => { root.opened(); }
+            dismissed(reason) => { root.dismissed(reason); }
+            Text { text: "Panel body"; }
+            KitButton { text: "Inside action"; focus-observed(focused) => { root.inside-focused = focused; } }
+        }
+    }
+}
+
+export component DropdownMenuFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <[OptionRow]> options;
+    out property <bool> open: menu.open;
+    out property <bool> trigger-focused: menu.has-focus;
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        menu := KitDropdownMenu {
+            text: "Actions"; options: root.options;
+            chosen(row) => { root.chosen(row); }
+            dismissed(reason) => { root.dismissed(reason); }
+        }
+    }
+}

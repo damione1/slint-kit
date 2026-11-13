@@ -10,7 +10,9 @@ import { KitStack, LayoutSpace } from "layout.slint";
 import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonIntent, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, OptionRecipe, ChoiceFlow, ChoiceDirection } from "theme.slint";
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
-import { KitIcon, KitGlyphs, TurningIcon } from "icons.slint";
+import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
+import { KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
+import { ElevatedSurface } from "elevation.slint";
 import { KitDialogSurface, KitDialogPanel } from "dialog.slint";
 import { KitModalContext } from "modal.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
@@ -1082,6 +1084,214 @@ export component KitDrawer inherits KitDialogSurface {
                 }
             }
             @children
+        }
+    }
+}
+
+// The panel of a popover: the popover surface, a keyboard scope that turns
+// Escape into `escape` and takes focus when the panel is presented, and the
+// padded body that carries the panel's children.
+component PopoverPanel inherits Rectangle {
+    in property <SurfaceRecipe> recipe;
+    in property <length> inset;
+    in property <bool> presented;
+    callback escape();
+    preferred-height: body.preferred-height;
+    // The panel may be created after `presented` turned true: focus on both.
+    init => { if (root.presented) { scope.focus(); } }
+    changed presented => { if (root.presented) { scope.focus(); } }
+    ElevatedSurface { recipe: root.recipe; }
+    scope := FocusScope {
+        key-pressed(event) => {
+            if (event.text == Key.Escape) { root.escape(); return accept; }
+            return reject;
+        }
+        body := VerticalLayout {
+            padding: root.inset;
+            @children
+        }
+    }
+}
+
+// A trigger button that opens an anchored panel holding its children. The
+// panel sits below the trigger, or above it when there is more room, shifts to
+// stay inside the window and closes on an outside press or Escape. Escape
+// and `dismiss` return focus to the trigger; an outside press, which includes
+// a press on the trigger itself, closes the panel as `host-closed` and does not
+// move focus. `dismissed` names why the panel closed. Slint forbids reading or calling an element of the panel from
+// outside it: drive panel content through its callbacks and `changed` handlers.
+export component KitPopover inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <string> text;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon;
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    in property <length> popup-height: 320px;
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: trigger.has-focus;
+    callback opened();
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <bool> reported;
+    public function take-focus() { trigger.take-focus(); }
+    public function show() {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
+            root.reported = false;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    // Closes the panel, names the reason in `dismissed` and returns focus to the trigger.
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        trigger.take-focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press,
+            // so a press on the trigger closes the panel without reopening it.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    vertical-stretch: 0;
+    layout := VerticalLayout {
+        trigger := KitButton {
+            theme: root.theme; control-size: root.control-size; intent: root.intent; modal-layer: root.modal-layer;
+            text: root.text; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
+            accessible-name: root.accessible-name;
+            disabled: root.disabled;
+            accessible-expandable: true; accessible-expanded: root.open;
+            activated => { if (root.open) { root.dismiss(CloseReason.trigger-toggle); } else { root.show(); } }
+            key-event(event) => {
+                if (event.text == Key.DownArrow && !root.open) { root.show(); return KitKeyResult.accept; }
+                return KitKeyResult.reject;
+            }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: min(root.popup-height, panel.preferred-height);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            presented: root.open;
+            escape => { root.dismiss(CloseReason.escape); }
+            @children
+        }
+    }
+}
+
+// A trigger button that opens a menu of actions. Choosing a row closes the
+// menu, reports the row through `chosen` and returns focus to the trigger.
+// Placement, dismissal and `dismissed` reasons match KitPopover.
+export component KitDropdownMenu inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <ButtonIntent> intent: ButtonIntent.secondary;
+    in property <string> text;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon: root.theme.icons.chevron-down;
+    in property <string> accessible-name;
+    in property <bool> disabled;
+    in property <[OptionRow]> options;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: trigger.has-focus;
+    callback opened();
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <bool> reported;
+    public function take-focus() { trigger.take-focus(); }
+    public function show() {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open) {
+            root.reported = false;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        trigger.take-focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press,
+            // so a press on the trigger closes the panel without reopening it.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    vertical-stretch: 0;
+    layout := VerticalLayout {
+        trigger := KitButton {
+            theme: root.theme; control-size: root.control-size; intent: root.intent; modal-layer: root.modal-layer;
+            text: root.text; leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
+            accessible-name: root.accessible-name;
+            disabled: root.disabled;
+            accessible-expandable: true; accessible-expanded: root.open;
+            activated => { if (root.open) { root.dismiss(CloseReason.trigger-toggle); } else { root.show(); } }
+            key-event(event) => {
+                if (event.text == Key.DownArrow && !root.open) { root.show(); return KitKeyResult.accept; }
+                return KitKeyResult.reject;
+            }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: panel.preferred-height;
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        x: self.placement.x; y: self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            escape => { root.dismiss(CloseReason.escape); }
+            menu := KitMenu {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                accessible-name: root.accessible-name != "" ? root.accessible-name : root.text;
+                options: root.options;
+                // A popup takes native focus after its init code: focus the rows on both paths.
+                private property <bool> presented: root.open;
+                init => { if (root.open) { self.take-focus(); } }
+                changed presented => { if (self.presented) { self.take-focus(); } }
+                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
+            }
         }
     }
 }

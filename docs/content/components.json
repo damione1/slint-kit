@@ -5021,6 +5021,164 @@
       }
     }
   },
+  "KitPopover": {
+    "en": {
+      "label": "Popover",
+      "seoTitle": "Popover for Slint",
+      "summary": "Trigger button that opens an anchored panel holding any content.",
+      "usage": "Set `text` for the trigger and place the panel content as children. Handle `opened()` and `dismissed(CloseReason)`; call `show()` or `dismiss(reason)` to drive the panel from code.",
+      "behavior": "The panel sits below the trigger, or above it when there is more room, shifts horizontally and shrinks in height to stay inside the window, using the same placement as the field popups. An outside press, which includes a press on the trigger itself, or Escape closes it; Down Arrow on the trigger opens it. `dismissed` reports `escape`, `programmatic` (for `dismiss`), `trigger-toggle` (the trigger activated by keyboard or assistive action while open) or `host-closed` (an outside press, including one on the trigger, or any other native closure). Escape and `dismiss` return focus to the trigger; an outside press does not move focus itself. The panel takes focus when presented so that Escape works; Tab moves through its controls. `popup-height` (default 320px) caps the panel height. Slint forbids reading or calling an element of a popup from outside it, so react to panel content through its own callbacks.",
+      "related": [
+        "KitDropdownMenu",
+        "KitSelect",
+        "KitDrawer"
+      ],
+      "callbacks": {},
+      "accessibility": "The trigger is a button with `expanded` state reflecting `open`. The panel is a plain container: give interactive content its own accessible names. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "has-focus": {
+          "effect": "True while the trigger button owns focus.",
+          "example": "out property <bool> trigger-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the trigger is inert and `show()` does nothing. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitPopover {\n    modal-layer: 1;\n}"
+        },
+        "open": {
+          "effect": "True while the panel is presented. It turns false when the panel closes for any reason, including a native outside press.",
+          "example": "out property <bool> expanded: control.open;"
+        },
+        "popup-height": {
+          "effect": "Largest height of the panel; a taller content is clipped.",
+          "default": "`320px`.",
+          "example": "popup-height: 240px;"
+        },
+        "popup-width": {
+          "effect": "Width of the panel, capped at the window width minus a gap on each side.",
+          "default": "The larger of the trigger width and the select popup minimum width.",
+          "example": "popup-width: 320px;"
+        }
+      }
+    },
+    "fr": {
+      "label": "",
+      "seoTitle": " pour Slint",
+      "summary": "Bouton déclencheur qui ouvre un panneau ancré contenant un contenu libre.",
+      "usage": "Renseignez `text` pour le déclencheur et placez le contenu du panneau en enfants. Traitez `opened()` et `dismissed(CloseReason)` ; appelez `show()` ou `dismiss(reason)` pour piloter le panneau depuis le code.",
+      "behavior": "Le panneau se place sous le déclencheur, ou au-dessus s’il y a plus de place, se décale horizontalement et réduit sa hauteur pour rester dans la fenêtre, avec le même placement que les popups des champs. Un appui extérieur, y compris un appui sur le déclencheur lui-même, ou Échap le ferme ; la flèche bas sur le déclencheur l’ouvre. `dismissed` signale `escape`, `programmatic` (pour `dismiss`), `trigger-toggle` (déclencheur activé au clavier ou par action assistive alors que le panneau est ouvert) ou `host-closed` (un appui extérieur, y compris sur le déclencheur, ou toute autre fermeture native). Échap et `dismiss` rendent le focus au déclencheur ; un appui extérieur ne déplace pas le focus lui-même. Le panneau prend le focus à sa présentation pour qu’Échap fonctionne ; Tab parcourt ses contrôles. `popup-height` (320 px par défaut) plafonne la hauteur du panneau. Slint interdit de lire ou d’appeler un élément d’un popup depuis l’extérieur : réagissez au contenu du panneau par ses propres callbacks.",
+      "related": [
+        "KitDropdownMenu",
+        "KitSelect",
+        "KitDrawer"
+      ],
+      "callbacks": {},
+      "accessibility": "Le déclencheur est un bouton dont l’état `expanded` reflète `open`. Le panneau est un conteneur simple : donnez un nom accessible à chaque contenu interactif. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "has-focus": {
+          "effect": "Vrai tant que le bouton déclencheur a le focus.",
+          "example": "out property <bool> trigger-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "Couche modale à laquelle appartient ce composant ; 0 désigne la fenêtre. Tant qu’un `KitDialogSurface` ou un `KitDrawer` de `modal-layer` positif est ouvert et au sommet, le déclencheur est inerte et `show()` ne fait rien. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (fenêtre).",
+          "example": "KitPopover {\n    modal-layer: 1;\n}"
+        },
+        "open": {
+          "effect": "Vrai tant que le panneau est présenté. Passe à faux quand le panneau se ferme, quelle qu’en soit la cause, y compris un appui extérieur géré par Slint.",
+          "example": "out property <bool> expanded: control.open;"
+        },
+        "popup-height": {
+          "effect": "Hauteur maximale du panneau ; un contenu plus haut est tronqué.",
+          "default": "`320px`.",
+          "example": "popup-height: 240px;"
+        },
+        "popup-width": {
+          "effect": "Largeur du panneau, plafonnée à la largeur de la fenêtre moins un espace de chaque côté.",
+          "default": "Le plus grand de la largeur du déclencheur et de la largeur minimale du popup de sélection.",
+          "example": "popup-width: 320px;"
+        }
+      }
+    }
+  },
+  "KitDropdownMenu": {
+    "en": {
+      "label": "Dropdown Menu",
+      "seoTitle": "Dropdown Menu for Slint",
+      "summary": "Trigger button that opens a menu of actions.",
+      "usage": "Pass `options` from `Choices<K>::model()` and handle `chosen(OptionRow)`; `Choices::accept` validates the callback and returns its domain key. Call `slint_kit::install` once per window. Set `text` for the trigger.",
+      "behavior": "Placement, dismissal, `show()`, `dismiss(reason)`, `opened()` and `dismissed(CloseReason)` follow `KitPopover`. Opening focuses the rows; the arrow keys, Home, End, PageUp, PageDown and typeahead move the active row as in `KitMenu`, Enter or a click chooses it, and the menu then closes, emits `chosen` and returns focus to the trigger. Disabled rows cannot be chosen. A choice reports `programmatic` in `dismissed`. A context menu opened by the right button and a collapsible application sidebar are not part of this component.",
+      "related": [
+        "KitPopover",
+        "KitMenu",
+        "KitSelect"
+      ],
+      "callbacks": {},
+      "accessibility": "The trigger exposes its expanded state. Rows use the list and list-item roles of `KitMenu`, because this SDK has no menu roles; Slint 1.18.1 cannot move assistive focus to the active row. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "has-focus": {
+          "effect": "True while the trigger button owns focus.",
+          "example": "out property <bool> trigger-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the trigger is inert and `show()` does nothing. Give a component placed inside a modal that modal's layer number.",
+          "default": "`0` (window).",
+          "example": "KitDropdownMenu {\n    modal-layer: 1;\n}"
+        },
+        "open": {
+          "effect": "True while the panel is presented. It turns false when the panel closes for any reason, including a native outside press.",
+          "example": "out property <bool> expanded: control.open;"
+        },
+        "options": {
+          "effect": "The rows of the menu, from `Choices<K>::model()`.",
+          "example": "options: root.actions;"
+        },
+        "popup-width": {
+          "effect": "Width of the panel, capped at the window width minus a gap on each side.",
+          "default": "The larger of the trigger width and the select popup minimum width.",
+          "example": "popup-width: 320px;"
+        }
+      }
+    },
+    "fr": {
+      "label": "",
+      "seoTitle": " pour Slint",
+      "summary": "Bouton déclencheur qui ouvre un menu d’actions.",
+      "usage": "Fournissez `options` avec `Choices<K>::model()` et traitez `chosen(OptionRow)` ; `Choices::accept` valide le callback et retourne sa clé métier. Appelez `slint_kit::install` une fois par fenêtre. Renseignez `text` pour le déclencheur.",
+      "behavior": "Le placement, la fermeture, `show()`, `dismiss(reason)`, `opened()` et `dismissed(CloseReason)` suivent `KitPopover`. L’ouverture donne le focus aux lignes ; les flèches, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active comme dans `KitMenu`, Entrée ou un clic la choisit, puis le menu se ferme, émet `chosen` et rend le focus au déclencheur. Une ligne désactivée ne peut pas être choisie. Un choix signale `programmatic` dans `dismissed`. Un menu contextuel ouvert par le bouton droit et une barre latérale repliable d’application ne font pas partie de ce composant.",
+      "related": [
+        "KitPopover",
+        "KitMenu",
+        "KitSelect"
+      ],
+      "callbacks": {},
+      "accessibility": "Le déclencheur expose son état déplié. Les lignes utilisent les rôles liste et élément de liste de `KitMenu`, car ce SDK n’a pas de rôles de menu ; Slint 1.18.1 ne peut pas déplacer le focus assistif vers la ligne active. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "has-focus": {
+          "effect": "Vrai tant que le bouton déclencheur a le focus.",
+          "example": "out property <bool> trigger-focused: control.has-focus;"
+        },
+        "modal-layer": {
+          "effect": "Couche modale à laquelle appartient ce composant ; 0 désigne la fenêtre. Tant qu’un `KitDialogSurface` ou un `KitDrawer` de `modal-layer` positif est ouvert et au sommet, le déclencheur est inerte et `show()` ne fait rien. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
+          "default": "`0` (fenêtre).",
+          "example": "KitDropdownMenu {\n    modal-layer: 1;\n}"
+        },
+        "open": {
+          "effect": "Vrai tant que le panneau est présenté. Passe à faux quand le panneau se ferme, quelle qu’en soit la cause, y compris un appui extérieur géré par Slint.",
+          "example": "out property <bool> expanded: control.open;"
+        },
+        "options": {
+          "effect": "Les lignes du menu, issues de `Choices<K>::model()`.",
+          "example": "options: root.actions;"
+        },
+        "popup-width": {
+          "effect": "Largeur du panneau, plafonnée à la largeur de la fenêtre moins un espace de chaque côté.",
+          "default": "Le plus grand de la largeur du déclencheur et de la largeur minimale du popup de sélection.",
+          "example": "popup-width: 320px;"
+        }
+      }
+    }
+  },
   "KitMoneyField": {
     "fr": {
       "summary": "Saisie décimale exacte reliée à Money typé avec des règles hôtes explicites de devise et de précision.",
