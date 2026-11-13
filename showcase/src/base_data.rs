@@ -409,7 +409,13 @@ pub fn install(window: &ui::Showcase) {
     });
     let shared = state.clone();
     let weak = window.as_weak();
-    global.on_table_cell_committed(move |token, column, generation, commit| {
+    global.on_table_cell_committed(move |proposal| {
+        let ui::CellCommit {
+            row: token,
+            column,
+            generation,
+            commit,
+        } = proposal;
         if Column::from_token(column) != Some(Column::Stock) {
             return;
         }
@@ -703,17 +709,37 @@ mod tests {
             ..ui::FieldCommit::default()
         };
         let before = stock_of(17);
-        data.invoke_table_cell_committed(17, 4, generation - 1, commit("5"));
+        data.invoke_table_cell_committed(ui::CellCommit {
+            row: 17,
+            column: 4,
+            generation: generation - 1,
+            commit: commit("5"),
+        });
         assert_eq!(stock_of(17), before, "a stale generation changes nothing");
-        data.invoke_table_cell_committed(17, 1, generation, commit("5"));
+        data.invoke_table_cell_committed(ui::CellCommit {
+            row: 17,
+            column: 1,
+            generation,
+            commit: commit("5"),
+        });
         assert_eq!(stock_of(17), before, "only the stock column is editable");
-        data.invoke_table_cell_committed(17, 4, generation, commit("-5"));
+        data.invoke_table_cell_committed(ui::CellCommit {
+            row: 17,
+            column: 4,
+            generation,
+            commit: commit("-5"),
+        });
         assert_eq!(
             stock_of(17),
             before,
             "a negative count is rejected in Rust too"
         );
-        data.invoke_table_cell_committed(17, 4, generation, commit("5"));
+        data.invoke_table_cell_committed(ui::CellCommit {
+            row: 17,
+            column: 4,
+            generation,
+            commit: commit("5"),
+        });
         assert_eq!(stock_of(17), "5");
         assert!(
             data.get_table_generation() > generation,
