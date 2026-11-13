@@ -515,10 +515,26 @@ export component KitCollapse inherits VerticalLayout {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
     in-out property <bool> expanded;
+    // Group membership. A section with `value >= 0` is open when `group-value` equals
+    // its `value`; bind `group-value <=> shared` on every sibling so one section opens
+    // at a time. `-1` leaves the section standalone, driven by `expanded`.
+    in property <int> value: -1;
+    in-out property <int> group-value: -1;
+    // In a group, whether the open section can be closed by activating it again.
+    in property <bool> collapsible: true;
+    out property <bool> open: root.value >= 0 ? root.group-value == root.value : root.expanded;
     in property <Ownership> ownership: Ownership.local;
     in property <bool> disabled;
     callback expansion-requested(bool);
     public function take-focus() { trigger.take-focus(); }
+    function request(next: bool) {
+        if (root.disabled || KitModalContext.inert(root.modal-layer)) { return; }
+        if (!next && root.value >= 0 && !root.collapsible) { return; }
+        if (root.ownership == Ownership.local) {
+            if (root.value >= 0) { root.group-value = next ? root.value : -1; } else { root.expanded = next; }
+        }
+        root.expansion-requested(next);
+    }
     alignment: start;
     spacing: 0px;
     vertical-stretch: 0;
@@ -529,14 +545,14 @@ export component KitCollapse inherits VerticalLayout {
         control-width: ControlWidth.fill;
         accessible-name: root.title;
         accessible-expandable: true;
-        accessible-expanded: root.expanded;
-        accessible-action-expand => { if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.expanded) { if (root.ownership == Ownership.local) { root.expanded = true; } root.expansion-requested(true); } }
-        activated => { let next = !root.expanded; if (root.ownership == Ownership.local) { root.expanded = next; } root.expansion-requested(next); }
+        accessible-expanded: root.open;
+        accessible-action-expand => { if (!root.open) { root.request(true); } }
+        activated => { root.request(!root.open); }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 2;
             Text { text: root.title; color: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); overflow: elide; vertical-alignment: center; }
             Rectangle { width: KitMetrics.icon-size(root.theme, root.control-size); horizontal-stretch: 0;
-                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.expanded; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; }
+                TurningIcon { theme: root.theme; control-size: root.control-size; y: (parent.height - self.height) / 2; turned: root.open; rest-glyph: root.theme.icons.chevron-right; turned-glyph: root.theme.icons.chevron-down; turn: 90deg; ink: root.disabled ? trigger.recipe.disabled-foreground : trigger.recipe.foreground; }
             }
         }
     }
@@ -544,8 +560,8 @@ export component KitCollapse inherits VerticalLayout {
     private property <length> inset-x: root.theme.spacing.unit * 4;
     private property <length> inset-y: root.theme.spacing.unit * 2;
     Rectangle {
-        clip: true; visible: root.expanded || self.height > 0px;
-        height: root.expanded ? body.preferred-height + 2 * root.inset-y : 0px;
+        clip: true; visible: root.open || self.height > 0px;
+        height: root.open ? body.preferred-height + 2 * root.inset-y : 0px;
         animate height { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.base; easing: ease-in-out; }
         vertical-stretch: 0;
         body := VerticalLayout { x: root.inset-x; y: root.inset-y; width: max(0px,root.width - 2 * root.inset-x); height: self.preferred-height; spacing: root.theme.spacing.unit * 2; alignment: start; @children }
