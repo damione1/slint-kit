@@ -973,6 +973,11 @@
         },
         "error-visible": {
           "effect": "Visibilité en lecture seule de l’erreur de contrainte partagée. Lie la visibilité du KitFieldError du formulaire à cette valeur et son texte à validation-message."
+        },
+        "mixed-label": {
+          "effect": "Description accessible annoncée lorsque `state` est mixte. Une case en lecture seule expose `accessible-read-only` plutôt qu’une description.",
+          "default": "`KitStrings.checkbox-mixed-label` (`Partially selected`)",
+          "example": "KitCheckbox {\n    state: CheckState.mixed;\n    mixed-label: \"Partiellement sélectionné\";\n}"
         }
       },
       "functions": {
@@ -1023,6 +1028,11 @@
         },
         "error-visible": {
           "effect": "Read-only visibility of this control’s shared constraint error. Bind host KitFieldError visibility to it and use validation-message as text."
+        },
+        "mixed-label": {
+          "effect": "Accessible description announced while `state` is mixed. A read-only checkbox reports `accessible-read-only` instead of a description.",
+          "default": "`KitStrings.checkbox-mixed-label` (`Partially selected`)",
+          "example": "KitCheckbox {\n    state: CheckState.mixed;\n    mixed-label: \"Partiellement sélectionné\";\n}"
         }
       },
       "functions": {
@@ -1041,7 +1051,14 @@
         "KitChipButton"
       ],
       "label": "Étiquette amovible",
-      "seoTitle": "Étiquette amovible pour Slint"
+      "seoTitle": "Étiquette amovible pour Slint",
+      "properties": {
+        "remove-label-template": {
+          "effect": "Nom accessible du pictogramme de retrait. `{label}` représente le libellé de la puce : chaque langue choisit l’ordre des mots.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitChip {\n    chip: { token: 1, label: \"Alpha\", removable: true };\n    remove-label-template: \"Retirer {label}\";\n}"
+        }
+      }
     },
     "en": {
       "summary": "Compact label that requests removal of an identified item.",
@@ -1052,7 +1069,14 @@
         "KitChipButton"
       ],
       "label": "Chip",
-      "seoTitle": "Chip for Slint"
+      "seoTitle": "Chip for Slint",
+      "properties": {
+        "remove-label-template": {
+          "effect": "Accessible name of the remove glyph. `{label}` stands for the chip label, so each language chooses its word order.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitChip {\n    chip: { token: 1, label: \"Alpha\", removable: true };\n    remove-label-template: \"Retirer {label}\";\n}"
+        }
+      }
     }
   },
   "KitChipButton": {
@@ -1841,6 +1865,11 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitCombobox {\n    modal-layer: 1;\n}"
+        },
+        "empty-label": {
+          "effect": "Texte du popup lorsqu’aucune option ne correspond et que `search-state` n’est ni loading ni failed.",
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)",
+          "example": "KitCombobox {\n    empty-label: \"Aucun client\";\n}"
         }
       },
       "callbacks": {
@@ -1984,6 +2013,11 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitCombobox {\n    modal-layer: 1;\n}"
+        },
+        "empty-label": {
+          "effect": "Text of the popup when no option matches and `search-state` is neither loading nor failed.",
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)",
+          "example": "KitCombobox {\n    empty-label: \"Aucun client\";\n}"
         }
       },
       "callbacks": {
@@ -5422,16 +5456,26 @@
         },
         "search-label": {
           "effect": "Nom/indication localisé de l’éditeur de recherche, transmis par Select/MultiSelect à la surface.",
-          "default": "Search options"
+          "default": "`KitStrings.search-options-label` (`Search options`)"
         },
         "empty-label": {
           "effect": "Texte localisé de l’état vide quand le filtre ne donne aucune option, transmis à la surface.",
-          "default": "No matching options"
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
+        },
+        "remove-label-template": {
+          "effect": "Nom accessible de l’action de retrait de chaque puce, transmis à `KitChip`. `{label}` représente le libellé de la puce.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitMultiSelect {\n    remove-label-template: \"Retirer {label}\";\n}"
+        },
+        "unavailable-label": {
+          "effect": "Texte et message de validité utilisés lorsqu’une valeur sélectionnée n’est plus dans les options courantes, transmis au déclencheur.",
+          "default": "`KitStrings.selection-unavailable-label`.",
+          "example": "KitMultiSelect {\n    unavailable-label: \"Option sélectionnée indisponible\";\n}"
         }
       },
       "callbacks": {
@@ -5533,16 +5577,26 @@
         },
         "search-label": {
           "effect": "Localized name/placeholder for the search editor, passed through Select/MultiSelect to the surface.",
-          "default": "Search options"
+          "default": "`KitStrings.search-options-label` (`Search options`)"
         },
         "empty-label": {
           "effect": "Localized empty-state text when the filtered option set has no results, passed through to the surface.",
-          "default": "No matching options"
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitMultiSelect {\n    modal-layer: 1;\n}"
+        },
+        "remove-label-template": {
+          "effect": "Accessible name of each chip remove action, forwarded to `KitChip`. `{label}` stands for the chip label.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitMultiSelect {\n    remove-label-template: \"Retirer {label}\";\n}"
+        },
+        "unavailable-label": {
+          "effect": "Text and validity message used when a selected value is missing from the current options, forwarded to the trigger.",
+          "default": "`KitStrings.selection-unavailable-label`.",
+          "example": "KitMultiSelect {\n    unavailable-label: \"Option sélectionnée indisponible\";\n}"
         }
       },
       "callbacks": {
@@ -6551,6 +6605,16 @@
         "handle-brush": {
           "effect": "Peinture des deux poignées.",
           "example": "handle-brush: #ffffff;"
+        },
+        "lower-thumb-label-template": {
+          "effect": "Nom accessible du curseur inférieur. `{label}` représente le libellé du champ.",
+          "default": "`KitStrings.range-lower-thumb-template` (`{label} — lower`)",
+          "example": "KitRangeSlider {\n    label: \"Prix\";\n    lower-thumb-label-template: \"{label} — minimum\";\n}"
+        },
+        "upper-thumb-label-template": {
+          "effect": "Nom accessible du curseur supérieur. `{label}` représente le libellé du champ.",
+          "default": "`KitStrings.range-upper-thumb-template` (`{label} — upper`)",
+          "example": "KitRangeSlider {\n    label: \"Prix\";\n    upper-thumb-label-template: \"{label} — maximum\";\n}"
         }
       },
       "callbacks": {
@@ -6623,6 +6687,16 @@
         "handle-brush": {
           "effect": "Paint of both thumbs.",
           "example": "handle-brush: #ffffff;"
+        },
+        "lower-thumb-label-template": {
+          "effect": "Accessible name of the lower thumb. `{label}` stands for the field label.",
+          "default": "`KitStrings.range-lower-thumb-template` (`{label} — lower`)",
+          "example": "KitRangeSlider {\n    label: \"Prix\";\n    lower-thumb-label-template: \"{label} — minimum\";\n}"
+        },
+        "upper-thumb-label-template": {
+          "effect": "Accessible name of the upper thumb. `{label}` stands for the field label.",
+          "default": "`KitStrings.range-upper-thumb-template` (`{label} — upper`)",
+          "example": "KitRangeSlider {\n    label: \"Prix\";\n    upper-thumb-label-template: \"{label} — maximum\";\n}"
         }
       },
       "callbacks": {
@@ -6649,6 +6723,11 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitRating {\n    modal-layer: 1;\n}"
+        },
+        "clear-label": {
+          "effect": "Texte et nom accessible de l’action d’effacement.",
+          "default": "`KitStrings.rating-clear-label` (`Clear rating`)",
+          "example": "KitRating {\n    label: \"Note\";\n    clear-label: \"Effacer la note\";\n}"
         }
       }
     },
@@ -6667,6 +6746,11 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitRating {\n    modal-layer: 1;\n}"
+        },
+        "clear-label": {
+          "effect": "Text and accessible name of the clear action.",
+          "default": "`KitStrings.rating-clear-label` (`Clear rating`)",
+          "example": "KitRating {\n    label: \"Note\";\n    clear-label: \"Effacer la note\";\n}"
         }
       }
     }
@@ -7004,11 +7088,11 @@
         },
         "search-label": {
           "effect": "Nom/indication localisé de l’éditeur de recherche, transmis par Select/MultiSelect à la surface.",
-          "default": "Search options"
+          "default": "`KitStrings.search-options-label` (`Search options`)"
         },
         "empty-label": {
           "effect": "Texte localisé de l’état vide quand le filtre ne donne aucune option, transmis à la surface.",
-          "default": "No matching options"
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
@@ -7148,11 +7232,11 @@
         },
         "search-label": {
           "effect": "Localized name/placeholder for the search editor, passed through Select/MultiSelect to the surface.",
-          "default": "Search options"
+          "default": "`KitStrings.search-options-label` (`Search options`)"
         },
         "empty-label": {
           "effect": "Localized empty-state text when the filtered option set has no results, passed through to the surface.",
-          "default": "No matching options"
+          "default": "`KitStrings.no-matching-options-label` (`No matching options`)"
         },
         "modal-layer": {
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
@@ -7879,6 +7963,16 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitTagInput {\n    modal-layer: 1;\n}"
+        },
+        "remove-label-template": {
+          "effect": "Nom accessible de l’action de retrait de chaque puce, transmis à `KitChip`. `{label}` représente le libellé de la puce.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitTagInput {\n    remove-label-template: \"Retirer {label}\";\n}"
+        },
+        "placeholder": {
+          "effect": "Texte indicatif de l’éditeur de texte en ligne.",
+          "default": "`KitStrings.tag-input-placeholder` (`Type a tag, then press Enter`)",
+          "example": "KitTagInput {\n    placeholder: \"Saisir une étiquette, puis Entrée\";\n}"
         }
       }
     },
@@ -7911,6 +8005,16 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitTagInput {\n    modal-layer: 1;\n}"
+        },
+        "remove-label-template": {
+          "effect": "Accessible name of each chip remove action, forwarded to `KitChip`. `{label}` stands for the chip label.",
+          "default": "`KitStrings.chip-remove-template` (`Remove {label}`)",
+          "example": "KitTagInput {\n    remove-label-template: \"Retirer {label}\";\n}"
+        },
+        "placeholder": {
+          "effect": "Placeholder of the inline text editor.",
+          "default": "`KitStrings.tag-input-placeholder` (`Type a tag, then press Enter`)",
+          "example": "KitTagInput {\n    placeholder: \"Saisir une étiquette, puis Entrée\";\n}"
         }
       }
     }

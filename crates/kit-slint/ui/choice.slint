@@ -118,6 +118,8 @@ export component CheckMark inherits Rectangle {
 // All boolean skins use the same Pressable activation and cancellation machine.
 // The state is controlled: mixed is a real third value and never coerced to false.
 export component KitCheckbox inherits KitPressable {
+    // Announced as the description while the state is mixed.
+    in property <string> mixed-label: KitStrings.checkbox-mixed-label;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -160,7 +162,8 @@ export component KitCheckbox inherits KitPressable {
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.state == CheckState.checked;
-    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? "Partially selected" : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? root.mixed-label : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked; if (root.ownership == Ownership.local) { root.state = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
@@ -219,7 +222,8 @@ export component KitSwitch inherits KitPressable {
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.checked;
-    accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : "";
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = !root.checked; if (root.ownership == Ownership.local) { root.checked = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
@@ -439,7 +443,7 @@ component SegmentedOption inherits ChoiceOption {
     intent: root.option-data.selected && root.access != FieldAccess.read-only ? ButtonIntent.primary : ButtonIntent.quiet;
     background: root.disabled ? root.recipe.disabled-fill : root.access == FieldAccess.read-only ? (root.option-data.selected ? root.theme.pressed : root.theme.canvas) : root.pressed ? root.recipe.pressed-fill : root.hovered ? root.recipe.hover-fill : root.recipe.fill;
     accessible-role: radio-button; accessible-checked: root.option-data.selected;
-    accessible-description: root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
     focus-ring: root.option-data.selected && !root.disabled && root.access == FieldAccess.editable ? KitThemes.selected-inset-focus(root.theme) : KitThemes.inset-focus(root.theme);
     for icon in root.icons: Rectangle {
         if icon.token == root.option-data.token: KitIcon {
@@ -522,7 +526,8 @@ export component KitSegmentedControl inherits Rectangle {
     border-width: root.theme.shape.border-width; border-color: checks.show-error ? root.theme.danger : root.theme.border-subtle;
     preferred-height: max(choices.min-height,choices.preferred-height);
     vertical-stretch: 0;
-    accessible-description: checks.show-error ? checks.validation-message : root.access == FieldAccess.read-only ? "Read only" : "";
+    accessible-read-only: root.access == FieldAccess.read-only;
+    accessible-description: checks.show-error ? checks.validation-message : "";
     forward-focus: keyboard;
     keyboard := ChoiceKeyboard { modal-layer: root.modal-layer;
         direction: root.direction; flow: root.flow; access: root.access;
@@ -707,6 +712,8 @@ export component KitToggleGroup inherits Rectangle {
 // A removable value: its label, then a close glyph that marks the press as removal.
 export component KitChip inherits KitPressable {
     in property <ChipRow> chip;
+    // "{label}" stands for the chip label, so each language chooses its word order.
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     callback remove-requested(int);
     private property <int> press-token;
     private property <length> icon-size: KitMetrics.icon-size(root.theme, root.control-size);
@@ -734,7 +741,7 @@ export component KitChip inherits KitPressable {
             }
         }
     }
-    accessible-name: "Remove " + root.chip.label;
+    accessible-name: root.remove-label-template.replace-all("{label}", root.chip.label);
     disabled: !root.chip.removable;
     activation-started => { root.press-token = root.chip.token; }
     changed chip => { root.cancel-press(); }
@@ -868,6 +875,8 @@ export component KitMultiSelect inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <string> label: KitStrings.multi-select-label;
     in property <string> placeholder: KitStrings.multi-select-placeholder;
+    in property <string> unavailable-label: KitStrings.selection-unavailable-label;
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     private property <string> selected-labels: KitSelectionService.ready ? KitSelectionService.chip-labels(root.chips, KitStrings.selection-label-separator) : "";
     in property <string> value-label: root.chips.length == 0 ? ""
         : (root.selected-labels == "" ? KitStrings.multi-selection-count-format : KitStrings.multi-selection-value-format)
@@ -875,8 +884,8 @@ export component KitMultiSelect inherits Rectangle {
     in property <bool> close-on-select: false;
     in property <bool> searchable: false;
     in property <bool> focus-search-on-open: true;
-    in property <string> search-label: "Search options";
-    in property <string> empty-label: "No matching options";
+    in property <string> search-label: KitStrings.search-options-label;
+    in property <string> empty-label: KitStrings.no-matching-options-label;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
     out property <int> page-rows: selector.page-rows;
@@ -915,7 +924,7 @@ export component KitMultiSelect inherits Rectangle {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip { modal-layer: root.modal-layer;
-                theme: root.theme; chip: chip;
+                theme: root.theme; chip: chip; remove-label-template: root.remove-label-template;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
                 focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
@@ -925,6 +934,7 @@ export component KitMultiSelect inherits Rectangle {
         }
         selector := KitSelect {
             theme: root.theme; control-size: root.control-size; rows: root.rows; state: root.state; choice-rows: root.choice-rows; label: root.label; placeholder: root.placeholder; value-label: root.value-label;
+            unavailable-label: root.unavailable-label;
             access: root.access;
             searchable: root.searchable; focus-search-on-open: root.focus-search-on-open;
             search-label: root.search-label; empty-label: root.empty-label;
@@ -990,6 +1000,8 @@ export component KitTagInput inherits Rectangle {
     in property <[ChipRow]> chips;
     in property <string> label;
     in property <string> error;
+    in property <string> placeholder: KitStrings.tag-input-placeholder;
+    in property <string> remove-label-template: KitStrings.chip-remove-template;
     in-out property <string> text;
     callback edited(string);
     callback create-requested(string);
@@ -1006,7 +1018,7 @@ export component KitTagInput inherits Rectangle {
             min-width: 0px; preferred-width: 0px; horizontal-stretch: 1;
             flex-wrap: FlexboxLayoutWrap.wrap; spacing: KitMetrics.inline-gap(root.theme); alignment: start;
             for chip in root.chips: KitChip { modal-layer: root.modal-layer;
-                theme: root.theme; chip: chip;
+                theme: root.theme; chip: chip; remove-label-template: root.remove-label-template;
                 private property <ChipRow> focus-identity: chip;
                 changed focus-identity => { if (self.has-focus) { root.focused-chip = {present: true, token: chip.token}; } }
                 focus-observed(focused) => { if (focused) { root.focused-chip = {present: true, token: chip.token}; } else if (root.focused-chip.token == chip.token) { root.focused-chip = {present: false}; } }
@@ -1021,7 +1033,7 @@ export component KitTagInput inherits Rectangle {
             error: root.error != "" ? root.error : checks.show-error ? checks.validation-message : "";
             validation: root.error != "" || checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             text <=> root.text;
-            placeholder: "Type a tag, then press Enter";
+            placeholder: root.placeholder;
             edited(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); } root.edited(text); }
             commit-requested(text) => { if (root.access == FieldAccess.editable) { checks.note-edit(); root.create-requested(text); } }
         }
@@ -1066,6 +1078,7 @@ export component KitCombobox inherits Rectangle {
     in property <string> selected-label: selection.selected-label;
     in property <string> unavailable-label: KitStrings.selection-unavailable-label;
     in property <string> loading-label: KitStrings.busy-label;
+    in property <string> empty-label: KitStrings.no-matching-options-label;
     in property <string> clear-label: KitStrings.clear-search-label;
     in property <bool> allow-custom-value: false;
     in property <bool> clearable: false;
@@ -1371,7 +1384,7 @@ export component KitCombobox inherits Rectangle {
             typeahead-timeout-ms: root.typeahead-timeout-ms;
             check-typeahead-active => { return selection.is-typeahead-active(); }
             empty: root.rows.length == 0;
-            empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : "No matching options";
+            empty-label: root.search-state == SearchPresentation.loading ? root.loading-label : root.search-state == SearchPresentation.failed ? root.status-text : root.empty-label;
             viewport-height: options.visible-height; scroll-y <=> options.content-y;
             navigate(step) => { if (root.access == FieldAccess.editable) { root.handle-navigate(step); } }
             activate(token,generation) => { if (root.access == FieldAccess.editable) { root.handle-activate(token,generation); } }
@@ -1736,6 +1749,9 @@ export component KitRangeSlider inherits Rectangle {
     in property <string> label;
     in property <string> lower-label: root.value.lower;
     in property <string> upper-label: root.value.upper;
+    // "{label}" stands for the field label, so each language chooses its word order.
+    in property <string> lower-thumb-label-template: KitStrings.range-lower-thumb-template;
+    in property <string> upper-thumb-label-template: KitStrings.range-upper-thumb-template;
     callback position-requested(RangeThumb, float);
     callback navigate(RangeThumb, NavigationStep);
     callback gesture-started(RangeThumb);
@@ -1797,7 +1813,7 @@ export component KitRangeSlider inherits Rectangle {
         enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
         access: root.access; gesture-active: root.gesture-active; reversed: root.rtl;
         accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
-        accessible-role: slider; accessible-label: root.label + " — lower";
+        accessible-role: slider; accessible-label: root.lower-thumb-label-template.replace-all("{label}", root.label);
         accessible-value: root.accessible-domain.lower.value;
         accessible-description: root.lower-label != root.value.lower ? root.lower-label : "";
         accessible-value-minimum: root.accessible-domain.lower.minimum;
@@ -1817,7 +1833,7 @@ export component KitRangeSlider inherits Rectangle {
         enabled: !root.disabled && !KitModalContext.inert(root.modal-layer);
         access: root.access; gesture-active: root.gesture-active; reversed: root.rtl;
         accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
-        accessible-role: slider; accessible-label: root.label + " — upper";
+        accessible-role: slider; accessible-label: root.upper-thumb-label-template.replace-all("{label}", root.label);
         accessible-value: root.accessible-domain.upper.value;
         accessible-description: root.upper-label != root.value.upper ? root.upper-label : "";
         accessible-value-minimum: root.accessible-domain.upper.minimum;
@@ -1929,6 +1945,7 @@ export component KitRating inherits Rectangle {
     in property <int> generation: selection.state.generation;
     in property <int> active-token: selection.state.active.token;
     in property <string> label;
+    in property <string> clear-label: KitStrings.rating-clear-label;
     callback navigate(NavigationStep);
     callback choose(int,int);
     callback clear-requested();
@@ -1954,7 +1971,7 @@ export component KitRating inherits Rectangle {
                 }
             }
         }
-        KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: "Clear rating"; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
+        KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: root.clear-label; intent: ButtonIntent.quiet; disabled: root.access != FieldAccess.editable; activated => { if (root.ownership == Ownership.local) { root.value = {present: false, step: 0, scale: root.scale}; } root.chosen({present: false, step: 0, scale: root.scale}); root.clear-requested(); } }
     }
     in property <int> scale: 5;
     in property <Ownership> ownership: Ownership.local;
