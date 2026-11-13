@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitColorField, KitColorPicker, KitButton, KitTheme, KitThemes, Ownership, FieldAccess, ColorAlphaMode, SrgbColorView, ColorValue } from "@kit";
+import { KitStrings, KitColorField, KitColorPicker, KitButton, KitTheme, KitThemes, Ownership, FieldAccess, ColorAlphaMode, SrgbColorView, ColorValue } from "@kit";
 export component ColorLifecycleFixture inherits Window {
     width: 900px; height: 1200px;
     in property <KitTheme> theme: KitThemes.light;
@@ -102,5 +102,43 @@ export component ColorPopupFixture inherits Window {
         required: false; ownership: root.ownership;
         accepted-value: {present: true, color: {red: 12, green: 34, blue: 56, alpha: 78}};
         chosen(value) => { root.proposals += 1; root.proposal = value; }
+    }
+}
+
+// Every built-in string of the field and the picker overridden by the host.
+export component ColorLabelsFixture inherits Window {
+    width: 560px; height: 900px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <bool> localized: true;
+    in property <string> description: "Hexadécimal sRGB";
+    background: root.theme.canvas;
+    public function open-picker() { field.open-picker(); }
+    field := KitColorField {
+        x: 8px; y: 8px; width: 260px; height: self.preferred-height;
+        theme: root.theme; label: "Accent"; alpha-mode: ColorAlphaMode.editable; required: false;
+        palette: [#ef4444, #22c55e];
+        accepted-value: {present: true, color: {red: 12, green: 34, blue: 56, alpha: 78}};
+        description: root.description;
+        red-label: root.localized ? "Rouge" : KitStrings.color-red-label;
+        green-label: root.localized ? "Vert" : KitStrings.color-green-label;
+        blue-label: root.localized ? "Bleu" : KitStrings.color-blue-label;
+        alpha-label: root.localized ? "Opacité" : KitStrings.color-alpha-label;
+        cancel-label: root.localized ? "Annuler" : KitStrings.color-cancel-label;
+        apply-label: root.localized ? "Appliquer la couleur" : KitStrings.color-apply-label;
+        open-template: root.localized ? "Ouvrir le sélecteur de couleur pour {label}" : KitStrings.color-open-template;
+        title-template: root.localized ? "{label} · sRGB" : KitStrings.color-title-template;
+        draft-template: root.localized ? "{label} (brouillon)" : KitStrings.color-draft-template;
+        preview-label: root.localized ? "Aperçu du brouillon" : KitStrings.color-preview-label;
+        choice-template: root.localized ? "Choisir RVB {red}, {green}, {blue}" : KitStrings.color-choice-template;
+        palette-labels: root.localized ? ["Rouge vif", ""] : [];
+    }
+    picker := KitColorPicker {
+        x: 8px; y: 200px; width: 260px; height: self.preferred-height;
+        theme: root.theme; label: "Fond"; alpha-mode: ColorAlphaMode.editable;
+        red-label: root.localized ? "Rouge" : KitStrings.color-red-label;
+        green-label: root.localized ? "Vert" : KitStrings.color-green-label;
+        blue-label: root.localized ? "Bleu" : KitStrings.color-blue-label;
+        alpha-label: root.localized ? "Opacité" : KitStrings.color-alpha-label;
+        channel-placeholder: root.localized ? "0 à 255" : KitStrings.color-channel-placeholder;
     }
 }
