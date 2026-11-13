@@ -8,7 +8,7 @@ import { KitButton, KitIconButton } from "button.slint";
 import { KitGlyphs } from "icons.slint";
 import { FormConstraintState, KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
-import { HtmlInputKind } from "validation.slint";
+import { HtmlInputKind, ValidationTiming } from "validation.slint";
 import { KitTextField } from "input.slint";
 import { TemporalField } from "temporal-field.slint";
 import { CivilDateView } from "calendar.slint";
@@ -134,6 +134,14 @@ export component KitTimePicker inherits Rectangle {
     }
     public function commit() { editor.commit(); }
     public function cancel-edit() { editor.cancel-edit(); }
+    public function select-all() { editor.select-all(); }
+    // Restores `default-value` as the draft and the accepted time without
+    // announcing a choice, like KitTextField.reset-field.
+    public function reset-field() { editor.reset-field(); }
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
+    in property <string> default-value;
+    out property <bool> has-focus: editor.has-focus;
+    callback focus-observed(bool);
     // The typed draft decides the spin button values; an empty or incomplete
     // draft reports no value rather than a made-up one.
     private property <LocalTimeValue> draft-time: KitTimeService.ready ? KitTimeService.parse-time(root.text, root.precision, root.clock-format).value : { present: false, time: { hour: 0, minute: 0, second: 0 } };
@@ -201,7 +209,8 @@ export component KitTimePicker inherits Rectangle {
         spacing: root.theme.spacing.unit * 2;
         editor := KitTimeField {
                 ownership: root.ownership; commit-policy: root.commit-policy; spec-key: root.spec-key; committed(value) => { root.accept-time(value); }
-                required: root.required; min: root.min; max: root.max; step: root.step;
+                required: root.required; min: root.min; max: root.max; step: root.step; default-value: root.default-value; validation-timing: root.validation-timing;
+                focus-observed(focused) => { root.focus-observed(focused); }
                 custom-validity <=> root.custom-validity;
                 invalid => { root.invalid(); }
  theme: root.theme; control-size: root.control-size; access: root.access; accepted-time <=> root.accepted-time; clock-format: root.clock-format; precision: root.precision; label: root.label; error: root.error; placeholder: root.placeholder; description: root.description; required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message; edited(text) => { root.edited(text); } commit-requested(text) => { root.commit-requested(text); } cancelled => { root.cancelled(); } }
@@ -307,6 +316,25 @@ export component KitDateTimeField inherits Rectangle {
         if (action == FieldAction.submit) { root.commit-requested(root.current-draft); }
     }
     public function commit() { root.accept-pair(FieldAction.submit); }
+    // Restores `default-value` ("YYYY-MM-DDTHH:MM", or empty) as both drafts and
+    // as the accepted value, without announcing a choice, like KitTextField.
+    private property <LocalDateTimeDraft> reset-draft;
+    private property <LocalDateTimeView> reset-value;
+    public function reset-field() {
+        if (!root.service-ready) { return; }
+        root.reset-draft = KitTimeService.split-local-text(root.default-value);
+        root.reset-value = root.reset-draft.date == "" && root.reset-draft.time == "" ? {} : KitTimeService.parse-local(root.reset-draft, root.precision, root.clock-format);
+        root.date-text = root.reset-draft.date;
+        root.time-text = root.reset-draft.time;
+        date.acknowledge({present: root.reset-draft.date != "", text: root.reset-draft.date});
+        time.acknowledge({present: root.reset-draft.time != "", text: root.reset-draft.time});
+        root.draft-dirty = false;
+        root.proposal-baseline = root.reset-value;
+        if (root.ownership == Ownership.local) { root.accepted-value = root.reset-value; root.observed-value = root.reset-value; }
+        checks.reset-validation();
+        root.edited(root.reset-draft);
+    }
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
 
     in property <bool> required;
     in property <bool> clearable;
@@ -332,7 +360,7 @@ export component KitDateTimeField inherits Rectangle {
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { checks.reset-validation(); }
     checks := FormConstraintState {
-        kind: HtmlInputKind.date-time-local; access: root.access; required: root.required;
+        kind: HtmlInputKind.date-time-local; access: root.access; required: root.required; validation-timing: root.validation-timing;
         min: root.min; max: root.max; step: root.step; default-value: root.default-value;
         twelve-hour: root.clock-format == ClockFormat.twelve-hour;
         text: root.date-text == "" && root.time-text == "" ? "" : root.date-text + "T" + root.time-text;
@@ -437,6 +465,17 @@ export component KitZonedDateTimeField inherits Rectangle {
     private property <bool> draft-dirty;
     callback chosen(ZonedDateTimeCommit);
     public function resolve() { root.resolve-draft(FieldAction.submit); }
+    // Empties the date, time and zone drafts and forgets any resolution,
+    // without announcing a choice.
+    public function reset-field() {
+        local.reset-field();
+        zone.reset-field();
+        root.draft-dirty = false;
+        root.selected-occurrence = ZonedOccurrenceSelection.unselected;
+        root.resolved-draft = {};
+        root.result = {state: ZonedTimePresentation.unresolved};
+    }
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
     // Enter in any part, resolve() and leaving the whole group share this path.
     // Blur reads validity without firing `invalid`; each native editor already
     // shows its own errors.
@@ -539,7 +578,7 @@ export component KitZonedDateTimeField inherits Rectangle {
         spacing: root.theme.spacing.unit * 4;
         local := KitDateTimeField {
             // The zoned group owns the blur; the inner pair only commits on Enter.
-            commit-policy: CommitPolicy.on-submit;
+            commit-policy: CommitPolicy.on-submit; validation-timing: root.validation-timing;
             required: root.required || root.zone-text != ""; min: root.min; max: root.max; step: root.step;
             custom-validity: root.custom-validity != "" ? root.custom-validity
                 : (root.resolution == ZonedTimePresentation.ambiguous && root.selected-occurrence == ZonedOccurrenceSelection.unselected) || root.resolution == ZonedTimePresentation.nonexistent || root.resolution == ZonedTimePresentation.invalid-zone
@@ -552,6 +591,7 @@ export component KitZonedDateTimeField inherits Rectangle {
             cancelled => { root.cancelled(); }
         }
         zone := KitTextField {
+            validation-timing: root.validation-timing;
             required: root.required || root.date-text != "" || root.time-text != "";
             custom-validity: KitFormValidation.ready && root.zone-text != "" && !KitFormValidation.valid-time-zone(root.zone-text) ? root.invalid-zone-message : "";
             invalid => { root.invalid(); }
