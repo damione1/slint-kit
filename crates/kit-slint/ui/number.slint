@@ -1,7 +1,8 @@
 import { Ownership, CommitPolicy } from "shared-contracts.slint";
 import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitValidityState } from "validation.slint";
+import { KitValidityState, ValidationTiming } from "validation.slint";
+import { KitStrings } from "strings.slint";
 import { NumberInputFormat } from "shared-contracts.slint";
 import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
@@ -72,6 +73,23 @@ export component KitNumberStepper inherits KitField {
     public function focus-if-invalid() -> bool { return editor.focus-if-invalid(); }
     public function set-custom-validity(message: string) { root.custom-validity = message; }
     public function reset-validation() { editor.reset-validation(); }
+    // Validation messages mirror KitTextField, so a host can localise every
+    // built-in message of the stepper without rebuilding the composite.
+    in property <string> required-message: KitStrings.required-message;
+    in property <string> underflow-message: KitStrings.underflow-template.replace-all("{value}", root.min);
+    in property <string> overflow-message: KitStrings.overflow-template.replace-all("{value}", root.max);
+    in property <string> step-message: KitStrings.step-message;
+    in property <string> bad-input-message: KitStrings.bad-input-message;
+    in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
+    in property <TextHorizontalAlignment> text-alignment: TextHorizontalAlignment.start;
+    // Name of the editor for assistive technology; falls back to the visible
+    // label, so a label-less stepper (cart row, table cell) can still be named.
+    in property <string> accessible-name: root.label;
+    out property <bool> dirty: editor.dirty;
+    out property <bool> touched: editor.touched;
+    callback value-edited(string);
+    public function reset-field() { editor.reset-field(); }
+    public function select-all() { editor.select-all(); }
     in property <string> label;
     in property <string> description;
     in property <string> error;
@@ -107,7 +125,11 @@ export component KitNumberStepper inherits KitField {
             invalid => { root.invalid(); }
             theme: root.theme; control-size: root.control-size;
             access: root.access; validation: root.validation;
-            accessible-name: root.label;
+            accessible-name: root.accessible-name;
+            required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message;
+            step-message: root.step-message; bad-input-message: root.bad-input-message;
+            validation-timing: root.validation-timing; text-alignment: root.text-alignment;
+            value-edited(value) => { root.value-edited(value); }
             placeholder: root.placeholder; prefix: root.prefix; suffix: root.suffix;
             text <=> root.text;
             edited(value) => { root.edited(value); }

@@ -48,6 +48,11 @@ component ColorDraftChannel inherits HorizontalLayout {
 // The native hex draft may be incomplete; only Rust's SrgbColor parser commits.
 export component KitColorField inherits Rectangle {
     in property <bool> required: true;
+    // Messages are overridable so a host can localise the colour field.
+    in property <string> required-message: KitStrings.required-message;
+    in property <string> pattern-message: root.alpha-mode == ColorAlphaMode.editable ? "Use #RRGGBB or #RRGGBBAA." : "Use #RRGGBB.";
+    in property <string> placeholder: root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
+    in property <string> description: root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";
     in-out property <string> custom-validity;
     out property <KitValidityState> validity: editor.validity;
     out property <bool> will-validate: editor.will-validate;
@@ -124,14 +129,14 @@ export component KitColorField inherits Rectangle {
                 // ownership. A proposal must not repeat on the following blur.
                 ownership: Ownership.local; clearable: root.clearable; clear-label: root.clear-label;
                 pattern: root.alpha-mode == ColorAlphaMode.editable ? "#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?" : "#[0-9a-fA-F]{6}";
-                pattern-message: root.alpha-mode == ColorAlphaMode.editable ? "Use #RRGGBB or #RRGGBBAA." : "Use #RRGGBB.";
+                required-message: root.required-message; pattern-message: root.pattern-message;
                 error: root.error; show-validation-message: false;
                 invalid => { root.invalid(); }
                 theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
                 validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 text <=> root.text;
                 focus-observed(focused) => { if (!focused) { root.sync-text(); } }
-                placeholder:root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
+                placeholder: root.placeholder;
                 edited(text) => { root.edited(text); }
                 committed(value) => { root.accept-typed(value); }
                 commit-requested(text) => { root.commit-requested(text); }
@@ -151,7 +156,7 @@ export component KitColorField inherits Rectangle {
                 if !root.accepted-value.present: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close; }
             }
         }
-        KitFieldDescription {theme:root.theme;text:root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";}
+        KitFieldDescription {theme:root.theme;text:root.description;}
         if root.error == "" && editor.validation-visible && editor.validation-message != "": KitFieldError { theme: root.theme; text: editor.validation-message; }
         if root.error != "": KitFieldError {theme:root.theme;text:root.error;}
     }
@@ -302,6 +307,12 @@ component ColorChannelEditor inherits Rectangle {
 
 export component KitColorPicker inherits Rectangle {
     in property <bool> required: true;
+    in property <string> required-message: KitStrings.required-message;
+    in property <string> pattern-message: root.alpha-mode == ColorAlphaMode.editable ? "Use #RRGGBB or #RRGGBBAA." : "Use #RRGGBB.";
+    in property <string> placeholder: root.alpha-mode == ColorAlphaMode.editable ? "#RRGGBBAA" : "#RRGGBB";
+    in property <string> description: root.alpha-mode == ColorAlphaMode.editable ? "sRGB hexadecimal, including alpha" : "sRGB hexadecimal";
+    // Quick choices of the picker popup; replace or empty to change them.
+    in property <[color]> palette: [#ef4444,#f59e0b,#22c55e,#06b6d4,#4f46e5,#a855f7,#111827,#ffffff];
     in property <bool> clearable;
     in property <string> clear-label: KitStrings.clear-label;
     in-out property <string> custom-validity;
@@ -349,7 +360,7 @@ export component KitColorPicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 4;
         field := KitColorField { ownership: Ownership.controlled;
-            required: root.required; clearable: root.clearable; clear-label: root.clear-label; empty-label: root.empty-label;
+            required: root.required; required-message: root.required-message; pattern-message: root.pattern-message; placeholder: root.placeholder; description: root.description; palette: root.palette; clearable: root.clearable; clear-label: root.clear-label; empty-label: root.empty-label;
             custom-validity <=> root.custom-validity; invalid => { root.invalid(); }
             chosen(value) => { root.publish-value({present: true, color: value}); }
             cleared => { root.publish-value({}); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-value: root.accepted-value; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } }

@@ -840,6 +840,7 @@ mod numeric_locale;
 mod optional_temporal;
 mod scroll_bar;
 mod select_geometry;
+mod wrapper_field_api;
 
 mod html_validation;
 
