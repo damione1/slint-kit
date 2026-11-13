@@ -1,5 +1,5 @@
 import { InterFont } from "@kit/fonts/inter.slint";
-// Public label overrides localize this fixture; toolkit/host defaults keep their language.
+// Les libellés et messages de validation sont des propriétés publiques : ce champ est entièrement localisé.
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { NumberInputFormat, KitNumberStepper, KitTheme, KitThemes } from "@kit";
 
@@ -21,7 +21,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Champ numérique à incréments"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        field := KitNumberStepper { number-format: NumberInputFormat.canonical; decrement-label: "Diminuer la valeur"; increment-label: "Augmenter la valeur"; theme: root.theme; label: "Invités"; text: "3"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
+        field := KitNumberStepper { number-format: NumberInputFormat.canonical; required-message: "Ce champ est obligatoire."; underflow-message: "Valeur trop basse."; overflow-message: "Valeur trop haute."; decrement-label: "Diminuer la valeur"; increment-label: "Augmenter la valeur"; theme: root.theme; label: "Invités"; text: "3"; committed(value) => { root.status = "Accepté : " + value.value.text; } }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
     }
 }

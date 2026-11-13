@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitNumberStepper, KitColorField, KitColorPicker, KitTheme, KitThemes } from "@kit";
+
+// Composite wrappers forward the field message and option API of KitTextField.
+export component WrapperFieldApiFixture inherits Window {
+    width: 600px; height: 600px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <string> stepper-value;
+    in-out property <string> stepper-min: "2";
+    in-out property <string> stepper-max: "8";
+    in-out property <string> stepper-label;
+    in-out property <string> stepper-name: "Quantité";
+    in-out property <string> color-text;
+    out property <string> stepper-message: stepper.validation-message;
+    out property <string> color-message: color.validation-message;
+    out property <string> picker-message: picker.validation-message;
+    public function report-stepper() -> bool { return stepper.report-validity(); }
+    public function report-color() -> bool { return color.report-validity(); }
+    public function report-picker() -> bool { return picker.report-validity(); }
+    VerticalLayout {
+        stepper := KitNumberStepper {
+            theme: root.theme; label: root.stepper-label; accessible-name: root.stepper-name;
+            text <=> root.stepper-value; min: root.stepper-min; max: root.stepper-max; required: true;
+            required-message: "Obligatoire"; underflow-message: "Trop petit"; overflow-message: "Trop grand";
+        }
+        color := KitColorField {
+            theme: root.theme; text <=> root.color-text; required: true; required-message: "Couleur obligatoire";
+            accepted-value: { present: false, color: { red: 0, green: 0, blue: 0, alpha: 255 } };
+        }
+        picker := KitColorPicker {
+            theme: root.theme; required: true; required-message: "Choisir une couleur"; palette: [];
+            accepted-value: { present: false, color: { red: 0, green: 0, blue: 0, alpha: 255 } };
+        }
+    }
+}
