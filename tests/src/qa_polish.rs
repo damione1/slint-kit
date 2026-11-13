@@ -52,7 +52,7 @@ fn checkbox_indicator_and_wrapped_label_share_the_vertical_center() {
                 .unwrap();
             let indicator = checkbox
                 .query_descendants()
-                .match_id("KitCheckbox::indicator")
+                .match_inherits("CheckMark")
                 .find_first()
                 .unwrap();
             let center = |e: &ElementHandle| e.absolute_position().y + e.size().height / 2.;

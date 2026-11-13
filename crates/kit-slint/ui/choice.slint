@@ -115,6 +115,70 @@ export component CheckMark inherits Rectangle {
     }
 }
 
+component CheckBoxSlot inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <CheckState> state;
+    in property <bool> invalid;
+    in property <FieldAccess> access;
+    in property <bool> top-aligned;
+    in property <length> line-height;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.box-size; horizontal-stretch: 0;
+    CheckMark {
+        y: root.top-aligned ? max(0px, (root.line-height - self.height) / 2) : (parent.height - self.height) / 2;
+        theme: root.theme; control-size: root.control-size; state: root.state; invalid: root.invalid; access: root.access;
+    }
+}
+
+component SwitchTrackSlot inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ControlSize> control-size;
+    in property <bool> checked;
+    in property <bool> invalid;
+    in property <bool> disabled;
+    in property <FieldAccess> access;
+    in property <bool> top-aligned;
+    in property <length> line-height;
+    private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
+    width: root.choice.track-width; horizontal-stretch: 0;
+    Rectangle {
+        y: root.top-aligned ? max(0px, (root.line-height - self.height) / 2) : (parent.height - self.height) / 2;
+        width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
+        background: root.invalid ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.accent : root.theme.border-strong;
+        // The disabled track matches the disabled row fill; its edge keeps it visible.
+        border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
+        border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
+        Rectangle {
+            x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
+            y: root.choice.thumb-inset;
+            width: root.choice.thumb-size; height: root.choice.thumb-size;
+            border-radius: min(root.theme.shape.radius-pill, self.width / 2);
+            background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-accent : root.theme.surface;
+            animate x { duration: root.choice.transition; easing: ease-in-out; }
+        }
+    }
+}
+
+// Which side of the label the indicator of a checkbox or switch sits on.
+// `start` puts the label first and the indicator at the trailing edge, the
+// layout of a settings row.
+export enum ChoiceLabelPosition { end, start }
+
+// The label and optional helper text of a checkbox or switch.
+component ChoiceCaption inherits VerticalLayout {
+    in property <KitTheme> theme;
+    in property <string> label;
+    in property <string> description;
+    in property <length> text-size;
+    in property <int> text-weight;
+    in property <bool> disabled;
+    spacing: KitMetrics.label-gap(root.theme) / 2;
+    alignment: center;
+    Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+    if root.description != "": Text { text: root.description; color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
+}
+
 // All boolean skins use the same Pressable activation and cancellation machine.
 // The state is controlled: mixed is a real third value and never coerced to false.
 export component KitCheckbox inherits KitPressable {
@@ -146,6 +210,9 @@ export component KitCheckbox inherits KitPressable {
     in property <Ownership> ownership: Ownership.local;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
+    // `description` (from KitPressable) is the helper text under the label and
+    // is announced as part of the accessible description.
+    in property <ChoiceLabelPosition> label-position: ChoiceLabelPosition.end;
     callback toggled(CheckState);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
@@ -156,26 +223,21 @@ export component KitCheckbox inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
+    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + (root.description != "" ? measure-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * root.padding-block);
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.box-size - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
+    measure-description := Text { visible: false; width: measure.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     accessible-role: checkbox;
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.state == CheckState.checked;
     accessible-read-only: root.access == FieldAccess.read-only;
-    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? root.mixed-label : "";
+    accessible-description: checks.show-error ? checks.validation-message : root.state == CheckState.mixed ? (root.description != "" ? root.mixed-label + ". " + root.description : root.mixed-label) : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = root.state == CheckState.checked ? CheckState.unchecked : CheckState.checked; if (root.ownership == Ownership.local) { root.state = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
-        Rectangle {
-            width: root.choice.box-size; horizontal-stretch: 0;
-            indicator := CheckMark {
-                y: (parent.height - self.height) / 2;
-                theme: root.theme; control-size: root.control-size;
-                state: root.state; invalid: checks.show-error; access: root.access;
-            }
-        }
-        label := Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        if root.label-position == ChoiceLabelPosition.end: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
+        label := ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
+        if root.label-position == ChoiceLabelPosition.start: CheckBoxSlot { theme: root.theme; control-size: root.control-size; state: root.state; invalid: checks.show-error; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
     }
 }
 
@@ -206,6 +268,9 @@ export component KitSwitch inherits KitPressable {
     in property <Ownership> ownership: Ownership.local;
     in property <FieldAccess> access: FieldAccess.editable;
     in property <string> label;
+    // `description` (from KitPressable) is the helper text under the label and
+    // is announced as part of the accessible description.
+    in property <ChoiceLabelPosition> label-position: ChoiceLabelPosition.end;
     callback toggled(bool);
     private property <ChoiceRecipe> choice: KitThemes.choice-recipe(root.theme, root.control-size);
     intent: ButtonIntent.quiet;
@@ -216,37 +281,21 @@ export component KitSwitch inherits KitPressable {
     changed has-focus => { if (!root.has-focus && root.access == FieldAccess.editable) { checks.note-blur(); } }
     form-submit-on-return: true;
     changed access => { root.cancel-press(); }
-    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + 2 * root.padding-block);
+    min-height: max(max(root.recipe.height,root.text-size * 1.4 + 2 * root.padding-block),measure.preferred-height + (root.description != "" ? measure-description.preferred-height + KitMetrics.label-gap(root.theme) / 2 : 0px) + 2 * root.padding-block);
     measure := Text { visible: false; width: max(1px,root.width - 2 * root.padding-inline - root.choice.track-width - root.choice.label-gap); text: root.label; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; }
+    measure-description := Text { visible: false; width: measure.width; text: root.description; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); wrap: word-wrap; }
     accessible-role: switch;
     accessible-name: root.label;
     accessible-checkable: true;
     accessible-checked: root.checked;
     accessible-read-only: root.access == FieldAccess.read-only;
-    accessible-description: checks.show-error ? checks.validation-message : "";
+    accessible-description: checks.show-error ? checks.validation-message : root.description;
     activated => { if (root.access == FieldAccess.editable) { checks.note-edit(); let next = !root.checked; if (root.ownership == Ownership.local) { root.checked = next; } root.toggled(next); } }
     HorizontalLayout {
         spacing: root.choice.label-gap;
-        Rectangle {
-            width: root.choice.track-width; horizontal-stretch: 0;
-            Rectangle {
-            y: (parent.height - self.height) / 2;
-            width: root.choice.track-width; height: root.choice.track-height; border-radius: root.choice.track-radius;
-            background: checks.show-error ? root.theme.danger : root.disabled ? root.theme.disabled-fill : root.access == FieldAccess.read-only ? (root.checked ? root.theme.text-secondary : root.theme.border-subtle) : root.checked ? root.theme.accent : root.theme.border-strong;
-            // The disabled track matches the disabled row fill; its edge keeps it visible.
-            border-width: root.access != FieldAccess.editable ? root.theme.shape.border-width : 0px;
-            border-color: root.disabled ? root.theme.disabled-text : root.theme.border-strong;
-            Rectangle {
-                x: root.checked ? parent.width - self.width - root.choice.thumb-inset : root.choice.thumb-inset;
-                y: root.choice.thumb-inset;
-                width: root.choice.thumb-size; height: root.choice.thumb-size;
-                border-radius: min(root.theme.shape.radius-pill, self.width / 2);
-                background: root.access == FieldAccess.read-only ? root.theme.surface : root.checked ? root.theme.on-accent : root.theme.surface;
-                animate x { duration: root.choice.transition; easing: ease-in-out; }
-            }
-            }
-        }
-        Text { text: root.label; color: root.disabled ? root.theme.disabled-text : root.theme.text-primary; font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight; wrap: word-wrap; vertical-alignment: center; }
+        if root.label-position == ChoiceLabelPosition.end: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
+        ChoiceCaption { theme: root.theme; label: root.label; description: root.description; text-size: root.text-size; text-weight: root.text-weight; disabled: root.disabled; }
+        if root.label-position == ChoiceLabelPosition.start: SwitchTrackSlot { theme: root.theme; control-size: root.control-size; checked: root.checked; invalid: checks.show-error; disabled: root.disabled; access: root.access; top-aligned: root.description != ""; line-height: root.text-size * 1.4; }
     }
 }
 
