@@ -22,6 +22,15 @@ pub enum PopupSide {
     Above,
     Below,
 }
+/// Which side of the anchor the host asks for. `Auto` prefers below and flips
+/// above when above has more room; `Below` and `Above` keep their side and
+/// reduce the height to the room that side has.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PopupPreference {
+    Auto,
+    Below,
+    Above,
+}
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PopupPlacement {
     pub bounds: Rect,
@@ -59,6 +68,24 @@ pub fn place_popup(
     insets: Insets,
     gap: f32,
 ) -> PopupPlacement {
+    place_popup_with(
+        anchor,
+        desired,
+        viewport,
+        insets,
+        gap,
+        PopupPreference::Auto,
+    )
+}
+/// Like [`place_popup`], with an explicit side preference.
+pub fn place_popup_with(
+    anchor: Rect,
+    desired: Size,
+    viewport: Rect,
+    insets: Insets,
+    gap: f32,
+    preference: PopupPreference,
+) -> PopupPlacement {
     let vx = finite(viewport.x);
     let vy = finite(viewport.y);
     let vw = length(viewport.width);
@@ -81,10 +108,16 @@ pub fn place_popup(
     let below = (area.bottom() - below_y).max(0.0);
     let above = (above_end - area.y).max(0.0);
     let desired_height = length(desired.height);
-    let side = if below >= desired_height || below >= above {
-        PopupSide::Below
-    } else {
-        PopupSide::Above
+    let side = match preference {
+        PopupPreference::Below => PopupSide::Below,
+        PopupPreference::Above => PopupSide::Above,
+        PopupPreference::Auto => {
+            if below >= desired_height || below >= above {
+                PopupSide::Below
+            } else {
+                PopupSide::Above
+            }
+        }
     };
     let width = length(desired.width).min(area.width);
     let (height, y) = match side {
@@ -144,6 +177,45 @@ mod tests {
         assert_eq!(p.bounds.x, 490.);
         assert_eq!(p.bounds.height, 250.);
         assert!(view.contains(p.bounds));
+    }
+    #[test]
+    fn preference_pins_the_side_and_limits_height_to_its_room() {
+        let view = Rect {
+            x: 0.,
+            y: 0.,
+            width: 400.,
+            height: 400.,
+        };
+        let size = Size {
+            width: 200.,
+            height: 250.,
+        };
+        let place = |y: f32, preference| {
+            place_popup_with(
+                Rect {
+                    x: 10.,
+                    y,
+                    width: 100.,
+                    height: 30.,
+                },
+                size,
+                view,
+                Insets::default(),
+                4.,
+                preference,
+            )
+        };
+        assert_eq!(place(20., PopupPreference::Auto).side, PopupSide::Below);
+        let above = place(300., PopupPreference::Above);
+        assert_eq!((above.side, above.bounds.height), (PopupSide::Above, 250.));
+        assert_eq!(above.bounds.bottom(), 296.);
+        let pinned_above = place(60., PopupPreference::Above);
+        assert_eq!(pinned_above.side, PopupSide::Above);
+        assert_eq!(pinned_above.bounds.height, 56.);
+        let pinned_below = place(300., PopupPreference::Below);
+        assert_eq!(pinned_below.side, PopupSide::Below);
+        assert_eq!(pinned_below.bounds.height, 66.);
+        assert_eq!(place(300., PopupPreference::Auto).side, PopupSide::Above);
     }
     #[test]
     fn geometric_invariant_over_extreme_anchors_sizes_and_insets() {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use crate::ui;
-use kit_core::{Insets, Rect, Size, place_popup};
+use kit_core::{Insets, PopupPreference, Rect, Size, place_popup_with};
 
 fn placement(request: ui::PopupRequest, viewport: ui::PopupViewport) -> ui::PopupGeometry {
-    let bounds = place_popup(
+    let bounds = place_popup_with(
         Rect {
             x: request.x,
             y: request.y,
@@ -26,6 +26,11 @@ fn placement(request: ui::PopupRequest, viewport: ui::PopupViewport) -> ui::Popu
             left: request.gap,
         },
         request.gap,
+        match request.placement {
+            ui::DropdownPlacement::Auto => PopupPreference::Auto,
+            ui::DropdownPlacement::Below => PopupPreference::Below,
+            ui::DropdownPlacement::Above => PopupPreference::Above,
+        },
     )
     .bounds;
     ui::PopupGeometry {
@@ -72,6 +77,7 @@ mod tests {
             width: 680.,
             height: 720.,
             gap: 4.,
+            placement: ui::DropdownPlacement::Auto,
         };
         let result = placement(
             request,

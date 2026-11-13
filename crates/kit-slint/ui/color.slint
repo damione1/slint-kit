@@ -15,7 +15,7 @@ import { FieldAccess, NavigationStep } from "contracts.slint";
 import { ColorAlphaMode } from "shared-contracts.slint";
 export { ColorAlphaMode } from "shared-contracts.slint";
 
-import { KitFieldService, ColorChannel, SrgbColorView, ColorValue, ColorResult, FieldCommit, PopupViewport, PopupGeometry } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, ColorChannel, SrgbColorView, ColorValue, ColorResult, FieldCommit, PopupViewport, PopupGeometry } from "field-service.slint";
 export { ColorChannel, SrgbColorView, ColorValue } from "field-service.slint";
 import { Ownership } from "shared-contracts.slint";
 
@@ -196,7 +196,7 @@ export component KitColorField inherits Rectangle {
         // Width is independent of the height-for-width content measurement.
         width: min(root.popup-recipe.width, max(0px, root.popup-viewport.width - 2 * root.popup-recipe.gap));
         private property <length> body-height: popup-content.preferred-height + 2 * root.popup-inset;
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.body-height, gap: root.popup-recipe.gap}, root.popup-viewport);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.body-height, gap: root.popup-recipe.gap, placement: DropdownPlacement.auto}, root.popup-viewport);
         x: self.placement.x; y: self.placement.y;
         height: self.placement.height;
         close-policy: close-on-click-outside;

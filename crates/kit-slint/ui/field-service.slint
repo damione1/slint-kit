@@ -7,7 +7,11 @@ import { KitFieldMessages } from "strings.slint";
 import { KitInputConstraints } from "validation.slint";
 // Logical window coordinates. Placement is shared with kit-core geometry.
 export struct PopupViewport { width: length, height: length }
-export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length }
+// Which side of the trigger a dropdown opens on. `auto` is below and flips above
+// when above has more room; `below` and `above` keep their side and shorten the
+// list to the room that side has.
+export enum DropdownPlacement { auto, below, above }
+export struct PopupRequest { x: length, y: length, anchor-width: length, anchor-height: length, width: length, height: length, gap: length, placement: DropdownPlacement }
 export struct PopupGeometry { x: length, y: length, width: length, height: length }
 export struct FieldValue { present: bool, text: string }
 export struct FieldState {
