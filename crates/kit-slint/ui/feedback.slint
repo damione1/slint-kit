@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import { KitKeyResult } from "keyboard.slint";
 import { KitStrings } from "strings.slint";
 import { KitTheme, KitThemes, ControlSize, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, AlertSeverity, AlertRecipe, TooltipRecipe } from "theme.slint";
 import { KitButton, KitIconButton } from "button.slint";
@@ -278,6 +279,15 @@ export component KitTooltip inherits Rectangle {
     }
 }
 
+component ToastFocusButton inherits KitButton {
+    in property <int> focus-request;
+    changed focus-request => { self.take-focus(); }
+}
+component ToastFocusIconButton inherits KitIconButton {
+    in property <int> focus-request;
+    changed focus-request => { self.take-focus(); }
+}
+
 export component KitToast inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ToastEntry> entry;
@@ -285,6 +295,25 @@ export component KitToast inherits Rectangle {
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
+    // The host raises this serial to move keyboard focus into its first toast;
+    // only the delegate marked as that target reacts.
+    in property <bool> focus-target;
+    in property <int> focus-serial;
+    changed focus-serial => { if (root.focus-target) { root.take-focus(); } }
+    // Focus the first control a keyboard user can operate: the action, else dismiss.
+    public function take-focus() {
+        if (root.entry.action-label != "") { root.action-focus += 1; }
+        else if (root.entry.dismissible) { root.dismiss-focus += 1; }
+    }
+    private property <AlertRecipe> alert: KitThemes.alert-recipe(root.theme, root.entry.severity);
+    // Like Escape on a web toast: a dismissible toast closes from either control.
+    function escape-dismisses(event: KeyEvent) -> KitKeyResult {
+        if (event.text == Key.Escape && root.entry.dismissible) { root.dismiss(root.entry.token); return KitKeyResult.accept; }
+        return KitKeyResult.reject;
+    }
+    // Conditional controls cannot be named outside their condition, so each takes focus when its serial changes.
+    private property <int> action-focus;
+    private property <int> dismiss-focus;
     private property <bool> action-focused;
     private property <bool> dismiss-focused;
     private property <bool> pointer-engaged: hover.has-hover;
@@ -301,13 +330,21 @@ export component KitToast inherits Rectangle {
     hover := TouchArea {
     content := VerticalLayout { padding: root.theme.spacing.unit * 4; spacing: root.theme.spacing.unit * 3;
         HorizontalLayout { spacing: root.theme.spacing.unit * 3;
+            // The severity mark follows the alert recipe, so the meaning never rests on color alone.
+            VerticalLayout { alignment: start;
+                KitIcon {
+                    theme: root.theme;
+                    glyph: root.entry.severity == AlertSeverity.success ? root.theme.icons.check : root.entry.severity == AlertSeverity.warning || root.entry.severity == AlertSeverity.error ? root.theme.icons.warning : root.theme.icons.information;
+                    ink: root.alert.mark;
+                }
+            }
             VerticalLayout { spacing: root.theme.spacing.unit;
                 Text { text: root.entry.title; color: root.entry.severity == AlertSeverity.error ? root.theme.danger : root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
                 if root.entry.message != "": Text { text: root.entry.message; color: root.theme.text-secondary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); wrap: word-wrap; }
             }
-            if root.entry.dismissible: KitIconButton { theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: root.dismiss-label; activated => { root.dismiss(root.entry.token); } focus-observed(focused) => { root.dismiss-focused = focused; } }
+            if root.entry.dismissible: ToastFocusIconButton { focus-request: root.dismiss-focus; theme: root.theme; control-size: ControlSize.compact; glyph: root.theme.icons.close; accessible-name: root.dismiss-label; activated => { root.dismiss(root.entry.token); } key-event(event) => { return root.escape-dismisses(event); } focus-observed(focused) => { root.dismiss-focused = focused; } }
         }
-        if root.entry.action-label != "": KitButton { theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } focus-observed(focused) => { root.action-focused = focused; } }
+        if root.entry.action-label != "": ToastFocusButton { focus-request: root.action-focus; theme: root.theme; text: root.entry.action-label; activated => { root.action(root.entry.token); } key-event(event) => { return root.escape-dismisses(event); } focus-observed(focused) => { root.action-focused = focused; } }
     }
     }
 }
@@ -319,6 +356,9 @@ export component KitToastHost inherits VerticalLayout {
     callback action(int);
     callback dismiss(int);
     callback interaction(int,ToastInteraction,bool);
+    private property <int> focus-serial;
+    // Move keyboard focus into the first toast, for a hotkey the application defines.
+    public function take-focus() { root.focus-serial += 1; }
     spacing: root.theme.spacing.unit * 3; alignment: start; vertical-stretch: 0;
-    for entry in root.entries: KitToast { theme: root.theme; entry: entry; action(token) => { root.action(token); } dismiss(token) => { root.dismiss(token); } interaction(token,source,engaged) => { root.interaction(token,source,engaged); } }
+    for entry[index] in root.entries: KitToast { theme: root.theme; entry: entry; focus-target: index == 0; focus-serial: root.focus-serial; action(token) => { root.action(token); } dismiss(token) => { root.dismiss(token); } interaction(token,source,engaged) => { root.interaction(token,source,engaged); } }
 }
