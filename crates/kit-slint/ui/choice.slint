@@ -949,6 +949,12 @@ export component KitMultiSelect inherits Rectangle {
     callback query-edited(string);
     in-out property <string> query <=> selection.query;
     callback remove-requested(int);
+    // An addition was refused because `selection-limit` options are chosen.
+    callback limit-reached(OptionRow);
+    out property <bool> at-limit: selection.at-limit;
+    out property <bool> is-open: root.state.open;
+    public function open() { if (root.access == FieldAccess.editable) { selection.open(); } }
+    public function close() { if (root.state.open) { selection.dismiss(CloseReason.programmatic); root.dismiss(CloseReason.programmatic); } }
     vertical-stretch: 0;
     private property <SelectionRef> focused-chip;
     out property <bool> has-focus: selector.has-focus || root.focused-chip.present;
@@ -1018,6 +1024,7 @@ export component KitMultiSelect inherits Rectangle {
         options: root.options; ownership: root.ownership; limit: root.selection-limit; close-on-select: root.close-on-select;
         wrap: root.wrap; page-rows: root.page-rows; typeahead-timeout-ms: root.typeahead-timeout-ms;
         changed-selection(row, added) => { checks.note-edit(); root.selection-changed(row, added); }
+        limit-reached(row) => { root.limit-reached(row); }
         query-reset => { root.query-edited(""); }
     }
 }
@@ -1214,6 +1221,9 @@ export component KitCombobox inherits Rectangle {
         }
     }
     public function take-focus() { editor.take-focus(); }
+    out property <bool> is-open: root.state.open;
+    public function open() { if (root.access == FieldAccess.editable && !root.state.open) { selection.open(); } }
+    public function close() { if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); } }
     public function clear() {
         // The shared native action owns deletion, undo and composition guards.
         editor.clear();

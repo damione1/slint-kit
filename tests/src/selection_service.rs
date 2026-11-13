@@ -932,3 +932,20 @@ fn composite_keyboard_focus_renders_in_both_themes_at_large_text() {
         }
     }
 }
+
+#[test]
+fn select_and_combobox_open_and_close_from_the_host_and_report_the_state() {
+    let (window, _choices) = fixture();
+    assert!(!window.get_popup_is_open() && !window.get_combo_is_open());
+    window.invoke_open_popup();
+    window.invoke_open_combo();
+    assert!(window.get_popup_is_open() && window.get_popup_state().open);
+    assert!(window.get_combo_is_open() && window.get_combo_state().open);
+    window.invoke_close_popup();
+    window.invoke_close_combo();
+    assert!(!window.get_popup_is_open() && !window.get_combo_is_open());
+    window.set_access(slint_kit::ui::FieldAccess::Disabled);
+    window.invoke_open_popup();
+    window.invoke_open_combo();
+    assert!(!window.get_popup_is_open() && !window.get_combo_is_open());
+}

@@ -541,6 +541,11 @@ export component KitSelect inherits Rectangle {
     callback tab-navigation(bool) -> KitKeyResult;
     callback query-edited(string);
     out property <bool> popup-visible: popup.is-open;
+    // The controller's open state, for every ownership. `open()` and `close()`
+    // drive it from a shortcut or a label press.
+    out property <bool> is-open: root.state.open;
+    public function open() { if (root.access == FieldAccess.editable) { selection.open(); } }
+    public function close() { if (root.state.open) { root.handle-dismiss(CloseReason.programmatic); } }
     private property <bool> popup-focused;
     private property <bool> popup-presented;
     out property <bool> has-focus: trigger.has-focus || root.popup-focused;
