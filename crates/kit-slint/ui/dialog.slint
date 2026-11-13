@@ -20,6 +20,13 @@ export component KitDialogSurface inherits Rectangle {
     public function take-scope-focus() {
         if (root.state.open && root.state.topmost) { keys.focus(); }
     }
+    // A busy modal has no eligible control: every action is disabled and a
+    // disabled control keeps focus without handling keys. The scope takes focus
+    // there so keys stay in the modal. It cannot steal a host focus request,
+    // because nothing is eligible to receive one while busy.
+    private property <bool> sealed: root.state.open && root.state.topmost && root.state.busy;
+    init => { if (root.sealed) { keys.focus(); } }
+    changed sealed => { if (root.sealed) { keys.focus(); } }
     visible: root.state.open;
     background: root.theme.scrim;
     keys := FocusScope {
