@@ -1148,7 +1148,7 @@
   "KitCollapse": {
     "fr": {
       "summary": "Bloc dépliable pour un contenu arbitraire conservé dans l’arbre visuel.",
-      "usage": "`expanded` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `expansion-requested` uniquement pour les effets métier. Fournissez `title` et `expanded`, puis acceptez `expansion-requested(bool)` dans votre état. Placez le contenu à déplier dans les enfants.",
+      "usage": "`expanded` appartient à l’instance et accepte une liaison bidirectionnelle. `ownership: Ownership.controlled` confie l’acceptation à l’hôte. Traitez `expansion-requested` uniquement pour les effets métier. Fournissez `title` et `expanded`, puis acceptez `expansion-requested(bool)` dans votre état. Placez le contenu à déplier dans les enfants. Pour un accordéon au contenu arbitraire, donnez à plusieurs `KitCollapse` sœurs un `value` distinct et liez `group-value <=> partagé` sur chacune ; `collapsible: false` garde toujours une section ouverte.",
       "behavior": "Le corps reste monté pendant l’animation de hauteur et est masqué lorsqu’il est replié. `theme.reduced-motion` supprime la durée de transition.",
       "related": [
         "KitAccordion"
@@ -1161,12 +1161,32 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitCollapse {\n    modal-layer: 1;\n}"
+        },
+        "value": {
+          "effect": "Identité de cette section dans un groupe. `-1` laisse la section autonome, pilotée par `expanded`. Avec `value >= 0`, la section est ouverte lorsque `group-value` égale `value`, et `expanded` est ignoré.",
+          "default": "`-1` (autonome).",
+          "example": "KitCollapse {\n    value: 0;\n    group-value <=> root.open;\n}"
+        },
+        "group-value": {
+          "effect": "Le `value` de la section ouverte du groupe, ou `-1` si aucune ne l’est. Liez-le en double sens (`group-value <=> root.open`) sur chaque section sœur : activer une section ferme les autres. Le groupe possède un seul `int` ; les sections gardent des enfants arbitraires.",
+          "default": "`-1` (aucune ouverte).",
+          "example": "KitCollapse {\n    value: 1;\n    group-value <=> root.open;\n}"
+        },
+        "collapsible": {
+          "effect": "Dans un groupe, indique si activer la section ouverte la ferme. `false` garde toujours une section ouverte : l’activation de la section ouverte ne fait rien et n’émet aucune demande. Sans effet sur une section autonome.",
+          "default": "`true`.",
+          "example": "KitCollapse {\n    value: 0;\n    group-value <=> root.open;\n    collapsible: false;\n}"
+        },
+        "open": {
+          "effect": "Lecture seule. Indique si la section est actuellement dépliée : `group-value == value` dans un groupe, `expanded` sinon.",
+          "default": "Dérivé.",
+          "example": "Text { text: section.open ? \"Open\" : \"Closed\"; }"
         }
       }
     },
     "en": {
       "summary": "Disclosure block for arbitrary content retained in the visual tree.",
-      "usage": "`expanded` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `expansion-requested` only for business effects. Supply `title` and `expanded`, then acknowledge `expansion-requested(bool)` in your state. Place the disclosure content in its children.",
+      "usage": "`expanded` is instance-owned and supports two-way binding. `ownership: Ownership.controlled` leaves acceptance to the host. Handle `expansion-requested` only for business effects. Supply `title` and `expanded`, then acknowledge `expansion-requested(bool)` in your state. Place the disclosure content in its children. For an accordion with arbitrary content, give several `KitCollapse` siblings a distinct `value` and bind `group-value <=> shared` on each; set `collapsible: false` to keep one section always open.",
       "behavior": "The body stays mounted during the height animation and is hidden when collapsed. `theme.reduced-motion` removes transition duration.",
       "related": [
         "KitAccordion"
@@ -1179,6 +1199,26 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitCollapse {\n    modal-layer: 1;\n}"
+        },
+        "value": {
+          "effect": "Identity of this section in a group. `-1` leaves the section standalone, driven by `expanded`. With `value >= 0` the section is open when `group-value` equals `value`, and `expanded` is ignored.",
+          "default": "`-1` (standalone).",
+          "example": "KitCollapse {\n    value: 0;\n    group-value <=> root.open;\n}"
+        },
+        "group-value": {
+          "effect": "The `value` of the open section of the group, or `-1` when none is open. Bind it two-way (`group-value <=> root.open`) on every sibling, so activating one section closes the others. The group owns one `int`; the sections keep arbitrary children.",
+          "default": "`-1` (none open).",
+          "example": "KitCollapse {\n    value: 1;\n    group-value <=> root.open;\n}"
+        },
+        "collapsible": {
+          "effect": "In a group, whether activating the open section closes it. `false` keeps one section always open: activation of the open section does nothing and emits no request. It has no effect on a standalone section.",
+          "default": "`true`.",
+          "example": "KitCollapse {\n    value: 0;\n    group-value <=> root.open;\n    collapsible: false;\n}"
+        },
+        "open": {
+          "effect": "Read-only. Whether the section is currently disclosed: `group-value == value` in a group, `expanded` otherwise.",
+          "default": "Derived.",
+          "example": "Text { text: section.open ? \"Open\" : \"Closed\"; }"
         }
       }
     }
