@@ -3,8 +3,8 @@
 //! focus and the toast binding lifecycle behind a real toast host.
 use crate::{
     BreadcrumbsFixture, CloseReason, CollapseKeysFixture, DialogState, DrawerFocusFixture,
-    MenuBarKeysFixture, NavigationStep, Ownership, PaginationFixture, SelectState,
-    ToastHostFixture,
+    MenuBarKeysFixture, NavigationStep, Ownership, PaginationDisplay, PaginationFixture,
+    SelectState, ToastHostFixture,
 };
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -148,6 +148,102 @@ fn pagination_without_pages_disables_both_actions() {
     assert_eq!(one(&window, "Next page").accessible_enabled(), Some(false));
     click(&one(&window, "Previous page"));
     assert_eq!(*changes.borrow(), [2], "clamped to the last page");
+}
+
+fn numbered(count: i32, index: i32) -> PaginationFixture {
+    let window = pagination(count, index, Ownership::Local);
+    window.set_display(PaginationDisplay::Numbered);
+    slint::platform::update_timers_and_animations();
+    window
+}
+
+/// The page numbers of the visible page buttons, left to right. A gap between two
+/// numbers is drawn as an ellipsis, which is not exposed to assistive technology.
+fn page_slots(window: &PaginationFixture) -> Vec<i32> {
+    let mut slots: Vec<(f32, i32)> = ElementQuery::from_root(window)
+        .match_inherits("KitPressable")
+        .find_all()
+        .into_iter()
+        .filter_map(|e| {
+            let text = e
+                .accessible_label()
+                .map(|l| l.to_string())
+                .unwrap_or_default();
+            let page = text.strip_prefix("Page ")?.parse().ok()?;
+            Some((e.absolute_position().x, page))
+        })
+        .collect();
+    slots.sort_by(|a, b| a.0.total_cmp(&b.0));
+    slots.into_iter().map(|(_, page)| page).collect()
+}
+
+#[test]
+fn numbered_pagination_lists_every_page_when_they_fit() {
+    let window = numbered(5, 2);
+    assert_eq!(page_slots(&window), [1, 2, 3, 4, 5]);
+    let current = one(&window, "Page 3");
+    assert_eq!(current.accessible_checked(), Some(true));
+    assert_eq!(one(&window, "Page 2").accessible_checked(), Some(false));
+}
+
+#[test]
+fn numbered_pagination_collapses_distant_pages_into_ellipses_with_constant_width() {
+    // Seven slots at every position: pages, with the hidden runs drawn as ellipses.
+    let at = |index| page_slots(&numbered(20, index));
+    assert_eq!(at(0), [1, 2, 3, 4, 5, 20], "slot 6 is an ellipsis");
+    assert_eq!(at(9), [1, 9, 10, 11, 20], "slots 2 and 6 are ellipses");
+    assert_eq!(at(19), [1, 16, 17, 18, 19, 20], "slot 2 is an ellipsis");
+    assert_eq!(at(3), [1, 2, 3, 4, 5, 20]);
+    assert_eq!(
+        at(4),
+        [1, 4, 5, 6, 20],
+        "pages 2 and 3 hide behind an ellipsis"
+    );
+}
+
+#[test]
+fn numbered_pagination_honours_boundary_and_sibling_counts() {
+    let window = numbered(30, 14);
+    window.set_boundary_count(2);
+    window.set_sibling_count(2);
+    slint::platform::update_timers_and_animations();
+    assert_eq!(page_slots(&window), [1, 2, 13, 14, 15, 16, 17, 29, 30]);
+}
+
+#[test]
+fn numbered_pagination_page_buttons_and_first_last_change_the_page() {
+    let window = numbered(20, 9);
+    window.set_show_first_last(true);
+    slint::platform::update_timers_and_animations();
+    let (changes, sink) = recorder();
+    window.on_page_changed(move |page| sink.borrow_mut().push(page));
+    let (steps, step_sink) = recorder();
+    window.on_navigated(move |step| step_sink.borrow_mut().push(step));
+    click(&one(&window, "Page 11"));
+    assert_eq!(window.get_page_index(), 10);
+    click(&one(&window, "Last page"));
+    assert_eq!(window.get_page_index(), 19);
+    assert_eq!(one(&window, "Last page").accessible_enabled(), Some(false));
+    click(&one(&window, "First page"));
+    assert_eq!(window.get_page_index(), 0);
+    assert_eq!(one(&window, "First page").accessible_enabled(), Some(false));
+    assert_eq!(*changes.borrow(), [10, 19, 0]);
+    assert_eq!(
+        *steps.borrow(),
+        [NavigationStep::Last, NavigationStep::First]
+    );
+    click(&one(&window, "Page 1"));
+    assert_eq!(
+        *changes.borrow(),
+        [10, 19, 0],
+        "the current page is not requested again"
+    );
+}
+
+#[test]
+fn numbered_pagination_without_pages_shows_no_page_buttons() {
+    let window = numbered(0, 0);
+    assert!(page_slots(&window).is_empty());
 }
 
 #[test]
