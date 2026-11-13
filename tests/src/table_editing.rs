@@ -630,7 +630,7 @@ fn only_the_edited_cell_mounts_an_editor_across_a_large_model() {
     assert_eq!(editors(&window).len(), 1);
     assert!(delegates(&window, "KitDataTable").len() < 40);
     key(&window, Key::Escape);
-    key(&window, Key::End);
+    modified_key(&window, Key::Control, Key::End);
     assert_eq!(window.get_table_active(), 9_999);
     open(&window, 2);
     assert_eq!(
@@ -2854,4 +2854,98 @@ fn horizontally_scrolled_cell_arrows_keep_the_ring_inside_its_cell_at_every_dens
         committed.borrow().is_empty(),
         "scrolling and cell arrows never submit a value"
     );
+}
+
+fn modified_key(window: &BaseDataFixture, modifier: Key, pressed: Key) {
+    down(window, modifier);
+    key(window, pressed);
+    up(window, modifier);
+}
+fn modified_text(window: &BaseDataFixture, modifier: Key, pressed: &str) {
+    down(window, modifier);
+    text(window, pressed);
+    up(window, modifier);
+}
+
+#[test]
+fn home_and_end_walk_the_cells_while_control_keeps_the_row_edges() {
+    let Editing { window, .. } = editing(records());
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 1);
+
+    key(&window, Key::End);
+    assert_eq!(
+        window.get_table_active(),
+        2,
+        "with a row cursor End still means the last row"
+    );
+    key(&window, Key::Home);
+    assert_eq!(window.get_table_active(), 0);
+    key(&window, Key::DownArrow);
+
+    key(&window, Key::RightArrow);
+    assert_eq!(window.get_table_active_column(), 0);
+    key(&window, Key::End);
+    assert_eq!(window.get_table_active_column(), 2, "End is the last cell");
+    assert_eq!(window.get_table_active(), 1, "the row does not change");
+    key(&window, Key::Home);
+    assert_eq!(
+        window.get_table_active_column(),
+        0,
+        "Home is the first cell"
+    );
+    assert_eq!(window.get_table_active(), 1);
+
+    key(&window, Key::RightArrow);
+    modified_key(&window, Key::Control, Key::End);
+    assert_eq!(window.get_table_active(), 2, "Control+End is the last row");
+    assert_eq!(window.get_table_active_column(), 1, "the cell cursor stays");
+    modified_key(&window, Key::Control, Key::Home);
+    assert_eq!(
+        window.get_table_active(),
+        0,
+        "Control+Home is the first row"
+    );
+    assert_eq!(window.get_table_active_column(), 1);
+}
+
+#[test]
+fn copy_reports_the_displayed_text_of_the_active_cell_only() {
+    let Editing { window, .. } = editing(records());
+    let copied = Rc::new(RefCell::new(Vec::new()));
+    let recorded = copied.clone();
+    window.on_table_cell_copied(move |row, column, generation, text| {
+        recorded
+            .borrow_mut()
+            .push((row, column, generation, text.to_string()));
+    });
+
+    modified_text(&window, Key::Control, "c");
+    assert!(
+        copied.borrow().is_empty(),
+        "a row cursor has no cell to copy"
+    );
+
+    key(&window, Key::RightArrow);
+    key(&window, Key::RightArrow);
+    modified_text(&window, Key::Control, "c");
+    assert_eq!(
+        &*copied.borrow(),
+        &[(1, QUANTITY, 1, "12".to_string())],
+        "Control+C names the cell and its displayed text"
+    );
+
+    modified_text(&window, Key::Meta, "c");
+    assert_eq!(copied.borrow().len(), 2, "Meta+C copies as well");
+
+    window.invoke_copy_table_cell();
+    assert_eq!(
+        copied.borrow().len(),
+        3,
+        "the public function shares the path"
+    );
+
+    key(&window, Key::Return);
+    assert!(window.get_table_editing());
+    assert_eq!(copied.borrow().len(), 3, "an open editor keeps native copy");
 }
