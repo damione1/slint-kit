@@ -364,10 +364,21 @@ fn tokens(theme: KitTheme) -> Vec<(String, Token)> {
     density(&mut tokens, "medium", medium);
     density(&mut tokens, "comfortable", comfortable);
 
-    let KitMotion { fast, base, slow } = motion;
+    let KitMotion {
+        fast,
+        base,
+        slow,
+        repeat_delay,
+        repeat_interval,
+    } = motion;
     tokens.push(("motion.fast".into(), Token::Millis(fast)));
     tokens.push(("motion.base".into(), Token::Millis(base)));
     tokens.push(("motion.slow".into(), Token::Millis(slow)));
+    tokens.push(("motion.repeat-delay".into(), Token::Millis(repeat_delay)));
+    tokens.push((
+        "motion.repeat-interval".into(),
+        Token::Millis(repeat_interval),
+    ));
 
     tokens.push(("reduced-motion".into(), Token::Flag(reduced_motion)));
     tokens.push(("text-scale".into(), Token::Float(text_scale)));

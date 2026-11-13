@@ -80,15 +80,23 @@ export component KitTextField inherits KitField {
         if (root.field-state.committed) { root.committed({value: root.field-state.value, constraints: checks.constraints, spec: root.spec-key}); }
         else if (action == FieldAction.submit && root.field-state.error != "" && !(root.implicit-form-submit && KitFormValidation.implicit-submit-active(KitFormValidation.focus-generation))) { root.invalid(); }
     }
-    // Pointer stepping (the KitNumberStepper buttons) rewrites the draft and
-    // commits at once; the editor need not have focus. An unavailable or
-    // unchanged step commits the current draft, as before.
-    public function step-number(direction: StepDirection) {
-        if (KitFieldService.ready && root.access == FieldAccess.editable) {
-            let result = KitFieldService.step-number(root.text, checks.constraints, direction, 1);
-            if (result.status == NumberStepStatus.stepped) { root.text = result.text; }
-            root.reduce-field(FieldAction.submit);
-        }
+    // Pointer stepping (the KitNumberStepper buttons) goes through the same
+    // native edit path as the keyboard, so `edited`, `value-edited`, dirty
+    // tracking and undo apply, then commits at once. It returns whether the
+    // value stepped: a step clamped at a bound or unavailable commits nothing.
+    public function step-number(direction: StepDirection) -> bool {
+        if (!root.can-step(direction)) { return false; }
+        let result = KitFieldService.step-number(root.text, checks.constraints, direction, 1);
+        if (!root.replace-draft(result.text)) { return false; }
+        root.reduce-field(FieldAction.submit);
+        return true;
+    }
+    // Whether a step in `direction` would change the value; the step buttons
+    // disable themselves from it, so a bound, `step="any"`, a read-only or
+    // disabled field and an inverted range all read as "cannot step".
+    pure public function can-step(direction: StepDirection) -> bool {
+        return KitFieldService.ready && root.access == FieldAccess.editable && root.number-stepping
+            && KitFieldService.step-number(root.text, checks.constraints, direction, 1).status == NumberStepStatus.stepped;
     }
     // Keyboard, wheel and accessible stepping share one exact step in Rust and
     // the native edit path here: the result replaces the selection like typed
