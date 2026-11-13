@@ -798,3 +798,74 @@ calendar_flow_regression!(
     RangePickerFlowFixture,
     "range-picker"
 );
+
+fn press(window: &impl ComponentHandle, key: Key, times: usize) {
+    for _ in 0..times {
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyPressed { text: key.into() });
+        window
+            .window()
+            .dispatch_event(WindowEvent::KeyReleased { text: key.into() });
+    }
+}
+#[test]
+fn range_picker_restarts_on_an_earlier_end_and_exposes_its_draft() {
+    use crate::RangeDraftFixture;
+    use slint_kit::ui::{DateRangePhase, DateRangeRejection};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = RangeDraftFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.show().unwrap();
+    window.invoke_focus_picker();
+    assert_eq!(window.get_draft().phase, DateRangePhase::ChoosingStart);
+    press(&window, Key::Return, 1);
+    assert_eq!(window.get_draft().phase, DateRangePhase::ChoosingEnd);
+    assert_eq!(window.get_draft().start.day, 19);
+    press(&window, Key::LeftArrow, 3);
+    press(&window, Key::Return, 1);
+    assert_eq!(window.get_rejection(), DateRangeRejection::None);
+    assert_eq!(window.get_error(), "");
+    assert_eq!(window.get_draft().phase, DateRangePhase::ChoosingEnd);
+    assert_eq!(window.get_draft().start.day, 16);
+    press(&window, Key::RightArrow, 4);
+    press(&window, Key::Return, 1);
+    let draft = window.get_draft();
+    assert_eq!(draft.phase, DateRangePhase::Complete);
+    assert_eq!((draft.start.day, draft.end.day), (16, 20));
+    assert_eq!(window.get_draft_changes(), 3);
+}
+#[test]
+fn range_picker_names_why_a_choice_is_refused() {
+    use crate::RangeDraftFixture;
+    use slint_kit::ui::{DateRangePhase, DateRangeRejection, EarlierEndPolicy};
+    i_slint_backend_testing::init_no_event_loop();
+    let window = RangeDraftFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_earlier_end(EarlierEndPolicy::Reject);
+    window.set_min_nights("2".into());
+    window.show().unwrap();
+    window.invoke_focus_picker();
+    press(&window, Key::Return, 1);
+    press(&window, Key::LeftArrow, 3);
+    press(&window, Key::Return, 1);
+    assert_eq!(window.get_rejection(), DateRangeRejection::EndBeforeStart);
+    assert_eq!(
+        window.get_error(),
+        "Choose an end date on or after the start."
+    );
+    assert_eq!(window.get_draft().phase, DateRangePhase::ChoosingEnd);
+    assert_eq!(window.get_draft().start.day, 19);
+    press(&window, Key::RightArrow, 4);
+    press(&window, Key::Return, 1);
+    assert_eq!(window.get_rejection(), DateRangeRejection::TooShort);
+    assert_eq!(
+        window.get_error(),
+        "The period is shorter than the minimum."
+    );
+    press(&window, Key::RightArrow, 1);
+    press(&window, Key::Return, 1);
+    assert_eq!(window.get_rejection(), DateRangeRejection::None);
+    assert_eq!(window.get_draft().phase, DateRangePhase::Complete);
+    assert_eq!(window.get_draft().end.day, 21);
+}

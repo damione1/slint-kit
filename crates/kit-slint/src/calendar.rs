@@ -4,7 +4,8 @@ use crate::ui;
 use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
     DateDisplayPattern, DateNames, DatePattern, DateRange, DateRangeController, DateRangeRules,
-    DraftValue, Instant, NumericBounds, ParseIssue, RangeSelection, TimeZoneId, WeekStart,
+    DraftValue, EarlierEndPolicy, Instant, NumericBounds, ParseIssue, RangeRejection,
+    RangeSelection, TimeZoneId, WeekStart,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -66,6 +67,15 @@ impl From<ui::WeekStart> for WeekStart {
         }
     }
 }
+impl From<ui::EarlierEndPolicy> for EarlierEndPolicy {
+    fn from(value: ui::EarlierEndPolicy) -> Self {
+        match value {
+            ui::EarlierEndPolicy::Restart => Self::Restart,
+            ui::EarlierEndPolicy::Swap => Self::Swap,
+            ui::EarlierEndPolicy::Reject => Self::Reject,
+        }
+    }
+}
 impl TryFrom<ui::DateRangeView> for DateRange {
     type Error = ParseIssue;
     fn try_from(range: ui::DateRangeView) -> Result<Self, Self::Error> {
@@ -92,6 +102,23 @@ impl TryFrom<ui::DateRangeDraft> for RangeSelection {
                 draft.start.try_into()?,
                 draft.end.try_into()?,
             )?)),
+        }
+    }
+}
+impl From<ParseIssue> for ui::DateRangeRejection {
+    /// A value the host supplied could not be parsed: the configuration is invalid.
+    fn from(_: ParseIssue) -> Self {
+        Self::InvalidConfiguration
+    }
+}
+impl From<RangeRejection> for ui::DateRangeRejection {
+    fn from(rejection: RangeRejection) -> Self {
+        match rejection {
+            RangeRejection::UnavailableDate => Self::UnavailableDate,
+            RangeRejection::EndBeforeStart => Self::EndBeforeStart,
+            RangeRejection::BlockedInterior => Self::BlockedInterior,
+            RangeRejection::TooShort => Self::TooShort,
+            RangeRejection::TooLong => Self::TooLong,
         }
     }
 }
@@ -455,20 +482,20 @@ where
         return;
     }
     service.on_initial_focus(initial_focus);
-    service.on_range_choose(|view, draft, date, minimum, maximum| {
+    service.on_range_choose(|view, draft, date, minimum, maximum, earlier_end| {
         let update = || {
-            let rules = range_rules(&view, &minimum, &maximum)?;
-            DateRangeController::reduce(draft.clone().try_into()?, rules, date.try_into()?)
+            let rules =
+                range_rules(&view, &minimum, &maximum)?.with_earlier_end(earlier_end.into());
+            let selection = RangeSelection::try_from(draft.clone())?;
+            DateRangeController::reduce(selection, rules, date.try_into()?)
+                .map_err(ui::DateRangeRejection::from)
         };
         match update() {
             Ok(next) => ui::DateRangeUpdate {
                 draft: next.into(),
-                rejected: false,
+                rejection: ui::DateRangeRejection::None,
             },
-            Err(_) => ui::DateRangeUpdate {
-                draft,
-                rejected: true,
-            },
+            Err(rejection) => ui::DateRangeUpdate { draft, rejection },
         }
     });
     service.on_range_valid(|view, range, minimum, maximum| {

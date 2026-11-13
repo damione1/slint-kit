@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { CalendarNavigation, WeekStart } from "shared-contracts.slint";
+import { CalendarNavigation, EarlierEndPolicy, WeekStart } from "shared-contracts.slint";
 export struct CivilDateView { year: int, month: int, day: int }
 export struct CalendarDay {
     year: int, month: int, day: int, label: string, accessible-label: string,
@@ -8,7 +8,8 @@ export struct CalendarDay {
 export struct DateRangeView { start: CivilDateView, end: CivilDateView }
 export enum DateRangePhase { choosing-start, choosing-end, complete }
 export struct DateRangeDraft { phase: DateRangePhase, start: CivilDateView, end: CivilDateView }
-export struct DateRangeUpdate { draft: DateRangeDraft, rejected: bool }
+export enum DateRangeRejection { none, invalid-configuration, unavailable-date, end-before-start, blocked-interior, too-short, too-long }
+export struct DateRangeUpdate { draft: DateRangeDraft, rejection: DateRangeRejection }
 export enum CalendarWeekRows { fixed, variable }
 export enum CalendarOutsideDays { dim, show, hide }
 export struct CalendarView {
@@ -32,7 +33,7 @@ export global KitCalendarService {
     in-out property <bool> ready;
     in-out property <CivilDateView> today;
     pure callback initial-focus(CalendarView) -> CivilDateView;
-    pure callback range-choose(CalendarView, DateRangeDraft, CivilDateView, string, string) -> DateRangeUpdate;
+    pure callback range-choose(CalendarView, DateRangeDraft, CivilDateView, string, string, EarlierEndPolicy) -> DateRangeUpdate;
     pure callback range-project(CalendarView, DateRangeDraft, CalendarText) -> CalendarProjection;
     pure callback range-valid(CalendarView, DateRangeView, string, string) -> bool;
     pure callback parse-date(string) -> CivilDateView;

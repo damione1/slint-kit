@@ -1,7 +1,7 @@
 //! Civil values never acquire a timezone implicitly. IANA resolution is explicit.
 mod availability;
 mod date_pattern;
-use crate::{CalendarMove, WeekStart};
+use crate::{CalendarMove, EarlierEndPolicy, WeekStart};
 use crate::{ClockFormat, TimePrecision};
 use crate::{DraftValue, NumericBounds, ParseIssue};
 pub use availability::*;
@@ -669,7 +669,7 @@ impl DateRangeController {
         draft: RangeSelection,
         rules: DateRangeRules,
         date: CivilDate,
-    ) -> Result<RangeSelection, ParseIssue> {
+    ) -> Result<RangeSelection, RangeRejection> {
         // Availability may change while a completed or provisional range is stored.
         // Recover at the next valid choice instead of trapping the user in old state.
         let draft = match draft {
@@ -721,16 +721,28 @@ impl DateRangeController {
     pub fn draft(&self) -> RangeSelection {
         self.draft
     }
-    pub fn choose(&mut self, date: CivilDate) -> Result<(), ParseIssue> {
-        self.rules.dates().validate(date)?;
+    pub fn choose(&mut self, date: CivilDate) -> Result<(), RangeRejection> {
+        self.rules
+            .dates()
+            .validate(date)
+            .map_err(|_| RangeRejection::UnavailableDate)?;
         self.draft = match self.draft {
             RangeSelection::ChoosingStart | RangeSelection::Complete(_) => {
                 RangeSelection::ChoosingEnd { start: date }
             }
+            RangeSelection::ChoosingEnd { start } if date < start => {
+                match self.rules.earlier_end() {
+                    EarlierEndPolicy::Restart => RangeSelection::ChoosingEnd { start: date },
+                    EarlierEndPolicy::Swap => RangeSelection::Complete(self.rules.check(
+                        DateRange::new(date, start).map_err(|_| RangeRejection::EndBeforeStart)?,
+                    )?),
+                    EarlierEndPolicy::Reject => return Err(RangeRejection::EndBeforeStart),
+                }
+            }
             RangeSelection::ChoosingEnd { start } => {
-                let range = DateRange::new(start, date)?;
-                self.rules.validate(range)?;
-                RangeSelection::Complete(range)
+                RangeSelection::Complete(self.rules.check(
+                    DateRange::new(start, date).map_err(|_| RangeRejection::EndBeforeStart)?,
+                )?)
             }
         };
         Ok(())
@@ -964,9 +976,71 @@ mod tests {
         let mut range = DateRangeController::new(Some(original));
         range.choose(date(2026, 2, 1)).unwrap();
         assert!(range.apply().is_none());
-        assert!(range.choose(date(2026, 1, 31)).is_err());
+        assert_eq!(
+            range.choose(date(2026, 1, 31)),
+            Ok(()),
+            "an earlier end restarts the draft"
+        );
+        assert_eq!(
+            range.draft(),
+            RangeSelection::ChoosingEnd {
+                start: date(2026, 1, 31)
+            }
+        );
         range.cancel();
         assert_eq!(range.draft(), RangeSelection::Complete(original));
+    }
+    #[test]
+    fn an_earlier_end_follows_the_policy_and_names_every_refusal() {
+        let start = date(2026, 3, 10);
+        let earlier = date(2026, 3, 4);
+        let draft = RangeSelection::ChoosingEnd { start };
+        let rules = |policy| {
+            DateRangeRules::new(
+                DateConstraints::default().with_unavailable_ranges(vec![
+                    DateRange::new(date(2026, 3, 20), date(2026, 3, 21)).unwrap(),
+                ]),
+                Some(NumericBounds::new(2, 5).unwrap()),
+            )
+            .with_earlier_end(policy)
+        };
+        assert_eq!(
+            DateRangeController::reduce(draft, rules(EarlierEndPolicy::Restart), earlier),
+            Ok(RangeSelection::ChoosingEnd { start: earlier })
+        );
+        assert_eq!(
+            DateRangeController::reduce(draft, rules(EarlierEndPolicy::Swap), earlier),
+            Err(RangeRejection::TooLong),
+            "a swapped range obeys the night bounds"
+        );
+        assert_eq!(
+            DateRangeController::reduce(draft, rules(EarlierEndPolicy::Swap), date(2026, 3, 8)),
+            Ok(RangeSelection::Complete(
+                DateRange::new(date(2026, 3, 8), start).unwrap()
+            ))
+        );
+        assert_eq!(
+            DateRangeController::reduce(draft, rules(EarlierEndPolicy::Reject), earlier),
+            Err(RangeRejection::EndBeforeStart)
+        );
+        let reduce =
+            |end| DateRangeController::reduce(draft, rules(EarlierEndPolicy::Restart), end);
+        assert_eq!(reduce(date(2026, 3, 10)), Err(RangeRejection::TooShort));
+        assert_eq!(reduce(date(2026, 3, 16)), Err(RangeRejection::TooLong));
+        assert_eq!(
+            DateRangeController::reduce(
+                RangeSelection::ChoosingEnd {
+                    start: date(2026, 3, 19)
+                },
+                rules(EarlierEndPolicy::Restart),
+                date(2026, 3, 22)
+            ),
+            Err(RangeRejection::BlockedInterior)
+        );
+        assert_eq!(
+            reduce(date(2026, 3, 20)),
+            Err(RangeRejection::UnavailableDate)
+        );
     }
     #[test]
     fn a_range_draft_invalidated_by_new_constraints_restarts_from_a_valid_choice() {
