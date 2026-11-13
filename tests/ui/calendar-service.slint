@@ -28,7 +28,7 @@ export component CalendarServiceFixture inherits Window {
     }
 }
 
-import { KitDatePicker, KitDateRangePicker, KitDateTimeField, DateRangeView, LocalDateTimeView } from "@kit";
+import { KitDatePicker, KitDateRangePicker, KitDateTimeField, DateRangeView, LocalDateTimeView, DateRangeDraft, DateRangeRejection, EarlierEndPolicy } from "@kit";
 export component ControlledTemporalFixture inherits Window {
     width: 800px; height: 1000px;
     out property <CivilDateView> picked: picker.accepted-date;
@@ -184,5 +184,23 @@ export component RangePickerFlowFixture inherits Window {
         theme: root.theme; week-start: root.week-start;
         min: "2026-09-01"; max: "2026-11-30";
         selected: {start: {year: 2026, month: 10, day: 19}, end: {year: 2026, month: 10, day: 21}};
+    }
+}
+
+export component RangeDraftFixture inherits Window {
+    width: 800px; height: 1000px;
+    in property <EarlierEndPolicy> earlier-end: EarlierEndPolicy.restart;
+    in property <string> min-nights;
+    out property <DateRangeDraft> draft: picker.draft;
+    out property <DateRangeRejection> rejection: picker.rejection;
+    out property <string> error: picker.error;
+    out property <int> draft-changes;
+    public function focus-picker() { picker.take-focus(); }
+    picker := KitDateRangePicker {
+        x: 24px; y: 24px; width: 700px;
+        today: {year: 2026, month: 10, day: 19};
+        min: "2026-10-01"; max: "2026-10-31";
+        earlier-end: root.earlier-end; min-nights: root.min-nights;
+        draft-changed(value) => { root.draft-changes += 1; }
     }
 }

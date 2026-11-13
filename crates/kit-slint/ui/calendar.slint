@@ -19,10 +19,10 @@ export { CalendarNavigation } from "shared-contracts.slint";
 
 import { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService } from "calendar-service.slint";
 export { CivilDateView, CalendarDay, DateRangeView, CalendarView, CalendarText, CalendarProjection, CalendarConfigurationState, CalendarWeekRows, CalendarOutsideDays, KitCalendarService } from "calendar-service.slint";
-import { WeekStart, Ownership, CommitPolicy } from "shared-contracts.slint";
+import { WeekStart, Ownership, CommitPolicy, EarlierEndPolicy } from "shared-contracts.slint";
 import { FieldCommit } from "field-service.slint";
-import { DateRangePhase, DateRangeDraft } from "calendar-service.slint";
-export { DateRangePhase } from "calendar-service.slint";
+import { DateRangePhase, DateRangeDraft, DateRangeRejection } from "calendar-service.slint";
+export { DateRangePhase, DateRangeRejection } from "calendar-service.slint";
 
 component CalendarOption inherits KitPressable {
     in property <CalendarDay> day;
@@ -429,13 +429,22 @@ export component KitDateRangePicker inherits Rectangle {
         today: root.today-label, range-start: root.range-start-label,
         range-end: root.range-end-label, in-range: root.in-range-label,
     };
-    in property <string> rejected-message: "Choose an available end date on or after the start.";
-    private property <DateRangeDraft> draft;
+    // Chosen when the second click precedes the start: restart from it, swap the two, or refuse.
+    in property <EarlierEndPolicy> earlier-end: EarlierEndPolicy.restart;
+    in property <string> unavailable-date-message: "This date is not available.";
+    in property <string> end-before-start-message: "Choose an end date on or after the start.";
+    in property <string> blocked-interior-message: "The period includes an unavailable day.";
+    in property <string> too-short-message: "The period is shorter than the minimum.";
+    in property <string> too-long-message: "The period is longer than the maximum.";
+    // The pending selection, readable by the host so it can show the dates before Apply.
+    out property <DateRangeDraft> draft;
+    callback draft-changed(DateRangeDraft);
+    changed draft => { root.draft-changed(root.draft); }
     init => { root.reset-draft(); }
     changed selected => { root.reset-draft(); }
     function reset-draft() { root.draft = root.selected.start.year > 0 ? {phase: DateRangePhase.complete, start: root.selected.start, end: root.selected.end} : {phase: DateRangePhase.choosing-start}; }
     private property <DateRangeView> candidate-range: {start: root.draft.start, end: root.draft.end};
-    private property <bool> rejected;
+    out property <DateRangeRejection> rejection: DateRangeRejection.none;
     private property <CalendarView> view: {week-rows: root.week-rows, today: root.today, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.range-project(root.view, root.draft, root.calendar-text) : {active-index: -1};
     out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
@@ -443,9 +452,9 @@ export component KitDateRangePicker inherits Rectangle {
     callback chosen(DateRangeView);
     function choose-date(date: CivilDateView) {
         if (root.access != FieldAccess.editable || !KitCalendarService.ready) { return; }
-        let update = KitCalendarService.range-choose(root.view, root.draft, date, root.min-nights, root.max-nights);
+        let update = KitCalendarService.range-choose(root.view, root.draft, date, root.min-nights, root.max-nights, root.earlier-end);
         root.draft = update.draft;
-        root.rejected = update.rejected;
+        root.rejection = update.rejection;
     }
     public function apply() {
         if (root.access != FieldAccess.editable || root.draft.phase != DateRangePhase.complete || !KitCalendarService.range-valid(root.view, root.candidate-range, root.min-nights, root.max-nights)) { return; }
@@ -455,7 +464,7 @@ export component KitDateRangePicker inherits Rectangle {
     }
     public function cancel() {
         root.reset-draft();
-        root.rejected = false;
+        root.rejection = DateRangeRejection.none;
         root.cancelled();
     }
 
@@ -469,7 +478,7 @@ export component KitDateRangePicker inherits Rectangle {
     in property <int> active-index: root.projection.active-index;
     in property <string> title: root.projection.title;
     in property <string> summary;
-    in property <string> error: root.rejected ? root.rejected-message : "";
+    in property <string> error: root.rejection == DateRangeRejection.none ? "" : root.rejection == DateRangeRejection.invalid-configuration ? root.configuration-message : root.rejection == DateRangeRejection.unavailable-date ? root.unavailable-date-message : root.rejection == DateRangeRejection.end-before-start ? root.end-before-start-message : root.rejection == DateRangeRejection.blocked-interior ? root.blocked-interior-message : root.rejection == DateRangeRejection.too-short ? root.too-short-message : root.too-long-message;
     in property <string> label: "Choose a date range";
     in property <string> previous-month-label: "Previous month";
     in property <string> next-month-label: "Next month";

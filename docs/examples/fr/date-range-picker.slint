@@ -3,7 +3,7 @@ import { LayoutSpace, KitMetrics, TypographyRole, KitStack } from "@kit";
 import { KitThemes } from "@kit";
 import { KitTheme, KitThemeContext } from "@kit";
 
-import { KitDateRangePicker, DateRangeView, WeekStart, CalendarOutsideDays, CalendarWeekRows } from "@kit";
+import { KitDateRangePicker, DateRangeView, WeekStart, CalendarOutsideDays, CalendarWeekRows, EarlierEndPolicy } from "@kit";
 export component Example inherits Window {
     max-width: 100000px; max-height: 100000px;
     default-font-family: InterFont.family;
@@ -36,8 +36,10 @@ export component Example inherits Window {
             weekdays: ["L", "M", "M", "J", "V", "S", "D"];
             previous-month-label: "Mois précédent"; next-month-label: "Mois suivant";
             label: "Dates du séjour"; choose-start-label: "Choisissez la date de début"; choose-end-label: "Choisissez la date de fin"; ready-label: "Période prête";
-            cancel-label: "Annuler"; apply-label: "Appliquer la période"; rejected-message: "Choisissez une date de fin disponible après le début.";
+            cancel-label: "Annuler"; apply-label: "Appliquer la période"; end-before-start-message: "Choisissez une date de fin après le début."; too-short-message: "La période est plus courte que le minimum."; too-long-message: "La période dépasse le maximum.";
             selected: {start: {year: 2026, month: 10, day: 19}, end: {year: 2026, month: 10, day: 23}};
+            // Un second clic avant le début redémarre la période ; swap ou reject sont les alternatives.
+            earlier-end: EarlierEndPolicy.restart;
             min-nights: "2"; max-nights: "14";
             min: "2026-10-01"; max: "2027-12-31";
             unavailable-weekdays: [WeekStart.saturday, WeekStart.sunday];

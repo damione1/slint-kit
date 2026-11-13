@@ -77,6 +77,7 @@ contract_enums! {
         WeekStart => "week-start", WeekEnd => "week-end", PreviousMonth => "previous-month", NextMonth => "next-month",
         PreviousYear => "previous-year", NextYear => "next-year",
     }
+    EarlierEndPolicy => "EarlierEndPolicy" { Restart => "restart", Swap => "swap", Reject => "reject" }
     TimePrecision => "TimePrecision" { Minute => "minute", Second => "second" }
     ClockFormat => "ClockFormat" { TwentyFourHour => "twenty-four-hour", TwelveHour => "twelve-hour" }
     AlphaPolicy => "ColorAlphaMode" { Opaque => "opaque", Editable => "editable" }

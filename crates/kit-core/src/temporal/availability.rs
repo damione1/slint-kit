@@ -1,6 +1,6 @@
 //! Host-owned booking and availability rules, shared by pointer and text paths.
 use super::{CivilDate, DateRange, WeekStart};
-use crate::{NumericBounds, ParseIssue};
+use crate::{EarlierEndPolicy, NumericBounds, ParseIssue};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct DateConstraints {
@@ -134,23 +134,73 @@ impl DateConstraints {
     }
 }
 
+/// Why a date choice was refused while a range is being built.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RangeRejection {
+    /// The chosen date is outside the bounds or on an unavailable day.
+    UnavailableDate,
+    /// The chosen end precedes the start and the policy is `EarlierEndPolicy::Reject`.
+    EndBeforeStart,
+    /// The period would contain an unavailable day between two available endpoints.
+    BlockedInterior,
+    TooShort,
+    TooLong,
+}
+
 /// A stay length counts nights, so a same-day range has length zero.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DateRangeRules {
     dates: DateConstraints,
     nights: Option<NumericBounds<u32>>,
+    earlier_end: EarlierEndPolicy,
+}
+impl Default for DateRangeRules {
+    fn default() -> Self {
+        Self::new(DateConstraints::default(), None)
+    }
 }
 impl DateRangeRules {
     pub fn new(dates: DateConstraints, nights: Option<NumericBounds<u32>>) -> Self {
-        Self { dates, nights }
+        Self {
+            dates,
+            nights,
+            earlier_end: EarlierEndPolicy::Restart,
+        }
+    }
+    /// What choosing an end before the start does; the default restarts from that date.
+    pub fn with_earlier_end(mut self, policy: EarlierEndPolicy) -> Self {
+        self.earlier_end = policy;
+        self
     }
     pub fn dates(&self) -> &DateConstraints {
         &self.dates
+    }
+    pub fn earlier_end(&self) -> EarlierEndPolicy {
+        self.earlier_end
     }
     pub fn validate(&self, range: DateRange) -> Result<DateRange, ParseIssue> {
         self.dates.validate_range(range)?;
         if let Some(nights) = self.nights {
             nights.validate(range.nights())?;
+        }
+        Ok(range)
+    }
+    /// Same rules as `validate`, naming the first rule the range breaks.
+    pub fn check(&self, range: DateRange) -> Result<DateRange, RangeRejection> {
+        self.dates
+            .validate(range.start())
+            .and_then(|_| self.dates.validate(range.end()))
+            .map_err(|_| RangeRejection::UnavailableDate)?;
+        self.dates
+            .validate_range(range)
+            .map_err(|_| RangeRejection::BlockedInterior)?;
+        if let Some(nights) = self.nights {
+            if range.nights() < nights.minimum() {
+                return Err(RangeRejection::TooShort);
+            }
+            if range.nights() > nights.maximum() {
+                return Err(RangeRejection::TooLong);
+            }
         }
         Ok(range)
     }
