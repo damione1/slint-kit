@@ -12,6 +12,8 @@ enum Intention {
     Digit(i32),
     Delete,
     Confirm,
+    Extra,
+    Cancel,
 }
 
 fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
@@ -25,6 +27,10 @@ fn fixture() -> (KeypadFixture, Rc<RefCell<Vec<Intention>>>) {
     window.on_deleted(move || observed.borrow_mut().push(Intention::Delete));
     let observed = intentions.clone();
     window.on_confirmed(move || observed.borrow_mut().push(Intention::Confirm));
+    let observed = intentions.clone();
+    window.on_extra_pressed(move || observed.borrow_mut().push(Intention::Extra));
+    let observed = intentions.clone();
+    window.on_cancelled(move || observed.borrow_mut().push(Intention::Cancel));
     (window, intentions)
 }
 fn with_text_scale(window: &KeypadFixture, scale: f32) {
@@ -472,5 +478,68 @@ fn keyboard_press_feedback_can_revoke_access_or_confirmation_before_commit() {
     let weak = window.as_weak();
     window.on_activation_started(move || weak.unwrap().set_can_confirm(false));
     key(&window, Key::Return);
+    assert!(intentions.borrow().is_empty());
+}
+
+#[test]
+fn full_code_disables_digits_and_empty_code_disables_delete() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    window.set_digits_enabled(false);
+    window.set_can_delete(false);
+    let five = element(&window, "5");
+    let delete = element(&window, "Delete");
+    assert_eq!(five.accessible_enabled(), Some(false));
+    assert_eq!(delete.accessible_enabled(), Some(false));
+    click(&window, &five);
+    click(&window, &delete);
+    type_text(&window, "5");
+    key(&window, Key::Backspace);
+    key(&window, Key::Delete);
+    assert!(intentions.borrow().is_empty());
+    // The other keys stay usable.
+    window.set_can_confirm(true);
+    click(&window, &element(&window, "Unlock"));
+    window.set_digits_enabled(true);
+    window.set_can_delete(true);
+    assert_eq!(five.accessible_enabled(), Some(true));
+    click(&window, &five);
+    key(&window, Key::Delete);
+    assert_eq!(
+        *intentions.borrow(),
+        [Intention::Confirm, Intention::Digit(5), Intention::Delete]
+    );
+}
+
+#[test]
+fn hidden_confirm_frees_its_slot_for_one_extra_key() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.set_show_confirm(false);
+    window.set_extra_label(".".into());
+    window.invoke_focus_keypad();
+    // Return no longer confirms; the extra key emits `extra`.
+    key(&window, Key::Return);
+    let extra = element(&window, ".");
+    assert_eq!(extra.accessible_enabled(), Some(true));
+    click(&window, &extra);
+    window.set_extra_enabled(false);
+    assert_eq!(extra.accessible_enabled(), Some(false));
+    click(&window, &extra);
+    assert_eq!(*intentions.borrow(), [Intention::Extra]);
+}
+
+#[test]
+fn escape_cancels_only_when_the_host_opts_in() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    key(&window, Key::Escape);
+    assert!(intentions.borrow().is_empty());
+    window.set_handle_escape(true);
+    key(&window, Key::Escape);
+    assert_eq!(*intentions.borrow(), [Intention::Cancel]);
+    intentions.borrow_mut().clear();
+    window.set_access(FieldAccess::ReadOnly);
+    key(&window, Key::Escape);
     assert!(intentions.borrow().is_empty());
 }
