@@ -2020,7 +2020,7 @@
           "example": "KitContentList {\n    items: root.articles;\n    active-index: root.article-actif;\n    navigate(pas) => { root.deplacer-actif(pas); }\n}"
         },
         "label": {
-          "effect": "Nom accessible de la liste (rôle `list`) ; chaque entrée est un `list-item` nommé par son titre et ses métadonnées.",
+          "effect": "Nom accessible de la liste (rôle `list`) ; chaque entrée est un `list-item` nommé par son titre et ses métadonnées (une partie absente est omise) et décrit par son extrait.",
           "default": "`\"Articles\"`.",
           "example": "KitContentList {\n    label: \"Notes de version\";\n    items: root.notes;\n}"
         },
@@ -2054,6 +2054,31 @@
           "default": "`DataEmptyContent.label`.",
           "example": "KitContentList {\n    items: root.items;\n    empty-content: DataEmptyContent.custom;\n    KitEmptyState { title: \"Aucun résultat\"; }\n}"
         },
+        "control-size": {
+          "effect": "La densité des lignes : `compact`, `medium` ou `comfortable`. Elle règle la hauteur de ligne et la vignette (48, 72 ou 96 pixels logiques), et les deux grandissent avec l’échelle du texte du thème quand le texte l’exige.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitContentList {\n    items: root.articles;\n    control-size: ControlSize.compact;\n}"
+        },
+        "thumbnail": {
+          "effect": "Ce que montre la cellule de tête : `image` la `thumbnail` de l’entrée (le glyphe d’article remplace une entrée sans image), `icon` le glyphe d’article pour toutes les lignes, `none` aucune cellule de tête, le texte occupant toute la ligne.",
+          "default": "`ContentThumbnail.image`.",
+          "example": "KitContentList {\n    items: root.articles;\n    thumbnail: ContentThumbnail.none;\n}"
+        },
+        "excerpt-lines": {
+          "effect": "Le nombre de lignes d’extrait affichées avant la troncature. La hauteur de ligne augmente d’une ligne de texte pour chaque ligne au-delà de deux ; une valeur inférieure à un vaut un.",
+          "default": "`2`.",
+          "example": "KitContentList {\n    items: root.articles;\n    excerpt-lines: 4;\n}"
+        },
+        "interactive": {
+          "effect": "À `false`, les lignes et les liens refusent l’activation au pointeur, au clavier et par technologie d’assistance, la liste ne prend pas le focus clavier et les lignes se lisent comme désactivées. Servez-vous-en pour bloquer la liste derrière une boîte de dialogue ; sélection et position de défilement sont conservées.",
+          "default": "`true`.",
+          "example": "KitContentList {\n    items: root.articles;\n    interactive: !root.dialogue-ouvert;\n}"
+        },
+        "vertical-scrollbar-policy": {
+          "effect": "Quand la barre de défilement verticale s’affiche : `always-on` réserve toujours sa gouttière, `as-needed` ne l’affiche que si les lignes débordent, `always-off` la masque.",
+          "default": "`ScrollBarPolicy.always-on`.",
+          "example": "KitContentList {\n    items: root.articles;\n    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;\n}"
+        },
         "scroll-y": {
           "effect": "Décalage vertical courant en pixels logiques, nul en haut et négatif après défilement. Transmettez-le tel quel à set-scroll pour le restaurer.",
           "example": "text: articles.scroll-y / 1px;"
@@ -2086,6 +2111,7 @@
       "callbacks": {
         "activate": "Intention de ligne : `(token, generation)`, émise pour chaque clic, Espace et Entrée. Traitez `activate` ou `gesture`, jamais les deux.",
         "gesture": "Geste de ligne typé : `(token, generation, RowGesture)`. Un clic vaut `select`, `toggle` avec Contrôle ou Méta, `extend` avec Maj ; Espace vaut `toggle` ; Entrée ou un double-clic vaut `open`. `KeyedModel::gestures(mode, handler)` applique la sélection selon `SelectionMode`.",
+        "link-activated": "Le `link-label` de la ligne a été pressé ou activé par une technologie d’assistance : `(token, generation)`. C’est un bouton distinct : la ligne n’est pas activée et ni `activate` ni `gesture` ne sont émis. Au clavier, la même cible s’atteint par `gesture` avec `open`, que l’hôte traite.",
         "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte.",
         "retry-requested": "L’utilisateur active l’action de nouvelle tentative de l’état `failed` ; relancez le chargement puis repassez `state` à `loading`."
       },
@@ -2124,7 +2150,7 @@
           "example": "KitContentList {\n    items: root.articles;\n    active-index: root.active-article;\n    navigate(step) => { root.move-active(step); }\n}"
         },
         "label": {
-          "effect": "Accessible name of the list (`list` role); each entry is a `list-item` named by its title and metadata.",
+          "effect": "Accessible name of the list (`list` role); each entry is a `list-item` named by its title and metadata (a missing part is left out) and described by its excerpt.",
           "default": "`\"Articles\"`.",
           "example": "KitContentList {\n    label: \"Release notes\";\n    items: root.notes;\n}"
         },
@@ -2158,6 +2184,31 @@
           "default": "`DataEmptyContent.label`.",
           "example": "KitContentList {\n    items: root.items;\n    empty-content: DataEmptyContent.custom;\n    KitEmptyState { title: \"No results\"; }\n}"
         },
+        "control-size": {
+          "effect": "The row density: `compact`, `medium` or `comfortable`. It sets the row height and the thumbnail (48, 72 or 96 logical pixels), and both grow with the theme text scale where text needs the room.",
+          "default": "`ControlSize.medium`.",
+          "example": "KitContentList {\n    items: root.articles;\n    control-size: ControlSize.compact;\n}"
+        },
+        "thumbnail": {
+          "effect": "What the leading cell shows: `image` the item's `thumbnail` (the article glyph stands in for an item without an image), `icon` the article glyph for every row, `none` no leading cell so the text uses the whole row.",
+          "default": "`ContentThumbnail.image`.",
+          "example": "KitContentList {\n    items: root.articles;\n    thumbnail: ContentThumbnail.none;\n}"
+        },
+        "excerpt-lines": {
+          "effect": "How many lines of the excerpt show before it is elided. The row height grows by one text line for each line above two; a value below one is read as one.",
+          "default": "`2`.",
+          "example": "KitContentList {\n    items: root.articles;\n    excerpt-lines: 4;\n}"
+        },
+        "interactive": {
+          "effect": "When `false`, rows and links reject pointer, keyboard and assistive activation, the list takes no keyboard focus, and rows read as disabled. Use it to block the list behind a dialog; selection and scroll position are kept.",
+          "default": "`true`.",
+          "example": "KitContentList {\n    items: root.articles;\n    interactive: !root.dialog-open;\n}"
+        },
+        "vertical-scrollbar-policy": {
+          "effect": "When the vertical scroll bar shows: `always-on` keeps its gutter reserved, `as-needed` shows it only while the rows overflow, `always-off` hides it.",
+          "default": "`ScrollBarPolicy.always-on`.",
+          "example": "KitContentList {\n    items: root.articles;\n    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;\n}"
+        },
         "scroll-y": {
           "effect": "Current vertical content offset in logical pixels, zero at the top and negative when scrolled. Pass it unchanged to set-scroll to restore it.",
           "example": "text: articles.scroll-y / 1px;"
@@ -2190,6 +2241,7 @@
       "callbacks": {
         "activate": "Row intent: `(token, generation)`, fired for every click, Space and Enter. Handle `activate` or `gesture`, never both.",
         "gesture": "Typed row gesture: `(token, generation, RowGesture)`. A click is `select`, `toggle` with Control or Meta held and `extend` with Shift held; Space is `toggle`; Enter or a double-click is `open`. `KeyedModel::gestures(mode, handler)` applies the selection under `SelectionMode`.",
+        "link-activated": "The row's `link-label` was pressed or activated through assistive technology: `(token, generation)`. It is a separate button, so the row is not activated and `activate` and `gesture` do not fire. Keyboard users reach the same target through `gesture` with `open`, which the host handles.",
         "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host.",
         "retry-requested": "The user activated the retry action of the `failed` state; restart the load and set `state` back to `loading`."
       },
