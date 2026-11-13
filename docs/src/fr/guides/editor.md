@@ -110,3 +110,5 @@ Pour inspecter l’application à l’exécution, conservez `slint/mcp` et `SLIN
 ## Métadonnées d’inspection à l’exécution
 
 Le helper suit la politique par défaut de Slint pour les métadonnées de débogage. Pour inspecter les éléments avec le backend de test ou MCP, définissez `SLINT_EMIT_DEBUG_INFO=1` avant de compiler, ou passez `slint_kit_build::config().with_debug_info(true)` à `compile_with_config`. Les versions de production ordinaires n’imposent pas les noms d’éléments et les chemins source dans l’application générée.
+
+Pour la boucle d’édition, les options d’aperçu et les temps de build mesurés, consultez le [guide de la boucle de développement](../development-loop/).

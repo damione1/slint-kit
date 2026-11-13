@@ -14,6 +14,7 @@ The public documentation is [English at the site root](https://slint-kit.dev/) a
 - [Why Slint Kit](https://slint-kit.dev/guides/why-slint-kit/) ([français](https://slint-kit.dev/fr/guides/why-slint-kit/)): shared behavior, Slint/application responsibilities, runnable evidence and adoption limits.
 - [Getting started](https://slint-kit.dev/guides/getting-started/): a complete registry-based application and desktop prerequisites.
 - [Editor setup](https://slint-kit.dev/guides/editor/): resolve `@kit` in VS Code and Zed through project-relative library paths.
+- [Development loop](https://slint-kit.dev/guides/development-loop/): choose between editor preview, `slint-viewer`, WASM and `cargo run`; measured build times and cargo settings.
 - [Component catalogue](https://slint-kit.dev/components/): component screenshots and complete Slint examples.
 - [Complete workspace application](https://slint-kit.dev/guides/workspace/): reusable account, project list and edit dialog, sharing Rust/Slint sources with the native showcase and browser demonstration.
 - [Typed controller application](https://slint-kit.dev/guides/typed-example/): downloadable Cargo, build, Rust and Slint files, with callbacks connected.
@@ -91,6 +92,8 @@ The Slint language server does not read `build.rs`. For registry consumers, run 
 Slint Kit 0.7.2 shows declarative selection options in pure-Slint editor and `slint-viewer` previews without Rust. This is a static presentation: filtering, generation checks and selection acceptance still require `install(&window)`. Single selection marks use the declared reference; multi-selection marks/chips and expanded accordion bodies need explicit `rows`/`choice-rows`/`chips` projections for an exact preview. Calendars need explicit `days` and `title`; typed fields need authored text for a static value. Use the Rust-backed browser demo or `cargo run` to exercise services. See the bilingual editor guide for the component-family matrix.
 
 With Slint 1.18.1, do not set `SLINT_LIVE_PREVIEW`, even to `0` or an empty string: Slint's live-preview generator omits library global exports/implementations (slint-ui/slint#14812). Slint Kit reports this limitation before producing broken Rust. Remove assignments from `build.rs` and development scripts and rebuild. The `slint/live-preview` feature alone does not select that generator; `slint/mcp` and `SLINT_EMIT_DEBUG_INFO=1` remain usable for runtime debugging. The build helper follows Slint’s metadata default; enable inspection explicitly with that environment variable or `config().with_debug_info(true)` in test builds.
+
+A changed `.slint` file does not reach a running application: use the editor preview or `slint-viewer` for static layout and `cargo run` for behavior backed by `slint_kit::install`. Use `cargo check` for quick Rust feedback. The development loop guide lists measured build times; do not quote build times that were not measured.
 
 ## Choose and compose
 
