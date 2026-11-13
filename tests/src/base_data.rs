@@ -153,7 +153,7 @@ pub(crate) fn rows(start: i32, count: i32) -> Vec<TableRow> {
         })
         .collect()
 }
-fn items(count: i32) -> Vec<ContentItem> {
+pub(crate) fn items(count: i32) -> Vec<ContentItem> {
     (0..count)
         .map(|index| ContentItem {
             token: index + 1,
