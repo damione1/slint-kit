@@ -468,12 +468,16 @@ impl<W: ComponentHandle + 'static, L: Copy + Eq + 'static, T: Copy + Ord + 'stat
             None
         });
     }
-    /// Forward focus-observed from the real control, not from its wrapper.
-    pub fn observe_focus(&self, token: i32, focused: bool) {
+    /// Forward `focus-observed(token, generation, focused)` from `KitFocusTarget`.
+    /// A report for a generation other than the registered one is stale and ignored.
+    pub fn observe_focus(&self, token: i32, generation: i32, focused: bool) {
         let mut s = self.session.borrow_mut();
         let Some(key) = s.tokens.get(&token).copied() else {
             return;
         };
+        if u64::try_from(generation).ok() != Some(s.targets[&key].handle.generation) {
+            return;
+        }
         if focused && s.eligible(key) {
             s.observed = Some(key);
             s.current = Some(s.targets[&key].handle);
