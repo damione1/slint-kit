@@ -837,6 +837,104 @@ fn pointer_cell_cursor_and_double_click_open_the_pointed_field() {
     assert_eq!(editors(&window).len(), 1);
 }
 
+/// Dispatches a left press and release at `position` and lets timers run.
+fn click_at(window: &BaseDataFixture, position: slint::LogicalPosition) {
+    use slint::platform::{PointerEventButton, WindowEvent};
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Left,
+    });
+    flush();
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Left,
+        });
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(50));
+    flush();
+}
+/// A point `inset` logical pixels from the left edge at mid-height. The
+/// inset clears the field's own padding so the press lands on the native
+/// text input.
+fn point(handle: &ElementHandle, inset: f32) -> slint::LogicalPosition {
+    let origin = handle.absolute_position();
+    slint::LogicalPosition::new(origin.x + inset, origin.y + handle.size().height / 2.)
+}
+
+#[test]
+fn a_pointer_places_the_caret_inside_the_open_editor_and_an_outside_click_commits_once() {
+    let Editing {
+        window,
+        commits,
+        activations,
+    } = editing(records());
+    open(&window, OWNER);
+    let editor = editors(&window).remove(0);
+    let before = activations.borrow().len();
+
+    // The value opens fully selected. A press at its leading edge collapses
+    // the selection and puts the caret first, so typing prepends.
+    click_at(&window, point(&editor, 14.));
+    assert!(
+        window.get_table_editing(),
+        "a click inside keeps the editor"
+    );
+    text(&window, ">");
+    // A press in the empty space after the text puts the caret last.
+    click_at(&window, point(&editor, 120.));
+    assert!(
+        window.get_table_editing(),
+        "a second click keeps the editor"
+    );
+    text(&window, "<");
+    assert_eq!(
+        activations.borrow().len(),
+        before,
+        "presses inside the open editor never activate the row"
+    );
+    assert!(commits.borrow().is_empty(), "nothing commits while editing");
+
+    // A press on a different row ends the session through blur, once, with
+    // the identity armed at the start.
+    let other = ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+        .nth(4)
+        .unwrap();
+    click_at(&window, point(&other, other.size().width / 2.));
+    flush();
+    assert!(
+        !window.get_table_editing(),
+        "an outside click ends the session"
+    );
+    assert!(editors(&window).is_empty());
+    assert_eq!(commits.borrow().len(), 1, "blur commits exactly once");
+    let (row, column, _, commit) = commits.borrow()[0].clone();
+    assert_eq!((row, column), (1, OWNER));
+    assert_eq!(commit.value.text, ">Elliot<");
+}
+
+#[test]
+fn a_row_with_fewer_cells_than_columns_keeps_every_cell_under_its_header() {
+    let mut rows = records();
+    rows[1].content = table_cells([CellContent::text("Short row")]);
+    let Editing { window, .. } = editing(rows);
+    let cells = ElementHandle::find_by_element_id(&window, "KitDataTable::content-cell")
+        .collect::<Vec<_>>();
+    assert_eq!(cells.len(), 9, "a short row is padded to the column count");
+    for column in 0..3 {
+        let expected = cells[column].absolute_position().x;
+        for row in 1..3 {
+            let cell = &cells[row * 3 + column];
+            assert_eq!(
+                cell.absolute_position().x,
+                expected,
+                "row {row} column {column} stays under its header"
+            );
+            assert_eq!(cell.size().width, cells[column].size().width);
+        }
+    }
+}
+
 #[test]
 fn cell_cursor_reveals_horizontal_overflow_before_opening_an_editor() {
     let Editing { window, .. } = editing(records());
