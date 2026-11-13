@@ -439,7 +439,7 @@
     "fr": {
       "summary": "Calendrier grégorien navigable au clavier, avec sélection locale ou contrôlée, règles de disponibilité et libellés localisés.",
       "usage": "Définissez `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` et `unavailable-ranges`. Après un unique `install(&app)`, chaque calendrier possède sa date focalisée et calcule sa grille avec le service pur partagé. Traitez `chosen(CivilDateView)` et convertissez avec `CivilDate::try_from`. `days`, `active-index`, `title` et la disponibilité de navigation restent des ports de projection explicites pour les compositions personnalisées. Fournissez les noms et motifs localisés via les propriétés de texte ; le service installé compose les noms de jours accessibles sans reconstruire le modèle days. `ownership: Ownership.controlled` émet `chosen` sans remplacer `selected` ; confirmez la proposition acceptée en affectant cette propriété. Focus et brouillons restent propres à l’instance. today suit KitCalendarService.today, propre à la fenêtre. Fournissez cette date ou appelez refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) après install et avant show. set_calendar_today_at accepte un Instant injecté pour une horloge déterministe. Aucun fuseau système n’est deviné ; actualisez à votre changement de date.",
-      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance. Noms de formatage et motifs d’affichage sont aussi validés : une configuration invalide désactive la projection et l’acceptation du calendrier sans remplacer dates acceptées ou brouillons. Une erreur de libellés ne désactive pas l’éditeur natif du DatePicker et ne change pas ses contraintes de dates indépendantes. Les jours des mois adjacents sont atténués par défaut ; outside-days:show rétablit le texte habituel, hide garde des cases vides sur sept colonnes sans admettre leur activation. week-rows conserve six semaines fixes par défaut ; variable retire seulement les semaines entières après la fin du mois. Le clavier continue de naviguer normalement entre les mois. Les projections CalendarDay manuelles doivent renseigner outside-month selon mois/année affichés ; CalendarView contient week-rows.",
+      "behavior": "Les flèches parcourent jours et semaines, Début/Fin la semaine, Page précédente/suivante les mois et Maj les années. La lecture seule autorise le parcours sans acceptation ; désactivé bloque l’interaction. Le contrôleur partagé vérifie bornes et indisponibilités. Calendriers et fenêtres distincts ne partagent jamais leurs dates focalisées ou sélectionnées. Les aperçus Slint seuls ne calculent pas la grille du calendrier. Fournissez explicitement `days`, `title` et les projections de navigation pour un calendrier statique, ou utilisez la démo navigateur avec Rust. Appelez `install(&window)` pour les calculs et interactions. Une sélection enregistrée qui ne respecte plus des bornes min/max valides ou les disponibilités reste la valeur du propriétaire, sans bloquer la grille, le parcours ou son remplacement. Elle n’est pas mise en évidence comme un jour sélectionné autorisé. Un brouillon de période invalidé par de nouvelles disponibilités ou durées redémarre au prochain début valide ; la période acceptée ne change qu’avec Appliquer, et Annuler peut restaurer l’ancienne valeur sans bloquer les choix suivants. configuration-state indique unchecked avant l’installation du service, puis valid ou invalid pour les dates civiles, bornes min/max et disponibilités. Une configuration invalide conserve une grille de référence désactivée et affiche configuration-message ; aucun choix ni application n’est accepté. Corriger la configuration rétablit l’interaction sans remplacer l’éditeur ni le calendrier. Les règles de durée restent vérifiées séparément au choix ou à l’application d’une période. Fournissez toujours sept weekdays dans l’ordre lundi à dimanche, quel que soit week-start. Le calendrier partagé fait pivoter les en-têtes selon le premier jour choisi ; ne réordonnez pas le modèle quand week-start change. Le focus initial part de la sélection enregistrée, puis de today, puis de la référence stable de janvier2000 si aucune n’est fournie. Il choisit la date disponible la plus proche dans les bornes, avec priorité au futur en cas d’égalité ; une disponibilité entièrement bloquée conserve une référence bornée parcourable. Les deux sélecteurs marquent aujourd’hui même si ce jour est indisponible. Une affectation explicite de focused et le parcours ultérieur restent propres au propriétaire ou à l’instance. Noms de formatage et motifs d’affichage sont aussi validés : une configuration invalide désactive la projection et l’acceptation du calendrier sans remplacer dates acceptées ou brouillons. Une erreur de libellés ne désactive pas l’éditeur natif du DatePicker et ne change pas ses contraintes de dates indépendantes. Les jours des mois adjacents sont atténués par défaut ; outside-days:show rétablit le texte habituel, hide garde des cases vides sur sept colonnes sans admettre leur activation. week-rows conserve six semaines fixes par défaut ; variable retire seulement les semaines entières après la fin du mois. Le clavier continue de naviguer normalement entre les mois. Les projections CalendarDay manuelles doivent renseigner outside-month selon mois/année affichés ; CalendarView contient week-rows. Vues mois et année : le titre est un bouton (une fois `install(&app)` exécuté) qui ouvre les douze mois de l’année affichée, puis douze années consécutives, et les boutons précédent et suivant changent de mois, d’année ou de douze années en conséquence. Dans ces grilles, les flèches se déplacent entre cellules (Haut/Bas de trois), Début/Fin sautent à la première/dernière cellule, Page précédente/suivante change de page, Entrée ou Espace choisit et Échap revient aux jours sans émettre `cancelled`. Choisir un mois focalise ce mois en ramenant le jour à sa longueur et dans les bornes ; choisir une année ouvre ses mois. Parcourir n’accepte jamais de date.",
       "label": "Calendrier",
       "seoTitle": "Calendrier pour Slint",
       "related": [
@@ -545,14 +545,45 @@
           "effect": "Indique si Échap émet `cancelled()` et est consommé. Mettez false pour un calendrier dans une boîte de dialogue afin que celle-ci reçoive Échap.",
           "default": "true",
           "example": "KitCalendar { escape-cancels: false; }"
+        },
+        "view-mode": {
+          "effect": "Grille affichée par le calendrier : CalendarViewMode.days (par défaut), months (les douze mois d’une année) ou years (douze années consécutives). Le bouton du titre parcourt jours, mois, années puis revient ; choisir un mois revient aux jours et choisir une année ouvre ses mois. Affectez-la depuis l’hôte pour ouvrir une autre grille. L’ouverture du popup d’un sélecteur la remet sur les jours.",
+          "default": "CalendarViewMode.days",
+          "constraints": "Parcourir n’accepte jamais de date : un calendrier en lecture seule peut utiliser les grilles, un calendrier désactivé non, et `chosen` ne se déclenche que pour un jour. Les mois et années hors de min/max sont désactivés. Sans `install(&app)`, le titre est un simple texte et les grilles sont indisponibles.",
+          "example": "KitCalendar { view-mode: CalendarViewMode.months; }"
+        },
+        "view-switch-label": {
+          "effect": "Description lue après le bouton du titre, qui ouvre les grilles des mois et des années.",
+          "default": "Choose month and year",
+          "example": "KitCalendar { view-switch-label: \"Choisir le mois et l’année\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des mois est affichée.",
+          "default": "Previous year",
+          "example": "KitCalendar { previous-year-label: \"Année précédente\"; }"
+        },
+        "next-year-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des mois est affichée.",
+          "default": "Next year",
+          "example": "KitCalendar { next-year-label: \"Année suivante\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des années est affichée ; il recule de douze années.",
+          "default": "Previous years",
+          "example": "KitCalendar { previous-years-label: \"Années précédentes\"; }"
+        },
+        "next-years-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des années est affichée ; il avance de douze années.",
+          "default": "Next years",
+          "example": "KitCalendar { next-years-label: \"Années suivantes\"; }"
         }
       },
-      "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé. Avec outside-days:hide, les cases des mois adjacents sont masquées pour l’accessibilité et non activables, en conservant l’alignement sur sept colonnes. Cela ne qualifie pas un lecteur d’écran physique. Le calendrier conserve le focus natif sur une liste persistante et délègue le focus accessible au jour actif matérialisé. Les jours exposent sélection, état désactivé/lecture seule, indice de case à partir de zéro et nombre de cases matérialisées ; les cases masquées des mois adjacents gardent leur indice. Les en-têtes précèdent les jours dans la séquence accessible, indépendamment de la géométrie RTL. Slint 1.18.1 ne fournit pas les rôles grille/ligne/cellule ; liste/élément de liste constitue la représentation prise en charge. VoiceOver/NVDA natifs et IME physique restent à qualifier séparément."
+      "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé. Avec outside-days:hide, les cases des mois adjacents sont masquées pour l’accessibilité et non activables, en conservant l’alignement sur sept colonnes. Cela ne qualifie pas un lecteur d’écran physique. Le calendrier conserve le focus natif sur une liste persistante et délègue le focus accessible au jour actif matérialisé. Les jours exposent sélection, état désactivé/lecture seule, indice de case à partir de zéro et nombre de cases matérialisées ; les cases masquées des mois adjacents gardent leur indice. Les en-têtes précèdent les jours dans la séquence accessible, indépendamment de la géométrie RTL. Slint 1.18.1 ne fournit pas les rôles grille/ligne/cellule ; liste/élément de liste constitue la représentation prise en charge. VoiceOver/NVDA natifs et IME physique restent à qualifier séparément. Dans les grilles des mois et des années, chaque cellule est un élément de liste nommé par son mois et son année complets, ou son année, et expose sélection et état désactivé ; le bouton du titre indique l’état développé tant qu’une grille est affichée et est décrit par view-switch-label. Le comportement de VoiceOver/NVDA sur ces grilles n’est pas qualifié."
     },
     "en": {
       "summary": "Keyboard-friendly Gregorian calendar with local or controlled selection, availability rules and localized labels.",
       "usage": "Set `selected: CivilDateView`, `min`, `max`, `week-start`, `unavailable-weekdays` and `unavailable-ranges`. After one `install(&app)`, each calendar owns its focused date and computes its grid through the shared pure service. Handle `chosen(CivilDateView)` and convert with `CivilDate::try_from`. `days`, `active-index`, `title` and navigation availability remain explicit projection ports for custom compositions. Supply localized names and display patterns through the text properties; the installed service composes accessible day labels without rebuilding the days model. `ownership: Ownership.controlled` emits `chosen` without replacing `selected`; acknowledge an accepted proposal by assigning that property. Focus and editing drafts remain instance-owned. today defaults to the window-local KitCalendarService.today. Supply it explicitly, or call refresh_calendar_today(&app, TimeZoneId::new(\"America/Toronto\")?) after install and before show. set_calendar_today_at accepts an injected Instant for deterministic clocks. No system zone is guessed; refresh again at your chosen date rollover.",
-      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned. Formatting names and display patterns are validated too: invalid configuration disables the calendar projection and calendar acceptance without replacing accepted dates or drafts. Label configuration does not disable the DatePicker native editor or change its independent date constraints. Adjacent-month days are dimmed by default; outside-days:show restores ordinary text, while hide keeps blank seven-column slots without admitting their activation. week-rows defaults to six fixed weeks; variable trims only whole trailing weeks after the month ends. Keyboard date navigation still crosses month boundaries normally. Custom CalendarDay projections must set outside-month relative to the displayed month/year; CalendarView includes week-rows.",
+      "behavior": "Arrow keys browse days and weeks, Home/End the current week, Page Up/Down months and Shift+Page Up/Down years. Read-only permits browsing without acceptance; disabled blocks interaction. Bounds and unavailable intervals are checked in the shared controller. Separate calendars and windows never share focused or selected dates. Pure-Slint previews cannot calculate a calendar grid. Supply explicit `days`, `title` and navigation projections for a static calendar, or use the Rust-backed browser demo. Call `install(&window)` for date calculations and interaction. A stored selection that no longer satisfies valid min/max or availability rules remains host-owned but does not block the grid, navigation or a valid replacement. It is not highlighted as an allowed selected day. A range draft invalidated by new availability or length rules restarts at the next valid start; the accepted range changes only on Apply, and Cancel may restore the old accepted value without trapping later choices. configuration-state reports unchecked before service installation, then valid or invalid for civil dates, min/max and availability. Invalid configuration keeps a disabled reference grid visible and displays configuration-message; it cannot accept a choice or Apply. Repairing the configuration restores interaction without remounting the editor/calendar. Range length rules remain checked separately when choosing or applying a range. Supply exactly seven weekdays in Monday-to-Sunday order for every week-start. The shared calendar rotates the headers to the chosen first day; keep the names model unchanged when week-start changes. Initial focus uses a stored selection, then today, then the stable January2000 reference when neither is supplied. It selects the nearest allowed date inside the bounds, preferring the future on a tie; wholly blocked availability retains a bounded browsable reference. Today is marked in both picker projections even when that day is unavailable. Explicit focused assignments and later user navigation remain caller/instance-owned. Formatting names and display patterns are validated too: invalid configuration disables the calendar projection and calendar acceptance without replacing accepted dates or drafts. Label configuration does not disable the DatePicker native editor or change its independent date constraints. Adjacent-month days are dimmed by default; outside-days:show restores ordinary text, while hide keeps blank seven-column slots without admitting their activation. week-rows defaults to six fixed weeks; variable trims only whole trailing weeks after the month ends. Keyboard date navigation still crosses month boundaries normally. Custom CalendarDay projections must set outside-month relative to the displayed month/year; CalendarView includes week-rows. Month and year views: the heading is a button (when `install(&app)` has run) that opens the twelve months of the displayed year, then twelve consecutive years, and the previous and next buttons page by month, year or twelve years to match. In these grids arrows move between cells (Up/Down by three), Home/End jump to the first/last cell, Page Up/Down page, Enter or Space chooses and Escape returns to the days without emitting `cancelled`. Choosing a month focuses that month, clamping the day to its length and into the bounds; choosing a year opens its months. Browsing never accepts a date.",
       "label": "Calendar",
       "seoTitle": "Calendar for Slint",
       "related": [
@@ -658,9 +689,40 @@
           "effect": "Whether Escape emits `cancelled()` and is consumed. Set false for a calendar inside a dialog so the dialog receives Escape.",
           "default": "true",
           "example": "KitCalendar { escape-cancels: false; }"
+        },
+        "view-mode": {
+          "effect": "Which grid the calendar shows: CalendarViewMode.days (default), months (the twelve months of one year) or years (twelve consecutive years). The heading button cycles days, months, years and back; choosing a month returns to the days and choosing a year opens its months. Set it from the host to open on another grid. Opening a picker popup resets it to days.",
+          "default": "CalendarViewMode.days",
+          "constraints": "Browsing never accepts a date: a read-only calendar can use the grids, a disabled one cannot, and `chosen` fires only for a day. Months and years outside min/max are disabled. Without `install(&app)` the heading is plain text and the grids are unavailable.",
+          "example": "KitCalendar { view-mode: CalendarViewMode.months; }"
+        },
+        "view-switch-label": {
+          "effect": "Description read after the heading button, which opens the month and year grids.",
+          "default": "Choose month and year",
+          "example": "KitCalendar { view-switch-label: \"Choose month and year\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Accessible name of the previous button while the months grid shows.",
+          "default": "Previous year",
+          "example": "KitCalendar { previous-year-label: \"Previous year\"; }"
+        },
+        "next-year-label": {
+          "effect": "Accessible name of the next button while the months grid shows.",
+          "default": "Next year",
+          "example": "KitCalendar { next-year-label: \"Next year\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Accessible name of the previous button while the years grid shows; it pages back by twelve years.",
+          "default": "Previous years",
+          "example": "KitCalendar { previous-years-label: \"Previous years\"; }"
+        },
+        "next-years-label": {
+          "effect": "Accessible name of the next button while the years grid shows; it pages forward by twelve years.",
+          "default": "Next years",
+          "example": "KitCalendar { next-years-label: \"Next years\"; }"
         }
       },
-      "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately. With outside-days:hide, adjacent-month placeholders are hidden from accessibility and cannot activate, while seven-column alignment is retained. This does not establish physical screen-reader qualification. The calendar keeps native focus on one persistent list scope and delegates accessible focus to its active materialized day. Day cells expose selection, disabled/read-only state, a zero-based calendar-slot index and the materialized slot count; hidden adjacent-month slots retain their indices. Weekday headers precede cells in the accessible child sequence, independently of RTL geometry. Slint 1.18.1 has no grid/row/cell roles; list/list-item is the supported representation. Native VoiceOver/NVDA and physical IME remain separately unqualified."
+      "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately. With outside-days:hide, adjacent-month placeholders are hidden from accessibility and cannot activate, while seven-column alignment is retained. This does not establish physical screen-reader qualification. The calendar keeps native focus on one persistent list scope and delegates accessible focus to its active materialized day. Day cells expose selection, disabled/read-only state, a zero-based calendar-slot index and the materialized slot count; hidden adjacent-month slots retain their indices. Weekday headers precede cells in the accessible child sequence, independently of RTL geometry. Slint 1.18.1 has no grid/row/cell roles; list/list-item is the supported representation. Native VoiceOver/NVDA and physical IME remain separately unqualified. In the month and year grids each cell is a list item named with its full month and year, or its year, and exposes selection and disabled state; the heading button reports expanded while a grid shows and is described by view-switch-label. Native VoiceOver/NVDA behavior of these grids is not qualified."
     }
   },
   "KitCard": {
@@ -2355,6 +2417,31 @@
           "effect": "CalendarWeekRows.fixed conserve six semaines. variable retire les semaines entières après le dernier jour du mois affiché, soit quatre à six lignes.",
           "default": "CalendarWeekRows.fixed",
           "constraints": "Les deux sélecteurs transmettent cette politique. Nombre de semaines visible, dates, bornes, propriété, ordre des jours, RTL et noms localisés restent indépendants."
+        },
+        "view-switch-label": {
+          "effect": "Description lue après le bouton du titre, qui ouvre les grilles des mois et des années.",
+          "default": "Choose month and year",
+          "example": "KitDatePicker { view-switch-label: \"Choisir le mois et l’année\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des mois est affichée.",
+          "default": "Previous year",
+          "example": "KitDatePicker { previous-year-label: \"Année précédente\"; }"
+        },
+        "next-year-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des mois est affichée.",
+          "default": "Next year",
+          "example": "KitDatePicker { next-year-label: \"Année suivante\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des années est affichée ; il recule de douze années.",
+          "default": "Previous years",
+          "example": "KitDatePicker { previous-years-label: \"Années précédentes\"; }"
+        },
+        "next-years-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des années est affichée ; il avance de douze années.",
+          "default": "Next years",
+          "example": "KitDatePicker { next-years-label: \"Années suivantes\"; }"
         }
       },
       "callbacks": {
@@ -2483,6 +2570,31 @@
           "effect": "CalendarWeekRows.fixed keeps six week rows. variable removes complete weeks after the displayed month’s final day, yielding four to six rows.",
           "default": "CalendarWeekRows.fixed",
           "constraints": "Forwarded by both date pickers. Changing visible week count does not change dates, bounds, ownership, weekday order, RTL or localized labels."
+        },
+        "view-switch-label": {
+          "effect": "Description read after the heading button, which opens the month and year grids.",
+          "default": "Choose month and year",
+          "example": "KitDatePicker { view-switch-label: \"Choose month and year\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Accessible name of the previous button while the months grid shows.",
+          "default": "Previous year",
+          "example": "KitDatePicker { previous-year-label: \"Previous year\"; }"
+        },
+        "next-year-label": {
+          "effect": "Accessible name of the next button while the months grid shows.",
+          "default": "Next year",
+          "example": "KitDatePicker { next-year-label: \"Next year\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Accessible name of the previous button while the years grid shows; it pages back by twelve years.",
+          "default": "Previous years",
+          "example": "KitDatePicker { previous-years-label: \"Previous years\"; }"
+        },
+        "next-years-label": {
+          "effect": "Accessible name of the next button while the years grid shows; it pages forward by twelve years.",
+          "default": "Next years",
+          "example": "KitDatePicker { next-years-label: \"Next years\"; }"
         }
       },
       "callbacks": {
@@ -2636,6 +2748,31 @@
           "effect": "Texte d’erreur pour too-long : la période compte plus de nuits que max-nights.",
           "default": "The period is longer than the maximum.",
           "example": "KitDateRangePicker { too-long-message: \"Stay at most 14 nights\"; }"
+        },
+        "view-switch-label": {
+          "effect": "Description lue après le bouton du titre, qui ouvre les grilles des mois et des années.",
+          "default": "Choose month and year",
+          "example": "KitDateRangePicker { view-switch-label: \"Choisir le mois et l’année\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des mois est affichée.",
+          "default": "Previous year",
+          "example": "KitDateRangePicker { previous-year-label: \"Année précédente\"; }"
+        },
+        "next-year-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des mois est affichée.",
+          "default": "Next year",
+          "example": "KitDateRangePicker { next-year-label: \"Année suivante\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Nom accessible du bouton précédent lorsque la grille des années est affichée ; il recule de douze années.",
+          "default": "Previous years",
+          "example": "KitDateRangePicker { previous-years-label: \"Années précédentes\"; }"
+        },
+        "next-years-label": {
+          "effect": "Nom accessible du bouton suivant lorsque la grille des années est affichée ; il avance de douze années.",
+          "default": "Next years",
+          "example": "KitDateRangePicker { next-years-label: \"Années suivantes\"; }"
         }
       },
       "accessibility": "Le service installé formate les dates réelles avec accessible-date-pattern et les noms de mois/jours configurés, puis ajoute les suffixes aujourd’hui/période applicables, séparés par des virgules. Une période d’un jour reçoit les deux suffixes début/fin ; in-range-label ne concerne que son intérieur. Les en-têtes exposent weekday-names tout en gardant weekdays court à l’écran. Les sélecteurs transmettent toutes ces propriétés. Ces noms et états ne qualifient pas un lecteur d’écran natif ; vérifiez séparément le backend ciblé. Avec outside-days:hide, les cases des mois adjacents sont masquées pour l’accessibilité et non activables, en conservant l’alignement sur sept colonnes. Cela ne qualifie pas un lecteur d’écran physique."
@@ -2784,6 +2921,31 @@
           "effect": "Error text for too-long: the period has more nights than max-nights.",
           "default": "The period is longer than the maximum.",
           "example": "KitDateRangePicker { too-long-message: \"Stay at most 14 nights\"; }"
+        },
+        "view-switch-label": {
+          "effect": "Description read after the heading button, which opens the month and year grids.",
+          "default": "Choose month and year",
+          "example": "KitDateRangePicker { view-switch-label: \"Choose month and year\"; }"
+        },
+        "previous-year-label": {
+          "effect": "Accessible name of the previous button while the months grid shows.",
+          "default": "Previous year",
+          "example": "KitDateRangePicker { previous-year-label: \"Previous year\"; }"
+        },
+        "next-year-label": {
+          "effect": "Accessible name of the next button while the months grid shows.",
+          "default": "Next year",
+          "example": "KitDateRangePicker { next-year-label: \"Next year\"; }"
+        },
+        "previous-years-label": {
+          "effect": "Accessible name of the previous button while the years grid shows; it pages back by twelve years.",
+          "default": "Previous years",
+          "example": "KitDateRangePicker { previous-years-label: \"Previous years\"; }"
+        },
+        "next-years-label": {
+          "effect": "Accessible name of the next button while the years grid shows; it pages forward by twelve years.",
+          "default": "Next years",
+          "example": "KitDateRangePicker { next-years-label: \"Next years\"; }"
         }
       },
       "accessibility": "The installed service formats actual cell dates with accessible-date-pattern and the configured month/weekday names, then appends applicable today/range suffixes separated by commas. Both range-boundary suffixes appear for a single-day range; in-range-label applies only inside it. Weekday headers expose full weekday-names while retaining short visible weekdays. All text properties are forwarded by the pickers. These names and state descriptions do not qualify a native screen reader; verify the target backend separately. With outside-days:hide, adjacent-month placeholders are hidden from accessibility and cannot activate, while seven-column alignment is retained. This does not establish physical screen-reader qualification."
