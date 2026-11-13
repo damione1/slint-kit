@@ -162,6 +162,37 @@ Any component that reads `Session.unread` shows the new value, whichever screen 
 - Use one store per domain (session, settings, cart) rather than one store for the whole application: a component then depends only on the global it reads.
 - Globals exist once per window. To keep several windows in step, observe the same store once per window; each projection writes into that window's global.
 
+## Async calls
+
+Slint changes a window only from its event loop, so a result that arrives later needs the window again. `spawn` and `Latest` hide that step: the closure receives the window, already upgraded, and application code holds no `as_weak` and no `upgrade`.
+
+```rust
+#[derive(Clone)]
+struct Users { rows: Vec<String> }
+
+let latest = Latest::new();
+let store = Store::new(Loading::<Users, String>::Loading);
+
+app.on_reload({
+    let app = app.as_weak();
+    let latest = latest.clone();
+    let store = store.clone();
+    move || {
+        let app = app.upgrade().unwrap();
+        latest
+            .load(&app, fetch_users(), move |_, state| store.set(state))
+            .unwrap();
+    }
+});
+```
+
+- `spawn(&app, future, |app, result| ...)` runs the future on the event loop and applies the result with the window. If the window was destroyed, the result is dropped. Every call delivers its own result.
+- `Latest` guards against stale responses. Each `spawn` or `load` makes the earlier requests stale: the older future is dropped at its next wake-up and its result is never applied, even when it arrives after the newer one. Create one `Latest` per source of requests (a search box, a list that reloads). Clones share the guard; `cancel()` discards the request in flight.
+- `Latest::load(&app, future, |app, state| ...)` takes a future that returns a `Result` and reports a `Loading<T, E>`: `Loading::Loading` at once, then `Loading::Ready(value)` or `Loading::Failed(error)`. `Loading` offers `is_loading`, `ready` and `failed`. Project it into component properties, or into a `Store` as above, to show a spinner, the list or an error message.
+- `Fence` and `FenceTicket` (in `kit-core`) are the generation guard behind `Latest`, for code that runs its own tasks: `begin()` returns a ticket and makes older ones stale, and `is_current(ticket)` tells whether a response may still be applied.
+- The kit imposes no asynchronous runtime. The future is polled by Slint's event loop through `slint::spawn_local`, so it need not be `Send`. A future that needs a runtime reactor (tokio sockets or timers, for example) must bring it: wrap it with `async_compat::Compat`, or await the `JoinHandle` of a task that your own runtime runs. A future that uses only plain wakers, such as channels, needs nothing more.
+- Call `spawn` and `load` on the UI thread, for example from a callback. They return `SpawnError` when no event loop runs. To report a result from another thread instead, use `Store::remote()`.
+
 ## Host effects and notifications
 
 Localize built-in action and region names once per window through `KitStrings.dismiss-label-template` (`Dismiss {title}`), `breadcrumbs-label`, `pagination-label` and `notifications-label`, or override each component’s `dismiss-label` / `accessible-name`. `ToastEntry.dismiss-label` carries a complete per-entry name through `KitToastHost`; empty uses the global template, and `KitToast.dismiss-label` can override it. Complete Rust `ToastEntry` literals now need `dismiss_label: Default::default()` (or a localized name); literals ending with `..Default::default()` remain compatible.
