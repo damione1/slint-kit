@@ -523,6 +523,66 @@ fn a_toast_host_measures_exactly_its_toasts() {
 }
 
 #[test]
+fn a_toast_draws_a_severity_mark_beside_its_dismiss_icon() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let toast = ElementQuery::from_root(&window)
+        .match_inherits("KitToast")
+        .find_first()
+        .unwrap();
+    let icons = toast
+        .query_descendants()
+        .match_inherits("KitIcon")
+        .find_all();
+    assert_eq!(icons.len(), 2, "severity mark and dismiss glyph");
+}
+
+#[test]
+fn escape_dismisses_the_focused_toast_and_the_host_takes_focus_for_a_hotkey() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    let dismissed = Rc::new(RefCell::new(Vec::new()));
+    let observed = Rc::clone(&dismissed);
+    window.on_toast_dismiss(move |token| observed.borrow_mut().push(token));
+    key(&window, Key::Escape);
+    settle(1);
+    assert!(dismissed.borrow().is_empty(), "no toast has focus yet");
+    window.invoke_focus_toasts();
+    settle(1);
+    key(&window, Key::Escape);
+    settle(1);
+    assert_eq!(&*dismissed.borrow(), &[1]);
+}
+
+#[test]
+fn escape_leaves_a_toast_without_dismissal_open() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = ToastHostFixture::new().unwrap();
+    window.show().unwrap();
+    window.set_entries(slint::ModelRc::new(slint::VecModel::from(vec![
+        ToastEntry {
+            token: 7,
+            title: "Syncing".into(),
+            message: "".into(),
+            action_label: "Details".into(),
+            severity: AlertSeverity::Information,
+            dismissible: false,
+            ..Default::default()
+        },
+    ])));
+    let dismissed = Rc::new(Cell::new(0));
+    let observed = Rc::clone(&dismissed);
+    window.on_toast_dismiss(move |_| observed.set(observed.get() + 1));
+    window.invoke_focus_toasts();
+    settle(1);
+    key(&window, Key::Escape);
+    settle(1);
+    assert_eq!(dismissed.get(), 0);
+}
+
+#[test]
 fn a_repeated_card_measures_exactly_its_content() {
     i_slint_backend_testing::init_no_event_loop();
     let window = ToastHostFixture::new().unwrap();
