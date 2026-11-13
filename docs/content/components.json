@@ -8923,18 +8923,28 @@
         "access": {
           "effect": "TextViewAccess.read-only masque le pied d’édition. TextViewAccess.edit-line autorise son éditeur et ses actions uniquement si l’indice actif est valide.",
           "default": "TextViewAccess.read-only"
+        },
+        "font": {
+          "effect": "TextViewFont.proportional utilise la police du thème ; TextViewFont.monospace utilise sa police à chasse fixe pour le texte et les numéros de ligne, pour journaux et code source.",
+          "default": "TextViewFont.proportional"
+        },
+        "show-line-numbers": {
+          "effect": "Affiche la gouttière des numéros de ligne. Sa largeur suit le dernier numéro de ligne, la police et l’échelle du texte ; false la masque.",
+          "default": "true"
         }
       },
       "callbacks": {
         "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte.",
         "commit-line": "Transmet jeton, génération et brouillon natif de la ligne admise. Validez l’identité côté hôte ; aucune validation n’est émise pour une ligne active absente ou obsolète.",
-        "copy-requested": "Signale jeton et génération capturés après une copie admise du brouillon natif ; les identités invalides ou obsolètes sont rejetées."
+        "copy-requested": "Signale jeton et génération capturés après une copie admise du brouillon natif ; les identités invalides ou obsolètes sont rejetées.",
+        "copy-line-text": "Signale jeton, génération et texte stocké après que copy-active-line() ou Ctrl/Cmd+C a placé la ligne active dans le presse-papiers, dans tout mode d’accès et sans déplacer le focus ; rien n’est émis sans ligne active valide."
       },
       "functions": {
         "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
         "scroll-to-top": "Remet les deux décalages de contenu à zéro sans changer la sélection ni la ligne active.",
         "set-scroll": "Restaure les décalages signés scroll-x/scroll-y, dans les bornes du contenu et du viewport courants. Conservez l’identité et l’ordre du modèle avec la sauvegarde.",
-        "reveal-active": "Révèle la ligne active courante sans en sélectionner une autre ; une ligne absente ou hors limites ne produit aucun effet."
+        "reveal-active": "Révèle la ligne active courante sans en sélectionner une autre ; une ligne absente ou hors limites ne produit aucun effet.",
+        "copy-active-line": "Copie le texte stocké de la ligne active, pas le brouillon, et laisse le focus en place ; sans ligne active valide, aucun effet."
       }
     },
     "en": {
@@ -9004,18 +9014,28 @@
         "access": {
           "effect": "TextViewAccess.read-only hides the editing footer. TextViewAccess.edit-line enables its editor/actions only while the active index is valid.",
           "default": "TextViewAccess.read-only"
+        },
+        "font": {
+          "effect": "TextViewFont.proportional uses the theme text face; TextViewFont.monospace uses its monospace face for line text and numbers, for logs and source.",
+          "default": "TextViewFont.proportional"
+        },
+        "show-line-numbers": {
+          "effect": "Shows the line-number gutter. The gutter width follows the last line number, the font and the text scale; false hides it.",
+          "default": "true"
         }
       },
       "callbacks": {
         "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host.",
         "commit-line": "Reports the admitted line token, generation and native draft. Validate identity in the host; a stale or missing active line emits no commit.",
-        "copy-requested": "Reports the captured token and generation after an admitted native-draft copy; invalid or stale identities are rejected."
+        "copy-requested": "Reports the captured token and generation after an admitted native-draft copy; invalid or stale identities are rejected.",
+        "copy-line-text": "Reports token, generation and stored text after copy-active-line() or Ctrl/Cmd+C placed the active line on the clipboard, in any access mode and without moving focus; nothing is emitted without a valid active line."
       },
       "functions": {
         "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
         "scroll-to-top": "Reset both content offsets without changing selection or the active row.",
         "set-scroll": "Restore the signed scroll-x/scroll-y offsets, clamped to the current content and viewport. Keep the model identity/order with a saved snapshot.",
-        "reveal-active": "Reveal the current active row without selecting another one; an absent or out-of-range active row does nothing."
+        "reveal-active": "Reveal the current active row without selecting another one; an absent or out-of-range active row does nothing.",
+        "copy-active-line": "Copy the stored text of the active line, not the draft, and leave focus in place; without a valid active line it does nothing."
       }
     }
   },

@@ -25,6 +25,8 @@ export enum DataEmptyContent { label, custom }
 // already provides one, such as a card.
 export enum DataSurface { framed, flush }
 export enum TextViewAccess { read-only, edit-line }
+// The typeface of document lines: the theme text face, or its monospace face for logs and source.
+export enum TextViewFont { proportional, monospace }
 export enum TableHeaderFocus { individual, roving }
 enum TableCursorRegion { body, header }
 export enum TableEditOutcome { committed, unchanged, cancelled, rejected-on-blur, superseded, viewport-exit }
@@ -1188,7 +1190,11 @@ export component KitVirtualTextView inherits Rectangle {
     in property <string> editor-placeholder:"Select a line to edit";
     in property <string> save-label:"Save line";
     in property <string> copy-label:"Copy";
+    in property <TextViewFont> font:TextViewFont.proportional;
+    in property <bool> show-line-numbers:true;
     callback navigate(NavigationStep);callback select-line(int,int);callback commit-line(int,int,string);callback copy-requested(int,int);
+    // Reports the stored text of the active line after it is placed on the clipboard, in any access mode.
+    callback copy-line-text(int,int,string);
     private property <bool> has-active-line: root.active-index >= 0 && root.active-index < root.lines.length;
     private property <bool> can-edit-line: root.access == TextViewAccess.edit-line && root.has-active-line;
     pure function current-line() -> SelectionRef {
@@ -1211,6 +1217,20 @@ export component KitVirtualTextView inherits Rectangle {
         line-editor.copy-selection();
         if (root.current-source(source, generation)) { root.copy-requested(source.token, generation); }
     }
+    // Copies the stored text of the active line, not the draft, and leaves focus where it is.
+    public function copy-active-line() {
+        if (!root.has-active-line) { return; }
+        let token = root.lines[root.active-index].token;
+        let generation = root.generation;
+        clipboard-source.text = root.lines[root.active-index].text;
+        clipboard-source.select-all();
+        clipboard-source.copy();
+        root.copy-line-text(token, generation, root.lines[root.active-index].text);
+    }
+    private property <length> line-font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+    private property <string> line-family: root.font == TextViewFont.monospace ? root.theme.typography.family-monospace : root.theme.typography.family;
+    // Sized from the largest (last) line number, so it follows the font and the text scale.
+    private property <length> gutter-width: root.show-line-numbers && root.lines.length > 0 ? gutter-probe.preferred-width : 0px;
     public function take-focus(){keys.focus();}
     in property <int> near-end-rows: 3;
     out property <int> first-visible-index: root.lines.length == 0 || list.visible-height <= 0px ? -1 : clamp(floor(-list.content-y / root.line-height), 0, root.lines.length - 1);
@@ -1235,7 +1255,22 @@ export component KitVirtualTextView inherits Rectangle {
     min-width:0px;preferred-width:700px;min-height:max(root.theme.spacing.unit * 45,root.edit-height + root.line-height);preferred-height:360px;background:root.theme.canvas;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;
     function select-active() {if(root.active-index>=0&&root.active-index<root.lines.length){root.select-line(root.lines[root.active-index].token,root.generation);}}
-    keys := DataKeyboard {navigate(step)=>{root.navigate(step);}activate=>{root.select-active();}confirm=>{root.select-active();}}
+    keys := DataKeyboard {
+        navigate(step)=>{root.navigate(step);}activate=>{root.select-active();}confirm=>{root.select-active();}
+        key-event(event) => {
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "c" || event.text == "C") && root.has-active-line) {
+                root.copy-active-line();
+                return KitKeyResult.accept;
+            }
+            return KitKeyResult.reject;
+        }
+    }
+    clipboard-source := TextInput { visible: false; width: 0px; height: 0px; }
+    gutter-probe := Text {
+        visible: false;
+        text: root.lines.length > 0 ? root.lines[root.lines.length - 1].number : 0;
+        font-family: root.line-family; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+    }
     list := ListView {
         theme: root.theme;
         y: 0px;
@@ -1250,8 +1285,8 @@ export component KitVirtualTextView inherits Rectangle {
             focus-requested => {keys.focus();}
             requested(token,generation)=>{keys.focus();root.select-line(token,generation);}
             HorizontalLayout {spacing:root.theme.spacing.unit * 3;
-                Text {width:64px;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
-                Text {text:line.text;color:root.theme.text-primary;font-family: root.theme.typography.family; font-size:KitMetrics.font-size(root.theme, TypographyRole.control);overflow:elide;vertical-alignment:center;}
+                if root.show-line-numbers: Text {width:root.gutter-width;text:line.number;color:line.selected?root.theme.accent:root.theme.text-secondary;font-family: root.line-family; font-size:KitMetrics.font-size(root.theme, TypographyRole.caption);horizontal-alignment:right;vertical-alignment:center;}
+                Text {text:line.text;color:root.theme.text-primary;font-family: root.line-family; font-size:root.line-font-size;overflow:elide;vertical-alignment:center;}
             }
         }
     }
