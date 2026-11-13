@@ -830,3 +830,97 @@ fn toast_queue_changes_keep_the_focused_delegate_and_release_both_pause_sources(
         }
     }
 }
+
+fn placement_fixture(placement: TooltipPlacement, target_y: f32) -> TooltipPlacementFixture {
+    let window = TooltipPlacementFixture::new().unwrap();
+    window.set_placement(placement);
+    window.set_target_y(target_y);
+    window.show().unwrap();
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(window.get_tooltip_visible());
+    window
+}
+
+#[test]
+fn tooltip_placement_puts_the_tip_on_the_requested_side_of_its_target() {
+    i_slint_backend_testing::init_no_event_loop();
+    let side = |placement| {
+        let window = placement_fixture(placement, 200.);
+        let tip = element(&window, "Delete the project");
+        let (x, y) = (
+            window.get_target_x_position(),
+            window.get_target_y_position(),
+        );
+        let (w, h) = (window.get_target_width(), window.get_target_height());
+        let (p, s) = (tip.absolute_position(), tip.size());
+        (x, y, w, h, p, s)
+    };
+    let (_, y, _, h, p, _) = side(TooltipPlacement::Below);
+    assert!(
+        p.y >= y + h,
+        "below: tip {p:?} under target bottom {}",
+        y + h
+    );
+    let (_, y, _, _, p, s) = side(TooltipPlacement::Above);
+    assert!(
+        p.y + s.height <= y,
+        "above: tip {p:?} {s:?} over target top {y}"
+    );
+    let (x, y, w, h, p, s) = side(TooltipPlacement::Right);
+    assert!(
+        p.x >= x + w,
+        "right: tip {p:?} after target right {}",
+        x + w
+    );
+    assert!(
+        (p.y + s.height / 2. - (y + h / 2.)).abs() < 12.,
+        "right: tip is centered on the target height"
+    );
+    let (x, _, _, _, p, s) = side(TooltipPlacement::Left);
+    assert!(
+        p.x + s.width <= x,
+        "left: tip {p:?} {s:?} before target left {x}"
+    );
+    // Auto sits below, then flips above when the bottom edge has no room.
+    let (_, y, _, h, p, _) = side(TooltipPlacement::Auto);
+    assert!(p.y >= y + h);
+    let window = placement_fixture(TooltipPlacement::Auto, 460.);
+    let tip = element(&window, "Delete the project");
+    assert!(tip.absolute_position().y + tip.size().height <= window.get_target_y_position());
+    in_bounds(&tip, 640., 480.);
+}
+
+#[test]
+fn a_tooltip_without_an_enabled_layer_never_claims_the_keyboard_tip() {
+    let with_layer = fixture();
+    let window = TooltipBareFixture::new().unwrap();
+    window.show().unwrap();
+    window.invoke_focus_trigger();
+    settle(1);
+    assert!(
+        !window.get_tooltip_visible(),
+        "without a layer the native hover tip stays available"
+    );
+    with_layer.invoke_focus_trigger();
+    settle(1);
+    assert!(with_layer.get_tooltip_visible());
+    with_layer.set_layer_enabled(false);
+    settle(1);
+    with_layer.invoke_blur_trigger();
+    settle(1);
+    with_layer.invoke_focus_trigger();
+    settle(1);
+    assert!(!with_layer.get_tooltip_visible());
+}
+
+#[test]
+fn a_pressable_exposes_the_tooltip_text_as_its_accessible_description() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = placement_fixture(TooltipPlacement::Auto, 200.);
+    let button = element(&window, "Delete");
+    assert_eq!(
+        button.accessible_description().as_deref(),
+        Some("Delete the project")
+    );
+}
