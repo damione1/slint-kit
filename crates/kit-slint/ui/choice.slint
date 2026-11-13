@@ -1,5 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
-import { KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
@@ -888,6 +888,8 @@ export component KitMultiSelect inherits Rectangle {
     in property <string> empty-label: KitStrings.no-matching-options-label;
     in property <bool> wrap: false;
     in property <int> typeahead-timeout-ms: 700;
+    in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
+    in property <DropdownPlacement> placement: DropdownPlacement.auto;
     out property <int> page-rows: selector.page-rows;
     callback open-requested();
     callback navigate(NavigationStep);
@@ -941,6 +943,7 @@ export component KitMultiSelect inherits Rectangle {
             query <=> root.query;
             wrap: root.wrap;
             typeahead-timeout-ms: root.typeahead-timeout-ms;
+            popup-width: root.popup-width; placement: root.placement;
             // The chips carry the selection, so this composite owns the constraint.
             validation: checks.show-error ? ValidationPresentation.invalid : ValidationPresentation.pristine;
             error-message: checks.show-error ? checks.validation-message : "";
@@ -1091,6 +1094,8 @@ export component KitCombobox inherits Rectangle {
     in property <int> min-query-length: 0;
     in property <duration> query-debounce: 0ms;
     in property <length> popup-height: 6 * root.row-height + 2 * KitMetrics.popover-inset(root.theme);
+    in property <length> popup-width: root.width;
+    in property <DropdownPlacement> placement: DropdownPlacement.auto;
     in property <length> row-height: max(root.option-recipe.height, KitMetrics.row-height(root.theme, root.control-size)) + KitMetrics.font-size(root.theme, TypographyRole.caption) + 2 * KitMetrics.help-gap(root.theme);
     in property <int> near-end-rows: 3;
     out property <bool> end-near;
@@ -1369,9 +1374,9 @@ export component KitCombobox inherits Rectangle {
         }
     }
     popup := PopupWindow {
-        width: min(root.width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
         private property <length> desired-height: min(root.popup-height, max(1, root.rows.length) * root.row-height + (root.popup-status-visible ? root.row-height : 0px) + surface.chrome-height);
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: root.placement}, root.popup-viewport);
         x: self.placement.x; y: self.placement.y;
         height: self.placement.height;
         close-policy: close-on-click-outside;

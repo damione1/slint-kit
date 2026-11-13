@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitSelect, KitCombobox, KitMultiSelect, KitTextField, KitTheme, KitThemes, OptionRow, SelectState, SelectionRef, Ownership, KitKeyResult } from "@kit";
+import { DropdownPlacement, KitSelect, KitCombobox, KitMultiSelect, KitTextField, KitTheme, KitThemes, KitMetrics, OptionRow, SelectState, SelectionRef, Ownership, KitKeyResult } from "@kit";
 export enum DropdownProbeKind { select, combobox, multi-select }
 export component DropdownCollisionFixture inherits Window {
     width: root.narrow ? 220px : 560px; height: 560px;
     in property <DropdownProbeKind> kind;
     in property <bool> narrow;
     in property <bool> bottom;
+    in property <DropdownPlacement> placement: DropdownPlacement.auto;
+    // A 300px popup width; otherwise each control keeps its own default width.
+    in property <bool> wide;
     in property <KitTheme> theme: KitThemes.light;
     out property <KitTheme> dark-theme: KitThemes.dark;
     in property <[OptionRow]> options;
@@ -31,6 +34,7 @@ export component DropdownCollisionFixture inherits Window {
         x: root.bottom ? parent.width - self.width - 8px : 8px;
         y: root.bottom ? parent.height - self.height - 8px : 90px;
         width: 160px; height: self.preferred-height;
+        placement: root.placement; popup-width: root.wide ? 300px : max(self.width, KitMetrics.select-popup-min-width(root.theme));
         theme: root.theme; options: root.options; ownership: root.ownership;
         selected <=> root.single-value;
         searchable: true; focus-search-on-open: false; label: "Single choice";
@@ -42,6 +46,7 @@ export component DropdownCollisionFixture inherits Window {
         x: root.bottom ? parent.width - self.width - 8px : 8px;
         y: root.bottom ? parent.height - self.height - 8px : 90px;
         width: 160px; height: self.preferred-height;
+        placement: root.placement; popup-width: root.wide ? 300px : self.width;
         theme: root.theme; options: root.options; ownership: root.ownership;
         selected <=> root.single-value; label: "Editable choice";
         chosen(row) => { root.proposals += 1; root.last-proposal = row; }
@@ -52,6 +57,7 @@ export component DropdownCollisionFixture inherits Window {
         x: root.bottom ? parent.width - self.width - 8px : 8px;
         y: root.bottom ? parent.height - self.height - 8px : 90px;
         width: 160px; height: self.preferred-height;
+        placement: root.placement; popup-width: root.wide ? 300px : max(self.width, KitMetrics.select-popup-min-width(root.theme));
         theme: root.theme; options: root.options; ownership: root.ownership;
         selected <=> root.multiple-value;
         searchable: true; focus-search-on-open: false; label: "Multiple choices";

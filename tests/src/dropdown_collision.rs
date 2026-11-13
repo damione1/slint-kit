@@ -335,3 +335,63 @@ fn edge_popups_keep_controlled_admission_multi_sessions_and_native_tab_exit() {
         app.hide().unwrap();
     }
 }
+fn presented(app: &DropdownCollisionFixture) -> (LogicalPosition, slint::LogicalSize) {
+    settle(app);
+    open(app);
+    (painted_origin(app), surface(app).size())
+}
+#[test]
+fn placement_pins_the_side_and_popup_width_overrides_the_default_on_all_three_controls() {
+    for kind in kinds() {
+        // The anchor sits near the top edge: below has far more room than above.
+        for (placement, side_above) in [
+            (ui::DropdownPlacement::Auto, false),
+            (ui::DropdownPlacement::Below, false),
+            (ui::DropdownPlacement::Above, true),
+        ] {
+            let app = fixture(kind);
+            app.set_placement(placement);
+            app.show().unwrap();
+            let (origin, size) = presented(&app);
+            let a = anchor(&app);
+            let (ap, az) = (a.absolute_position(), a.size());
+            if side_above {
+                assert!(
+                    origin.y + size.height <= ap.y + 1.,
+                    "{kind:?} above: {origin:?} {size:?} anchor {ap:?}"
+                );
+                assert!(origin.y >= -1., "{kind:?} above stays in the window");
+            } else {
+                assert!(
+                    origin.y >= ap.y + az.height - 1.,
+                    "{kind:?} {placement:?}: {origin:?} anchor {ap:?}"
+                );
+            }
+            app.hide().unwrap();
+        }
+        for (narrow, wide) in [(false, false), (false, true), (true, true)] {
+            let app = fixture(kind);
+            app.set_narrow(narrow);
+            app.set_wide(wide);
+            app.show().unwrap();
+            let (origin, size) = presented(&app);
+            let host = app.window().size().to_logical(app.window().scale_factor());
+            if wide && !narrow {
+                assert!(
+                    (size.width - 300.).abs() < 1.,
+                    "{kind:?} popup-width: {size:?}"
+                );
+            }
+            if narrow {
+                assert!(
+                    origin.x >= -1. && origin.x + size.width <= host.width + 1.,
+                    "{kind:?} wide popup is clamped to the window: {origin:?} {size:?} {host:?}"
+                );
+            }
+            if !wide {
+                assert!(size.width < 300., "{kind:?} default width: {size:?}");
+            }
+            app.hide().unwrap();
+        }
+    }
+}

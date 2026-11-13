@@ -11,7 +11,7 @@ import { KitTheme, KitThemes, ControlWidth, ControlSize, KitMetrics, ButtonInten
 import { KitPressable, KitButton, KitIconButton } from "button.slint";
 import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
-import { KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitDialogSurface, KitDialogPanel } from "dialog.slint";
 import { KitModalContext } from "modal.slint";
@@ -1263,7 +1263,7 @@ export component KitPopover inherits Rectangle {
     popup := PopupWindow {
         width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
         private property <length> desired-height: min(root.popup-height, panel.preferred-height);
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
         x: self.placement.x; y: self.placement.y;
         height: self.placement.height;
         close-policy: close-on-click-outside;
@@ -1349,7 +1349,7 @@ export component KitDropdownMenu inherits Rectangle {
     popup := PopupWindow {
         width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
         private property <length> desired-height: panel.preferred-height;
-        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit}, root.popup-viewport);
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x, y: root.absolute-position.y, anchor-width: root.width, anchor-height: root.height, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
         x: self.placement.x; y: self.placement.y;
         height: self.placement.height;
         close-policy: close-on-click-outside;
