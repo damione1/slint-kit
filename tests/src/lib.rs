@@ -821,6 +821,7 @@ mod control_states;
 mod icons;
 mod menu_focus;
 mod native_dialog;
+mod navigation_interaction;
 mod theme_tokens;
 mod variants;
 
