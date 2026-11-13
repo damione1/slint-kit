@@ -414,6 +414,7 @@ export component KitOption inherits KitPressable {
 }
 
 export component KitSelect inherits Rectangle {
+    in property <int> modal-layer;
     in property <bool> required;
     in property <string> required-message: "Please make a selection.";
     in property <ValidationTiming> validation-timing: ValidationTiming.on-blur;
@@ -526,6 +527,7 @@ export component KitSelect inherits Rectangle {
     }
     trigger := KitSelectTrigger {
         theme: root.theme;
+        modal-layer: root.modal-layer;
         control-size: root.control-size;
         state: root.state;
         access: root.access;
@@ -619,6 +621,7 @@ export component KitSelect inherits Rectangle {
                 horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
                 for row[index] in root.rows: KitOption {
                     theme: root.theme;
+                    modal-layer: root.modal-layer;
                     option-data: row;
                     accessible-item-index: index; accessible-item-count: root.rows.length;
                     height: root.row-height;

@@ -11,6 +11,7 @@ import { KitScrollBar } from "scroll.slint";
 import { KitSpinner } from "feedback.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError, KitInputGroup, FieldDecoration } from "field.slint";
 import { KitPressable } from "button.slint";
+import { KitModalContext } from "modal.slint";
 import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation, TextPurpose, SecretVisibility } from "shared-contracts.slint";
 export { TextPurpose, SecretVisibility } from "shared-contracts.slint";
@@ -38,6 +39,7 @@ component InputFieldAction inherits Rectangle {
     in property <IconGlyph> glyph;
     in property <string> label;
     in property <bool> disabled;
+    in property <int> modal-layer;
     callback activated();
     private property <IconRecipe> icon: KitThemes.icon-recipe(root.theme, root.control-size);
     private property <length> action-extent: root.icon.size + root.theme.spacing.unit * 3;
@@ -45,6 +47,7 @@ component InputFieldAction inherits Rectangle {
     height: root.editor-height;
     action := KitPressable {
         x: 0px; y: (parent.height - self.height) / 2;
+        modal-layer: root.modal-layer;
         theme: root.theme; intent: ButtonIntent.quiet; control-size: ControlSize.compact;
         recipe: KitThemes.icon-button-recipe(root.theme, ControlSize.compact);
         width: parent.width;
@@ -551,7 +554,7 @@ export component KitTextField inherits KitField {
                             width: root.multiline ? viewport.width : root.decoration == FieldDecoration.cells ? Math.max(0px, viewport.width - root.text-inset - 2px) : Math.max(Math.max(0px,viewport.width - root.text-inset), self.preferred-width + 2px);
                             height: viewport.content-height;
                             text <=> root.text;
-                            enabled: root.access != FieldAccess.disabled;
+                            enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
                             read-only: root.access == FieldAccess.read-only || !root.mask-ready || ((root.length-policy == TextLengthPolicy.limit || root.edit-filter.kind != TextFilterKind.unfiltered) && !root.length-limit-ready);
                             single-line: !root.multiline;
                             wrap: root.multiline ? word-wrap : no-wrap;
@@ -564,7 +567,7 @@ export component KitTextField inherits KitField {
                             letter-spacing: root.text-letter-spacing;
                             horizontal-alignment: root.effective-text-alignment;
                             vertical-alignment: root.multiline ? top : center;
-                            accessible-enabled: root.access != FieldAccess.disabled;
+                            accessible-enabled: root.access != FieldAccess.disabled && !KitModalContext.inert(root.modal-layer);
                             accessible-label: root.accessible-name;
                             accessible-value: root.input-type == InputType.password || (root.purpose == TextPurpose.password && root.secret-visibility == SecretVisibility.hidden) ? "" : root.formatted-at-rest ? root.display-text : root.text;
                             accessible-placeholder-text: root.placeholder;
@@ -677,7 +680,7 @@ export component KitTextField inherits KitField {
                         x: root.menu-geometry.x; y: root.menu-geometry.y;
                         width: root.menu-geometry.width; height: root.menu-geometry.height;
                         TextEditMenu {
-                            theme: root.theme; control-size: root.control-size;
+                            theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                             options: root.menu-options; opened: root.menu-opened;
                             chosen(row) => { root.run-text-command(row); }
                             dismiss(reason) => { root.close-text-menu(); }
@@ -711,7 +714,7 @@ export component KitTextField inherits KitField {
                 if root.clear-visible: InputFieldAction {
                     layout-order: 6 * root.flow-sign;
                     cross-axis-self-alignment: center;
-                    theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
+                    theme: root.theme; modal-layer: root.modal-layer; control-size: root.control-size; editor-height: root.editor-height;
                     label: root.clear-label; glyph: root.theme.icons.close;
                     disabled: root.access != FieldAccess.editable || editor.preedit-text != "";
                     activated => { root.clear(); }
@@ -719,7 +722,7 @@ export component KitTextField inherits KitField {
                 if root.reveal-visible: InputFieldAction {
                     layout-order: 7 * root.flow-sign;
                     cross-axis-self-alignment: center;
-                    theme: root.theme; control-size: root.control-size; editor-height: root.editor-height;
+                    theme: root.theme; modal-layer: root.modal-layer; control-size: root.control-size; editor-height: root.editor-height;
                     label: root.secret-visibility == SecretVisibility.hidden ? root.reveal-label : root.hide-label;
                     glyph: root.secret-visibility == SecretVisibility.hidden ? root.theme.icons.eye : root.theme.icons.eye-hidden;
                     disabled: root.access == FieldAccess.disabled || editor.preedit-text != "";
