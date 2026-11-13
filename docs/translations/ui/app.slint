@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// A French and English application: the application owns its text, the kit text follows it.
+import { KitButton, KitCard, KitCardHeader, KitCardBody, KitCardFooter, KitDivider, KitTextField, KitEmailField, KitAlert, AlertSeverity, ButtonIntent, KitThemes } from "@kit";
+import { KitTranslations } from "kit-translations.slint";
+
+// A closed set decided by the application: an enum, never a language string.
+export enum AppLanguage { english, french }
+
+export component App inherits Window {
+    in property <AppLanguage> language: AppLanguage.english;
+    in property <int> unread: 0;
+    in-out property <string> account-name;
+    in-out property <string> account-email;
+    callback language-chosen(AppLanguage);
+    title: @tr("Account settings");
+    preferred-width: 520px;
+    preferred-height: 560px;
+    background: KitThemes.light.canvas;
+
+    // Runs after the Rust host has selected the first catalogue (see `translate` in main.rs).
+    public function translate() { KitTranslations.apply(); }
+
+    private property <bool> saved: false;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        alignment: start;
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: end;
+            KitButton { theme: KitThemes.light; text: "English"; intent: root.language == AppLanguage.english ? ButtonIntent.secondary : ButtonIntent.quiet; activated => { root.language-chosen(AppLanguage.english); } }
+            KitButton { theme: KitThemes.light; text: "Français"; intent: root.language == AppLanguage.french ? ButtonIntent.secondary : ButtonIntent.quiet; activated => { root.language-chosen(AppLanguage.french); } }
+        }
+        KitCard {
+            theme: KitThemes.light;
+            KitCardHeader {
+                theme: KitThemes.light;
+                title: @tr("Personal information");
+                description: @tr("Your team will see this information on your profile.");
+            }
+            KitCardBody {
+                theme: KitThemes.light;
+                name-field := KitTextField { theme: KitThemes.light; label: @tr("Full name"); text <=> root.account-name; required: true; }
+                email-field := KitEmailField { theme: KitThemes.light; label: @tr("Email address"); text <=> root.account-email; required: true; }
+            }
+            KitDivider { theme: KitThemes.light; }
+            KitCardFooter {
+                theme: KitThemes.light;
+                KitButton {
+                    theme: KitThemes.light;
+                    intent: ButtonIntent.primary;
+                    text: @tr("Save changes");
+                    activated => { root.saved = name-field.report-validity() && email-field.report-validity(); }
+                }
+            }
+        }
+        // A plural message: the catalogue decides the form from the count.
+        KitAlert {
+            theme: KitThemes.light;
+            severity: root.saved ? AlertSeverity.success : AlertSeverity.information;
+            title: root.saved ? @tr("Changes saved") : @tr("{n} unread message" | "{n} unread messages" % root.unread);
+            message: @tr("Switch language at any time; the form keeps what you typed.");
+        }
+    }
+}

@@ -911,3 +911,4 @@ mod date_popup_keyboard;
 mod tabs_panels;
 mod temporal_accepted;
 mod time_adjust;
+mod translations;
