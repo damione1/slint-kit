@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit } from "@kit";
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit, RowGesture } from "@kit";
 export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -85,6 +85,8 @@ export component BaseDataFixture inherits Window {
     table-key-event(event) => { return KitKeyResult.reject; }
     callback table-activated(int,int);
     callback content-activated(int,int);
+    callback table-gesture(int,int,RowGesture);
+    callback content-gesture(int,int,RowGesture);
     callback line-selected(int,int);
     callback line-committed(int,int,string);
     callback line-copied(int,int);
@@ -120,6 +122,7 @@ export component BaseDataFixture inherits Window {
             key-event(event) => { return root.table-key-event(event); }
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
             activate(token,generation) => { root.table-activated(token,generation); }
+            gesture(token,generation,gesture) => { root.table-gesture(token,generation,gesture); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
             autosize-requested(token) => { root.autosize-requested(token); }
@@ -137,6 +140,7 @@ export component BaseDataFixture inherits Window {
             empty-label: root.content-empty-label;
             navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
             activate(token,generation) => { root.content-activated(token,generation); }
+            gesture(token,generation,gesture) => { root.content-gesture(token,generation,gesture); }
         }
         document := KitVirtualTextView {
             near-end-rows: root.near-end-rows; near-end => { root.near-end(DataFixtureCollection.document); }

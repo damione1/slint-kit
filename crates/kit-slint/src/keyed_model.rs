@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::ui;
-use kit_core::{ModelError, NavigationStep};
+use kit_core::{ModelError, NavigationStep, RowGesture, SelectionMode};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{
     cell::RefCell,
@@ -46,6 +46,7 @@ pub trait KeyedRow: Clone + 'static {
 }
 pub trait SelectableRow: KeyedRow {
     fn select(&mut self, selected: bool);
+    fn selected(&self) -> bool;
 }
 struct Entry<K, R> {
     key: K,
@@ -74,6 +75,9 @@ struct State<K, R> {
     entries: Vec<Entry<K, R>>,
     generation: u64,
     active: Option<K>,
+    // The row a range selection extends from: the last row chosen by a
+    // plain or toggling gesture. Identity, not a position.
+    anchor: Option<K>,
     indices: HashMap<K, usize>,
 }
 enum MembershipChange {
@@ -104,6 +108,7 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
                 entries: vec![],
                 generation: 0,
                 active: None,
+                anchor: None,
                 indices: HashMap::new(),
             })),
             rows: Rc::new(VecModel::default()),
@@ -263,6 +268,13 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
             .any(|entry| state.active.as_ref() == Some(&entry.key) && entry.row.enabled())
         {
             state.active = None;
+        }
+        if !state
+            .anchor
+            .as_ref()
+            .is_some_and(|key| state.indices.contains_key(key))
+        {
+            state.anchor = None;
         }
         drop(state);
         self.refresh();
@@ -457,6 +469,9 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         if state.active.as_ref() == Some(key) {
             state.active = None;
         }
+        if state.anchor.as_ref() == Some(key) {
+            state.anchor = None;
+        }
         drop(state);
         self.membership_changed(MembershipChange::Remove(index));
         true
@@ -589,17 +604,154 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
     }
 }
 impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
+    /// Make one row the whole selection. It also becomes the active row and
+    /// the anchor of later range selections.
     pub fn select(&self, token: i32, generation: i32) -> Option<K> {
         let key = self.accept(token, generation)?;
         let mut state = self.state.borrow_mut();
         state.active = Some(key.clone());
-        for (index, entry) in state.entries.iter_mut().enumerate() {
-            entry.row.select(entry.key == key);
-            self.rows.set_row_data(index, entry.row.clone());
-        }
+        state.anchor = Some(key.clone());
+        self.mark(&mut state, |entry, _| entry.key == key);
         drop(state);
         self.publish();
         Some(key)
+    }
+    /// Flip one row and keep the rest of the selection. The row becomes the
+    /// active row and the anchor of later range selections.
+    pub fn toggle(&self, token: i32, generation: i32) -> Option<K> {
+        let key = self.accept(token, generation)?;
+        let mut state = self.state.borrow_mut();
+        state.active = Some(key.clone());
+        state.anchor = Some(key.clone());
+        self.mark(&mut state, |entry, selected| {
+            if entry.key == key {
+                !selected
+            } else {
+                selected
+            }
+        });
+        drop(state);
+        self.publish();
+        Some(key)
+    }
+    /// Select the enabled rows between the anchor and the row, both
+    /// included, and deselect every other row. Without an anchor the row is
+    /// selected alone. The anchor stays where it was, so repeated
+    /// extensions pivot around it; the row becomes the active row.
+    pub fn select_range(&self, token: i32, generation: i32) -> Option<K> {
+        let key = self.accept(token, generation)?;
+        let mut state = self.state.borrow_mut();
+        let target = *state.indices.get(&key)?;
+        let anchor = state
+            .anchor
+            .as_ref()
+            .and_then(|anchor| state.indices.get(anchor))
+            .copied();
+        let anchor = match anchor {
+            Some(anchor) => anchor,
+            None => {
+                state.anchor = Some(key.clone());
+                target
+            }
+        };
+        let (low, high) = (anchor.min(target), anchor.max(target));
+        state.active = Some(key.clone());
+        let mut position = 0;
+        self.mark(&mut state, |entry, _| {
+            let inside = (low..=high).contains(&position) && entry.row.enabled();
+            position += 1;
+            inside
+        });
+        drop(state);
+        self.publish();
+        Some(key)
+    }
+    /// Select every enabled row and deselect the disabled ones.
+    pub fn select_all(&self) {
+        let mut state = self.state.borrow_mut();
+        self.mark(&mut state, |entry, _| entry.row.enabled());
+        drop(state);
+        self.publish();
+    }
+    /// Deselect every row and forget the anchor. The active row is unchanged.
+    pub fn clear_selection(&self) {
+        let mut state = self.state.borrow_mut();
+        state.anchor = None;
+        self.mark(&mut state, |_, _| false);
+        drop(state);
+        self.publish();
+    }
+    /// The keys of the selected rows, in model order.
+    pub fn selected_keys(&self) -> Vec<K> {
+        self.state
+            .borrow()
+            .entries
+            .iter()
+            .filter(|entry| entry.row.selected())
+            .map(|entry| entry.key.clone())
+            .collect()
+    }
+    // Rewrite the selected flag of every row and republish only the rows
+    // that changed, so unrelated delegates keep their state.
+    fn mark(&self, state: &mut State<K, R>, mut decide: impl FnMut(&Entry<K, R>, bool) -> bool) {
+        for (index, entry) in state.entries.iter_mut().enumerate() {
+            let before = entry.row.selected();
+            let after = decide(entry, before);
+            if after != before {
+                entry.row.select(after);
+                entry.revision = Rc::new(());
+                self.rows.set_row_data(index, entry.row.clone());
+            }
+        }
+    }
+    /// Apply one typed row gesture to the selection under the host's mode and
+    /// return the row it targeted. `Single` reduces toggle and extend to a
+    /// plain selection. `Open` keeps a selected row's selection and
+    /// otherwise selects the row alone, as a file manager does.
+    pub fn gesture(
+        &self,
+        mode: SelectionMode,
+        gesture: RowGesture,
+        token: i32,
+        generation: i32,
+    ) -> Option<K> {
+        match (mode, gesture) {
+            (SelectionMode::Single, RowGesture::Select)
+            | (SelectionMode::Single, RowGesture::Toggle)
+            | (SelectionMode::Single, RowGesture::Extend)
+            | (SelectionMode::Multiple, RowGesture::Select) => self.select(token, generation),
+            (SelectionMode::Multiple, RowGesture::Toggle) => self.toggle(token, generation),
+            (SelectionMode::Multiple, RowGesture::Extend) => self.select_range(token, generation),
+            (SelectionMode::Single | SelectionMode::Multiple, RowGesture::Open) => {
+                let key = self.accept(token, generation)?;
+                if self.get(&key).is_some_and(|row| row.selected()) {
+                    let mut state = self.state.borrow_mut();
+                    state.active = Some(key.clone());
+                    drop(state);
+                    self.publish();
+                    Some(key)
+                } else {
+                    self.select(token, generation)
+                }
+            }
+        }
+    }
+    /// A `KitDataTable.gesture` or `KitContentList.gesture` handler. It
+    /// applies the gesture to the selection under `mode`, then hands the
+    /// gesture and the row key to the application, which acts on `Open`
+    /// and on selection changes.
+    pub fn gestures(
+        &self,
+        mode: SelectionMode,
+        handler: impl Fn(RowGesture, K) + 'static,
+    ) -> impl Fn(i32, i32, ui::RowGesture) + 'static {
+        let model = self.clone();
+        move |token, generation, gesture| {
+            let gesture = RowGesture::from(gesture);
+            if let Some(key) = model.gesture(mode, gesture, token, generation) {
+                handler(gesture, key);
+            }
+        }
     }
     pub fn activation(&self, handler: impl Fn(K) + 'static) -> impl Fn(i32, i32) + 'static {
         let model = self.clone();
@@ -607,6 +759,16 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
             if let Some(key) = model.select(token, generation) {
                 handler(key);
             }
+        }
+    }
+}
+impl From<ui::RowGesture> for RowGesture {
+    fn from(value: ui::RowGesture) -> Self {
+        match value {
+            ui::RowGesture::Select => Self::Select,
+            ui::RowGesture::Toggle => Self::Toggle,
+            ui::RowGesture::Extend => Self::Extend,
+            ui::RowGesture::Open => Self::Open,
         }
     }
 }
@@ -629,6 +791,9 @@ impl SelectableRow for ui::TableRow {
     fn select(&mut self, selected: bool) {
         self.selected = selected;
     }
+    fn selected(&self) -> bool {
+        self.selected
+    }
 }
 impl KeyedRow for ui::ContentItem {
     fn stamp(&mut self, token: i32, _: i32) {
@@ -645,6 +810,9 @@ impl SelectableRow for ui::ContentItem {
     fn select(&mut self, selected: bool) {
         self.selected = selected;
     }
+    fn selected(&self) -> bool {
+        self.selected
+    }
 }
 impl KeyedRow for ui::TextLine {
     fn stamp(&mut self, token: i32, _: i32) {
@@ -660,6 +828,9 @@ impl KeyedRow for ui::TextLine {
 impl SelectableRow for ui::TextLine {
     fn select(&mut self, selected: bool) {
         self.selected = selected;
+    }
+    fn selected(&self) -> bool {
+        self.selected
     }
 }
 impl KeyedRow for ui::ChipRow {
