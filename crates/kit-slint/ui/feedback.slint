@@ -16,6 +16,10 @@ export global KitAlertMarks {
     }
 }
 export enum ToastInteraction { pointer, focus }
+// Where the keyboard tip sits against its target. `auto` is below the target and
+// flips above it near the bottom edge; `left` and `right` are physical window
+// sides and center the tip on the target's height.
+export enum TooltipPlacement { auto, below, above, left, right }
 export struct ToastEntry { token: int, title: string, message: string, action-label: string, severity: AlertSeverity, dismissible: bool, dismiss-label: string }
 
 export component KitAlert inherits Rectangle {
@@ -144,19 +148,26 @@ export global KitTooltipState {
     out property <KitTheme> theme: KitThemeContext.current;
     out property <Point> anchor;
     out property <length> anchor-height;
+    out property <length> anchor-width;
+    out property <TooltipPlacement> placement;
+    // True while a KitTooltipLayer is mounted and enabled in this window.
+    out property <bool> layer-active;
     public function allocate() -> int {
         if (KitTooltipState.next-owner == 2147483647) { return 0; }
         KitTooltipState.next-owner += 1;
         return KitTooltipState.next-owner;
     }
-    public function show(owner: int, text: string, theme: KitTheme, anchor: Point, anchor-height: length) {
+    public function show(owner: int, text: string, theme: KitTheme, anchor: Point, anchor-width: length, anchor-height: length, placement: TooltipPlacement) {
         if (owner == 0 || owner == KitTooltipState.suppressed-owner) { return; }
         KitTooltipState.owner = owner;
         KitTooltipState.text = text;
         KitTooltipState.theme = theme;
         KitTooltipState.anchor = anchor;
+        KitTooltipState.anchor-width = anchor-width;
         KitTooltipState.anchor-height = anchor-height;
+        KitTooltipState.placement = placement;
     }
+    public function set-layer-active(active: bool) { KitTooltipState.layer-active = active; }
     public function hide(owner: int) {
         if (KitTooltipState.owner == owner) { KitTooltipState.owner = 0; }
         if (KitTooltipState.suppressed-owner == owner) { KitTooltipState.suppressed-owner = 0; }
@@ -174,13 +185,26 @@ export component KitTooltipLayer inherits Rectangle {
     in property <length> viewport-width: root.width;
     in property <length> viewport-height: root.height;
     public function dismiss() { KitTooltipState.dismiss(); }
-    changed enabled => { KitTooltipState.dismiss(); }
+    init => { KitTooltipState.set-layer-active(root.enabled); }
+    changed enabled => { KitTooltipState.dismiss(); KitTooltipState.set-layer-active(root.enabled); }
     private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(KitTooltipState.theme);
     // The tip's distance from the anchor and the window edges.
     private property <length> gap: root.tip-recipe.gap;
+    // The unclamped position per placement; the clamp keeps the tip inside the viewport.
+    pure function wanted-x(tip-width: length) -> length {
+        if (KitTooltipState.placement == TooltipPlacement.left) { return KitTooltipState.anchor.x - tip-width - root.gap; }
+        if (KitTooltipState.placement == TooltipPlacement.right) { return KitTooltipState.anchor.x + KitTooltipState.anchor-width + root.gap; }
+        return KitTooltipState.anchor.x;
+    }
+    pure function wanted-y(tip-height: length) -> length {
+        if (KitTooltipState.placement == TooltipPlacement.above) { return KitTooltipState.anchor.y - tip-height - root.gap; }
+        if (KitTooltipState.placement == TooltipPlacement.left || KitTooltipState.placement == TooltipPlacement.right) { return KitTooltipState.anchor.y + (KitTooltipState.anchor-height - tip-height) / 2; }
+        if (KitTooltipState.placement == TooltipPlacement.auto && KitTooltipState.anchor.y + KitTooltipState.anchor-height + tip-height + root.gap > root.viewport-height) { return KitTooltipState.anchor.y - tip-height - root.gap; }
+        return KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap;
+    }
     if root.enabled && KitTooltipState.owner != 0: Rectangle {
-        x: max(root.gap,min(KitTooltipState.anchor.x,root.viewport-width - self.width - root.gap));
-        y: max(root.gap,min(root.viewport-height - self.height - root.gap,KitTooltipState.anchor.y + KitTooltipState.anchor-height + self.height + root.gap > root.viewport-height ? KitTooltipState.anchor.y - self.height - root.gap : KitTooltipState.anchor.y + KitTooltipState.anchor-height + root.gap));
+        x: max(root.gap,min(root.wanted-x(self.width),root.viewport-width - self.width - root.gap));
+        y: max(root.gap,min(root.wanted-y(self.height),root.viewport-height - self.height - root.gap));
         // As wide as one line of its text, up to the recipe's reading width.
         width: min(min(root.tip-recipe.max-width,line.preferred-width + 2 * root.tip-recipe.padding-inline),max(0px,root.viewport-width - 2 * root.gap));
         height: min(tip.preferred-height + 2 * root.tip-recipe.padding-block,max(0px,root.viewport-height - 2 * root.gap));
@@ -203,10 +227,13 @@ export component KitTooltipLayer inherits Rectangle {
 
 // Native hover tips stay input-transparent. Bind target-focused to the composed
 // control's has-focus; mount KitTooltipLayer at the Window root for keyboard tips.
+// Describe the target to assistive technology with the control's `description`
+// (KitPressable and its derivatives); this wrapper has no accessible role.
 export component KitTooltip inherits Rectangle {
     in property <KitTheme> theme: KitThemeContext.current;
     in property <string> text;
     in property <bool> target-focused;
+    in property <TooltipPlacement> placement: TooltipPlacement.auto;
     in property <length> viewport-width: 100000px;
     in property <length> viewport-height: 100000px;
     private property <int> owner;
@@ -214,10 +241,12 @@ export component KitTooltip inherits Rectangle {
     private property <Point> anchor: root.absolute-position;
     private property <KitTheme> observed-theme: root.theme;
     private property <length> observed-height: root.height;
-    out property <bool> keyboard-visible: root.target-focused && !root.suppressed && root.text != "" && KitTooltipState.owner == root.owner && root.owner != 0;
+    private property <length> observed-width: root.width;
+    // False when no enabled KitTooltipLayer is mounted: the native hover tip then stays available.
+    out property <bool> keyboard-visible: root.target-focused && KitTooltipState.layer-active && !root.suppressed && root.text != "" && KitTooltipState.owner == root.owner && root.owner != 0;
     public function dismiss() { root.suppressed = true; if (KitTooltipState.owner == root.owner) { KitTooltipState.dismiss(); } }
     function publish() {
-        if (root.target-focused && !root.suppressed && root.text != "") { KitTooltipState.show(root.owner,root.text,root.theme,root.anchor,root.height); }
+        if (root.target-focused && !root.suppressed && root.text != "") { KitTooltipState.show(root.owner,root.text,root.theme,root.anchor,root.width,root.height,root.placement); }
     }
     init => { root.owner = KitTooltipState.allocate(); root.publish(); }
     changed target-focused => {
@@ -227,6 +256,8 @@ export component KitTooltip inherits Rectangle {
     changed anchor => { root.publish(); }
     changed observed-theme => { root.publish(); }
     changed observed-height => { root.publish(); }
+    changed observed-width => { root.publish(); }
+    changed placement => { root.publish(); }
     changed text => { if (root.text == "") { KitTooltipState.hide(root.owner); } else { root.publish(); } }
     vertical-stretch: 0; horizontal-stretch: 0;
     min-width: content.min-width; preferred-width: content.preferred-width;
