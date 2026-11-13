@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitButton, KitTextField, KitCheckbox, KitSelect, KitSlider, KitRangeSlider, KitDialogSurface, KitDialogPanel, KitModalContext, DialogState } from "@kit";
+import { KitButton, KitTextField, KitCheckbox, KitSelect, KitSlider, KitRangeSlider, KitDialogSurface, KitDialogPanel, KitModalContext, DialogState, KitTabs, KitMenu, KitMenuBar, KitAccordion, KitCollapse, KitCarousel, KitBreadcrumbs, KitPagination, OptionRow } from "@kit";
 
 export component ModalContextFixture inherits Window {
     width: 400px; height: 300px;
@@ -17,6 +17,14 @@ export component ModalContextFixture inherits Window {
         KitSelect { label: "Background select"; }
         KitSlider { label: "Background slider"; value: "5"; spec: {minimum: "0", maximum: "10", step: "1"}; }
         KitRangeSlider { label: "Background range"; value: {lower: "2", upper: "8"}; spec: {minimum: "0", maximum: "10", step: "1"}; }
+        KitTabs { options: [{token: 1, generation: 1, label: "Tab A", description: "", disabled: false}, {token: 2, generation: 1, label: "Tab B", description: "", disabled: false}]; accessible-name: "Background tabs"; }
+        KitMenu { options: [{token: 1, generation: 1, label: "Menu A", description: "", disabled: false}, {token: 2, generation: 1, label: "Menu B", description: "", disabled: false}]; accessible-name: "Background menu"; }
+        KitMenuBar { options: [{token: 1, generation: 1, label: "Bar A", description: "", disabled: false}, {token: 2, generation: 1, label: "Bar B", description: "", disabled: false}]; accessible-name: "Background bar"; }
+        KitAccordion { options: [{token: 1, generation: 1, label: "Section A", description: "", disabled: false}, {token: 2, generation: 1, label: "Section B", description: "", disabled: false}]; }
+        KitCollapse { title: "Background collapse"; Text { text: "Body"; } }
+        KitCarousel { options: [{token: 1, generation: 1, label: "Slide A", description: "", disabled: false}, {token: 2, generation: 1, label: "Slide B", description: "", disabled: false}]; label: "Background carousel"; previous-label: "Slide back"; next-label: "Slide forward"; }
+        KitBreadcrumbs { options: [{token: 1, generation: 1, label: "Crumb A", description: "", disabled: false}, {token: 2, generation: 1, label: "Crumb B", description: "", disabled: false}]; accessible-name: "Background crumbs"; }
+        KitPagination { page-count: 3; previous-label: "Page back"; next-label: "Page forward"; page-index: 1; }
     }
     KitDialogSurface {
         state: root.lower;
@@ -24,6 +32,7 @@ export component ModalContextFixture inherits Window {
         KitDialogPanel {
             width: 200px; height: 100px;
             KitButton { text: "Lower"; accessible-name: "Lower action"; modal-layer: 1; activated => { root.lower-activated(); } }
+            KitTabs { options: [{token: 1, generation: 1, label: "LowerTab A", description: "", disabled: false}, {token: 2, generation: 1, label: "LowerTab B", description: "", disabled: false}]; accessible-name: "Lower tabs"; modal-layer: 1; }
         }
     }
     KitDialogSurface {
