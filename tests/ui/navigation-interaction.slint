@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitPagination, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+
+export component PaginationFixture inherits Window {
+    width: 400px; height: 120px;
+    in-out property <int> page-index;
+    in property <int> page-count;
+    in property <Ownership> ownership: Ownership.local;
+    callback page-changed(int);
+    callback navigated(NavigationStep);
+    VerticalLayout {
+        alignment: start;
+        KitPagination {
+            page-index <=> root.page-index; page-count: root.page-count; ownership: root.ownership;
+            previous-label: "Previous page"; next-label: "Next page";
+            page-changed(page) => { root.page-changed(page); }
+            navigate(step) => { root.navigated(step); }
+        }
+    }
+}
+
+export component BreadcrumbsFixture inherits Window {
+    width: 400px; height: 120px;
+    in property <[OptionRow]> rows;
+    callback activated(int, int);
+    VerticalLayout {
+        alignment: start;
+        KitBreadcrumbs { rows: root.rows; activate(token, generation) => { root.activated(token, generation); } }
+    }
+}
+
+export component MenuBarKeysFixture inherits Window {
+    width: 220px; height: 120px;
+    in property <[OptionRow]> rows;
+    in property <SelectState> state;
+    out property <bool> bar-focused: bar.has-focus;
+    callback navigated(NavigationStep);
+    callback activated(int, int);
+    public function focus-bar() { bar.take-focus(); }
+    VerticalLayout {
+        alignment: start;
+        bar := KitMenuBar {
+            rows: root.rows; state: root.state;
+            navigate(step) => { root.navigated(step); }
+            activate(token, generation) => { root.activated(token, generation); }
+        }
+    }
+}
+
+export component CollapseKeysFixture inherits Window {
+    width: 400px; height: 300px;
+    in-out property <bool> expanded;
+    in property <Ownership> ownership: Ownership.local;
+    out property <bool> outside-focused: outside.has-focus;
+    out property <bool> inner-focused: inner.has-focus;
+    callback expansion-requested(bool);
+    public function focus-trigger() { collapse.take-focus(); }
+    VerticalLayout {
+        alignment: start;
+        collapse := KitCollapse {
+            title: "Details"; expanded <=> root.expanded; ownership: root.ownership;
+            expansion-requested(next) => { root.expansion-requested(next); }
+            inner := KitButton { text: "Inside"; }
+        }
+        outside := KitButton { text: "Outside"; }
+    }
+}
+
+export component DrawerFocusFixture inherits Window {
+    width: 600px; height: 400px;
+    in property <DialogState> state;
+    out property <bool> close-focused;
+    callback dismissed(CloseReason);
+    callback restore-requested();
+    callback focus-next-requested(bool);
+    KitDrawer {
+        width: root.width; height: root.height; panel-width: 300px;
+        title: "Details"; state: root.state;
+        dismiss(reason) => { root.dismissed(reason); }
+        restore-focus() => { root.restore-requested(); }
+        focus-next(backwards) => { root.focus-next-requested(backwards); }
+        close-focus-observed(focused) => { root.close-focused = focused; }
+        KitButton { text: "Body action"; }
+    }
+}
