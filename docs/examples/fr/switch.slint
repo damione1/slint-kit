@@ -1,7 +1,7 @@
 import { InterFont } from "@kit/fonts/inter.slint";
 // Public label overrides localize this fixture; toolkit/host defaults keep their language.
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitFieldError, ValidationTiming, KitSwitch, KitTheme, KitThemes, FieldAccess } from "@kit";
+import { KitFieldError, ValidationTiming, KitSwitch, KitTheme, KitThemes, FieldAccess, ChoiceLabelPosition } from "@kit";
 
 export component Example inherits Window {
     // Signalez les erreurs, puis demandez séparément le focus sur un contrôle invalide.
@@ -20,7 +20,7 @@ export component Example inherits Window {
     VerticalLayout {
         padding: 24px; spacing: 16px; alignment: start;
         Text { text: "Interrupteur"; color: root.theme.text-primary; font-size: 20px * root.theme.text-scale; font-weight: 600; }
-        field := KitSwitch { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme; label: "Notifications sur le bureau"; checked: true; toggled(value) => { root.status = value ? "Activation demandée" : "Désactivation demandée"; } }
+        field := KitSwitch { required: true; validation-timing: ValidationTiming.on-blur; theme: root.theme; label: "Notifications sur le bureau"; description: "Affichées dans la zone de notification."; label-position: ChoiceLabelPosition.start; checked: true; toggled(value) => { root.status = value ? "Activation demandée" : "Désactivation demandée"; } }
         if field.error-visible: KitFieldError { theme: root.theme; text: field.validation-message; }
         KitSwitch { theme: root.theme; label: "Réglage géré"; checked: true; access: FieldAccess.read-only; }
         if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }
