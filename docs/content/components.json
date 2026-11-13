@@ -1275,6 +1275,18 @@
         "pattern-message": {
           "effect": "Message pour un brouillon hexadécimal qui ne respecte pas le format.",
           "default": "KitStrings.color-pattern-message / color-pattern-alpha-message"
+        },
+        "required-message": {
+          "effect": "Message affiché quand le champ est requis et vide.",
+          "default": "KitStrings.required-message"
+        },
+        "placeholder": {
+          "effect": "Texte indicatif de la saisie hexadécimale lorsqu’elle est vide.",
+          "default": "`#RRGGBBAA` si l’alpha est modifiable, sinon `#RRGGBB`"
+        },
+        "palette": {
+          "effect": "Couleurs proposées comme choix rapides dans le panneau.",
+          "default": "Huit couleurs : rouge, ambre, vert, cyan, indigo, violet, presque noir, blanc"
         }
       },
       "callbacks": {
@@ -1383,6 +1395,18 @@
         "pattern-message": {
           "effect": "Message for a hexadecimal draft that does not match the format.",
           "default": "KitStrings.color-pattern-message / color-pattern-alpha-message"
+        },
+        "required-message": {
+          "effect": "Message shown when the field is required and empty.",
+          "default": "KitStrings.required-message"
+        },
+        "placeholder": {
+          "effect": "Hint text shown in the hexadecimal input when it is empty.",
+          "default": "`#RRGGBBAA` when alpha is editable, otherwise `#RRGGBB`"
+        },
+        "palette": {
+          "effect": "Colors offered as quick choices in the panel.",
+          "default": "Eight colors: red, amber, green, cyan, indigo, purple, near-black, white"
         }
       },
       "callbacks": {
@@ -1491,6 +1515,18 @@
         "pattern-message": {
           "effect": "Message pour un brouillon hexadécimal qui ne respecte pas le format.",
           "default": "KitStrings.color-pattern-message / color-pattern-alpha-message"
+        },
+        "required-message": {
+          "effect": "Message affiché quand le champ est requis et vide.",
+          "default": "KitStrings.required-message"
+        },
+        "placeholder": {
+          "effect": "Texte indicatif de la saisie hexadécimale lorsqu’elle est vide.",
+          "default": "`#RRGGBBAA` si l’alpha est modifiable, sinon `#RRGGBB`"
+        },
+        "palette": {
+          "effect": "Couleurs proposées comme choix rapides dans le panneau.",
+          "default": "Huit couleurs : rouge, ambre, vert, cyan, indigo, violet, presque noir, blanc"
         }
       },
       "functions": {
@@ -1602,6 +1638,18 @@
         "pattern-message": {
           "effect": "Message for a hexadecimal draft that does not match the format.",
           "default": "KitStrings.color-pattern-message / color-pattern-alpha-message"
+        },
+        "required-message": {
+          "effect": "Message shown when the field is required and empty.",
+          "default": "KitStrings.required-message"
+        },
+        "placeholder": {
+          "effect": "Hint text shown in the hexadecimal input when it is empty.",
+          "default": "`#RRGGBBAA` when alpha is editable, otherwise `#RRGGBB`"
+        },
+        "palette": {
+          "effect": "Colors offered as quick choices in the panel.",
+          "default": "Eight colors: red, amber, green, cyan, indigo, purple, near-black, white"
         }
       },
       "functions": {
@@ -5271,13 +5319,58 @@
           "effect": "La couche modale à laquelle appartient ce contrôle ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, tout contrôle Kit dont le `modal-layer` diffère est inerte : il ne prend pas le focus, ignore le pointeur et les touches, et se déclare désactivé aux technologies d’assistance. Donnez à un contrôle placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitNumberStepper {\n    modal-layer: 1;\n}"
+        },
+        "required-message": {
+          "effect": "Message affiché quand le champ est requis et vide.",
+          "default": "KitStrings.required-message"
+        },
+        "underflow-message": {
+          "effect": "Message affiché quand la valeur est sous `min`.",
+          "default": "KitStrings.underflow-template avec `{value}` remplacé par `min`"
+        },
+        "overflow-message": {
+          "effect": "Message affiché quand la valeur dépasse `max`.",
+          "default": "KitStrings.overflow-template avec `{value}` remplacé par `max`"
+        },
+        "step-message": {
+          "effect": "Message affiché quand la valeur ne respecte pas `step`.",
+          "default": "KitStrings.step-message"
+        },
+        "bad-input-message": {
+          "effect": "Message affiché quand le brouillon n’est pas un nombre valide.",
+          "default": "KitStrings.bad-input-message"
+        },
+        "validation-timing": {
+          "effect": "Moment où les messages de validation apparaissent : à la perte du focus, au changement ou à la soumission.",
+          "default": "`ValidationTiming.on-blur`"
+        },
+        "text-alignment": {
+          "effect": "Alignement horizontal du texte dans l’éditeur.",
+          "default": "`TextHorizontalAlignment.start`"
+        },
+        "accessible-name": {
+          "effect": "Nom annoncé par les technologies d’assistance pour l’éditeur.",
+          "default": "`label`"
+        },
+        "dirty": {
+          "effect": "Lecture seule. Vrai dès que l’utilisateur a modifié la valeur par rapport à l’état initial.",
+          "default": "`false`"
+        },
+        "touched": {
+          "effect": "Lecture seule. Vrai dès que le champ a perdu le focus au moins une fois.",
+          "default": "`false`"
         }
       },
       "functions": {
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
-        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau."
+        "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
+        "reset-field": "Restaure la valeur initiale et efface l’état modifié et touché.",
+        "select-all": "Sélectionne tout le texte de l’éditeur."
       },
-      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME. Les deux boutons sont nommés par `increment-label`/`decrement-label`. L’éditeur installé utilise l’édition native de texte pour conserver la grammaire complète du brouillon numérique ; ses métadonnées de saisie numérique restent limitées par Slint 1.18.1. Voir les [limites numériques de plateforme](../../guides/forms/)."
+      "accessibility": "Les champs numériques exposent un bouton compteur (`accessible-role: spinbox`) sur la racine du composant avec le nom accessible, le texte courant comme valeur, `accessible-value-minimum`/`maximum` (une borne absente est publiée comme -∞/+∞ car Slint publie toujours ces flottants), `accessible-value-step` (0 pour `step: \"any\"`), l’état lecture seule et des actions incrément/décrément qui partagent le chemin de pas du clavier. Slint fixe `accessible-role` à la compilation et le kit garde un seul éditeur natif pour tous les champs texte ; l’éditeur sous le compteur expose donc toujours texte, curseur et sélection comme champ texte. La couverture sans affichage ne qualifie ni lecteur d’écran ni IME. Les deux boutons sont nommés par `increment-label`/`decrement-label`. L’éditeur installé utilise l’édition native de texte pour conserver la grammaire complète du brouillon numérique ; ses métadonnées de saisie numérique restent limitées par Slint 1.18.1. Voir les [limites numériques de plateforme](../../guides/forms/).",
+      "callbacks": {
+        "value-edited": "Se déclenche avec le nouveau texte à chaque modification par l’utilisateur, à la frappe ou par un bouton de pas."
+      }
     },
     "en": {
       "summary": "Decimal input with increment and decrement requests.",
@@ -5352,13 +5445,58 @@
           "effect": "The modal layer this control belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, every kit control whose `modal-layer` differs is inert: it takes no focus, ignores pointer and keys, and reports itself disabled to assistive technology. Give a control placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitNumberStepper {\n    modal-layer: 1;\n}"
+        },
+        "required-message": {
+          "effect": "Message shown when the field is required and empty.",
+          "default": "KitStrings.required-message"
+        },
+        "underflow-message": {
+          "effect": "Message shown when the value is below `min`.",
+          "default": "KitStrings.underflow-template with `{value}` replaced by `min`"
+        },
+        "overflow-message": {
+          "effect": "Message shown when the value is above `max`.",
+          "default": "KitStrings.overflow-template with `{value}` replaced by `max`"
+        },
+        "step-message": {
+          "effect": "Message shown when the value does not fit `step`.",
+          "default": "KitStrings.step-message"
+        },
+        "bad-input-message": {
+          "effect": "Message shown when the draft is not a valid number.",
+          "default": "KitStrings.bad-input-message"
+        },
+        "validation-timing": {
+          "effect": "When validation messages appear: on blur, on change or on submit.",
+          "default": "`ValidationTiming.on-blur`"
+        },
+        "text-alignment": {
+          "effect": "Horizontal alignment of the text in the editor.",
+          "default": "`TextHorizontalAlignment.start`"
+        },
+        "accessible-name": {
+          "effect": "Name announced by assistive technology for the editor.",
+          "default": "`label`"
+        },
+        "dirty": {
+          "effect": "Read-only. True once the user edited the value away from its initial state.",
+          "default": "`false`"
+        },
+        "touched": {
+          "effect": "Read-only. True once the field has lost focus at least once.",
+          "default": "`false`"
         }
       },
       "functions": {
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
-        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again."
+        "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
+        "reset-field": "Restore the initial value and clear the dirty and touched state.",
+        "select-all": "Select all the text in the editor."
       },
-      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME. The two buttons are labelled by `increment-label`/`decrement-label`. The installed editor uses native text editing to retain the complete numeric draft grammar; its numeric input-purpose metadata remains limited by Slint 1.18.1. See the [numeric platform limits](../../guides/forms/)."
+      "accessibility": "Numeric fields expose a spin button (`accessible-role: spinbox`) on the component root with the accessible name, the current text as value, `accessible-value-minimum`/`maximum` (an absent bound is published as -∞/+∞ because Slint always publishes these floats), `accessible-value-step` (0 for `step: \"any\"`), the read-only state and increment/decrement actions that share the keyboard step path. Slint fixes `accessible-role` at compile time and the kit keeps one native editor for every text field, so the editor below the spin button still exposes its text, caret and selection as a text input. Headless coverage does not qualify screen readers or IME. The two buttons are labelled by `increment-label`/`decrement-label`. The installed editor uses native text editing to retain the complete numeric draft grammar; its numeric input-purpose metadata remains limited by Slint 1.18.1. See the [numeric platform limits](../../guides/forms/).",
+      "callbacks": {
+        "value-edited": "Fires with the new text each time the user edits the value, by typing or by a step button."
+      }
     }
   },
   "KitOption": {
