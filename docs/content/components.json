@@ -4947,6 +4947,19 @@
           "effect": "La couche modale à laquelle appartient ce composant ; 0 est la fenêtre. Tant qu’un `KitDialogSurface` ou `KitDrawer` dont `modal-layer` est positif est ouvert et au sommet, le composant est inerte : ses lignes et son clavier ne prennent pas le focus et ignorent le pointeur et les touches. Donnez à un composant placé dans une modale le numéro de couche de cette modale.",
           "default": "`0` (la fenêtre).",
           "example": "KitMenu {\n    modal-layer: 1;\n}"
+        },
+        "items": {
+          "effect": "Présentation des lignes, un `MenuItem` par entrée de `options` dans le même ordre : `kind: MenuItemKind` (`action`, `checkbox`, `radio`, `separator`, `group`), `leading-icon: IconGlyph`, texte `shortcut` dessiné en fin de ligne et ajouté à la description accessible, `destructive` (encre de danger) et `checked` (coche ou point, exposé comme état coché accessible). L’identité, le libellé et l’activation restent dans l’`OptionRow`. Les lignes `separator` et `group` sont de la décoration : elles ignorent le pointeur, et le modèle doit les marquer `disabled` pour que la navigation clavier et la recherche à la frappe les sautent. Le kit ne bascule pas `checked` ; mettez l’élément à jour dans `chosen`. Une entrée absente est une action simple.",
+          "default": "`[]` (chaque ligne est une action simple).",
+          "example": "KitMenu {\n    options: [{ token: 1, generation: 1, label: \"Copier\" }, { token: 2, generation: 1, label: \"Afficher la grille\" }];\n    items: [{ kind: MenuItemKind.action, shortcut: \"Ctrl+C\" }, { kind: MenuItemKind.checkbox, checked: true }];\n}"
+        },
+        "reserve-leading": {
+          "effect": "Réserve un emplacement de tête sur chaque ligne action, case et radio pour aligner les libellés avec les icônes et les coches.",
+          "default": "`true` quand `items` n’est pas vide."
+        },
+        "max-natural-height": {
+          "effect": "La plus grande hauteur naturelle du menu avant que ses lignes défilent. Les lignes gardent une hauteur uniforme : un séparateur occupe une ligne.",
+          "default": "`320px`."
         }
       }
     },
@@ -4967,6 +4980,19 @@
           "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the component is inert: its rows and keyboard take no focus and ignore pointer and keys. Give a component placed inside a modal that modal's layer number.",
           "default": "`0` (window).",
           "example": "KitMenu {\n    modal-layer: 1;\n}"
+        },
+        "items": {
+          "effect": "Presentation of the rows, one `MenuItem` per entry of `options` in the same order: `kind: MenuItemKind` (`action`, `checkbox`, `radio`, `separator`, `group`), `leading-icon: IconGlyph`, `shortcut` text drawn at the end of the row and added to the accessible description, `destructive` (danger ink) and `checked` (check mark or dot, exposed as the accessible checked state). Identity, label and activation stay in the `OptionRow`. `separator` and `group` rows are decoration: they ignore the pointer, and the model must mark them `disabled` so keyboard navigation and typeahead skip them. The kit does not toggle `checked`; update the item in `chosen`. A missing entry is a plain action.",
+          "default": "`[]` (every row is a plain action).",
+          "example": "KitMenu {\n    options: [{ token: 1, generation: 1, label: \"Copy\" }, { token: 2, generation: 1, label: \"Show grid\" }];\n    items: [{ kind: MenuItemKind.action, shortcut: \"Ctrl+C\" }, { kind: MenuItemKind.checkbox, checked: true }];\n}"
+        },
+        "reserve-leading": {
+          "effect": "Reserves a leading slot on every action, checkbox and radio row so labels line up with icons and check marks.",
+          "default": "`true` when `items` is not empty."
+        },
+        "max-natural-height": {
+          "effect": "The tallest natural height of the menu before its rows scroll. Rows keep a uniform height, so a separator takes one row.",
+          "default": "`320px`."
         }
       }
     }

@@ -22,26 +22,77 @@ export { ExpansionMode, DisclosureRow } from "contracts.slint";
 export enum TabActivation { manual, automatic }
 export struct NotificationRow { item: OptionRow, read: bool }
 
+// What a menu row is. Separator and group rows are decoration: they take no
+// pointer, focus or activation, and the model must mark them `disabled` so the
+// shared navigation skips them.
+export enum MenuItemKind { action, checkbox, radio, separator, group }
+// The presentation of the menu row at the same index of `options`. Identity,
+// label and activation stay in the `OptionRow`; a missing entry is a plain action.
+export struct MenuItem { kind: MenuItemKind, leading-icon: IconGlyph, shortcut: string, destructive: bool, checked: bool }
+
 // One row owns activation and snapshots its identity through KitOption, and
 // shares its option recipe: a tint for the active and selected rows and the
 // inset ring on the active one.
 export component KitNavigationAction inherits KitOption {
     in property <length> trailing-space;
     in property <TextHorizontalAlignment> label-alignment: root.control-width == ControlWidth.fill ? TextHorizontalAlignment.left : TextHorizontalAlignment.center;
+    // Menu presentation; the default entry is a plain labelled action.
+    in property <MenuItem> item;
+    // Keeps the label of an action, checkbox or radio row aligned with its siblings.
+    in property <bool> reserve-leading;
     private property <OptionRecipe> label-recipe: KitThemes.option-recipe(root.theme, root.control-size);
+    private property <bool> decoration: root.item.kind == MenuItemKind.separator || root.item.kind == MenuItemKind.group;
+    private property <bool> marked: root.item.kind == MenuItemKind.checkbox || root.item.kind == MenuItemKind.radio;
+    private property <bool> has-icon: root.item.leading-icon.stroke != "" || root.item.leading-icon.fill != "";
+    private property <length> slot: KitMetrics.icon-size(root.theme, root.control-size);
+    private property <length> leading-space: root.reserve-leading && !root.decoration ? root.slot + root.theme.spacing.unit * 2 : 0px;
+    private property <length> shortcut-space: root.item.shortcut != "" && !root.decoration ? shortcut-label.preferred-width + root.theme.spacing.unit * 3 : 0px;
+    private property <color> ink: root.disabled ? root.label-recipe.disabled-foreground : root.item.destructive ? root.theme.danger
+        : root.item.kind == MenuItemKind.group ? root.theme.text-secondary : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
     accessible-role: list-item;
+    accessible-checkable: root.marked;
+    accessible-checked: root.marked && root.item.checked;
+    accessible-description: root.item.shortcut == "" ? root.option-data.description
+        : root.option-data.description == "" ? root.item.shortcut : root.option-data.description + " " + root.item.shortcut;
     min-width: root.control-width == ControlWidth.fill ? 0px : max(root.preferred-height, label.preferred-width + 2 * root.padding-inline);
     preferred-width: self.min-width;
+    if root.marked && root.item.checked: Rectangle {
+        x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        width: root.slot; height: root.slot;
+        if root.item.kind == MenuItemKind.checkbox: KitIcon { theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.check; ink: root.ink; }
+        if root.item.kind == MenuItemKind.radio: Rectangle {
+            width: parent.width / 2; height: self.width;
+            border-radius: self.width / 2;
+            background: root.ink;
+        }
+    }
+    if !root.marked && root.has-icon && !root.decoration: KitIcon {
+        x: 0px; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        theme: root.theme; control-size: root.control-size; glyph: root.item.leading-icon; ink: root.ink;
+    }
+    if root.item.kind == MenuItemKind.separator: Rectangle {
+        x: -root.padding-inline; y: (root.height - 2 * root.padding-block - self.height) / 2;
+        width: root.width; height: root.theme.shape.border-width;
+        background: root.theme.border-subtle;
+    }
     label := Text {
-        x: 0px; y: 0px;
-        width: max(0px,root.width - 2 * root.padding-inline - root.trailing-space);
+        x: root.leading-space; y: 0px;
+        width: max(0px, root.width - 2 * root.padding-inline - root.trailing-space - root.leading-space - root.shortcut-space);
         height: max(0px,root.height - 2 * root.padding-block);
         horizontal-alignment: root.label-alignment;
-        text: root.option-data.label;
-        color: root.disabled ? root.label-recipe.disabled-foreground : root.selected ? root.label-recipe.selected-foreground : root.label-recipe.foreground;
+        text: root.item.kind == MenuItemKind.separator ? "" : root.option-data.label;
+        color: root.ink;
         font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
         vertical-alignment: center;
         overflow: elide;
+    }
+    shortcut-label := Text {
+        x: root.width - 2 * root.padding-inline - root.trailing-space - self.preferred-width;
+        y: 0px; height: max(0px,root.height - 2 * root.padding-block);
+        text: root.decoration ? "" : root.item.shortcut;
+        color: root.disabled ? root.label-recipe.disabled-foreground : root.theme.text-secondary;
+        font-family: root.theme.typography.family; font-size: root.text-size; font-weight: root.text-weight;
+        vertical-alignment: center;
     }
 }
 
@@ -61,6 +112,12 @@ export component KitMenu inherits Rectangle {
     in property <length> row-height: KitMetrics.row-height(root.theme, root.control-size);
     in property <bool> wrap: true;
     in property <int> typeahead-timeout-ms: 700;
+    // Presentation of the rows, one `MenuItem` per option in the same order.
+    in property <[MenuItem]> items;
+    // Reserve a leading slot for icons and check marks so labels line up.
+    in property <bool> reserve-leading: root.items.length > 0;
+    // The tallest natural height before the rows scroll.
+    in property <length> max-natural-height: 320px;
     out property <int> page-rows: list.visible-height > 0px && root.row-height > 0px ? max(1, Math.floor(list.visible-height / root.row-height)) : 0;
     callback navigate(NavigationStep);
     callback activate(int, int);
@@ -91,7 +148,7 @@ export component KitMenu inherits Rectangle {
     accessible-label: root.accessible-name;
     accessible-item-count: root.rows.length;
     accessible-orientation: Orientation.vertical;
-    preferred-height: min(320px, root.rows.length * root.row-height);
+    preferred-height: min(root.max-natural-height, root.rows.length * root.row-height);
     min-width: 100px;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
@@ -111,9 +168,11 @@ export component KitMenu inherits Rectangle {
             theme: root.theme;
             horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
             for row[index] in root.rows: KitNavigationAction {
-                disabled: !root.interactive || row.disabled;
+                private property <MenuItem> entry: root.items[index];
+                disabled: !root.interactive || row.disabled || self.entry.kind == MenuItemKind.separator || self.entry.kind == MenuItemKind.group;
                 theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                 option-data: row;
+                item: self.entry; reserve-leading: root.reserve-leading;
                 accessible-item-index: index; accessible-item-count: root.rows.length;
                 active: root.state.active.present && root.state.active.token == row.token;
                 selected: root.state.selected.present && root.state.selected.token == row.token;
@@ -1216,6 +1275,7 @@ export component KitDropdownMenu inherits Rectangle {
     in property <string> accessible-name;
     in property <bool> disabled;
     in property <[OptionRow]> options;
+    in property <[MenuItem]> items;
     in property <length> popup-width: max(root.width, KitMetrics.select-popup-min-width(root.theme));
     out property <bool> open: popup.is-open;
     out property <bool> has-focus: trigger.has-focus;
@@ -1284,7 +1344,7 @@ export component KitDropdownMenu inherits Rectangle {
             menu := KitMenu {
                 theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                 accessible-name: root.accessible-name != "" ? root.accessible-name : root.text;
-                options: root.options;
+                options: root.options; items: root.items;
                 // A popup takes native focus after its init code: focus the rows on both paths.
                 private property <bool> presented: root.open;
                 init => { if (root.open) { self.take-focus(); } }
