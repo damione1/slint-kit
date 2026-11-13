@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPagination, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+import { KitPagination, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
 
 export component PaginationFixture inherits Window {
     width: 400px; height: 120px;
@@ -69,13 +69,15 @@ export component CollapseKeysFixture inherits Window {
 export component DrawerFocusFixture inherits Window {
     width: 600px; height: 400px;
     in property <DialogState> state;
+    in property <DrawerSide> side: DrawerSide.end;
+    in property <KitTheme> theme: KitThemeContext.current;
     out property <bool> close-focused;
     callback dismissed(CloseReason);
     callback restore-requested();
     callback focus-next-requested(bool);
     KitDrawer {
-        width: root.width; height: root.height; panel-width: 300px;
-        title: "Details"; state: root.state;
+        width: root.width; height: root.height; panel-width: 300px; panel-height: 150px;
+        title: "Details"; state: root.state; side: root.side; theme: root.theme;
         dismiss(reason) => { root.dismissed(reason); }
         restore-focus() => { root.restore-requested(); }
         focus-next(backwards) => { root.focus-next-requested(backwards); }

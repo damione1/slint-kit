@@ -564,6 +564,7 @@ mod tests {
             CloseReason::OutsidePress => kit_core::DismissReason::OutsidePress,
             CloseReason::SystemBack => kit_core::DismissReason::SystemBack,
             CloseReason::TriggerToggle => kit_core::DismissReason::TriggerToggle,
+            CloseReason::CloseButton => kit_core::DismissReason::CloseButton,
             CloseReason::Programmatic => kit_core::DismissReason::Programmatic,
             CloseReason::HostClosed => kit_core::DismissReason::HostClosed,
         }

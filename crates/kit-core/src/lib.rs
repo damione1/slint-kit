@@ -107,7 +107,7 @@ contract_enums! {
     SelectionRetention => "SelectionRetention" { BoundToOptions => "bound-to-options", Retain => "retain" }
     DismissReason => "CloseReason" {
         Escape => "escape", OutsidePress => "outside-press", SystemBack => "system-back",
-        TriggerToggle => "trigger-toggle", Programmatic => "programmatic", HostClosed => "host-closed",
+        TriggerToggle => "trigger-toggle", CloseButton => "close-button", Programmatic => "programmatic", HostClosed => "host-closed",
     }
 }
 
