@@ -3,7 +3,8 @@ import { InterFont } from "@kit/fonts/inter.slint";
 import { ProductWorkspace, WorkspacePage, EditorStatus, WorkspaceDraft, WorkspaceProject, WorkspaceSamples, ProjectFilter } from "../../docs/src/assets/examples/workspace.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView, ScrollView, Palette } from "std-widgets.slint";
-import { KitTheme, KitThemes, KitMetrics, TypographyRole, ControlWidth } from "@kit/theme.slint";
+import { KitTheme, KitThemes, ThemeMode, KitMetrics, TypographyRole, ControlWidth } from "@kit/theme.slint";
+export { ThemeMode }
 import { OptionRow, SelectionRef, SelectState, DialogState, NavigationStep, CloseReason, FocusRequest } from "@kit/contracts.slint";
 import { KitButton, KitPressable, ButtonIntent, ButtonRecipe, ControlSize } from "@kit/button.slint";
 import { KitSelect, KitSelectTrigger, KitSelectSurface, KitOption } from "@kit/select.slint";
@@ -47,7 +48,6 @@ component RegisteredButton inherits KitFocusTarget {
 
 export { PreviewExamples, PreviewTarget } from "example-section.slint";
 export enum TextSample { standard, long-french, right-to-left }
-export enum ThemeMode { light, dark }
 export enum ShowcaseSkin { mineral, expressive }
 export enum AccentStyle { indigo, teal }
 // The shipped theme family the catalogue starts from.
@@ -121,8 +121,14 @@ export component Showcase inherits Window {
     in-out property <ShowcasePage> page: ShowcasePage.gallery;
     in-out property <bool> show-lab: false;
     in-out property <ThemeMode> theme-mode: ThemeMode.light;
-    init => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
-    changed theme-mode => { Palette.color-scheme = root.theme-mode == ThemeMode.dark ? ColorScheme.dark : ColorScheme.light; }
+    // The operating system's scheme, read once before this window writes
+    // Palette.color-scheme (a write replaces the system value).
+    private property <ColorScheme> os-scheme;
+    private property <bool> dark-active: KitThemes.is-dark(theme-mode, os-scheme);
+    private property <string> theme-mode-label: theme-mode == ThemeMode.dark ? "Dark" : theme-mode == ThemeMode.system ? "System" : "Light";
+    pure function next-theme-mode(mode: ThemeMode) -> ThemeMode { return mode == ThemeMode.light ? ThemeMode.dark : mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light; }
+    init => { root.os-scheme = Palette.color-scheme; Palette.color-scheme = root.dark-active ? ColorScheme.dark : ColorScheme.light; }
+    changed dark-active => { Palette.color-scheme = root.dark-active ? ColorScheme.dark : ColorScheme.light; }
     in-out property <AccentStyle> accent-style: AccentStyle.indigo;
     in-out property <ControlSize> density: ControlSize.medium;
     in-out property <TextSample> text-sample: TextSample.standard;
@@ -144,9 +150,9 @@ export component Showcase inherits Window {
     private property <bool> product-modal;
     private property <bool> modal-open: root.product-modal || root.dialog-state.open || NavigationExamples.drawer-state.open;
     in-out property <bool> reduced-motion: false;
-    private property <KitTheme> base-theme: theme-mode == ThemeMode.dark ? KitThemes.dark : KitThemes.light;
-    private property <color> teal-accent: theme-mode == ThemeMode.dark ? #65d8c4 : #087c70;
-    private property <color> teal-hover: theme-mode == ThemeMode.dark ? #183c3a : #e6f5f1;
+    private property <KitTheme> base-theme: KitThemes.resolve(theme-mode, os-scheme);
+    private property <color> teal-accent: dark-active ? #65d8c4 : #087c70;
+    private property <color> teal-hover: dark-active ? #183c3a : #e6f5f1;
     private property <bool> teal: accent-style == AccentStyle.teal;
     out property <KitTheme> theme: {
         canvas: base-theme.canvas, surface: base-theme.surface, surface-raised: base-theme.surface-raised,
@@ -161,12 +167,12 @@ export component Showcase inherits Window {
         warning: base-theme.warning, on-warning: base-theme.on-warning, warning-hover: base-theme.warning-hover, warning-pressed: base-theme.warning-pressed, warning-subtle: base-theme.warning-subtle,
         information: teal ? teal-accent : base-theme.information, on-information: base-theme.on-information, information-hover: teal ? teal-accent.darker(12%) : base-theme.information-hover, information-pressed: teal ? teal-accent.darker(24%) : base-theme.information-pressed, information-subtle: teal ? teal-hover : base-theme.information-subtle,
         border-subtle: base-theme.border-subtle, border-strong: base-theme.border-strong,
-        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (theme-mode == ThemeMode.dark ? #20514b : #cbe9e2) : base-theme.pressed,
+        hover: teal ? teal-hover : base-theme.hover, pressed: teal ? (dark-active ? #20514b : #cbe9e2) : base-theme.pressed,
         disabled-fill: base-theme.disabled-fill, disabled-text: base-theme.disabled-text, scrim: base-theme.scrim,
         shape: base-theme.shape, elevation: base-theme.elevation,
         focus: {
             style: base-theme.focus.style, width: base-theme.focus.width, offset: base-theme.focus.offset,
-            color: teal ? (theme-mode == ThemeMode.dark ? #8aead8 : #05665c) : base-theme.focus.color,
+            color: teal ? (dark-active ? #8aead8 : #05665c) : base-theme.focus.color,
             invalid-color: base-theme.focus.invalid-color,
         },
         icons: base-theme.icons, geometry: base-theme.geometry, typography: base-theme.typography, spacing: base-theme.spacing, motion: base-theme.motion,
@@ -247,12 +253,12 @@ export component Showcase inherits Window {
                 // second toolbar row; it keeps an explicit accessible label.
                 width: 144px;
                 height: 40px;
-                source: root.theme-mode == ThemeMode.dark ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
+                source: root.dark-active ? @image-url("../assets/slint-kit-horizontal-dark.svg") : @image-url("../assets/slint-kit-horizontal.svg");
                 image-fit: contain;
                 accessible-label: "Slint Kit";
             }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.product-workspace ? "Component gallery" : "Product examples"; activated => { root.product-workspace = !root.product-workspace; } }
-            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.theme-mode == ThemeMode.dark ? "Dark" : "Light"; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+            KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.theme-mode-label; activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.accent-style == AccentStyle.teal ? "Teal" : "Indigo"; activated => { root.accent-style = root.accent-style == AccentStyle.teal ? AccentStyle.indigo : AccentStyle.teal; } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.enlarged ? "Text 200%" : "Text 100%"; activated => { root.enlarged = !root.enlarged; } }
             KitButton { disabled: root.modal-open; theme: root.theme; control-size: root.density; text: root.density == ControlSize.compact ? "Compact" : root.density == ControlSize.medium ? "Standard" : "Comfortable"; activated => { root.density = root.density == ControlSize.compact ? ControlSize.medium : root.density == ControlSize.medium ? ControlSize.comfortable : ControlSize.compact; } }
@@ -518,7 +524,7 @@ export component Showcase inherits Window {
                         if root.dialog-skin == ShowcaseSkin.expressive: Text { text: "Custom dialog presentation"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); }
                         FlexboxLayout {
                             spacing: 12px; alignment: start;
-                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+                            RegisteredButton { theme: root.theme; control-size: root.density; text: "Theme"; intent: ButtonIntent.quiet; eligible: !root.dialog-state.busy; token: 17; generation: root.focus-generations[17]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
                             RegisteredButton { theme: root.theme; control-size: root.density; text: "Cancel"; intent: ButtonIntent.secondary; eligible: !root.dialog-state.busy; token: 13; generation: root.focus-generations[13]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-dismiss(CloseReason.programmatic); } }
                             RegisteredButton { theme: root.theme; control-size: root.density; text: root.dialog-state.busy ? "Creating…" : "Create project"; busy: root.dialog-state.busy; eligible: !root.dialog-state.busy; token: 14; generation: root.focus-generations[14]; request: root.focus-request; focus-observed(token, generation, focused) => { root.focus-changed(token, focused); } activated => { root.dialog-submit(root.project-name); } }
                         }
@@ -554,7 +560,7 @@ export component Showcase inherits Window {
                 spacing: 4px;
                 HorizontalLayout {
                     Text { text: "PEOPLE"; color: root.theme.text-secondary; font-size: KitMetrics.font-size(root.theme, TypographyRole.caption); vertical-alignment: center; }
-                    KitButton { theme: root.theme; text: "Switch theme"; intent: ButtonIntent.quiet; activated => { root.theme-mode = root.theme-mode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark; } }
+                    KitButton { theme: root.theme; text: "Switch theme"; intent: ButtonIntent.quiet; activated => { root.theme-mode = root.next-theme-mode(root.theme-mode); } }
                 }
             custom-list := ListView {
                 for row in root.rows: KitOption {

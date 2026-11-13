@@ -524,6 +524,40 @@ fn components_default_to_the_theme_context_and_keep_local_overrides() {
 }
 
 #[test]
+fn theme_mode_resolves_to_a_shipped_theme_from_the_system_scheme() {
+    let window = fixture();
+    let light = window.get_light();
+    let dark = window.get_dark();
+    // (mode, system is dark, system reports nothing) -> shows the dark theme
+    let cases = [
+        (ThemeMode::Light, false, false, false),
+        (ThemeMode::Light, true, false, false),
+        (ThemeMode::Light, true, true, false),
+        (ThemeMode::Dark, false, false, true),
+        (ThemeMode::Dark, true, false, true),
+        (ThemeMode::Dark, false, true, true),
+        (ThemeMode::System, false, false, false),
+        (ThemeMode::System, true, false, true),
+        // A platform without a scheme falls back to light, never to dark.
+        (ThemeMode::System, false, true, false),
+    ];
+    for (mode, system_dark, unknown, shows_dark) in cases {
+        let label = format!("{mode:?} system_dark={system_dark} unknown={unknown}");
+        assert_eq!(
+            window.invoke_mode_is_dark(mode, system_dark, unknown),
+            shows_dark,
+            "{label}"
+        );
+        let expected = if shows_dark { &dark } else { &light };
+        assert_eq!(
+            &window.invoke_resolve_theme(mode, system_dark, unknown),
+            expected,
+            "{label}"
+        );
+    }
+}
+
+#[test]
 fn metrics_derive_from_tokens_and_follow_text_scale() {
     let window = fixture();
     for mut theme in [window.get_light(), window.get_dark()] {

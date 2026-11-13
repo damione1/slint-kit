@@ -5,6 +5,9 @@ import { IconGlyph, IconStroke } from "icons/glyph.slint";
 import { LucideIcons } from "icons/lucide/all.slint";
 export struct KitIconSet { close: IconGlyph, check: IconGlyph, minus: IconGlyph, plus: IconGlyph, chevron-down: IconGlyph, chevron-up: IconGlyph, chevron-left: IconGlyph, chevron-right: IconGlyph, eye: IconGlyph, eye-hidden: IconGlyph, search: IconGlyph, information: IconGlyph, warning: IconGlyph, bell: IconGlyph, article: IconGlyph, delete: IconGlyph, avatar: IconGlyph }
 export enum ControlSize { compact, medium, comfortable }
+// The user's appearance choice. `system` follows the operating system's color
+// scheme, which the host reads and passes to `KitThemes.resolve`.
+export enum ThemeMode { light, dark, system }
 export enum AvatarSize { compact, medium, large }
 export enum ChoiceFlow { left-to-right, right-to-left }
 export enum ChoiceDirection { horizontal, vertical }
@@ -188,6 +191,17 @@ export global KitMetrics {
 export global KitThemes {
     public pure function color-popup-recipe(theme: KitTheme) -> ColorPopupRecipe {
         return { width: 340px * theme.text-scale, inset: theme.spacing.unit * 4, gap: theme.spacing.unit, preview-height: theme.spacing.unit * 12 };
+    }
+
+    // Whether `mode` shows the dark theme. `system` is dark only when the
+    // system scheme is `ColorScheme.dark`; an `unknown` scheme (a platform that
+    // reports none) shows the light theme.
+    public pure function is-dark(mode: ThemeMode, system: ColorScheme) -> bool {
+        return mode == ThemeMode.dark || (mode == ThemeMode.system && system == ColorScheme.dark);
+    }
+    // The shipped theme for the user's choice and the system color scheme.
+    public pure function resolve(mode: ThemeMode, system: ColorScheme) -> KitTheme {
+        return KitThemes.is-dark(mode, system) ? KitThemes.dark : KitThemes.light;
     }
 
     out property <KitTheme> light: {
