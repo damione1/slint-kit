@@ -4,6 +4,7 @@ import { ValidationPresentation } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, ColorPopupRecipe } from "theme.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
+import { KitModalContext } from "modal.slint";
 import { KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitValidityState } from "validation.slint";
 import { KitTextField } from "input.slint";
@@ -20,6 +21,9 @@ export { ColorChannel, SrgbColorView, ColorValue } from "field-service.slint";
 import { Ownership } from "shared-contracts.slint";
 
 component ColorDraftChannel inherits HorizontalLayout {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> label;
@@ -30,7 +34,7 @@ component ColorDraftChannel inherits HorizontalLayout {
     callback cancelled();
     spacing: root.theme.spacing.unit * 3;
     Text { text: root.label; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); min-width: 48px * root.theme.text-scale; horizontal-stretch: 0; vertical-alignment: center; }
-    KitSlider {
+    KitSlider { modal-layer: root.modal-layer;
         // A channel shares its row with a label and a byte value. Keep its
         // thumb usable while allowing the caller's narrow viewport to fit.
         min-width: self.preferred-height;
@@ -48,6 +52,9 @@ component ColorDraftChannel inherits HorizontalLayout {
 // All channels are sRGB byte projections, never implicit HSL/linear RGB.
 // The native hex draft may be incomplete; only Rust's SrgbColor parser commits.
 export component KitColorField inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <bool> required: true;
     // Messages are overridable so a host can localise the colour field.
     in property <string> required-message: KitStrings.required-message;
@@ -155,7 +162,7 @@ export component KitColorField inherits Rectangle {
         if root.label != "": KitFieldLabel {theme:root.theme;text:root.label;access:root.access;focus-requested=>{editor.take-focus();}}
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
-            editor := KitTextField {
+            editor := KitTextField { modal-layer: root.modal-layer;
                 required: root.required; custom-validity <=> root.custom-validity;
                 // This is the native draft's commit baseline, not host color
                 // ownership. A proposal must not repeat on the following blur.
@@ -174,7 +181,7 @@ export component KitColorField inherits Rectangle {
                 commit-requested(text) => { root.commit-requested(text); }
                 cancelled => { root.cancelled(); }
             }
-            swatch-button := KitPressable {
+            swatch-button := KitPressable { modal-layer: root.modal-layer;
                 theme: root.theme; control-size: root.control-size;
                 preferred-width: self.preferred-height;
                 accessible-name: root.open-template.replace-all("{label}", root.label);
@@ -203,6 +210,7 @@ export component KitColorField inherits Rectangle {
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
             popup-keys := FocusScope {
+                enabled: !KitModalContext.inert(root.modal-layer);
                 forward-focus: cancel-button;
                 private property <bool> shown: root.picker-open;
                 init => { self.focus(); }
@@ -229,7 +237,7 @@ export component KitColorField inherits Rectangle {
                     }
                     FlexboxLayout {
                         spacing: root.theme.spacing.unit * 2; alignment: start; flex-wrap: wrap;
-                        for choice[index] in root.palette: KitPressable {
+                        for choice[index] in root.palette: KitPressable { modal-layer: root.modal-layer;
                             theme: root.theme; control-size: ControlSize.compact;
                             disabled: root.access != FieldAccess.editable;
                             private property <length> side: KitMetrics.density(root.theme, ControlSize.compact).height;
@@ -247,14 +255,14 @@ export component KitColorField inherits Rectangle {
                             Rectangle { x:root.theme.spacing.unit;y:root.theme.spacing.unit;width:parent.width - 2 * self.x;height:parent.height - 2 * self.y; background: choice; border-radius: max(0px,parent.border-radius - root.theme.spacing.unit); }
                         }
                     }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.red-label; draft-template: root.draft-template; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: value, green: root.draft.green, blue: root.draft.blue, alpha: root.draft.alpha}); } }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.green-label; draft-template: root.draft-template; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: value, blue: root.draft.blue, alpha: root.draft.alpha}); } }
-                    ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.blue-label; draft-template: root.draft-template; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: value, alpha: root.draft.alpha}); } }
-                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { theme: root.theme; control-size: root.control-size; access: root.access; label: root.alpha-label; draft-template: root.draft-template; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: root.draft.blue, alpha: value}); } }
+                    ColorDraftChannel { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; label: root.red-label; draft-template: root.draft-template; value: root.draft.red; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: value, green: root.draft.green, blue: root.draft.blue, alpha: root.draft.alpha}); } }
+                    ColorDraftChannel { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; label: root.green-label; draft-template: root.draft-template; value: root.draft.green; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: value, blue: root.draft.blue, alpha: root.draft.alpha}); } }
+                    ColorDraftChannel { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; label: root.blue-label; draft-template: root.draft-template; value: root.draft.blue; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: value, alpha: root.draft.alpha}); } }
+                    if root.alpha-mode == ColorAlphaMode.editable: ColorDraftChannel { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; label: root.alpha-label; draft-template: root.draft-template; value: root.draft.alpha; cancelled => { root.cancel-picker(); } requested(value) => { root.edit-draft({red: root.draft.red, green: root.draft.green, blue: root.draft.blue, alpha: value}); } }
                     FlexboxLayout {
                         alignment: end; spacing: root.theme.spacing.unit * 2; flex-wrap: wrap;
-                        cancel-button := KitButton { key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } theme: root.theme; control-size: root.control-size; text: root.cancel-label; activated => { root.cancel-picker(); } }
-                        KitButton { theme: root.theme; control-size: root.control-size; text: root.apply-label; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } intent: ButtonIntent.primary; activated => { root.previewing = false; if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
+                        cancel-button := KitButton { modal-layer: root.modal-layer; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } theme: root.theme; control-size: root.control-size; text: root.cancel-label; activated => { root.cancel-picker(); } }
+                        KitButton { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; text: root.apply-label; disabled: root.access != FieldAccess.editable; key-event(event) => { if (event.text == Key.Escape) { root.cancel-picker(); return KitKeyResult.accept; } return KitKeyResult.reject; } intent: ButtonIntent.primary; activated => { root.previewing = false; if (root.access == FieldAccess.editable) { root.accept-color(root.draft); root.color-requested(root.draft); } popup.close(); swatch-button.take-focus(); } }
                     }
                     }
                 }
@@ -292,6 +300,9 @@ export component KitColorField inherits Rectangle {
 }
 
 component ColorChannelEditor inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <KitTheme> theme: KitThemeContext.current;
     in property <ControlSize> control-size: ControlSize.medium;
     in property <FieldAccess> access: FieldAccess.editable;
@@ -321,13 +332,13 @@ component ColorChannelEditor inherits Rectangle {
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit;
-        editor := KitTextField { theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: root.placeholder;
+        editor := KitTextField { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.text; label: root.label; error: root.error; input-type: InputType.decimal; min: "0"; max: "255"; step: "1"; input-method-hints: { capitalization: CapitalizationMode.none, auto-correct: false, auto-complete: false }; validation: root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine; placeholder: root.placeholder;
             focus-observed(focused) => { if (!focused) { root.sync-text(); } }
             edited(text) => { root.edited(root.channel,text); }
             committed(value) => { root.value-committed(root.channel,value.value.text); }
             commit-requested(text) => { root.commit-requested(root.channel,text); }
         }
-        KitSlider { theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value: root.slider-value;
+        KitSlider { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; position: root.position; label: root.label; value: root.slider-value;
             ownership: Ownership.controlled; spec: {minimum: "0", maximum: "255", step: "1"};
             position-requested(position) => { root.position-requested(root.channel,position); }
             navigate(step) => { root.navigate(root.channel,step); }
@@ -339,6 +350,9 @@ component ColorChannelEditor inherits Rectangle {
 }
 
 export component KitColorPicker inherits Rectangle {
+    // The modal layer this control belongs to; 0 is the window. While another layer
+    // is open and topmost the control is inert, like every kit control.
+    in property <int> modal-layer;
     in property <bool> required: true;
     in property <string> required-message: KitStrings.required-message;
     in property <string> pattern-message: root.alpha-mode == ColorAlphaMode.editable ? KitStrings.color-pattern-alpha-message : KitStrings.color-pattern-message;
@@ -413,28 +427,28 @@ export component KitColorPicker inherits Rectangle {
             custom-validity <=> root.custom-validity; invalid => { root.invalid(); }
             chosen(value) => { root.publish-value({present: true, color: value}); }
             cleared => { root.publish-value({}); } theme: root.theme; control-size: root.control-size; access: root.access; alpha-mode: root.alpha-mode; accepted-value: root.accepted-value; swatch: root.swatch; label: root.label; error: root.hex-error; text <=> root.hex-text; edited(text) => { root.hex-edited(text); } commit-requested(text) => { root.hex-commit-requested(text); } color-requested(color) => { root.color-requested(color); } draft-changed(color) => { root.draft-changed(color); } draft-cancelled => { root.draft-cancelled(); } }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: root.red-label; placeholder: root.channel-placeholder; error: root.red-error; text <=> root.red-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.red : ""; slider-value: root.editable-color.red; position: root.editable-color.red / 255;
+        ColorChannelEditor { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.red; label: root.red-label; placeholder: root.channel-placeholder; error: root.red-error; text <=> root.red-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.red : ""; slider-value: root.editable-color.red; position: root.editable-color.red / 255;
             edited(channel,text) => { root.channel-edited(channel,text); }
             value-committed(channel,text) => { root.change-channel(channel,text); }
             commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-value; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.publish-value(root.snapshot); root.cancelled(channel); }
         }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: root.green-label; placeholder: root.channel-placeholder; error: root.green-error; text <=> root.green-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.green : ""; slider-value: root.editable-color.green; position: root.editable-color.green / 255;
+        ColorChannelEditor { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.green; label: root.green-label; placeholder: root.channel-placeholder; error: root.green-error; text <=> root.green-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.green : ""; slider-value: root.editable-color.green; position: root.editable-color.green / 255;
             edited(channel,text) => { root.channel-edited(channel,text); }
             value-committed(channel,text) => { root.change-channel(channel,text); }
             commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-value; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.publish-value(root.snapshot); root.cancelled(channel); }
         }
-        ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: root.blue-label; placeholder: root.channel-placeholder; error: root.blue-error; text <=> root.blue-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.blue : ""; slider-value: root.editable-color.blue; position: root.editable-color.blue / 255;
+        ColorChannelEditor { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.blue; label: root.blue-label; placeholder: root.channel-placeholder; error: root.blue-error; text <=> root.blue-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.blue : ""; slider-value: root.editable-color.blue; position: root.editable-color.blue / 255;
             edited(channel,text) => { root.channel-edited(channel,text); }
             value-committed(channel,text) => { root.change-channel(channel,text); }
             commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }
             position-requested(channel,value) => { root.move-channel(channel,value); root.channel-position-requested(channel,value); } navigate(channel,step) => { root.navigate-channel(channel,step); root.channel-navigate(channel,step); }
             gesture-started(channel) => { root.snapshot = root.accepted-value; root.gesture-started(channel); } committed(channel) => { root.committed(channel); } cancelled(channel) => { root.publish-value(root.snapshot); root.cancelled(channel); }
         }
-        if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: root.alpha-label; placeholder: root.channel-placeholder; error: root.alpha-error; text <=> root.alpha-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.alpha : ""; slider-value: root.editable-color.alpha; position: root.editable-color.alpha / 255;
+        if root.alpha-mode == ColorAlphaMode.editable: ColorChannelEditor { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; access: root.access; channel: ColorChannel.alpha; label: root.alpha-label; placeholder: root.channel-placeholder; error: root.alpha-error; text <=> root.alpha-text; accepted-text: root.accepted-value.present ? "" + root.accepted-value.color.alpha : ""; slider-value: root.editable-color.alpha; position: root.editable-color.alpha / 255;
             edited(channel,text) => { root.channel-edited(channel,text); }
             value-committed(channel,text) => { root.change-channel(channel,text); }
             commit-requested(channel,text) => { root.channel-commit-requested(channel,text); }

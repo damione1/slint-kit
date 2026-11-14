@@ -178,3 +178,95 @@ fn navigation_composites_become_inert_behind_a_modal_and_recover() {
         assert!(enabled(&window, label), "{label} must recover");
     }
 }
+
+mod composites {
+    use super::state;
+    use crate::ModalContextCompositesFixture;
+    use i_slint_backend_testing::ElementQuery;
+    use slint::ComponentHandle;
+
+    /// Controls of composites that live in the window, by accessible label.
+    const BACKGROUND: &[&str] = &[
+        "BG cal back",
+        "BG cal forward",
+        "BG calendar",
+        "BG date",
+        "BG date open",
+        "BG range cancel",
+        "BG time",
+        "BG down BG hours",
+        "BG up BG hours",
+        "BG dt — date",
+        "BG dt — time",
+        "BG color",
+        "BG open BG color",
+        "BG red",
+        "BG wheel",
+        "BG browse BG files",
+        "BG folder browse",
+        "BG drop",
+        "BG keypad",
+        "BG delete",
+        "BG scroll",
+        "BG form",
+        "BG notice open",
+        "BG notice mark",
+        "BG notice dismiss",
+        "BG column",
+        "BG row",
+        "BG article",
+        "1: BG line",
+        "BG save line",
+        "BG copy line",
+        "BG line editor",
+    ];
+
+    fn fixture() -> ModalContextCompositesFixture {
+        i_slint_backend_testing::init_no_event_loop();
+        let window = ModalContextCompositesFixture::new().unwrap();
+        slint_kit::install(&window);
+        window.show().unwrap();
+        slint::platform::update_timers_and_animations();
+        window
+    }
+    /// Every element carrying the label that reports an enabled state; a plain
+    /// text label next to a field reports none and is skipped.
+    fn enabled(window: &ModalContextCompositesFixture, label: &str) -> bool {
+        let requested = label.to_owned();
+        let states: Vec<bool> = ElementQuery::from_root(window)
+            .match_predicate(move |e| e.accessible_label().as_deref() == Some(requested.as_str()))
+            .find_all()
+            .iter()
+            .filter_map(|e| e.accessible_enabled())
+            .collect();
+        assert!(!states.is_empty(), "missing element {label}");
+        states.into_iter().all(|enabled| enabled)
+    }
+
+    #[test]
+    fn remaining_composites_become_inert_behind_a_modal_and_recover() {
+        let window = fixture();
+        for label in BACKGROUND {
+            assert!(enabled(&window, label), "{label} must start enabled");
+        }
+        window.set_lower(state(true, true));
+        slint::platform::update_timers_and_animations();
+        assert!(window.get_modal_open());
+        for label in BACKGROUND {
+            assert!(!enabled(&window, label), "{label} must be inert");
+        }
+        for label in [
+            "Lower action",
+            "Lower keypad",
+            "Lower calendar",
+            "Lower column",
+        ] {
+            assert!(enabled(&window, label), "{label} in the modal stays active");
+        }
+        window.set_lower(state(false, false));
+        slint::platform::update_timers_and_animations();
+        for label in BACKGROUND {
+            assert!(enabled(&window, label), "{label} must recover");
+        }
+    }
+}
