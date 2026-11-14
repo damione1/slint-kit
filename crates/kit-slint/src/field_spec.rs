@@ -14,6 +14,7 @@ fn codec_input(rules: &HtmlConstraints, text: &str) -> String {
             rules.kind,
             HtmlInputKind::Time | HtmlInputKind::DateTimeLocal
         ) && rules.twelve_hour)
+        || (rules.kind == HtmlInputKind::Date && rules.date_entry.is_some())
     {
         text.to_owned()
     } else {
@@ -312,6 +313,19 @@ impl<U: Clone + 'static> FieldSpec<Quantity<U>> {
 impl FieldSpec<CivilDate> {
     pub fn date() -> Self {
         Self::codec(CivilDate::parse_iso, |value| value.iso_string())
+    }
+}
+impl FieldSpec<CivilDate> {
+    /// Edit the date with one explicit pattern. `None` names keep the English
+    /// month and weekday names. Fields using this codec set the same pattern as
+    /// their `entry-format`, so HTML constraints still compare ISO values.
+    pub fn date_pattern(pattern: DatePattern, names: Option<DateNames>) -> Self {
+        let entry = DateEntry::new(pattern, names);
+        let printer = entry.clone();
+        Self::codec(
+            move |text| entry.parse(text),
+            move |value| printer.format(*value),
+        )
     }
 }
 impl FieldSpec<LocalTime> {

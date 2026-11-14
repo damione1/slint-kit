@@ -191,6 +191,34 @@ impl DateNames {
         .expect("distinct French date names")
     }
 }
+/// How a date field edits its text: one explicit [`DatePattern`] with optional
+/// host names (`None` keeps the English names). The accepted value stays a
+/// [`CivilDate`], and HTML constraints keep comparing its ISO form.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DateEntry {
+    pattern: DatePattern,
+    names: Option<DateNames>,
+}
+impl DateEntry {
+    pub fn new(pattern: DatePattern, names: Option<DateNames>) -> Self {
+        Self { pattern, names }
+    }
+    pub fn pattern(&self) -> &DatePattern {
+        &self.pattern
+    }
+    pub fn parse(&self, text: &str) -> DraftValue<CivilDate> {
+        match &self.names {
+            Some(names) => self.pattern.parse_with_names(text, names),
+            None => self.pattern.parse(text),
+        }
+    }
+    pub fn format(&self, date: CivilDate) -> String {
+        match &self.names {
+            Some(names) => self.pattern.format_with_names(date, names),
+            None => self.pattern.format(date),
+        }
+    }
+}
 impl DatePattern {
     pub fn format_with_names(&self, date: CivilDate, names: &DateNames) -> String {
         format_with_names(&self.0, date, names)
@@ -483,5 +511,23 @@ mod tests {
             week.parse("2021-W53-1"),
             DraftValue::Invalid(ParseIssue::InvalidDate)
         );
+    }
+    #[test]
+    fn entry_parses_and_prints_with_one_pattern_and_optional_names() {
+        let date = CivilDate::new(2026, 11, 5).unwrap();
+        let english = DateEntry::new(DatePattern::new("%d %B %Y").unwrap(), None);
+        assert_eq!(english.format(date), "05 November 2026");
+        assert_eq!(english.parse("05 november 2026"), DraftValue::Parsed(date));
+        let french = DateEntry::new(
+            DatePattern::new("%-d %B %Y").unwrap(),
+            Some(DateNames::french()),
+        );
+        assert_eq!(french.format(date), "5 novembre 2026");
+        assert_eq!(french.parse("5 novembre 2026"), DraftValue::Parsed(date));
+        assert_eq!(
+            french.parse("5 november 2026"),
+            DraftValue::Invalid(ParseIssue::InvalidDate)
+        );
+        assert_eq!(french.parse("2026-11-05"), french.parse("x"));
     }
 }
