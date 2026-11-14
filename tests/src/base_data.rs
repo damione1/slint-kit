@@ -1840,6 +1840,51 @@ fn content_link_is_a_separate_action_from_the_row() {
 }
 
 #[test]
+fn shift_enter_activates_the_active_row_link_and_plain_enter_opens_the_row() {
+    let window = fixture();
+    let mut articles = items(3);
+    articles[1].link_label = "".into();
+    articles[2].disabled = true;
+    window.set_items(ModelRc::from(Rc::new(VecModel::from(articles))));
+    window.set_content_generation(7);
+    let links = Rc::new(RefCell::new(Vec::new()));
+    let gestures = Rc::new(RefCell::new(Vec::new()));
+    let observed = links.clone();
+    window
+        .on_content_link(move |token, generation| observed.borrow_mut().push((token, generation)));
+    let observed = gestures.clone();
+    window.on_content_gesture(move |token, generation, gesture| {
+        observed.borrow_mut().push((token, generation, gesture))
+    });
+    window.invoke_focus_content();
+    let shift_enter = |window: &BaseDataFixture| {
+        down(window, Key::Shift);
+        key(window, Key::Return);
+        up(window, Key::Shift);
+    };
+    window.set_content_active(0);
+    shift_enter(&window);
+    assert_eq!(*links.borrow(), vec![(1, 7)]);
+    assert!(
+        gestures.borrow().is_empty(),
+        "the link does not open the row"
+    );
+    key(&window, Key::Return);
+    assert_eq!(*links.borrow(), vec![(1, 7)]);
+    assert_eq!(*gestures.borrow(), vec![(1, 7, RowGesture::Open)]);
+    window.set_content_active(1);
+    shift_enter(&window);
+    assert_eq!(
+        links.borrow().len(),
+        1,
+        "a row without a link has no link key"
+    );
+    window.set_content_active(2);
+    shift_enter(&window);
+    assert_eq!(links.borrow().len(), 1, "a disabled row reports nothing");
+}
+
+#[test]
 fn a_non_interactive_content_list_ignores_rows_links_and_keys() {
     let window = fixture();
     window.set_items(ModelRc::from(Rc::new(VecModel::from(items(2)))));
