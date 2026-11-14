@@ -815,6 +815,22 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
             }
         }
     }
+    /// A `KitDataTable.context-requested` or `KitContentList.context-requested`
+    /// handler. It resolves the row key (a stale generation or a removed row
+    /// reports nothing) and hands it to the application with the anchor point in
+    /// the collection's logical pixels. It changes no selection: call
+    /// `gesture` or `select` first when the row should join it.
+    pub fn context_requests(
+        &self,
+        handler: impl Fn(K, f32, f32) + 'static,
+    ) -> impl Fn(i32, i32, f32, f32) + 'static {
+        let model = self.clone();
+        move |token, generation, x, y| {
+            if let Some(key) = model.accept(token, generation) {
+                handler(key, x, y);
+            }
+        }
+    }
     pub fn activation(&self, handler: impl Fn(K) + 'static) -> impl Fn(i32, i32) + 'static {
         let model = self.clone();
         move |token, generation| {
