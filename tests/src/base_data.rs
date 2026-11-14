@@ -96,7 +96,7 @@ fn shortcut(window: &BaseDataFixture, letter: &str) {
 }
 // A header cell is the first element carrying the header's accessible name:
 // the sortable button, or the static text wrapper that precedes its label.
-fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
+pub(crate) fn header(window: &BaseDataFixture, label: &str) -> Option<ElementHandle> {
     let requested = label.to_owned();
     ElementQuery::from_root(window)
         .match_predicate(move |element| {
@@ -166,7 +166,7 @@ pub(crate) fn items(count: i32) -> Vec<ContentItem> {
         })
         .collect()
 }
-fn lines(count: i32) -> Vec<TextLine> {
+pub(crate) fn lines(count: i32) -> Vec<TextLine> {
     (0..count)
         .map(|index| TextLine {
             token: index + 1,
