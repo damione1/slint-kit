@@ -83,6 +83,86 @@
       "accessibility": "Localize the accessible action/region name through the documented properties or per-window KitStrings defaults. This names existing controls without changing their actions, focus or stable identity; screen-reader qualification remains backend/device-specific."
     }
   },
+  "KitAlertDialog": {
+    "fr": {
+      "label": "Boîte de confirmation",
+      "seoTitle": "Boîte de confirmation pour Slint",
+      "summary": "Boîte de confirmation avec une question, un bouton Annuler et un bouton de confirmation.",
+      "usage": "Montez-la comme `KitDialog`. Renseignez `title`, `description`, `confirm-text` et `cancel-text`, puis traitez `confirmed()` et `cancelled()`. Traitez aussi `dismiss`, hérité, pour Échap et Retour système. Utilisez `confirm-intent: ButtonIntent.destructive` quand la confirmation supprime quelque chose.",
+      "behavior": "Elle n’a pas de bouton Fermer et ignore les clics sur le voile : l’utilisateur répond explicitement. L’ouverture place le focus sur Annuler, si bien qu’un Retour accidentel ne confirme jamais. Échap et Retour système signalent `dismiss` avec `CloseReason.escape` ou `.system-back` ; le bouton Annuler signale `cancelled()`. Le panneau utilise la taille `small` sauf si vous réglez `size`. Les enfants apparaissent entre la description et les boutons.",
+      "related": [
+        "KitDialog",
+        "KitDialogSurface",
+        "KitDrawer"
+      ],
+      "callbacks": {
+        "confirmed": "Le bouton de confirmation a été activé.",
+        "cancelled": "Le bouton Annuler a été activé."
+      },
+      "accessibility": "Le panneau est un groupe nommé par `title` et décrit par `description`. Slint 1.18 n’a pas de rôle de boîte d’alerte : les technologies d’assistance ne l’annoncent pas comme une alerte. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "confirm-text": {
+          "effect": "Libellé du bouton de confirmation.",
+          "default": "`\"Confirm\"`.",
+          "example": "KitAlertDialog {\n    confirm-text: \"Supprimer le projet\";\n}"
+        },
+        "cancel-text": {
+          "effect": "Libellé du bouton Annuler.",
+          "default": "`\"Cancel\"`.",
+          "example": "KitAlertDialog {\n    cancel-text: \"Conserver le projet\";\n}"
+        },
+        "confirm-intent": {
+          "effect": "Intention visuelle du bouton de confirmation ; utilisez `destructive` pour une action irréversible.",
+          "default": "`ButtonIntent.primary`.",
+          "example": "KitAlertDialog {\n    confirm-intent: ButtonIntent.destructive;\n}"
+        },
+        "confirm-disabled": {
+          "effect": "Désactive le bouton de confirmation, par exemple tant que l’utilisateur n’a pas pris connaissance d’un avertissement.",
+          "default": "`false`.",
+          "example": "KitAlertDialog {\n    confirm-disabled: true;\n}"
+        }
+      }
+    },
+    "en": {
+      "label": "Alert dialog",
+      "seoTitle": "Alert dialog for Slint",
+      "summary": "Confirmation dialog with a question, a cancel button and a confirm button.",
+      "usage": "Mount it like `KitDialog`. Set `title`, `description`, `confirm-text` and `cancel-text`, and handle `confirmed()` and `cancelled()`. Also handle the inherited `dismiss` for Escape and system Back. Use `confirm-intent: ButtonIntent.destructive` when confirming deletes something.",
+      "behavior": "It has no close button and ignores backdrop presses, so the user answers explicitly. Opening focuses Cancel, so a stray Return never confirms. Escape and system Back report `dismiss` with `CloseReason.escape` or `.system-back`; the Cancel button reports `cancelled()`. The panel uses the `small` size unless you set `size`. Children appear between the description and the buttons.",
+      "related": [
+        "KitDialog",
+        "KitDialogSurface",
+        "KitDrawer"
+      ],
+      "callbacks": {
+        "confirmed": "The confirm button was activated.",
+        "cancelled": "The cancel button was activated."
+      },
+      "accessibility": "The panel is a group named by `title` and described by `description`. Slint 1.18 has no alert dialog role, so assistive technology does not announce it as an alert. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "confirm-text": {
+          "effect": "Label of the confirm button.",
+          "default": "`\"Confirm\"`.",
+          "example": "KitAlertDialog {\n    confirm-text: \"Delete project\";\n}"
+        },
+        "cancel-text": {
+          "effect": "Label of the cancel button.",
+          "default": "`\"Cancel\"`.",
+          "example": "KitAlertDialog {\n    cancel-text: \"Keep project\";\n}"
+        },
+        "confirm-intent": {
+          "effect": "Visual intent of the confirm button; use `destructive` for irreversible actions.",
+          "default": "`ButtonIntent.primary`.",
+          "example": "KitAlertDialog {\n    confirm-intent: ButtonIntent.destructive;\n}"
+        },
+        "confirm-disabled": {
+          "effect": "Disables the confirm button, for example until the user acknowledges a warning.",
+          "default": "`false`.",
+          "example": "KitAlertDialog {\n    confirm-disabled: true;\n}"
+        }
+      }
+    }
+  },
   "KitAppShell": {
     "fr": {
       "summary": "Fond de fenêtre organisant les grandes régions d’une application.",
@@ -4185,6 +4265,126 @@
       }
     }
   },
+  "KitDialog": {
+    "fr": {
+      "label": "Boîte de dialogue",
+      "seoTitle": "Boîte de dialogue pour Slint",
+      "summary": "Boîte de dialogue modale centrée avec titre, description, bouton Fermer, corps défilant et actions de pied.",
+      "usage": "Montez-la à la racine de la fenêtre après le contenu défilant et donnez-lui tout le viewport, comme `KitDrawer`. Renseignez `title`, `description` et `size`, placez le corps en enfants et passez les boutons du pied dans `actions`, chacun avec un `token` stable. Traitez `action-activated(token)` et reliez `dismiss`, `focus-next` et `restore-focus`, hérités, à la pile de modales et au registre de focus. Passez `theme` explicitement aux enfants applicatifs.",
+      "behavior": "Le panneau est centré et sa largeur suit `size` (`small`, `medium`, `large`), dérivée de l’unité d’espacement et de l’échelle de texte du thème, sans jamais dépasser la fenêtre moins une marge. Sa hauteur suit le contenu et s’arrête à la hauteur de la fenêtre moins cette marge ; au-delà, le corps défile sous un en-tête et un pied fixes. Un corps qui déborde entre dans l’ordre de tabulation et défile avec les flèches, Page précédente, Page suivante, Espace, Début et Fin. L’ouverture place le focus sur Fermer, ou sur la première action quand `show-close-button` est faux ; Fermer demande `CloseReason.close-button`. Les actions sont désactivées quand la boîte est occupée ou n’est pas au sommet. Échap, Retour système et le clic sur le voile suivent `KitDialogSurface`.",
+      "related": [
+        "KitAlertDialog",
+        "KitDialogSurface",
+        "KitDialogPanel",
+        "KitDrawer"
+      ],
+      "callbacks": {
+        "action-activated": "Une action du pied a été activée. L’argument est le `token` de son `DialogAction`, jamais sa position.",
+        "restore-focus": "La boîte s’est fermée ; restaurez le focus sur l’ouvreur exact.",
+        "close-focus-observed": "Le bouton Fermer a gagné ou perdu le focus ; transmettez-le au registre de focus."
+      },
+      "accessibility": "Le panneau est un groupe nommé par `title` et décrit par `description` ; le bouton Fermer est nommé par `close-label`. Slint 1.18 n’a ni rôle de dialogue ni état modal : les technologies d’assistance atteignent encore le contenu inerte. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "title": {
+          "effect": "Le titre de la boîte ; il nomme aussi le panneau pour les technologies d’assistance.",
+          "example": "KitDialog {\n    title: \"Archiver le projet\";\n}"
+        },
+        "description": {
+          "effect": "Texte d’appui sous le titre ; une chaîne vide n’en affiche pas.",
+          "default": "Vide.",
+          "example": "KitDialog {\n    description: \"Vous pourrez le restaurer plus tard.\";\n}"
+        },
+        "size": {
+          "effect": "Préréglage de largeur du panneau : `DialogSize.small`, `medium` ou `large`.",
+          "default": "`DialogSize.medium`.",
+          "example": "KitDialog {\n    size: DialogSize.large;\n}"
+        },
+        "actions": {
+          "effect": "Boutons du pied dans l’ordre de lecture ; le dernier est l’action principale. Chaque `DialogAction` a un `token` stable, `text`, `intent` et `disabled`. Un modèle vide n’affiche pas de pied.",
+          "example": "KitDialog {\n    actions: [{ token: 1, text: \"Enregistrer\", intent: ButtonIntent.primary, disabled: false }];\n}"
+        },
+        "show-close-button": {
+          "effect": "Affiche le bouton Fermer de l’en-tête. S’il est faux, l’ouverture place le focus sur la première action.",
+          "default": "`true`.",
+          "example": "KitDialog {\n    show-close-button: false;\n}"
+        },
+        "close-label": {
+          "effect": "Nom accessible du bouton Fermer ; traduisez-le pour votre langue.",
+          "default": "`\"Close dialog\"`.",
+          "example": "KitDialog {\n    close-label: \"Fermer\";\n}"
+        },
+        "body-label": {
+          "effect": "Nom accessible du corps quand il déborde et prend le focus ; le titre s’il est vide.",
+          "default": "Vide.",
+          "example": "KitDialog {\n    body-label: \"Réglages du projet\";\n}"
+        },
+        "modal-layer": {
+          "effect": "Fait publier à cette surface sa couche dans le `KitModalContext` de la fenêtre tant qu’elle est ouverte et au sommet. Les contrôles de cette boîte utilisent la même couche, ses propres boutons compris. Utilisez des nombres positifs distincts pour des modales imbriquées. `0` laisse l’arrière-plan à l’hôte.",
+          "default": "`0` (l’hôte gère l’arrière-plan).",
+          "example": "KitDialog {\n    modal-layer: 1;\n}"
+        }
+      }
+    },
+    "en": {
+      "label": "Dialog",
+      "seoTitle": "Dialog for Slint",
+      "summary": "Centered modal dialog with a title, description, close button, scrollable body and footer actions.",
+      "usage": "Mount it at the window root after scrolling content and give it the full viewport, like `KitDrawer`. Set `title`, `description` and `size`, place the body as children and pass the footer buttons in `actions`, each with a stable `token`. Handle `action-activated(token)`, and connect the inherited `dismiss`, `focus-next` and `restore-focus` to the modal stack and focus registry. Pass `theme` explicitly to application children.",
+      "behavior": "The panel is centered and its width follows `size` (`small`, `medium`, `large`), derived from the theme spacing unit and text scale and never wider than the window less a margin. Its height follows the content and stops at the window height less the same margin; past that the body scrolls under a fixed header and footer. An overflowing body joins the tab order and scrolls with the arrow, Page Up, Page Down, Space, Home and End keys. Opening focuses the close button, or the first action when `show-close-button` is false; the close button requests `CloseReason.close-button`. Actions are disabled while the dialog is busy or not topmost. Escape, system Back and backdrop presses follow `KitDialogSurface`.",
+      "related": [
+        "KitAlertDialog",
+        "KitDialogSurface",
+        "KitDialogPanel",
+        "KitDrawer"
+      ],
+      "callbacks": {
+        "action-activated": "A footer action was activated. The argument is the `token` of its `DialogAction`, never its position.",
+        "restore-focus": "The dialog closed; restore focus to the exact opener.",
+        "close-focus-observed": "The close button gained or lost focus; forward it to the focus registry."
+      },
+      "accessibility": "The panel is a group named by `title` and described by `description`; the close button is named by `close-label`. Slint 1.18 has no dialog role or modal state, so assistive technology still reaches inert content. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "title": {
+          "effect": "The dialog heading; it also names the panel for assistive technology.",
+          "example": "KitDialog {\n    title: \"Archive project\";\n}"
+        },
+        "description": {
+          "effect": "Supporting text under the title; an empty string shows none.",
+          "default": "Empty.",
+          "example": "KitDialog {\n    description: \"You can restore it later.\";\n}"
+        },
+        "size": {
+          "effect": "Width preset of the panel: `DialogSize.small`, `medium` or `large`.",
+          "default": "`DialogSize.medium`.",
+          "example": "KitDialog {\n    size: DialogSize.large;\n}"
+        },
+        "actions": {
+          "effect": "Footer buttons in reading order; the last one is the primary action. Each `DialogAction` has a stable `token`, `text`, `intent` and `disabled`. An empty model shows no footer.",
+          "example": "KitDialog {\n    actions: [{ token: 1, text: \"Save\", intent: ButtonIntent.primary, disabled: false }];\n}"
+        },
+        "show-close-button": {
+          "effect": "Shows the header close button. When false, opening focuses the first action.",
+          "default": "`true`.",
+          "example": "KitDialog {\n    show-close-button: false;\n}"
+        },
+        "close-label": {
+          "effect": "Accessible name of the close button; translate it for your locale.",
+          "default": "`\"Close dialog\"`.",
+          "example": "KitDialog {\n    close-label: \"Fermer\";\n}"
+        },
+        "body-label": {
+          "effect": "Accessible name of the body when it overflows and takes focus; the title when empty.",
+          "default": "Empty.",
+          "example": "KitDialog {\n    body-label: \"Project settings\";\n}"
+        },
+        "modal-layer": {
+          "effect": "Makes this surface publish its layer in the window-level `KitModalContext` while it is open and topmost. Controls inside this dialog use the same layer, including its own buttons. Use distinct positive numbers for nested modals. `0` leaves the background to the host.",
+          "default": "`0` (the host manages the background).",
+          "example": "KitDialog {\n    modal-layer: 1;\n}"
+        }
+      }
+    }
+  },
   "KitDialogBody": {
     "fr": {
       "summary": "Emplacement vertical pour le contenu principal d’un dialogue.",
@@ -4289,6 +4489,7 @@
       "usage": "Rendez-le en dernier dans sa fenêtre et fournissez `DialogState` depuis `OverlayStack`. Avec `tab-policy: DialogTabPolicy.host` (défaut), reliez `focus-next(bool)` au registre des cibles réelles. Avec `.native`, laissez Slint parcourir les contrôles montés et rendez toutes les cibles d’arrière-plan inéligibles pendant la modale, notamment via `FieldAccess.disabled`, `disabled`, ou `interactive: false` selon le composant. Ce composant est un conteneur de composition : placez des composants publics Kit dans son contenu enfant. Les exemples associent badges, titres, boutons, champs ou indicateurs pour montrer une tâche complète. Passez `theme` explicitement aux enfants applicatifs ; il ne se propage pas à travers `@children`. Pour composer une fenêtre, DialogHost<W,L,T> gère pile, registre, éligibilité occupée, restauration imbriquée et ordre de publication. Déclarez DialogLayerSpec/DialogFocusSpec typés et les setters DialogHostPorts, puis transmettez `focus-observed` à observe_focus(token, generation, focused). DialogHostPorts.focus reçoit DialogFocusRequest::Control pour une cible enregistrée ou ::Layer pour la portée de la couche au sommet. Effacez l’ancienne requête de vue avant take-scope-focus pour Layer ; le host choisit ce repli quand tous les contrôles sont désactivés. Tant que la couche est ouverte, au sommet et occupée, la surface prend elle-même le focus de sa portée pour garder les touches à l’intérieur ; pour un corps textuel au repos, appelez take-scope-focus() à l’ouverture. Réglez `modal-layer` sur un nombre positif pour rendre inertes, sans jeton de focus, les contrôles Kit hors de cette couche ; donnez aux contrôles de la modale le même nombre. Les contrôles personnalisés, calendriers, sélecteurs de date, d’heure, de couleur et de fichier, tableaux de données et zones défilantes ne le lisent pas encore et restent à la charge de l’hôte. Les onglets, menus, barres de menus, accordéons, carrousels, fils d’Ariane et la pagination le lisent.",
       "behavior": "Seule la modale `topmost` traite Échap et Retour système (`Key.Back`), en demandant respectivement `CloseReason.escape` et `.system-back`. `busy` consomme ces touches sans demander la fermeture. En mode `host`, elle capture Tab/Maj+Tab ; en mode `native`, elle les laisse au parcours Slint. La politique native ne désactive pas l’arrière-plan à elle seule ; réglez `modal-layer` pour rendre les contrôles Kit inertes. Un clic sur le voile demande `CloseReason.outside-press` si `dismiss-on-backdrop` est activé. Le voile consomme la molette pour préserver le défilement du fond ; les zones défilantes du panneau continuent à recevoir leurs propres événements de molette. Slint 1.18.1 ne fournit ni rôle de dialogue, ni état modal, ni masquage d’un sous-arbre accessible : les panneaux nommés utilisent groupbox et le contenu désactivé reste dans le parcours du lecteur d’écran.",
       "related": [
+        "KitDialog",
         "KitDialogPanel",
         "KitFocusTarget",
         "KitDrawer"
@@ -4311,6 +4512,7 @@
       "usage": "Render it last in its window and supply `DialogState` from `OverlayStack`. With `tab-policy: DialogTabPolicy.host` (the default), connect `focus-next(bool)` to the registry of actual targets. With `.native`, let Slint traverse mounted controls and make every background target ineligible while the modal is open, using `FieldAccess.disabled`, `disabled`, or `interactive: false` as appropriate. This is a composition container: place public Kit components in its child content. The examples combine badges, headings, buttons, fields or progress views to show a complete task. Pass `theme` explicitly to application-supplied children; it does not cascade through `@children`. For window composition, DialogHost<W,L,T> owns the overlay stack, registry, busy eligibility, nested restore and publication order. Declare typed DialogLayerSpec/DialogFocusSpec entries, explicit DialogHostPorts setters, and forward `focus-observed` to observe_focus(token, generation, focused). DialogHostPorts.focus receives DialogFocusRequest::Control for a registered target or ::Layer for the topmost layer scope. Clear the old view request before calling take-scope-focus for Layer; the host chooses this fallback when every control is disabled. While the layer is open, topmost and busy, the surface takes its own scope focus so keys stay inside; for an idle text-only body call take-scope-focus() on open. Set `modal-layer` to a positive number to make kit controls outside this layer inert without focus tokens; give controls inside the modal the same number. Custom controls, calendars, date, time, color and file pickers, data tables and scroll areas do not read it yet and stay the host's responsibility. Tabs, menus, menu bars, accordions, carousels, breadcrumbs and pagination read it.",
       "behavior": "Only the `topmost` modal handles Escape and system Back (`Key.Back`), requesting `CloseReason.escape` and `.system-back` respectively. `busy` consumes these keys without requesting closure. In `host` mode it captures Tab/Shift+Tab; in `native` mode it leaves them to Slint traversal. Native policy does not by itself disable the background; set `modal-layer` to make kit controls inert. A backdrop click requests `CloseReason.outside-press` when `dismiss-on-backdrop` is enabled. The backdrop consumes wheel events so background scroll positions stay fixed; scrollable content inside the panel continues to receive its own wheel events. Slint 1.18.1 has no dialog role, modal state or accessible-subtree hiding property: named panels use groupbox, and disabled background content remains in the screen reader browse tree.",
       "related": [
+        "KitDialog",
         "KitDialogPanel",
         "KitFocusTarget",
         "KitDrawer"
@@ -4405,6 +4607,7 @@
       "usage": "Montez-le à la racine de la fenêtre après le contenu défilant et donnez-lui tout le viewport. Connectez les callbacks hérités `dismiss` et `focus-next`, puis `restore-focus`, à la pile de modales et au registre de focus.",
       "behavior": "Le panneau s’ancre au bord choisi par `side` (`DrawerSide.end` par défaut ; `start` et `end` suivent la direction du thème, donc `end` est le bord gauche en droite à gauche). `panel-width` borne la largeur pour `start` et `end`, `panel-height` la hauteur pour `top` et `bottom`, tous deux limités à la fenêtre. L’ouverture place le focus sur Fermer ; ce bouton demande `CloseReason.close-button`, distinct de `programmatic` que l’hôte réserve à ses propres fermetures. L’hôte doit enregistrer les champs et restaurer l’ouvreur exact à la fermeture.",
       "related": [
+        "KitDialog",
         "KitDialogSurface",
         "KitFocusTarget"
       ],
@@ -4423,6 +4626,7 @@
       "usage": "Mount it at the window root after scrolling content and give it the full viewport. Connect inherited `dismiss` and `focus-next`, then `restore-focus`, to the modal stack and focus registry.",
       "behavior": "The panel attaches to the edge chosen by `side` (`DrawerSide.end` by default; `start` and `end` follow the theme direction, so `end` is the left edge in right-to-left). `panel-width` sets the extent for `start` and `end`, `panel-height` for `top` and `bottom`, both capped at the window. Opening focuses Close; that button requests `CloseReason.close-button`, distinct from `programmatic`, which a host keeps for its own closes. The host must register fields and restore the exact opener on closure.",
       "related": [
+        "KitDialog",
         "KitDialogSurface",
         "KitFocusTarget"
       ],

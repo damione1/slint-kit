@@ -16,6 +16,8 @@ export enum TypographyRole { caption, control, body, subtitle, title }
 // secondary is a filled neutral surface; outline is a transparent bordered
 // control; quiet is borderless (the web's ghost).
 export enum ButtonIntent { primary, secondary, outline, quiet, destructive, success, warning, information, link }
+// Width preset of a KitDialog; the metrics derive the extent from the spacing unit.
+export enum DialogSize { small, medium, large }
 // Presentation-only token vocabulary: Rust consumers use the generated Slint
 // enums. A level names a shadow; the theme supplies that shadow's geometry.
 export enum ElevationLevel { none, xs, sm, md, lg, xl }
@@ -151,6 +153,13 @@ export global KitMetrics {
         return max(theme.spacing.unit * 9, editor-height + theme.spacing.unit * 3);
     }
     public pure function select-popup-min-width(theme: KitTheme) -> length { return theme.spacing.unit * 60; }
+    // Dialog panel width by preset, scaled with text so a column keeps its measure.
+    // The panel never exceeds its window.
+    public pure function dialog-width(theme: KitTheme, size: DialogSize) -> length {
+        return theme.spacing.unit * (size == DialogSize.small ? 90 : size == DialogSize.medium ? 130 : 190) * theme.text-scale;
+    }
+    // Space kept between a dialog panel and the window edge.
+    public pure function dialog-margin(theme: KitTheme) -> length { return theme.spacing.unit * 6; }
     public pure function popover-inset(theme: KitTheme) -> length { return theme.spacing.unit * 1.5; }
     public pure function label-gap(theme: KitTheme) -> length { return theme.spacing.unit * 2; }
     // Between the items of one control row: adornments, an editor and its

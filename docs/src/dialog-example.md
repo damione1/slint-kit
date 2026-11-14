@@ -63,6 +63,8 @@ cd slint-kit-dialog-example
 - `KitFocusTarget` relaie `focus-requested` au `take-focus()` du contrôle réel et n’est pas un arrêt de focus. Le contrôle réel appelle `observe-focus(focused)` ; `focus-observed(token, generation, focused)` va à `observe_focus`, qui ignore une génération périmée. Liez le même `slot.eligible` à son accès/désactivation : le voile seul ne bloque pas les actions d’accessibilité.
 
 L’éligibilité est calculée une fois, dans Rust, puis publiée ; Slint n’en possède pas de copie. Dans cet exemple, l’action occupée reste éligible pendant le travail pour que la couche conserve le focus et consomme Échap et Retour ; ses voisines sont désactivées.
+
+Pour un dialogue sans composition fine, `KitDialog` et `KitAlertDialog` assemblent ces primitives : titre, description, bouton Fermer, corps défilant, boutons de pied (`actions`, chacun avec un `token` stable) et largeur `size`. Réglez `modal-layer` et `tab-policy: DialogTabPolicy.native` : le dialogue gère le focus de ses propres boutons, l’arrière-plan devient inerte et l’hôte garde `dismiss` et `restore-focus`. Gardez les primitives de cet exemple quand le dialogue doit enregistrer ses contrôles dans le registre de focus.
 {% else %}
 1. Activate **Archive from the project card**. The “Project name” field takes focus. Tab visits Cancel, then Archive…, then returns to the field; Shift+Tab goes the other way.
 2. Press Escape: the dialog closes and focus returns to **Archive from the project card**. Open it from the toolbar: Escape returns focus to that button instead.
@@ -77,6 +79,8 @@ L’éligibilité est calculée une fois, dans Rust, puis publiée ; Slint n’e
 - `KitFocusTarget` relays `focus-requested` to the real control’s `take-focus()` and is not a focus stop. The real control calls `observe-focus(focused)`; `focus-observed(token, generation, focused)` goes to `observe_focus`, which ignores a stale generation. Bind the same `slot.eligible` to its access/disabled state: a backdrop alone cannot block accessibility actions.
 
 Eligibility is computed once, in Rust, then published; Slint keeps no copy of the rule. In this example the busy action stays eligible during the work so the layer keeps focus and consumes Escape and Back; its neighbours are disabled.
+
+For a dialog that needs no fine-grained composition, `KitDialog` and `KitAlertDialog` assemble these primitives: title, description, close button, scrolling body, footer buttons (`actions`, each with a stable `token`) and a `size` width. Set `modal-layer` and `tab-policy: DialogTabPolicy.native`: the dialog manages the focus of its own buttons, the background becomes inert and the host keeps `dismiss` and `restore-focus`. Keep the primitives of this example when the dialog must register its controls in the focus registry.
 {% endif %}
 
 ## Cargo.toml
