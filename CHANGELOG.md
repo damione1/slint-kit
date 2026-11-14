@@ -710,8 +710,6 @@ Cette version rassemble les changements de composants, formulaires, accessibilit
 
 - Localise actions/états des fichiers et noms d’étapes via KitStrings de la fenêtre, avec surcharges et modèles de suppression. Les bindings natifs acceptent des mappers d’erreurs typées et conservent les détails système.
 
-- Vérifie les applications complètes téléchargeables contre les crates publiées avant de construire la documentation de release et contre les sources locales en CI. Les guides de développement signalent les API non publiées et relient l’exemple crates.io immuable 0.7.2.
-
 
 
 - Ajoute DialogHost typé à fenêtre faible avec couches/cibles déclaratives, éligibilité unifiée, focus occupé, pièges imbriqués et restauration. L’exemple complet l’utilise et les tests de fenêtre pilotent ce contrôleur exact ainsi que sa temporisation de fin.

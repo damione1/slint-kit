@@ -1506,7 +1506,8 @@
         "report-validity": "Signale les erreurs de contrainte et retourne la validité en conservant le focus. Le formulaire peut recueillir tous les résultats avant de déplacer une seule fois le focus.",
         "focus-if-invalid": "Demande le focus normal de l’éditeur ou du contrôle uniquement si ce candidat à la validation est invalide ; retourne si le focus a été demandé. Cette fonction ne signale pas les erreurs de nouveau.",
         "clear": "Efface le brouillon natif avec les gardes accès/service/préédition existantes ; le blur ou commit() réalise l’acceptation. Ce n’est pas un reset inconditionnel de accepted-value.",
-        "check-validity": "Retourne la validité required/custom partagée sans révéler d’erreurs ni déplacer le focus."
+        "check-validity": "Retourne la validité required/custom partagée sans révéler d’erreurs ni déplacer le focus.",
+        "reset-field": "Abandonne le brouillon saisi : le texte affiche de nouveau la couleur acceptée et la validation repart de zéro. Ne notifie rien."
       },
       "accessibility": "Les curseurs publient valeur, minimum, maximum et pas du domaine décimal, sans mélanger valeurs et positions normalisées. Chaque poignée de plage prend l’autre borne comme limite intérieure. L’action accessible de réglage borne et arrondit sur la même grille exacte que le pointeur, refuse les demandes mal formées et respecte lecture seule, désactivation et propriété contrôlée. Une demande modifiée émet la proposition exacte chosen et committed une fois ; une demande inchangée ou refusée n’émet aucun des deux. Les canaux couleur utilisent le domaine octet 0..255 au pas de 1. Slint 1.18.1 expose bornes et pas en projections Float32 : les domaines très grands ou très rapprochés perdent donc de la précision dans ces métadonnées ; les propositions décimales acceptées restent exactes. Les libellés de valeur formatés deviennent des descriptions accessibles à côté de la valeur numérique, sans propriété native distincte de texte de valeur. Qualifiez séparément le backend et le lecteur d’écran ciblés ; les tests headless d’action et de métadonnées ne qualifient pas les aides techniques natives.",
       "properties": {
@@ -1608,13 +1609,22 @@
         "palette": {
           "effect": "Couleurs proposées comme choix rapides dans le panneau.",
           "default": "Huit couleurs : rouge, ambre, vert, cyan, indigo, violet, presque noir, blanc"
+        },
+        "commit-policy": {
+          "effect": "Quand un brouillon acceptable devient la valeur acceptée et que `committed(FieldCommit)` est émis : `on-blur` à la perte du focus ou sur Entrée, `on-submit` seulement sur Entrée ou `commit()`, `on-change-when-valid` à chaque édition qui passe les contraintes et le codec.",
+          "default": "`CommitPolicy.on-blur`.",
+          "states": "Un brouillon refusé par les contraintes ou le codec n’est jamais validé : `field-state.error` porte le message et `invalid()` est émis. `cancel-edit()` rétablit le dernier brouillon accepté."
+        },
+        "has-focus": {
+          "effect": "Lecture seule : vrai tant que l’éditeur natif ou son menu contextuel possède le focus. L’ouverture du menu contextuel le maintient vrai, sans scintillement du style. Les autres boutons du champ sont des cibles de focus distinctes."
         }
       },
       "callbacks": {
         "chosen": "Signale uniquement un SrgbColorView présent admis. La propriété locale l’applique ; la propriété contrôlée attend l’acquittement de accepted-value.",
         "cleared": "Signale l’absence admise d’un brouillon facultatif vide valide, séparément de chosen. Ne contourne ni required, ni custom-validity, ni accès.",
         "draft-changed": "Se déclenche à chaque modification du brouillon de la fenêtre (choix de palette ou curseur de canal), avec le SrgbColorView non encore appliqué, pour que l’hôte l’aperçoive en direct. Il ne propose rien : accepted-value et chosen ne changent qu’à Appliquer. L’ouverture de la fenêtre ne déclenche rien.",
-        "draft-cancelled": "Se déclenche quand la fenêtre se ferme sans Appliquer après au moins un draft-changed (Échap, Annuler ou clic extérieur), pour que l’hôte rétablisse son aperçu. Il ne se déclenche pas après Appliquer."
+        "draft-cancelled": "Se déclenche quand la fenêtre se ferme sans Appliquer après au moins un draft-changed (Échap, Annuler ou clic extérieur), pour que l’hôte rétablisse son aperçu. Il ne se déclenche pas après Appliquer.",
+        "focus-observed": "Observe le focus de l’éditeur natif ou de son menu d’édition ; ouvrir ce menu ne valide pas par flou. Les autres boutons d’action restent distincts."
       }
     },
     "en": {
@@ -1631,7 +1641,8 @@
         "report-validity": "Report constraint failures and return validity while preserving the current focus. Form coordinators can collect every result before moving focus once.",
         "focus-if-invalid": "Request the normal editor/control focus only when this enabled validation candidate is invalid; return whether focus was requested. This function does not report errors again.",
         "clear": "Clear the native draft with existing access/service/preedit guards; acceptance follows blur or explicit commit(). This is not an unconditional accepted-value reset.",
-        "check-validity": "Return the shared required/custom validity without revealing errors or forcing focus."
+        "check-validity": "Return the shared required/custom validity without revealing errors or forcing focus.",
+        "reset-field": "Discard the typed draft: the text shows the accepted color again and validation restarts. Notifies nothing."
       },
       "accessibility": "Sliders publish the decimal domain value, minimum, maximum and step, rather than mixing values with normalized positions. Each range thumb uses the other endpoint as its inward bound. The accessible set-value action clamps and rounds on the same exact lattice as the pointer, rejects malformed requests, and respects read-only, disabled and controlled ownership. A changed request emits the exact chosen proposal and committed once; unchanged or rejected requests emit neither. Color channels use the byte domain 0..255 with step 1. Slint 1.18.1 exposes bounds/step as Float32 projections, so very large or closely spaced domains lose metadata precision; accepted decimal proposals remain exact. Formatted value labels are accessible descriptions alongside the numeric value, not a separate native value-text property. Qualify the target backend and screen reader separately; headless action/metadata tests do not qualify native assistive technology.",
       "properties": {
@@ -1733,13 +1744,22 @@
         "palette": {
           "effect": "Colors offered as quick choices in the panel.",
           "default": "Eight colors: red, amber, green, cyan, indigo, purple, near-black, white"
+        },
+        "commit-policy": {
+          "effect": "When an acceptable draft becomes the accepted value and `committed(FieldCommit)` fires: `on-blur` when the editor loses focus or on Enter, `on-submit` only on Enter or `commit()`, `on-change-when-valid` on each edit that passes the constraints and the codec.",
+          "default": "`CommitPolicy.on-blur`.",
+          "states": "A draft the constraints or the codec reject is never committed: `field-state.error` carries the message and `invalid()` fires. `cancel-edit()` restores the last accepted draft."
+        },
+        "has-focus": {
+          "effect": "Read-only: true while the native editor or its owned context menu has focus. Opening the context menu keeps it true, so styling does not flicker. Other buttons of the field are separate focus targets."
         }
       },
       "callbacks": {
         "chosen": "Reports only an admitted present SrgbColorView. Local ownership applies it; controlled ownership keeps accepted-value until acknowledgement.",
         "cleared": "Reports admitted absence for an optional valid empty draft, separately from chosen. It does not bypass required, custom validity or access guards.",
         "draft-changed": "Fires on every edit of the popup draft (palette choice or channel slider), with the not yet applied SrgbColorView, so a host can preview it live. It proposes nothing: accepted-value and chosen change only on Apply. Opening the popup fires nothing.",
-        "draft-cancelled": "Fires when the popup closes without Apply after at least one draft-changed (Escape, Cancel or outside click), so the host can restore its preview. It does not fire after Apply."
+        "draft-cancelled": "Fires when the popup closes without Apply after at least one draft-changed (Escape, Cancel or outside click), so the host can restore its preview. It does not fire after Apply.",
+        "focus-observed": "Observes focus of the native editor or its owned editing menu; opening that menu does not commit a blur. Other action buttons are separate."
       }
     }
   },
@@ -6895,6 +6915,14 @@
         "touched": {
           "effect": "Lecture seule. Vrai dès que le champ a perdu le focus au moins une fois.",
           "default": "`false`"
+        },
+        "leading-icon": {
+          "effect": "Glyphe du thème dessiné avant le texte, du côté du début de lecture. Les icônes sont décoratives : gardez le sens dans `label` ou `accessible-name`.",
+          "default": "Aucune icône."
+        },
+        "trailing-icon": {
+          "effect": "Glyphe du thème dessiné après le texte, du côté de la fin de lecture. Il est décoratif ; les actions interactives comme effacer et afficher sont des boutons distincts.",
+          "default": "Aucune icône."
         }
       },
       "functions": {
@@ -7021,6 +7049,14 @@
         "touched": {
           "effect": "Read-only. True once the field has lost focus at least once.",
           "default": "`false`"
+        },
+        "leading-icon": {
+          "effect": "Theme glyph drawn before the text, on the reading-start side. Icons are decorative, so keep the meaning in `label` or `accessible-name`.",
+          "default": "No icon."
+        },
+        "trailing-icon": {
+          "effect": "Theme glyph drawn after the text, on the reading-end side. It is decorative; interactive actions such as clear and reveal are separate buttons.",
+          "default": "No icon."
         }
       },
       "functions": {
