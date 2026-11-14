@@ -91,3 +91,63 @@ fn content_list_has_the_same_states_and_custom_empty_content() {
     window.set_items(ModelRc::new(VecModel::from(items(2))));
     assert!(!present(&window, "Loading"));
 }
+
+#[test]
+fn text_view_has_the_same_states_and_custom_empty_content() {
+    let window = fixture();
+    assert!(present(&window, "No lines"));
+    window.set_document_empty_content(DataEmptyContent::Custom);
+    assert!(present(&window, "Document custom empty"));
+    assert!(!present(&window, "No lines"));
+    window.set_document_empty_content(DataEmptyContent::Label);
+    let retries = Rc::new(Cell::new(0));
+    window.on_document_retry({
+        let retries = retries.clone();
+        move || retries.set(retries.get() + 1)
+    });
+    window.set_document_state(DataState::Failed);
+    assert!(present(&window, "The text could not be loaded"));
+    assert!(!present(&window, "No lines"));
+    super::base_data::labelled(&window, "Retry").invoke_accessible_default_action();
+    assert_eq!(retries.get(), 1);
+    window.set_document_state(DataState::Loading);
+    assert!(present(&window, "Loading"));
+    assert!(!present(&window, "Retry"));
+    window.set_lines(ModelRc::new(VecModel::from(super::base_data::lines(3))));
+    assert!(!present(&window, "Loading"));
+}
+
+#[test]
+fn header_less_table_removes_the_header_and_keeps_rows_aligned() {
+    let window = fixture();
+    window.set_columns(ModelRc::new(VecModel::from(super::base_data::column_set())));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    let first_row_y = || {
+        super::base_data::delegates(&window, "KitDataTable")[0]
+            .absolute_position()
+            .y
+    };
+    let with_header = first_row_y();
+    let header_present =
+        |window: &BaseDataFixture| super::base_data::header(window, "Quantity").is_some();
+    assert!(header_present(&window));
+    window.set_table_show_header(false);
+    assert!(!header_present(&window));
+    assert!(
+        first_row_y() < with_header,
+        "rows move up into the freed header space"
+    );
+    window.set_table_show_header(true);
+    assert_eq!(first_row_y(), with_header);
+}
+
+#[test]
+fn table_summary_shows_a_footer_line_and_shortens_the_row_area() {
+    let window = fixture();
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 3))));
+    assert!(!present(&window, "3 records"));
+    window.set_table_summary("3 records".into());
+    assert!(present(&window, "3 records"));
+    window.set_table_summary("".into());
+    assert!(!present(&window, "3 records"));
+}
