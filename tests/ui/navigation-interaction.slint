@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCarousel, KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
+import { KitCarousel, KitPagination, PaginationDisplay, KitBreadcrumbs, KitMenuBar, KitCollapse, KitDrawer, DrawerSide, DrawerInitialFocus, DialogAction, ButtonIntent, KitTheme, KitThemeContext, KitButton, DialogState, Ownership, OptionRow, SelectState, NavigationStep, CloseReason } from "@kit";
 
 export component PaginationFixture inherits Window {
     width: 800px; height: 120px;
@@ -106,6 +106,25 @@ export component DrawerFocusFixture inherits Window {
         restore-focus() => { root.restore-requested(); }
         focus-next(backwards) => { root.focus-next-requested(backwards); }
         close-focus-observed(focused) => { root.close-focused = focused; }
+        KitButton { text: "Body action"; }
+    }
+}
+
+export component DrawerActionsFixture inherits Window {
+    width: 600px; height: 400px;
+    in property <DialogState> state;
+    in property <DrawerInitialFocus> initial-focus: DrawerInitialFocus.close-button;
+    in property <[DialogAction]> actions: [
+        { token: 7, text: "Save draft", intent: ButtonIntent.primary, disabled: false },
+        { token: 9, text: "Discard", intent: ButtonIntent.secondary, disabled: false },
+    ];
+    out property <bool> close-focused;
+    callback action-requested(int);
+    KitDrawer {
+        width: root.width; height: root.height; panel-width: 300px;
+        title: "Details"; state: root.state; initial-focus: root.initial-focus; actions: root.actions;
+        close-focus-observed(focused) => { root.close-focused = focused; }
+        action-activated(token) => { root.action-requested(token); }
         KitButton { text: "Body action"; }
     }
 }
