@@ -104,6 +104,8 @@ export component BaseDataFixture inherits Window {
     callback content-activated(int,int);
     callback table-gesture(int,int,RowGesture);
     callback content-gesture(int,int,RowGesture);
+    callback table-context(int,int,length,length);
+    callback content-context(int,int,length,length);
     callback content-link(int,int);
     callback line-selected(int,int);
     callback line-committed(int,int,string);
@@ -147,6 +149,7 @@ export component BaseDataFixture inherits Window {
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
             activate(token,generation) => { root.table-activated(token,generation); }
             gesture(token,generation,gesture) => { root.table-gesture(token,generation,gesture); }
+            context-requested(token,generation,x,y) => { root.table-context(token,generation,x,y); }
             sort-requested(token) => { root.sort-requested(token); }
             resize-requested(token, width) => { root.resize-requested(token, width); }
             autosize-requested(token) => { root.autosize-requested(token); }
@@ -172,6 +175,7 @@ export component BaseDataFixture inherits Window {
             navigate(step) => { root.navigate(DataFixtureCollection.content,step); }
             activate(token,generation) => { root.content-activated(token,generation); }
             gesture(token,generation,gesture) => { root.content-gesture(token,generation,gesture); }
+            context-requested(token,generation,x,y) => { root.content-context(token,generation,x,y); }
             Text { text: "Content custom empty"; accessible-role: AccessibleRole.text; accessible-label: "Content custom empty"; }
         }
         document := KitVirtualTextView {

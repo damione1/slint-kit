@@ -117,12 +117,14 @@ component DataKeyboard inherits FocusScope {
     callback activate();
     callback confirm();
     callback edit-requested();
+    callback context-requested();
     callback key-event(KeyEvent) -> KitKeyResult;
     enabled: !root.disabled;
     focus-on-click: false;
     key-pressed(event) => {
         if (root.key-event(event) == KitKeyResult.accept) { return accept; }
         if (event.text == Key.F2) { root.edit-requested(); return accept; }
+        if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) { root.context-requested(); return accept; }
         if (event.text == Key.DownArrow) {root.navigate(NavigationStep.next);return accept;}
         if (event.text == Key.UpArrow) {root.navigate(NavigationStep.previous);return accept;}
         if (event.text == Key.Home) {root.navigate(NavigationStep.first);return accept;}
@@ -141,7 +143,9 @@ component DataAction inherits KitPressable {
     in property <int> token;
     in property <int> generation;
     callback requested(int,int);
+    callback context(int,int);
     callback focus-requested();
+    context-requested => { root.context(root.token, root.generation); }
     private property <int> armed-token;
     private property <int> armed-generation;
     // The width of the selection checkbox cell at the row's leading edge; 0
@@ -623,6 +627,13 @@ export component KitDataTable inherits Rectangle {
     // held; Space is `toggle`; Enter and a double-click on a row without an
     // editable cell are `open`.
     callback gesture(int,int,RowGesture);
+    // A row context-menu gesture: `(row-token, generation, x, y)`. The
+    // secondary button reports the pointer point and the menu key (or
+    // Shift+F10) reports the active row, a row height in from its leading edge
+    // and centred vertically. Both are in this table's coordinates, so the
+    // host can anchor a popover there. It selects nothing: the host decides
+    // whether the row joins the selection. Disabled rows report nothing.
+    callback context-requested(int,int,length,length);
     callback navigate(NavigationStep);
     callback sort-requested(int);
     // A clamped width the user asked for, by column token. The table paints
@@ -1033,6 +1044,7 @@ export component KitDataTable inherits Rectangle {
             else if (root.cursor-region == TableCursorRegion.body) { root.navigate(step); }
         }
         navigate-column(step) => {root.step-column(step);}
+        context-requested => { if (root.cursor-region == TableCursorRegion.body && root.has-active-row && !root.rows[root.active-index].disabled) { root.context-requested(root.rows[root.active-index].token, root.generation, root.row-height, root.row-height * (root.active-index + 1.5) + list.content-y); } }
         activate => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else if (root.has-active-row && !root.rows[root.active-index].disabled) { root.activate(root.rows[root.active-index].token,root.generation); root.gesture(root.rows[root.active-index].token,root.generation,RowGesture.toggle); } }
         confirm => { if (root.cursor-region == TableCursorRegion.header) { root.sort-active-column(); } else { root.confirm-active(); } }
     }
@@ -1056,6 +1068,7 @@ export component KitDataTable inherits Rectangle {
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             focus-requested => {keys.focus();}
+            context(token,generation) => {keys.focus();root.context-requested(token,generation,list.content-x + row-action.pointer-x,root.row-height * (index + 1) + list.content-y + row-action.pointer-y);}
             checkbox-width: root.selection-visible ? root.selection-width : 0px;
             double-activated => { if (row-action.in-checkbox) { return; } if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
             requested(token,generation) => {keys.focus();root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture);}
@@ -1223,6 +1236,11 @@ export component KitContentList inherits Rectangle {
     // `toggle` or `extend` by modifier; Space is `toggle`; Enter and a
     // double-click are `open`.
     callback gesture(int,int,RowGesture);
+    // A row context-menu gesture, as on KitDataTable: `(row-token, generation,
+    // x, y)` in this list's coordinates. The secondary button reports the
+    // pointer point; the menu key (or Shift+F10) the active row, a row height
+    // in from its leading edge and centred vertically (capped to the list).
+    callback context-requested(int,int,length,length);
     callback navigate(NavigationStep);
     public function take-focus(){if(root.live){keys.focus();}}
     in property <int> near-end-rows: 3;
@@ -1258,7 +1276,7 @@ export component KitContentList inherits Rectangle {
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
-    keys := DataKeyboard {disabled:!root.live;navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}}
+    keys := DataKeyboard {disabled:!root.live;navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}context-requested=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.context-requested(root.items[root.active-index].token,root.generation,min(root.row-height,root.width),root.row-height*(root.active-index+0.5)+list.content-y);}}}
     list := ListView {
         theme: root.theme;
         vertical-scrollbar-policy: root.vertical-scrollbar-policy;
@@ -1277,6 +1295,7 @@ export component KitContentList inherits Rectangle {
                 focus-indicated:keys.has-focus && root.active-index==index;focus-ring:KitThemes.inset-focus(root.theme);
                 background:item.disabled ? root.theme.disabled-fill : item.selected ? root.theme.selection : self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : root.theme.surface;
                 focus-requested => {keys.focus();}
+                context(token,generation)=>{keys.focus();root.context-requested(token,generation,list.content-x + row.pointer-x,root.row-height * index + list.content-y + row.pointer-y);}
                 requested(token,generation)=>{keys.focus();root.activate(token,generation);root.gesture(token,generation,self.armed-gesture);}
                 double-activated => { if (!item.disabled) { root.gesture(item.token, root.generation, RowGesture.open); } }
             }

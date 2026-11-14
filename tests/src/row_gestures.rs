@@ -182,3 +182,93 @@ fn pointer_modifiers_and_double_click_become_typed_table_gestures() {
         &[(2, RowGesture::Toggle), (2, RowGesture::Open)]
     );
 }
+
+fn right_click(window: &BaseDataFixture, label: &str) -> LogicalPosition {
+    let element = labelled(window, label);
+    let origin = element.absolute_position();
+    let position = LogicalPosition::new(
+        origin.x + element.size().width / 2.,
+        origin.y + element.size().height / 2.,
+    );
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerMoved { position });
+    window.window().dispatch_event(WindowEvent::PointerPressed {
+        position,
+        button: PointerEventButton::Right,
+    });
+    window
+        .window()
+        .dispatch_event(WindowEvent::PointerReleased {
+            position,
+            button: PointerEventButton::Right,
+        });
+    position
+}
+
+#[test]
+fn a_secondary_click_reports_the_row_and_the_pointer_point_in_table_coordinates() {
+    let window = fixture();
+    window.set_columns(ModelRc::new(VecModel::from(column_set())));
+    let mut data = rows(1, 5);
+    data[3].disabled = true;
+    window.set_rows(ModelRc::new(VecModel::from(data)));
+    let seen = Rc::new(RefCell::new(Vec::new()));
+    let observed = seen.clone();
+    window.on_table_context(move |token, _, x, y| observed.borrow_mut().push((token, x, y)));
+    let gestures = Rc::new(RefCell::new(0));
+    let counted = gestures.clone();
+    window.on_table_gesture(move |_, _, _| *counted.borrow_mut() += 1);
+    let table = labelled(&window, "Products fixture").absolute_position();
+    let point = right_click(&window, "Product 2");
+    {
+        let seen = seen.borrow();
+        assert_eq!(seen.len(), 1);
+        let (token, x, y) = seen[0];
+        assert_eq!(token, 2);
+        assert!((x - (point.x - table.x)).abs() < 1.5, "x {x}");
+        assert!((y - (point.y - table.y)).abs() < 1.5, "y {y}");
+    }
+    // The secondary button selects and activates nothing; a disabled row reports nothing.
+    assert_eq!(*gestures.borrow(), 0);
+    right_click(&window, "Product 4");
+    assert_eq!(seen.borrow().len(), 1);
+}
+
+#[test]
+fn the_menu_key_reports_the_active_row_inside_the_table() {
+    let window = fixture();
+    window.set_columns(ModelRc::new(VecModel::from(column_set())));
+    window.set_rows(ModelRc::new(VecModel::from(rows(1, 5))));
+    let seen = Rc::new(RefCell::new(Vec::new()));
+    let observed = seen.clone();
+    window.on_table_context(move |token, _, x, y| observed.borrow_mut().push((token, x, y)));
+    let table = labelled(&window, "Products fixture");
+    window.set_table_active(2);
+    window.invoke_focus_table();
+    key(&window, Key::Menu);
+    let row = labelled(&window, "Product 3");
+    let expected = row.absolute_position().y + row.size().height / 2. - table.absolute_position().y;
+    let seen = seen.borrow();
+    assert_eq!(seen.len(), 1);
+    assert_eq!(seen[0].0, 3);
+    assert!(
+        (seen[0].2 - expected).abs() < 1.5,
+        "y {} vs {expected}",
+        seen[0].2
+    );
+    assert!(seen[0].1 > 0. && seen[0].1 < table.size().width);
+}
+
+#[test]
+fn context_requests_resolve_the_row_key_and_drop_stale_generations() {
+    let model = model(3);
+    let generation = model.generation();
+    let seen = Rc::new(RefCell::new(Vec::new()));
+    let observed = seen.clone();
+    let handler = model.context_requests(move |key, x, y| observed.borrow_mut().push((key, x, y)));
+    handler(token(&model, 2), generation, 10., 20.);
+    handler(token(&model, 3), generation + 1, 1., 2.);
+    assert_eq!(&*seen.borrow(), &[(Record(2), 10., 20.)]);
+    assert!(model.selected_keys().is_empty());
+}
