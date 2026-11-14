@@ -149,11 +149,26 @@ fn zoned_reporting_collects_both_invalid_parts_without_focus_then_explicitly_foc
             text: "America/Toronto".into(),
         });
     slint::platform::update_timers_and_animations();
+    assert_eq!(
+        app.get_zone_text(),
+        "",
+        "typing only searches the catalogue until an option is chosen"
+    );
+    for text in [
+        slint::platform::Key::DownArrow,
+        slint::platform::Key::Return,
+    ] {
+        app.window()
+            .dispatch_event(slint::platform::WindowEvent::KeyPressed { text: text.into() });
+        app.window()
+            .dispatch_event(slint::platform::WindowEvent::KeyReleased { text: text.into() });
+        slint::platform::update_timers_and_animations();
+    }
     assert_eq!(app.get_date_text(), "2026-11-10");
     assert_eq!(app.get_time_text(), "09:00");
     assert_eq!(
         app.get_zone_text(),
         "America/Toronto",
-        "native typing reaches the remaining invalid zone"
+        "typing searches the catalogue and Enter chooses the match"
     );
 }

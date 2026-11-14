@@ -5,6 +5,7 @@ use kit_core::{
     CivilDate, ClockFormat, DayPeriodMarkers, DraftValue, Instant, IsoWeek, LocalDateTime,
     LocalTime, ParseIssue, TimePrecision, TimeZoneId, UtcOffset, Year, YearMonth, ZonedResolution,
 };
+use slint::{Model, ModelRc, VecModel};
 impl From<LocalTime> for ui::LocalTimeView {
     fn from(value: LocalTime) -> Self {
         Self {
@@ -358,5 +359,53 @@ where
             later_utc_offset_seconds,
         }
     });
+    service.on_zone_options(|| {
+        let now = crate::calendar::unix_seconds_at(web_time::SystemTime::now())
+            .and_then(Instant::from_unix_seconds)
+            .ok();
+        ModelRc::new(VecModel::from(zone_option_rows(now)))
+    });
+    service.on_zone_selection(|options, name| {
+        let tracker = options.model_tracker();
+        tracker.track_row_count_changes();
+        let found = (0..options.row_count()).find_map(|index| {
+            tracker.track_row_data_changes(index);
+            options.row_data(index).filter(|row| row.label == name)
+        });
+        found.map_or_else(ui::SelectionRef::default, |row| ui::SelectionRef {
+            present: true,
+            token: row.token,
+        })
+    });
     service.set_ready(true);
+}
+
+/// `UTC-05:30`, the offset in force at a moment.
+fn offset_hint(offset: UtcOffset) -> String {
+    let seconds = offset.seconds();
+    let sign = if seconds < 0 { '-' } else { '+' };
+    let minutes = seconds.unsigned_abs() / 60;
+    format!("UTC{sign}{:02}:{:02}", minutes / 60, minutes % 60)
+}
+
+/// One option per catalogue zone. The offset hint is omitted when no instant is known.
+fn zone_option_rows(now: Option<Instant>) -> Vec<ui::OptionRow> {
+    TimeZoneId::all()
+        .enumerate()
+        .filter_map(|(index, zone)| {
+            let name = zone.name();
+            let place = name.rsplit('/').next().unwrap_or(name).replace('_', " ");
+            let description = match now {
+                Some(instant) => format!("{} · {place}", offset_hint(zone.offset_at(instant))),
+                None => place,
+            };
+            Some(ui::OptionRow {
+                token: i32::try_from(index).ok()?,
+                generation: 1,
+                label: name.into(),
+                description: description.into(),
+                disabled: false,
+            })
+        })
+        .collect()
 }

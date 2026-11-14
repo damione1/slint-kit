@@ -441,7 +441,7 @@ where
         .set_today(date.into());
     Ok(date)
 }
-fn unix_seconds_at(now: web_time::SystemTime) -> Result<i64, ParseIssue> {
+pub(crate) fn unix_seconds_at(now: web_time::SystemTime) -> Result<i64, ParseIssue> {
     match now.duration_since(web_time::UNIX_EPOCH) {
         Ok(duration) => i64::try_from(duration.as_secs()).map_err(|_| ParseIssue::InvalidTime),
         Err(error) => {

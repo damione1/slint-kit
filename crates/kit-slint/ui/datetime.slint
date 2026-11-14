@@ -10,6 +10,10 @@ import { FormConstraintState, KitFormValidation } from "validation.slint";
 import { KitValidityState } from "validation.slint";
 import { HtmlInputKind, ValidationTiming } from "validation.slint";
 import { KitTextField } from "input.slint";
+import { KitCombobox } from "choice.slint";
+import { KitField, KitFieldLabel, KitFieldDescription } from "field.slint";
+import { Ownership } from "shared-contracts.slint";
+import { OptionRow, SelectionRef } from "contracts.slint";
 import { TemporalField } from "temporal-field.slint";
 import { CivilDateView } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
@@ -482,7 +486,8 @@ export component KitZonedDateTimeField inherits Rectangle {
     // without announcing a choice.
     public function reset-field() {
         local.reset-field();
-        zone.reset-field();
+        root.zone-text = "";
+        root.sync-zone();
         root.draft-dirty = false;
         root.selected-occurrence = ZonedOccurrenceSelection.unselected;
         root.resolved-draft = {};
@@ -572,6 +577,19 @@ export component KitZonedDateTimeField inherits Rectangle {
     in-out property <string> date-text;
     in-out property <string> time-text;
     in-out property <string> zone-text;
+    // The zones the editor offers. By default the whole IANA catalogue, each
+    // option labelled with the zone name and described by its UTC offset; a host
+    // can narrow it to its own list of options labelled with zone names.
+    in property <[OptionRow]> zone-options: KitTimeService.ready ? KitTimeService.zone-options() : [];
+    private property <SelectionRef> zone-ref: KitTimeService.ready ? KitTimeService.zone-selection(root.zone-options, root.zone-text) : { present: false, token: 0 };
+    // Mirrors the host's zone text into the combobox; a name outside the list is shown as is.
+    function sync-zone() {
+        zone.selected = root.zone-ref;
+        if (!root.zone-ref.present) { zone.query = ""; zone.text = root.zone-text; }
+    }
+    changed zone-text => { root.sync-zone(); }
+    changed zone-ref => { root.sync-zone(); }
+    init => { root.sync-zone(); }
     callback edited(ZonedDateTimeDraft);
     callback resolve-requested(ZonedDateTimeDraft);
     callback ambiguity-chosen(AmbiguousTimeChoice);
@@ -603,15 +621,22 @@ export component KitZonedDateTimeField inherits Rectangle {
             commit-requested(draft) => { root.resolve(); }
             cancelled => { root.cancelled(); }
         }
-        zone := KitTextField { modal-layer: root.modal-layer;
-            validation-timing: root.validation-timing;
-            required: root.required || root.date-text != "" || root.time-text != "";
-            custom-validity: KitFormValidation.ready && root.zone-text != "" && !KitFormValidation.valid-time-zone(root.zone-text) ? root.invalid-zone-message : "";
-            invalid => { root.invalid(); }
-            required-message: root.required-message;
-            theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.zone-text; label: root.zone-label; placeholder: root.zone-placeholder; description: root.zone-description; error: root.zone-error; validation: root.zone-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-            edited(text) => { root.draft-dirty = true; root.edited({date: root.date-text, time: root.time-text, zone: text}); }
-            commit-requested(text) => { root.resolve(); }
+        KitField { theme: root.theme;
+            if root.zone-label != "": KitFieldLabel { theme: root.theme; text: root.zone-label; required: zone.required; access: root.access; focus-requested => { zone.take-focus(); } }
+            zone := KitCombobox { modal-layer: root.modal-layer;
+                validation-timing: root.validation-timing;
+                required: root.required || root.date-text != "" || root.time-text != "";
+                custom-validity: KitFormValidation.ready && root.zone-text != "" && !KitFormValidation.valid-time-zone(root.zone-text) ? root.invalid-zone-message : "";
+                invalid => { root.invalid(); }
+                required-message: root.required-message;
+                theme: root.theme; control-size: root.control-size; access: root.access; label: root.zone-label; placeholder: root.zone-placeholder;
+                ownership: Ownership.local; options: root.zone-options;
+                tab-navigation(reverse) => { return KitKeyResult.reject; }
+                chosen(row) => { root.draft-dirty = true; root.zone-text = row.label; root.edited({date: root.date-text, time: root.time-text, zone: row.label}); }
+            }
+            if root.zone-error != "": KitFieldError { theme: root.theme; text: root.zone-error; }
+            if root.zone-error == "" && zone.error-visible: KitFieldError { theme: root.theme; text: zone.validation-message; }
+            if root.zone-description != "": KitFieldDescription { theme: root.theme; text: root.zone-description; }
         }
         if root.resolution != ZonedTimePresentation.unresolved: Text {
             text: root.selected-occurrence == ZonedOccurrenceSelection.unselected ? root.resolution-message : root.selected-occurrence == ZonedOccurrenceSelection.earlier ? root.earlier-accepted-message : root.later-accepted-message;

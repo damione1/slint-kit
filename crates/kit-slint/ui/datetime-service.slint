@@ -4,6 +4,7 @@ import { FieldValue } from "field-service.slint";
 import { CivilDateView } from "calendar-service.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 import { KitDayPeriods, KitStrings } from "strings.slint";
+import { OptionRow, SelectionRef } from "contracts.slint";
 export enum TimeSegment { hour, minute, second }
 export enum TimeAdjustment { increment, decrement }
 export enum ZonedTimePresentation { unresolved, unique, ambiguous, nonexistent, invalid-zone }
@@ -43,4 +44,9 @@ export global KitTimeService {
     // Splits a `datetime-local` value ("2026-10-01T09:30") into its date and time drafts.
     pure callback split-local-text(string) -> LocalDateTimeDraft;
     pure callback resolve(ZonedDateTimeDraft, TimePrecision, ClockFormat) -> ZonedDateTimeResult;
+    // The whole IANA catalogue as options: the label is the zone name, the
+    // description its current UTC offset and a readable place name.
+    pure callback zone-options() -> [OptionRow];
+    // The option of `options` whose label is exactly the zone name, if any.
+    pure callback zone-selection([OptionRow], string) -> SelectionRef;
 }

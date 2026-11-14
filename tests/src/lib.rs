@@ -43,6 +43,7 @@ mod table_editing;
 mod table_rich_cells;
 mod window_callback;
 mod wrapped_field;
+mod zoned_zone_picker;
 
 #[cfg(test)]
 mod tests {
