@@ -13,7 +13,7 @@ import { KitOption, KitSelectKeyboard } from "select.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph } from "icons.slint";
 import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry } from "field-service.slint";
 import { ElevatedSurface } from "elevation.slint";
-import { KitDialogSurface, KitDialogPanel } from "dialog.slint";
+import { KitDialogSurface, KitDialogPanel, KitDialogFooter, DialogAction, DialogActionButton, DialogCloseButton } from "dialog.slint";
 import { KitModalContext } from "modal.slint";
 import { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
 export { OptionRow, SelectState, NavigationStep, CloseReason, DialogState } from "contracts.slint";
@@ -1250,6 +1250,9 @@ export component KitNotificationCenter inherits Rectangle {
 // OverlayStack and the focus registry remain the authority for modal ownership.
 // Render last; host connects dismiss, focus-next and restore-focus callbacks.
 export enum DrawerSide { start, end, top, bottom }
+// Which control takes focus when a drawer opens. `first-action` falls back to
+// the close button while `actions` is empty.
+export enum DrawerInitialFocus { close-button, first-action }
 export component KitDrawer inherits KitDialogSurface {
     in property <ControlSize> control-size: ControlSize.medium;
     in property <string> title;
@@ -1261,17 +1264,21 @@ export component KitDrawer inherits KitDialogSurface {
     in property <length> panel-width: 380px;
     // Panel extent for `top` and `bottom`; ignored for `start` and `end`.
     in property <length> panel-height: 320px;
+    // Where focus lands on open. The default keeps the close button.
+    in property <DrawerInitialFocus> initial-focus: DrawerInitialFocus.close-button;
+    // Footer buttons in reading order, pinned under the content; the last one is
+    // the primary action. An empty model shows no footer.
+    in property <[DialogAction]> actions;
+    callback action-activated(int);
+    private property <bool> focus-first-action: root.initial-focus == DrawerInitialFocus.first-action && root.actions.length > 0;
     private property <bool> horizontal-edge: root.side == DrawerSide.top || root.side == DrawerSide.bottom;
     private property <bool> at-right: (root.side == DrawerSide.end) != (root.theme.direction == ChoiceFlow.right-to-left);
     callback restore-focus();
     callback close-focus-observed(bool);
+    // Focuses the close button, wherever `initial-focus` sends focus on open.
     public function take-focus() { close-button.take-focus(); }
     private property <bool> opened: root.state.open;
-    init => { if (root.state.open) { close-button.take-focus(); } }
-    changed opened => {
-        if (root.opened) { close-button.take-focus(); }
-        else { root.restore-focus(); }
-    }
+    changed opened => { if (!root.opened) { root.restore-focus(); } }
     KitDialogPanel {
         theme: root.theme;
         accessible-name: root.title;
@@ -1286,16 +1293,32 @@ export component KitDrawer inherits KitDialogSurface {
                 vertical-stretch: 0;
                 spacing: root.theme.spacing.unit * 3;
                 Text { horizontal-stretch: 1; text: root.title; color: root.theme.text-primary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.subtitle); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; vertical-alignment: center; }
-                close-button := KitIconButton {
+                close-button := DialogCloseButton {
                     theme: root.theme; control-size: root.control-size; glyph: root.theme.icons.close;
                     accessible-name: root.close-label;
                     modal-layer: root.modal-layer;
+                    claim-focus: root.state.open && !root.focus-first-action;
                     disabled: root.state.busy || !root.state.topmost;
                     focus-observed(focused) => { root.close-focus-observed(focused); }
                     activated => { root.dismiss(CloseReason.close-button); }
                 }
             }
-            @children
+            VerticalLayout {
+                vertical-stretch: 1;
+                spacing: root.theme.spacing.unit * 4;
+                @children
+            }
+            if root.actions.length > 0: KitDialogFooter {
+                theme: root.theme;
+                for action[index] in root.actions: DialogActionButton {
+                    theme: root.theme; control-size: root.control-size;
+                    text: action.text; intent: action.intent;
+                    modal-layer: root.modal-layer;
+                    claim-focus: index == 0 && root.focus-first-action && root.state.open;
+                    disabled: action.disabled || root.state.busy || !root.state.topmost;
+                    activated => { root.action-activated(action.token); }
+                }
+            }
         }
     }
 }
