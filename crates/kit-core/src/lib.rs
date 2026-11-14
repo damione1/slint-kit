@@ -105,6 +105,11 @@ contract_enums! {
         PageNext => "page-next", PagePrevious => "page-previous",
     }
     RowGesture => "RowGesture" { Select => "select", Toggle => "toggle", Extend => "extend", Open => "open" }
+    // How many rows a collection view keeps selected. The host owns it; the
+    // view only reports typed gestures. `None` leaves selection unused: the
+    // rows are not announced as selectable and a gesture only moves the
+    // active row.
+    SelectionMode => "SelectionMode" { None => "none", Single => "single", Multiple => "multiple" }
     SelectionAvailability => "SelectionAvailability" {
         Absent => "absent", Available => "available", Unavailable => "unavailable",
     }
@@ -116,12 +121,4 @@ contract_enums! {
         Escape => "escape", OutsidePress => "outside-press", SystemBack => "system-back",
         TriggerToggle => "trigger-toggle", CloseButton => "close-button", Programmatic => "programmatic", HostClosed => "host-closed",
     }
-}
-
-/// How many rows a collection view keeps selected. The host owns it; the
-/// view only reports typed gestures.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SelectionMode {
-    Single,
-    Multiple,
 }

@@ -9,7 +9,7 @@ import { KitTextField } from "input.slint";
 import { FieldCommit, KitFieldService } from "field-service.slint";
 import { FocusOutline } from "focus.slint";
 import { NavigationStep, FieldAccess, SelectionRef } from "contracts.slint";
-import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture } from "shared-contracts.slint";
+import { CheckState, TextPurpose, HtmlInputKind, Ownership, RowGesture, SelectionMode } from "shared-contracts.slint";
 import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
 import { KitSpinner } from "feedback.slint";
@@ -144,12 +144,17 @@ component DataAction inherits KitPressable {
     callback focus-requested();
     private property <int> armed-token;
     private property <int> armed-generation;
+    // The width of the selection checkbox cell at the row's leading edge; 0
+    // when the table has none. A press inside it toggles the row, or extends
+    // the selection with Shift held, whatever else the row does on a click.
+    in property <length> checkbox-width;
+    out property <bool> in-checkbox: root.pointer-x < root.checkbox-width;
     // The gesture of the armed activation: a held Control or Meta key
     // toggles, a held Shift extends, anything else selects.
     out property <RowGesture> armed-gesture: RowGesture.select;
     activation-started => {
         root.armed-token = root.token;root.armed-generation = root.generation;
-        root.armed-gesture = root.pointer-modifiers.control || root.pointer-modifiers.meta ? RowGesture.toggle : root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.select;
+        root.armed-gesture = root.in-checkbox ? (root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.toggle) : root.pointer-modifiers.control || root.pointer-modifiers.meta ? RowGesture.toggle : root.pointer-modifiers.shift ? RowGesture.extend : RowGesture.select;
         root.focus-requested();
     }
     changed token => {root.cancel-press();}
@@ -518,6 +523,29 @@ export component KitDataTable inherits Rectangle {
     private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <TableHeaderFocus> header-focus: TableHeaderFocus.individual;
     in property <string> header-label: "Column headers";
+    // How many rows the host keeps selected. With `none` the rows are not
+    // announced as selectable; with `single` or `multiple` they are. The host
+    // applies the typed `gesture`s to its own selection.
+    in property <SelectionMode> selection-mode: SelectionMode.none;
+    // Paints a leading checkbox column, with a tri-state select-all header,
+    // in front of `columns`. It exists only while `selection-mode` is
+    // `multiple`; the column is not part of `columns` and has no token. A
+    // checkbox click is a `toggle` gesture; the header reports
+    // `select-all-requested`.
+    in property <bool> selection-column: false;
+    // The select-all header state the host publishes: `checked` when every
+    // enabled row is selected, `mixed` when some are, `unchecked` otherwise.
+    in property <CheckState> selection-state: CheckState.unchecked;
+    // Accessible words the application localizes: the header checkbox name,
+    // and its description while the selection is partial.
+    in property <string> select-all-label: "Select all rows";
+    in property <string> some-selected-label: "Some rows selected";
+    // The select-all header, or Control/Meta with A while the selection mode
+    // is `multiple`, asks the host to select every enabled row, or to clear
+    // the selection when all are selected.
+    callback select-all-requested();
+    private property <bool> selection-visible: root.selection-column && root.selection-mode == SelectionMode.multiple;
+    private property <length> selection-width: root.row-height;
     private property <TableCursorRegion> cursor-region: TableCursorRegion.body;
     private property <int> keyboard-resize-request;
     private property <length> keyboard-resize-delta;
@@ -866,6 +894,27 @@ export component KitDataTable inherits Rectangle {
             // element. Keyboard, pointer and the accessible default action of
             // a sortable header all go through one pressable, so one
             // `disabled` rule decides all three.
+            if root.selection-visible: select-all-cell := Rectangle {
+                min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                horizontal-stretch: 0; height: root.row-height; clip: true;
+                KitPressable {
+                    theme: root.theme; control-width: ControlWidth.fill;
+                    width: parent.width; min-height: root.row-height; preferred-height: root.row-height;
+                    recipe: root.row-recipe; disabled: !root.interactive || root.rows.length == 0; modal-layer: root.modal-layer; tab-stop: root.header-focus == TableHeaderFocus.individual;
+                    focus-ring: KitThemes.inset-focus(root.theme);
+                    background: self.pressed ? self.recipe.pressed-fill : self.hovered ? self.recipe.hover-fill : self.recipe.fill;
+                    accessible-role: checkbox; accessible-name: root.select-all-label;
+                    description: root.selection-state == CheckState.mixed ? root.some-selected-label : "";
+                    accessible-checkable: true; accessible-checked: root.selection-state == CheckState.checked;
+                    activated => { root.select-all-requested(); }
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: root.selection-state;
+                        access: root.interactive && root.rows.length > 0 ? FieldAccess.editable : FieldAccess.disabled;
+                    }
+                }
+            }
             for column[column-index] in root.display-columns: header-cell := Rectangle {
                 private property <bool> active-header: keys.has-focus && root.cursor-region == TableCursorRegion.header && column-index == root.active-column;
                 changed active-header => { if (self.active-header) { root.reveal-cell(self.absolute-position.x, self.width); } }
@@ -967,6 +1016,10 @@ export component KitDataTable inherits Rectangle {
                 root.active-column = event.text == Key.Home ? 0 : root.display-columns.length - 1;
                 return KitKeyResult.accept;
             }
+            if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "a" || event.text == "A") && root.selection-mode == SelectionMode.multiple && root.cursor-region == TableCursorRegion.body) {
+                root.select-all-requested();
+                return KitKeyResult.accept;
+            }
             if ((event.modifiers.control || event.modifiers.meta) && !event.modifiers.alt && !event.modifiers.shift && (event.text == "c" || event.text == "C") && root.cursor-region == TableCursorRegion.body && root.has-active-cell()) {
                 root.copy-active-cell();
                 return KitKeyResult.accept;
@@ -993,7 +1046,7 @@ export component KitDataTable inherits Rectangle {
             width:root.grid-width;height:root.row-height;min-height:root.row-height;preferred-height:root.row-height;
             intent:ButtonIntent.quiet;disabled:!root.interactive || row.disabled;modal-layer:root.modal-layer;
             accessible-name:root.row-name(row);
-            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:true;accessible-item-selected:row.selected;
+            accessible-role:AccessibleRole.list-item;accessible-item-index:index;accessible-item-count:root.rows.length;accessible-item-selectable:root.selection-mode != SelectionMode.none;accessible-item-selected:row.selected;
             background:row.disabled ? root.theme.disabled-fill : row.selected ? root.theme.selection : self.pressed ? root.row-recipe.pressed-fill : self.hovered ? root.row-recipe.hover-fill : root.striped && Math.mod(index,2) == 1 ? root.theme.canvas : root.theme.surface;
             // The row ring shows while the cursor is the whole row; a cell
             // ring takes over once Left/Right chose a column. A row with an
@@ -1003,13 +1056,24 @@ export component KitDataTable inherits Rectangle {
             pointer-enabled: !(root.edit-open && row.token == root.edit-row-token);
             recipe:root.row-recipe;
             focus-requested => {keys.focus();}
-            double-activated => { if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
+            checkbox-width: root.selection-visible ? root.selection-width : 0px;
+            double-activated => { if (row-action.in-checkbox) { return; } if (root.active-cell-editable()) { root.edit-active(); } else if (!row.disabled) { root.gesture(row.token, root.generation, RowGesture.open); } }
             requested(token,generation) => {keys.focus();root.activate(token,generation);root.gesture(token,generation,row-action.armed-gesture);}
             // Row cells take the constraints of their column, so the solver
             // lays them out exactly as the header above. A row paints its
             // typed `content` when it has any, otherwise its plain `cells`
             // as text cells.
             if row.content.length == 0: HorizontalLayout {spacing:0px; padding: 0px;
+                if root.selection-visible: Rectangle {
+                    min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                    horizontal-stretch: 0;
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: row.selected ? CheckState.checked : CheckState.unchecked;
+                        access: row.disabled ? FieldAccess.disabled : FieldAccess.editable;
+                    }
+                }
                 for column[column-index] in root.display-columns: row-cell := TableCellView { modal-layer: root.modal-layer;
                     min-width: root.cell-min(root.display-columns[column-index]); max-width: root.cell-max(root.display-columns[column-index]); preferred-width: root.cell-preferred(root.display-columns[column-index]);
                     horizontal-stretch: root.cell-stretch(root.display-columns[column-index]);
@@ -1026,6 +1090,16 @@ export component KitDataTable inherits Rectangle {
                 }
             }
             if row.content.length > 0: HorizontalLayout {spacing:0px; padding: 0px;
+                if root.selection-visible: Rectangle {
+                    min-width: root.selection-width; max-width: root.selection-width; preferred-width: root.selection-width;
+                    horizontal-stretch: 0;
+                    CheckMark {
+                        theme: root.theme; control-size: root.control-size;
+                        x: (parent.width - self.width) / 2; y: (parent.height - self.height) / 2;
+                        state: row.selected ? CheckState.checked : CheckState.unchecked;
+                        access: row.disabled ? FieldAccess.disabled : FieldAccess.editable;
+                    }
+                }
                 // The editor mounts on the cell whose row and column tokens
                 // are the armed ones, wherever the viewport now paints them.
                 // Its outcomes are forwarded only while that session is the
