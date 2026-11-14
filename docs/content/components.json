@@ -2725,6 +2725,31 @@
           "default": "`\"Column headers\"`.",
           "example": "KitDataTable {\n    header-label: \"En-têtes\";\n}"
         },
+        "selection-mode": {
+          "effect": "Nombre de lignes que l’hôte garde sélectionnées : `none`, `single` ou `multiple`. Avec `none`, les lignes ne sont pas annoncées comme sélectionnables ; avec `single` ou `multiple`, elles le sont. L’hôte applique les `gesture` typés à sa propre sélection, par exemple avec `KeyedModel::gestures(mode, handler)`.",
+          "default": "`SelectionMode.none`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    selection-mode: SelectionMode.multiple;\n}"
+        },
+        "selection-column": {
+          "effect": "Peint une colonne de cases à cocher en tête, avec un en-tête « tout sélectionner » à trois états, avant `columns`. Elle n’existe que si `selection-mode` vaut `multiple`, ne fait pas partie de `columns` et n’a pas de token. Un clic sur une case est un geste `toggle` ; une ligne désactivée l’ignore.",
+          "default": "`false`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    selection-mode: SelectionMode.multiple;\n    selection-column: true;\n    selection-state: root.selection-state;\n    select-all-requested => { root.select-all(); }\n}"
+        },
+        "selection-state": {
+          "effect": "État de l’en-tête « tout sélectionner » : `checked` si toutes les lignes actives sont sélectionnées, `mixed` si certaines le sont, `unchecked` sinon. L’hôte le publie ; `KeyedModel::selection_state()` le calcule et `bind_selection_state` le tient à jour.",
+          "default": "`CheckState.unchecked`.",
+          "example": "KitDataTable {\n    selection-column: true;\n    selection-state: CheckState.mixed;\n}"
+        },
+        "select-all-label": {
+          "effect": "Nom accessible localisé de la case d’en-tête « tout sélectionner ».",
+          "default": "`\"Select all rows\"`.",
+          "example": "KitDataTable {\n    select-all-label: \"Sélectionner tous les projets\";\n}"
+        },
+        "some-selected-label": {
+          "effect": "Description accessible localisée de l’en-tête « tout sélectionner » tant que `selection-state` vaut `mixed`. Slint expose un état coché sans valeur mixte : l’état partiel est donc énoncé ici.",
+          "default": "`\"Some rows selected\"`.",
+          "example": "KitDataTable {\n    some-selected-label: \"Certains projets sont sélectionnés\";\n}"
+        },
         "edit-row-token": {
           "effect": "Token stable de ligne armé au début de la session. Lisez-le avec `editing` ; la dernière identité reste disponible après fermeture. Résolvez token/génération via le modèle à clés avant un effet métier.",
           "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { text: \"edit-row-token: \" + table.edit-row-token; }"
@@ -2787,6 +2812,7 @@
         }
       },
       "callbacks": {
+        "select-all-requested": "Demande « tout sélectionner » de la case d’en-tête, ou Contrôle/Méta avec A tant que `selection-mode` vaut `multiple`. L’hôte sélectionne toutes les lignes actives, ou efface la sélection si toutes le sont : `KeyedModel::select_all_toggle()`.",
         "activate": "Intention de ligne : `(row-token, generation)`. Validez l’identité avant de sélectionner ou ouvrir un enregistrement métier.",
         "gesture": "Geste de ligne typé : `(row-token, generation, RowGesture)`. Un clic vaut `select`, `toggle` avec Contrôle ou Méta, `extend` avec Maj ; Espace vaut `toggle` ; Entrée, ou un double-clic sur une ligne sans cellule modifiable, vaut `open`. `activate` reste émis pour chaque activation : traitez l’un ou l’autre, jamais les deux. Avec `KeyedModel::gestures(mode, handler)`, la sélection suit `SelectionMode`.",
         "navigate": "Demande de navigation entre lignes. Utilisez la taille de page courante avec le modèle par clé.",
@@ -2973,6 +2999,31 @@
           "default": "`\"Column headers\"`.",
           "example": "KitDataTable {\n    header-label: \"Column headers\";\n}"
         },
+        "selection-mode": {
+          "effect": "How many rows the host keeps selected: `none`, `single` or `multiple`. With `none` rows are not announced as selectable; with `single` or `multiple` they are. The host applies the typed `gesture`s to its own selection, for example with `KeyedModel::gestures(mode, handler)`.",
+          "default": "`SelectionMode.none`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    selection-mode: SelectionMode.multiple;\n}"
+        },
+        "selection-column": {
+          "effect": "Paints a leading checkbox column, with a tri-state select-all header, before `columns`. It exists only while `selection-mode` is `multiple`, is not part of `columns` and has no token. A checkbox click is a `toggle` gesture and a disabled row ignores it.",
+          "default": "`false`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    selection-mode: SelectionMode.multiple;\n    selection-column: true;\n    selection-state: root.selection-state;\n    select-all-requested => { root.select-all(); }\n}"
+        },
+        "selection-state": {
+          "effect": "State of the select-all header: `checked` when every enabled row is selected, `mixed` when some are, `unchecked` otherwise. The host publishes it; `KeyedModel::selection_state()` computes it and `bind_selection_state` keeps it current.",
+          "default": "`CheckState.unchecked`.",
+          "example": "KitDataTable {\n    selection-column: true;\n    selection-state: CheckState.mixed;\n}"
+        },
+        "select-all-label": {
+          "effect": "Localized accessible name of the select-all header checkbox.",
+          "default": "`\"Select all rows\"`.",
+          "example": "KitDataTable {\n    select-all-label: \"Select all projects\";\n}"
+        },
+        "some-selected-label": {
+          "effect": "Localized accessible description of the select-all header while `selection-state` is `mixed`. Slint exposes a checked state without a mixed value, so the partial state is spoken here.",
+          "default": "`\"Some rows selected\"`.",
+          "example": "KitDataTable {\n    some-selected-label: \"Some projects selected\";\n}"
+        },
         "edit-row-token": {
           "effect": "Stable row token armed at session start. Read it with `editing`; the last session identity remains available after closure. Resolve token/generation through the keyed model before a domain side effect.",
           "example": "table := KitDataTable { rows: root.rows; columns: root.columns; }\nText { text: \"edit-row-token: \" + table.edit-row-token; }"
@@ -3035,6 +3086,7 @@
         }
       },
       "callbacks": {
+        "select-all-requested": "Select-all request from the header checkbox, or Control/Meta with A while `selection-mode` is `multiple`. The host selects every enabled row, or clears the selection when all are selected: `KeyedModel::select_all_toggle()`.",
         "activate": "Row intent: `(row-token, generation)`. Fence the identity before selecting or opening a domain record.",
         "gesture": "Typed row gesture: `(row-token, generation, RowGesture)`. A click is `select`, `toggle` with Control or Meta held and `extend` with Shift held; Space is `toggle`; Enter, or a double-click on a row without an editable cell, is `open`. `activate` still fires for every activation: handle one of the two, never both. With `KeyedModel::gestures(mode, handler)` the selection follows `SelectionMode`.",
         "navigate": "Roving row navigation request. Use the current view page size with the keyed model for page keys.",
