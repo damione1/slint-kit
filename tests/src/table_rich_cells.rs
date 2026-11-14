@@ -126,3 +126,26 @@ fn typed_cells_convert_once_into_their_flat_projection() {
     assert_eq!(cell(2).kind, TableCellKind::Progress);
     assert!((cell(2).fraction - 0.25).abs() < f32::EPSILON);
 }
+
+fn full_text_tips(row: &ElementHandle) -> usize {
+    row.query_descendants()
+        .match_id("ElidedText::elided-marker")
+        .find_all()
+        .len()
+}
+
+#[test]
+fn elided_text_cells_show_their_full_text_in_a_tooltip() {
+    let long = "A very long description that cannot fit in a column of one hundred and sixty pixels";
+    let window = load(vec![rich_row(1, long), rich_row(2, "Short")]);
+    assert_eq!(
+        full_text_tips(&row_named(&window, long)),
+        1,
+        "the elided text cell offers its full text"
+    );
+    assert_eq!(
+        full_text_tips(&row_named(&window, "Short")),
+        0,
+        "a text that fits has no tooltip"
+    );
+}
