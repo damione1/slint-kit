@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
-use crate::ui;
+use crate::{FieldSpec, ui};
 use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
     DateDisplayPattern, DateEntry, DateNames, DatePattern, DateRange, DateRangeController,
@@ -257,6 +257,28 @@ fn with_week_rows(
 /// complete ISO date, or any invalid pattern or name set, yields `None` so the
 /// caller keeps the ISO text.
 fn display_date(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(date) = CivilDate::parse_iso(text) else {
+        return None;
+    };
+    display_civil_date(date, display)
+}
+/// Format an accepted `YYYY-MM` month with a date pattern (for example `%B %Y`),
+/// through its first day. Any other text, pattern or name set yields `None`.
+fn display_month(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(month) = FieldSpec::month().parse_text(text) else {
+        return None;
+    };
+    display_civil_date(month.first_day(), display)
+}
+/// Format an accepted `YYYY-Www` week with a date pattern (for example `%G, week %V`),
+/// through its Monday. Any other text, pattern or name set yields `None`.
+fn display_week(text: &str, display: &ui::DateDisplay) -> Option<String> {
+    let DraftValue::Parsed(week) = FieldSpec::iso_week().parse_text(text) else {
+        return None;
+    };
+    display_civil_date(week.monday(), display)
+}
+fn display_civil_date(date: CivilDate, display: &ui::DateDisplay) -> Option<String> {
     fn names<const N: usize>(model: &ModelRc<slint::SharedString>) -> Option<[String; N]> {
         model
             .iter()
@@ -265,9 +287,6 @@ fn display_date(text: &str, display: &ui::DateDisplay) -> Option<String> {
             .try_into()
             .ok()
     }
-    let DraftValue::Parsed(date) = CivilDate::parse_iso(text) else {
-        return None;
-    };
     let pattern = DateDisplayPattern::new(display.pattern.as_str()).ok()?;
     let names = DateNames::new(
         names(&display.months)?,
@@ -613,6 +632,12 @@ where
     });
     service.on_display_date(|text, display| {
         display_date(text.as_str(), &display).map_or(text, slint::SharedString::from)
+    });
+    service.on_display_month(|text, display| {
+        display_month(text.as_str(), &display).map_or(text, slint::SharedString::from)
+    });
+    service.on_display_week(|text, display| {
+        display_week(text.as_str(), &display).map_or(text, slint::SharedString::from)
     });
     service
         .on_project(|view, text| localized_projection(view, text, RangeSelection::ChoosingStart));

@@ -15,7 +15,7 @@ import { KitField, KitFieldLabel, KitFieldDescription } from "field.slint";
 import { Ownership } from "shared-contracts.slint";
 import { OptionRow, SelectionRef } from "contracts.slint";
 import { TemporalField } from "temporal-field.slint";
-import { CivilDateView } from "calendar.slint";
+import { CivilDateView, KitCalendarService, DateDisplay } from "calendar.slint";
 import { FieldAccess } from "contracts.slint";
 import { KitKeyResult } from "keyboard.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
@@ -23,7 +23,7 @@ export { TimePrecision, ClockFormat } from "shared-contracts.slint";
 
 import { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
 export { TimeSegment, TimeAdjustment, ZonedTimePresentation, AmbiguousTimeChoice, ZonedOccurrenceSelection, ZonedAcceptance, LocalTimeView, LocalDateTimeView, LocalDateTimeDraft, ZonedDateTimeDraft, ZonedDateTimeResult, ZonedDateTimeCommit, LocalTimeValue, KitTimeService } from "datetime-service.slint";
-import { FieldCommit, FieldState, FieldValue } from "field-service.slint";
+import { FieldCommit, FieldState, FieldValue, KitFieldService } from "field-service.slint";
 import { KitModalContext } from "modal.slint";
 
 component TimeSegmentControl inherits Rectangle {
@@ -390,6 +390,12 @@ export component KitDateTimeField inherits Rectangle {
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
+    // Selects a registered `FieldSpec` of the date (`FieldSpec::date()`, `date_pattern`)
+    // whose display formatter prints the date editor at rest.
+    in property <string> spec-key;
+    // Display-at-rest format of the date editor. Editing, constraints and the
+    // accepted value stay ISO; an empty or invalid pattern keeps the ISO text.
+    in property <DateDisplay> display-format;
     in property <string> date-placeholder: "YYYY-MM-DD";
     in property <string> time-placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss " + KitStrings.day-periods.am : "hh:mm " + KitStrings.day-periods.am) : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
     in property <string> date-description: KitStrings.date-description;
@@ -433,7 +439,10 @@ export component KitDateTimeField inherits Rectangle {
         date := KitTextField { modal-layer: root.modal-layer;
             input-kind: HtmlInputKind.date;
             validation: root.date-error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
-            theme: root.theme; control-size: root.control-size; access: root.access; text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description; required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message;
+            theme: root.theme; control-size: root.control-size; access: root.access; spec-key: root.spec-key; display-text: !KitFieldService.ready || self.accepted-text != root.date-text ? root.date-text
+                : root.display-format.pattern != "" && KitCalendarService.ready ? KitCalendarService.display-date(root.date-text, root.display-format)
+                : KitFieldService.display(root.spec-key, root.date-text);
+            text <=> root.date-text; label: root.date-label; error: root.date-error; placeholder: root.date-placeholder; description: root.date-description; required-message: root.required-message; underflow-message: root.underflow-message; overflow-message: root.overflow-message; step-message: root.step-message; bad-input-message: root.bad-input-message;
             edited(text) => { checks.note-edit(); root.draft-dirty = true; root.edited({date: text, time: root.time-text}); if (root.commit-policy == CommitPolicy.on-change-when-valid) { root.accept-pair(FieldAction.edit); } }
             commit-requested(text) => { root.commit(); }
             cancelled => { root.cancelled(); }
@@ -552,6 +561,9 @@ export component KitZonedDateTimeField inherits Rectangle {
     in property <ClockFormat> clock-format: ClockFormat.twenty-four-hour;
     in property <TimePrecision> precision: TimePrecision.minute;
     in property <string> label;
+    // Forwarded to the date editor of the local pair; see KitDateTimeField.
+    in property <string> spec-key;
+    in property <DateDisplay> display-format;
     in property <string> date-placeholder: "YYYY-MM-DD";
     in property <string> time-placeholder: root.clock-format == ClockFormat.twelve-hour ? (root.precision == TimePrecision.second ? "hh:mm:ss " + KitStrings.day-periods.am : "hh:mm " + KitStrings.day-periods.am) : (root.precision == TimePrecision.second ? "HH:mm:ss" : "HH:mm");
     in property <string> date-description: KitStrings.date-description;
@@ -610,6 +622,7 @@ export component KitZonedDateTimeField inherits Rectangle {
         local := KitDateTimeField { modal-layer: root.modal-layer;
             // The zoned group owns the blur; the inner pair only commits on Enter.
             commit-policy: CommitPolicy.on-submit; validation-timing: root.validation-timing;
+            spec-key: root.spec-key; display-format: root.display-format;
             required: root.required || root.zone-text != ""; min: root.min; max: root.max; step: root.step;
             custom-validity: root.custom-validity != "" ? root.custom-validity
                 : (root.resolution == ZonedTimePresentation.ambiguous && root.selected-occurrence == ZonedOccurrenceSelection.unselected) || root.resolution == ZonedTimePresentation.nonexistent || root.resolution == ZonedTimePresentation.invalid-zone
