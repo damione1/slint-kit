@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitCalendar, KitButton, KitTheme, KitThemes, CalendarDay, CalendarDayMark, CalendarMarker, CivilDateView } from "@kit";
+import { KitCalendar, KitDatePicker, KitDateRangePicker, DateRangeView, KitButton, KitTheme, KitThemes, CalendarDay, CalendarDayMark, CalendarMarker, CivilDateView } from "@kit";
 export component CalendarMarksFixture inherits Window {
     width: 600px; height: 600px;
     in property <KitTheme> theme: KitThemes.light;
@@ -7,10 +7,26 @@ export component CalendarMarksFixture inherits Window {
     in property <[CalendarDayMark]> marks;
     in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 1};
     out property <[CalendarDay]> calendar-days: calendar.days;
+    in-out property <DateRangeView> range-selection: {start: {year: 2026, month: 10, day: 1}, end: {year: 2026, month: 10, day: 3}};
+    out property <[CalendarDay]> date-days: date.days;
+    out property <[CalendarDay]> range-days: range.days;
     callback footer-clicked();
+    public function open-date() { date.open = true; }
     calendar := KitCalendar {
         theme: root.theme; label: "Calendar"; today: {year: 2026, month: 10, day: 2};
         day-marks: root.marks; focused <=> root.focused;
+        KitButton { theme: root.theme; text: "Today"; activated => { root.footer-clicked(); } }
+    }
+    date := KitDatePicker {
+        theme: root.theme; label: "Date"; today: {year: 2026, month: 10, day: 2};
+        accepted-date: {year: 2026, month: 10, day: 1}; day-marks: root.marks;
+        y: 300px;
+        KitButton { theme: root.theme; text: "Today"; activated => { root.footer-clicked(); } }
+    }
+    range := KitDateRangePicker {
+        theme: root.theme; label: "Range"; today: {year: 2026, month: 10, day: 2};
+        selected <=> root.range-selection; day-marks: root.marks;
+        y: 400px;
         KitButton { theme: root.theme; text: "Today"; activated => { root.footer-clicked(); } }
     }
 }
