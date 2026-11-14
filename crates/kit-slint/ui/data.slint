@@ -122,6 +122,9 @@ component DataKeyboard inherits FocusScope {
     callback navigate-column(ColumnStep);
     callback activate();
     callback confirm();
+    // Shift+Enter, taken only while `link-key` is on; off, it is a plain Enter.
+    in property <bool> link-key;
+    callback link-requested();
     callback edit-requested();
     callback context-requested();
     callback key-event(KeyEvent) -> KitKeyResult;
@@ -139,6 +142,7 @@ component DataKeyboard inherits FocusScope {
         if (event.text == Key.PageUp) {root.navigate(NavigationStep.page-previous);return accept;}
         if (root.column-navigation && event.text == Key.LeftArrow) {root.navigate-column(ColumnStep.previous);return accept;}
         if (root.column-navigation && event.text == Key.RightArrow) {root.navigate-column(ColumnStep.next);return accept;}
+        if (event.text == Key.Return && root.link-key && event.modifiers.shift && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {root.link-requested();return accept;}
         if (event.text == Key.Return) {root.confirm();return accept;}
         if (event.text == Key.Space) {root.activate();return accept;}
         return reject;
@@ -1341,7 +1345,8 @@ export component KitContentList inherits Rectangle {
     in property <bool> interactive: true;
     private property <bool> live: root.interactive && !KitModalContext.inert(root.modal-layer);
     in property <ScrollBarPolicy> vertical-scrollbar-policy: ScrollBarPolicy.always-on;
-    // The row's own link label was pressed; the row itself is not activated.
+    // The row's own link label was pressed, or Shift+Enter was pressed on the
+    // active row that has one; the row itself is not activated.
     callback link-activated(int,int);
     // Row intent without a gesture; hosts that need several selected rows or
     // a separate open action handle `gesture` instead, not both.
@@ -1390,7 +1395,8 @@ export component KitContentList inherits Rectangle {
     min-width:0px;preferred-width:700px;min-height:160px;preferred-height:420px;
     accessible-role:AccessibleRole.list;accessible-label:root.label;forward-focus:keys;accessible-description:root.state == DataState.loading ? root.loading-label : root.state == DataState.failed ? root.error-label : "";
     function activate-active(gesture: RowGesture) {if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.activate(root.items[root.active-index].token,root.generation);root.gesture(root.items[root.active-index].token,root.generation,gesture);}}
-    keys := DataKeyboard {disabled:!root.live;navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}context-requested=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.context-requested(root.items[root.active-index].token,root.generation,min(root.row-height,root.width),root.row-height*(root.active-index+0.5)+list.content-y);}}}
+    private property <bool> active-has-link: root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled&&root.items[root.active-index].link-label!="";
+    keys := DataKeyboard {disabled:!root.live;link-key:root.active-has-link;link-requested=>{root.link-activated(root.items[root.active-index].token,root.generation);}navigate(step)=>{root.navigate(step);}activate=>{root.activate-active(RowGesture.toggle);}confirm=>{root.activate-active(RowGesture.open);}context-requested=>{if(root.active-index>=0&&root.active-index<root.items.length&&!root.items[root.active-index].disabled){root.context-requested(root.items[root.active-index].token,root.generation,min(root.row-height,root.width),root.row-height*(root.active-index+0.5)+list.content-y);}}}
     list := ListView {
         theme: root.theme;
         vertical-scrollbar-policy: root.vertical-scrollbar-policy;
