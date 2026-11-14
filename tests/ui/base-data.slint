@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, ContentThumbnail, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellCommit, RowGesture } from "@kit";
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, ContentThumbnail, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellRef, CellCommit, RowGesture } from "@kit";
 export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -109,12 +109,12 @@ export component BaseDataFixture inherits Window {
     callback autosize-requested(int);
     callback reorder-requested(int, int);
     callback cell-committed(CellCommit);
-    callback table-edit-started(int, int, int);
-    callback table-cell-copied(int, int, int, string);
+    callback table-edit-started(CellRef);
+    callback table-cell-copied(CellRef, string);
     public function copy-table-cell() { table.copy-active-cell(); }
-    callback table-edit-ended(int, int, int, TableEditOutcome, string);
-    callback validate-table-edit(int, int, int, FieldCommit) -> string;
-    validate-table-edit(row, column, generation, commit) => { return ""; }
+    callback table-edit-ended(CellRef, TableEditOutcome, string);
+    callback validate-table-edit(CellRef, FieldCommit) -> string;
+    validate-table-edit(cell, commit) => { return ""; }
     public function edit-table() { table.edit-active(); }
     public function commit-table() { table.commit-edit(); }
     public function cancel-table() { table.cancel-edit(); }
@@ -146,10 +146,10 @@ export component BaseDataFixture inherits Window {
             autosize-requested(token) => { root.autosize-requested(token); }
             reorder-requested(source, target) => { root.reorder-requested(source, target); }
             edit-blur-policy: root.table-edit-blur-policy; unchanged-edit-policy: root.table-unchanged-edit-policy;
-            edit-started(row,column,generation) => {root.table-edit-started(row,column,generation);}
-            cell-copied(row,column,generation,text) => {root.table-cell-copied(row,column,generation,text);}
-            edit-ended(row,column,generation,outcome,message) => {root.table-edit-ended(row,column,generation,outcome,message);}
-            validate-edit(row,column,generation,commit) => { return root.validate-table-edit(row,column,generation,commit); }
+            edit-started(cell) => {root.table-edit-started(cell);}
+            cell-copied(cell,text) => {root.table-cell-copied(cell,text);}
+            edit-ended(cell,outcome,message) => {root.table-edit-ended(cell,outcome,message);}
+            validate-edit(cell,commit) => { return root.validate-table-edit(cell,commit); }
             cell-committed(proposal) => { root.cell-committed(proposal); }
             Text { text: "Table custom empty"; accessible-role: AccessibleRole.text; accessible-label: "Table custom empty"; }
         }

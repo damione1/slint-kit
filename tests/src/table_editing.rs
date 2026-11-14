@@ -1064,7 +1064,7 @@ fn constrained_cells_filter_numbers_and_keep_rejected_domain_values_open() {
     key(&window, Key::Escape);
     key(&window, Key::F2);
     text(&window, "8");
-    window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+    window.on_validate_table_edit(|_, _| "The record is locked".into());
     key(&window, Key::Return);
     assert!(window.get_table_editing());
     assert_eq!(window.get_table_edit_error(), "The record is locked");
@@ -1088,7 +1088,7 @@ fn constrained_host_rejections_can_retry_the_same_draft_without_retyping() {
         let observed = locked.clone();
         let verdicts = Rc::new(std::cell::Cell::new(0));
         let observed_verdicts = verdicts.clone();
-        window.on_validate_table_edit(move |_, _, _, _| {
+        window.on_validate_table_edit(move |_, _| {
             observed_verdicts.set(observed_verdicts.get() + 1);
             if observed.get() {
                 "The record is locked".into()
@@ -1285,7 +1285,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
             let mut theme = theme.clone();
             theme.text_scale = scale;
             window.set_theme(theme);
-            window.on_validate_table_edit(|_, _, _, _| "".into());
+            window.on_validate_table_edit(|_, _| "".into());
             window.invoke_focus_table();
             open(&window, 1);
             text(&window, "25");
@@ -1306,7 +1306,7 @@ fn constrained_cell_rejections_render_and_keep_native_editor_geometry_in_each_th
             key(&window, Key::Escape);
             key(&window, Key::F2);
             text(&window, "8");
-            window.on_validate_table_edit(|_, _, _, _| "The record is locked".into());
+            window.on_validate_table_edit(|_, _| "The record is locked".into());
             key(&window, Key::Return);
             assert!(window.get_table_editing());
             assert_eq!(window.get_table_edit_error(), "The record is locked");
@@ -1467,20 +1467,20 @@ struct SessionObserver {
 fn observe_sessions(window: &BaseDataFixture) -> SessionObserver {
     let observer = SessionObserver::default();
     let observed = observer.started.clone();
-    window.on_table_edit_started(move |row, column, generation| {
+    window.on_table_edit_started(move |cell| {
         observed.borrow_mut().push(SessionAddress {
-            row,
-            column,
-            generation,
+            row: cell.row,
+            column: cell.column,
+            generation: cell.generation,
         });
     });
     let observed = observer.ended.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, message| {
+    window.on_table_edit_ended(move |cell, outcome, message| {
         observed.borrow_mut().push(ObservedSessionEnd {
             address: SessionAddress {
-                row,
-                column,
-                generation,
+                row: cell.row,
+                column: cell.column,
+                generation: cell.generation,
             },
             outcome,
             message: message.to_string(),
@@ -1679,7 +1679,8 @@ fn an_end_observer_can_open_another_cell_without_redirecting_the_accepted_commit
     let opened = Rc::new(std::cell::Cell::new(false));
     let observed = opened.clone();
     let weak = window.as_weak();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         if outcome == ui::TableEditOutcome::Committed && !observed.replace(true) {
             assert_eq!((row, column, generation), (1, QUANTITY, 1));
             let window = weak.upgrade().unwrap();
@@ -1849,7 +1850,7 @@ fn a_verdict_that_replaces_the_projection_ends_the_original_session_as_supersede
     } = editing(records());
     let observed = observe_sessions(&window);
     let weak = window.as_weak();
-    window.on_validate_table_edit(move |_, _, _, _| {
+    window.on_validate_table_edit(move |_, _| {
         weak.upgrade().unwrap().set_table_generation(2);
         "".into()
     });
@@ -2274,7 +2275,7 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                 theme.direction = direction;
                 theme.text_scale = scale;
                 window.set_theme(theme);
-                window.on_validate_table_edit(|_, _, _, _| "".into());
+                window.on_validate_table_edit(|_, _| "".into());
                 columns.set_row_data(0, owner.clone());
                 window.invoke_focus_table();
                 window.set_table_active_column(0);
@@ -2337,7 +2338,8 @@ fn projected_columns_keep_geometry_navigation_and_commit_identity_in_both_direct
                 let source = columns.clone();
                 let mut replacement = owner.clone();
                 replacement.source = slint_kit::ColumnDataIndex::try_from(1usize).unwrap().into();
-                window.on_validate_table_edit(move |row, column, generation, _| {
+                window.on_validate_table_edit(move |cell, _| {
+                    let (row, column, generation) = (cell.row, cell.column, cell.generation);
                     assert_eq!((row, column, generation), (101, OWNER, 1));
                     if !reopened.replace(true) {
                         let window = weak.upgrade().unwrap();
@@ -2412,7 +2414,8 @@ fn assert_reentrant_source_reopen(during: ReopenDuring) {
     };
     match during {
         ReopenDuring::VerdictCurrent | ReopenDuring::VerdictRetargeted => {
-            window.on_validate_table_edit(move |row, column, generation, _| {
+            window.on_validate_table_edit(move |cell, _| {
+                let (row, column, generation) = (cell.row, cell.column, cell.generation);
                 assert_eq!((row, column, generation), (1, OWNER, 1));
                 if !reopened.replace(true) {
                     reopen();
@@ -2421,7 +2424,8 @@ fn assert_reentrant_source_reopen(during: ReopenDuring) {
             });
         }
         ReopenDuring::EndRetargeted => {
-            window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+            window.on_table_edit_ended(move |cell, outcome, _| {
+                let (row, column, generation) = (cell.row, cell.column, cell.generation);
                 assert_eq!((row, column, generation), (1, OWNER, 1));
                 if outcome == ui::TableEditOutcome::Committed && !reopened.replace(true) {
                     reopen();
@@ -2510,7 +2514,8 @@ fn an_end_observer_hiding_the_original_column_suppresses_the_stale_proposal() {
     let columns = Rc::new(VecModel::from(vec![owner.clone()]));
     window.set_columns(columns.clone().into());
     let hidden = columns.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         assert_eq!(
             (row, column, generation, outcome),
             (1, OWNER, 1, ui::TableEditOutcome::Committed)
@@ -2553,7 +2558,8 @@ fn assert_end_projection_keeps_the_original_source(change: EndProjection) {
     let source = Rc::new(VecModel::from(original));
     window.set_columns(source.clone().into());
     let projected = source.clone();
-    window.on_table_edit_ended(move |row, column, generation, outcome, _| {
+    window.on_table_edit_ended(move |cell, outcome, _| {
+        let (row, column, generation) = (cell.row, cell.column, cell.generation);
         assert_eq!(
             (row, column, generation, outcome),
             (1, OWNER, 1, ui::TableEditOutcome::Committed)
@@ -2620,7 +2626,7 @@ fn assert_immediate_commit_after_source_replacement(request: ImmediateCommitRequ
     window.set_columns(source.clone().into());
     let verdicts = Rc::new(std::cell::Cell::new(0));
     let called = verdicts.clone();
-    window.on_validate_table_edit(move |_, _, _, _| {
+    window.on_validate_table_edit(move |_, _| {
         called.set(called.get() + 1);
         "".into()
     });
@@ -2914,10 +2920,10 @@ fn copy_reports_the_displayed_text_of_the_active_cell_only() {
     let Editing { window, .. } = editing(records());
     let copied = Rc::new(RefCell::new(Vec::new()));
     let recorded = copied.clone();
-    window.on_table_cell_copied(move |row, column, generation, text| {
+    window.on_table_cell_copied(move |cell, text| {
         recorded
             .borrow_mut()
-            .push((row, column, generation, text.to_string()));
+            .push((cell.row, cell.column, cell.generation, text.to_string()));
     });
 
     modified_text(&window, Key::Control, "c");

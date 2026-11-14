@@ -93,6 +93,9 @@ export enum ColumnStep { previous, next }
 // per column in column order. When a row carries both, `content` is
 // rendered and `cells` is ignored; the row's accessible name is its first
 // cell's text in either form.
+// The address of one table cell: row token, column token and the generation
+// armed when the session began, named so they cannot be swapped.
+export struct CellRef { row: int, column: int, generation: int }
 // The accepted proposal of one edited cell, with named fields so the row
 // token, the column token and the projection generation cannot be swapped.
 // `commit` is run through the column's `FieldSpec::accept` by the host.
@@ -608,14 +611,14 @@ export component KitDataTable inherits Rectangle {
     callback cell-committed(CellCommit);
     in property <TableEditBlurPolicy> edit-blur-policy: TableEditBlurPolicy.commit-or-drop;
     in property <TableUnchangedEditPolicy> unchanged-edit-policy: TableUnchangedEditPolicy.report;
-    callback edit-started(int,int,int);
-    callback edit-ended(int,int,int,TableEditOutcome,string);
-    callback validate-edit(int,int,int,FieldCommit) -> string;
-    validate-edit(row, column, generation, commit) => { return ""; }
-    // Reports the displayed text of the active cell as copied: row token,
-    // column token, generation and the text now on the clipboard. Control or
+    callback edit-started(CellRef);
+    callback edit-ended(CellRef,TableEditOutcome,string);
+    callback validate-edit(CellRef,FieldCommit) -> string;
+    validate-edit(cell, commit) => { return ""; }
+    // Reports the displayed text of the active cell as copied: its `CellRef`
+    // and the text now on the clipboard. Control or
     // Meta with C calls it too; a row or header cursor copies nothing.
-    callback cell-copied(int, int, int, string);
+    callback cell-copied(CellRef, string);
     public function copy-active-cell() {
         if (root.cursor-region != TableCursorRegion.body || !root.has-active-cell()) { return; }
         let row-token = root.rows[root.active-index].token;
@@ -624,7 +627,7 @@ export component KitDataTable inherits Rectangle {
         clipboard-source.text = root.active-cell-value();
         clipboard-source.select-all();
         clipboard-source.copy();
-        root.cell-copied(row-token, column-token, generation, root.active-cell-value());
+        root.cell-copied({ row: row-token, column: column-token, generation: generation }, root.active-cell-value());
     }
     public function take-focus() {if(root.live){keys.focus();}}
     public function edit-active() { if (!root.edit-open && KitFieldService.ready && KitDataService.ready && root.active-cell-editable()) { root.begin-edit(); } }
@@ -733,7 +736,7 @@ export component KitDataTable inherits Rectangle {
         root.edit-bounds = { valid: false };
         root.edit-error = "";
         root.edit-open = true;
-        root.edit-started(root.edit-row-token, root.edit-column-token, root.edit-generation);
+        root.edit-started({ row: root.edit-row-token, column: root.edit-column-token, generation: root.edit-generation });
     }
     // Close the session; `refocus` returns the keyboard to the table when
     // the editor had it, and stays away when focus already went elsewhere.
@@ -747,7 +750,7 @@ export component KitDataTable inherits Rectangle {
         root.edit-focused = false;
         root.edit-error = "";
         if (refocus) { keys.focus(); }
-        root.edit-ended(row, column, generation, outcome, message);
+        root.edit-ended({ row: row, column: column, generation: generation }, outcome, message);
     }
     pure function edits-cell(row: TableRow, column: TableColumn) -> bool {
         return root.edit-open && row.token == root.edit-row-token && column.token == root.edit-column-token;
@@ -1061,7 +1064,7 @@ export component KitDataTable inherits Rectangle {
                             if (!root.edit-available) { root.end-edit(focused && root.edit-focused, TableEditOutcome.superseded); }
                             else if (root.edit-row-outside-viewport) { root.end-edit(focused && root.edit-focused, TableEditOutcome.viewport-exit); }
                             else {
-                                let rejection = root.validate-edit(row-token, column-token, generation, commit);
+                                let rejection = root.validate-edit({ row: row-token, column: column-token, generation: generation }, commit);
                                 // A verdict may cancel/reopen the identical public address. Only
                                 // the original private session may consume this native payload.
                                 if (root.same-edit-session(identity)) {
