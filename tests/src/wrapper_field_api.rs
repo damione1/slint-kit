@@ -47,3 +47,25 @@ fn color_field_and_picker_forward_the_required_message() {
     assert!(!window.invoke_report_picker());
     assert_eq!(window.get_picker_message(), "Choisir une couleur");
 }
+
+#[test]
+fn color_field_forwards_focus_state_and_reset() {
+    use crate::CommitPolicy;
+    let window = fixture();
+    window.set_color_policy(CommitPolicy::OnChangeWhenValid);
+    assert!(!window.get_color_focused());
+    window.invoke_focus_color();
+    assert!(window.get_color_focused(), "has-focus reflects the editor");
+    slint::platform::update_timers_and_animations();
+    assert!(
+        window.get_color_focus_events() >= 1,
+        "focus-observed is forwarded"
+    );
+    window.set_color_text("#12".into());
+    window.invoke_reset_color();
+    assert_eq!(
+        window.get_color_text(),
+        "",
+        "reset-field discards the typed draft"
+    );
+}

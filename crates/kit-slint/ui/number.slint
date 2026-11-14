@@ -8,7 +8,7 @@ import { KitTextField } from "input.slint";
 import { KitField, KitFieldLabel, KitFieldDescription, KitFieldError } from "field.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitMetrics, KitThemeContext } from "theme.slint";
 import { KitPressable } from "button.slint";
-import { KitIcon, KitGlyphs } from "icons.slint";
+import { KitIcon, KitGlyphs, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation, StepDirection } from "shared-contracts.slint";
 export { StepDirection } from "shared-contracts.slint";
 
@@ -96,6 +96,8 @@ export component KitNumberStepper inherits KitField {
     in property <string> placeholder;
     in property <string> prefix;
     in property <string> suffix;
+    in property <IconGlyph> leading-icon;
+    in property <IconGlyph> trailing-icon;
     in property <bool> can-increment: true;
     in property <bool> can-decrement: true;
     in property <string> increment-label: "Increase value";
@@ -131,6 +133,7 @@ export component KitNumberStepper inherits KitField {
             validation-timing: root.validation-timing; text-alignment: root.text-alignment;
             value-edited(value) => { root.value-edited(value); }
             placeholder: root.placeholder; prefix: root.prefix; suffix: root.suffix;
+            leading-icon: root.leading-icon; trailing-icon: root.trailing-icon;
             text <=> root.text;
             edited(value) => { root.edited(value); }
             commit-requested(value) => { root.commit-requested(value); }
