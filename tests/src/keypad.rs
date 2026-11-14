@@ -543,3 +543,166 @@ fn escape_cancels_only_when_the_host_opts_in() {
     key(&window, Key::Escape);
     assert!(intentions.borrow().is_empty());
 }
+
+/// Presses Return on whichever key holds focus and reports what it asked for.
+fn activate_focused(
+    window: &KeypadFixture,
+    intentions: &Rc<RefCell<Vec<Intention>>>,
+) -> Option<Intention> {
+    intentions.borrow_mut().clear();
+    key(window, Key::Return);
+    let asked = intentions.borrow().last().copied();
+    intentions.borrow_mut().clear();
+    asked
+}
+
+#[test]
+fn arrow_keys_move_focus_between_keys_without_wrapping() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(1))
+    );
+    key(&window, Key::RightArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(5))
+    );
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+    // The edges stop the movement instead of wrapping.
+    key(&window, Key::RightArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+    key(&window, Key::UpArrow);
+    key(&window, Key::UpArrow);
+    key(&window, Key::UpArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(3))
+    );
+    key(&window, Key::UpArrow);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(2))
+    );
+    key(&window, Key::LeftArrow);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(1))
+    );
+}
+
+#[test]
+fn home_and_end_move_to_the_ends_of_the_row() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::DownArrow);
+    key(&window, Key::End);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(6))
+    );
+    key(&window, Key::Home);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(4))
+    );
+}
+
+#[test]
+fn arrow_keys_skip_unavailable_keys_and_modified_arrows_pass_through() {
+    let (window, intentions) = fixture();
+    // Confirm waits for the host, so the bottom row ends at zero.
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    for _ in 0..3 {
+        key(&window, Key::DownArrow);
+    }
+    key(&window, Key::RightArrow);
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    // Delete is unavailable on an empty code: Up from zero still lands on 8,
+    // and Left from zero stops there.
+    window.set_can_delete(false);
+    key(&window, Key::LeftArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(0))
+    );
+    // A modified arrow is not navigation.
+    window.window().dispatch_event(WindowEvent::KeyPressed {
+        text: Key::UpArrow.into(),
+    });
+    window.window().dispatch_event(WindowEvent::KeyReleased {
+        text: Key::UpArrow.into(),
+    });
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(8))
+    );
+}
+
+#[test]
+fn the_keys_form_one_tab_stop_that_remembers_the_last_focused_key() {
+    let (window, intentions) = fixture();
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    key(&window, Key::RightArrow);
+    // Tab leaves the keypad instead of visiting key 3.
+    key(&window, Key::Tab);
+    let after_tab = activate_focused(&window, &intentions);
+    assert_ne!(after_tab, Some(Intention::Digit(3)));
+    // Coming back by keyboard reaches the key that last had focus.
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Digit(2))
+    );
+}
+
+#[test]
+fn the_tab_stop_moves_to_an_available_key_when_the_remembered_key_is_unavailable() {
+    let (window, intentions) = fixture();
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    window.set_digits_enabled(false);
+    window.set_can_confirm(true);
+    window.invoke_focus_keypad();
+    key(&window, Key::Tab);
+    // Only delete and confirm remain; delete is the first of them.
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Delete)
+    );
+    key(&window, Key::RightArrow);
+    assert_eq!(
+        activate_focused(&window, &intentions),
+        Some(Intention::Confirm)
+    );
+}

@@ -5,6 +5,7 @@ import { KitIcon, IconGlyph } from "icons.slint";
 import { FieldAccess, ValidationPresentation } from "contracts.slint";
 import { FocusOutline } from "focus.slint";
 import { KitModalContext } from "modal.slint";
+import { KitKeyResult } from "keyboard.slint";
 
 // One keypad key: its glyph, or its text when the glyph is empty. The text
 // is always the key's accessible name. A key is at least a square touch
@@ -47,6 +48,11 @@ component KeypadKey inherits KitPressable {
 // focus, as on any button. A pointer press hands focus back to the keypad
 // without a focus ring, so Return after tapped digits confirms instead of
 // repeating the last digit. A read-only or disabled keypad emits nothing.
+//
+// The twelve keys are one tab stop with roving focus: Tab reaches the key that
+// last had focus, and the arrow keys move between keys without wrapping,
+// skipping unavailable keys. Home and End go to the ends of the row. The
+// layout is not mirrored in right-to-left text, as on any numeric pad.
 export component KitKeypad inherits Rectangle {
     // The modal layer this control belongs to; 0 is the window. While another layer
     // is open and topmost the control is inert, like every kit control.
@@ -97,6 +103,54 @@ export component KitKeypad inherits Rectangle {
             keys.pointer-return = true;
             keys.focus();
         }
+    }
+    // Roving focus. The twelve keys are one tab stop: only `roving-key`, the
+    // key that last held focus (or the first available key), is reachable with
+    // Tab. Arrow keys move between keys, Home and End to the ends of the row.
+    // The layout is never mirrored, as on any numeric pad, so Left and Right
+    // always move to the key drawn on that side, in right-to-left text too.
+    // Index = row * 3 + column; 9 is delete, 10 is zero, 11 is confirm or extra.
+    private property <int> active-key;
+    private property <int> roving-key: root.key-available(root.active-key) ? root.active-key
+        : root.first-available(0, 1, 2) >= 0 ? root.first-available(0, 1, 2)
+        : root.first-available(3, 4, 5) >= 0 ? root.first-available(3, 4, 5)
+        : root.first-available(6, 7, 8) >= 0 ? root.first-available(6, 7, 8)
+        : root.first-available(9, 10, 11);
+    pure function key-available(index: int) -> bool {
+        if (index < 9) { return index >= 0 && root.digits-active; }
+        if (index == 9) { return root.delete-active; }
+        if (index == 10) { return root.digits-active; }
+        if (index == 11) { return root.editable && (root.show-confirm ? root.can-confirm : root.extra-label != "" && root.extra-enabled); }
+        return false;
+    }
+    // The first available key among up to three candidates, or -1.
+    pure function first-available(a: int, b: int, c: int) -> int {
+        return root.key-available(a) ? a : root.key-available(b) ? b : root.key-available(c) ? c : -1;
+    }
+    function focus-key(index: int) {
+        if (index == 0) { k0.take-focus(); } else if (index == 1) { k1.take-focus(); } else if (index == 2) { k2.take-focus(); }
+        else if (index == 3) { k3.take-focus(); } else if (index == 4) { k4.take-focus(); } else if (index == 5) { k5.take-focus(); }
+        else if (index == 6) { k6.take-focus(); } else if (index == 7) { k7.take-focus(); } else if (index == 8) { k8.take-focus(); }
+        else if (index == 9) { k9.take-focus(); } else if (index == 10) { k10.take-focus(); } else if (index == 11) { k11.take-focus(); }
+    }
+    // The key an arrow, Home or End press moves to from `from`, or -1.
+    pure function target(from: int, text: string) -> int {
+        let column = Math.mod(from, 3);
+        let row = Math.floor(from / 3);
+        if (text == Key.LeftArrow) { return column == 0 ? -1 : root.first-available(from - 1, column == 2 ? from - 2 : -1, -1); }
+        if (text == Key.RightArrow) { return column == 2 ? -1 : root.first-available(from + 1, column == 0 ? from + 2 : -1, -1); }
+        if (text == Key.UpArrow) { return row == 0 ? -1 : root.first-available(from - 3, row >= 2 ? from - 6 : -1, row == 3 ? from - 9 : -1); }
+        if (text == Key.DownArrow) { return row == 3 ? -1 : root.first-available(from + 3, row <= 1 ? from + 6 : -1, row == 0 ? from + 9 : -1); }
+        if (text == Key.Home) { return root.first-available(row * 3, row * 3 + 1, row * 3 + 2); }
+        if (text == Key.End) { return root.first-available(row * 3 + 2, row * 3 + 1, row * 3); }
+        return -1;
+    }
+    function navigate(from: int, event: KeyEvent) -> KitKeyResult {
+        if (event.modifiers.control || event.modifiers.alt || event.modifiers.meta || event.modifiers.shift) { return KitKeyResult.reject; }
+        if (event.text != Key.LeftArrow && event.text != Key.RightArrow && event.text != Key.UpArrow && event.text != Key.DownArrow && event.text != Key.Home && event.text != Key.End) { return KitKeyResult.reject; }
+        let target = root.target(from, event.text);
+        if (target >= 0 && target != from) { root.focus-key(target); }
+        return KitKeyResult.accept;
     }
     private property <bool> editable: root.access == FieldAccess.editable;
     private property <bool> digits-active: root.editable && root.digits-enabled;
@@ -151,25 +205,25 @@ export component KitKeypad inherits Rectangle {
             width: parent.width; height: parent.height;
             spacing: root.gap;
             Row {
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[0]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(1); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[1]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(2); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[2]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(3); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k0 := KeypadKey { tab-stop: root.roving-key == 0; focus-observed(focused) => { if (focused) { root.active-key = 0; } } key-event(event) => { return root.navigate(0, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[0]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(1); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k1 := KeypadKey { tab-stop: root.roving-key == 1; focus-observed(focused) => { if (focused) { root.active-key = 1; } } key-event(event) => { return root.navigate(1, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[1]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(2); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k2 := KeypadKey { tab-stop: root.roving-key == 2; focus-observed(focused) => { if (focused) { root.active-key = 2; } } key-event(event) => { return root.navigate(2, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[2]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(3); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[3]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(4); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[4]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(5); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[5]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(6); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k3 := KeypadKey { tab-stop: root.roving-key == 3; focus-observed(focused) => { if (focused) { root.active-key = 3; } } key-event(event) => { return root.navigate(3, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[3]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(4); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k4 := KeypadKey { tab-stop: root.roving-key == 4; focus-observed(focused) => { if (focused) { root.active-key = 4; } } key-event(event) => { return root.navigate(4, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[4]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(5); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k5 := KeypadKey { tab-stop: root.roving-key == 5; focus-observed(focused) => { if (focused) { root.active-key = 5; } } key-event(event) => { return root.navigate(5, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[5]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(6); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[6]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(7); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[7]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(8); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[8]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(9); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k6 := KeypadKey { tab-stop: root.roving-key == 6; focus-observed(focused) => { if (focused) { root.active-key = 6; } } key-event(event) => { return root.navigate(6, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[6]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(7); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k7 := KeypadKey { tab-stop: root.roving-key == 7; focus-observed(focused) => { if (focused) { root.active-key = 7; } } key-event(event) => { return root.navigate(7, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[7]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(8); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k8 := KeypadKey { tab-stop: root.roving-key == 8; focus-observed(focused) => { if (focused) { root.active-key = 8; } } key-event(event) => { return root.navigate(8, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[8]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(9); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
             Row {
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: root.delete-label; glyph: root.delete-glyph; disabled: !root.delete-active; activation-started => { root.activation-started(); } activated => { root.delete-requested(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[9]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(0); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k9 := KeypadKey { tab-stop: root.roving-key == 9; focus-observed(focused) => { if (focused) { root.active-key = 9; } } key-event(event) => { return root.navigate(9, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.quiet; text: root.delete-label; glyph: root.delete-glyph; disabled: !root.delete-active; activation-started => { root.activation-started(); } activated => { root.delete-requested(); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k10 := KeypadKey { tab-stop: root.roving-key == 10; focus-observed(focused) => { if (focused) { root.active-key = 10; } } key-event(event) => { return root.navigate(10, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: ButtonIntent.secondary; text-size: root.digit-size; text-weight: root.theme.typography.weight-medium; text: root.digit-labels[9]; disabled: !root.digits-active; activation-started => { root.activation-started(); } activated => { root.digit(0); root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
                 // The bottom-right key is confirm, or the extra key once confirm is hidden.
-                KeypadKey { modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: root.show-confirm ? root.confirm-intent : ButtonIntent.quiet; text: root.show-confirm ? root.confirm-label : root.extra-label; glyph: root.show-confirm ? root.confirm-glyph : root.extra-glyph; visible: root.show-confirm || root.extra-label != ""; disabled: !root.editable || (root.show-confirm ? !root.can-confirm : !root.extra-enabled); activation-started => { root.activation-started(); } activated => { if (root.show-confirm) { root.confirm(); } else { root.extra(); } root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
+                k11 := KeypadKey { tab-stop: root.roving-key == 11; focus-observed(focused) => { if (focused) { root.active-key = 11; } } key-event(event) => { return root.navigate(11, event); } modal-layer: root.modal-layer; theme: root.theme; control-size: root.control-size; intent: root.show-confirm ? root.confirm-intent : ButtonIntent.quiet; text: root.show-confirm ? root.confirm-label : root.extra-label; glyph: root.show-confirm ? root.confirm-glyph : root.extra-glyph; visible: root.show-confirm || root.extra-label != ""; disabled: !root.editable || (root.show-confirm ? !root.can-confirm : !root.extra-enabled); activation-started => { root.activation-started(); } activated => { if (root.show-confirm) { root.confirm(); } else { root.extra(); } root.settle-pointer-focus(self.has-focus, self.focus-visible); } }
             }
         }
     }
