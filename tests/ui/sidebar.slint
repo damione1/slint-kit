@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSidebar, KitButton, SidebarRow, SidebarVisibleRow, SelectionRef, SelectState, OptionRow, Ownership, KitThemes, KitTheme } from "@kit";
+
+export component SidebarFixture inherits Window {
+    width: 600px; height: 400px;
+    in property <[SidebarRow]> rows;
+    in property <bool> collapsed;
+    in property <Ownership> ownership: Ownership.local;
+    in property <bool> interactive: true;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <SelectionRef> current;
+    in-out property <[SelectionRef]> expanded;
+    out property <[SidebarVisibleRow]> shown: sidebar.shown-rows;
+    out property <SelectState> state: sidebar.state;
+    out property <length> sidebar-width: sidebar.width;
+    out property <bool> sidebar-focused: sidebar.has-focus;
+    callback chosen(OptionRow);
+    callback expansion-requested(OptionRow, bool);
+    callback rail-parent-activated(OptionRow);
+    public function focus-sidebar() { sidebar.take-focus(); }
+    public function focus-outside() { outside.take-focus(); }
+    HorizontalLayout {
+        sidebar := KitSidebar {
+            theme: root.theme;
+            rows: root.rows; collapsed: root.collapsed; ownership: root.ownership; interactive: root.interactive;
+            accessible-name: "Main navigation";
+            current <=> root.current; expanded <=> root.expanded;
+            chosen(row) => { root.chosen(row); }
+            expansion-requested(row, open) => { root.expansion-requested(row, open); }
+            rail-parent-activated(row) => { root.rail-parent-activated(row); }
+        }
+        VerticalLayout { padding: 16px; alignment: start; outside := KitButton { text: "Outside"; } }
+    }
+}

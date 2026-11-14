@@ -303,6 +303,31 @@ fn reduce(
     }
 }
 
+fn sidebar_nodes(rows: &[ui::SidebarRow]) -> Vec<kit_core::SidebarNode> {
+    rows.iter()
+        .map(|row| kit_core::SidebarNode {
+            key: kit_core::SidebarKey::new(row.item.token),
+            kind: match row.kind {
+                ui::SidebarRowKind::Section => kit_core::SidebarNodeKind::Section,
+                ui::SidebarRowKind::Item => kit_core::SidebarNodeKind::Item,
+            },
+            parent: row
+                .parent
+                .present
+                .then(|| kit_core::SidebarKey::new(row.parent.token))
+                .flatten(),
+        })
+        .collect()
+}
+
+fn sidebar_expanded(refs: &ModelRc<ui::SelectionRef>) -> HashSet<kit_core::SidebarKey> {
+    tracked(refs)
+        .into_iter()
+        .filter(|value| value.present)
+        .filter_map(|value| kit_core::SidebarKey::new(value.token))
+        .collect()
+}
+
 pub(crate) fn install_selection<W>(window: &W)
 where
     W: ComponentHandle,
@@ -563,6 +588,73 @@ where
             .into_iter()
             .find(|row| row.item.token == token)
             .unwrap_or_default()
+    });
+    service.on_sidebar_rows(|model, expanded, rail| {
+        let rows = tracked(&model);
+        let shown =
+            kit_core::visible_rows(&sidebar_nodes(&rows), &sidebar_expanded(&expanded), rail);
+        ModelRc::new(VecModel::from(
+            shown
+                .into_iter()
+                .map(|entry| ui::SidebarVisibleRow {
+                    row: rows[entry.index].clone(),
+                    depth: i32::try_from(entry.depth).unwrap_or(i32::MAX),
+                    expandable: entry.expandable,
+                    expanded: entry.expanded,
+                })
+                .collect::<Vec<_>>(),
+        ))
+    });
+    service.on_sidebar_entry(|rows, token| {
+        tracked(&rows)
+            .into_iter()
+            .find(|visible| visible.row.item.token == token)
+            .unwrap_or_default()
+    });
+    service.on_sidebar_has_icons(|rows| {
+        tracked(&rows).iter().any(|row| match row.kind {
+            ui::SidebarRowKind::Section => false,
+            ui::SidebarRowKind::Item => {
+                !row.leading_icon.stroke.is_empty() || !row.leading_icon.fill.is_empty()
+            }
+        })
+    });
+    service.on_sidebar_options(|rows| {
+        ModelRc::new(VecModel::from(
+            tracked(&rows)
+                .into_iter()
+                .map(|visible| {
+                    let mut item = visible.row.item;
+                    match visible.row.kind {
+                        ui::SidebarRowKind::Section => item.disabled = true,
+                        ui::SidebarRowKind::Item => {}
+                    }
+                    item
+                })
+                .collect::<Vec<_>>(),
+        ))
+    });
+    service.on_sidebar_toggle(|model, expanded, token, open| {
+        let Some(key) = kit_core::SidebarKey::new(token) else {
+            return expanded;
+        };
+        let next = kit_core::toggled_expansion(
+            &sidebar_nodes(&tracked(&model)),
+            &sidebar_expanded(&expanded),
+            key,
+            open,
+        );
+        let mut tokens: Vec<_> = next.into_iter().map(kit_core::SidebarKey::value).collect();
+        tokens.sort_unstable();
+        ModelRc::new(VecModel::from(
+            tokens
+                .into_iter()
+                .map(|token| ui::SelectionRef {
+                    present: true,
+                    token,
+                })
+                .collect::<Vec<_>>(),
+        ))
     });
     service.on_disclose(|model, expanded, token, generation, current, open, mode| {
         let snapshot = snapshot(&model);
