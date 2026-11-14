@@ -170,6 +170,8 @@ add('KitDataTable','KitDataTable { theme: root.theme; height: 250px; generation:
 add('KitContentList','KitContentList { theme: root.theme; height: 260px; generation: 1; items: [{ token: 101, title: "A guide to native design", excerpt: "Build interfaces that feel at home on the desktop.", metadata: "Design · 5 min read", link-label: "Read article", selected: false, disabled: false }, { token: 205, title: "Keep domain values exact", excerpt: "Use validated values and stable application identity.", metadata: "Engineering · 8 min read", link-label: "Read article", selected: false, disabled: false }]; }',410)
 add('KitVirtualTextView','KitVirtualTextView { theme: root.theme; height: 230px; generation: 1; lines: [{ token: 101, number: 1, text: "# Field notes", selected: false }, { token: 205, number: 2, text: "A shared space for observations.", selected: true }, { token: 309, number: 3, text: "Keep identities stable as rows move.", selected: false }, { token: 413, number: 4, text: "Use native editing for selected lines.", selected: false }]; }',380)
 
+add('KitDialog','KitDialog { theme: root.theme; width: parent.width; height: parent.height; title: "Archive project"; description: "You can restore it later from the archive."; state: { open: true, topmost: true, busy: false }; actions: [{ token: 1, text: "Cancel", intent: ButtonIntent.secondary, disabled: false }, { token: 2, text: "Archive project", intent: ButtonIntent.primary, disabled: false }]; action-activated(token) => { root.status = "Action requested"; } KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; } }',400)
+add('KitAlertDialog','KitAlertDialog { theme: root.theme; width: parent.width; height: parent.height; title: "Delete this project?"; description: "The project and its notes are removed for everyone."; confirm-text: "Delete project"; cancel-text: "Keep project"; confirm-intent: ButtonIntent.destructive; state: { open: true, topmost: true, busy: false }; confirmed => { root.status = "Deletion requested"; } cancelled => { root.status = "Deletion cancelled"; } }',400)
 add('KitDialogSurface','KitDialogSurface { theme: root.theme; width: parent.width; height: parent.height; state: { open: true, topmost: true, busy: false }; KitDialogPanel { theme: root.theme; x: (parent.width - self.width) / 2; y: 60px; width: 420px; height: 220px; accessible-name: "Archive project"; VerticalLayout { padding: 24px; spacing: 16px; '+txt('Archive this project?')+txt('You can restore it later from the archive.')+button('Archive project')+' } } }',400)
 for name in ['KitDialogPanel','KitDialogHeader','KitDialogBody','KitDialogFooter']:
     child = button('Cancel')+button('Save changes') if name=='KitDialogFooter' else txt('Project settings') if name=='KitDialogHeader' else 'KitTextField { theme: root.theme; label: "Project name"; text: "Field notes"; }' if name=='KitDialogBody' else txt('Archive this project?')+button('Archive project')
@@ -195,7 +197,7 @@ bodies['KitOption'] = bodies['KitOption'][:-2] + ' Text { text: "Project overvie
 bodies['KitSelectSurface'] = bodies['KitSelectSurface'].replace('option-data: row; }', 'option-data: row; height: 48px; Text { text: row.label; color: root.theme.text-primary; vertical-alignment: center; font-size: 14px * root.theme.text-scale; } }')
 bodies['KitSelect'] = bodies['KitSelect'].replace('theme: root.theme;', 'theme: root.theme; placeholder: "Overview";', 1)
 bodies['KitSelectKeyboard'] = bodies['KitSelectKeyboard'].replace('KitSelectKeyboard {', 'KitSelectKeyboard { init => { self.focus(); }', 1)
-for overlay in ['KitDrawer']:
+for overlay in ['KitDrawer', 'KitDialog', 'KitAlertDialog']:
     body = bodies[overlay]
     marker = ' } } }' if overlay == 'KitDialogSurface' else ' }'
     status = ' if root.status != "": Text { text: root.status; color: root.theme.text-secondary; font-size: 12px * root.theme.text-scale; wrap: word-wrap; }'
@@ -247,7 +249,7 @@ geometry.update({
     'KitCarousel': (480, 260), 'KitBreadcrumbs': (480, 160),
     'KitNotificationCenter': (620, 440), 'KitDrawer': (560, 420),
     'KitDataTable': (620, 400), 'KitContentList': (620, 410),
-    'KitVirtualTextView': (620, 360), 'KitDialogSurface': (560, 360),
+    'KitVirtualTextView': (620, 360), 'KitDialogSurface': (560, 360), 'KitDialog': (560, 420), 'KitAlertDialog': (560, 360),
     'KitDialogPanel': (480, 260), 'KitDialogHeader': (420, 160),
     'KitDialogBody': (420, 180), 'KitDialogFooter': (420, 160),
 })
@@ -260,7 +262,7 @@ for name,body in bodies.items():
     if name in ['KitCardHeader', 'KitRadioGroup', 'KitMultiSelect']:
         body = body.replace(name+' {', name+' { width: '+str(geometry[name][0] - 48)+'px;', 1)
     # Overlay primitives must be mounted directly at the window root.
-    overlay=name in ['KitDrawer','KitDialogSurface']
+    overlay=name in ['KitDrawer','KitDialogSurface','KitDialog','KitAlertDialog']
     imports={'KitTheme','KitThemes'}|({name} if name!='KitTooltipLayer' else {'KitTooltipLayer'})
     imports.update(set(re.findall(r'\b[A-Z]\w+\b',body)) & public)
     tooltip = name in ['KitTooltip','KitTooltipLayer']

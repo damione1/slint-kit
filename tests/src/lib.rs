@@ -16,6 +16,7 @@ mod collapse_group;
 mod column_widths;
 mod day_periods;
 mod dialog_composition;
+mod dialog_high_level;
 mod direction;
 mod document_guards;
 mod dropdown_collision;
