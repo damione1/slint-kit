@@ -2955,3 +2955,220 @@ fn copy_reports_the_displayed_text_of_the_active_cell_only() {
     assert!(window.get_table_editing());
     assert_eq!(copied.borrow().len(), 3, "an open editor keeps native copy");
 }
+
+const QUANTITY_COLUMN: i32 = 1;
+const OWNER_COLUMN: i32 = 2;
+
+#[test]
+fn tab_past_the_last_cell_enters_the_next_row_on_its_first_editable_cell() {
+    let Editing {
+        window, commits, ..
+    } = editing(records());
+    open(&window, OWNER_COLUMN);
+    text(&window, "Ada");
+    key(&window, Key::Tab);
+    flush();
+    assert!(
+        !window.get_table_editing(),
+        "Tab commits and leaves the editor"
+    );
+    assert_eq!(commits.borrow().len(), 1);
+    assert_eq!(
+        window.get_table_active(),
+        1,
+        "the cursor moves to the next row"
+    );
+    assert_eq!(
+        window.get_table_active_column(),
+        QUANTITY_COLUMN,
+        "on its first editable cell, past the text title"
+    );
+    assert!(table_has_focus(&window));
+    key(&window, Key::Return);
+    assert!(
+        window.get_table_editing(),
+        "Enter opens the cell Tab reached"
+    );
+}
+
+#[test]
+fn tab_in_the_last_row_keeps_the_cursor_on_the_last_cell() {
+    let Editing { window, .. } = editing(records());
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 2);
+    open(&window, OWNER_COLUMN);
+    key(&window, Key::Tab);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(window.get_table_active(), 2, "the last row has no next row");
+    assert_eq!(window.get_table_active_column(), OWNER_COLUMN);
+}
+
+#[test]
+fn shift_tab_before_the_first_column_enters_the_last_editable_cell_of_the_previous_row() {
+    let Editing { window, .. } = editing(records());
+    // Quantity leads the visible columns; the title keeps its data index.
+    let source = |index| slint_kit::ui::TableColumnSource {
+        mode: slint_kit::ui::ColumnSourceMode::DataIndex,
+        index,
+    };
+    window.set_columns(ModelRc::new(VecModel::from(vec![
+        TableColumn {
+            source: source(1),
+            ..column(QUANTITY, "Quantity")
+        },
+        TableColumn {
+            source: source(0),
+            ..column(TITLE, "Title")
+        },
+        TableColumn {
+            source: source(2),
+            ..column(OWNER, "Owner")
+        },
+    ])));
+    flush();
+    key(&window, Key::DownArrow);
+    assert_eq!(window.get_table_active(), 1);
+    open(&window, 0);
+    shift_tab(&window);
+    flush();
+    assert!(!window.get_table_editing());
+    assert_eq!(window.get_table_active(), 0, "the previous row");
+    assert_eq!(
+        window.get_table_active_column(),
+        2,
+        "on its last editable cell, the owner"
+    );
+}
+
+#[test]
+fn shift_tab_in_the_first_row_keeps_the_cursor_on_the_first_cell() {
+    let Editing { window, .. } = editing(records());
+    window.set_columns(ModelRc::new(VecModel::from(vec![TableColumn {
+        source: slint_kit::ui::TableColumnSource {
+            mode: slint_kit::ui::ColumnSourceMode::DataIndex,
+            index: 1,
+        },
+        ..column(QUANTITY, "Quantity")
+    }])));
+    flush();
+    open(&window, 0);
+    shift_tab(&window);
+    flush();
+    assert_eq!(window.get_table_active(), 0);
+    assert_eq!(window.get_table_active_column(), 0);
+}
+
+fn named(token: i32, title: &str, disabled: bool) -> TableRow {
+    TableRow {
+        disabled,
+        ..record(token, title, 1, "Elliot", FieldAccess::Editable)
+    }
+}
+type Requests = Rc<RefCell<Vec<(i32, i32)>>>;
+fn typeahead_window() -> (Editing, Requests) {
+    let editing = editing(vec![
+        named(11, "Amber", false),
+        named(22, "Apricot", false),
+        named(33, "Blocked", true),
+        named(44, "Banana", false),
+    ]);
+    let requested = Rc::new(RefCell::new(Vec::new()));
+    let recorded = requested.clone();
+    let weak = editing.window.as_weak();
+    editing.window.on_table_typeahead(move |token, generation| {
+        recorded.borrow_mut().push((token, generation));
+        let window = weak.upgrade().unwrap();
+        window.set_table_active(match token {
+            11 => 0,
+            22 => 1,
+            33 => 2,
+            44 => 3,
+            other => panic!("unknown token {other}"),
+        });
+    });
+    (editing, requested)
+}
+
+#[test]
+fn typing_moves_the_active_row_to_the_next_enabled_row_with_that_prefix() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    text(&window, "b");
+    assert_eq!(
+        requested.borrow().last().copied(),
+        Some((44, 1)),
+        "the disabled Blocked row is skipped"
+    );
+    assert_eq!(window.get_table_active(), 3);
+    text(&window, "a");
+    assert_eq!(window.get_table_active(), 3, "\"ba\" still matches Banana");
+    text(&window, "x");
+    assert_eq!(
+        window.get_table_active(),
+        3,
+        "no match leaves the row in place"
+    );
+}
+
+#[test]
+fn a_repeated_letter_cycles_the_matches_and_a_pause_starts_a_new_prefix() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    text(&window, "a");
+    assert_eq!(
+        window.get_table_active(),
+        1,
+        "from Amber, \"a\" finds Apricot"
+    );
+    text(&window, "a");
+    assert_eq!(
+        window.get_table_active(),
+        0,
+        "the same letter cycles and wraps"
+    );
+    text(&window, "p");
+    assert_eq!(window.get_table_active(), 1, "\"ap\" matches Apricot only");
+    assert_eq!(requested.borrow().last().map(|r| r.0), Some(22));
+    std::thread::sleep(std::time::Duration::from_millis(800));
+    text(&window, "b");
+    assert_eq!(
+        window.get_table_active(),
+        3,
+        "after a pause \"b\" is a fresh prefix"
+    );
+}
+
+#[test]
+fn space_joins_the_prefix_only_while_typing_and_modified_keys_are_not_typed() {
+    let (
+        Editing {
+            window,
+            activations,
+            ..
+        },
+        requested,
+    ) = typeahead_window();
+    key(&window, Key::Space);
+    assert!(requested.borrow().is_empty());
+    assert_eq!(
+        activations.borrow().len(),
+        1,
+        "an idle Space activates the row"
+    );
+    down(&window, Key::Control);
+    text(&window, "b");
+    up(&window, Key::Control);
+    assert!(requested.borrow().is_empty(), "Control+B is not a search");
+    key(&window, Key::DownArrow);
+    key(&window, Key::DownArrow);
+    key(&window, Key::Tab);
+    assert!(requested.borrow().is_empty(), "named keys are not text");
+}
+
+#[test]
+fn typing_in_a_cell_editor_does_not_search_the_rows() {
+    let (Editing { window, .. }, requested) = typeahead_window();
+    open(&window, QUANTITY_COLUMN);
+    text(&window, "b");
+    assert!(requested.borrow().is_empty());
+}
