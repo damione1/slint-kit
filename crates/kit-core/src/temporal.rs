@@ -162,6 +162,98 @@ enum Meridiem {
     Pm,
 }
 
+/// Why a pair of day-period markers cannot be used by a twelve-hour editor.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DayPeriodMarkersError {
+    /// A marker has no characters.
+    Empty,
+    /// A marker starts or ends with whitespace, which the grammar reserves as the separator.
+    SurroundingWhitespace,
+    /// A marker contains a control character.
+    ControlCharacter,
+    /// The markers are equal when case is ignored, or one is a prefix of the other, so a typed
+    /// draft could not tell them apart.
+    Ambiguous,
+}
+
+/// How a typed draft relates to the two markers.
+enum MarkerMatch {
+    Invalid,
+    Prefix,
+    Complete(Meridiem),
+}
+
+/// The text a twelve-hour editor prints and accepts for before noon and after noon.
+/// Parsed once at the boundary; the canonical 24-hour value never depends on it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DayPeriodMarkers {
+    am: String,
+    pm: String,
+}
+impl DayPeriodMarkers {
+    /// Markers are non-empty, free of surrounding whitespace and control characters, and
+    /// unambiguous: ignoring case, neither is equal to or a prefix of the other. Inner spaces
+    /// are allowed ("a. m.").
+    pub fn new(am: &str, pm: &str) -> Result<Self, DayPeriodMarkersError> {
+        for marker in [am, pm] {
+            if marker.is_empty() {
+                return Err(DayPeriodMarkersError::Empty);
+            }
+            if marker.trim() != marker {
+                return Err(DayPeriodMarkersError::SurroundingWhitespace);
+            }
+            if marker.chars().any(char::is_control) {
+                return Err(DayPeriodMarkersError::ControlCharacter);
+            }
+        }
+        let (am_folded, pm_folded) = (am.to_lowercase(), pm.to_lowercase());
+        if am_folded.starts_with(&pm_folded) || pm_folded.starts_with(&am_folded) {
+            return Err(DayPeriodMarkersError::Ambiguous);
+        }
+        Ok(Self {
+            am: am.to_owned(),
+            pm: pm.to_owned(),
+        })
+    }
+    pub fn am(&self) -> &str {
+        &self.am
+    }
+    pub fn pm(&self) -> &str {
+        &self.pm
+    }
+    fn marker(&self, meridiem: Meridiem) -> &str {
+        match meridiem {
+            Meridiem::Am => &self.am,
+            Meridiem::Pm => &self.pm,
+        }
+    }
+    fn match_typed(&self, typed: &str) -> MarkerMatch {
+        let typed = typed.to_lowercase();
+        let mut prefix = false;
+        for meridiem in [Meridiem::Am, Meridiem::Pm] {
+            let marker = self.marker(meridiem).to_lowercase();
+            if marker == typed {
+                return MarkerMatch::Complete(meridiem);
+            }
+            prefix |= marker.starts_with(&typed);
+        }
+        if prefix {
+            MarkerMatch::Prefix
+        } else {
+            MarkerMatch::Invalid
+        }
+    }
+}
+impl Default for DayPeriodMarkers {
+    /// The canonical English markers AM and PM.
+    fn default() -> Self {
+        Self {
+            am: "AM".to_owned(),
+            pm: "PM".to_owned(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct LocalTime(NaiveTime);
 impl LocalTime {
@@ -186,15 +278,24 @@ impl LocalTime {
     pub fn parse(text: &str, precision: TimePrecision) -> DraftValue<Self> {
         Self::parse_with_format(text, precision, ClockFormat::TwentyFourHour)
     }
-    /// Parse an explicit clock convention. Twelve-hour input requires AM/PM;
-    /// absence is an incomplete draft, never an inferred meridiem.
-    ///
-    /// Canonical shapes are HH:mm[:ss] and hh:mm[:ss] AM/PM. Hours and each
-    /// segment have two ASCII digits. AM/PM letters are case-insensitive.
+    /// Parse an explicit clock convention with the default AM and PM markers.
     pub fn parse_with_format(
         text: &str,
         precision: TimePrecision,
         clock_format: ClockFormat,
+    ) -> DraftValue<Self> {
+        Self::parse_with_markers(text, precision, clock_format, &DayPeriodMarkers::default())
+    }
+    /// Parse an explicit clock convention. Twelve-hour input requires one of the
+    /// markers; absence is an incomplete draft, never an inferred day period.
+    ///
+    /// Canonical shapes are HH:mm[:ss] and hh:mm[:ss] followed by a space and a marker.
+    /// Hours and each segment have two ASCII digits. Markers are case-insensitive.
+    pub fn parse_with_markers(
+        text: &str,
+        precision: TimePrecision,
+        clock_format: ClockFormat,
+        markers: &DayPeriodMarkers,
     ) -> DraftValue<Self> {
         if text.is_empty() {
             return DraftValue::Empty;
@@ -203,33 +304,37 @@ impl LocalTime {
             TimePrecision::Minute => 5,
             TimePrecision::Second => 8,
         };
-        let length = clock_length
-            + match clock_format {
-                ClockFormat::TwentyFourHour => 0,
-                ClockFormat::TwelveHour => 3,
-            };
         let bytes = text.as_bytes();
-        if bytes.len() > length {
-            return DraftValue::Invalid(ParseIssue::InvalidTime);
-        }
-        for (index, byte) in bytes.iter().copied().enumerate() {
-            let valid = if index < clock_length {
-                if index == 2 || index == 5 {
-                    byte == b':'
-                } else {
-                    byte.is_ascii_digit()
-                }
-            } else if index == clock_length {
-                byte == b' '
-            } else if index == clock_length + 1 {
-                matches!(byte.to_ascii_uppercase(), b'A' | b'P')
+        for (index, byte) in bytes.iter().copied().take(clock_length).enumerate() {
+            let valid = if index == 2 || index == 5 {
+                byte == b':'
             } else {
-                byte.eq_ignore_ascii_case(&b'M')
+                byte.is_ascii_digit()
             };
             if !valid {
                 return DraftValue::Invalid(ParseIssue::InvalidTime);
             }
         }
+        let meridiem = if bytes.len() <= clock_length {
+            None
+        } else {
+            match clock_format {
+                ClockFormat::TwentyFourHour => return DraftValue::Invalid(ParseIssue::InvalidTime),
+                ClockFormat::TwelveHour => {
+                    // The separator is ASCII, so the marker starts on a character boundary.
+                    if bytes[clock_length] != b' ' {
+                        return DraftValue::Invalid(ParseIssue::InvalidTime);
+                    }
+                    match markers.match_typed(&text[clock_length + 1..]) {
+                        MarkerMatch::Invalid => {
+                            return DraftValue::Invalid(ParseIssue::InvalidTime);
+                        }
+                        MarkerMatch::Prefix => None,
+                        MarkerMatch::Complete(meridiem) => Some(meridiem),
+                    }
+                }
+            }
+        };
         // Every available complete segment is checked even while the draft is
         // incomplete, so 13:00 in twelve-hour mode cannot become an AM guess.
         let pair = |offset: usize| {
@@ -251,23 +356,17 @@ impl LocalTime {
         if precision == TimePrecision::Second && bytes.len() >= 8 && pair(6) > 59 {
             return DraftValue::Invalid(ParseIssue::InvalidTime);
         }
-        if bytes.len() < length {
+        if bytes.len() < clock_length {
             return DraftValue::Incomplete;
         }
         let displayed_hour = pair(0);
         let hour = match clock_format {
             ClockFormat::TwentyFourHour => displayed_hour,
-            ClockFormat::TwelveHour => {
-                let meridiem = match bytes[clock_length + 1].to_ascii_uppercase() {
-                    b'A' => Meridiem::Am,
-                    b'P' => Meridiem::Pm,
-                    _ => unreachable!("meridiem syntax was checked above"),
-                };
-                match meridiem {
-                    Meridiem::Am => displayed_hour % 12,
-                    Meridiem::Pm => displayed_hour % 12 + 12,
-                }
-            }
+            ClockFormat::TwelveHour => match meridiem {
+                None => return DraftValue::Incomplete,
+                Some(Meridiem::Am) => displayed_hour % 12,
+                Some(Meridiem::Pm) => displayed_hour % 12 + 12,
+            },
         };
         let second = match precision {
             TimePrecision::Minute => 0,
@@ -278,9 +377,18 @@ impl LocalTime {
             Err(issue) => DraftValue::Invalid(issue),
         }
     }
+    /// Format with the default AM and PM markers.
+    pub fn format(self, precision: TimePrecision, clock_format: ClockFormat) -> String {
+        self.format_with_markers(precision, clock_format, &DayPeriodMarkers::default())
+    }
     /// Format without changing the canonical civil time. Precision controls the
     /// displayed segments only; no date, timezone or instant is introduced.
-    pub fn format(self, precision: TimePrecision, clock_format: ClockFormat) -> String {
+    pub fn format_with_markers(
+        self,
+        precision: TimePrecision,
+        clock_format: ClockFormat,
+        markers: &DayPeriodMarkers,
+    ) -> String {
         let hour = match clock_format {
             ClockFormat::TwentyFourHour => self.hour(),
             ClockFormat::TwelveHour => match self.hour() % 12 {
@@ -300,11 +408,7 @@ impl LocalTime {
                 } else {
                     Meridiem::Pm
                 };
-                let suffix = match meridiem {
-                    Meridiem::Am => "AM",
-                    Meridiem::Pm => "PM",
-                };
-                format!("{clock} {suffix}")
+                format!("{clock} {}", markers.marker(meridiem))
             }
         }
     }
@@ -1174,6 +1278,117 @@ mod zone_catalogue_tests {
         assert_eq!(
             CivilDate::new(2026, 11, 15).unwrap().weekday(),
             WeekStart::Sunday
+        );
+    }
+}
+
+#[cfg(test)]
+mod day_period_marker_tests {
+    use super::*;
+
+    fn markers(am: &str, pm: &str) -> DayPeriodMarkers {
+        DayPeriodMarkers::new(am, pm).unwrap()
+    }
+    fn parse(text: &str, markers: &DayPeriodMarkers) -> DraftValue<LocalTime> {
+        LocalTime::parse_with_markers(
+            text,
+            TimePrecision::Minute,
+            ClockFormat::TwelveHour,
+            markers,
+        )
+    }
+    #[test]
+    fn markers_reject_unusable_pairs() {
+        assert_eq!(
+            DayPeriodMarkers::new("", "PM"),
+            Err(DayPeriodMarkersError::Empty)
+        );
+        assert_eq!(
+            DayPeriodMarkers::new("AM", " PM"),
+            Err(DayPeriodMarkersError::SurroundingWhitespace)
+        );
+        assert_eq!(
+            DayPeriodMarkers::new("A\tM", "PM"),
+            Err(DayPeriodMarkersError::ControlCharacter)
+        );
+        assert_eq!(
+            DayPeriodMarkers::new("am", "AM"),
+            Err(DayPeriodMarkersError::Ambiguous)
+        );
+        assert_eq!(
+            DayPeriodMarkers::new("a", "ab"),
+            Err(DayPeriodMarkersError::Ambiguous)
+        );
+        assert_eq!(DayPeriodMarkers::default(), markers("AM", "PM"));
+    }
+    #[test]
+    fn custom_markers_parse_and_print_the_canonical_time() {
+        for (am, pm) in [("matin", "soir"), ("午前", "午後"), ("a. m.", "p. m.")] {
+            let m = markers(am, pm);
+            for (text, hour) in [
+                (format!("12:05 {am}"), 0),
+                (format!("11:05 {am}"), 11),
+                (format!("12:05 {pm}"), 12),
+                (format!("11:05 {pm}"), 23),
+            ] {
+                let parsed = parse(&text, &m);
+                assert_eq!(
+                    parsed,
+                    DraftValue::Parsed(LocalTime::new(hour, 5, 0).unwrap()),
+                    "{text}"
+                );
+                if let DraftValue::Parsed(time) = parsed {
+                    assert_eq!(
+                        time.format_with_markers(
+                            TimePrecision::Minute,
+                            ClockFormat::TwelveHour,
+                            &m
+                        ),
+                        text
+                    );
+                }
+            }
+        }
+    }
+    #[test]
+    fn custom_markers_are_case_insensitive_and_prefixes_stay_incomplete() {
+        let m = markers("Matin", "Soir");
+        assert_eq!(
+            parse("01:00 SOIR", &m),
+            DraftValue::Parsed(LocalTime::new(13, 0, 0).unwrap())
+        );
+        for draft in ["01:00", "01:00 ", "01:00 M", "01:00 mat", "01:00 s"] {
+            assert_eq!(parse(draft, &m), DraftValue::Incomplete, "{draft}");
+        }
+        for draft in [
+            "01:00 AM",
+            "01:00 PM",
+            "01:00 matins",
+            "01:00 matin ",
+            "01:00matin",
+        ] {
+            assert_eq!(
+                parse(draft, &m),
+                DraftValue::Invalid(ParseIssue::InvalidTime),
+                "{draft}"
+            );
+        }
+    }
+    #[test]
+    fn default_markers_are_not_accepted_when_replaced() {
+        let m = markers("午前", "午後");
+        assert_eq!(
+            parse("01:00 PM", &m),
+            DraftValue::Invalid(ParseIssue::InvalidTime)
+        );
+        assert_eq!(
+            LocalTime::parse_with_markers(
+                "01:00 午後",
+                TimePrecision::Minute,
+                ClockFormat::TwentyFourHour,
+                &m
+            ),
+            DraftValue::Invalid(ParseIssue::InvalidTime)
         );
     }
 }

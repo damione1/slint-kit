@@ -3,6 +3,7 @@ import { KitInputConstraints } from "validation.slint";
 import { FieldValue } from "field-service.slint";
 import { CivilDateView } from "calendar-service.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
+import { KitDayPeriods, KitStrings } from "strings.slint";
 export enum TimeSegment { hour, minute, second }
 export enum TimeAdjustment { increment, decrement }
 export enum ZonedTimePresentation { unresolved, unique, ambiguous, nonexistent, invalid-zone }
@@ -26,6 +27,8 @@ export struct ZonedDateTimeResult { state: ZonedTimePresentation, local: LocalDa
 export struct ZonedDateTimeCommit { local: LocalDateTimeView, zone: string, acceptance: ZonedAcceptance, utc-offset-seconds: int }
 export global KitTimeService {
     in-out property <bool> ready;
+    // The twelve-hour markers the callbacks below parse and print, read from the window's strings.
+    in property <KitDayPeriods> day-periods: KitStrings.day-periods;
     pure callback project-date(CivilDateView) -> TemporalProjection;
     pure callback project-year(int) -> TemporalProjection;
     pure callback project-month(int, int) -> TemporalProjection;

@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitTimePicker, KitStrings, KitTheme, KitThemes, ClockFormat, LocalTimeValue } from "@kit";
+export component DayPeriodsFixture inherits Window {
+    width: 560px; height: 360px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <LocalTimeValue> value <=> picker.accepted-time;
+    in-out property <string> text <=> picker.text;
+    out property <string> placeholder: picker.placeholder;
+    public function localize(am: string, pm: string) { KitStrings.day-periods = { am: am, pm: pm }; }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        picker := KitTimePicker { theme: root.theme; label: "Meeting time"; clock-format: ClockFormat.twelve-hour; }
+    }
+}
