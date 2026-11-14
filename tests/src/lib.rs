@@ -14,6 +14,7 @@ mod calendar_preview;
 mod code_feedback;
 mod collapse_group;
 mod column_widths;
+mod context_menu;
 mod day_periods;
 mod dialog_composition;
 mod dialog_high_level;
