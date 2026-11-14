@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 use crate::ui;
 use kit_core::{DecimalSlider, DecimalValue, OrderedRange, ParseIssue};
+use slint::Model;
 use std::num::NonZeroU32;
 impl TryFrom<ui::DecimalRangeView> for OrderedRange<DecimalValue> {
     type Error = ParseIssue;
@@ -50,6 +51,42 @@ fn accessible_value(
         step: step.renderer_float()?,
         value: value.to_string().into(),
     })
+}
+/// Where a mark lies on the travel. The mark's value snaps to the slider's
+/// lattice, like pointer input; a value outside the range is not a mark.
+fn snapped_mark(mark: &ui::SliderMark, rules: DecimalSlider) -> Result<DecimalValue, ParseIssue> {
+    let value: DecimalValue = mark.value.parse()?;
+    if value < rules.minimum() {
+        return Err(ParseIssue::BelowMinimum);
+    }
+    if value > rules.maximum() {
+        return Err(ParseIssue::AboveMaximum);
+    }
+    rules.at_value(value)
+}
+fn mark_position(
+    mark: &ui::SliderMark,
+    rules: ui::SliderSpec,
+) -> Result<ui::SliderMarkPosition, ParseIssue> {
+    let rules = spec(rules)?;
+    Ok(ui::SliderMarkPosition {
+        valid: true,
+        position: rules.position(snapped_mark(mark, rules)?)?,
+    })
+}
+/// The label of the first mark that sits on `value`, or none.
+fn mark_label<'a>(
+    value: &str,
+    marks: impl Iterator<Item = ui::SliderMark> + 'a,
+    rules: ui::SliderSpec,
+) -> Result<slint::SharedString, ParseIssue> {
+    let rules = spec(rules)?;
+    let value: DecimalValue = value.parse()?;
+    Ok(marks
+        .filter(|mark| !mark.label.is_empty())
+        .find(|mark| snapped_mark(mark, rules).is_ok_and(|snapped| snapped == value))
+        .map(|mark| mark.label)
+        .unwrap_or_default())
 }
 fn slider_accessibility(
     value: slint::SharedString,
@@ -214,6 +251,10 @@ pub(crate) fn install_numeric(service: &ui::KitFieldService<'_>) {
             .and_then(|rules| rules.position(value.parse()?))
             .unwrap_or(0.0)
     });
+    service.on_slider_mark(|mark, rules| mark_position(&mark, rules).unwrap_or_default());
+    service.on_slider_mark_label(|value, marks, rules| {
+        mark_label(&value, marks.iter(), rules).unwrap_or_default()
+    });
     service.on_slider_pointer(|value, position, rules| {
         spec(rules)
             .and_then(|rules| rules.at_position(position))
@@ -313,6 +354,34 @@ mod tests {
     }
     fn current() -> ui::DecimalRangeView {
         range_view("10".parse().unwrap(), "30".parse().unwrap())
+    }
+    fn mark(value: &str, label: &str) -> ui::SliderMark {
+        ui::SliderMark {
+            value: value.into(),
+            label: label.into(),
+        }
+    }
+    #[test]
+    fn marks_snap_onto_the_lattice_and_reject_values_outside_the_range() {
+        // -10..50 step 2: 13 rounds to 14, at 0.4 of the travel.
+        let snapped = mark_position(&mark("13", "x"), rules()).unwrap();
+        assert!(snapped.valid);
+        assert!((snapped.position - 0.4).abs() < 1e-6, "{snapped:?}");
+        assert!(mark_position(&mark("51", ""), rules()).is_err());
+        assert!(mark_position(&mark("-11", ""), rules()).is_err());
+        assert!(mark_position(&mark("abc", ""), rules()).is_err());
+    }
+    #[test]
+    fn the_first_labelled_mark_on_the_value_names_it() {
+        let marks = [mark("14", ""), mark("13", "Warm"), mark("14", "Later")];
+        assert_eq!(
+            mark_label("14.0", marks.iter().cloned(), rules()).unwrap(),
+            "Warm"
+        );
+        assert_eq!(
+            mark_label("20", marks.iter().cloned(), rules()).unwrap(),
+            ""
+        );
     }
     #[test]
     fn accessible_profiles_share_domain_values_bounds_and_step() {

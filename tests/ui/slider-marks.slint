@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitSlider, KitRangeSlider, KitTheme, KitThemes, ChoiceFlow, ChoiceDirection, DecimalRangeView, SliderMark } from "@kit";
+export component SliderMarksFixture inherits Window {
+    width: 400px; height: 560px;
+    in property <KitTheme> theme: KitThemes.light;
+    in-out property <string> plain-value <=> plain.value;
+    in-out property <string> marked-value <=> marked.value;
+    in-out property <string> wheel-value <=> wheel.value;
+    in-out property <string> rtl-wheel-value <=> rtl-wheel.value;
+    in-out property <DecimalRangeView> range-value <=> range.value;
+    in-out property <DecimalRangeView> range-wheel-value <=> range-wheel.value;
+    in-out property <string> vertical-wheel-value <=> vertical-wheel.value;
+    out property <length> plain-height: plain.height;
+    out property <length> marked-height: marked.height;
+    background: root.theme.canvas;
+    HorizontalLayout {
+        padding: 20px; spacing: 20px;
+        VerticalLayout {
+            spacing: 16px; alignment: start;
+            plain := KitSlider { height: 44px; theme: root.theme; label: "Plain"; value: "20"; }
+            marked := KitSlider { theme: root.theme; label: "Marked"; value: "50"; spec: {minimum: "0", maximum: "100", step: "10"};
+                marks: [{value: "0", label: "Min"}, {value: "47", label: "Odd"}, {value: "50", label: "Half"}, {value: "100", label: "Max"}, {value: "250", label: "Out"}]; }
+            wheel := KitSlider { height: 44px; theme: root.theme; label: "Wheel"; value: "50"; wheel-stepping: true; }
+            rtl-wheel := KitSlider { height: 44px; theme: root.theme; label: "Mirrored wheel"; value: "50"; wheel-stepping: true; flow: ChoiceFlow.right-to-left; }
+            range := KitRangeSlider { theme: root.theme; label: "Range"; value: {lower: "20", upper: "80"}; marks: [{value: "20", label: "Low"}, {value: "80", label: "High"}]; }
+            range-wheel := KitRangeSlider { height: 44px; theme: root.theme; label: "Range wheel"; value: {lower: "20", upper: "80"}; wheel-stepping: true; }
+        }
+        HorizontalLayout { width: 120px; vertical-wheel := KitSlider { theme: root.theme; label: "Vertical"; value: "50"; direction: ChoiceDirection.vertical; wheel-stepping: true;
+            marks: [{value: "0", label: "Bottom"}, {value: "100", label: "Top"}]; } }
+    }
+}
