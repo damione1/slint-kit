@@ -622,6 +622,14 @@ fn selection_state_of<K, R: SelectableRow>(state: &State<K, R>) -> CheckState {
     }
 }
 impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
+    /// Move the active row to an enabled row without changing the selection
+    /// or the range anchor, for the table's `typeahead-requested`.
+    pub fn move_active(&self, token: i32, generation: i32) -> Option<K> {
+        let key = self.accept(token, generation)?;
+        self.state.borrow_mut().active = Some(key.clone());
+        self.publish();
+        Some(key)
+    }
     /// Make one row the whole selection. It also becomes the active row and
     /// the anchor of later range selections.
     pub fn select(&self, token: i32, generation: i32) -> Option<K> {

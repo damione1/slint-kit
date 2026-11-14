@@ -14,6 +14,7 @@ import { KitInputConstraints } from "validation.slint";
 import { Tone, KitBadge } from "display.slint";
 import { KitSpinner } from "feedback.slint";
 import { CheckMark } from "choice.slint";
+import { KitSelectionService } from "selection-service.slint";
 export enum DataSortDirection { unsorted, ascending, descending }
 export enum DataAlignment { leading, center, trailing }
 // What a data collection has to say when it shows no rows: the rows are `ready`
@@ -61,16 +62,6 @@ export struct TableColumnSource { mode: ColumnSourceMode, index: int }
 export struct TableColumn { token: int, label: string, sortable: bool, sort: DataSortDirection, alignment: DataAlignment, width: ColumnWidth, source: TableColumnSource, visibility: ColumnVisibility }
 // Projection of an optional, validated internal drag payload.
 export struct TableColumnDrop { valid: bool, token: int }
-// Pure view projection, installed once with the other module services. It
-// filters presentation visibility and resolves positional sources before the
-// header/body use the resulting shared column model.
-export global KitDataService {
-    in-out property <bool> ready;
-    pure callback visible-columns([TableColumn]) -> [TableColumn];
-    pure callback source-current([TableColumn], int, int) -> bool;
-    pure callback column-drag([TableColumn], int) -> data-transfer;
-    pure callback column-drop([TableColumn], data-transfer, int) -> TableColumnDrop;
-}
 // What one typed table cell shows. The set is closed and painted by the
 // kit inside the virtualized row, because Slint 1.18.1 rejects `@children`
 // and slot placeholders inside a repeated element and keeps dynamic
@@ -107,6 +98,29 @@ export struct CellRef { row: int, column: int, generation: int }
 // `commit` is run through the column's `FieldSpec::accept` by the host.
 export struct CellCommit { row: int, column: int, generation: int, commit: FieldCommit }
 export struct TableRow { token: int, cells: [string], content: [TableCell], selected: bool, disabled: bool }
+// The type-ahead session of a table: the typed prefix and the clock of the
+// last key, in the milliseconds of `KitSelectionService.timestamp`.
+export struct TableTypeahead { query: string, has-timestamp: bool, timestamp: int }
+// `handled` is true when the key joined the prefix, so it is not also a shortcut.
+export struct TableTypeaheadResult { row: int, handled: bool, session: TableTypeahead }
+// Pure view projection, installed once with the other module services. It
+// filters presentation visibility and resolves positional sources before the
+// header/body use the resulting shared column model.
+export global KitDataService {
+    in-out property <bool> ready;
+    // Prefix type-ahead over a table's rows, matched on each row's first cell
+    // like the select search: `row` is the index of the first enabled match
+    // (-1 for none) and `session` the prefix and clock to pass back in.
+    pure callback typeahead([TableRow], int, TableTypeahead, string, int) -> TableTypeaheadResult;
+    pure callback typeahead-active(TableTypeahead, int) -> bool;
+    // The position of the first (or, with `true`, last) column of the row
+    // holding an editable field, or -1.
+    pure callback edge-editable-column([TableColumn], TableRow, bool) -> int;
+    pure callback visible-columns([TableColumn]) -> [TableColumn];
+    pure callback source-current([TableColumn], int, int) -> bool;
+    pure callback column-drag([TableColumn], int) -> data-transfer;
+    pure callback column-drop([TableColumn], data-transfer, int) -> TableColumnDrop;
+}
 export struct ContentItem { token: int, title: string, excerpt: string, metadata: string, link-label: string, thumbnail: image, selected: bool, disabled: bool }
 export struct TextLine { token: int, number: int, text: string, selected: bool }
 
@@ -716,6 +730,14 @@ export component KitDataTable inherits Rectangle {
     // whether the row joins the selection. Disabled rows report nothing.
     callback context-requested(int,int,length,length);
     callback navigate(NavigationStep);
+    // Typing a character, or several in a row, asks the host to move its
+    // active row to the next enabled row whose first cell starts with what
+    // was typed: `(row-token, generation)`, like `activate`. A pause of 700 ms
+    // starts a new prefix; repeating one letter cycles the rows that start
+    // with it. It selects nothing and opens nothing. Space joins the prefix
+    // only while one is being typed. Control and Meta shortcuts are left
+    // alone, and so is a table whose cells are being edited.
+    callback typeahead-requested(int,int);
     callback sort-requested(int);
     // A clamped width the user asked for, by column token. The table paints
     // nothing from it: the host changes the column's `width` policy.
@@ -909,6 +931,31 @@ export component KitDataTable inherits Rectangle {
             root.activate(root.rows[root.active-index].token, root.generation);
             root.gesture(root.rows[root.active-index].token, root.generation, RowGesture.open);
         }
+    }
+    // Tab and Shift+Tab leaving an edit: the next or previous cell, and past
+    // the last or first cell the first or last editable cell of the next or
+    // previous row. The host moves the row, so at the end of the rows the
+    // cursor stays where it is.
+    function tab-step(step: ColumnStep) {
+        let edge = step == ColumnStep.previous ? root.active-column <= 0 : root.active-column >= root.display-columns.length - 1;
+        if (!edge || !KitDataService.ready) { root.step-column(step); return; }
+        let before = root.active-index;
+        root.navigate(step == ColumnStep.previous ? NavigationStep.previous : NavigationStep.next);
+        if (root.active-index != before && root.has-active-row) {
+            let target = KitDataService.edge-editable-column(root.display-columns, root.rows[root.active-index], step == ColumnStep.previous);
+            root.active-column = target >= 0 ? target : step == ColumnStep.previous ? root.display-columns.length - 1 : 0;
+        }
+    }
+    private property <TableTypeahead> typeahead-session;
+    function typeahead-key(event: KeyEvent) -> bool {
+        if (!KitDataService.ready || !KitSelectionService.ready || root.cursor-region != TableCursorRegion.body || root.edit-open || root.rows.length == 0
+            || event.modifiers.control || event.modifiers.meta) { return false; }
+        let now = KitSelectionService.timestamp();
+        if (event.text == " " && !KitDataService.typeahead-active(root.typeahead-session, now)) { return false; }
+        let result = KitDataService.typeahead(root.rows, root.active-index, root.typeahead-session, event.text, now);
+        root.typeahead-session = result.session;
+        if (result.row >= 0 && result.row < root.rows.length) { root.typeahead-requested(root.rows[result.row].token, root.generation); }
+        return result.handled;
     }
     function step-column(step: ColumnStep) {
         if (root.cursor-region == TableCursorRegion.body && !root.has-active-row) { return; }
@@ -1144,10 +1191,12 @@ export component KitDataTable inherits Rectangle {
                 root.copy-active-cell();
                 return KitKeyResult.accept;
             }
+            if (root.typeahead-key(event)) { return KitKeyResult.accept; }
             return KitKeyResult.reject;
         }
         edit-requested => { if (root.cursor-region == TableCursorRegion.body) { root.edit-active(); } }
         navigate(step) => {
+            root.typeahead-session = { query: "", has-timestamp: false, timestamp: 0 };
             if (root.header-focus == TableHeaderFocus.roving && step == NavigationStep.previous && (root.active-index == 0 || !root.has-active-row) && root.display-columns.length > 0 && root.cursor-region == TableCursorRegion.body) { root.cursor-region = TableCursorRegion.header; root.active-column = clamp(root.active-column, 0, root.display-columns.length - 1); }
             else if (step == NavigationStep.next && root.cursor-region == TableCursorRegion.header) { root.cursor-region = TableCursorRegion.body; }
             else if (root.cursor-region == TableCursorRegion.body) { root.navigate(step); }
@@ -1290,7 +1339,7 @@ export component KitDataTable inherits Rectangle {
                     // The commit ran before this: a closed session means it
                     // was accepted and the cursor may move on; an open one
                     // keeps the invalid draft in the editor.
-                    step-requested(identity, step) => { if (!root.edit-open && root.edit-session == identity.session) { root.step-column(step); } }
+                    step-requested(identity, step) => { if (!root.edit-open && root.edit-session == identity.session) { root.tab-step(step); } }
                     blurred(identity) => {
                         if (root.same-edit-session(identity) && root.edits-cell(row, root.display-columns[column-index])) {
                             if (!root.edit-available) { root.end-edit(false, TableEditOutcome.superseded); }

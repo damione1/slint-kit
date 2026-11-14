@@ -3,6 +3,10 @@ use crate::{Ownership, SelectionRetention};
 use std::collections::HashSet;
 use std::hash::Hash;
 
+/// How long a pause ends a type-ahead prefix, in milliseconds, for every
+/// collection that searches by typing.
+pub const TYPEAHEAD_TIMEOUT_MS: u64 = 700;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SelectOption<K> {
     pub key: K,
@@ -50,7 +54,7 @@ impl<K> Default for SelectSession<K> {
             },
             typeahead: String::new(),
             last_typeahead_ms: None,
-            typeahead_timeout_ms: 700,
+            typeahead_timeout_ms: TYPEAHEAD_TIMEOUT_MS,
             wrap: false,
         }
     }
@@ -352,7 +356,7 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             pressed: None,
             typeahead: String::new(),
             last_typeahead_ms: None,
-            typeahead_timeout_ms: 700,
+            typeahead_timeout_ms: TYPEAHEAD_TIMEOUT_MS,
             wrap: false,
         }
     }
@@ -682,26 +686,7 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
     /// Inject monotonic milliseconds. A backwards clock starts a fresh search.
     /// A repeated single character cycles matching labels, wrapping at the end.
     pub fn typeahead(&mut self, text: &str, now_ms: u64) {
-        if !self.state.open || text.is_empty() || text.chars().any(char::is_control) {
-            return;
-        }
-        let text = text.to_lowercase();
-        let expired = self
-            .last_typeahead_ms
-            .is_none_or(|last| now_ms < last || now_ms - last >= self.typeahead_timeout_ms);
-        if expired {
-            self.typeahead.clear();
-        }
-        if self.typeahead.is_empty() && text.trim().is_empty() {
-            return;
-        }
-        let repeat = !expired && self.typeahead.chars().count() == 1 && self.typeahead == text;
-        if !repeat {
-            self.typeahead.push_str(&text);
-        }
-        self.last_typeahead_ms = Some(now_ms);
-        let len = self.options.len();
-        if len == 0 {
+        if !self.state.open {
             return;
         }
         let current = self
@@ -709,19 +694,70 @@ impl<K: Clone + Eq + Hash> SelectController<K> {
             .active
             .as_ref()
             .and_then(|key| self.options.iter().position(|o| &o.key == key));
-        let start = if repeat || expired {
-            current.map_or(0, |i| (i + 1) % len)
-        } else {
-            current.unwrap_or(0)
-        };
-        for offset in 0..len {
-            let row = &self.options[(start + offset) % len];
-            if !row.disabled && row.label.to_lowercase().starts_with(&self.typeahead) {
-                self.state.active = Some(row.key.clone());
-                break;
-            }
+        let found = typeahead_search(
+            &mut self.typeahead,
+            &mut self.last_typeahead_ms,
+            self.typeahead_timeout_ms,
+            text,
+            now_ms,
+            current,
+            self.options
+                .iter()
+                .map(|row| (row.label.as_str(), row.disabled)),
+        );
+        if let Some(index) = found {
+            self.state.active = Some(self.options[index].key.clone());
         }
     }
+}
+
+/// One step of prefix type-ahead over rows given as `(label, disabled)`,
+/// shared by every collection that searches by typing. `query` and
+/// `last_ms` are the session: a pause of `timeout_ms` (or a backwards clock)
+/// starts a fresh prefix, and a repeated single character cycles the
+/// matching rows from the one after `current`, wrapping at the end. Returns
+/// the index of the first enabled row whose label starts with the prefix.
+pub fn typeahead_search<'a>(
+    query: &mut String,
+    last_ms: &mut Option<u64>,
+    timeout_ms: u64,
+    text: &str,
+    now_ms: u64,
+    current: Option<usize>,
+    rows: impl ExactSizeIterator<Item = (&'a str, bool)> + Clone,
+) -> Option<usize> {
+    if text.is_empty() || text.chars().any(char::is_control) {
+        return None;
+    }
+    let text = text.to_lowercase();
+    let expired = last_ms.is_none_or(|last| now_ms < last || now_ms - last >= timeout_ms);
+    if expired {
+        query.clear();
+    }
+    if query.is_empty() && text.trim().is_empty() {
+        return None;
+    }
+    let repeat = !expired && query.chars().count() == 1 && *query == text;
+    if !repeat {
+        query.push_str(&text);
+    }
+    *last_ms = Some(now_ms);
+    let len = rows.len();
+    if len == 0 {
+        return None;
+    }
+    let start = if repeat || expired {
+        current.map_or(0, |i| (i + 1) % len)
+    } else {
+        current.unwrap_or(0)
+    };
+    let mut ordered = rows.clone().cycle().skip(start).take(len);
+    let mut offset = 0;
+    ordered.find_map(|(label, disabled)| {
+        let position = (start + offset) % len;
+        offset += 1;
+        (!disabled && label.to_lowercase().starts_with(query.as_str())).then_some(position)
+    })
 }
 
 #[cfg(test)]
@@ -805,7 +841,7 @@ mod tests {
             },
             typeahead: String::new(),
             last_typeahead_ms: None,
-            typeahead_timeout_ms: 700,
+            typeahead_timeout_ms: TYPEAHEAD_TIMEOUT_MS,
             wrap: false,
         };
         let first = reduce_selection(
