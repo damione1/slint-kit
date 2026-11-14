@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitCalendar, KitDateRangePicker, KitTheme, KitThemes, CalendarDay, CivilDateView, DateRangeView, EarlierEndPolicy } from "@kit";
+export component CalendarPreviewFixture inherits Window {
+    preferred-width: 1000px; preferred-height: 700px;
+    in property <KitTheme> theme: KitThemes.light;
+    background: root.theme.canvas;
+    in property <EarlierEndPolicy> earlier-end: EarlierEndPolicy.restart;
+    in-out property <CivilDateView> focused: {year: 2026, month: 10, day: 1};
+    in-out property <CivilDateView> anchor;
+    in-out property <DateRangeView> range-selection;
+    out property <[CalendarDay]> calendar-days: calendar.days;
+    out property <[CalendarDay]> range-days: range.days;
+    out property <CivilDateView> calendar-preview-end: calendar.preview-end;
+    out property <CivilDateView> range-preview-end: range.preview-end;
+    public pure function calendar-previewed(day: CalendarDay) -> bool { return calendar.previewed(day); }
+    public pure function range-previewed(day: CalendarDay) -> bool { return range.previewed(day); }
+    public function focus-calendar() { calendar.take-focus(); }
+    HorizontalLayout {
+        padding: 24px; spacing: 24px; alignment: start;
+        VerticalLayout { alignment: start; calendar := KitCalendar {
+            theme: root.theme; label: "Calendar"; today: {year: 2026, month: 10, day: 2};
+            range-anchor: root.anchor; preview-before-anchor: root.earlier-end == EarlierEndPolicy.swap;
+            focused <=> root.focused;
+        } }
+        VerticalLayout { alignment: start; range := KitDateRangePicker {
+            theme: root.theme; label: "Range picker"; today: {year: 2026, month: 10, day: 2};
+            earlier-end: root.earlier-end; selected <=> root.range-selection;
+            focused <=> root.focused;
+        } }
+    }
+}
