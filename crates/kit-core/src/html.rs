@@ -107,6 +107,8 @@ pub struct HtmlConstraints {
     pub number_format: NumberInputFormat,
     /// Native twelve-hour presentation; values and constraints remain canonical.
     pub twelve_hour: bool,
+    /// The markers a twelve-hour draft uses; ignored unless `twelve_hour` is set.
+    pub day_periods: crate::DayPeriodMarkers,
     pub required: bool,
     pub multiple: bool,
     /// HTML lengths count UTF-16 code units, independently of a grapheme counter.
@@ -129,6 +131,7 @@ impl Default for HtmlConstraints {
             kind: HtmlInputKind::Text,
             number_format: NumberInputFormat::Canonical,
             twelve_hour: false,
+            day_periods: crate::DayPeriodMarkers::default(),
             required: false,
             multiple: false,
             min_length: None,
@@ -191,11 +194,11 @@ impl HtmlConstraints {
             let candidate = if self.kind == HtmlInputKind::Number {
                 canonical_number_draft(draft, self.number_format)
             } else if self.twelve_hour && self.kind == HtmlInputKind::Time {
-                canonical_clock_draft(draft)
+                canonical_clock_draft(draft, &self.day_periods)
             } else if self.twelve_hour && self.kind == HtmlInputKind::DateTimeLocal {
-                draft
-                    .split_once(['T', ' '])
-                    .and_then(|(d, t)| canonical_clock_draft(t).map(|t| format!("{d}T{t}")))
+                draft.split_once(['T', ' ']).and_then(|(d, t)| {
+                    canonical_clock_draft(t, &self.day_periods).map(|t| format!("{d}T{t}"))
+                })
             } else {
                 Some(draft.into())
             };
@@ -406,11 +409,14 @@ pub fn html_email_address(value: &str) -> bool {
         })
 }
 /// Localized editing is a projection; min/max/step always use HTML syntax.
-fn canonical_clock_draft(draft: &str) -> Option<String> {
+fn canonical_clock_draft(draft: &str, markers: &crate::DayPeriodMarkers) -> Option<String> {
     for precision in [crate::TimePrecision::Minute, crate::TimePrecision::Second] {
-        if let crate::DraftValue::Parsed(time) =
-            crate::LocalTime::parse_with_format(draft, precision, crate::ClockFormat::TwelveHour)
-        {
+        if let crate::DraftValue::Parsed(time) = crate::LocalTime::parse_with_markers(
+            draft,
+            precision,
+            crate::ClockFormat::TwelveHour,
+            markers,
+        ) {
             return Some(time.format(precision, crate::ClockFormat::TwentyFourHour));
         }
     }
@@ -1106,6 +1112,32 @@ mod localized_time_tests {
         rules.minimum = Some("2026-10-28T13:00".into());
         rules.maximum = None;
         assert_eq!(rules.sanitize("2026-10-28T01:30 PM"), "2026-10-28T13:30");
+    }
+    #[test]
+    fn twelve_hour_bounds_follow_custom_day_period_markers() {
+        let rules = HtmlConstraints {
+            kind: HtmlInputKind::Time,
+            twelve_hour: true,
+            day_periods: crate::DayPeriodMarkers::new("午前", "午後").unwrap(),
+            minimum: Some("13:00".into()),
+            ..Default::default()
+        };
+        assert_eq!(rules.sanitize("01:30 午後"), "13:30");
+        assert!(
+            rules
+                .validate("01:30 午後", HtmlInputState::default())
+                .valid()
+        );
+        assert!(
+            rules
+                .validate("01:30 午前", HtmlInputState::default())
+                .range_underflow
+        );
+        assert!(
+            rules
+                .validate("01:30 PM", HtmlInputState::default())
+                .bad_input
+        );
     }
 }
 
