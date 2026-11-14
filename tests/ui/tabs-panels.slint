@@ -12,6 +12,7 @@ export component TabsPanelsFixture inherits Window {
     in property <TabActivation> activation: TabActivation.manual;
     in property <ChoiceFlow> flow: ChoiceFlow.left-to-right;
     in property <bool> typeahead-enabled;
+    in property <Orientation> orientation: Orientation.horizontal;
     in property <ControlWidth> tab-width: ControlWidth.intrinsic;
     in property <bool> static-panel-stop;
     in property <bool> interactive: true;
@@ -53,7 +54,7 @@ export component TabsPanelsFixture inherits Window {
             tabs := KitTabs {
                 theme: root.theme; options: root.options; selected <=> root.selected;
                 activation: root.activation; ownership: root.ownership; flow: root.flow;
-                typeahead-enabled: root.typeahead-enabled; interactive: root.interactive; tab-width: root.tab-width;
+                typeahead-enabled: root.typeahead-enabled; orientation: root.orientation; interactive: root.interactive; tab-width: root.tab-width;
                 chosen(row) => { root.chosen(row); }
             }
             KitStack { theme: root.theme; gap: LayoutSpace.none;
