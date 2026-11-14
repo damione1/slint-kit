@@ -376,11 +376,89 @@ fn fill_width_gives_every_tab_an_equal_share_of_the_strip() {
     let filled = widths(app);
     assert_eq!(filled.len(), 3);
     for width in &filled {
-        assert!((width - filled[0]).abs() < 1.0, "unequal tabs: {filled:?}");
+        // The strip snaps tab edges to whole pixels, so shares differ by at most one.
+        assert!((width - filled[0]).abs() <= 1.0, "unequal tabs: {filled:?}");
     }
     let total: f32 = filled.iter().sum();
     assert!(
         total > app.get_tabs_width() * 0.9,
         "tabs do not fill the strip: {filled:?}"
     );
+}
+
+#[test]
+fn vertical_tabs_stack_in_a_column_and_navigate_with_up_and_down() {
+    let harness = fixture();
+    let app = &harness.app;
+    let positions = |app: &TabsPanelsFixture| -> Vec<(f32, f32)> {
+        ElementQuery::from_root(app)
+            .match_accessible_role(AccessibleRole::Tab)
+            .find_all()
+            .iter()
+            .map(|tab| (tab.absolute_position().x, tab.absolute_position().y))
+            .collect()
+    };
+    let row = positions(app);
+    assert_eq!(row.len(), 3);
+    assert!(row[0].0 < row[1].0 && (row[0].1 - row[1].1).abs() < 1.0);
+    for flow in [ChoiceFlow::LeftToRight, ChoiceFlow::RightToLeft] {
+        app.set_flow(flow);
+        app.set_orientation(slint::language::Orientation::Vertical);
+        app.set_activation(TabActivation::Manual);
+        app.set_selected(harness.choices.selection(&Destination::Profile).unwrap());
+        settle(app);
+        let list = ElementQuery::from_root(app)
+            .match_accessible_role(AccessibleRole::TabList)
+            .find_all();
+        assert_eq!(
+            list[0].accessible_orientation(),
+            Some(i_slint_backend_testing::Orientation::Vertical)
+        );
+        let column = positions(app);
+        assert_eq!(column.len(), 3);
+        assert!(
+            column[0].1 < column[1].1 && column[1].1 < column[2].1,
+            "{column:?}"
+        );
+        assert!((column[0].0 - column[2].0).abs() < 1.0, "{column:?}");
+        let before = app.get_vertical_keys();
+        app.invoke_focus_tabs();
+        key(app, Key::Home);
+        key(app, Key::DownArrow);
+        assert_eq!(
+            app.get_tabs_state().active.token,
+            harness
+                .choices
+                .selection(&Destination::Settings)
+                .unwrap()
+                .token
+        );
+        key(app, Key::UpArrow);
+        assert_eq!(
+            app.get_tabs_state().active.token,
+            harness
+                .choices
+                .selection(&Destination::Profile)
+                .unwrap()
+                .token
+        );
+        assert_eq!(
+            app.get_vertical_keys(),
+            before,
+            "Up/Down must stay inside the tab list"
+        );
+        key(app, Key::DownArrow);
+        key(app, Key::Space);
+        assert!(app.get_settings_active());
+        assert_eq!(
+            harness.proposals.borrow().last(),
+            Some(&Destination::Settings)
+        );
+        let active = app.get_tabs_state().active;
+        key(app, Key::RightArrow);
+        key(app, Key::LeftArrow);
+        assert_eq!(app.get_tabs_state().active, active);
+        app.set_orientation(slint::language::Orientation::Horizontal);
+        settle(app);
+    }
 }

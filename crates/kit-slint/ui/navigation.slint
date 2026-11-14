@@ -341,6 +341,13 @@ export component KitTabs inherits Rectangle {
     in property <SelectState> state: selection.state;
     in property <string> accessible-name: "Tabs";
     in property <ChoiceFlow> flow: root.theme.direction;
+    // horizontal lays the tabs in a row (Left/Right keys); vertical stacks them in a
+    // column (Up/Down keys), reports a vertical tab list and puts the selection
+    // indicator on the inline-end edge of the tab.
+    in property <Orientation> orientation: Orientation.horizontal;
+    private property <bool> vertical: root.orientation == Orientation.vertical;
+    // Only a horizontal right-to-left strip lists its tabs in reverse.
+    private property <bool> reversed: !root.vertical && root.flow == ChoiceFlow.right-to-left;
     in property <TabActivation> activation: TabActivation.manual;
     // intrinsic sizes each tab to its label and scrolls on overflow; fill gives
     // every tab an equal share of the strip and elides labels that do not fit.
@@ -354,9 +361,15 @@ export component KitTabs inherits Rectangle {
     callback typeahead(string);
     out property <bool> has-focus: root.live && keyboard.has-focus;
     public function take-focus() { if (root.live) { keyboard.focus(); } }
-    public function reveal(left: length, right: length) {
-        if (left + viewport.content-x < 0px) { viewport.content-x = -left; }
-        else if (right + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - right); }
+    // Scrolls the strip along its axis so the span from `start` to `end` is visible.
+    public function reveal(start: length, end: length) {
+        if (root.vertical) {
+            if (start + viewport.content-y < 0px) { viewport.content-y = -start; }
+            else if (end + viewport.content-y > viewport.visible-height) { viewport.content-y = min(0px, viewport.visible-height - end); }
+        } else {
+            if (start + viewport.content-x < 0px) { viewport.content-x = -start; }
+            else if (end + viewport.content-x > viewport.visible-width) { viewport.content-x = min(0px, viewport.visible-width - end); }
+        }
     }
     public function handle-key(event: KeyEvent) -> KitKeyResult {
         if (!root.live) { return KitKeyResult.reject; }
@@ -365,15 +378,18 @@ export component KitTabs inherits Rectangle {
     private property <OptionRecipe> tab-recipe: KitThemes.option-recipe(root.theme, root.control-size);
     accessible-role: tab-list;
     accessible-label: root.accessible-name;
-    accessible-orientation: Orientation.horizontal;
+    accessible-orientation: root.orientation;
     accessible-item-count: root.rows.length;
     // The single nonvirtualized strip is the entire direct accessible-child
     // sequence. ScrollFrame and its bars are roleless; RTL reverses this loop.
     accessible-delegate-focus: root.state.active-index >= 0 && root.state.active-index < root.rows.length
-        ? (root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
-    // Reserve the horizontal gutter without clipping the tab row.
-    min-height: KitMetrics.row-height(root.theme, root.control-size) + KitThemes.scroll-bar-recipe(root.theme).thickness;
-    preferred-height: self.min-height;
+        ? (root.reversed ? root.rows.length - 1 - root.state.active-index : root.state.active-index) : -1;
+    // Reserve the scrollbar gutter on the cross axis without clipping the tabs.
+    min-height: KitMetrics.row-height(root.theme, root.control-size) + (root.vertical ? 0px : KitThemes.scroll-bar-recipe(root.theme).thickness);
+    preferred-height: root.vertical ? max(self.min-height, strip.preferred-height) : self.min-height;
+    min-width: root.vertical ? strip.min-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    preferred-width: root.vertical ? strip.preferred-width + KitThemes.scroll-bar-recipe(root.theme).thickness : 0px;
+    horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: 0;
     forward-focus: keyboard;
     keyboard := KitSelectKeyboard {
@@ -381,7 +397,7 @@ export component KitTabs inherits Rectangle {
         dismiss-on-system-back: false;
         dismiss-on-escape: false;
         typeahead-enabled: root.typeahead-enabled;
-        navigation-direction: ChoiceDirection.horizontal;
+        navigation-direction: root.vertical ? ChoiceDirection.vertical : ChoiceDirection.horizontal;
         flow: root.flow;
         wrap: root.wrap;
         typeahead-timeout-ms: root.typeahead-timeout-ms;
@@ -396,25 +412,29 @@ export component KitTabs inherits Rectangle {
         typeahead(text) => { root.handle-typeahead(text); }
         viewport := ScrollFrame {
             theme: root.theme;
-            vertical-scrollbar-policy: ScrollBarPolicy.always-off;
-            content-width: max(self.visible-width, strip.preferred-width);
-            content-height: self.visible-height;
-            strip := HorizontalLayout {
+            vertical-scrollbar-policy: root.vertical ? ScrollBarPolicy.as-needed : ScrollBarPolicy.always-off;
+            horizontal-scrollbar-policy: root.vertical ? ScrollBarPolicy.always-off : ScrollBarPolicy.as-needed;
+            content-width: root.vertical ? self.visible-width : max(self.visible-width, strip.preferred-width);
+            content-height: root.vertical ? max(self.visible-height, strip.preferred-height) : self.visible-height;
+            strip := FlexboxLayout {
                 width: viewport.content-width;
-                height: viewport.visible-height;
+                height: root.vertical ? viewport.content-height : viewport.visible-height;
                 spacing: root.theme.spacing.unit;
+                flex-direction: root.vertical ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
+                flex-wrap: FlexboxLayoutWrap.no-wrap;
+                cross-axis-alignment: CrossAxisAlignment.stretch;
                 alignment: root.tab-width == ControlWidth.fill ? LayoutAlignment.stretch
-                    : root.flow == ChoiceFlow.right-to-left ? LayoutAlignment.end : LayoutAlignment.start;
+                    : root.reversed ? LayoutAlignment.end : LayoutAlignment.start;
                 for index in root.rows.length: tab-action := KitNavigationAction {
-                    private property <OptionRow> entry: root.rows[root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index];
+                    private property <OptionRow> entry: root.rows[root.reversed ? root.rows.length - 1 - index : index];
                     theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
                     option-data: self.entry;
-                    accessible-item-index: root.flow == ChoiceFlow.right-to-left ? root.rows.length - 1 - index : index;
+                    accessible-item-index: root.reversed ? root.rows.length - 1 - index : index;
                     accessible-item-count: root.rows.length;
                     disabled: !root.interactive || self.entry.disabled;
                     accessible-role: tab;
-                    control-width: root.tab-width;
-                    label-alignment: TextHorizontalAlignment.center;
+                    control-width: root.vertical ? ControlWidth.fill : root.tab-width;
+                    label-alignment: root.vertical ? (root.flow == ChoiceFlow.right-to-left ? TextHorizontalAlignment.right : TextHorizontalAlignment.left) : TextHorizontalAlignment.center;
                     active: root.state.active.present && root.state.active.token == self.entry.token;
                     selected: root.state.selected.present && root.state.selected.token == self.entry.token;
                     focus-indicated: root.live && self.active && (keyboard.has-focus || self.has-focus);
@@ -423,15 +443,19 @@ export component KitTabs inherits Rectangle {
                     background: self.pressed ? root.tab-recipe.pressed-fill : self.active ? root.tab-recipe.active-fill
                         : self.hovered ? root.tab-recipe.hover-fill : root.tab-recipe.fill;
                     indicator := Rectangle {
-                        x: -tab-action.recipe.padding-inline; y: tab-action.height - tab-action.recipe.padding-block - self.height;
-                        width: tab-action.width; height: root.theme.shape.border-width-strong;
+                        x: root.vertical && root.flow != ChoiceFlow.right-to-left ? tab-action.width - tab-action.recipe.padding-inline - self.width : -tab-action.recipe.padding-inline;
+                        y: root.vertical ? -tab-action.recipe.padding-block : tab-action.height - tab-action.recipe.padding-block - self.height;
+                        width: root.vertical ? root.theme.shape.border-width-strong : tab-action.width;
+                        height: root.vertical ? tab-action.height : root.theme.shape.border-width-strong;
                         background: root.theme.accent;
                         opacity: tab-action.selected ? 1 : 0;
                         animate opacity { duration: root.theme.reduced-motion ? 0ms : root.theme.motion.fast; }
                     }
-                    changed active => { if (self.active) { root.reveal(self.x, self.x + self.width); } }
+                    changed active => {
+                        if (self.active) { if (root.vertical) { root.reveal(self.y, self.y + self.height); } else { root.reveal(self.x, self.x + self.width); } }
+                    }
                     key-event(event) => {
-                        if (event.text == Key.RightArrow || event.text == Key.LeftArrow || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
+                        if (event.text == (root.vertical ? Key.DownArrow : Key.RightArrow) || event.text == (root.vertical ? Key.UpArrow : Key.LeftArrow) || event.text == Key.Home || event.text == Key.End || event.text == Key.Escape) { root.take-focus(); return root.handle-key(event); }
                         return KitKeyResult.reject;
                     }
                     activate(token, generation) => { root.take-focus(); root.handle-activate(token, generation); }
