@@ -2,9 +2,10 @@
 //! Window tests for pagination, breadcrumbs, menu bar keys, collapse, drawer
 //! focus and the toast binding lifecycle behind a real toast host.
 use crate::{
-    BreadcrumbsFixture, CarouselSlidesFixture, CloseReason, CollapseKeysFixture, DialogState,
-    DrawerFocusFixture, MenuBarKeysFixture, NavigationStep, Ownership, PaginationDisplay,
-    PaginationFixture, SelectState, ToastHostFixture,
+    BreadcrumbsFixture, ButtonIntent, CarouselSlidesFixture, CloseReason, CollapseKeysFixture,
+    DialogAction, DialogState, DrawerActionsFixture, DrawerFocusFixture, DrawerInitialFocus,
+    MenuBarKeysFixture, NavigationStep, Ownership, PaginationDisplay, PaginationFixture,
+    SelectState, ToastHostFixture,
 };
 use i_slint_backend_testing::{ElementHandle, ElementQuery, TestingBackend, TestingBackendOptions};
 use slint::platform::{Key, PointerEventButton, WindowEvent};
@@ -510,6 +511,87 @@ fn drawer(state: DialogState) -> DrawerFocusFixture {
     slint::platform::update_timers_and_animations();
     window
 }
+fn drawer_with_actions(
+    initial_focus: DrawerInitialFocus,
+    actions: Vec<DialogAction>,
+) -> DrawerActionsFixture {
+    init();
+    let window = DrawerActionsFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_initial_focus(initial_focus);
+    window.set_actions(ModelRc::new(VecModel::from(actions)));
+    window.set_state(state(false, false));
+    window.show().unwrap();
+    window.set_state(state(true, false));
+    slint::platform::update_timers_and_animations();
+    window
+}
+
+#[test]
+fn drawer_initial_focus_chooses_close_or_the_first_footer_action() {
+    let window = drawer_with_actions(DrawerInitialFocus::CloseButton, default_actions());
+    assert!(window.get_close_focused(), "the default focuses Close");
+
+    let window = drawer_with_actions(DrawerInitialFocus::FirstAction, default_actions());
+    let (tokens_first, sink_first) = recorder();
+    window.on_action_requested(move |token| sink_first.borrow_mut().push(token));
+    assert!(
+        !window.get_close_focused(),
+        "first-action keeps focus off Close"
+    );
+    press(&window, Key::Return);
+    assert_eq!(
+        *tokens_first.borrow(),
+        [7],
+        "Return activates the first action by its token"
+    );
+}
+
+#[test]
+fn drawer_first_action_focus_falls_back_to_close_without_actions() {
+    let window = drawer_with_actions(DrawerInitialFocus::FirstAction, Vec::new());
+    assert!(window.get_close_focused());
+    assert!(labelled(&window, "Save draft").is_empty(), "no footer");
+}
+
+#[test]
+fn drawer_footer_reports_stable_tokens_and_disables_while_busy() {
+    let window = drawer_with_actions(DrawerInitialFocus::CloseButton, default_actions());
+    let (tokens, sink) = recorder();
+    window.on_action_requested(move |token| sink.borrow_mut().push(token));
+    let discard = one(&window, "Discard");
+    let body = one(&window, "Body action");
+    assert!(
+        discard.absolute_position().y > body.absolute_position().y,
+        "the footer sits under the content"
+    );
+    click(&discard);
+    click(&one(&window, "Save draft"));
+    assert_eq!(*tokens.borrow(), [9, 7]);
+    window.set_state(state(true, true));
+    slint::platform::update_timers_and_animations();
+    assert_eq!(one(&window, "Save draft").accessible_enabled(), Some(false));
+    click(&one(&window, "Save draft"));
+    assert_eq!(tokens.borrow().len(), 2, "a busy drawer ignores actions");
+}
+
+fn default_actions() -> Vec<DialogAction> {
+    vec![
+        DialogAction {
+            token: 7,
+            text: "Save draft".into(),
+            intent: ButtonIntent::Primary,
+            disabled: false,
+        },
+        DialogAction {
+            token: 9,
+            text: "Discard".into(),
+            intent: ButtonIntent::Secondary,
+            disabled: false,
+        },
+    ]
+}
+
 fn state(open: bool, busy: bool) -> DialogState {
     DialogState {
         open,

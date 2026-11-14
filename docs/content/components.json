@@ -4603,9 +4603,9 @@
   },
   "KitDrawer": {
     "fr": {
-      "summary": "Panneau modal latéral borné à la largeur de sa fenêtre hôte.",
-      "usage": "Montez-le à la racine de la fenêtre après le contenu défilant et donnez-lui tout le viewport. Connectez les callbacks hérités `dismiss` et `focus-next`, puis `restore-focus`, à la pile de modales et au registre de focus.",
-      "behavior": "Le panneau s’ancre au bord choisi par `side` (`DrawerSide.end` par défaut ; `start` et `end` suivent la direction du thème, donc `end` est le bord gauche en droite à gauche). `panel-width` borne la largeur pour `start` et `end`, `panel-height` la hauteur pour `top` et `bottom`, tous deux limités à la fenêtre. L’ouverture place le focus sur Fermer ; ce bouton demande `CloseReason.close-button`, distinct de `programmatic` que l’hôte réserve à ses propres fermetures. L’hôte doit enregistrer les champs et restaurer l’ouvreur exact à la fermeture.",
+      "summary": "Panneau modal latéral borné à la largeur de sa fenêtre hôte, avec des actions de pied facultatives.",
+      "usage": "Montez-le à la racine de la fenêtre après le contenu défilant et donnez-lui tout le viewport. Placez le corps en enfants et passez les boutons du pied dans `actions`, chacun avec un `token` stable ; traitez `action-activated(token)`. Connectez les callbacks hérités `dismiss` et `focus-next`, puis `restore-focus`, à la pile de modales et au registre de focus.",
+      "behavior": "Le panneau s’ancre au bord choisi par `side` (`DrawerSide.end` par défaut ; `start` et `end` suivent la direction du thème, donc `end` est le bord gauche en droite à gauche). `panel-width` borne la largeur pour `start` et `end`, `panel-height` la hauteur pour `top` et `bottom`, tous deux limités à la fenêtre. L’ouverture place le focus sur Fermer, ou sur la première action du pied quand `initial-focus` vaut `DrawerInitialFocus.first-action` et que `actions` n’est pas vide ; le bouton Fermer demande `CloseReason.close-button`, distinct de `programmatic` que l’hôte réserve à ses propres fermetures. Le pied reste fixé sous le contenu, et ses actions sont désactivées quand le tiroir est occupé ou n’est pas au sommet. L’hôte doit enregistrer les champs et restaurer l’ouvreur exact à la fermeture.",
       "related": [
         "KitDialog",
         "KitDialogSurface",
@@ -4614,17 +4614,31 @@
       "label": "Panneau latéral",
       "seoTitle": "Panneau latéral pour Slint",
       "properties": {
+        "initial-focus": {
+          "effect": "Choisit le contrôle qui prend le focus à l’ouverture du tiroir : `DrawerInitialFocus.close-button` ou `first-action`. `first-action` retombe sur le bouton Fermer tant que `actions` est vide.",
+          "default": "`DrawerInitialFocus.close-button`.",
+          "example": "KitDrawer {\n    initial-focus: DrawerInitialFocus.first-action;\n}"
+        },
+        "actions": {
+          "effect": "Boutons du pied dans l’ordre de lecture ; le dernier est l’action principale. Chaque `DialogAction` a un `token` stable, `text`, `intent` et `disabled`. Un modèle vide n’affiche aucun pied.",
+          "example": "KitDrawer {\n    actions: [{ token: 1, text: \"Save\", intent: ButtonIntent.primary, disabled: false }];\n}"
+        },
         "modal-layer": {
           "effect": "Fait publier à cette surface sa couche dans le `KitModalContext` de la fenêtre tant qu’elle est ouverte et au sommet. Tout contrôle Kit dont le `modal-layer` diffère devient inerte : l’arrière-plan n’a donc pas besoin de jeton de focus. Les contrôles de cette surface doivent déclarer le même `modal-layer`. Utilisez des nombres positifs distincts pour des modales imbriquées. `0` laisse l’arrière-plan à l’hôte.",
           "default": "`0` (l’hôte gère l’arrière-plan).",
           "example": "KitDrawer {\n    modal-layer: 1;\n}"
         }
+      },
+      "callbacks": {
+        "action-activated": "Une action du pied a été activée. L’argument est le `token` de son `DialogAction`, jamais sa position.",
+        "restore-focus": "Le tiroir s’est fermé ; restaurez le focus sur l’ouvreur exact.",
+        "close-focus-observed": "Le bouton Fermer a gagné ou perdu le focus ; relayez-le au registre de focus."
       }
     },
     "en": {
-      "summary": "Side modal panel bounded by its host window’s width.",
-      "usage": "Mount it at the window root after scrolling content and give it the full viewport. Connect inherited `dismiss` and `focus-next`, then `restore-focus`, to the modal stack and focus registry.",
-      "behavior": "The panel attaches to the edge chosen by `side` (`DrawerSide.end` by default; `start` and `end` follow the theme direction, so `end` is the left edge in right-to-left). `panel-width` sets the extent for `start` and `end`, `panel-height` for `top` and `bottom`, both capped at the window. Opening focuses Close; that button requests `CloseReason.close-button`, distinct from `programmatic`, which a host keeps for its own closes. The host must register fields and restore the exact opener on closure.",
+      "summary": "Side modal panel bounded by its host window’s width, with optional footer actions.",
+      "usage": "Mount it at the window root after scrolling content and give it the full viewport. Place the body as children and pass footer buttons in `actions`, each with a stable `token`; handle `action-activated(token)`. Connect inherited `dismiss` and `focus-next`, then `restore-focus`, to the modal stack and focus registry.",
+      "behavior": "The panel attaches to the edge chosen by `side` (`DrawerSide.end` by default; `start` and `end` follow the theme direction, so `end` is the left edge in right-to-left). `panel-width` sets the extent for `start` and `end`, `panel-height` for `top` and `bottom`, both capped at the window. Opening focuses Close, or the first footer action when `initial-focus` is `DrawerInitialFocus.first-action` and `actions` is not empty; the close button requests `CloseReason.close-button`, distinct from `programmatic`, which a host keeps for its own closes. The footer stays pinned under the content, and its actions are disabled while the drawer is busy or not topmost. The host must register fields and restore the exact opener on closure.",
       "related": [
         "KitDialog",
         "KitDialogSurface",
@@ -4633,11 +4647,25 @@
       "label": "Drawer",
       "seoTitle": "Drawer for Slint",
       "properties": {
+        "initial-focus": {
+          "effect": "Chooses the control that takes focus when the drawer opens: `DrawerInitialFocus.close-button` or `first-action`. `first-action` falls back to the close button while `actions` is empty.",
+          "default": "`DrawerInitialFocus.close-button`.",
+          "example": "KitDrawer {\n    initial-focus: DrawerInitialFocus.first-action;\n}"
+        },
+        "actions": {
+          "effect": "Footer buttons in reading order; the last one is the primary action. Each `DialogAction` has a stable `token`, `text`, `intent` and `disabled`. An empty model shows no footer.",
+          "example": "KitDrawer {\n    actions: [{ token: 1, text: \"Save\", intent: ButtonIntent.primary, disabled: false }];\n}"
+        },
         "modal-layer": {
           "effect": "Makes this surface publish its layer in the window-level `KitModalContext` while it is open and topmost. Every kit control whose own `modal-layer` differs becomes inert, so background controls need no focus token. Controls inside this surface must declare the same `modal-layer`. Use distinct positive numbers for nested modals. `0` leaves the background to the host.",
           "default": "`0` (the host manages the background).",
           "example": "KitDrawer {\n    modal-layer: 1;\n}"
         }
+      },
+      "callbacks": {
+        "action-activated": "A footer action was activated. The argument is the `token` of its `DialogAction`, never its position.",
+        "restore-focus": "The drawer closed; restore focus to the exact opener.",
+        "close-focus-observed": "The close button gained or lost focus; forward it to the focus registry."
       }
     }
   },
