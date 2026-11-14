@@ -2742,6 +2742,16 @@
           "default": "`true`.",
           "example": "KitDataTable {\n    rows: root.rows;\n    striped: false;\n}"
         },
+        "show-header": {
+          "effect": "Indique si la ligne d’en-têtes de colonnes est peinte. `false` supprime l’en-tête, libère sa ligne pour les données et retire les en-têtes de l’ordre Tab et du curseur de ligne itinérant ; les colonnes dimensionnent toujours les lignes.",
+          "default": "`true`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    show-header: false;\n}"
+        },
+        "summary": {
+          "effect": "Une ligne de synthèse, comme un nombre de lignes ou un total, affichée dans un pied sous les lignes. Une chaîne vide n’affiche aucun pied.",
+          "default": "Vide : aucun pied.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    summary: \"128 enregistrements\";\n}"
+        },
         "sort-ascending-label": {
           "effect": "Mot localisé joint au libellé de colonne par « , » dans le nom accessible d’un en-tête trié en ordre croissant ; le kit n’en construit aucune phrase.",
           "default": "`\"ascending\"`.",
@@ -3023,6 +3033,16 @@
           "effect": "Alternates row fills; `false` gives every row the surface fill.",
           "default": "`true`.",
           "example": "KitDataTable {\n    rows: root.rows;\n    striped: false;\n}"
+        },
+        "show-header": {
+          "effect": "Whether the column header row is painted. `false` removes the header, frees its row for the data, and takes the headers out of the Tab order and the roving row cursor; the columns still size the rows.",
+          "default": "`true`.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    show-header: false;\n}"
+        },
+        "summary": {
+          "effect": "A summary line, such as a row count or a total, shown in a footer strip under the rows. An empty string shows no footer.",
+          "default": "Empty: no footer.",
+          "example": "KitDataTable {\n    rows: root.rows;\n    summary: \"128 records\";\n}"
         },
         "sort-ascending-label": {
           "effect": "Localized word joined to the column label with `, ` in the accessible name of a header sorted ascending; the kit builds no sentence from it.",
@@ -11350,13 +11370,44 @@
         "show-line-numbers": {
           "effect": "Affiche la gouttière des numéros de ligne. Sa largeur suit le dernier numéro de ligne, la police et l’échelle du texte ; false la masque.",
           "default": "true"
+        },
+        "empty-label": {
+          "effect": "Texte centré dans la vue tant que `lines` est vide.",
+          "default": "`\"No lines\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    empty-label: \"Aucune ligne pour le moment.\";\n}"
+        },
+        "state": {
+          "effect": "Ce que la collection affiche sans ligne : `ready` (le message vide), `loading` (un indicateur d’attente avec `loading-label`) ou `failed` (`error-label` et l’action `retry-label`). Les lignes déjà présentes restent visibles et l’état est annoncé dans la description accessible.",
+          "default": "`DataState.ready`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: root.chargement ? DataState.loading : DataState.ready;\n}"
+        },
+        "loading-label": {
+          "effect": "Texte et nom accessible de l’indicateur d’attente.",
+          "default": "`\"Loading\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.loading;\n    loading-label: \"Chargement…\";\n}"
+        },
+        "error-label": {
+          "effect": "Message affiché dans l’état `failed`.",
+          "default": "`\"The text could not be loaded\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.failed;\n    error-label: \"Échec du chargement.\";\n}"
+        },
+        "retry-label": {
+          "effect": "Texte de l’action de nouvelle tentative de l’état `failed` ; vide, l’action est masquée.",
+          "default": "`\"Retry\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.failed;\n    retry-label: \"Réessayer\";\n}"
+        },
+        "empty-content": {
+          "effect": "`custom` affiche les enfants du composant à la place de `empty-label` quand `state` est `ready` et qu’il n’y a aucune ligne, par exemple une illustration et un bouton ; `label` affiche `empty-label`.",
+          "default": "`DataEmptyContent.label`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    empty-content: DataEmptyContent.custom;\n    KitEmptyState { title: \"Aucun résultat\"; }\n}"
         }
       },
       "callbacks": {
         "near-end": "Émis une fois lorsque end-near passe de faux à vrai. Lisez la plage visible et protégez le chargement asynchrone côté hôte.",
         "commit-line": "Transmet jeton, génération et brouillon natif de la ligne admise. Validez l’identité côté hôte ; aucune validation n’est émise pour une ligne active absente ou obsolète.",
         "copy-requested": "Signale jeton et génération capturés après une copie admise du brouillon natif ; les identités invalides ou obsolètes sont rejetées.",
-        "copy-line-text": "Signale jeton, génération et texte stocké après que copy-active-line() ou Ctrl/Cmd+C a placé la ligne active dans le presse-papiers, dans tout mode d’accès et sans déplacer le focus ; rien n’est émis sans ligne active valide."
+        "copy-line-text": "Signale jeton, génération et texte stocké après que copy-active-line() ou Ctrl/Cmd+C a placé la ligne active dans le presse-papiers, dans tout mode d’accès et sans déplacer le focus ; rien n’est émis sans ligne active valide.",
+        "retry-requested": "L’utilisateur active l’action de nouvelle tentative de l’état `failed` ; relancez le chargement puis repassez `state` à `loading`."
       },
       "functions": {
         "scroll-to-index": "Fait défiler la ligne visuelle vers le haut, dans les bornes du contenu, sans déplacer la sélection ni active-index. Un indice négatif revient en haut.",
@@ -11446,13 +11497,44 @@
         "show-line-numbers": {
           "effect": "Shows the line-number gutter. The gutter width follows the last line number, the font and the text scale; false hides it.",
           "default": "true"
+        },
+        "empty-label": {
+          "effect": "Text centered in the view while `lines` is empty.",
+          "default": "`\"No lines\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    empty-label: \"No lines yet.\";\n}"
+        },
+        "state": {
+          "effect": "What the collection shows without lines: `ready` (the empty message), `loading` (a spinner with `loading-label`) or `failed` (`error-label` and the `retry-label` action). Lines already present stay visible and the state is announced in the accessible description.",
+          "default": "`DataState.ready`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: root.busy ? DataState.loading : DataState.ready;\n}"
+        },
+        "loading-label": {
+          "effect": "Text and accessible name of the loading indicator.",
+          "default": "`\"Loading\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.loading;\n    loading-label: \"Fetching…\";\n}"
+        },
+        "error-label": {
+          "effect": "Message shown in the `failed` state.",
+          "default": "`\"The text could not be loaded\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.failed;\n    error-label: \"The request timed out.\";\n}"
+        },
+        "retry-label": {
+          "effect": "Text of the retry action in the `failed` state; empty hides the action.",
+          "default": "`\"Retry\"`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    state: DataState.failed;\n    retry-label: \"Try again\";\n}"
+        },
+        "empty-content": {
+          "effect": "`custom` shows the component's children instead of `empty-label` when `state` is `ready` and there are no lines, for example an illustration and a button; `label` shows `empty-label`.",
+          "default": "`DataEmptyContent.label`.",
+          "example": "KitVirtualTextView {\n    lines: root.lines;\n    empty-content: DataEmptyContent.custom;\n    KitEmptyState { title: \"No results\"; }\n}"
         }
       },
       "callbacks": {
         "near-end": "Emitted once when end-near changes from false to true. Read the visible range and fence asynchronous loading in the host.",
         "commit-line": "Reports the admitted line token, generation and native draft. Validate identity in the host; a stale or missing active line emits no commit.",
         "copy-requested": "Reports the captured token and generation after an admitted native-draft copy; invalid or stale identities are rejected.",
-        "copy-line-text": "Reports token, generation and stored text after copy-active-line() or Ctrl/Cmd+C placed the active line on the clipboard, in any access mode and without moving focus; nothing is emitted without a valid active line."
+        "copy-line-text": "Reports token, generation and stored text after copy-active-line() or Ctrl/Cmd+C placed the active line on the clipboard, in any access mode and without moving focus; nothing is emitted without a valid active line.",
+        "retry-requested": "The user activated the retry action of the `failed` state; restart the load and set `state` back to `loading`."
       },
       "functions": {
         "scroll-to-index": "Scroll the visual row toward the top, clamped to content bounds, without moving selection or active-index. Negative indices go to the top.",
