@@ -538,6 +538,8 @@ export component KitDatePicker inherits Rectangle {
     in property <CalendarWeekRows> week-rows: CalendarWeekRows.fixed;
     in property <[WeekStart]> unavailable-weekdays;
     in property <[DateRangeView]> unavailable-ranges;
+    // Per-date decorations forwarded to the embedded calendar.
+    in property <[CalendarDayMark]> day-marks;
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     in property <[string]> month-short-names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     in property <[string]> weekday-short-names: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -555,7 +557,7 @@ export component KitDatePicker inherits Rectangle {
         today: root.today-label, range-start: root.range-start-label,
         range-end: root.range-end-label, in-range: root.in-range-label,
     };
-    private property <CalendarView> view: {week-rows: root.week-rows,selected: root.accepted-date, today: root.today, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges};
+    private property <CalendarView> view: {week-rows: root.week-rows,selected: root.accepted-date, today: root.today, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges, marks: root.day-marks};
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.project(root.view, root.calendar-text) : {active-index: -1};
     out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
     in property <string> configuration-message: KitStrings.calendar-configuration-error;
@@ -693,11 +695,13 @@ export component KitDatePicker inherits Rectangle {
         close-policy: close-on-click-outside;
         Rectangle {
             ElevatedSurface { recipe: root.popup-surface; }
-            calendar := KitCalendar { modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
+            calendar := KitCalendar { day-marks: root.day-marks; modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; ownership: Ownership.controlled; selected: root.accepted-date; focused <=> root.focused; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; min: root.min; max: root.max; step: root.step; default-value: root.default-value; x: root.popup-inset; y: root.popup-inset; width: parent.width - 2 * root.popup-inset; height: self.preferred-height; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; request-focus: root.open;
                 navigate(step) => { root.navigate(step); }
                 chosen(date) => { root.accept-date(date); }
                 choose(day) => { root.choose(day); root.open = false; }
                 cancelled => { root.cancelled(); root.open = false; }
+                // Footer actions (Today, Clear, presets) supplied by the host.
+                @children
             }
         }
     }
@@ -723,6 +727,8 @@ export component KitDateRangePicker inherits Rectangle {
     in property <CalendarWeekRows> week-rows: CalendarWeekRows.fixed;
     in property <[WeekStart]> unavailable-weekdays;
     in property <[DateRangeView]> unavailable-ranges;
+    // Per-date decorations forwarded to the embedded calendar.
+    in property <[CalendarDayMark]> day-marks;
     in property <[string]> month-names: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     in property <[string]> month-short-names: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     in property <[string]> weekday-short-names: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -756,7 +762,7 @@ export component KitDateRangePicker inherits Rectangle {
     function reset-draft() { root.draft = root.selected.start.year > 0 ? {phase: DateRangePhase.complete, start: root.selected.start, end: root.selected.end} : {phase: DateRangePhase.choosing-start}; }
     private property <DateRangeView> candidate-range: {start: root.draft.start, end: root.draft.end};
     out property <DateRangeRejection> rejection: DateRangeRejection.none;
-    private property <CalendarView> view: {week-rows: root.week-rows, today: root.today, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges };
+    private property <CalendarView> view: {week-rows: root.week-rows, today: root.today, focused: root.focused, min: root.min, max: root.max, week-start: root.week-start, unavailable-weekdays: root.unavailable-weekdays, unavailable-ranges: root.unavailable-ranges, marks: root.day-marks};
     private property <CalendarProjection> projection: KitCalendarService.ready ? KitCalendarService.range-project(root.view, root.draft, root.calendar-text) : {active-index: -1};
     out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
     in property <string> configuration-message: KitStrings.calendar-configuration-error;
@@ -819,7 +825,10 @@ export component KitDateRangePicker inherits Rectangle {
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? root.choose-start-label : root.phase == DateRangePhase.choosing-end ? root.choose-end-label : root.ready-label) : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; accessible-live-region: polite; }
-        calendar := KitCalendar { range-anchor: root.draft.phase == DateRangePhase.choosing-end ? root.draft.start : {year: 0, month: 0, day: 0}; preview-before-anchor: root.earlier-end == EarlierEndPolicy.swap; modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
+        calendar := KitCalendar { day-marks: root.day-marks; range-anchor: root.draft.phase == DateRangePhase.choosing-end ? root.draft.start : {year: 0, month: 0, day: 0}; preview-before-anchor: root.earlier-end == EarlierEndPolicy.swap; modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); }
+            // Footer actions (Today, Clear, presets) supplied by the host.
+            @children
+        }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;

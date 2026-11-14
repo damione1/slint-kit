@@ -46,3 +46,32 @@ fn day_marks_decorate_only_their_dates_and_extend_the_accessible_label() {
     assert_eq!(plain.marker, CalendarMarker::None);
     assert_eq!(plain.caption, "");
 }
+
+#[test]
+fn pickers_forward_day_marks_to_their_embedded_calendar() {
+    i_slint_backend_testing::init_no_event_loop();
+    let window = CalendarMarksFixture::new().unwrap();
+    slint_kit::install(&window);
+    window.set_marks(ModelRc::new(VecModel::from(vec![CalendarDayMark {
+        date: date(2026, 10, 14),
+        marker: CalendarMarker::Dot,
+        caption: "89".into(),
+        description: "Holiday".into(),
+    }])));
+    window.show().unwrap();
+    window.invoke_open_date();
+    for days in [window.get_date_days(), window.get_range_days()] {
+        let marked = days
+            .iter()
+            .find(|day| day.month == 10 && day.day == 14 && !day.outside_month)
+            .unwrap();
+        assert_eq!(marked.marker, CalendarMarker::Dot);
+        assert_eq!(marked.caption, "89");
+        assert!(marked.accessible_label.ends_with(", Holiday"));
+        let plain = days
+            .iter()
+            .find(|day| day.month == 10 && day.day == 15 && !day.outside_month)
+            .unwrap();
+        assert_eq!(plain.marker, CalendarMarker::None);
+    }
+}
