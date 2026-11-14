@@ -4188,6 +4188,18 @@
           "effect": "Indication affichée dans l’éditeur d’heure vide.",
           "default": "`HH:mm` ou `hh:mm AM` selon `clock-format` et `precision`.",
           "example": "KitDateTimeField { time-placeholder: \"hh:mm\"; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert à formater le texte au repos de l’éditeur de date. L’éditeur d’heure, la saisie, les contraintes et la valeur acceptée restent inchangés et ISO.",
+          "default": "Motif vide (texte ISO).",
+          "example": "KitDateTimeField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé. Un motif vide ou invalide conserve le texte ISO. Seul le texte au repos change, et seulement tant que l’éditeur de date n’a pas de brouillon non accepté."
+        },
+        "spec-key": {
+          "effect": "Sélectionne un `FieldSpec` de date enregistré (`FieldSpec::date()` ou `FieldSpec::date_pattern`) dont le formateur d’affichage écrit l’éditeur de date au repos quand aucun motif `display-format` n’est défini. La même clé vérifie le brouillon de date à la validation.",
+          "default": "Vide (aucun spec).",
+          "example": "KitDateTimeField { spec-key: \"start-date\"; }",
+          "constraints": "Désigne un spec de la date seule, pas du couple date et heure. Enregistrez-le avec `install_field_specs`."
         }
       },
       "callbacks": {
@@ -4264,6 +4276,18 @@
           "effect": "Hint shown in the empty time editor.",
           "default": "`HH:mm` or `hh:mm AM` according to `clock-format` and `precision`.",
           "example": "KitDateTimeField { time-placeholder: \"hh:mm\"; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` used to format the resting text of the date editor. The time editor, editing, constraints and the accepted value stay unchanged and ISO.",
+          "default": "Empty pattern (ISO text).",
+          "example": "KitDateTimeField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept. An empty or invalid pattern keeps the ISO text. Only the resting text changes, and only while the date editor has no unaccepted draft."
+        },
+        "spec-key": {
+          "effect": "Selects a registered date `FieldSpec` (`FieldSpec::date()` or `FieldSpec::date_pattern`) whose display formatter prints the date editor at rest when no `display-format` pattern is set. The same key checks the date draft on commit.",
+          "default": "Empty (no spec).",
+          "example": "KitDateTimeField { spec-key: \"start-date\"; }",
+          "constraints": "Names a spec of the date alone, not of the date and time pair. Register it with `install_field_specs`."
         }
       },
       "callbacks": {
@@ -5590,6 +5614,12 @@
           "effect": "Instantané hôte de type `int`. `accepted-week-year` et `accepted-week` sont des valeurs typées en entrée-sortie. Deux zéros signifient absence ; les combinaisons année/semaine ISO partielles ou invalides sont ignorées atomiquement. En propriété Local, une validation écrit la valeur typée analysée dans ces propriétés (liaison bidirectionnelle `<=>` pour la partager) ; en Controlled, l’hôte les acquitte.",
           "default": "`0`.",
           "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert à formater la semaine au repos à partir de son lundi (par exemple `%G, semaine %V`). La saisie et la semaine acceptée restent `AAAA-Www`.",
+          "default": "Motif vide (texte ISO).",
+          "example": "KitIsoWeekField { display-format: { pattern: \"%G, semaine %V\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé. Un motif vide ou invalide conserve le texte ISO. Seul le texte au repos change, et seulement tant que le champ n’a pas de brouillon non accepté."
         }
       }
     },
@@ -5613,6 +5643,12 @@
           "effect": "Host snapshot of type `int`. `accepted-week-year` and `accepted-week` are in-out typed values. Both zero means absence; partial or invalid ISO year/week combinations are ignored atomically. A local commit writes the parsed typed values back to these properties (use a two-way `<=>` binding to share them); Controlled ownership leaves them for the host to acknowledge.",
           "default": "`0`.",
           "example": "KitIsoWeekField { accepted-week-year: 2026; accepted-week: 42; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` used to format the resting week through its Monday (for example `%G, week %V`). Editing and the accepted week stay `YYYY-Www`.",
+          "default": "Empty pattern (ISO text).",
+          "example": "KitIsoWeekField { display-format: { pattern: \"%G, week %V\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept. An empty or invalid pattern keeps the ISO text. Only the resting text changes, and only while the field has no unaccepted draft."
         }
       }
     }
@@ -6310,6 +6346,12 @@
           "effect": "Instantané hôte de type `int`. `accepted-year` et `accepted-month` sont des valeurs typées en entrée-sortie. La paire `{year: 0, month: 0}` signifie absence ; une paire partielle ou invalide est ignorée atomiquement. En propriété Local, une validation écrit la valeur typée analysée dans ces propriétés (liaison bidirectionnelle `<=>` pour la partager) ; en Controlled, l’hôte les acquitte.",
           "default": "`0`.",
           "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert à formater le mois au repos à partir de son premier jour (par exemple `%B %Y`). La saisie et le mois accepté restent `AAAA-MM`.",
+          "default": "Motif vide (texte ISO).",
+          "example": "KitMonthField { display-format: { pattern: \"%B %Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé. Un motif vide ou invalide conserve le texte ISO. Seul le texte au repos change, et seulement tant que le champ n’a pas de brouillon non accepté."
         }
       }
     },
@@ -6333,6 +6375,12 @@
           "effect": "Host snapshot of type `int`. `accepted-year` and `accepted-month` are in-out typed values. The pair `{year: 0, month: 0}` means absence; a partial or invalid pair is ignored atomically. A local commit writes the parsed typed values back to these properties (use a two-way `<=>` binding to share them); Controlled ownership leaves them for the host to acknowledge.",
           "default": "`0`.",
           "example": "KitMonthField { accepted-year: 2026; accepted-month: 10; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` used to format the resting month through its first day (for example `%B %Y`). Editing and the accepted month stay `YYYY-MM`.",
+          "default": "Empty pattern (ISO text).",
+          "example": "KitMonthField { display-format: { pattern: \"%B %Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept. An empty or invalid pattern keeps the ISO text. Only the resting text changes, and only while the field has no unaccepted draft."
         }
       }
     }
@@ -11713,6 +11761,18 @@
           "effect": "Fuseaux proposés par l’éditeur de fuseau, un `OptionRow` par fuseau dont le libellé est le nom IANA. La recherche ignore la casse et porte sur le nom et la description (décalage UTC et nom du lieu). Un nom saisi puis non choisi n’est pas accepté.",
           "default": "Tout le catalogue IANA via `KitTimeService.zone-options()`, avec le décalage UTC en vigueur à l’affichage ; vide avant `install`.",
           "example": "KitZonedDateTimeField { zone-options: [{ token: 0, generation: 1, label: \"America/Toronto\", description: \"Eastern\", disabled: false }]; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` sert à formater le texte au repos de l’éditeur de date. L’éditeur d’heure, la saisie, les contraintes et la valeur acceptée restent inchangés et ISO.",
+          "default": "Motif vide (texte ISO).",
+          "example": "KitZonedDateTimeField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Les modèles de noms exigent 12, 12, 7 et 7 entrées non vides et distinctes, même pour un motif sans noms ; sinon le texte ISO est conservé. Un motif vide ou invalide conserve le texte ISO. Seul le texte au repos change, et seulement tant que l’éditeur de date n’a pas de brouillon non accepté."
+        },
+        "spec-key": {
+          "effect": "Sélectionne un `FieldSpec` de date enregistré (`FieldSpec::date()` ou `FieldSpec::date_pattern`) dont le formateur d’affichage écrit l’éditeur de date au repos quand aucun motif `display-format` n’est défini. La même clé vérifie le brouillon de date à la validation.",
+          "default": "Vide (aucun spec).",
+          "example": "KitZonedDateTimeField { spec-key: \"start-date\"; }",
+          "constraints": "Désigne un spec de la date seule, pas du couple date et heure. Enregistrez-le avec `install_field_specs`."
         }
       },
       "states": "unselected correspond à une ambiguïté sans réponse ; earlier/later mémorise son occurrence acceptée sans changer resolution, qui reste ambiguous. Un nouveau brouillon/résultat efface ce choix. Lecture seule, désactivation et gestes périmés refusent l’acceptation ; les autres erreurs de validation hôte sont conservées.",
@@ -11823,6 +11883,18 @@
           "effect": "Zones offered by the time zone editor, one `OptionRow` per zone whose label is the IANA name. Search ignores case and matches the name and the description (UTC offset and place name). A typed name that is not chosen is not accepted.",
           "default": "The whole IANA catalogue from `KitTimeService.zone-options()`, with the UTC offset in force when the list is built; empty before `install`.",
           "example": "KitZonedDateTimeField { zone-options: [{ token: 0, generation: 1, label: \"America/Toronto\", description: \"Eastern\", disabled: false }]; }"
+        },
+        "display-format": {
+          "effect": "`DateDisplay { pattern, months, short-months, weekdays, short-weekdays }` used to format the resting text of the date editor. The time editor, editing, constraints and the accepted value stay unchanged and ISO.",
+          "default": "Empty pattern (ISO text).",
+          "example": "KitZonedDateTimeField { display-format: { pattern: \"%d/%m/%Y\", months: [], short-months: [], weekdays: [], short-weekdays: [] }; }",
+          "constraints": "Name models need 12, 12, 7 and 7 nonempty distinct entries, even for a pattern without names; otherwise the ISO text is kept. An empty or invalid pattern keeps the ISO text. Only the resting text changes, and only while the date editor has no unaccepted draft."
+        },
+        "spec-key": {
+          "effect": "Selects a registered date `FieldSpec` (`FieldSpec::date()` or `FieldSpec::date_pattern`) whose display formatter prints the date editor at rest when no `display-format` pattern is set. The same key checks the date draft on commit.",
+          "default": "Empty (no spec).",
+          "example": "KitZonedDateTimeField { spec-key: \"start-date\"; }",
+          "constraints": "Names a spec of the date alone, not of the date and time pair. Register it with `install_field_specs`."
         }
       },
       "states": "unselected accompanies an unanswered overlap; earlier/later records its accepted occurrence without changing resolution from ambiguous. New drafts/resolutions clear it. Read-only, disabled and obsolete gestures cannot accept a choice; accepted choices preserve unrelated host validation errors.",
