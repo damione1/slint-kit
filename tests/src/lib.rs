@@ -10,6 +10,7 @@ mod avatar_group;
 mod calendar_marks;
 mod calendar_outside;
 mod calendar_period;
+mod calendar_preview;
 mod code_feedback;
 mod collapse_group;
 mod column_widths;

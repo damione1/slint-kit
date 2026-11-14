@@ -103,6 +103,23 @@ export component KitCalendar inherits Rectangle {
     out property <CalendarConfigurationState> configuration-state: root.projection.configuration-state;
     in property <string> configuration-message: KitStrings.calendar-configuration-error;
     callback chosen(CivilDateView);
+    // While a range end is pending, the host passes the chosen start here (year 0 means none)
+    // and the calendar previews the days from it to the hovered or keyboard-focused day.
+    in property <CivilDateView> range-anchor;
+    // True when a day before the anchor would become the start of the range, not restart it.
+    in property <bool> preview-before-anchor;
+    private property <CivilDateView> hover-date;
+    changed days => { root.hover-date = {year: 0, month: 0, day: 0}; }
+    out property <CivilDateView> preview-end: root.hover-date.year > 0 ? root.hover-date : keyboard.has-focus && root.view-mode == CalendarViewMode.days ? root.focused : {year: 0, month: 0, day: 0};
+    pure function date-key(date: CivilDateView) -> int { return date.year * 10000 + date.month * 100 + date.day; }
+    // Visual only: the day lies between the anchor (excluded) and the preview end (included).
+    public pure function previewed(day: CalendarDay) -> bool {
+        if (root.range-anchor.year <= 0 || root.preview-end.year <= 0 || day.year <= 0 || !day.enabled) { return false; }
+        let key = root.date-key({year: day.year, month: day.month, day: day.day});
+        let anchor = root.date-key(root.range-anchor);
+        let end = root.date-key(root.preview-end);
+        return end >= anchor ? key > anchor && key <= end : root.preview-before-anchor && key >= end && key < anchor;
+    }
     public function move(direction: CalendarNavigation) {
         if (root.access == FieldAccess.disabled) { return; }
         if (KitCalendarService.ready) { root.focused = KitCalendarService.navigate(root.view, direction); }
@@ -358,7 +375,8 @@ export component KitCalendar inherits Rectangle {
                 accessible-item-selectable: true; accessible-item-selected: day.selected;
                 accessible-item-index: index; accessible-item-count: root.days.length;
                 accessible-read-only: root.access == FieldAccess.read-only;
-                background: day.selected ? root.theme.accent : day.in-range ? root.theme.accent-subtle : self.hovered ? root.theme.hover : transparent;
+                background: day.selected ? root.theme.accent : day.in-range || root.previewed(day) ? root.theme.accent-subtle : self.hovered ? root.theme.hover : transparent;
+                changed hovered => { if (self.hovered) { root.hover-date = {year: day.year, month: day.month, day: day.day}; } else if (root.hover-date.year == day.year && root.hover-date.month == day.month && root.hover-date.day == day.day) { root.hover-date = {year: 0, month: 0, day: 0}; } }
                 border-width: day.today ? root.theme.shape.border-width : 0px;
                 border-color: root.theme.accent;
                 focus-indicated: keyboard.has-focus && root.active-index == index;
@@ -794,11 +812,14 @@ export component KitDateRangePicker inherits Rectangle {
     callback apply-requested();
     callback cancelled();
     public function take-focus() { calendar.take-focus(); }
+    // The day end of the preview while a range end is pending (year 0 when there is none), and whether a day is inside it.
+    out property <CivilDateView> preview-end: calendar.preview-end;
+    public pure function previewed(day: CalendarDay) -> bool { return calendar.previewed(day); }
     vertical-stretch: 0;
     VerticalLayout {
         spacing: root.theme.spacing.unit * 2;
         Text { text: root.summary == "" ? (root.phase == DateRangePhase.choosing-start ? root.choose-start-label : root.phase == DateRangePhase.choosing-end ? root.choose-end-label : root.ready-label) : root.summary; font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control); color: root.theme.text-primary; wrap: word-wrap; accessible-live-region: polite; }
-        calendar := KitCalendar { modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
+        calendar := KitCalendar { range-anchor: root.draft.phase == DateRangePhase.choosing-end ? root.draft.start : {year: 0, month: 0, day: 0}; preview-before-anchor: root.earlier-end == EarlierEndPolicy.swap; modal-layer: root.modal-layer; unavailable-label: root.unavailable-label; navigation-help: root.navigation-help; week-rows: root.week-rows; outside-days: root.outside-days; month-names: root.month-names; month-short-names: root.month-short-names; weekday-names: root.weekday-names; weekday-short-names: root.weekday-short-names; accessible-date-pattern: root.accessible-date-pattern; title-pattern: root.title-pattern; today-label: root.today-label; range-start-label: root.range-start-label; range-end-label: root.range-end-label; in-range-label: root.in-range-label; flow: root.flow; today: root.today; configuration-message: root.configuration-message; focused <=> root.focused; min: root.min; max: root.max; week-start: root.week-start; unavailable-weekdays: root.unavailable-weekdays; unavailable-ranges: root.unavailable-ranges; chosen(date) => { root.choose-date(date); } label: root.label; previous-month-label: root.previous-month-label; next-month-label: root.next-month-label; previous-year-label: root.previous-year-label; next-year-label: root.next-year-label; previous-years-label: root.previous-years-label; next-years-label: root.next-years-label; view-switch-label: root.view-switch-label; previous-enabled: root.previous-enabled; next-enabled: root.next-enabled; theme: root.theme; control-size: root.control-size; access: root.access; days: root.days; weekdays: root.weekdays; active-index: root.active-index; title: root.title; navigate(step) => { root.navigate(step); } choose(day) => { root.choose(day); } cancelled => { root.cancel(); } }
         if root.error != "": KitFieldError { theme: root.theme; text: root.error; }
         HorizontalLayout {
             spacing: root.theme.spacing.unit * 3;
