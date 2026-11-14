@@ -902,6 +902,7 @@ mod toast_timer;
 
 mod slider_accessibility;
 mod slider_flow;
+mod slider_marks;
 
 mod choice_description;
 mod choice_validity;

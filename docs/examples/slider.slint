@@ -20,5 +20,5 @@ export component Example inherits Window {
     out property <bool> slider-value-valid: slider.value-valid;
     KitStack { inset: LayoutSpace.roomy;
         Text { text: root.title; color: root.theme.text-primary; font-size: KitMetrics.font-size(root.theme, TypographyRole.title); font-weight: root.theme.typography.weight-semibold; wrap: word-wrap; }
-        slider := KitSlider { label: "Volume"; value: "65"; value-label: "65 percent"; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
+        slider := KitSlider { label: "Volume"; value: "65"; value-label: "65 percent"; wheel-stepping: true; marks: [{value: "0", label: "Mute"}, {value: "50", label: "Half"}, {value: "100", label: "Max"}]; spec: {minimum: "0", maximum: "100", step: "5"}; chosen(value) => { root.volume-changed(value); } } }
 }

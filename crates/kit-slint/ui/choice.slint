@@ -1,5 +1,5 @@
 import { KitKeyResult } from "keyboard.slint";
-import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue } from "field-service.slint";
+import { DropdownPlacement, KitFieldService, PopupViewport, PopupGeometry, SliderSpec, DecimalRangeView, SliderAccessibleValue, RangeAccessibleValue, SliderMark, SliderMarkPosition } from "field-service.slint";
 import { KitSelection, KitMultipleSelection, KitSelectionService, RatingView } from "selection-service.slint";
 import { Ownership, NumberStepStatus } from "shared-contracts.slint";
 import { SelectionRef } from "contracts.slint";
@@ -1557,6 +1557,84 @@ export component KitCombobox inherits Rectangle {
     function handle-query-edited(text: string) { root.query = text; root.schedule-query-edited(text); }
 }
 
+// One mark of a slider: a tick on the track and an optional label. The value is
+// snapped to the slider's lattice; a value outside the range draws nothing.
+component SliderMarkItem inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ChoiceRecipe> choice;
+    in property <SliderMark> mark;
+    in property <SliderSpec> spec;
+    in property <bool> vertical;
+    in property <bool> rtl;
+    in property <bool> filled;
+    in property <bool> disabled;
+    in property <length> edge;
+    in property <length> band;
+    in property <float> fraction;
+    in property <length> text-size;
+    private property <SliderMarkPosition> view: KitFieldService.ready ? KitFieldService.slider-mark(root.mark, root.spec) : {valid: false};
+    private property <float> drawn: root.vertical || root.rtl ? 1 - clamp(root.view.position, 0, 1) : clamp(root.view.position, 0, 1);
+    // Centre of the mark along the travel axis.
+    private property <length> along: root.edge + ((root.vertical ? root.height : root.width) - 2 * root.edge) * root.drawn;
+    private property <length> body: (root.vertical ? root.width : root.height) - root.band;
+    private property <length> tick-thickness: max(root.theme.shape.border-width, root.theme.spacing.unit / 2);
+    private property <length> tick-length: root.filled ? root.theme.spacing.unit * 2 : root.choice.slider-track-height + root.theme.spacing.unit * 2;
+    private property <length> label-extent: max(0px, root.band - KitMetrics.label-gap(root.theme));
+    private property <color> tick-color: root.filled
+        ? (root.view.position <= root.fraction && !root.disabled ? root.theme.on-accent : root.theme.text-secondary)
+        : root.disabled ? root.theme.border-subtle : root.theme.border-strong;
+    if root.view.valid: Rectangle {
+        x: root.vertical ? (root.filled ? root.body - self.width - root.theme.spacing.unit : (root.body - self.width) / 2) : root.along - self.width / 2;
+        y: root.vertical ? root.along - self.height / 2 : (root.filled ? root.body - self.height - root.theme.spacing.unit : (root.body - self.height) / 2);
+        width: root.vertical ? root.tick-length : root.tick-thickness;
+        height: root.vertical ? root.tick-thickness : root.tick-length;
+        background: root.tick-color;
+    }
+    if root.view.valid && root.mark.label != "": Text {
+        text: root.mark.label;
+        color: root.disabled ? root.theme.disabled-text : root.theme.text-secondary;
+        font-family: root.theme.typography.family; font-size: root.text-size;
+        wrap: no-wrap; overflow: clip;
+        horizontal-alignment: root.vertical ? left : center; vertical-alignment: center;
+        width: root.vertical ? root.label-extent : min(self.preferred-width, root.width);
+        height: root.vertical ? self.preferred-height : root.label-extent;
+        x: root.vertical ? root.width - root.label-extent : clamp(root.along - self.width / 2, 0px, max(0px, root.width - self.width));
+        y: root.vertical ? clamp(root.along - self.height / 2, 0px, max(0px, root.height - self.height)) : root.height - root.label-extent;
+    }
+}
+// Ticks and labels along a slider track. `band` is the cross-axis space the
+// labels need beside the track, zero when no mark has a label.
+component SliderMarks inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <ChoiceRecipe> choice;
+    in property <[SliderMark]> marks;
+    in property <SliderSpec> spec;
+    in property <bool> vertical;
+    in property <bool> rtl;
+    in property <bool> filled;
+    in property <bool> disabled;
+    in property <length> edge;
+    in property <float> fraction;
+    private property <length> text-size: KitMetrics.font-size(root.theme, TypographyRole.caption);
+    private property <length> widest: widest-measure.preferred-width;
+    private property <length> tallest: tallest-measure.preferred-height;
+    out property <length> band: (root.vertical ? root.widest : root.tallest) > 0px ? (root.vertical ? root.widest : root.tallest) + KitMetrics.label-gap(root.theme) : 0px;
+    // The widest label sets the column beside a vertical track, the tallest the row under a horizontal one.
+    // Zero-sized holders keep the measuring layouts from taking part in the control's own layout.
+    Rectangle { width: 0px; height: 0px;
+        widest-measure := VerticalLayout { for mark in root.marks: Text { visible: false; text: mark.label; wrap: no-wrap; font-family: root.theme.typography.family; font-size: root.text-size; } }
+    }
+    Rectangle { width: 0px; height: 0px;
+        tallest-measure := HorizontalLayout { for mark in root.marks: Text { visible: false; text: mark.label; preferred-height: mark.label == "" ? 0px : root.text-size * 1.4; wrap: no-wrap; font-family: root.theme.typography.family; font-size: root.text-size; } }
+    }
+    for mark in root.marks: SliderMarkItem {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; mark: mark; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: root.filled; disabled: root.disabled;
+        edge: root.edge; band: root.band; fraction: root.fraction; text-size: root.text-size;
+    }
+}
+
 // Numeric positions are renderer projections only. The Rust bounded-value
 // controller owns canonical values, steps and commits, including decimal domains.
 component SliderKeyboard inherits FocusScope {
@@ -1608,6 +1686,13 @@ export component KitSlider inherits Rectangle {
     in property <brush> handle-brush: root.disabled ? root.theme.disabled-text : root.presentation == SliderPresentation.filled ? root.theme.on-accent : root.theme.accent;
     in property <float> position: KitFieldService.ready ? KitFieldService.slider-position(root.value, root.spec) : 0;
     in property <string> label;
+    // Ticks and optional labels on the track. Each value snaps to the slider's
+    // lattice; a value outside the range is not drawn. A label that names the
+    // current value is its accessible description.
+    in property <[SliderMark]> marks;
+    // Opt-in: the mouse wheel steps the focused slider like the arrow keys,
+    // up raises. An unfocused slider leaves the wheel to the surrounding scroll view.
+    in property <bool> wheel-stepping: false;
     in property <string> value-label: root.value;
     callback position-requested(float);
     callback navigate(NavigationStep);
@@ -1628,19 +1713,25 @@ export component KitSlider inherits Rectangle {
     // in its own right, so it is at least twelve spacing units thick in
     // either direction. A line slider keeps the kit's control height, like
     // its other controls; a touch host widens it with its own minimum.
-    private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    private property <length> band: mark-view.band;
+    // The track and thumb sit in the body; labels use the band beside it.
+    private property <length> body-width: root.vertical ? root.width - root.band : root.width;
+    private property <length> body-height: root.vertical ? root.height : root.height - root.band;
+    private property <length> cross-extent: max(root.theme.spacing.unit * (root.filled ? 12 : 10), KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset) + root.band;
     private property <length> travel-minimum: 120px;
     preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
     preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
     min-width: root.vertical ? root.cross-extent : root.travel-minimum;
-    min-height: root.vertical ? root.travel-minimum : root.filled ? root.cross-extent : 0px;
+    min-height: root.vertical ? root.travel-minimum : root.filled || root.band > 0px ? root.cross-extent : 0px;
+    max-width: 100000px; max-height: 100000px;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: slider; accessible-label: root.label;
     accessible-orientation: root.vertical ? Orientation.vertical : Orientation.horizontal;
     private property <SliderAccessibleValue> accessible-domain: KitFieldService.ready ? KitFieldService.slider-accessibility(root.value, root.spec) : {valid: false};
     accessible-value: root.accessible-domain.value;
-    accessible-description: root.value-label != root.value ? root.value-label : "";
+    private property <string> mark-label: KitFieldService.ready ? KitFieldService.slider-mark-label(root.value, root.marks, root.spec) : "";
+    accessible-description: root.value-label != root.value ? root.value-label : root.mark-label;
     accessible-value-minimum: root.accessible-domain.minimum;
     accessible-value-maximum: root.accessible-domain.maximum;
     accessible-value-step: root.accessible-domain.step;
@@ -1669,10 +1760,10 @@ export component KitSlider inherits Rectangle {
     }
     changed access => { if (root.gesture-active) { root.gesture-active = false; root.handle-cancel(); } }
     track := Rectangle {
-        x: root.filled ? 0px : root.vertical ? (root.width - self.width) / 2 : root.edge;
-        y: root.filled ? 0px : root.vertical ? root.edge : (root.height - self.height) / 2;
-        width: root.filled ? root.width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
-        height: root.filled ? root.height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
+        x: root.filled ? 0px : root.vertical ? (root.body-width - self.width) / 2 : root.edge;
+        y: root.filled ? 0px : root.vertical ? root.edge : (root.body-height - self.height) / 2;
+        width: root.filled ? root.body-width : root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
+        height: root.filled ? root.body-height : root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
         border-radius: root.filled ? min(root.theme.shape.radius-container, min(self.width, self.height) / 2) : min(self.width, self.height) / 2;
         clip: root.filled;
         background: root.track-brush;
@@ -1707,16 +1798,22 @@ export component KitSlider inherits Rectangle {
         }
         if root.filled && keyboard.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
+    mark-view := SliderMarks {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; marks: root.marks; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: root.filled; disabled: root.disabled;
+        edge: root.edge; fraction: root.fraction;
+    }
     // A round thumb on a line; a bar across the fill's edge when filled.
     handle := Rectangle {
-        private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.width : root.height) - root.theme.spacing.unit * 4));
+        private property <length> bar-length: max(0px, min(root.theme.spacing.unit * 10, (root.vertical ? root.body-width : root.body-height) - root.theme.spacing.unit * 4));
         private property <length> bar-thickness: root.theme.spacing.unit * 1.5;
         width: root.filled ? (root.vertical ? self.bar-length : self.bar-thickness) : root.choice.slider-thumb-size;
         height: root.filled ? (root.vertical ? self.bar-thickness : self.bar-length) : root.choice.slider-thumb-size;
-        x: root.vertical ? (root.width - self.width) / 2
+        x: root.vertical ? (root.body-width - self.width) / 2
             : root.filled ? clamp(root.rtl ? root.width * (1 - root.fraction) + root.handle-gap : root.width * root.fraction - root.handle-gap, root.handle-gap, max(root.handle-gap, root.width - root.handle-gap)) - self.width / 2
             : root.choice.thumb-inset + (root.width - 2 * root.edge) * (root.rtl ? 1 - root.fraction : root.fraction);
-        y: !root.vertical ? (root.height - self.height) / 2
+        y: !root.vertical ? (root.body-height - self.height) / 2
             : root.filled ? clamp(root.height * (1 - root.fraction) + root.handle-gap, root.handle-gap, max(root.handle-gap, root.height - root.handle-gap)) - self.height / 2
             : root.choice.thumb-inset + (root.height - 2 * root.edge) * (1 - root.fraction);
         border-radius: min(root.theme.shape.radius-pill, min(self.width, self.height) / 2);
@@ -1738,6 +1835,15 @@ export component KitSlider inherits Rectangle {
             if (event.kind == PointerEventKind.cancel && root.gesture-active) { root.gesture-active = false; root.handle-cancel(); }
         }
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
+        scroll-event(event) => {
+            if (!root.wheel-stepping || !keyboard.has-focus || root.gesture-active || event.modifiers.control || event.modifiers.meta || event.modifiers.alt) { return reject; }
+            // Up raises. A horizontal slider also follows sideways wheels towards its far end.
+            let raise = event.delta-y > 0px || (!root.vertical && (root.rtl ? event.delta-x < 0px : event.delta-x > 0px));
+            let lower = event.delta-y < 0px || (!root.vertical && (root.rtl ? event.delta-x > 0px : event.delta-x < 0px));
+            if (raise) { root.handle-navigate(NavigationStep.next); return accept; }
+            if (lower) { root.handle-navigate(NavigationStep.previous); return accept; }
+            return reject;
+        }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
     out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
@@ -1807,6 +1913,10 @@ export component KitRangeSlider inherits Rectangle {
     in property <float> lower-position: KitFieldService.ready ? KitFieldService.slider-position(root.value.lower, root.spec) : 0;
     in property <float> upper-position: KitFieldService.ready ? KitFieldService.slider-position(root.value.upper, root.spec) : 1;
     in property <string> label;
+    // Ticks and optional labels on the track, as on KitSlider.
+    in property <[SliderMark]> marks;
+    // Opt-in: the mouse wheel steps the focused thumb like the arrow keys, up raises.
+    in property <bool> wheel-stepping: false;
     in property <string> lower-label: root.value.lower;
     in property <string> upper-label: root.value.upper;
     // "{label}" stands for the field label, so each language chooses its word order.
@@ -1824,12 +1934,16 @@ export component KitRangeSlider inherits Rectangle {
     private property <bool> rtl: !root.vertical && root.flow == ChoiceFlow.right-to-left;
     // The least distance between the thumbs as a fraction of the travel.
     private property <float> gap-position: KitFieldService.ready ? KitFieldService.range-gap-position(root.spec) : 0;
-    private property <length> cross-extent: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset);
+    private property <length> band: mark-view.band;
+    private property <length> body-width: root.vertical ? root.width - root.band : root.width;
+    private property <length> body-height: root.vertical ? root.height : root.height - root.band;
+    private property <length> cross-extent: max(root.theme.spacing.unit * 10, KitMetrics.control-height(root.theme, root.control-size), root.choice.slider-thumb-size + 2 * root.choice.thumb-inset) + root.band;
     private property <length> travel-minimum: 120px;
     preferred-width: root.vertical ? root.cross-extent : root.travel-minimum;
     preferred-height: root.vertical ? root.travel-minimum : root.cross-extent;
     min-width: root.vertical ? root.cross-extent : root.travel-minimum;
-    min-height: root.vertical ? root.travel-minimum : 0px;
+    min-height: root.vertical ? root.travel-minimum : root.band > 0px ? root.cross-extent : 0px;
+    max-width: 100000px; max-height: 100000px;
     horizontal-stretch: root.vertical ? 0 : 1;
     vertical-stretch: root.vertical ? 1 : 0;
     accessible-role: groupbox; accessible-label: root.label;
@@ -1853,8 +1967,8 @@ export component KitRangeSlider inherits Rectangle {
         root.handle-position(root.active-thumb, root.active-thumb == RangeThumb.lower ? min(position, root.upper-position - root.gap-position) : max(position, root.lower-position + root.gap-position));
     }
     Rectangle {
-        x: root.vertical ? (root.width - self.width) / 2 : root.edge;
-        y: root.vertical ? root.edge : (root.height - self.height) / 2;
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.edge;
+        y: root.vertical ? root.edge : (root.body-height - self.height) / 2;
         width: root.vertical ? root.choice.slider-track-height : root.width - 2 * root.edge;
         height: root.vertical ? root.height - 2 * root.edge : root.choice.slider-track-height;
         border-radius: min(self.width, self.height) / 2; background: root.track-brush;
@@ -1865,6 +1979,12 @@ export component KitRangeSlider inherits Rectangle {
             height: root.vertical ? parent.height * abs(root.drawn(root.upper-position) - root.drawn(root.lower-position)) : parent.height;
             border-radius: parent.border-radius; background: root.fill-brush;
         }
+    }
+    mark-view := SliderMarks {
+        width: root.width; height: root.height;
+        theme: root.theme; choice: root.choice; marks: root.marks; spec: root.spec;
+        vertical: root.vertical; rtl: root.rtl; filled: false; disabled: root.disabled;
+        edge: root.edge; fraction: 0;
     }
     // Semantic thumbs have separate keyboard targets. One pointer region chooses
     // the nearest thumb, avoiding overlapping hit areas when values coincide.
@@ -1910,14 +2030,14 @@ export component KitRangeSlider inherits Rectangle {
         cancelled => { root.gesture-active = false; root.handle-cancel(RangeThumb.upper); }
     }
     Rectangle {
-        x: root.vertical ? (parent.width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.lower-position);
-        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.lower-position) : (parent.height - self.height) / 2;
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.lower-position);
+        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.lower-position) : (root.body-height - self.height) / 2;
         width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
         if lower.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
     Rectangle {
-        x: root.vertical ? (parent.width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.upper-position);
-        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.upper-position) : (parent.height - self.height) / 2;
+        x: root.vertical ? (root.body-width - self.width) / 2 : root.choice.thumb-inset + (parent.width - 2 * root.edge) * root.drawn(root.upper-position);
+        y: root.vertical ? root.choice.thumb-inset + (parent.height - 2 * root.edge) * root.drawn(root.upper-position) : (root.body-height - self.height) / 2;
         width: root.choice.slider-thumb-size; height: self.width; border-radius: min(root.theme.shape.radius-pill, self.width / 2); background: root.handle-brush;
         if upper.has-focus: FocusOutline { ring: KitThemes.inset-focus(root.theme); radius: parent.border-radius; host-width: parent.width; host-height: parent.height; }
     }
@@ -1943,6 +2063,16 @@ export component KitRangeSlider inherits Rectangle {
             if (event.kind == PointerEventKind.cancel && root.gesture-active) { root.gesture-active = false; root.handle-cancel(root.active-thumb); }
         }
         moved => { if (self.pressed && root.gesture-active) { root.update-position(); } }
+        scroll-event(event) => {
+            if (!root.wheel-stepping || root.gesture-active || event.modifiers.control || event.modifiers.meta || event.modifiers.alt) { return reject; }
+            if (!lower.has-focus && !upper.has-focus) { return reject; }
+            let thumb = lower.has-focus ? RangeThumb.lower : RangeThumb.upper;
+            let raise = event.delta-y > 0px || (!root.vertical && (root.rtl ? event.delta-x < 0px : event.delta-x > 0px));
+            let lowering = event.delta-y < 0px || (!root.vertical && (root.rtl ? event.delta-x > 0px : event.delta-x < 0px));
+            if (raise) { root.handle-navigate(thumb, NavigationStep.next); return accept; }
+            if (lowering) { root.handle-navigate(thumb, NavigationStep.previous); return accept; }
+            return reject;
+        }
     }
     in property <SliderSpec> spec: {minimum: "0", maximum: "100", step: "1"};
     out property <bool> spec-valid: KitFieldService.ready && KitFieldService.slider-spec-valid(root.spec);
