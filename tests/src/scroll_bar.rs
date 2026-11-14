@@ -538,3 +538,79 @@ fn children_first_keeps_wheel_and_scrollbar_input_available() {
     assert!(window.get_offset() < -50.);
     assert_eq!(window.get_commits(), 0);
 }
+
+fn advance(milliseconds: u64) {
+    i_slint_backend_testing::mock_elapsed_time(std::time::Duration::from_millis(milliseconds));
+    slint::platform::update_timers_and_animations();
+}
+
+#[test]
+fn a_held_track_press_repeats_after_the_delay_and_stops_on_release() {
+    let window = fixture();
+    window.set_maximum(4000.);
+    let theme = window.get_light();
+    let delay = theme.motion.repeat_delay as u64;
+    let interval = theme.motion.repeat_interval as u64;
+    press(&window, 445., 190.);
+    assert_eq!(window.get_value(), -200., "the press pages at once");
+    advance(delay - 1);
+    assert_eq!(
+        window.get_value(),
+        -200.,
+        "nothing repeats before the delay"
+    );
+    advance(1);
+    assert_eq!(window.get_value(), -400., "the delay starts repeating");
+    advance(interval);
+    assert_eq!(window.get_value(), -600.);
+    advance(interval);
+    assert_eq!(window.get_value(), -800.);
+    advance(interval);
+    assert_eq!(window.get_value(), -1000.);
+    assert_eq!(window.get_scrolls(), 5);
+    release(&window, 445., 190.);
+    advance(delay + interval * 5);
+    assert_eq!(window.get_value(), -1000., "release cancels the repeat");
+    // A new press starts again from the delay.
+    press(&window, 445., 190.);
+    assert_eq!(window.get_value(), -1200.);
+    advance(delay - 1);
+    assert_eq!(window.get_value(), -1200.);
+}
+
+#[test]
+fn a_repeating_track_press_stops_when_the_thumb_reaches_the_pointer() {
+    let window = fixture();
+    window.set_maximum(600.);
+    press(&window, 445., 120.);
+    advance(2000);
+    let value = window.get_value();
+    let recipe = window.invoke_recipe(window.get_light());
+    let bar = bar(&window);
+    let thumb = thumb(&bar);
+    advance(500);
+    assert!(
+        thumb.absolute_position().y + thumb.size().height >= 120. - recipe.inset,
+        "the thumb reached the pointer"
+    );
+    assert_eq!(window.get_value(), value, "paging stops under the pointer");
+    release(&window, 445., 120.);
+}
+
+#[test]
+fn a_held_track_press_pages_toward_the_start_and_a_disabled_bar_never_repeats() {
+    let window = fixture();
+    window.set_maximum(4000.);
+    window.set_value(-2000.);
+    press(&window, 445., 2.);
+    assert_eq!(window.get_value(), -1800.);
+    let theme = window.get_light();
+    advance(theme.motion.repeat_delay as u64);
+    assert_eq!(window.get_value(), -1600.);
+    release(&window, 445., 2.);
+    window.set_enabled(false);
+    window.set_value(-2000.);
+    press(&window, 445., 2.);
+    advance(2000);
+    assert_eq!(window.get_value(), -2000.);
+}
