@@ -115,6 +115,7 @@ export component BaseDataFixture inherits Window {
     callback autosize-requested(int);
     callback reorder-requested(int, int);
     callback cell-committed(CellCommit);
+    callback cell-action(CellRef);
     callback table-edit-started(CellRef);
     callback table-cell-copied(CellRef, string);
     public function copy-table-cell() { table.copy-active-cell(); }
@@ -160,6 +161,7 @@ export component BaseDataFixture inherits Window {
             edit-ended(cell,outcome,message) => {root.table-edit-ended(cell,outcome,message);}
             validate-edit(cell,commit) => { return root.validate-table-edit(cell,commit); }
             cell-committed(proposal) => { root.cell-committed(proposal); }
+            cell-action(cell) => { root.cell-action(cell); }
             Text { text: "Table custom empty"; accessible-role: AccessibleRole.text; accessible-label: "Table custom empty"; }
         }
         content := KitContentList {

@@ -124,6 +124,32 @@ pub enum CellContent {
         access: FieldAccess,
         constraints: Option<ui::KitInputConstraints>,
     },
+    /// A check mark the user flips with Enter, Space or a click. `text`
+    /// names it for assistive technology. The table never flips it: the
+    /// activation reaches the host through `cell-action`, which republishes
+    /// the row with the new state. `access` is `Editable` while it may be
+    /// activated, `ReadOnly` when it only shows its state, `Disabled` when
+    /// dimmed.
+    Toggle {
+        checked: bool,
+        text: SharedString,
+        access: FieldAccess,
+    },
+    /// A command in the row: an optional leading glyph and `text`, which is
+    /// also its accessible label. Activation is reported through
+    /// `cell-action`; `access` is read as for `Toggle`.
+    Action {
+        glyph: Option<ui::IconGlyph>,
+        text: SharedString,
+        access: FieldAccess,
+    },
+    /// Text that opens something when activated, painted as a link. The
+    /// activation is reported through `cell-action`; `access` is read as for
+    /// `Toggle`.
+    Link {
+        text: SharedString,
+        access: FieldAccess,
+    },
 }
 
 impl CellContent {
@@ -171,6 +197,41 @@ impl CellContent {
         Self::Check {
             state,
             text: text.into(),
+        }
+    }
+    /// A toggle in the given state; `text` is its accessible label.
+    pub fn toggle(checked: bool, text: impl Into<SharedString>, access: FieldAccess) -> Self {
+        Self::Toggle {
+            checked,
+            text: text.into(),
+            access,
+        }
+    }
+    /// An action with a leading glyph and `text`.
+    pub fn action(
+        glyph: ui::IconGlyph,
+        text: impl Into<SharedString>,
+        access: FieldAccess,
+    ) -> Self {
+        Self::Action {
+            glyph: Some(glyph),
+            text: text.into(),
+            access,
+        }
+    }
+    /// An action that shows only `text`.
+    pub fn text_action(text: impl Into<SharedString>, access: FieldAccess) -> Self {
+        Self::Action {
+            glyph: None,
+            text: text.into(),
+            access,
+        }
+    }
+    /// A link showing `text`.
+    pub fn link(text: impl Into<SharedString>, access: FieldAccess) -> Self {
+        Self::Link {
+            text: text.into(),
+            access,
         }
     }
     /// A free-text field holding `text`.
@@ -275,6 +336,39 @@ impl From<CellContent> for ui::TableCell {
                     CellCodec::PlainText => SharedString::default(),
                     CellCodec::Spec(key) => key.as_str().into(),
                 },
+                ..Self::default()
+            },
+            CellContent::Toggle {
+                checked,
+                text,
+                access,
+            } => Self {
+                kind: ui::TableCellKind::Toggle,
+                text,
+                check: if checked {
+                    CheckState::Checked
+                } else {
+                    CheckState::Unchecked
+                }
+                .into(),
+                access: access.into(),
+                ..Self::default()
+            },
+            CellContent::Action {
+                glyph,
+                text,
+                access,
+            } => Self {
+                kind: ui::TableCellKind::Action,
+                glyph: glyph.unwrap_or_default(),
+                text,
+                access: access.into(),
+                ..Self::default()
+            },
+            CellContent::Link { text, access } => Self {
+                kind: ui::TableCellKind::Link,
+                text,
+                access: access.into(),
                 ..Self::default()
             },
         }
