@@ -118,6 +118,12 @@ impl YearMonth {
     pub fn month(self) -> u32 {
         self.month
     }
+    /// The first day of the month, for formatting a month with a date pattern.
+    pub fn first_day(self) -> CivilDate {
+        CivilDate(
+            NaiveDate::from_ymd_opt(self.year.0, self.month, 1).expect("validated year month"),
+        )
+    }
     pub fn checked_add_months(self, months: i32) -> Result<Self, ParseIssue> {
         let date =
             NaiveDate::from_ymd_opt(self.year.0, self.month, 1).ok_or(ParseIssue::InvalidDate)?;
@@ -154,6 +160,13 @@ impl IsoWeek {
     }
     pub fn week(self) -> u32 {
         self.week
+    }
+    /// The Monday that starts the week, for formatting a week with a date pattern.
+    pub fn monday(self) -> CivilDate {
+        CivilDate(
+            NaiveDate::from_isoywd_opt(self.year.0, self.week, Weekday::Mon)
+                .expect("validated ISO week"),
+        )
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

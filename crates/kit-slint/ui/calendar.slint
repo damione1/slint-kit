@@ -875,6 +875,12 @@ export component KitMonthField inherits TemporalField {
         if (parsed.valid) { root.accepted-year = parsed.year; root.accepted-month = parsed.month; }
     }
     placeholder: "YYYY-MM";
+    // Display-at-rest format, for example "%B %Y". Editing and the accepted
+    // month stay `YYYY-MM`; an empty or invalid pattern keeps that text.
+    in property <DateDisplay> display-format;
+    display-text: !KitFieldService.ready || root.accepted-text != root.text ? root.text
+        : root.display-format.pattern != "" && KitCalendarService.ready ? KitCalendarService.display-month(root.text, root.display-format)
+        : KitFieldService.display(root.spec-key, root.text);
 }
 export component KitYearField inherits TemporalField {
     input-type: InputType.decimal; min: "1"; max: "9999"; step: "1";
@@ -898,4 +904,10 @@ export component KitIsoWeekField inherits TemporalField {
         if (parsed.valid) { root.accepted-week-year = parsed.year; root.accepted-week = parsed.week; }
     }
     placeholder: "YYYY-Www";
+    // Display-at-rest format, for example "%G, week %V". Editing and the accepted
+    // week stay `YYYY-Www`; an empty or invalid pattern keeps that text.
+    in property <DateDisplay> display-format;
+    display-text: !KitFieldService.ready || root.accepted-text != root.text ? root.text
+        : root.display-format.pattern != "" && KitCalendarService.ready ? KitCalendarService.display-week(root.text, root.display-format)
+        : KitFieldService.display(root.spec-key, root.text);
 }
