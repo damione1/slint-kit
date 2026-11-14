@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+import { KitDialog, DialogTabPolicy, KitAlertDialog, DialogSize, KitButton, ButtonIntent, KitTheme, KitThemeContext, DialogState, CloseReason } from "@kit";
+
+export component DialogFixture inherits Window {
+    width: 800px; height: 600px;
+    in property <DialogState> state;
+    in property <DialogSize> size: DialogSize.medium;
+    in property <int> body-lines;
+    in property <bool> show-close-button: true;
+    in property <length> dialog-width: 800px;
+    in property <KitTheme> theme: KitThemeContext.current;
+    callback dismissed(CloseReason);
+    callback action(int);
+    callback restore-requested();
+    KitDialog {
+        width: root.dialog-width; tab-policy: DialogTabPolicy.native; height: root.height; theme: root.theme; state: root.state; size: root.size;
+        title: "Edit profile"; description: "Changes apply to every workspace."; show-close-button: root.show-close-button;
+        actions: [
+            { token: 7, text: "Discard", intent: ButtonIntent.secondary, disabled: false },
+            { token: 8, text: "Save", intent: ButtonIntent.primary, disabled: false },
+        ];
+        dismiss(reason) => { root.dismissed(reason); }
+        action-activated(token) => { root.action(token); }
+        restore-focus() => { root.restore-requested(); }
+        KitButton { text: "Body action"; }
+        for line in root.body-lines: Text { text: "Line " + line; vertical-stretch: 0; }
+    }
+}
+
+export component AlertDialogFixture inherits Window {
+    width: 800px; height: 600px;
+    in property <DialogState> state;
+    in property <ButtonIntent> confirm-intent: ButtonIntent.primary;
+    callback dismissed(CloseReason);
+    callback confirmed();
+    callback cancelled();
+    KitAlertDialog {
+        width: root.width; height: root.height; state: root.state; confirm-intent: root.confirm-intent;
+        title: "Delete project?"; description: "This cannot be undone."; confirm-text: "Delete"; cancel-text: "Keep";
+        dismiss(reason) => { root.dismissed(reason); }
+        confirmed => { root.confirmed(); }
+        cancelled => { root.cancelled(); }
+    }
+}
