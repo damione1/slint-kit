@@ -1,7 +1,7 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { ListView } from "scroll.slint";
-import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing } from "theme.slint";
+import { KitTheme, KitThemes, KitMetrics, ControlSize, ButtonIntent, ButtonRecipe, ControlWidth, KitThemeContext, TypographyRole, SurfaceLevel, SurfaceRecipe, ColumnHandleRecipe, KitFocusRing, TooltipRecipe } from "theme.slint";
 import { KitPressable, KitButton } from "button.slint";
 import { KitModalContext } from "modal.slint";
 import { KitIcon, KitGlyphs, TurningIcon, IconGlyph, IconPurpose } from "icons.slint";
@@ -290,6 +290,32 @@ component ColumnResizeHandle inherits Rectangle {
     }
 }
 
+// A one-line text that elides at the cell edge. While it is elided, hovering
+// it shows the whole text in a native tooltip, styled by the tooltip recipe.
+component ElidedText inherits Rectangle {
+    in property <KitTheme> theme;
+    in property <string> text;
+    in property <color> ink;
+    in property <TextHorizontalAlignment> alignment;
+    private property <TooltipRecipe> tip-recipe: KitThemes.tooltip-recipe(root.theme);
+    label := Text {
+        width: parent.width; height: parent.height; text: root.text; color: root.ink;
+        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
+        overflow: elide; vertical-alignment: center; horizontal-alignment: root.alignment;
+    }
+    // The native tooltip is not reachable by the headless test backend; this
+    // empty marker is mounted exactly when the tooltip is.
+    if label.preferred-width > label.width && root.text != "": Rectangle { elided-marker := Rectangle { width: 0px; height: 0px; } }
+    if label.preferred-width > label.width && root.text != "": Tooltip {
+        full-text := Rectangle { background: root.tip-recipe.fill; border-radius: root.tip-recipe.radius;
+            width: min(root.tip-recipe.max-width, tip-line.preferred-width + 2 * root.tip-recipe.padding-inline);
+            height: tip-text.preferred-height + 2 * root.tip-recipe.padding-block;
+            tip-line := Text { visible: false; accessible-role: none; text: root.text; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; }
+            tip-text := Text { x: root.tip-recipe.padding-inline; y: root.tip-recipe.padding-block; width: parent.width - 2 * root.tip-recipe.padding-inline; text: root.text; color: root.tip-recipe.foreground; font-family: root.theme.typography.family; font-size: root.tip-recipe.font-size; wrap: word-wrap; }
+        }
+    }
+}
+
 // One row cell, painted by its kind inside the column's constraints. Slint
 // fixes element kinds at compile time, so each kind is its own element; the
 // text of every kind is the cell's accessible label, so a badge or a check
@@ -367,21 +393,15 @@ component TableCellView inherits Rectangle {
     private property <color> action-ink: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.cell.access == FieldAccess.read-only ? root.theme.text-primary : root.theme.accent;
     private property <bool> activatable: !root.row-disabled && root.cell.access == FieldAccess.editable;
     clip: true;
-    if root.cell.kind == TableCellKind.text: Text {
-        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
-        text: root.cell.text;
-        color: root.cell-ink;
-        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-        overflow: elide; vertical-alignment: center;
-        horizontal-alignment: root.text-alignment();
+    if root.cell.kind == TableCellKind.text: ElidedText {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        theme: root.theme; text: root.cell.text; ink: root.cell-ink; alignment: root.text-alignment();
     }
-    if root.cell.kind == TableCellKind.field && !root.editing: Text {
-        x: root.inset; width: max(0px, parent.width - 2 * root.inset);
+    if root.cell.kind == TableCellKind.field && !root.editing: ElidedText {
+        x: root.inset; width: max(0px, parent.width - 2 * root.inset); height: parent.height;
+        theme: root.theme; alignment: root.text-alignment();
         text: KitFieldService.ready ? KitFieldService.display(root.cell.spec, root.cell.text) : root.cell.text;
-        color: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
-        font-family: root.theme.typography.family; font-size: KitMetrics.font-size(root.theme, TypographyRole.control);
-        overflow: elide; vertical-alignment: center;
-        horizontal-alignment: root.text-alignment();
+        ink: root.row-disabled || root.cell.access == FieldAccess.disabled ? root.theme.disabled-text : root.row-selected ? root.theme.on-selection : root.theme.text-primary;
     }
     // A new session creates a fresh model/delegate even when a synchronous
     // callback reopens the same cell before the next frame (an ABA).
