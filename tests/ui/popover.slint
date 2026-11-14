@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitPopover, KitDropdownMenu, KitButton, OptionRow, CloseReason } from "@kit";
+import { KitPopover, KitDropdownMenu, KitContextMenu, KitButton, OptionRow, CloseReason } from "@kit";
 
 export component PopoverFixture inherits Window {
     width: 400px; height: 300px;
@@ -37,6 +37,28 @@ export component DropdownMenuFixture inherits Window {
             text: "Actions"; options: root.options;
             chosen(row) => { root.chosen(row); }
             dismissed(reason) => { root.dismissed(reason); }
+        }
+    }
+}
+
+export component ContextMenuFixture inherits Window {
+    width: 400px; height: 300px;
+    in property <[OptionRow]> options;
+    in property <bool> disabled;
+    out property <bool> open: area.open;
+    out property <bool> area-focused: area.has-focus;
+    in-out property <bool> button-focused;
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    public function show-at(x: length, y: length) { area.show-at(x, y); }
+    VerticalLayout {
+        padding: 24px; alignment: start;
+        area := KitContextMenu {
+            options: root.options; disabled: root.disabled;
+            chosen(row) => { root.chosen(row); }
+            dismissed(reason) => { root.dismissed(reason); }
+            Rectangle { height: 160px; background: #dddddd; Text { text: "Content"; } }
+            KitButton { text: "Inside action"; focus-observed(focused) => { root.button-focused = focused; } }
         }
     }
 }

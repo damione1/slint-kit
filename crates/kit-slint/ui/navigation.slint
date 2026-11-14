@@ -1531,3 +1531,110 @@ export component KitDropdownMenu inherits Rectangle {
         }
     }
 }
+
+// A content area with a menu of actions opened at the pointer by the right
+// button, or by the menu key (or Shift+F10) from the content or from a
+// focusable child that does not use the key itself. The menu is the panel and
+// rows of KitDropdownMenu, anchored at the pointer point instead of a trigger:
+// it sits below the point, or above it when there is more room, and shifts to
+// stay inside the window. Choosing a row closes the menu, reports the row
+// through `chosen` and returns focus to the content area. Dismissal and
+// `dismissed` reasons match KitPopover. The content takes one tab stop.
+export component KitContextMenu inherits Rectangle {
+    in property <int> modal-layer;
+    in property <KitTheme> theme: KitThemeContext.current;
+    in property <ControlSize> control-size: ControlSize.medium;
+    in property <string> accessible-name: "Context menu";
+    in property <bool> disabled;
+    in property <[OptionRow]> options;
+    in property <[MenuItem]> items;
+    in property <length> popup-width: KitMetrics.select-popup-min-width(root.theme);
+    // Where the menu key opens the menu, in the content's coordinates.
+    in property <length> keyboard-anchor-x: root.theme.spacing.unit * 2;
+    in property <length> keyboard-anchor-y: root.theme.spacing.unit * 2;
+    out property <bool> open: popup.is-open;
+    out property <bool> has-focus: scope.has-focus;
+    callback opened();
+    callback chosen(OptionRow);
+    callback dismissed(CloseReason);
+    private property <PopupViewport> popup-viewport;
+    private property <length> anchor-x;
+    private property <length> anchor-y;
+    private property <bool> reported;
+    public function take-focus() { scope.focus(); }
+    // Opens the menu at a point of the content area.
+    public function show-at(x: length, y: length) {
+        if (!root.disabled && !KitModalContext.inert(root.modal-layer) && !root.open && root.options.length > 0) {
+            root.reported = false;
+            root.anchor-x = x;
+            root.anchor-y = y;
+            root.popup-viewport = KitFieldService.popup-viewport();
+            popup.show();
+            root.opened();
+        }
+    }
+    // Opens the menu where the menu key does.
+    public function show() { root.show-at(root.keyboard-anchor-x, root.keyboard-anchor-y); }
+    public function dismiss(reason: CloseReason) {
+        if (!root.open) { return; }
+        popup.close();
+        scope.focus();
+        root.report(reason);
+    }
+    function report(reason: CloseReason) {
+        if (!root.reported) { root.reported = true; root.dismissed(reason); }
+    }
+    changed open => {
+        if (!root.open) {
+            // Slint closes the panel on an outside press and consumes that press.
+            root.report(CloseReason.host-closed);
+            root.reported = false;
+        }
+    }
+    changed disabled => { if (root.disabled && root.open) { root.dismiss(CloseReason.programmatic); } }
+    min-width: layout.min-width;
+    preferred-width: layout.preferred-width;
+    min-height: layout.min-height;
+    preferred-height: layout.preferred-height;
+    scope := FocusScope {
+        enabled: !root.disabled;
+        key-pressed(event) => {
+            if ((event.text == Key.Menu || (event.text == Key.F10 && event.modifiers.shift)) && !event.modifiers.control && !event.modifiers.meta && !event.modifiers.alt) {
+                root.show();
+                return accept;
+            }
+            return reject;
+        }
+        touch := TouchArea {
+            enabled: !root.disabled;
+            pointer-event(event) => {
+                if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) { root.show-at(self.mouse-x, self.mouse-y); }
+            }
+            layout := VerticalLayout { @children }
+        }
+    }
+    popup := PopupWindow {
+        width: min(root.popup-width, max(0px, root.popup-viewport.width - 2 * root.theme.spacing.unit));
+        private property <length> desired-height: panel.preferred-height;
+        private property <PopupGeometry> placement: KitFieldService.place-popup({x: root.absolute-position.x + root.anchor-x, y: root.absolute-position.y + root.anchor-y, anchor-width: 0px, anchor-height: 0px, width: self.width, height: self.desired-height, gap: root.theme.spacing.unit, placement: DropdownPlacement.auto}, root.popup-viewport);
+        x: root.anchor-x + self.placement.x; y: root.anchor-y + self.placement.y;
+        height: self.placement.height;
+        close-policy: close-on-click-outside;
+        panel := PopoverPanel {
+            recipe: KitThemes.surface-recipe(root.theme, SurfaceLevel.popover);
+            inset: KitMetrics.popover-inset(root.theme);
+            escape => { root.dismiss(CloseReason.escape); }
+            menu := KitMenu {
+                theme: root.theme; control-size: root.control-size; modal-layer: root.modal-layer;
+                accessible-name: root.accessible-name;
+                options: root.options; items: root.items;
+                // A popup takes native focus after its init code: focus the rows on both paths.
+                private property <bool> presented: root.open;
+                init => { if (root.open) { self.take-focus(); } }
+                changed presented => { if (self.presented) { self.take-focus(); } }
+                chosen(row) => { root.dismiss(CloseReason.programmatic); root.chosen(row); }
+                dismiss(reason) => { if (reason != CloseReason.programmatic) { root.dismiss(reason); } }
+            }
+        }
+    }
+}
