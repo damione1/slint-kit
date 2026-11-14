@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::ui;
-use kit_core::{ModelError, NavigationStep, RowGesture, SelectionMode};
+use kit_core::{CheckState, ModelError, NavigationStep, RowGesture, SelectionMode};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{
     cell::RefCell,
@@ -603,6 +603,24 @@ impl<K: Clone + Eq + Hash + 'static, R: KeyedRow> KeyedModel<K, R> {
         self.refresh();
     }
 }
+fn selection_state_of<K, R: SelectableRow>(state: &State<K, R>) -> CheckState {
+    let (mut enabled, mut selected_enabled, mut selected) = (0usize, 0usize, 0usize);
+    for entry in &state.entries {
+        let row_selected = entry.row.selected();
+        selected += usize::from(row_selected);
+        if entry.row.enabled() {
+            enabled += 1;
+            selected_enabled += usize::from(row_selected);
+        }
+    }
+    if selected == 0 {
+        CheckState::Unchecked
+    } else if enabled > 0 && selected_enabled == enabled && selected == enabled {
+        CheckState::Checked
+    } else {
+        CheckState::Mixed
+    }
+}
 impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
     /// Make one row the whole selection. It also becomes the active row and
     /// the anchor of later range selections.
@@ -631,6 +649,13 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
             }
         });
         drop(state);
+        self.publish();
+        Some(key)
+    }
+    // Selection is unused: the row only becomes the active row.
+    fn focus(&self, token: i32, generation: i32) -> Option<K> {
+        let key = self.accept(token, generation)?;
+        self.state.borrow_mut().active = Some(key.clone());
         self.publish();
         Some(key)
     }
@@ -681,6 +706,39 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
         drop(state);
         self.publish();
     }
+    /// The state of a select-all control: `Checked` when every enabled row is
+    /// selected, `Mixed` when some are, `Unchecked` otherwise. Disabled rows
+    /// never count, as `select_all` never selects them; a collection without
+    /// enabled rows is `Unchecked`.
+    pub fn selection_state(&self) -> CheckState {
+        selection_state_of(&self.state.borrow())
+    }
+    /// A `KitDataTable.select-all-requested` handler: select every enabled
+    /// row, or clear the selection when they all are already selected.
+    pub fn select_all_toggle(&self) -> impl Fn() + 'static {
+        let model = self.clone();
+        move || match model.selection_state() {
+            CheckState::Checked => model.clear_selection(),
+            CheckState::Unchecked | CheckState::Mixed => model.select_all(),
+        }
+    }
+    /// Publish `selection_state` to the view through an explicit setter, now
+    /// and after every change of the collection, without retaining its window.
+    pub fn bind_selection_state<W: ComponentHandle + 'static>(
+        &self,
+        window: &W,
+        setter: fn(&W, ui::CheckState),
+    ) {
+        let weak = window.as_weak();
+        let state = Rc::downgrade(&self.state);
+        self.publish.borrow_mut().push(Rc::new(move || {
+            let (Some(window), Some(state)) = (weak.upgrade(), state.upgrade()) else {
+                return;
+            };
+            setter(&window, selection_state_of(&state.borrow()).into());
+        }));
+        self.refresh();
+    }
     /// The keys of the selected rows, in model order.
     pub fn selected_keys(&self) -> Vec<K> {
         self.state
@@ -705,7 +763,7 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
         }
     }
     /// Apply one typed row gesture to the selection under the host's mode and
-    /// return the row it targeted. `Single` reduces toggle and extend to a
+    /// return the row it targeted. `None` only moves the active row. `Single` reduces toggle and extend to a
     /// plain selection. `Open` keeps a selected row's selection and
     /// otherwise selects the row alone, as a file manager does.
     pub fn gesture(
@@ -716,6 +774,10 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
         generation: i32,
     ) -> Option<K> {
         match (mode, gesture) {
+            (
+                SelectionMode::None,
+                RowGesture::Select | RowGesture::Toggle | RowGesture::Extend | RowGesture::Open,
+            ) => self.focus(token, generation),
             (SelectionMode::Single, RowGesture::Select)
             | (SelectionMode::Single, RowGesture::Toggle)
             | (SelectionMode::Single, RowGesture::Extend)
@@ -759,6 +821,24 @@ impl<K: Clone + Eq + Hash + 'static, R: SelectableRow> KeyedModel<K, R> {
             if let Some(key) = model.select(token, generation) {
                 handler(key);
             }
+        }
+    }
+}
+impl From<ui::SelectionMode> for SelectionMode {
+    fn from(value: ui::SelectionMode) -> Self {
+        match value {
+            ui::SelectionMode::None => Self::None,
+            ui::SelectionMode::Single => Self::Single,
+            ui::SelectionMode::Multiple => Self::Multiple,
+        }
+    }
+}
+impl From<SelectionMode> for ui::SelectionMode {
+    fn from(value: SelectionMode) -> Self {
+        match value {
+            SelectionMode::None => Self::None,
+            SelectionMode::Single => Self::Single,
+            SelectionMode::Multiple => Self::Multiple,
         }
     }
 }

@@ -835,6 +835,7 @@ mod menu_items;
 mod native_dialog;
 mod navigation_interaction;
 mod row_gestures;
+mod table_selection;
 mod theme_tokens;
 mod variants;
 

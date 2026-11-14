@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, ContentThumbnail, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellRef, CellCommit, RowGesture } from "@kit";
+import { ColumnStep, TableEditOutcome, TableEditBlurPolicy, TableUnchangedEditPolicy, TableEditBounds, TableHeaderFocus, KitKeyResult, KitDataTable, KitContentList, DataState, DataEmptyContent, DataSurface, ContentThumbnail, KitVirtualTextView, KitTextField, TableColumn, TableRow, ColumnWidth, ColumnSizing, ColumnCeiling, ContentItem, TextLine, TextViewAccess, NavigationStep, KitTheme, KitThemes, ControlSize, FieldCommit, CellRef, CellCommit, RowGesture, SelectionMode, CheckState } from "@kit";
 export { ColumnStep, ColumnWidth, ColumnSizing, ColumnCeiling }
 
 export enum DataFixtureCollection { table, content, document }
@@ -21,6 +21,10 @@ export component BaseDataFixture inherits Window {
     in property <DataEmptyContent> table-empty-content: DataEmptyContent.label;
     in property <DataSurface> table-surface: DataSurface.framed;
     in property <bool> table-striped: true;
+    in property <SelectionMode> table-selection-mode: SelectionMode.single;
+    in property <bool> table-selection-column: false;
+    in property <CheckState> table-selection-state: CheckState.unchecked;
+    callback table-select-all();
     in property <DataState> content-state: DataState.ready;
     in property <bool> content-interactive: true;
     in property <ControlSize> content-control-size: ControlSize.medium;
@@ -136,6 +140,8 @@ export component BaseDataFixture inherits Window {
             sort-ascending-label: root.table-ascending-label;
             sort-descending-label: root.table-descending-label;
             state: root.table-state; empty-content: root.table-empty-content; surface-style: root.table-surface; striped: root.table-striped;
+            selection-mode: root.table-selection-mode; selection-column: root.table-selection-column; selection-state: root.table-selection-state;
+            select-all-requested => { root.table-select-all(); }
             retry-requested => { root.table-retry(); }
             key-event(event) => { return root.table-key-event(event); }
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
