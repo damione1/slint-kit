@@ -1,6 +1,6 @@
 import { KitKeyResult } from "keyboard.slint";
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { ValidationPresentation } from "shared-contracts.slint";
+import { ValidationPresentation, CommitPolicy } from "shared-contracts.slint";
 import { KitTheme, KitThemes, ControlSize, ButtonIntent, KitThemeContext, KitMetrics, TypographyRole, SurfaceLevel, SurfaceRecipe, ColorPopupRecipe } from "theme.slint";
 import { ElevatedSurface } from "elevation.slint";
 import { KitPressable, KitButton } from "button.slint";
@@ -103,6 +103,7 @@ export component KitColorField inherits Rectangle {
     callback edited(string);
     callback commit-requested(string);
     callback cancelled();
+    callback focus-observed(bool);
     callback color-requested(SrgbColorView);
     // Live popup draft: fired on every edit of the not yet applied color, so a host can
     // preview it. Opening the popup fires nothing.
@@ -154,6 +155,15 @@ export component KitColorField inherits Rectangle {
     changed picker-open => { if (!root.picker-open) { popup.close(); swatch-button.take-focus(); } }
     public function take-focus() { editor.take-focus(); }
     public function clear() { editor.clear(); }
+    // When the typed draft is committed: on blur (default), on Enter, or on every valid edit.
+    in property <CommitPolicy> commit-policy: CommitPolicy.on-blur;
+    out property <bool> has-focus: editor.has-focus;
+    // Discards the typed draft: the text shows the accepted color again and validation restarts.
+    public function reset-field() {
+        root.text = root.accepted-value.present && KitFieldService.ready ? KitFieldService.color-format(root.accepted-value.color, root.alpha-mode) : "";
+        editor.acknowledge({present: root.accepted-value.present, text: root.text});
+        editor.reset-validation();
+    }
     in property <bool> clearable;
     in property <string> clear-label: KitStrings.clear-label;
     vertical-stretch: 0;
@@ -166,7 +176,7 @@ export component KitColorField inherits Rectangle {
                 required: root.required; custom-validity <=> root.custom-validity;
                 // This is the native draft's commit baseline, not host color
                 // ownership. A proposal must not repeat on the following blur.
-                ownership: Ownership.local; clearable: root.clearable; clear-label: root.clear-label;
+                ownership: Ownership.local; commit-policy: root.commit-policy; clearable: root.clearable; clear-label: root.clear-label;
                 pattern: root.alpha-mode == ColorAlphaMode.editable ? "#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?" : "#[0-9a-fA-F]{6}";
                 required-message: root.required-message; pattern-message: root.pattern-message;
                 error: root.error; show-validation-message: false;
@@ -174,7 +184,7 @@ export component KitColorField inherits Rectangle {
                 theme:root.theme;control-size:root.control-size;access:root.access;accessible-name:root.label;
                 validation:root.error != "" ? ValidationPresentation.invalid : ValidationPresentation.pristine;
                 text <=> root.text;
-                focus-observed(focused) => { if (!focused) { root.sync-text(); } }
+                focus-observed(focused) => { if (!focused) { root.sync-text(); } root.focus-observed(focused); }
                 placeholder: root.placeholder;
                 edited(text) => { root.edited(text); }
                 committed(value) => { root.accept-typed(value); }
