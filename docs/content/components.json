@@ -5,7 +5,8 @@
       "usage": "Fournissez `options` depuis `Choices<K>`, choisissez `ExpansionMode.single` ou `.multiple`, puis traitez `expansion-changed(OptionRow, bool)`. L’instance conserve ses références `expanded` et son focus itinérant ; `chosen` expose aussi la valeur source typée de la ligne. Placez le corps de chaque section dans `SelectOption.description`. Avec `Ownership.controlled`, acquittez la proposition en modifiant `expanded`.",
       "behavior": "Le réducteur commun traite la navigation et valide token/génération avant de changer l’expansion. Le mode simple ferme une autre section lors de l’ouverture ; le mode multiple conserve les autres sections. Un contrôle désactivé ne se déplie pas. Les corps restent montés durant la transition adaptée à la réduction des animations. `rows` et `state` restent des projections contrôlées explicites. Le mode contrôlé émet la proposition et conserve l’expansion acceptée jusqu’à l’acquittement de l’hôte. Sans Rust, les options déclarées affichent les en-têtes repliés. Pour prévisualiser les corps dépliés, fournissez explicitement `rows: [DisclosureRow]` à la place de `options`. Expansion et clavier complets nécessitent `install(&window)`.",
       "related": [
-        "KitCollapse"
+        "KitCollapse",
+        "KitSidebar"
       ],
       "label": "Accordéon",
       "seoTitle": "Accordéon pour Slint",
@@ -23,7 +24,8 @@
       "usage": "Supply `options` from `Choices<K>`, choose `ExpansionMode.single` or `.multiple`, and consume `expansion-changed(OptionRow, bool)`. The instance keeps its own `expanded` references and roving focus; `chosen` also exposes the item’s typed source value. Put each section’s body in `SelectOption.description`. With `Ownership.controlled`, acknowledge the proposed expansion by updating `expanded`.",
       "behavior": "One shared reducer handles navigation and validates token/generation before changing expansion. Single mode closes another section when one opens; multiple mode preserves other sections. Disabled interactions cannot expand. Bodies remain mounted during reduced-motion-aware transitions. `rows` and `state` remain explicit controlled projections. Controlled ownership emits the proposal and retains the accepted expansion until the host acknowledges it. Without Rust, declarative options show collapsed headers. To preview expanded bodies, supply explicit `rows: [DisclosureRow]` instead of `options`. Full expansion and keyboard behavior require `install(&window)`.",
       "related": [
-        "KitCollapse"
+        "KitCollapse",
+        "KitSidebar"
       ],
       "label": "Accordion",
       "seoTitle": "Accordion for Slint",
@@ -4609,7 +4611,8 @@
       "related": [
         "KitDialog",
         "KitDialogSurface",
-        "KitFocusTarget"
+        "KitFocusTarget",
+        "KitSidebar"
       ],
       "label": "Panneau latéral",
       "seoTitle": "Panneau latéral pour Slint",
@@ -4642,7 +4645,8 @@
       "related": [
         "KitDialog",
         "KitDialogSurface",
-        "KitFocusTarget"
+        "KitFocusTarget",
+        "KitSidebar"
       ],
       "label": "Drawer",
       "seoTitle": "Drawer for Slint",
@@ -5670,7 +5674,8 @@
       "behavior": "Le clavier ignore les choix désactivés et conserve les clés stables après filtrage ou réordonnancement. `wrap` (`true` par défaut) contrôle le bouclage aux bornes, `typeahead-timeout-ms` (700 par défaut) règle le délai de frappe (espaces inclus dans une requête active, réinitialisée par flèches/Début/Fin/PageUp/PageDown), et PageUp/PageDown sautent du nombre de lignes visibles `page-rows` (`viewport-height / row-height`, 0 tant que non mesuré ; PageUp/PageDown sont alors rejetées). `Ownership.local` accepte immédiatement le choix ; `.controlled` l’émet puis attend l’acquittement de `selected` par l’hôte. Les générations rejettent les gestes périmés. Les propriétés `rows` et `state` restent disponibles pour une projection contrôlée explicite. Les aperçus Slint seuls de l’éditeur/viewer affichent les options déclarées sans Rust. Filtrage, navigation et acceptation nécessitent toujours `install(&window)`. Voir les [limites des aperçus](../../guides/editor/#apercus-statiques-et-services-rust). Les hooks clavier publics renvoient l’enum commune KitKeyResult : KitKeyResult.accept pour traiter la touche, .reject pour préserver le comportement intégré. Rust utilise slint_kit::ui::KitKeyResult::{Accept, Reject} sans API privée Slint. Modifier row-height, y compris l’échelle du texte, révèle la ligne active courante sans déplacer le focus natif ni accepter une sélection.",
       "related": [
         "KitMenuBar",
-        "KitTabs"
+        "KitTabs",
+        "KitSidebar"
       ],
       "label": "Menu",
       "seoTitle": "Menu pour Slint",
@@ -5703,7 +5708,8 @@
       "behavior": "Keyboard navigation skips disabled choices and retains stable keys through filtering and reordering. `wrap` (`true` by default) controls wrap-around at bounds, `typeahead-timeout-ms` (default 700) sets the typeahead window (allowing spaces inside an active query and resetting on arrow/Home/End/PageUp/PageDown navigation), and PageUp/PageDown step by the visible `page-rows` (`viewport-height / row-height`, 0 until measured; unmeasured PageUp/PageDown are rejected). `Ownership.local` accepts a choice immediately; `.controlled` emits it and waits for the host to acknowledge `selected`. Source generations reject stale gestures. Existing `rows` and `state` properties remain available for explicit controlled projections. Pure-Slint editor/viewer previews show declarative options without Rust. Filtering, navigation and acceptance still require `install(&window)`. See the [preview limits](../../guides/editor/#static-previews-and-rust-services). Public keyboard hooks return the shared KitKeyResult enum: KitKeyResult.accept consumes the key, .reject preserves built-in behavior. Rust uses slint_kit::ui::KitKeyResult::{Accept, Reject} without private Slint APIs. Changing row-height, including text scaling, reveals the current active row without moving native focus or accepting a selection.",
       "related": [
         "KitMenuBar",
-        "KitTabs"
+        "KitTabs",
+        "KitSidebar"
       ],
       "label": "Menu",
       "seoTitle": "Menu for Slint",
@@ -5869,7 +5875,7 @@
       "seoTitle": "Dropdown Menu for Slint",
       "summary": "Trigger button that opens a menu of actions.",
       "usage": "Pass `options` from `Choices<K>::model()` and handle `chosen(OptionRow)`; `Choices::accept` validates the callback and returns its domain key. Call `slint_kit::install` once per window. Set `text` for the trigger.",
-      "behavior": "Placement, dismissal, `show()`, `dismiss(reason)`, `opened()` and `dismissed(CloseReason)` follow `KitPopover`. Opening focuses the rows; the arrow keys, Home, End, PageUp, PageDown and typeahead move the active row as in `KitMenu`, Enter or a click chooses it, and the menu then closes, emits `chosen` and returns focus to the trigger. Disabled rows cannot be chosen. A choice reports `programmatic` in `dismissed`. A menu opened by the right button is `KitContextMenu`; a collapsible application sidebar is not part of this component.",
+      "behavior": "Placement, dismissal, `show()`, `dismiss(reason)`, `opened()` and `dismissed(CloseReason)` follow `KitPopover`. Opening focuses the rows; the arrow keys, Home, End, PageUp, PageDown and typeahead move the active row as in `KitMenu`, Enter or a click chooses it, and the menu then closes, emits `chosen` and returns focus to the trigger. Disabled rows cannot be chosen. A choice reports `programmatic` in `dismissed`. A menu opened by the right button is `KitContextMenu`; an application sidebar is `KitSidebar`.",
       "related": [
         "KitPopover",
         "KitMenu",
@@ -5908,7 +5914,7 @@
       "seoTitle": " pour Slint",
       "summary": "Bouton déclencheur qui ouvre un menu d’actions.",
       "usage": "Fournissez `options` avec `Choices<K>::model()` et traitez `chosen(OptionRow)` ; `Choices::accept` valide le callback et retourne sa clé métier. Appelez `slint_kit::install` une fois par fenêtre. Renseignez `text` pour le déclencheur.",
-      "behavior": "Le placement, la fermeture, `show()`, `dismiss(reason)`, `opened()` et `dismissed(CloseReason)` suivent `KitPopover`. L’ouverture donne le focus aux lignes ; les flèches, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active comme dans `KitMenu`, Entrée ou un clic la choisit, puis le menu se ferme, émet `chosen` et rend le focus au déclencheur. Une ligne désactivée ne peut pas être choisie. Un choix signale `programmatic` dans `dismissed`. Un menu ouvert par le bouton droit est `KitContextMenu` ; une barre latérale repliable d’application ne fait pas partie de ce composant.",
+      "behavior": "Le placement, la fermeture, `show()`, `dismiss(reason)`, `opened()` et `dismissed(CloseReason)` suivent `KitPopover`. L’ouverture donne le focus aux lignes ; les flèches, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active comme dans `KitMenu`, Entrée ou un clic la choisit, puis le menu se ferme, émet `chosen` et rend le focus au déclencheur. Une ligne désactivée ne peut pas être choisie. Un choix signale `programmatic` dans `dismissed`. Un menu ouvert par le bouton droit est `KitContextMenu` ; une barre latérale d’application est `KitSidebar`.",
       "related": [
         "KitPopover",
         "KitMenu",
@@ -6045,6 +6051,156 @@
           "effect": "Largeur du menu, plafonnée à la largeur de la fenêtre moins un espace de chaque côté.",
           "default": "La largeur minimale du popup de sélection.",
           "example": "popup-width: 240px;"
+        }
+      }
+    }
+  },
+  "KitSidebar": {
+    "en": {
+      "label": "Sidebar",
+      "seoTitle": "Sidebar for Slint",
+      "summary": "Application sidebar with sections, nested items, a current item and a collapsed icon rail.",
+      "usage": "Pass `rows` as a flat model of `SidebarRow`, one `generation` for all rows, and handle `chosen(OptionRow)` for a destination. `Choices<K>` does not model nesting: keep the `token` of each row in your own table and map it back in `chosen`. Call `slint_kit::install` once per window. Bind `current` and `expanded` with `<=>` to keep them in your state, or set `ownership` to `controlled` and drive them from the callbacks. Place the sidebar in a `HorizontalLayout`: its width comes from the theme and text scale (`KitMetrics.sidebar-width`), or `KitMetrics.sidebar-rail-width` when `collapsed`.",
+      "behavior": "Activating an item makes it current and emits `chosen(OptionRow)`. Activating a parent (an item that has nested items) opens or closes it and emits `expansion-requested(OptionRow, bool)`; a parent is not a destination. Collapsed to the rail, a parent emits `rail-parent-activated(OptionRow)` instead and changes nothing, so the host can expand the sidebar. The sidebar is one tab stop. Up, Down, Home, End, PageUp, PageDown and typeahead move the active row, skipping section headings and disabled items; Enter or Space activates it; Right opens a parent and then moves into it; Left closes an open parent. No tooltip names the icons in the rail: give each icon item a label, which is its accessible name. Sections and nested items have no place in the rail, and there is no flyout for nested items.",
+      "related": [
+        "KitMenu",
+        "KitAccordion",
+        "KitDrawer",
+        "KitCollapse"
+      ],
+      "callbacks": {
+        "chosen": "A destination was activated. The argument is its `OptionRow`; map its `token` back to your own key.",
+        "expansion-requested": "A parent was activated or opened with Right or closed with Left. The arguments are its `OptionRow` and whether it should be open.",
+        "rail-parent-activated": "A parent was activated while the sidebar is collapsed. Typically set `collapsed` to false.",
+        "focus-observed": "Keyboard focus entered or left the sidebar."
+      },
+      "accessibility": "Rows use the list and list-item roles of `KitMenu`, because this SDK has no navigation or tree roles. The current item is reported as selected, a parent as expandable with its expanded state, and each row with its index among the rows shown. Section headings are plain text. Slint 1.18.1 cannot move assistive focus to the active row, and has no `aria-current` attribute: selection is the closest mark. Headless tests do not qualify VoiceOver, NVDA or physical IME.",
+      "properties": {
+        "rows": {
+          "effect": "The flat model in reading order: `SidebarRow` with `item` (an `OptionRow`: stable `token`, one `generation` for the whole model, `label`, `disabled`), `kind` (`SidebarRowKind.section` for a heading, `item` for a destination), `parent` (a `SelectionRef`; set it to nest an item under another item by token), `leading-icon` and `badge`. A section ignores `parent`; an unknown parent, a section as parent or a cycle leaves the item at the top level.",
+          "example": "rows: root.rows;"
+        },
+        "collapsed": {
+          "effect": "Collapses the sidebar to its icon rail. Sections and nested items are hidden, each top-level item shows its icon only, and the open state of parents is kept for when the sidebar expands again. An item without an icon shows its label, elided, in the rail.",
+          "example": "collapsed: root.rail;",
+          "default": "`false`."
+        },
+        "current": {
+          "effect": "The current page, as a `SelectionRef`. The current item is tinted and reported as selected to assistive technology. Under `Ownership.local` activating an item sets it; under `Ownership.controlled` set it from `chosen`.",
+          "example": "current <=> root.page;"
+        },
+        "expanded": {
+          "effect": "The tokens of the open parents. Under `Ownership.local` activating a parent updates it; under `Ownership.controlled` update it from `expansion-requested`.",
+          "example": "expanded <=> root.open-parents;"
+        },
+        "ownership": {
+          "effect": "Who owns `current` and `expanded`: `Ownership.local` (the default) updates them itself, `Ownership.controlled` only reports `chosen` and `expansion-requested` and waits for the host.",
+          "example": "ownership: Ownership.controlled;",
+          "default": "`Ownership.local`."
+        },
+        "interactive": {
+          "effect": "When false the sidebar and its rows ignore pointer, keys and assistive actions.",
+          "example": "interactive: false;",
+          "default": "`true`."
+        },
+        "control-size": {
+          "effect": "Density of the rows, from the theme: `compact`, `medium` or `comfortable`.",
+          "example": "control-size: ControlSize.compact;"
+        },
+        "accessible-name": {
+          "effect": "The accessible name of the list of rows.",
+          "example": "accessible-name: \"Main navigation\";"
+        },
+        "row-height": {
+          "effect": "Height of every row, section headings included.",
+          "example": "row-height: 40px;"
+        },
+        "modal-layer": {
+          "effect": "The modal layer this component belongs to; 0 is the window. While a `KitDialogSurface` or `KitDrawer` with a positive `modal-layer` is open and topmost, the sidebar is inert. Give a sidebar placed inside a modal that modal's layer number.",
+          "example": "KitSidebar {\n    modal-layer: 1;\n}",
+          "default": "`0` (window)."
+        },
+        "shown-rows": {
+          "effect": "The rows on screen, each a `SidebarVisibleRow` with its `depth`, `expandable` and `expanded` state. It follows `collapsed` and `expanded`.",
+          "example": "out property <int> count: sidebar.shown-rows.length;"
+        },
+        "has-focus": {
+          "effect": "True while the sidebar owns keyboard focus.",
+          "example": "out property <bool> sidebar-focused: sidebar.has-focus;"
+        }
+      }
+    },
+    "fr": {
+      "label": "",
+      "seoTitle": " pour Slint",
+      "summary": "Barre latérale d’application avec sections, éléments imbriqués, élément courant et rail d’icônes réduit.",
+      "usage": "Fournissez `rows` comme modèle plat de `SidebarRow`, avec une seule `generation` pour toutes les lignes, et traitez `chosen(OptionRow)` pour une destination. `Choices<K>` ne modélise pas l’imbrication : gardez le `token` de chaque ligne dans votre propre table et retrouvez-le dans `chosen`. Appelez `slint_kit::install` une fois par fenêtre. Liez `current` et `expanded` avec `<=>` pour les garder dans votre état, ou réglez `ownership` sur `controlled` et pilotez-les depuis les callbacks. Placez la barre latérale dans un `HorizontalLayout` : sa largeur vient du thème et de l’échelle du texte (`KitMetrics.sidebar-width`), ou de `KitMetrics.sidebar-rail-width` quand `collapsed`.",
+      "behavior": "Activer un élément le rend courant et émet `chosen(OptionRow)`. Activer un parent (un élément qui a des éléments imbriqués) l’ouvre ou le ferme et émet `expansion-requested(OptionRow, bool)` ; un parent n’est pas une destination. Réduit au rail, un parent émet plutôt `rail-parent-activated(OptionRow)` et ne change rien, ce qui permet à l’hôte de déployer la barre. La barre latérale prend un arrêt de tabulation. Haut, Bas, Début, Fin, PageUp, PageDown et la recherche à la frappe déplacent la ligne active, en sautant les titres de section et les éléments désactivés ; Entrée ou Espace l’active ; Droite ouvre un parent puis y entre ; Gauche ferme un parent ouvert. Aucune info-bulle ne nomme les icônes du rail : donnez un libellé à chaque élément à icône, qui est son nom accessible. Les sections et les éléments imbriqués n’ont pas de place dans le rail, et il n’y a pas de menu volant pour les éléments imbriqués.",
+      "related": [
+        "KitMenu",
+        "KitAccordion",
+        "KitDrawer",
+        "KitCollapse"
+      ],
+      "callbacks": {
+        "chosen": "Une destination a été activée. L’argument est son `OptionRow` ; retrouvez votre clé à partir de son `token`.",
+        "expansion-requested": "Un parent a été activé, ouvert avec Droite ou fermé avec Gauche. Les arguments sont son `OptionRow` et son état ouvert souhaité.",
+        "rail-parent-activated": "Un parent a été activé alors que la barre latérale est réduite. Réglez typiquement `collapsed` sur faux.",
+        "focus-observed": "Le focus clavier est entré dans la barre latérale ou l’a quittée."
+      },
+      "accessibility": "Les lignes utilisent les rôles liste et élément de liste de `KitMenu`, car ce SDK n’a pas de rôles de navigation ou d’arbre. L’élément courant est signalé comme sélectionné, un parent comme déployable avec son état déployé, et chaque ligne avec son rang parmi les lignes affichées. Les titres de section sont du texte simple. Slint 1.18.1 ne peut pas déplacer le focus assistif vers la ligne active et n’a pas d’attribut `aria-current` : la sélection est le repère le plus proche. Les tests sans affichage ne qualifient ni VoiceOver, ni NVDA, ni un IME physique.",
+      "properties": {
+        "rows": {
+          "effect": "Le modèle plat dans l’ordre de lecture : `SidebarRow` avec `item` (un `OptionRow` : `token` stable, une seule `generation` pour tout le modèle, `label`, `disabled`), `kind` (`SidebarRowKind.section` pour un titre, `item` pour une destination), `parent` (un `SelectionRef` ; renseignez-le pour imbriquer un élément sous un autre par son token), `leading-icon` et `badge`. Une section ignore `parent` ; un parent inconnu, une section comme parent ou un cycle laisse l’élément au premier niveau.",
+          "example": "rows: root.rows;"
+        },
+        "collapsed": {
+          "effect": "Réduit la barre latérale à son rail d’icônes. Les sections et les éléments imbriqués sont masqués, chaque élément de premier niveau n’affiche que son icône, et l’état ouvert des parents est conservé pour le prochain déploiement. Un élément sans icône affiche son libellé, tronqué, dans le rail.",
+          "example": "collapsed: root.rail;",
+          "default": "`false`."
+        },
+        "current": {
+          "effect": "La page courante, sous forme de `SelectionRef`. L’élément courant est teinté et signalé comme sélectionné aux technologies d’assistance. Avec `Ownership.local`, activer un élément la définit ; avec `Ownership.controlled`, définissez-la depuis `chosen`.",
+          "example": "current <=> root.page;"
+        },
+        "expanded": {
+          "effect": "Les tokens des parents ouverts. Avec `Ownership.local`, activer un parent la met à jour ; avec `Ownership.controlled`, mettez-la à jour depuis `expansion-requested`.",
+          "example": "expanded <=> root.open-parents;"
+        },
+        "ownership": {
+          "effect": "Qui possède `current` et `expanded` : `Ownership.local` (par défaut) les met à jour lui-même, `Ownership.controlled` ne fait que signaler `chosen` et `expansion-requested` et attend l’hôte.",
+          "example": "ownership: Ownership.controlled;",
+          "default": "`Ownership.local`."
+        },
+        "interactive": {
+          "effect": "Quand il vaut faux, la barre latérale et ses lignes ignorent le pointeur, les touches et les actions d’assistance.",
+          "example": "interactive: false;",
+          "default": "`true`."
+        },
+        "control-size": {
+          "effect": "Densité des lignes, issue du thème : `compact`, `medium` ou `comfortable`.",
+          "example": "control-size: ControlSize.compact;"
+        },
+        "accessible-name": {
+          "effect": "Le nom accessible de la liste de lignes.",
+          "example": "accessible-name: \"Main navigation\";"
+        },
+        "row-height": {
+          "effect": "Hauteur de chaque ligne, titres de section compris.",
+          "example": "row-height: 40px;"
+        },
+        "modal-layer": {
+          "effect": "Couche modale à laquelle appartient ce composant ; 0 désigne la fenêtre. Tant qu’un `KitDialogSurface` ou un `KitDrawer` de `modal-layer` positif est ouvert et au sommet, la barre latérale est inerte. Donnez à une barre latérale placée dans une modale le numéro de couche de cette modale.",
+          "example": "KitSidebar {\n    modal-layer: 1;\n}",
+          "default": "`0` (fenêtre)."
+        },
+        "shown-rows": {
+          "effect": "Les lignes affichées, chacune un `SidebarVisibleRow` avec sa `depth`, son état `expandable` et `expanded`. Elle suit `collapsed` et `expanded`.",
+          "example": "out property <int> count: sidebar.shown-rows.length;"
+        },
+        "has-focus": {
+          "effect": "Vrai tant que la barre latérale a le focus clavier.",
+          "example": "out property <bool> sidebar-focused: sidebar.has-focus;"
         }
       }
     }

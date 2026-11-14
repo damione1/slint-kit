@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { OptionRow, OptionItem, ChoiceRow, SelectionRef, SelectState, NavigationStep, CloseReason, SelectionRetention } from "contracts.slint";
 import { Ownership } from "shared-contracts.slint";
-import { ExpansionMode, DisclosureRow, ChipRow } from "contracts.slint";
+import { ExpansionMode, DisclosureRow, ChipRow, SidebarRow, SidebarVisibleRow } from "contracts.slint";
 
 export struct SelectionSession {
     state: SelectState,
@@ -43,6 +43,11 @@ export global KitSelectionService {
     pure callback disclosure(OptionRow, [SelectionRef]) -> DisclosureRow;
     pure callback disclosure-options([DisclosureRow]) -> [OptionRow];
     pure callback disclosure-source([DisclosureRow], int) -> DisclosureRow;
+    pure callback sidebar-rows([SidebarRow], [SelectionRef], bool) -> [SidebarVisibleRow];
+    pure callback sidebar-options([SidebarVisibleRow]) -> [OptionRow];
+    pure callback sidebar-entry([SidebarVisibleRow], int) -> SidebarVisibleRow;
+    pure callback sidebar-has-icons([SidebarRow]) -> bool;
+    pure callback sidebar-toggle([SidebarRow], [SelectionRef], int, bool) -> [SelectionRef];
     pure callback disclose([OptionRow], [SelectionRef], int, int, int, bool, ExpansionMode) -> [SelectionRef];
     pure callback label([OptionRow], SelectionRef) -> string;
     pure callback source([OptionRow], int) -> OptionRow;
