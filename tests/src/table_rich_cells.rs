@@ -136,7 +136,8 @@ fn full_text_tips(row: &ElementHandle) -> usize {
 
 #[test]
 fn elided_text_cells_show_their_full_text_in_a_tooltip() {
-    let long = "A very long description that cannot fit in a column of one hundred and sixty pixels";
+    let long =
+        "A very long description that cannot fit in a column of one hundred and sixty pixels";
     let window = load(vec![rich_row(1, long), rich_row(2, "Short")]);
     assert_eq!(
         full_text_tips(&row_named(&window, long)),
