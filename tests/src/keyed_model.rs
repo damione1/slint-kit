@@ -40,6 +40,24 @@ fn key_models_reject_stale_gestures_duplicate_keys_and_removed_identities() {
     );
 }
 #[test]
+fn moving_the_active_row_keeps_the_selection_and_rejects_stale_or_disabled_rows() {
+    let model = KeyedModel::new([
+        (Record(1), row("first")),
+        (Record(2), row("second")),
+        (Record(3), row("third")),
+    ])
+    .unwrap();
+    let token = |index| model.model().row_data(index).unwrap().token;
+    let generation = model.generation();
+    model.select(token(0), generation).unwrap();
+    assert_eq!(model.move_active(token(2), generation), Some(Record(3)));
+    assert_eq!(model.active_index(), 2);
+    assert_eq!(model.selected_keys(), vec![Record(1)], "selection stays");
+    assert_eq!(model.move_active(token(1), generation + 1), None);
+    assert_eq!(model.move_active(-1, generation), None);
+    assert_eq!(model.active_index(), 2, "a refused move changes nothing");
+}
+#[test]
 fn bound_model_and_toast_handlers_do_not_keep_a_window_alive() {
     i_slint_backend_testing::init_no_event_loop();
     let window = crate::AutonomousFixture::new().unwrap();

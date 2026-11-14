@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![forbid(unsafe_code)]
 use crate::{ColumnDataIndex, ui};
-use slint::{ComponentHandle, DataTransfer, Model, ModelExt, ModelRc, ModelTracker};
+use kit_core::{TYPEAHEAD_TIMEOUT_MS, typeahead_search};
+use slint::{ComponentHandle, DataTransfer, Model, ModelExt, ModelRc, ModelTracker, SharedString};
 use std::rc::Rc;
 
 // Map canonical positions before filtering. Reuse the source tracker so row
@@ -146,6 +147,114 @@ fn column_drop(
         token: drag.token.0,
     }
 }
+/// The text a row is found by when typing: its first cell, as the row's
+/// accessible name is read. A row without cells has no name to match.
+fn row_name(row: &ui::TableRow) -> SharedString {
+    row.content
+        .row_data(0)
+        .map(|cell| cell.text)
+        .or_else(|| row.cells.row_data(0))
+        .unwrap_or_default()
+}
+/// A key worth searching by: one printable character. Control characters and
+/// the private-use code points Slint gives to named keys (arrows, function
+/// keys) are not text.
+fn typeahead_text(text: &str) -> bool {
+    let mut chars = text.chars();
+    matches!(
+        (chars.next(), chars.next()),
+        (Some(c), None) if !c.is_control() && !('\u{E000}'..='\u{F8FF}').contains(&c)
+    )
+}
+fn session_clock(session: &ui::TableTypeahead) -> Option<u64> {
+    session
+        .has_timestamp
+        .then(|| u64::try_from(session.timestamp).ok())
+        .flatten()
+}
+fn typeahead_active(session: ui::TableTypeahead, now: i32) -> bool {
+    let (Ok(now), Some(last)) = (u64::try_from(now), session_clock(&session)) else {
+        return false;
+    };
+    !session.query.is_empty() && now >= last && now - last < TYPEAHEAD_TIMEOUT_MS
+}
+fn typeahead(
+    rows: ModelRc<ui::TableRow>,
+    active: i32,
+    session: ui::TableTypeahead,
+    text: SharedString,
+    now: i32,
+) -> ui::TableTypeaheadResult {
+    let unchanged = |session| ui::TableTypeaheadResult {
+        row: -1,
+        handled: false,
+        session,
+    };
+    let Ok(now_ms) = u64::try_from(now) else {
+        return unchanged(session);
+    };
+    if !typeahead_text(&text) {
+        return unchanged(session);
+    }
+    rows.model_tracker().track_row_count_changes();
+    let snapshot: Vec<(SharedString, bool)> = (0..rows.row_count())
+        .filter_map(|index| rows.row_data_tracked(index))
+        .map(|row| (row_name(&row), row.disabled))
+        .collect();
+    let mut query = session.query.to_string();
+    let mut last_ms = session_clock(&session);
+    let found = typeahead_search(
+        &mut query,
+        &mut last_ms,
+        TYPEAHEAD_TIMEOUT_MS,
+        &text,
+        now_ms,
+        usize::try_from(active).ok(),
+        snapshot
+            .iter()
+            .map(|(name, disabled)| (name.as_str(), *disabled)),
+    );
+    ui::TableTypeaheadResult {
+        handled: !query.is_empty(),
+        row: found
+            .and_then(|index| i32::try_from(index).ok())
+            .unwrap_or(-1),
+        session: ui::TableTypeahead {
+            query: query.into(),
+            has_timestamp: last_ms.is_some(),
+            timestamp: last_ms.and_then(|ms| i32::try_from(ms).ok()).unwrap_or(0),
+        },
+    }
+}
+/// The position of the first (or last) visible column whose cell in `row` is
+/// an editable field, or -1 when the row has none. `columns` is the visible
+/// projection the table paints, so a position is a painted column.
+fn edge_editable_column(columns: ModelRc<ui::TableColumn>, row: ui::TableRow, last: bool) -> i32 {
+    let editable = |position: usize| {
+        let Some(column) = columns.row_data_tracked(position) else {
+            return false;
+        };
+        let data = match column.source.mode {
+            ui::ColumnSourceMode::Position => i32::try_from(position).ok(),
+            ui::ColumnSourceMode::DataIndex => Some(column.source.index),
+        };
+        data.and_then(|index| usize::try_from(index).ok())
+            .and_then(|index| row.content.row_data(index))
+            .is_some_and(|cell| {
+                cell.kind == ui::TableCellKind::Field && cell.access == ui::FieldAccess::Editable
+            })
+    };
+    columns.model_tracker().track_row_count_changes();
+    let count = columns.row_count();
+    let found = if last {
+        (0..count).rev().find(|&position| editable(position))
+    } else {
+        (0..count).find(|&position| editable(position))
+    };
+    found
+        .and_then(|position| i32::try_from(position).ok())
+        .unwrap_or(-1)
+}
 pub(crate) fn install_data<W: ComponentHandle>(window: &W)
 where
     for<'a> ui::KitDataService<'a>: slint::Global<'a, W>,
@@ -155,6 +264,9 @@ where
     service.on_source_current(source_current);
     service.on_column_drag(column_drag);
     service.on_column_drop(column_drop);
+    service.on_typeahead(typeahead);
+    service.on_typeahead_active(typeahead_active);
+    service.on_edge_editable_column(edge_editable_column);
     service.set_ready(true);
 }
 

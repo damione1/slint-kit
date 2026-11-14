@@ -117,6 +117,7 @@ export component BaseDataFixture inherits Window {
     callback cell-committed(CellCommit);
     callback cell-action(CellRef);
     callback table-edit-started(CellRef);
+    callback table-typeahead(int, int);
     callback table-cell-copied(CellRef, string);
     public function copy-table-cell() { table.copy-active-cell(); }
     callback table-edit-ended(CellRef, TableEditOutcome, string);
@@ -148,6 +149,7 @@ export component BaseDataFixture inherits Window {
             retry-requested => { root.table-retry(); }
             key-event(event) => { return root.table-key-event(event); }
             navigate(step) => { root.navigate(DataFixtureCollection.table,step); }
+            typeahead-requested(token,generation) => { root.table-typeahead(token,generation); }
             activate(token,generation) => { root.table-activated(token,generation); }
             gesture(token,generation,gesture) => { root.table-gesture(token,generation,gesture); }
             context-requested(token,generation,x,y) => { root.table-context(token,generation,x,y); }
