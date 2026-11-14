@@ -10890,7 +10890,7 @@
   "KitZonedDateTimeField": {
     "fr": {
       "summary": "Champ date-heure Slint avec résolution de fuseau IANA en Rust, refus des heures inexistantes et choix explicite des heures répétées.",
-      "usage": "Fournissez les brouillons date, heure et zone IANA. Le kit résout les heures uniques, refuse les heures inexistantes et exige le choix explicite de l’occurrence antérieure ou postérieure en cas d’ambiguïté. `chosen(ZonedDateTimeCommit)` contient valeur locale, zone et décision ; `ResolvedDateTime::try_from` retourne l’instant vérifié. Le brouillon se résout avec Entrée, `resolve()` ou lorsque le focus quitte ensemble les éditeurs de date, d’heure et de zone (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer d’un éditeur à l’autre n’est pas une perte de focus. Modifier un brouillon invalide toute résolution antérieure et tout geste d’ambiguïté en cours.",
+      "usage": "Fournissez les brouillons date, heure et zone IANA. Le fuseau se choisit dans une liste déroulante filtrable alimentée par tout le catalogue IANA (`zone-options` pour la restreindre). Le kit résout les heures uniques, refuse les heures inexistantes et exige le choix explicite de l’occurrence antérieure ou postérieure en cas d’ambiguïté. `chosen(ZonedDateTimeCommit)` contient valeur locale, zone et décision ; `ResolvedDateTime::try_from` retourne l’instant vérifié. Le brouillon se résout avec Entrée, `resolve()` ou lorsque le focus quitte ensemble les éditeurs de date, d’heure et de zone (`commit-policy`, `CommitPolicy.on-blur` par défaut) ; passer d’un éditeur à l’autre n’est pas une perte de focus. Modifier un brouillon invalide toute résolution antérieure et tout geste d’ambiguïté en cours.",
       "behavior": "Une heure inexistante est refusée. Une heure répétée exige un choix explicite unique pour la résolution courante. L’acceptation définit occurrence-selection et retire uniquement le blocage interne d’ambiguïté ; custom-validity de l’hôte et les autres contraintes restent actives, de sorte que check-validity() peut alors réussir si elles le permettent. Les deux boutons cessent d’accepter d’autres choix ; leur état checked/checkable indique l’occurrence acceptée et le message poli existant affiche sa confirmation localisée. Modifier date/heure/zone ou lancer un nouveau resolve() efface la sélection. Les gardes d’accès et de résolution périmée restent appliquées ; un callback hôte publiant un nouveau brouillon/résultat invalide l’ancien choix. Les aperçus Slint seuls affichent le texte déclaré ; analyse et acceptation exigent install(&window).",
       "label": "Champ date, heure et fuseau",
       "seoTitle": "Champ date, heure et fuseau pour Slint",
@@ -10988,6 +10988,11 @@
           "effect": "Texte d’aide de l’éditeur de fuseau horaire.",
           "default": "`KitStrings.time-zone-description`.",
           "example": "KitZonedDateTimeField { zone-description: \"…\"; }"
+        },
+        "zone-options": {
+          "effect": "Fuseaux proposés par l’éditeur de fuseau, un `OptionRow` par fuseau dont le libellé est le nom IANA. La recherche ignore la casse et porte sur le nom et la description (décalage UTC et nom du lieu). Un nom saisi puis non choisi n’est pas accepté.",
+          "default": "Tout le catalogue IANA via `KitTimeService.zone-options()`, avec le décalage UTC en vigueur à l’affichage ; vide avant `install`.",
+          "example": "KitZonedDateTimeField { zone-options: [{ token: 0, generation: 1, label: \"America/Toronto\", description: \"Eastern\", disabled: false }]; }"
         }
       },
       "states": "unselected correspond à une ambiguïté sans réponse ; earlier/later mémorise son occurrence acceptée sans changer resolution, qui reste ambiguous. Un nouveau brouillon/résultat efface ce choix. Lecture seule, désactivation et gestes périmés refusent l’acceptation ; les autres erreurs de validation hôte sont conservées.",
@@ -10995,7 +11000,7 @@
     },
     "en": {
       "summary": "Slint date-time field with IANA time-zone resolution in Rust, rejecting nonexistent times and asking which repeated occurrence to accept.",
-      "usage": "Provide the date, time and IANA zone drafts. The kit resolves unique times, rejects gaps and requests an explicit earlier/later occurrence for overlaps. `chosen(ZonedDateTimeCommit)` carries the local value, zone and occurrence decision; `ResolvedDateTime::try_from` returns the checked instant. The draft resolves on Enter, `resolve()` or when focus leaves the date, time and zone editors together (`commit-policy`, default `CommitPolicy.on-blur`); moving between those editors is not a blur. Editing any draft invalidates an earlier resolution and pending ambiguity gesture.",
+      "usage": "Provide the date, time and IANA zone drafts. The zone is picked from a searchable list fed by the whole IANA catalogue (`zone-options` narrows it). The kit resolves unique times, rejects gaps and requests an explicit earlier/later occurrence for overlaps. `chosen(ZonedDateTimeCommit)` carries the local value, zone and occurrence decision; `ResolvedDateTime::try_from` returns the checked instant. The draft resolves on Enter, `resolve()` or when focus leaves the date, time and zone editors together (`commit-policy`, default `CommitPolicy.on-blur`); moving between those editors is not a blur. Editing any draft invalidates an earlier resolution and pending ambiguity gesture.",
       "behavior": "A nonexistent time is rejected. An overlap requires one explicit earlier/later choice for the current resolution. Acceptance sets occurrence-selection and removes only the internal ambiguity validity blocker; host custom-validity and other constraints remain effective, so check-validity() can then succeed when they permit it. Both occurrence buttons stop accepting further choices; checked/checkable state identifies the accepted one and the existing polite message shows its localized confirmation. Editing date/time/zone or starting a new resolve() clears the selection. Access and stale-resolution guards still apply, and a host callback publishing a new draft/resolution invalidates the old choice. Pure-Slint previews display authored text; parsing and acceptance require install(&window).",
       "label": "Zoned Date and Time Field",
       "seoTitle": "Zoned Date and Time Field for Slint",
@@ -11093,6 +11098,11 @@
           "effect": "Help text of the time zone editor.",
           "default": "`KitStrings.time-zone-description`.",
           "example": "KitZonedDateTimeField { zone-description: \"…\"; }"
+        },
+        "zone-options": {
+          "effect": "Zones offered by the time zone editor, one `OptionRow` per zone whose label is the IANA name. Search ignores case and matches the name and the description (UTC offset and place name). A typed name that is not chosen is not accepted.",
+          "default": "The whole IANA catalogue from `KitTimeService.zone-options()`, with the UTC offset in force when the list is built; empty before `install`.",
+          "example": "KitZonedDateTimeField { zone-options: [{ token: 0, generation: 1, label: \"America/Toronto\", description: \"Eastern\", disabled: false }]; }"
         }
       },
       "states": "unselected accompanies an unanswered overlap; earlier/later records its accepted occurrence without changing resolution from ambiguous. New drafts/resolutions clear it. Read-only, disabled and obsolete gestures cannot accept a choice; accepted choices preserve unrelated host validation errors.",
