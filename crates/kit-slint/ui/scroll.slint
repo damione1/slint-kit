@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitTheme, KitThemes, KitThemeContext, ScrollBarRecipe, ChoiceFlow } from "theme.slint";
 
+// Which way a held track press pages: toward the start or the end of the content.
+enum TrackHold { none, toward-start, toward-end }
+
 // Pointer affordance for one axis of a scrolled viewport. `value` follows
 // Flickable's convention: 0 at the start and -maximum at the end. Like the
 // std-widgets bar it replaces, it takes no focus and adds nothing to the
@@ -14,7 +17,7 @@ export component KitScrollBar inherits Rectangle {
     in property <length> maximum;
     in property <length> page-size;
     in-out property <length> value;
-    // Emitted after a pointer drag, track press or wheel changes `value`.
+    // Emitted after a pointer drag, track press (and each repeat while held) or wheel changes `value`.
     callback scrolled();
     out property <bool> active: root.enabled && (touch.has-hover || touch.pressed);
     in property <ScrollBarRecipe> recipe: KitThemes.scroll-bar-recipe(root.theme);
@@ -26,6 +29,20 @@ export component KitScrollBar inherits Rectangle {
     private property <length> travel: max(0px, root.track-length - root.thumb-length);
     private property <length> thumb-start: root.recipe.inset + (root.range <= 0px ? 0px : root.travel * max(0, min(1, -root.value / root.range)));
     private property <length> thumb-thickness: root.active ? root.recipe.active-thumb-thickness : root.recipe.thumb-thickness;
+    // A track press pages once, then repeats after the theme's repeat delay at
+    // its repeat interval while the button stays down, like a web scrollbar.
+    private property <TrackHold> hold: TrackHold.none;
+    private property <bool> hold-repeating;
+    private property <bool> hold-pending: root.enabled && root.hold != TrackHold.none;
+    function page-held() {
+        // Stops once the thumb reaches the pointer; pauses while the pointer is off the bar.
+        if (!touch.has-hover) { return; }
+        if (root.hold == TrackHold.toward-start && touch.pointer < root.thumb-start) {
+            root.scroll-to(root.value + root.page-size);
+        } else if (root.hold == TrackHold.toward-end && touch.pointer > root.thumb-start + root.thumb-length) {
+            root.scroll-to(root.value - root.page-size);
+        }
+    }
     function scroll-to(next: length) {
         let bounded = max(-root.range, min(0px, next));
         if (bounded != root.value) { root.value = bounded; root.scrolled(); }
@@ -53,6 +70,18 @@ export component KitScrollBar inherits Rectangle {
         background: root.active ? root.recipe.active-thumb : root.recipe.thumb;
         animate width, height, background { duration: root.recipe.transition; }
     }
+    // Two timers, because a running Timer keeps its period: the delay timer
+    // hands over to the interval timer after its first trigger.
+    Timer {
+        running: root.hold-pending && !root.hold-repeating;
+        interval: root.theme.motion.repeat-delay;
+        triggered => { root.hold-repeating = true; root.page-held(); }
+    }
+    Timer {
+        running: root.hold-pending && root.hold-repeating;
+        interval: root.theme.motion.repeat-interval;
+        triggered => { root.page-held(); }
+    }
     touch := TouchArea {
         enabled: root.enabled;
         // Drag reference: the pointer and value at press, rebased whenever the
@@ -61,7 +90,7 @@ export component KitScrollBar inherits Rectangle {
         property <length> press-pointer;
         property <length> press-value;
         property <length> press-range;
-        property <length> pointer: root.horizontal ? self.mouse-x : self.mouse-y;
+        out property <length> pointer: root.horizontal ? self.mouse-x : self.mouse-y;
         function rebase() { self.press-pointer = self.pointer; self.press-value = root.value; self.press-range = root.range; }
         pointer-event(event) => {
             if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
@@ -71,10 +100,14 @@ export component KitScrollBar inherits Rectangle {
                 } else {
                     // A track press moves one page toward the pointer, as on the web.
                     self.dragging = false;
-                    root.scroll-to(root.value + (self.pointer < root.thumb-start ? root.page-size : -root.page-size));
+                    root.hold-repeating = false;
+                    root.hold = self.pointer < root.thumb-start ? TrackHold.toward-start : TrackHold.toward-end;
+                    root.page-held();
                 }
             } else if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                 self.dragging = false;
+                root.hold = TrackHold.none;
+                root.hold-repeating = false;
             }
         }
         moved => {
