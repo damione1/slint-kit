@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitNumberStepper, KitColorField, KitColorPicker, KitTheme, KitThemes } from "@kit";
+import { KitNumberStepper, KitColorField, KitColorPicker, KitTheme, KitThemes, CommitPolicy } from "@kit";
 
 // Composite wrappers forward the field message and option API of KitTextField.
 export component WrapperFieldApiFixture inherits Window {
@@ -14,6 +14,12 @@ export component WrapperFieldApiFixture inherits Window {
     out property <string> stepper-message: stepper.validation-message;
     out property <string> color-message: color.validation-message;
     out property <string> picker-message: picker.validation-message;
+    in property <CommitPolicy> color-policy: CommitPolicy.on-blur;
+    out property <bool> color-focused: color.has-focus;
+    out property <int> color-focus-events;
+    out property <int> color-edits;
+    public function focus-color() { color.take-focus(); }
+    public function reset-color() { color.reset-field(); }
     public function report-stepper() -> bool { return stepper.report-validity(); }
     public function report-color() -> bool { return color.report-validity(); }
     public function report-picker() -> bool { return picker.report-validity(); }
@@ -21,10 +27,12 @@ export component WrapperFieldApiFixture inherits Window {
         stepper := KitNumberStepper {
             theme: root.theme; label: root.stepper-label; accessible-name: root.stepper-name;
             text <=> root.stepper-value; min: root.stepper-min; max: root.stepper-max; required: true;
-            required-message: "Obligatoire"; underflow-message: "Trop petit"; overflow-message: "Trop grand";
+            leading-icon: root.theme.icons.search; required-message: "Obligatoire"; underflow-message: "Trop petit"; overflow-message: "Trop grand";
         }
         color := KitColorField {
             theme: root.theme; text <=> root.color-text; required: true; required-message: "Couleur obligatoire";
+            commit-policy: root.color-policy;
+            focus-observed(focused) => { root.color-focus-events += 1; }
             accepted-value: { present: false, color: { red: 0, green: 0, blue: 0, alpha: 255 } };
         }
         picker := KitColorPicker {
