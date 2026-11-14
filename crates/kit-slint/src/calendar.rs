@@ -3,9 +3,9 @@
 use crate::ui;
 use kit_core::{
     CalendarController, CalendarMove, CalendarState, CivilDate, DateConstraints,
-    DateDisplayPattern, DateNames, DatePattern, DateRange, DateRangeController, DateRangeRules,
-    DraftValue, EarlierEndPolicy, Instant, NumericBounds, ParseIssue, RangeRejection,
-    RangeSelection, TimeZoneId, WeekStart, YearMonth,
+    DateDisplayPattern, DateEntry, DateNames, DatePattern, DateRange, DateRangeController,
+    DateRangeRules, DraftValue, EarlierEndPolicy, Instant, NumericBounds, ParseIssue,
+    RangeRejection, RangeSelection, TimeZoneId, WeekStart, YearMonth,
 };
 use slint::{Model, ModelRc, VecModel};
 
@@ -277,6 +277,45 @@ fn display_date(text: &str, display: &ui::DateDisplay) -> Option<String> {
     )
     .ok()?;
     Some(pattern.format_with_names(date, &names))
+}
+/// The typed entry a date field edits with: an empty pattern, a pattern without
+/// a complete date or an invalid name set yields `None`, and the field keeps ISO
+/// text. Four empty name lists keep the English names.
+pub(crate) fn date_entry(display: &ui::DateDisplay) -> Option<DateEntry> {
+    fn names<const N: usize>(model: &ModelRc<slint::SharedString>) -> Option<[String; N]> {
+        model
+            .iter()
+            .map(|name| name.to_string())
+            .collect::<Vec<_>>()
+            .try_into()
+            .ok()
+    }
+    if display.pattern.is_empty() {
+        return None;
+    }
+    let pattern = DatePattern::new(display.pattern.as_str()).ok()?;
+    let unnamed = [
+        &display.months,
+        &display.short_months,
+        &display.weekdays,
+        &display.short_weekdays,
+    ]
+    .iter()
+    .all(|model| model.row_count() == 0);
+    let names = if unnamed {
+        None
+    } else {
+        Some(
+            DateNames::new(
+                names(&display.months)?,
+                names(&display.short_months)?,
+                names(&display.weekdays)?,
+                names(&display.short_weekdays)?,
+            )
+            .ok()?,
+        )
+    };
+    Some(DateEntry::new(pattern, names))
 }
 struct CalendarLabels {
     names: DateNames,
@@ -556,6 +595,21 @@ where
             |_| slint::SharedString::default(),
             |date| date.iso_string().into(),
         )
+    });
+    service.on_date_entry_valid(|display| date_entry(&display).is_some());
+    service.on_parse_date_entry(|text, display| {
+        match date_entry(&display).map(|entry| entry.parse(text.as_str())) {
+            Some(DraftValue::Parsed(date)) => date.into(),
+            Some(DraftValue::Empty | DraftValue::Incomplete | DraftValue::Invalid(_)) | None => {
+                ui::CivilDateView::default()
+            }
+        }
+    });
+    service.on_format_date_entry(|date, display| {
+        match (date_entry(&display), CivilDate::try_from(date)) {
+            (Some(entry), Ok(date)) => entry.format(date).into(),
+            (None, _) | (_, Err(_)) => slint::SharedString::default(),
+        }
     });
     service.on_display_date(|text, display| {
         display_date(text.as_str(), &display).map_or(text, slint::SharedString::from)

@@ -169,6 +169,16 @@ where
             CivilDate::try_from(value).map(|date| Some(FieldSpec::date().format(&date)))
         })
     });
+    service.on_project_date_entry(|value, display| {
+        let Some(entry) = crate::calendar::date_entry(&display) else {
+            return projection(Err(ParseIssue::InvalidSyntax));
+        };
+        projection(if value == ui::CivilDateView::default() {
+            Ok(None)
+        } else {
+            CivilDate::try_from(value).map(|date| Some(entry.format(date)))
+        })
+    });
     service.on_project_year(|year| {
         projection(if year == 0 {
             Ok(None)

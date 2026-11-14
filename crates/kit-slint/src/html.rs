@@ -222,6 +222,7 @@ impl HtmlValidationEngine {
             custom_error: c.custom_error.to_string(),
             disabled: c.disabled,
             read_only: c.read_only,
+            date_entry: crate::calendar::date_entry(&c.date_entry),
         };
         (rules, pattern_error)
     }

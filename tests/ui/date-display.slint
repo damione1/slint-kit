@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-import { KitDateField, KitDatePicker, KitTheme, KitThemes } from "@kit";
+import { CivilDateView, KitDateField, KitDatePicker, KitTheme, KitThemes, KitValidityState } from "@kit";
 export component DateDisplayFixture inherits Window {
     width: 640px; height: 400px;
     in property <KitTheme> theme: KitThemes.light;
@@ -24,6 +24,45 @@ export component DateDisplayFixture inherits Window {
         picker := KitDatePicker {
             theme: root.theme; label: "Picker"; spec-key: "";
             display-pattern: "%d/%m/%Y";
+            accepted-date: { year: 2026, month: 10, day: 16 };
+        }
+    }
+}
+
+export component DateEntryFixture inherits Window {
+    width: 640px; height: 400px;
+    in property <KitTheme> theme: KitThemes.light;
+    in property <string> pattern: "%d/%m/%Y";
+    in property <string> min: "";
+    in property <string> max: "";
+    in-out property <CivilDateView> accepted <=> field.accepted-date;
+    in-out property <CivilDateView> picked <=> picker.accepted-date;
+    in-out property <string> picker-text <=> picker.text;
+    in-out property <string> typed <=> field.text;
+    out property <bool> active: field.entry-active;
+    out property <bool> picker-active: picker.entry-active;
+    out property <KitValidityState> validity: field.validity;
+    out property <string> message: field.validation-message;
+    out property <string> picker-message: picker.validation-message;
+    public function focus-field() { field.take-focus(); }
+    public function focus-picker() { picker.take-focus(); }
+    public function choose-in-picker(date: CivilDateView) { picker.accept-date(date); }
+    VerticalLayout {
+        padding: 16px; spacing: 16px; alignment: start;
+        field := KitDateField {
+            theme: root.theme; label: "Entry"; min: root.min; max: root.max;
+            accepted-date: { year: 2026, month: 10, day: 16 };
+            entry-format: {
+                pattern: root.pattern,
+                months: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+                short-months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+                weekdays: ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+                short-weekdays: ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."],
+            };
+        }
+        picker := KitDatePicker {
+            theme: root.theme; label: "Picker Entry"; spec-key: "";
+            entry-pattern: root.pattern; min: root.min; max: root.max;
             accepted-date: { year: 2026, month: 10, day: 16 };
         }
     }

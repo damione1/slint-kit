@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import { KitInputConstraints } from "validation.slint";
 import { FieldValue } from "field-service.slint";
-import { CivilDateView } from "calendar-service.slint";
+import { CivilDateView, DateDisplay } from "calendar-service.slint";
 import { TimePrecision, ClockFormat } from "shared-contracts.slint";
 import { KitDayPeriods, KitStrings } from "strings.slint";
 import { OptionRow, SelectionRef } from "contracts.slint";
@@ -31,6 +31,7 @@ export global KitTimeService {
     // The twelve-hour markers the callbacks below parse and print, read from the window's strings.
     in property <KitDayPeriods> day-periods: KitStrings.day-periods;
     pure callback project-date(CivilDateView) -> TemporalProjection;
+    pure callback project-date-entry(CivilDateView, DateDisplay) -> TemporalProjection;
     pure callback project-year(int) -> TemporalProjection;
     pure callback project-month(int, int) -> TemporalProjection;
     pure callback project-week(int, int) -> TemporalProjection;
